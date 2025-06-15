@@ -796,6 +796,14 @@ body {
   white-space: nowrap;
 }
 
+/* Date header separating chat tabs by day */
+#verticalTabsContainer .tab-date-header {
+  margin: 4px 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
 #verticalTabsContainer button.active {
   background-color: #555;
   border-color: #aaa;
