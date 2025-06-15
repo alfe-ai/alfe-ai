@@ -2442,7 +2442,9 @@ chatSendBtnEl.addEventListener("click", async () => {
   appendChatElement(seqDiv);
   if(chatAutoScroll){
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-    setTimeout(scrollChatToBottom, 0);
+    // After the AI response has fully rendered, scroll once more
+    // with a slight delay to ensure any late DOM updates are captured.
+    setTimeout(scrollChatToBottom, 1000);
   }
 
   let combinedUserText = "";
