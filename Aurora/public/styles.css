@@ -404,6 +404,15 @@ body {
   min-height: 2.2rem; /* extra height for header buttons */
 }
 
+.chat-user pre,
+.chat-bot pre {
+  background: #1e1e1e;
+  padding: 6px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
 /* Thumbnail images in the secure uploader table */
 .table-thumb {
   max-width: 52px;

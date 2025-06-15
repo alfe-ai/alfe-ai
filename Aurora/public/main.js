@@ -206,6 +206,24 @@ function stripPlaceholderImageLines(text){
     .join("\n");
 }
 
+function escapeHtml(text){
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function formatCodeBlocks(text){
+  if(!text) return "";
+  const parts = text.split(/```/);
+  return parts.map((part, idx) => {
+    if(idx % 2 === 0){
+      return escapeHtml(part).replace(/\n/g, "<br>");
+    }
+    return `<pre><code>${escapeHtml(part)}</code></pre>`;
+  }).join("");
+}
+
 function isMobileViewport(){
   return window.innerWidth <= 700;
 }
@@ -2374,7 +2392,7 @@ chatSendBtnEl.addEventListener("click", async () => {
     descsForThisSend.forEach(d => {
       const descBubble = document.createElement("div");
       descBubble.className = "user-subbubble";
-      descBubble.textContent = d;
+      descBubble.innerHTML = formatCodeBlocks(d);
       descBubble.style.marginBottom = "8px";
       descBubble.style.borderLeft = "2px solid #ccc";
       descBubble.style.paddingLeft = "6px";
@@ -2385,7 +2403,7 @@ chatSendBtnEl.addEventListener("click", async () => {
     if(userMessage){
       const userBody = document.createElement("div");
       userBody.className = "user-subbubble";
-      userBody.textContent = userMessage;
+      userBody.innerHTML = formatCodeBlocks(userMessage);
       userDiv.appendChild(userBody);
     }
 
@@ -2463,7 +2481,7 @@ chatSendBtnEl.addEventListener("click", async () => {
         partialText += new TextDecoder().decode(value);
       }
       // Update once more without the loader after streaming finishes
-      botTextSpan.textContent = stripPlaceholderImageLines(partialText);
+      botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(partialText));
       if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
       clearInterval(ellipsisInterval);
       botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
@@ -4188,7 +4206,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
 
             const userBody = document.createElement("div");
             userBody.className = "user-subbubble";
-            userBody.textContent = p.user_text;
+            userBody.innerHTML = formatCodeBlocks(p.user_text);
             userDiv.appendChild(userBody);
           }
 
@@ -4257,7 +4275,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
         }
 
         const botBody = document.createElement("div");
-        botBody.textContent = stripPlaceholderImageLines(p.ai_text || "");
+        botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(p.ai_text || ""));
         botDiv.appendChild(botBody);
 
 
@@ -4366,7 +4384,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
 
       const userBody = document.createElement("div");
       userBody.className = "user-subbubble";
-      userBody.textContent = userText;
+      userBody.innerHTML = formatCodeBlocks(userText);
       userDiv.appendChild(userBody);
     }
 
@@ -4434,7 +4452,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   }
 
   const botBody = document.createElement("div");
-  botBody.textContent = stripPlaceholderImageLines(aiText || "");
+  botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(aiText || ""));
   botDiv.appendChild(botBody);
 
   if(tokenInfo && showSubbubbleToken){
