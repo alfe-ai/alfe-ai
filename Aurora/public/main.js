@@ -1662,7 +1662,16 @@ function renderTabs(){
 function renderSidebarTabs(){
   const container = document.getElementById("verticalTabsContainer");
   container.innerHTML="";
+  let lastDate = null;
   chatTabs.filter(t => showArchivedTabs || !t.archived).forEach(tab => {
+    const tabDate = isoDate(tab.created_at);
+    if(tabDate !== lastDate){
+      const header = document.createElement("div");
+      header.className = "tab-date-header";
+      header.textContent = tabDate;
+      container.appendChild(header);
+      lastDate = tabDate;
+    }
     const wrapper = document.createElement("div");
     wrapper.style.display = "flex";
     wrapper.style.alignItems = "center";
