@@ -299,6 +299,18 @@ body {
   cursor: pointer;
 }
 
+.bubble-edit-btn {
+  position: absolute;
+  top: 4px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: #4da3ff;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .bubble-copy-btn:hover {
   color: #6cb8ff;
 }

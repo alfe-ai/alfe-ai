@@ -4360,7 +4360,27 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
         navigator.clipboard.writeText(stripPlaceholderImageLines(userText) || "");
         showToast("Copied to clipboard");
       });
+      const userEditBtn = document.createElement("button");
+      userEditBtn.className = "bubble-edit-btn";
+      userEditBtn.textContent = "✎";
+      userEditBtn.title = "Edit user message";
+      userEditBtn.addEventListener("click", async () => {
+        const newText = prompt("Edit user message:", userText);
+        if (newText === null) return;
+        const resp = await fetch(`/api/chat/pair/${pairId}/user`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: newText })
+        });
+        if (resp.ok) {
+          userText = newText;
+          userBody.textContent = newText;
+        } else {
+          alert("Failed to edit message.");
+        }
+      });
       userHead.appendChild(userCopyBtn);
+      userHead.appendChild(userEditBtn);
       userHead.appendChild(userDelBtn);
       userDiv.appendChild(userHead);
 
@@ -4419,7 +4439,27 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
     navigator.clipboard.writeText(stripPlaceholderImageLines(aiText) || "");
     showToast("Copied to clipboard");
   });
+  const aiEditBtn = document.createElement("button");
+  aiEditBtn.className = "bubble-edit-btn";
+  aiEditBtn.textContent = "✎";
+  aiEditBtn.title = "Edit AI reply";
+  aiEditBtn.addEventListener("click", async () => {
+    const newText = prompt("Edit AI reply:", aiText);
+    if (newText === null) return;
+    const resp = await fetch(`/api/chat/pair/${pairId}/ai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: newText })
+    });
+    if (resp.ok) {
+      aiText = newText;
+      botBody.textContent = stripPlaceholderImageLines(newText);
+    } else {
+      alert("Failed to edit AI reply.");
+    }
+  });
   botHead.appendChild(aiCopyBtn);
+  botHead.appendChild(aiEditBtn);
   botHead.appendChild(aiDelBtn);
   botDiv.appendChild(botHead);
 
