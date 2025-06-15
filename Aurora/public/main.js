@@ -84,6 +84,7 @@ let modelName = "unknown";
 let tasksVisible = true;
 let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
+let mosaicPanelVisible = false;
 let sidebarVisible = window.innerWidth > 700;
 let chatTabs = [];
 let archivedTabs = [];
@@ -598,6 +599,13 @@ async function toggleSubroutinePanel(){
   await setSetting("subroutine_panel_visible", subroutinePanelVisible);
 }
 
+async function toggleMosaicPanel(){
+  mosaicPanelVisible = !mosaicPanelVisible;
+  const pnl = document.getElementById("mosaicPanel");
+  if(pnl) pnl.style.display = mosaicPanelVisible ? "" : "none";
+  await setSetting("mosaic_panel_visible", mosaicPanelVisible);
+}
+
 async function toggleSidebar(){
   sidebarVisible = !sidebarVisible;
   const sidebarEl = $(".sidebar");
@@ -775,7 +783,7 @@ function updateView(v){
 async function loadSettings(){
   const keys = [
     "visible_columns","columns_order","tasks_visible","markdown_panel_visible",
-    "subroutine_panel_visible","sidebar_visible","enter_submits_message",
+    "subroutine_panel_visible","mosaic_panel_visible","sidebar_visible","enter_submits_message",
     "sidebar_width","model_tabs_bar_visible","top_chat_tabs_bar_visible",
     "project_info_bar_visible","aurora_project_bar_visible","nav_menu_visible",
     "view_tabs_bar_visible","show_project_name_in_tabs","show_archived_tabs",
@@ -812,6 +820,12 @@ async function loadSettings(){
   }
   const pnl = document.getElementById("taskListPanel");
   if(pnl) pnl.style.display = markdownPanelVisible ? "" : "none";
+
+  if(typeof map.mosaic_panel_visible !== "undefined"){
+    mosaicPanelVisible = !!map.mosaic_panel_visible;
+  }
+  const mosaic = document.getElementById("mosaicPanel");
+  if(mosaic) mosaic.style.display = mosaicPanelVisible ? "" : "none";
 
   if(typeof map.subroutine_panel_visible !== "undefined"){
     subroutinePanelVisible = !!map.subroutine_panel_visible;
@@ -2585,6 +2599,12 @@ async function openChatSettings(){
     markdownPanelVisible = !!value;
   }
 
+  const rMosaic = await fetch("/api/settings/mosaic_panel_visible");
+  if(rMosaic.ok){
+    const { value } = await rMosaic.json();
+    mosaicPanelVisible = !!value;
+  }
+
   const rSub = await fetch("/api/settings/subroutine_panel_visible");
   if(rSub.ok){
     const { value } = await rSub.json();
@@ -2647,6 +2667,7 @@ async function openChatSettings(){
   $("#showMarkdownTasksCheck").checked = markdownPanelVisible;
   $("#showDependenciesColumnCheck").checked = showDependenciesColumn;
   $("#showSubroutinePanelCheck").checked = subroutinePanelVisible;
+  $("#showMosaicPanelCheck").checked = mosaicPanelVisible;
   $("#enterSubmitCheck").checked = enterSubmitsMessage;
   $("#chatQueueCheck").checked = chatQueueEnabled;
   $("#showNavMenuCheck").checked = navMenuVisible;
@@ -2805,6 +2826,7 @@ async function chatSettingsSaveFlow() {
   markdownPanelVisible = $("#showMarkdownTasksCheck").checked;
   showDependenciesColumn = $("#showDependenciesColumnCheck").checked;
   subroutinePanelVisible = $("#showSubroutinePanelCheck").checked;
+  mosaicPanelVisible = $("#showMosaicPanelCheck").checked;
   enterSubmitsMessage = $("#enterSubmitCheck").checked;
   chatQueueEnabled = $("#chatQueueCheck").checked;
   navMenuVisible = $("#showNavMenuCheck").checked;
@@ -2831,6 +2853,7 @@ async function chatSettingsSaveFlow() {
     chat_streaming: chatStreaming,
     markdown_panel_visible: markdownPanelVisible,
     subroutine_panel_visible: subroutinePanelVisible,
+    mosaic_panel_visible: mosaicPanelVisible,
     enter_submits_message: enterSubmitsMessage,
     chat_queue_enabled: chatQueueEnabled,
     nav_menu_visible: navMenuVisible,
@@ -2869,6 +2892,8 @@ async function chatSettingsSaveFlow() {
   if(pnl) pnl.style.display = markdownPanelVisible ? "" : "none";
   const subPanel = document.getElementById("chatSubroutinesPanel");
   if(subPanel) subPanel.style.display = subroutinePanelVisible ? "" : "none";
+  const mosaicPanel = document.getElementById("mosaicPanel");
+  if(mosaicPanel) mosaicPanel.style.display = mosaicPanelVisible ? "" : "none";
   renderTabs();
   renderSidebarTabs();
   renderArchivedSidebarTabs();
