@@ -832,10 +832,22 @@ export default class TaskDB {
     ).run(id);
   }
 
+  updateAiText(id, text) {
+    this.db.prepare(
+        "UPDATE chat_pairs SET ai_text=? WHERE id=?"
+    ).run(text, id);
+  }
+
   deleteUserPart(id) {
     this.db.prepare(
         "UPDATE chat_pairs SET user_text='' WHERE id=?"
     ).run(id);
+  }
+
+  updateUserText(id, text) {
+    this.db.prepare(
+        "UPDATE chat_pairs SET user_text=? WHERE id=?"
+    ).run(text, id);
   }
 
   listProjectBranches() {

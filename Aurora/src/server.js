@@ -3026,6 +3026,38 @@ app.delete("/api/chat/pair/:id/user", (req, res) => {
   }
 });
 
+app.post("/api/chat/pair/:id/user", (req, res) => {
+  console.debug("[Server Debug] POST /api/chat/pair/:id/user =>", req.params.id);
+  try {
+    const pairId = parseInt(req.params.id, 10);
+    const { text = "" } = req.body || {};
+    if (Number.isNaN(pairId)) {
+      return res.status(400).json({ error: "Invalid pair ID" });
+    }
+    db.updateUserText(pairId, text);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[TaskQueue] POST /api/chat/pair/:id/user error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/chat/pair/:id/ai", (req, res) => {
+  console.debug("[Server Debug] POST /api/chat/pair/:id/ai =>", req.params.id);
+  try {
+    const pairId = parseInt(req.params.id, 10);
+    const { text = "" } = req.body || {};
+    if (Number.isNaN(pairId)) {
+      return res.status(400).json({ error: "Invalid pair ID" });
+    }
+    db.updateAiText(pairId, text);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[TaskQueue] POST /api/chat/pair/:id/ai error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/createSterlingChat", async (req, res) => {
   db.logActivity("Create Sterling Chat", "User triggered createSterlingChat endpoint.");
 
