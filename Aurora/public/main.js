@@ -131,6 +131,7 @@ let newTabProjectNameEnabled = true; // show Project name field in New Tab dialo
 let chatSubroutines = [];
 let actionHooks = [];
 let editingSubroutineId = null;
+let editingMessageInfo = null; // {pairId, type, callback}
 let accountInfo = null; // details returned from /api/account
 let currentView = 'chat';
 window.agentName = "Alfe";
@@ -4364,20 +4365,11 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       userEditBtn.className = "bubble-edit-btn";
       userEditBtn.textContent = "✎";
       userEditBtn.title = "Edit user message";
-      userEditBtn.addEventListener("click", async () => {
-        const newText = prompt("Edit user message:", userText);
-        if (newText === null) return;
-        const resp = await fetch(`/api/chat/pair/${pairId}/user`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: newText })
-        });
-        if (resp.ok) {
+      userEditBtn.addEventListener("click", () => {
+        openEditMessageModal(pairId, "user", userText, newText => {
           userText = newText;
           userBody.textContent = newText;
-        } else {
-          alert("Failed to edit message.");
-        }
+        });
       });
       userHead.appendChild(userCopyBtn);
       userHead.appendChild(userEditBtn);
@@ -4443,20 +4435,11 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   aiEditBtn.className = "bubble-edit-btn";
   aiEditBtn.textContent = "✎";
   aiEditBtn.title = "Edit AI reply";
-  aiEditBtn.addEventListener("click", async () => {
-    const newText = prompt("Edit AI reply:", aiText);
-    if (newText === null) return;
-    const resp = await fetch(`/api/chat/pair/${pairId}/ai`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: newText })
-    });
-    if (resp.ok) {
+  aiEditBtn.addEventListener("click", () => {
+    openEditMessageModal(pairId, "ai", aiText, newText => {
       aiText = newText;
       botBody.textContent = stripPlaceholderImageLines(newText);
-    } else {
-      alert("Failed to edit AI reply.");
-    }
+    });
   });
   botHead.appendChild(aiCopyBtn);
   botHead.appendChild(aiEditBtn);
@@ -5176,6 +5159,46 @@ document.getElementById("featureFlagsSaveBtn").addEventListener("click", async (
 });
 document.getElementById("featureFlagsCancelBtn").addEventListener("click", () => {
   hideModal(document.getElementById("featureFlagsModal"));
+});
+
+// ----------------------------------------------------------------------
+// Edit Message modal logic
+// ----------------------------------------------------------------------
+function openEditMessageModal(pairId, type, text, onSave){
+  editingMessageInfo = { pairId, type, onSave };
+  const titleEl = document.getElementById("editMessageTitle");
+  if(titleEl) titleEl.textContent = type === "ai" ? "Edit AI Reply" : "Edit user message";
+  const textarea = document.getElementById("editMessageTextarea");
+  if(textarea) textarea.value = text || "";
+  showModal(document.getElementById("editMessageModal"));
+}
+
+document.getElementById("editMessageSaveBtn").addEventListener("click", async () => {
+  if(!editingMessageInfo) return;
+  const { pairId, type, onSave } = editingMessageInfo;
+  const text = document.getElementById("editMessageTextarea").value;
+  try {
+    const resp = await fetch(`/api/chat/pair/${pairId}/${type}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    if(resp.ok){
+      if(typeof onSave === "function") onSave(text);
+      hideModal(document.getElementById("editMessageModal"));
+      editingMessageInfo = null;
+    } else {
+      alert("Failed to edit message.");
+    }
+  } catch(e){
+    console.error("Error editing message:", e);
+    alert("Failed to edit message.");
+  }
+});
+
+document.getElementById("editMessageCancelBtn").addEventListener("click", () => {
+  hideModal(document.getElementById("editMessageModal"));
+  editingMessageInfo = null;
 });
 
 // ----------------------------------------------------------------------
