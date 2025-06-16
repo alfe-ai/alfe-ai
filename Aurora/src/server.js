@@ -3405,6 +3405,21 @@ app.get('/api/mosaic/get', (req, res) => {
   }
 });
 
+app.post('/api/mosaic/git-init', (req, res) => {
+  try {
+    fs.mkdirSync(mosaicDir, { recursive: true });
+    const gitDir = path.join(mosaicDir, '.git');
+    if (fs.existsSync(gitDir)) {
+      return res.json({ success: true, already: true });
+    }
+    child_process.execSync('git init', { cwd: mosaicDir });
+    res.json({ success: true, already: false });
+  } catch (err) {
+    console.error('Error in /api/mosaic/git-init:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||
