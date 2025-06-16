@@ -5433,6 +5433,21 @@ document.getElementById("mosaicEditCancelBtn").addEventListener("click", () => {
   mosaicEditingFile = null;
 });
 
+document.getElementById("mosaicInitGitBtn").addEventListener("click", async () => {
+  try {
+    const r = await fetch('/api/mosaic/git-init', { method: 'POST' });
+    if(r.ok){
+      const data = await r.json();
+      alert(data.already ? 'Repository already initialized.' : 'Initialized git repository.');
+    } else {
+      alert('Failed to initialize repository');
+    }
+  } catch(e){
+    console.error('Error initializing mosaic repo', e);
+    alert('Error initializing repository');
+  }
+});
+
 // ----------------------------------------------------------------------
 // Handling the global markdown save button
 // ----------------------------------------------------------------------
