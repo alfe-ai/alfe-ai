@@ -637,6 +637,7 @@ const printifyQueue = new PrintifyJobQueue(jobManager, {
 
 // Serve static files
 app.use("/uploads", express.static(uploadsDir));
+app.use("/mosaic/files", express.static(mosaicDir));
 
 // Allow loading images from absolute paths produced by the upscale script.
 app.use((req, res, next) => {
