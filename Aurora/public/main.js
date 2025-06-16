@@ -254,7 +254,12 @@ function addFilesFromCodeBlocks(text){
   const blocks = text.match(/```[\s\S]*?```/g) || [];
   blocks.forEach(b => {
     const inner = b.slice(3, -3).trim();
-    const first = inner.split(/\r?\n/)[0].trim();
+    let first = inner.split(/\r?\n/)[0].trim();
+    // Allow leading markdown headers like "# filename" which are
+    // common when users copy code blocks from chat responses.
+    if(first.startsWith('#')){
+      first = first.replace(/^#+\s*/, '');
+    }
     if(/^[\w./-]+\.[\w-]+$/.test(first)){
       addFileToMosaic(first);
     }
