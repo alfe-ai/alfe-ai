@@ -86,6 +86,7 @@ let tasksVisible = true;
 let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
 let mosaicPanelVisible = false;
+let mosaicEditingFile = null;
 let sidebarVisible = window.innerWidth > 700;
 let chatTabs = [];
 let archivedTabs = [];
@@ -264,6 +265,14 @@ function addFileToMosaic(file){
   link.target = "_blank";
   link.textContent = file;
   li.appendChild(link);
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "Edit";
+  editBtn.className = "mosaic-edit-btn";
+  editBtn.addEventListener("click", e => {
+    e.preventDefault();
+    openMosaicEditModal(file);
+  });
+  li.appendChild(editBtn);
   list.appendChild(li);
 }
 
@@ -289,6 +298,26 @@ async function loadMosaicFiles(){
   } catch(e){
     console.error('Error loading mosaic files', e);
   }
+}
+
+async function openMosaicEditModal(file){
+  if(!file) return;
+  mosaicEditingFile = file;
+  const title = document.getElementById('mosaicEditTitle');
+  if(title) title.textContent = file;
+  try {
+    const r = await fetch('/api/mosaic/get?file=' + encodeURIComponent(file));
+    if(r.ok){
+      const { content } = await r.json();
+      document.getElementById('mosaicEditTextarea').value = content;
+    } else {
+      document.getElementById('mosaicEditTextarea').value = '';
+    }
+  } catch(e){
+    console.error('Error loading mosaic file', e);
+    document.getElementById('mosaicEditTextarea').value = '';
+  }
+  showModal(document.getElementById('mosaicEditModal'));
 }
 
 function addFilesFromCodeBlocks(text){
@@ -5386,6 +5415,22 @@ document.getElementById("editMessageSaveBtn").addEventListener("click", async ()
 document.getElementById("editMessageCancelBtn").addEventListener("click", () => {
   hideModal(document.getElementById("editMessageModal"));
   editingMessageInfo = null;
+});
+
+// ----------------------------------------------------------------------
+// Mosaic Edit modal logic
+// ----------------------------------------------------------------------
+document.getElementById("mosaicEditSaveBtn").addEventListener("click", async () => {
+  if(!mosaicEditingFile) return;
+  const text = document.getElementById("mosaicEditTextarea").value;
+  await saveMosaicFile(mosaicEditingFile, text);
+  hideModal(document.getElementById("mosaicEditModal"));
+  mosaicEditingFile = null;
+});
+
+document.getElementById("mosaicEditCancelBtn").addEventListener("click", () => {
+  hideModal(document.getElementById("mosaicEditModal"));
+  mosaicEditingFile = null;
 });
 
 // ----------------------------------------------------------------------

@@ -878,6 +878,11 @@ body {
   cursor: pointer;
 }
 
+#mosaicPanel .mosaic-edit-btn {
+  margin-left: 6px;
+  font-size: 0.8rem;
+}
+
 /* View tabs above chat panel */
 .view-tab {
   background: #ccc;
