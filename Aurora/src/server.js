@@ -3420,6 +3420,19 @@ app.post('/api/mosaic/git-init', (req, res) => {
   }
 });
 
+app.get('/api/mosaic/git-log', (req, res) => {
+  try {
+    const out = child_process.execSync(
+      'git --no-pager log --oneline -n 20',
+      { cwd: mosaicDir }
+    );
+    res.json({ log: out.toString() });
+  } catch (err) {
+    console.error('Error in /api/mosaic/git-log:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/api/mosaic/path', (req, res) => {
   try {
     res.json({ path: mosaicDir });

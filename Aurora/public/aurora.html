@@ -266,6 +266,7 @@
       <h2 style="margin:0;font-size:1.1rem;">Mosaic</h2>
       <div id="mosaicRepoPath" style="font-size:0.8rem;color:#aaa;margin-bottom:4px;"></div>
       <button id="mosaicInitGitBtn">Initialize Git Repository</button>
+      <button id="mosaicGitLogBtn">View Git Log</button>
       <ul id="mosaicList" style="margin:4px 0; padding-left:1.2em;"></ul>
     </div>
 
@@ -810,6 +811,17 @@
     <div class="modal-buttons">
       <button id="mosaicEditSaveBtn">Save</button>
       <button id="mosaicEditCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mosaic Git Log modal -->
+<div id="mosaicGitLogModal" class="modal">
+  <div class="modal-content">
+    <h2>Mosaic Git Log</h2>
+    <pre id="mosaicGitLog" style="max-height:400px;overflow:auto;background:#111;color:#eee;padding:8px;"></pre>
+    <div class="modal-buttons">
+      <button id="mosaicGitLogCloseBtn">Close</button>
     </div>
   </div>
 </div>

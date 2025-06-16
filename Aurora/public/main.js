@@ -5463,6 +5463,26 @@ document.getElementById("mosaicInitGitBtn").addEventListener("click", async () =
   }
 });
 
+document.getElementById("mosaicGitLogBtn").addEventListener("click", async () => {
+  try {
+    const r = await fetch('/api/mosaic/git-log');
+    if(r.ok){
+      const { log } = await r.json();
+      document.getElementById('mosaicGitLog').textContent = log;
+      showModal(document.getElementById('mosaicGitLogModal'));
+    } else {
+      alert('Failed to load git log');
+    }
+  } catch(e){
+    console.error('Error loading mosaic git log', e);
+    alert('Error loading git log');
+  }
+});
+
+document.getElementById("mosaicGitLogCloseBtn").addEventListener("click", () => {
+  hideModal(document.getElementById("mosaicGitLogModal"));
+});
+
 // ----------------------------------------------------------------------
 // Handling the global markdown save button
 // ----------------------------------------------------------------------
