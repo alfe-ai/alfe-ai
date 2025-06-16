@@ -3420,6 +3420,15 @@ app.post('/api/mosaic/git-init', (req, res) => {
   }
 });
 
+app.get('/api/mosaic/path', (req, res) => {
+  try {
+    res.json({ path: mosaicDir });
+  } catch (err) {
+    console.error('Error in /api/mosaic/path:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||
