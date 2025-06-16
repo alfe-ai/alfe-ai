@@ -637,6 +637,12 @@ const printifyQueue = new PrintifyJobQueue(jobManager, {
 
 // Serve static files
 app.use("/uploads", express.static(uploadsDir));
+app.use("/mosaic/files", (req, res, next) => {
+  if (req.path.includes('/.git')) {
+    return res.status(404).end();
+  }
+  next();
+});
 app.use("/mosaic/files", express.static(mosaicDir));
 
 // Allow loading images from absolute paths produced by the upscale script.
@@ -3354,6 +3360,9 @@ app.post('/api/mosaic/save', (req, res) => {
       return res.status(400).json({ error: 'Missing filename' });
     }
     const safe = filename.replace(/[^\w./-]/g, '').replace(/^\//, '');
+    if (safe.startsWith('.git/')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
     const full = path.join(mosaicDir, safe);
     fs.mkdirSync(path.dirname(full), { recursive: true });
     fs.writeFileSync(full, content || '', 'utf-8');
@@ -3371,6 +3380,9 @@ app.get('/api/mosaic/list', (req, res) => {
       let files = [];
       for (const ent of entries) {
         const rel = path.join(base, ent.name);
+        if (rel.startsWith('.git')) {
+          continue;
+        }
         if (ent.isDirectory()) {
           files = files.concat(walk(path.join(dir, ent.name), rel));
         } else {
@@ -3392,6 +3404,9 @@ app.get('/api/mosaic/get', (req, res) => {
     const file = (req.query.file || '').replace(/[^\w./-]/g, '').replace(/^\//, '');
     if (!file) {
       return res.status(400).json({ error: 'Missing file' });
+    }
+    if (file.startsWith('.git/')) {
+      return res.status(404).json({ error: 'Not found' });
     }
     const full = path.join(mosaicDir, file);
     if (!fs.existsSync(full)) {
