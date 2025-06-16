@@ -281,6 +281,11 @@ function addFilesFromCodeBlocks(text){
     const inner = b.slice(3, -3).trim();
     const lines = inner.split(/\r?\n/);
     let first = lines[0].trim();
+    // Skip a leading language spec like "markdown" or "bash"
+    if(/^[a-zA-Z]+$/.test(first) && lines.length > 1){
+      lines.shift();
+      first = lines[0].trim();
+    }
     // Allow leading markdown headers like "# filename" which are
     // common when users copy code blocks from chat responses.
     if(first.startsWith('#')){
