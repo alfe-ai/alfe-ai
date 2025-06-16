@@ -226,6 +226,41 @@ function formatCodeBlocks(text){
   }).join("");
 }
 
+// ------------------ Mosaic Helpers ------------------
+function ensureMosaicList(){
+  const panel = document.getElementById("mosaicPanel");
+  if(!panel) return null;
+  let list = document.getElementById("mosaicList");
+  if(!list){
+    list = document.createElement("ul");
+    list.id = "mosaicList";
+    panel.appendChild(list);
+  }
+  return list;
+}
+
+function addFileToMosaic(file){
+  if(!file) return;
+  const list = ensureMosaicList();
+  if(!list) return;
+  if([...list.children].some(li => li.textContent === file)) return;
+  const li = document.createElement("li");
+  li.textContent = file;
+  list.appendChild(li);
+}
+
+function addFilesFromCodeBlocks(text){
+  if(!text) return;
+  const blocks = text.match(/```[\s\S]*?```/g) || [];
+  blocks.forEach(b => {
+    const inner = b.slice(3, -3).trim();
+    const first = inner.split(/\r?\n/)[0].trim();
+    if(/^[\w./-]+\.[\w-]+$/.test(first)){
+      addFileToMosaic(first);
+    }
+  });
+}
+
 function isMobileViewport(){
   return window.innerWidth <= 700;
 }
@@ -2508,6 +2543,7 @@ chatSendBtnEl.addEventListener("click", async () => {
       }
       // Update once more without the loader after streaming finishes
       botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(partialText));
+      addFilesFromCodeBlocks(partialText);
       if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
       clearInterval(ellipsisInterval);
       botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
@@ -4314,6 +4350,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
         const botBody = document.createElement("div");
         botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(p.ai_text || ""));
         botDiv.appendChild(botBody);
+        addFilesFromCodeBlocks(p.ai_text || "");
 
 
         if(p.token_info && showSubbubbleToken){
@@ -4513,6 +4550,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   const botBody = document.createElement("div");
   botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(aiText || ""));
   botDiv.appendChild(botBody);
+  addFilesFromCodeBlocks(aiText || "");
 
   if(tokenInfo && showSubbubbleToken){
     try {
