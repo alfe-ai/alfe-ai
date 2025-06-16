@@ -6,3 +6,4 @@ TaskQueue/.env
 *.env
 printifyQueue.json
  
+mosaic/
