@@ -817,6 +817,44 @@ export default class TaskDB {
     return this.db.prepare("SELECT * FROM chat_tabs WHERE tab_uuid=?").get(uuid);
   }
 
+  duplicateChatTab(tabId, name = null) {
+    const tab = this.getChatTab(tabId);
+    if (!tab) return null;
+    const ts = new Date().toISOString();
+    const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
+    const newName = name || `${tab.name} Copy`;
+    const { lastInsertRowid } = this.db.prepare(`
+      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, tab_type, session_id, tab_uuid)
+      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @tab_type, @session_id, @uuid)
+    `).run({
+      name: newName,
+      created_at: ts,
+      generate_images: tab.generate_images,
+      nexum: tab.nexum,
+      project_name: tab.project_name,
+      repo_ssh_url: tab.repo_ssh_url,
+      tab_type: tab.tab_type,
+      session_id: tab.session_id,
+      uuid
+    });
+
+    this.db.prepare(`
+      INSERT INTO chat_pairs (
+        user_text, ai_text, model, timestamp, ai_timestamp,
+        chat_tab_id, system_context, token_info,
+        image_url, image_alt, image_title, image_status,
+        session_id, ip_address, image_uuid, publish_portfolio, product_url
+      )
+      SELECT user_text, ai_text, model, timestamp, ai_timestamp,
+        @new_id, system_context, token_info,
+        image_url, image_alt, image_title, image_status,
+        session_id, ip_address, image_uuid, publish_portfolio, product_url
+      FROM chat_pairs WHERE chat_tab_id=@old_id
+    `).run({ new_id: lastInsertRowid, old_id: tabId });
+
+    return { id: lastInsertRowid, uuid };
+  }
+
   deleteChatTab(tabId) {
     this.db.prepare("DELETE FROM chat_tabs WHERE id=?").run(tabId);
     this.db.prepare("DELETE FROM chat_pairs WHERE chat_tab_id=?").run(tabId);

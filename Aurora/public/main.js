@@ -1584,6 +1584,30 @@ async function renameTab(tabId){
     }
   }
 }
+async function duplicateTab(tabId){
+  const t = chatTabs.find(t => t.id===tabId);
+  const newName = prompt("Enter name for forked tab:", t ? `${t.name} Copy` : "");
+  if(newName===null) return;
+  const r = await fetch("/api/chat/tabs/duplicate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tabId, name: newName, sessionId })
+  });
+  if(r.ok){
+    const data = await r.json();
+    await loadTabs();
+    currentTabId = data.id;
+    renderTabs();
+    renderSidebarTabs();
+    renderArchivedSidebarTabs();
+    await loadChatHistory(currentTabId, true);
+    const ct = chatTabs.find(t => t.id === currentTabId);
+    if(ct && ct.tab_uuid){
+      window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
+    }
+    updatePageTitle();
+  }
+}
 async function deleteTab(tabId){
   if(!confirm("Are you sure you want to delete this tab (and all its messages)?")) return;
   const r = await fetch(`/api/chat/tabs/${tabId}?sessionId=${encodeURIComponent(sessionId)}`, { method: "DELETE" });
@@ -1695,6 +1719,12 @@ function renderTabs(){
     renameBtn.addEventListener("click", e=>{ e.stopPropagation(); renameTab(tab.id); });
     tabBtn.appendChild(renameBtn);
 
+    const forkBtn = document.createElement("button");
+    forkBtn.textContent = "Fork";
+    forkBtn.style.marginLeft = "4px";
+    forkBtn.addEventListener("click", e=>{ e.stopPropagation(); duplicateTab(tab.id); });
+    tabBtn.appendChild(forkBtn);
+
     const archBtn = document.createElement("button");
     archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
     archBtn.title = tab.archived ? "Unarchive" : "Archive";
@@ -1704,8 +1734,9 @@ function renderTabs(){
 
     tabBtn.addEventListener("contextmenu", e=>{
       e.preventDefault();
-      const choice = prompt("Type 'rename' or 'delete':", "");
+      const choice = prompt("Type 'rename', 'fork', or 'delete':", "");
       if(choice==="rename") renameTab(tab.id);
+      else if(choice==="fork") duplicateTab(tab.id);
       else if(choice==="delete") deleteTab(tab.id);
     });
     tc.appendChild(tabBtn);
@@ -1757,8 +1788,9 @@ function renderSidebarTabs(){
     });
     b.addEventListener("contextmenu", e => {
       e.preventDefault();
-      const choice = prompt("Type 'rename' or 'delete':", "");
+      const choice = prompt("Type 'rename', 'fork', or 'delete':", "");
       if (choice === "rename") renameTab(tab.id);
+      else if (choice === "fork") duplicateTab(tab.id);
       else if (choice === "delete") deleteTab(tab.id);
     });
 
@@ -1777,6 +1809,13 @@ function renderSidebarTabs(){
       renameTab(tab.id);
     });
 
+    const forkBtn = document.createElement("button");
+    forkBtn.textContent = "Fork";
+    forkBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      duplicateTab(tab.id);
+    });
+
     const archBtn = document.createElement("button");
     archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
     archBtn.title = tab.archived ? "Unarchive" : "Archive";
@@ -1787,6 +1826,7 @@ function renderSidebarTabs(){
 
     wrapper.appendChild(info);
     wrapper.appendChild(renameBtn);
+    wrapper.appendChild(forkBtn);
     wrapper.appendChild(archBtn);
     container.appendChild(wrapper);
   });
@@ -4776,8 +4816,9 @@ function renderModelTabs(){
     // Right-click => rename or delete
     b.addEventListener("contextmenu", e=>{
       e.preventDefault();
-      const choice=prompt("Type 'rename' or 'delete':","");
+      const choice=prompt("Type 'rename', 'fork', or 'delete':","");
       if(choice==="rename") renameModelTab(tab.id);
+      else if(choice==="fork") duplicateTab(tab.id);
       else if(choice==="delete") deleteModelTab(tab.id);
     });
 
