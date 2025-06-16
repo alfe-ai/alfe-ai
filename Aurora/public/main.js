@@ -241,6 +241,23 @@ function formatCodeBlocks(text){
   }).join("");
 }
 
+function addCodeCopyButtons(root){
+  if(!root) return;
+  root.querySelectorAll('pre').forEach(pre => {
+    if(pre.querySelector('.code-copy-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.innerHTML = '\u2398';
+    btn.title = 'Copy code';
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(pre.innerText);
+      showToast('Copied to clipboard');
+    });
+    pre.style.position = 'relative';
+    pre.appendChild(btn);
+  });
+}
+
 // ------------------ Mosaic Helpers ------------------
 function ensureMosaicList(){
   const panel = document.getElementById("mosaicPanel");
@@ -2589,6 +2606,7 @@ chatSendBtnEl.addEventListener("click", async () => {
       const descBubble = document.createElement("div");
       descBubble.className = "user-subbubble";
       descBubble.innerHTML = formatCodeBlocks(d);
+      addCodeCopyButtons(descBubble);
       descBubble.style.marginBottom = "8px";
       descBubble.style.borderLeft = "2px solid #ccc";
       descBubble.style.paddingLeft = "6px";
@@ -2600,6 +2618,7 @@ chatSendBtnEl.addEventListener("click", async () => {
       const userBody = document.createElement("div");
       userBody.className = "user-subbubble";
       userBody.innerHTML = formatCodeBlocks(userMessage);
+      addCodeCopyButtons(userBody);
       userDiv.appendChild(userBody);
     }
 
@@ -2680,6 +2699,7 @@ chatSendBtnEl.addEventListener("click", async () => {
       }
       // Update once more without the loader after streaming finishes
       botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(partialText));
+      addCodeCopyButtons(botBody);
       addFilesFromCodeBlocks(partialText);
       if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
       clearInterval(ellipsisInterval);
@@ -4417,6 +4437,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
             const userBody = document.createElement("div");
             userBody.className = "user-subbubble";
             userBody.innerHTML = formatCodeBlocks(p.user_text);
+            addCodeCopyButtons(userBody);
             userDiv.appendChild(userBody);
           }
 
@@ -4486,6 +4507,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
 
         const botBody = document.createElement("div");
         botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(p.ai_text || ""));
+        addCodeCopyButtons(botBody);
         botDiv.appendChild(botBody);
         addFilesFromCodeBlocks(p.ai_text || "");
 
@@ -4607,6 +4629,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       const userBody = document.createElement("div");
       userBody.className = "user-subbubble";
       userBody.innerHTML = formatCodeBlocks(userText);
+      addCodeCopyButtons(userBody);
       userDiv.appendChild(userBody);
     }
 
@@ -4686,6 +4709,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
 
   const botBody = document.createElement("div");
   botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(aiText || ""));
+  addCodeCopyButtons(botBody);
   botDiv.appendChild(botBody);
   addFilesFromCodeBlocks(aiText || "");
 
