@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateChatPanelVisibility();
   loadMosaicFiles();
+  loadMosaicRepoPath();
   window.addEventListener('resize', updateChatPanelVisibility);
 });
 
@@ -297,6 +298,19 @@ async function loadMosaicFiles(){
     }
   } catch(e){
     console.error('Error loading mosaic files', e);
+  }
+}
+
+async function loadMosaicRepoPath(){
+  try {
+    const r = await fetch('/api/mosaic/path');
+    if(r.ok){
+      const { path } = await r.json();
+      const el = document.getElementById('mosaicRepoPath');
+      if(el) el.textContent = path;
+    }
+  } catch(e){
+    console.error('Error loading mosaic repo path', e);
   }
 }
 
@@ -5438,6 +5452,7 @@ document.getElementById("mosaicInitGitBtn").addEventListener("click", async () =
     const r = await fetch('/api/mosaic/git-init', { method: 'POST' });
     if(r.ok){
       const data = await r.json();
+      await loadMosaicRepoPath();
       alert(data.already ? 'Repository already initialized.' : 'Initialized git repository.');
     } else {
       alert('Failed to initialize repository');
