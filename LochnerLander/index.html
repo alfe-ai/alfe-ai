@@ -19,20 +19,23 @@
       gap: 1rem;
     }
     .panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       background: white;
       padding: 1.5rem;
       text-align: center;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       width: 150px;
+      text-decoration: none;
+      color: #333;
     }
-    .panel a {
-      display: block;
+    .panel span {
       font-size: 1.2rem;
       font-weight: bold;
       margin-bottom: 0.5rem;
-      text-decoration: none;
-      color: #333;
     }
     .panel p {
       margin: 0;
@@ -43,18 +46,18 @@
 </head>
 <body>
   <div class="container">
-    <div class="panel">
-      <a href="https://alfe.sh">Alfe AI</a>
+    <a href="https://alfe.sh" class="panel">
+      <span>Alfe AI</span>
       <p>Software and image design platform</p>
-    </div>
-    <div class="panel">
-      <a href="https://confused.art">Confused Art</a>
+    </a>
+    <a href="https://confused.art" class="panel">
+      <span>Confused Art</span>
       <p>Explore AI generated art</p>
-    </div>
-    <div class="panel">
-      <a href="https://github.com/lochner-lw">More Projects</a>
+    </a>
+    <a href="https://github.com/lochner-lw" class="panel">
+      <span>More Projects</span>
       <p>GitHub</p>
-    </div>
+    </a>
   </div>
 </body>
 </html>
