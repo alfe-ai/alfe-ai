@@ -1874,6 +1874,25 @@ app.post("/api/chat/tabs/rename", (req, res) => {
   }
 });
 
+app.post("/api/chat/tabs/duplicate", (req, res) => {
+  console.debug("[Server Debug] POST /api/chat/tabs/duplicate =>", req.body);
+  try {
+    const { tabId, name = null, sessionId = '' } = req.body;
+    if (!tabId) {
+      return res.status(400).json({ error: "Missing tabId" });
+    }
+    const tab = db.getChatTab(tabId, sessionId || null);
+    if (!tab) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const { id: newId, uuid } = db.duplicateChatTab(tabId, name);
+    res.json({ success: true, id: newId, uuid });
+  } catch (err) {
+    console.error("[TaskQueue] POST /api/chat/tabs/duplicate error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/chat/tabs/archive", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/archive =>", req.body);
   try {
