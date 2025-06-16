@@ -187,6 +187,13 @@ const shopId = process.env.PRINTIFY_SHOP_ID || 18663958;
  */
 function getOpenAiClient() {
   let service = db.getSetting("ai_service") || "openrouter";
+  const currentModel = db.getSetting("ai_model") || "";
+  const { provider } = parseProviderModel(currentModel);
+
+  if (provider === "openrouter") {
+    service = "openrouter";
+  }
+
   const openAiKey = process.env.OPENAI_API_KEY || "";
   const openRouterKey = process.env.OPENROUTER_API_KEY || "";
 
