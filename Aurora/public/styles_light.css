@@ -318,6 +318,21 @@ body {
   color: #6cb8ff;
 }
 
+.code-copy-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: transparent;
+  border: none;
+  color: #4da3ff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.code-copy-btn:hover {
+  color: #6cb8ff;
+}
+
 /* Avatars replaced with name ovals */
 .name-oval {
   display: inline-block;
@@ -426,6 +441,7 @@ body {
   border-radius: 4px;
   white-space: pre-wrap;
   overflow-x: auto;
+  position: relative;
 }
 
 /* Thumbnail images in the secure uploader table */
