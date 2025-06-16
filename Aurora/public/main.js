@@ -200,6 +200,18 @@ function isoDate(d) {
   });
 }
 
+// Format date with weekday (e.g. "Mon 06/16/25")
+function isoDateWithDay(d) {
+  const date = new Date(d);
+  const day = date.toLocaleDateString([], { weekday: "short" });
+  const short = date.toLocaleDateString([], {
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  return `${day} ${short}`;
+}
+
 function stripPlaceholderImageLines(text){
   if(!text) return text;
   return text
@@ -1780,7 +1792,7 @@ function renderSidebarTabs(){
     if(tabDate !== lastDate){
       const header = document.createElement("div");
       header.className = "tab-date-header";
-      header.textContent = tabDate;
+      header.textContent = isoDateWithDay(tab.created_at);
       container.appendChild(header);
       lastDate = tabDate;
     }
