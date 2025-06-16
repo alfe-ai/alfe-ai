@@ -610,6 +610,14 @@ try {
   console.error("[Server Debug] Error creating uploads folder:", err);
 }
 
+const mosaicDir = path.join(__dirname, "../mosaic/files");
+try {
+  fs.mkdirSync(mosaicDir, { recursive: true });
+  console.log("[Server Debug] Ensured mosaic directory exists at", mosaicDir);
+} catch (err) {
+  console.error("[Server Debug] Error creating mosaic folder:", err);
+}
+
 const queueDataPath = path.join(__dirname, "../printifyQueue.json");
 
 const printifyQueue = new PrintifyJobQueue(jobManager, {
@@ -3315,6 +3323,46 @@ app.get('/api/cabinet', (req, res) => {
     res.json({ items });
   } catch (err) {
     console.error('Error in /api/cabinet:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/mosaic/save', (req, res) => {
+  try {
+    const { filename, content } = req.body || {};
+    if (!filename) {
+      return res.status(400).json({ error: 'Missing filename' });
+    }
+    const safe = filename.replace(/[^\w./-]/g, '').replace(/^\//, '');
+    const full = path.join(mosaicDir, safe);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, content || '', 'utf-8');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error in /api/mosaic/save:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/mosaic/list', (req, res) => {
+  try {
+    function walk(dir, base = '') {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      let files = [];
+      for (const ent of entries) {
+        const rel = path.join(base, ent.name);
+        if (ent.isDirectory()) {
+          files = files.concat(walk(path.join(dir, ent.name), rel));
+        } else {
+          files.push(rel);
+        }
+      }
+      return files;
+    }
+    const files = fs.existsSync(mosaicDir) ? walk(mosaicDir) : [];
+    res.json({ files });
+  } catch (err) {
+    console.error('Error in /api/mosaic/list:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

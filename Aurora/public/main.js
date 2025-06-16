@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   updateChatPanelVisibility();
+  loadMosaicFiles();
   window.addEventListener('resize', updateChatPanelVisibility);
 });
 
@@ -249,12 +250,37 @@ function addFileToMosaic(file){
   list.appendChild(li);
 }
 
+async function saveMosaicFile(name, content){
+  try {
+    await fetch('/api/mosaic/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: name, content })
+    });
+  } catch(e){
+    console.error('Error saving mosaic file', e);
+  }
+}
+
+async function loadMosaicFiles(){
+  try {
+    const r = await fetch('/api/mosaic/list');
+    if(r.ok){
+      const { files } = await r.json();
+      files.forEach(f => addFileToMosaic(f));
+    }
+  } catch(e){
+    console.error('Error loading mosaic files', e);
+  }
+}
+
 function addFilesFromCodeBlocks(text){
   if(!text) return;
   const blocks = text.match(/```[\s\S]*?```/g) || [];
   blocks.forEach(b => {
     const inner = b.slice(3, -3).trim();
-    let first = inner.split(/\r?\n/)[0].trim();
+    const lines = inner.split(/\r?\n/);
+    let first = lines[0].trim();
     // Allow leading markdown headers like "# filename" which are
     // common when users copy code blocks from chat responses.
     if(first.startsWith('#')){
@@ -262,6 +288,7 @@ function addFilesFromCodeBlocks(text){
     }
     if(/^[\w./-]+\.[\w-]+$/.test(first)){
       addFileToMosaic(first);
+      saveMosaicFile(first, lines.slice(1).join('\n'));
     }
   });
 }
