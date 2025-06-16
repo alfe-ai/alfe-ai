@@ -256,9 +256,14 @@ function addFileToMosaic(file){
   if(!file) return;
   const list = ensureMosaicList();
   if(!list) return;
-  if([...list.children].some(li => li.textContent === file)) return;
+  if([...list.children].some(li => li.dataset.file === file)) return;
   const li = document.createElement("li");
-  li.textContent = file;
+  li.dataset.file = file;
+  const link = document.createElement("a");
+  link.href = "/mosaic/files/" + file;
+  link.target = "_blank";
+  link.textContent = file;
+  li.appendChild(link);
   list.appendChild(li);
 }
 
