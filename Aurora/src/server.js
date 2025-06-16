@@ -3387,6 +3387,24 @@ app.get('/api/mosaic/list', (req, res) => {
   }
 });
 
+app.get('/api/mosaic/get', (req, res) => {
+  try {
+    const file = (req.query.file || '').replace(/[^\w./-]/g, '').replace(/^\//, '');
+    if (!file) {
+      return res.status(400).json({ error: 'Missing file' });
+    }
+    const full = path.join(mosaicDir, file);
+    if (!fs.existsSync(full)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    const content = fs.readFileSync(full, 'utf-8');
+    res.json({ content });
+  } catch (err) {
+    console.error('Error in /api/mosaic/get:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||
