@@ -16,11 +16,38 @@
   <button id="stopBtn" style="display:none;margin-bottom:0.5rem;">Stop Job</button>
   <ul id="jobsList"></ul>
   <pre id="terminal" style="background:#000;color:#0f0;padding:0.5rem;margin-top:0.5rem;height:80vh;overflow:auto;font-family:monospace;resize:vertical;"></pre>
+  <dialog id="printifyDialog" style="padding:1rem;"></dialog>
 <script>
 const defaultFavicon = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='32,4 4,60 60,60' fill='black' /></svg>";
 const rotatingFavicon = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='10,4 58,32 10,60' fill='black' /><path d='M32,4 A28,28 0 0 1 32,60' stroke='black' stroke-width='4' fill='none'><animateTransform attributeName='transform' type='rotate' from='0 32 32' to='360 32 32' dur='1s' repeatCount='indefinite' /></path></svg>";
 let favElement = document.getElementById('favicon');
 if(favElement) favElement.href = defaultFavicon;
+const printifyDialog = document.getElementById('printifyDialog');
+if(printifyDialog){
+  printifyDialog.addEventListener('click', () => printifyDialog.close());
+}
+
+let lastPrintifyMsg = '';
+function checkPrintifyStatus(msg){
+  if(!printifyDialog) return;
+  const match = msg.match(/Product URL:\s*(https?:\/\/\S+)/i);
+  if(match){
+    const url = match[1];
+    if(lastPrintifyMsg !== url){
+      printifyDialog.innerHTML = `Printify Product URL: <a href="${url}" target="_blank">${url}</a>`;
+      printifyDialog.showModal();
+      lastPrintifyMsg = url;
+    }
+    return;
+  }
+  if(/setting printify product url/i.test(msg)){
+    if(lastPrintifyMsg !== 'setting'){
+      printifyDialog.textContent = msg.trim();
+      printifyDialog.showModal();
+      lastPrintifyMsg = 'setting';
+    }
+  }
+}
 async function loadJobs() {
   const res = await fetch('/api/jobs');
   const jobs = await res.json();
@@ -50,13 +77,21 @@ async function openJob(id) {
   if(favElement) favElement.href = rotatingFavicon;
   document.getElementById('stopBtn').style.display = 'inline';
   evt.addEventListener('log', e => {
-    term.textContent += JSON.parse(e.data);
+    const msg = JSON.parse(e.data);
+    term.textContent += msg;
     term.scrollTop = term.scrollHeight;
+    checkPrintifyStatus(msg);
   });
   evt.addEventListener('done', () => {
     evt.close();
     document.getElementById('stopBtn').style.display = 'none';
     if(favElement) favElement.href = defaultFavicon;
+    fetch('/api/jobs').then(r => r.json()).then(list => {
+      const j = list.find(j => j.id === currentJobId);
+      if(j && j.productUrl){
+        checkPrintifyStatus(`Product URL: ${j.productUrl}`);
+      }
+    });
   });
 }
 
