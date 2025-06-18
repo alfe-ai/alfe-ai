@@ -596,7 +596,7 @@ if (whitelistIp) {
       return next();
     }
 
-    if (req.path === "/" || req.path === "/index.html") {
+    if (req.path === "/" || req.path.startsWith("/index.html")) {
       return res.redirect("https://alfe.sh");
     }
 
