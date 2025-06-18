@@ -596,6 +596,10 @@ if (whitelistIp) {
       return next();
     }
 
+    if (req.path === "/" || req.path === "/index.html") {
+      return res.redirect("https://alfe.sh");
+    }
+
     res.status(403).send("Forbidden");
   });
 }
