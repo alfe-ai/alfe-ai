@@ -155,6 +155,10 @@ let newTabSelectedType = 'chat';
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
 const $$ = (sel, ctx=document) => [...ctx.querySelectorAll(sel)];
 
+function mosaicKey(tabId){
+  return `mosaic_panel_visible_tab_${tabId}`;
+}
+
 function getTabUuidFromLocation(){
   const m = window.location.pathname.match(/\/chat\/([^/]+)/);
   if(m) return m[1];
@@ -753,6 +757,9 @@ async function toggleMosaicPanel(){
   const pnl = document.getElementById("mosaicPanel");
   if(pnl) pnl.style.display = mosaicPanelVisible ? "" : "none";
   await setSetting("mosaic_panel_visible", mosaicPanelVisible);
+  if(currentTabId){
+    await setSetting(mosaicKey(currentTabId), mosaicPanelVisible);
+  }
 }
 
 async function toggleSidebar(){
@@ -1696,7 +1703,7 @@ async function renameTab(tabId, newName){
   }
 }
 
-function openRenameTabModal(tabId){
+async function openRenameTabModal(tabId){
   const t = chatTabs.find(tt => tt.id === tabId);
   const input = $("#renameTabInput");
   if(!input){
@@ -1704,6 +1711,10 @@ function openRenameTabModal(tabId){
     return;
   }
   input.value = t ? t.name : "";
+  const saved = await getSetting(mosaicKey(tabId));
+  if(typeof saved !== "undefined"){
+    mosaicPanelVisible = !!saved;
+  }
   $("#renameShowMosaicCheck").checked = mosaicPanelVisible;
   const typeSel = $("#renameTabTypeSelect");
   if(typeSel) typeSel.value = t ? t.tab_type || 'chat' : 'chat';
@@ -1725,8 +1736,9 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   const type = $("#renameTabTypeSelect")?.value || 'chat';
   mosaicPanelVisible = $("#renameShowMosaicCheck").checked;
   const pnl = document.getElementById("mosaicPanel");
-  if(pnl) pnl.style.display = mosaicPanelVisible ? "" : "none";
+  if(tabId === currentTabId && pnl) pnl.style.display = mosaicPanelVisible ? "" : "none";
   await setSetting("mosaic_panel_visible", mosaicPanelVisible);
+  await setSetting(mosaicKey(tabId), mosaicPanelVisible);
   if(name) await renameTab(tabId, name);
   const tab = chatTabs.find(t => t.id === tabId) || {};
   const project = tab.project_name || '';
@@ -1844,6 +1856,15 @@ async function selectTab(tabId){
       window.history.replaceState({}, '', newPath);
     }
   }
+  const saved = await getSetting(mosaicKey(tabId));
+  if(typeof saved !== "undefined"){
+    mosaicPanelVisible = !!saved;
+  } else {
+    const defVal = await getSetting("mosaic_panel_visible");
+    if(typeof defVal !== "undefined") mosaicPanelVisible = !!defVal;
+  }
+  const mosaicPanel = document.getElementById("mosaicPanel");
+  if(mosaicPanel) mosaicPanel.style.display = mosaicPanelVisible ? "" : "none";
 }
 function renderTabs(){
   const tc = $("#tabsContainer");
@@ -2857,10 +2878,24 @@ async function openChatSettings(){
     markdownPanelVisible = !!value;
   }
 
-  const rMosaic = await fetch("/api/settings/mosaic_panel_visible");
+  let rMosaic = await fetch(`/api/settings/${mosaicKey(currentTabId)}`);
   if(rMosaic.ok){
     const { value } = await rMosaic.json();
-    mosaicPanelVisible = !!value;
+    if(typeof value !== "undefined"){
+      mosaicPanelVisible = !!value;
+    } else {
+      const rDef = await fetch("/api/settings/mosaic_panel_visible");
+      if(rDef.ok){
+        const { value: defVal } = await rDef.json();
+        mosaicPanelVisible = !!defVal;
+      }
+    }
+  } else {
+    const rDef = await fetch("/api/settings/mosaic_panel_visible");
+    if(rDef.ok){
+      const { value: defVal } = await rDef.json();
+      mosaicPanelVisible = !!defVal;
+    }
   }
 
   const rSub = await fetch("/api/settings/subroutine_panel_visible");
@@ -3122,6 +3157,10 @@ async function chatSettingsSaveFlow() {
     image_gen_service: imageGenService,
     ai_service: serviceSel
   });
+
+  if(currentTabId){
+    await setSetting(mosaicKey(currentTabId), mosaicPanelVisible);
+  }
 
   if (modelSel.trim()) {
     await setSetting("ai_model", modelSel.trim());
