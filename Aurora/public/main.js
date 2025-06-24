@@ -149,7 +149,7 @@ const defaultFavicon = "/alfe_favicon_64x64.ico";
 const rotatingFavicon = "/alfe_favicon_64x64.ico";
 let favElement = null;
 
-const tabTypeIcons = { chat: "💬", design: "🎨" };
+const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋" };
 let newTabSelectedType = 'chat';
 
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
@@ -1705,6 +1705,8 @@ function openRenameTabModal(tabId){
   }
   input.value = t ? t.name : "";
   $("#renameShowMosaicCheck").checked = mosaicPanelVisible;
+  const typeSel = $("#renameTabTypeSelect");
+  if(typeSel) typeSel.value = t ? t.tab_type || 'chat' : 'chat';
   const modal = $("#renameTabModal");
   if(!modal){
     renameTab(tabId);
@@ -1720,11 +1722,24 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
   const tabId = parseInt(modal.dataset.tabId, 10);
   const name = $("#renameTabInput").value.trim();
+  const type = $("#renameTabTypeSelect")?.value || 'chat';
   mosaicPanelVisible = $("#renameShowMosaicCheck").checked;
   const pnl = document.getElementById("mosaicPanel");
   if(pnl) pnl.style.display = mosaicPanelVisible ? "" : "none";
   await setSetting("mosaic_panel_visible", mosaicPanelVisible);
   if(name) await renameTab(tabId, name);
+  const tab = chatTabs.find(t => t.id === tabId) || {};
+  const project = tab.project_name || '';
+  const repo = tab.repo_ssh_url || '';
+  await fetch('/api/chat/tabs/config', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({tabId, project, repo, type, sessionId})
+  });
+  await loadTabs();
+  renderTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
   hideModal(modal);
 });
 $("#renameTabCancelBtn").addEventListener("click", () => hideModal($("#renameTabModal")));

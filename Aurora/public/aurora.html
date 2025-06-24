@@ -391,6 +391,10 @@
         <div class="icon">🎨</div>
         <div>Design</div>
       </button>
+      <button data-type="task" class="start-type-btn">
+        <div class="icon">📋</div>
+        <div>Task</div>
+      </button>
     </div>
   </div>
 </div>
@@ -402,6 +406,13 @@
       <input type="text" id="renameTabInput" style="width:100%;" />
     </label>
     <label style="display:block;margin-top:8px;"><input type="checkbox" id="renameShowMosaicCheck"/> Show mosaic panel</label>
+    <label style="display:block;margin-top:8px;">Tab type:<br/>
+      <select id="renameTabTypeSelect" style="width:100%;">
+        <option value="chat">Chat</option>
+        <option value="design">Design</option>
+        <option value="task">Task</option>
+      </select>
+    </label>
     <div class="modal-buttons">
       <button id="renameTabSaveBtn">Save</button>
       <button id="renameTabCancelBtn">Cancel</button>
