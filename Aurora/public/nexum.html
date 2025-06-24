@@ -169,6 +169,18 @@
       </div>
     </div>
   </div>
+  <div id="renameTabModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>Rename Chat</h3>
+      <label>New name:<br/>
+        <input type="text" id="renameTabInput" style="width:100%;" />
+      </label>
+      <div class="modal-buttons">
+        <button id="renameTabSaveBtn">Save</button>
+        <button id="renameTabCancelBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
   <div id="startDialog" class="modal" style="display:none;">
     <a href="/about.html" target="_blank" style="position:absolute; top:8px; left:8px; font-size:0.8rem; color:var(--text-color);">About</a>
     <div id="splashAnim">
@@ -412,7 +424,7 @@
         const renameBtn = document.createElement('button');
         renameBtn.innerHTML = '&#9881;';
         renameBtn.className = 'config-btn';
-        renameBtn.addEventListener('click', e => { e.stopPropagation(); renameTab(t.id); });
+        renameBtn.addEventListener('click', e => { e.stopPropagation(); openRenameTabModal(t.id); });
 
         const archBtn = document.createElement('button');
         archBtn.innerHTML = t.archived ? 'Unarchive' : '&#128452;';
@@ -692,10 +704,12 @@
         applyTabView();
       }
     }
-    async function renameTab(tabId){
-      const t = tabs.find(tt => tt.id === tabId);
-      const newName = prompt("New name:", t ? t.name : "");
-      if(!newName) return;
+    async function renameTab(tabId, newName){
+      if(!newName){
+        const t = tabs.find(tt => tt.id === tabId);
+        newName = prompt("New name:", t ? t.name : "");
+        if(!newName) return;
+      }
       try{
         const r = await fetch("/api/chat/tabs/rename",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tabId,newName})});
         if(r.ok){
@@ -703,6 +717,14 @@
           renderTabs();
         }
       }catch(e){console.error(e);}
+    }
+
+    function openRenameTabModal(tabId){
+      const t = tabs.find(tt => tt.id === tabId);
+      document.getElementById('renameTabInput').value = t ? t.name : '';
+      const modal = document.getElementById('renameTabModal');
+      modal.dataset.tabId = tabId;
+      modal.style.display = 'flex';
     }
 
     async function deleteTab(tabId){
@@ -950,6 +972,19 @@
       document.getElementById('newTabModal').style.display = 'none';
     });
     document.getElementById('newTabModal').addEventListener('click', e => {
+      if(e.target === e.currentTarget) e.currentTarget.style.display = 'none';
+    });
+    document.getElementById('renameTabSaveBtn').addEventListener('click', async () => {
+      const modal = document.getElementById('renameTabModal');
+      const tabId = parseInt(modal.dataset.tabId, 10);
+      const name = document.getElementById('renameTabInput').value.trim();
+      if(name) await renameTab(tabId, name);
+      modal.style.display = 'none';
+    });
+    document.getElementById('renameTabCancelBtn').addEventListener('click', () => {
+      document.getElementById('renameTabModal').style.display = 'none';
+    });
+    document.getElementById('renameTabModal').addEventListener('click', e => {
       if(e.target === e.currentTarget) e.currentTarget.style.display = 'none';
     });
     document.querySelectorAll('#newTabTypeButtons .start-type-btn').forEach(btn => {
