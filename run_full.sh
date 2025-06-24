@@ -20,6 +20,7 @@ if [ "$persist" != true ]; then
   clear
 fi
 
+git stash
 git pull
 #git log -n 3
 echo "------"
