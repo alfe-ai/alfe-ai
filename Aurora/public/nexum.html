@@ -410,7 +410,7 @@
         gear.addEventListener('click', (e) => { e.stopPropagation(); openTabConfig(t.id); });
 
         const renameBtn = document.createElement('button');
-        renameBtn.textContent = 'Rename';
+        renameBtn.innerHTML = '&#9881;';
         renameBtn.className = 'config-btn';
         renameBtn.addEventListener('click', e => { e.stopPropagation(); renameTab(t.id); });
 

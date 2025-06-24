@@ -1823,7 +1823,7 @@ function renderTabs(){
     tabBtn.appendChild(nameSpan);
 
     const renameBtn = document.createElement("button");
-    renameBtn.textContent = "Rename";
+    renameBtn.innerHTML = "&#9881;";
     renameBtn.style.marginLeft = "4px";
     renameBtn.addEventListener("click", e=>{ e.stopPropagation(); renameTab(tab.id); });
     tabBtn.appendChild(renameBtn);
@@ -1912,7 +1912,7 @@ function renderSidebarTabs(){
     info.appendChild(dateSpan);
 
     const renameBtn = document.createElement("button");
-    renameBtn.textContent = "Rename";
+    renameBtn.innerHTML = "&#9881;";
     renameBtn.addEventListener("click", e => {
       e.stopPropagation();
       renameTab(tab.id);
