@@ -1698,11 +1698,22 @@ async function renameTab(tabId, newName){
 
 function openRenameTabModal(tabId){
   const t = chatTabs.find(tt => tt.id === tabId);
-  $("#renameTabInput").value = t ? t.name : "";
+  const input = $("#renameTabInput");
+  if(!input){
+    renameTab(tabId);
+    return;
+  }
+  input.value = t ? t.name : "";
   $("#renameShowMosaicCheck").checked = mosaicPanelVisible;
   const modal = $("#renameTabModal");
+  if(!modal){
+    renameTab(tabId);
+    return;
+  }
   modal.dataset.tabId = tabId;
   showModal(modal);
+  // Slight delay so element is visible before focusing
+  setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
 $("#renameTabSaveBtn").addEventListener("click", async () => {
@@ -1717,6 +1728,10 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   hideModal(modal);
 });
 $("#renameTabCancelBtn").addEventListener("click", () => hideModal($("#renameTabModal")));
+$("#renameTabInput").addEventListener("keydown", evt => {
+  if(evt.key === "Enter") $("#renameTabSaveBtn").click();
+  else if(evt.key === "Escape") $("#renameTabCancelBtn").click();
+});
 async function duplicateTab(tabId){
   const t = chatTabs.find(t => t.id===tabId);
   const newName = prompt("Enter name for forked tab:", t ? `${t.name} Copy` : "");
