@@ -1918,10 +1918,9 @@ function renderTabs(){
 
     tabBtn.addEventListener("contextmenu", e=>{
       e.preventDefault();
-      const choice = prompt("Type 'rename', 'fork', or 'delete':", "");
-      if(choice==="rename") openRenameTabModal(tab.id);
-      else if(choice==="fork") duplicateTab(tab.id);
-      else if(choice==="delete") deleteTab(tab.id);
+      if(tab.tab_uuid){
+        window.open(`/chat/${tab.tab_uuid}`, "_blank");
+      }
     });
     tc.appendChild(tabBtn);
   });
@@ -1972,10 +1971,9 @@ function renderSidebarTabs(){
     });
     b.addEventListener("contextmenu", e => {
       e.preventDefault();
-      const choice = prompt("Type 'rename', 'fork', or 'delete':", "");
-      if (choice === "rename") openRenameTabModal(tab.id);
-      else if (choice === "fork") duplicateTab(tab.id);
-      else if (choice === "delete") deleteTab(tab.id);
+      if(tab.tab_uuid){
+        window.open(`/chat/${tab.tab_uuid}`, "_blank");
+      }
     });
 
     const dateSpan = document.createElement("span");
