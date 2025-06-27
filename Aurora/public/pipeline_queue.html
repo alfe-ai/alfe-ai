@@ -279,6 +279,11 @@ async function updateVariantUI(file){
 
     loadQueue();
     loadImages();
+    // Ensure deprecated "Printify Price" option is removed if present
+    const jobTypeSel = document.getElementById('jobType');
+    [...jobTypeSel.options].forEach(opt => {
+      if(opt.textContent.trim().toLowerCase() === 'printify price') opt.remove();
+    });
     document.getElementById('jobType').dispatchEvent(new Event('change'));
     setInterval(loadQueue, 5000);
   </script>
