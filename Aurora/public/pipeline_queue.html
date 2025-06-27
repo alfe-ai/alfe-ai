@@ -62,7 +62,9 @@
     <label>Type:
       <select id="jobType">
         <option value="upscale">Upscale</option>
-<!--        <option value="printify">Printify</option>-->
+        <option value="printify">Printify</option>
+        <option value="printifyPrice">Printify Price</option>
+        <option value="printifyTitleFix">Printify Title Fix</option>
       </select>
     </label>
     <label>Image:
@@ -163,7 +165,8 @@
             dropdown.dataset.id = f.id ?? '';
             optionsDiv.style.display = 'none';
             updatePreview(f.name);
-            if(document.getElementById('jobType').value === 'printify'){
+            const type = document.getElementById('jobType').value;
+            if(type === 'printify' || type === 'printifyPrice'){
               updateVariantUI(f.name);
             }
           });
@@ -194,7 +197,7 @@
 
     document.getElementById('jobType').addEventListener('change', () => {
       const type = document.getElementById('jobType').value;
-      if(type === 'printify'){
+      if(type === 'printify' || type === 'printifyPrice'){
         updateVariantUI(document.getElementById('imageSelect').dataset.value);
       } else {
         document.getElementById('variantChoice').style.display = 'none';
