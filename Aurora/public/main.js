@@ -507,6 +507,7 @@ function updateAccountButton(info){
       favBtn.style.display = info.id === 1 ? "inline-block" : "none";
     }
     togglePortfolioMenu(info.id === 1);
+    toggleImageIdColumn(info.id === 1);
   } else {
     accountInfo = null;
     btn.textContent = "Sign Up / Login";
@@ -515,6 +516,7 @@ function updateAccountButton(info){
       favBtn.style.display = "none";
     }
     togglePortfolioMenu(false);
+    toggleImageIdColumn(false);
   }
 }
 
@@ -3351,6 +3353,14 @@ function togglePortfolioMenu(visible){
   const icon = document.getElementById("navPortfolioIcon");
   if(icon) icon.style.display = visible ? "" : "none";
 }
+
+function toggleImageIdColumn(visible){
+  const header = document.getElementById('numericIdHeader');
+  if(header) header.style.display = visible ? '' : 'none';
+  document.querySelectorAll('#secureFilesList td.id-col').forEach(td => {
+    td.style.display = visible ? '' : 'none';
+  });
+}
 function toggleNewTabProjectField(visible){
   const lbl = document.getElementById("newTabProjectLabel");
   if(!lbl) return;
@@ -3425,7 +3435,10 @@ function renderFileList(){
     const tr = document.createElement("tr");
     tr.dataset.fileName = f.name;
     const tdIndex = document.createElement("td");
-    tdIndex.textContent = f.uuid ?? f.id ?? "";
+    tdIndex.textContent = f.uuid ?? "";
+    const tdId = document.createElement("td");
+    tdId.className = "id-col";
+    tdId.textContent = (f.id !== null && f.id !== undefined) ? `img-${f.id}` : "";
     const tdThumb = document.createElement("td");
     const thumbImg = document.createElement("img");
     thumbImg.src = `/uploads/${encodeURIComponent(f.name)}`;
@@ -3511,6 +3524,7 @@ function renderFileList(){
     });
     tdAction.appendChild(urlBtn);
     tr.appendChild(tdIndex);
+    tr.appendChild(tdId);
     tr.appendChild(tdThumb);
     tr.appendChild(tdName);
     tr.appendChild(tdTitle);
