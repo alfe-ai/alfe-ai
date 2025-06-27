@@ -84,7 +84,7 @@
         <span id="queueNobgPath"></span>
       </label>
     </div>
-    <button id="enqueueBtn" disabled>Add to Queue</button>
+    <button id="enqueueBtn">Add to Queue</button>
   </div>
   <table id="queueTable" style="width:100%;border-collapse:collapse;">
     <thead>
@@ -249,24 +249,24 @@ async function updateVariantUI(file){
   }
 }
 
-    // document.getElementById('enqueueBtn').addEventListener('click', async () => {
-    //   const file = document.getElementById('imageSelect').dataset.value;
-    //   const dbId = document.getElementById('imageSelect').dataset.id;
-    //   const type = document.getElementById('jobType').value;
-    //   const variantChoice = document.querySelector('input[name="queueVariant"]:checked');
-    //   const variant = variantChoice ? variantChoice.value : null;
-    //   if(!file) return;
-    //   try{
-    //     await fetch('/api/pipelineQueue', {
-    //       method: 'POST',
-    //       headers: { 'Content-Type': 'application/json' },
-    //       body: JSON.stringify({ file, type, dbId, variant })
-    //     });
-    //     await loadQueue();
-    //   }catch(e){
-    //     console.error('Failed to enqueue job', e);
-    //   }
-    // });
+    document.getElementById('enqueueBtn').addEventListener('click', async () => {
+      const file = document.getElementById('imageSelect').dataset.value;
+      const dbId = document.getElementById('imageSelect').dataset.id;
+      const type = document.getElementById('jobType').value;
+      const variantChoice = document.querySelector('input[name="queueVariant"]:checked');
+      const variant = variantChoice ? variantChoice.value : null;
+      if(!file) return;
+      try{
+        await fetch('/api/pipelineQueue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file, type, dbId, variant })
+        });
+        await loadQueue();
+      }catch(e){
+        console.error('Failed to enqueue job', e);
+      }
+    });
 
     async function removeJob(id){
       try{
