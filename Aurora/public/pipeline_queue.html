@@ -65,6 +65,7 @@
         <option value="printify">Printify</option>
         <option value="printifyPrice">Printify Price</option>
         <option value="printifyTitleFix">Printify Title Fix</option>
+        <option value="all">All</option>
       </select>
     </label>
     <label>Image:
@@ -168,7 +169,7 @@
             optionsDiv.style.display = 'none';
             updatePreview(f.name);
             const type = document.getElementById('jobType').value;
-            if(type === 'printify' || type === 'printifyPrice'){
+            if(type === 'printify' || type === 'printifyPrice' || type === 'all'){
               updateVariantUI(f.name);
             }
           });
@@ -199,7 +200,7 @@
 
     document.getElementById('jobType').addEventListener('change', () => {
       const type = document.getElementById('jobType').value;
-      if(type === 'printify' || type === 'printifyPrice'){
+      if(type === 'printify' || type === 'printifyPrice' || type === 'all'){
         updateVariantUI(document.getElementById('imageSelect').dataset.value);
       } else {
         document.getElementById('variantChoice').style.display = 'none';
@@ -262,11 +263,22 @@ async function updateVariantUI(file){
       const variant = variantChoice ? variantChoice.value : null;
       if(!file) return;
       try{
-        await fetch('/api/pipelineQueue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file, type, dbId, variant })
-        });
+        if(type === 'all'){
+          const steps = ['upscale','printify','printifyPrice'];
+          for(const step of steps){
+            await fetch('/api/pipelineQueue', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ file, type: step, dbId, variant })
+            });
+          }
+        } else {
+          await fetch('/api/pipelineQueue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file, type, dbId, variant })
+          });
+        }
         await loadQueue();
       }catch(e){
         console.error('Failed to enqueue job', e);
