@@ -222,6 +222,7 @@ export default class PrintifyJobQueue {
           }
         }
       } else if (job.type === 'printify') {
+<<<<<<< HEAD
         const url = extractProductUrl(jmJob.log);
         if (url) {
           job.productUrl = url;
@@ -230,6 +231,12 @@ export default class PrintifyJobQueue {
             const originalUrl = `/uploads/${job.file}`;
             this.db.setProductUrl(originalUrl, url);
           }
+=======
+        const matches = [...jmJob.log.matchAll(/Product URL:\s*(https?:\S+)/i)];
+        const m = matches[matches.length - 1];
+        if (m) {
+          job.resultPath = m[1].trim();
+>>>>>>> Aurora/Aurelix/dev/main-rel6
         }
       }
       this.current = null;

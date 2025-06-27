@@ -3,17 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Alfe AI - AI Image Design and Software Development Platform</title>
+  <title>Alfe AI</title>
   <link id="themeStylesheet" rel="stylesheet" href="/nexum.css" />
-  <link
-          id="favicon"
-          rel="icon"
-          type="image/x-icon"
-          href="/alfe_favicon_64x64.ico"
-  />
+  <link id="favicon" rel="icon" type="image/x-icon" href="/alfe_favicon_64x64.ico" />
+  <style>
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-left: 6px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      border-right-color: transparent;
+      animation: loading-spin 0.75s linear infinite;
+    }
+
+    @keyframes loading-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .page-loader {
+      display: none;
+      position: fixed;
+      z-index: 10002;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-light);
+    }
+
+    .page-loader.show {
+      display: flex;
+    }
+  </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" style="display:none;">
     <img id="sidebarToggle" class="sidebar-toggle-icon" src="/alfe_favicon_64x64.ico" alt="Toggle sidebar" title="Toggle sidebar"/>
     <span id="logoText" style="position:absolute; top:12px; left:60px; font-size:1.4rem; color:var(--text-color);">Alfe AI</span>
     <a id="aboutLink" style="position:absolute; top:18px; left:130px; font-size:0.8rem; color:var(--text-color); cursor:pointer;">About</a>
@@ -22,6 +51,8 @@
       <div id="archiveList" style="position:relative; top: 40px; display:none;"></div>
       <button id="newTabBtn" style="position:relative; top: 40px;">New Tab</button>
     </aside>
+    <img id="collapsedSidebarLogo" src="/alfe_favicon_64x64.ico" title="Expand sidebar" alt="Alfe AI logo" style="height:32px; position:absolute; top:8px; left:8px; cursor:pointer; display:none; z-index:1000;"/>
+    <span id="expandSidebarArrow" title="Expand sidebar" style="position:absolute; top:20px; left:48px; font-size:1.4rem; cursor:pointer; display:none; z-index:1000;">&raquo;</span>
     <main>
       <div id="viewTabsBar" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center;">
         <button id="viewTabChat" class="view-tab active" style="position:relative; left: 40px;">💬 Chat</button>
@@ -66,6 +97,7 @@
         <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagShowArchived"> Show Archived Chats</label>
         <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagShowFeedback"> Show Feedback Button</label>
         <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagAuroraStart"> Use Aurora for New Chat</label>
+        <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagSplashAlways"> Always Show Splash</label>
       </div>
       <div style="margin-top:0.5rem;">
         <label>Color:
@@ -169,6 +201,7 @@
       </div>
     </div>
   </div>
+<<<<<<< HEAD
   <div id="renameTabModal" class="modal" style="display:none;">
     <div class="modal-content">
       <h3>Rename Chat</h3>
@@ -182,6 +215,9 @@
     </div>
   </div>
   <div id="startDialog" class="modal" style="display:none;">
+=======
+  <div id="startDialog" class="modal" style="display:flex;">
+>>>>>>> Aurora/Aurelix/dev/main-rel6
     <a href="/about.html" target="_blank" style="position:absolute; top:8px; left:8px; font-size:0.8rem; color:var(--text-color);">About</a>
     <div id="splashAnim">
       <div id="splashTitle">Alfe AI</div>
@@ -195,7 +231,7 @@
             <div class="icon">💬</div>
             <div>Chat</div>
           </button>
-          <button data-type="code" class="start-type-btn">
+          <button data-type="code" class="start-type-btn disabled" disabled>
             <div class="icon">💻</div>
             <div>Code</div>
           </button>
@@ -203,7 +239,7 @@
             <div class="icon">🎨</div>
             <div>Design</div>
           </button>
-          <button data-type="task" class="start-type-btn">
+          <button data-type="task" class="start-type-btn disabled" disabled>
             <div class="icon">📋</div>
             <div>Project</div>
           </button>
@@ -230,61 +266,8 @@
       </div>
     </div>
   </div>
-  <div id="aboutOverlay" style="display:none;" class="modal">
-    <div style="padding:1rem; width:100%; height:100%; overflow:auto; display:flex; flex-direction:column;">
-      <div style="display:flex; align-items:center;">
-        <img src="/alfe_favicon_64x64.ico" style="width:32px;height:32px;" alt="Alfe AI icon"/>
-        <span id="backToApp" style="margin-left:8px; cursor:pointer;">&larr; Back to App</span>
-      </div>
-      <div style="margin-top:1rem; font-size:0.9rem; line-height:1.4;">
-        <p><strong>About Alfe AI</strong></p>
-        <p>Alfe AI is an open source platform that combines AI-assisted image design, software development, and task management.</p>
-        <p>All source code is available on <a href="https://github.com/alfe-ai/alfe-ai-Aurelix" target="_blank">GitHub</a> for self-hosting or customization. Alfe AI has a privacy-first philosophy, and your data is only used for purposes required by the application. Data is not sold or used for advertising.</p>
-        <p>Alfe AI is Developed by <a href="https://lochner.tech" target="_blank">Lochner Tech</a>.</p>
-        <p><strong>Our Story</strong></p>
-        <p>We started in 2022 with a task management prototype called Aurora. The idea matured into Nexum, and by May 2025 we're focusing on integrating AI tools to streamline developer workflows.</p>
-        <p id="sessionIdDisplay" style="margin-top:0.5rem; display:none;">Session ID: <span id="sessionIdText"></span></p>
-      </div>
-    </div>
-  </div>
   <script src="/session.js"></script>
   <script>
-
-    let tabs = [];
-    let archivedTabs = [];
-    let currentTabId = 1;
-    let currentView = 'chat';
-    let currentTasks = [];
-    let taskSortColumn = 'priority';
-    let taskSortAsc = true;
-    let showDependencies = false;
-    let showArchived = false;
-    let showFeedbackButton = true;
-    let startInAurora = true;
-    // Feature flag to enable advanced start options (Code, Design, Project)
-    const enableStartAdvanced = false;
-    // Maintain a history of user-entered prompts
-    const inputHistory = [];
-    let inputHistoryPos = -1;
-    const taskColumns = [
-      {key:'priority', label:'Prio'},
-      {key:'status', label:'Status'},
-      {key:'number', label:'#'},
-      {key:'title', label:'Title'},
-      {key:'dependencies', label:'Depends On'},
-      {key:'project', label:'Project'},
-      {key:'created', label:'Created'}
-    ];
-    const suggestions = [
-      'Code a Pong Clone in JavaScript',
-      'Create a basic to-do list in Python',
-      'Explain how recursion works',
-      'Design a responsive navbar'
-    ];
-
-    let currentColor = 'purple';
-    let currentMode = 'dark';
-
     const splashPhrases = [
       "AI Software Engineer",
       "AI Developer",
@@ -300,11 +283,53 @@
       "AI Monet",
       "AI CTO",
       "AI Solutions Architect",
+      "AI Logo Designer",
+      "AI Product Designer",
+      "AI Photographer",
+      "AI Digital Artist",
+      "AI Concept Artist",
+      "AI Graphic Designer",
+      "AI Animator",
+      "AI Character Designer",
+      "AI Landscape Painter",
+      "AI Michelangelo",
+      "AI Da Vinci",
+      "AI Salvador Dali",
+      "AI Rembrandt",
+      "AI Frida Kahlo",
+      "AI Warhol",
+      "AI Hokusai",
+      "AI Banksy",
+      "AI Escher",
+      "AI Fashion Designer",
+      "AI Industrial Designer",
+      "AI UX Researcher",
+      "AI Illustrator",
+      "AI Watercolor Artist",
+      "AI Sculptor",
+      "AI Street Artist",
+      "AI Mixed Media Artist",
+      "AI Comic Artist",
+      "AI Printmaker",
+      "AI Pixel Artist",
+      "AI Concept Illustrator",
+      "AI Art Director",
+      "AI 3D Modeler",
+      "AI Pastel Artist",
       "Beta Rollout"
     ];
+    function shuffle(arr){
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+    shuffle(splashPhrases);
     let splashIdx = 0;
     let splashTimer = null;
-
+    // default feature flags / state vars
+    let enableStartAdvanced = false;
+    let startInAurora = true;
     function spawnSplashWord(){
       const container = document.getElementById('splashAnim');
       if(!container) return;
@@ -312,12 +337,10 @@
       span.className = 'splash-word';
       span.textContent = splashPhrases[splashIdx % splashPhrases.length];
       splashIdx++;
-      // Ensure scrolling text appears below the "Your" label
-      // "Your" is positioned at 70% vertically, so start a bit lower
       span.style.top = (75 + Math.random()*20) + 'vh';
       container.appendChild(span);
       span.addEventListener('animationend', () => span.remove());
-      splashTimer = setTimeout(spawnSplashWord, 700);
+      splashTimer = setTimeout(spawnSplashWord, 1400);
     }
 
     function startSplash(){
@@ -329,6 +352,18 @@
         clearTimeout(splashTimer);
         splashTimer = null;
       }
+    }
+
+    function showPageLoader(color){
+      const loader = document.getElementById('pageLoader');
+      if(!loader) return;
+      loader.style.color = color || '';
+      loader.classList.add('show');
+    }
+
+    function hidePageLoader(){
+      const loader = document.getElementById('pageLoader');
+      if(loader) loader.classList.remove('show');
     }
 
     async function loadTheme(){
@@ -448,18 +483,17 @@
     const dlg = document.getElementById('startDialog');
     if(!dlg) return;
     const noTabs = tabs.length === 0;
-    dlg.style.display = noTabs ? 'flex' : 'none';
-    if(noTabs){
+    const showDialog = alwaysShowSplash || noTabs;
+    dlg.style.display = showDialog ? 'flex' : 'none';
+    if(showDialog){
       startSplash();
-      // start suggestions disabled
     } else {
       stopSplash();
-      // start suggestions disabled
     }
     const chatPanel = document.getElementById('chatPanel');
-    if(chatPanel) chatPanel.style.display = noTabs ? 'none' : '';
+    if(chatPanel) chatPanel.style.display = showDialog ? 'none' : '';
     const taskPanel = document.getElementById('taskListPanel');
-    if(taskPanel) taskPanel.style.display = noTabs ? 'none' : (currentView === 'tasks' ? '' : 'none');
+    if(taskPanel) taskPanel.style.display = showDialog ? 'none' : (currentView === 'tasks' ? '' : 'none');
   }
 
   async function loadArchivedTabs(){
@@ -687,21 +721,26 @@
     async function createStartTab(type){
       const repoEl = document.getElementById('startRepoInput');
       const repo = repoEl ? repoEl.value.trim() : '';
+      showPageLoader(startInAurora ? 'cyan' : null);
       const body = { name:'New Tab', nexum: startInAurora ? 0 : 1, type, project:'', repo, sessionId };
-      const r = await fetch('/api/chat/tabs/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(r.ok){
-        const data = await r.json();
-        document.getElementById('startDialog').style.display = 'none';
-        stopSplash();
-        if(startInAurora){
-          await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'last_chat_tab', value:data.id})});
-          location.href = '/aurora.html';
-          return;
+      try{
+        const r = await fetch('/api/chat/tabs/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if(r.ok){
+          const data = await r.json();
+          document.getElementById('startDialog').style.display = 'none';
+          stopSplash();
+          if(startInAurora){
+            await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'last_chat_tab', value:data.id})});
+            location.href = '/aurora.html';
+            return;
+          }
+          await loadTabs();
+          currentTabId = data.id;
+          renderTabs();
+          applyTabView();
         }
-        await loadTabs();
-        currentTabId = data.id;
-        renderTabs();
-        applyTabView();
+      } finally {
+        if(!startInAurora) hidePageLoader();
       }
     }
     async function renameTab(tabId, newName){
@@ -1027,6 +1066,7 @@
       showArchived = localStorage.getItem('flagShowArchived') === 'true';
       showFeedbackButton = localStorage.getItem('flagShowFeedback') !== 'false';
       startInAurora = localStorage.getItem('flagAuroraStart') !== 'false';
+      alwaysShowSplash = localStorage.getItem('flagSplashAlways') !== 'false';
       const cbDeps = document.getElementById('flagShowDependencies');
       if(cbDeps) cbDeps.checked = showDependencies;
       const cbArch = document.getElementById('flagShowArchived');
@@ -1035,6 +1075,8 @@
       if(cbFeedback) cbFeedback.checked = showFeedbackButton;
       const cbAurora = document.getElementById('flagAuroraStart');
       if(cbAurora) cbAurora.checked = startInAurora;
+      const cbSplash = document.getElementById('flagSplashAlways');
+      if(cbSplash) cbSplash.checked = alwaysShowSplash;
       const feedbackBtn = document.getElementById('feedbackBtn');
       if(feedbackBtn) feedbackBtn.style.display = showFeedbackButton ? '' : 'none';
       if(currentView === 'tasks'){
@@ -1062,6 +1104,12 @@
     document.getElementById('flagAuroraStart').addEventListener('change', e => {
       localStorage.setItem('flagAuroraStart', e.target.checked);
       applyFeatureFlags();
+    });
+
+    document.getElementById('flagSplashAlways').addEventListener('change', e => {
+      localStorage.setItem('flagSplashAlways', e.target.checked);
+      applyFeatureFlags();
+      renderTabs();
     });
 
     document.getElementById('themeColorSelect').addEventListener('change', async e => {
@@ -1148,12 +1196,31 @@
       }
       init();
 
-      document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const collapsedLogo = document.getElementById('collapsedSidebarLogo');
+      const expandArrow = document.getElementById('expandSidebarArrow');
+      function toggleSidebar(){
         const sb = document.getElementById('sidebar');
-        if(sb.style.display === 'none') sb.style.display = '';
-        else sb.style.display = 'none';
-      });
+        const hidden = sb.style.display === 'none';
+        sb.style.display = hidden ? '' : 'none';
+        if(collapsedLogo) collapsedLogo.style.display = hidden ? 'none' : 'block';
+        if(expandArrow) expandArrow.style.display = hidden ? 'none' : 'block';
+      }
 
+      document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+      collapsedLogo?.addEventListener('click', toggleSidebar);
+      expandArrow?.addEventListener('click', toggleSidebar);
+
+    });
+
+    document.addEventListener('DOMContentLoaded', startSplash);
+  </script>
+  <div id="cookieBanner">
+    This site uses cookies to store your preferences.
+    <button id="cookieMoreInfoBtn">More Info</button>
+    <button id="cookieAcceptBtn">Accept</button>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
       const banner = document.getElementById('cookieBanner');
       if(banner){
         if(!localStorage.getItem('cookieAccepted')) banner.style.display = 'block';
@@ -1162,16 +1229,11 @@
           banner.style.display = 'none';
         });
         document.getElementById('cookieMoreInfoBtn').addEventListener('click', () => {
-          window.open('cookies.html', '_blank');
+          window.open('/cookies.html', '_blank');
         });
       }
     });
-
   </script>
-  <div id="cookieBanner">
-    This site uses session cookies for the functionality of this application such as chat history, preferences, and files.
-    <button id="cookieAcceptBtn">Accept</button>
-    <button id="cookieMoreInfoBtn">More Info</button>
-  </div>
+  <div id="pageLoader" class="page-loader"><span class="loading-spinner"></span></div>
 </body>
 </html>

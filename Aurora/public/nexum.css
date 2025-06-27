@@ -283,6 +283,7 @@ button:hover {
   display: none;
   justify-content: center;
   align-items: center;
+  z-index: 1001;
 }
 
 #startDialog {
@@ -333,7 +334,7 @@ button:hover {
   left: 100%;
   white-space: nowrap;
   font-size: 1.5rem;
-  animation: splash-race 4s linear forwards;
+  animation: splash-race 5s linear forwards;
 }
 
 @keyframes splash-race {
@@ -541,7 +542,7 @@ a:hover {
   padding: 0.5rem 1rem;
   border-top: 1px solid var(--border);
   display: none;
-  z-index: 1000;
+  z-index: 1100;
   text-align: center;
 }
 
