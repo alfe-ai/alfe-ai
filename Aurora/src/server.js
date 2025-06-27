@@ -2569,10 +2569,18 @@ app.post("/api/printifyTitleFix", async (req, res) => {
         .json({ error: `Printify script missing at ${scriptPath}` });
     }
 
-    const job = jobManager.createJob("node", [scriptPath, productId], {
-      cwd: scriptCwd,
-      file,
-    });
+    const filePath = path.isAbsolute(file)
+      ? file
+      : path.join(uploadsDir, file);
+
+    const job = jobManager.createJob(
+      "node",
+      [scriptPath, productId, filePath],
+      {
+        cwd: scriptCwd,
+        file,
+      }
+    );
     console.debug("[Server Debug] /api/printifyTitleFix => job started", job.id);
 
     jobManager.addDoneListener(job, () => {

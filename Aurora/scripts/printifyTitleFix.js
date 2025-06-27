@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import OpenAI from 'openai';
 
 const token = process.env.PRINTIFY_API_TOKEN || process.env.PRINTIFY_TOKEN;
 const shopId = process.env.PRINTIFY_SHOP_ID;
@@ -14,37 +17,68 @@ if (!shopId) {
 }
 
 const productId = process.argv[2];
-if (!productId) {
-  console.error('Usage: printifyTitleFix.js <productId>');
+const imagePathArg = process.argv[3];
+if (!productId || !imagePathArg) {
+  console.error('Usage: printifyTitleFix.js <productId> <imagePath>');
+  process.exit(1);
+}
+
+const imagePath = path.resolve(imagePathArg);
+if (!fs.existsSync(imagePath)) {
+  console.error('Image file not found:', imagePath);
+  process.exit(1);
+}
+
+const openAiKey = process.env.OPENAI_API_KEY;
+if (!openAiKey) {
+  console.error('Missing OPENAI_API_KEY');
   process.exit(1);
 }
 
 async function main() {
   try {
     const url = `https://api.printify.com/v1/shops/${shopId}/products/${productId}.json`;
-    const { data } = await axios.get(url, {
-      headers: { Authorization: `Bearer ${token}` }
+
+    const imageBase64 = fs.readFileSync(imagePath, { encoding: 'base64' });
+    const openai = new OpenAI({ apiKey: openAiKey });
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Generate an optimized eBay shirt listing title for this design. Only return the title.'
+            },
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/png;base64,${imageBase64}` }
+            }
+          ]
+        }
+      ],
+      max_tokens: 16,
+      temperature: 0.5
     });
 
-    const currentTitle = data.title || '';
-    console.log('Title:', currentTitle);
-
-    const cleanedTitle = currentTitle.replace(/,?\s*\[\.\.\.\]\s*$/, '').trim();
-    if (cleanedTitle !== currentTitle) {
-      await axios.put(
-        url,
-        { title: cleanedTitle },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      console.log('Updated Title:', cleanedTitle);
-    } else {
-      console.log('No trailing pattern detected; nothing to update.');
+    const optimizedTitle = resp.choices?.[0]?.message?.content?.trim();
+    if (!optimizedTitle) {
+      console.error('Failed to generate title');
+      process.exit(1);
     }
+
+    await axios.put(
+      url,
+      { title: optimizedTitle },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    console.log('Updated Title:', optimizedTitle);
   } catch (err) {
     const status = err.response?.status;
     const msg = err.response?.data || err.message;
