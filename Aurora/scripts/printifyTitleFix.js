@@ -62,11 +62,14 @@ async function main() {
       temperature: 0.5
     });
 
-    const optimizedTitle = resp.choices?.[0]?.message?.content?.trim();
+    let optimizedTitle = resp.choices?.[0]?.message?.content?.trim();
     if (!optimizedTitle) {
       console.error('Failed to generate title');
       process.exit(1);
     }
+
+    // Remove any quotation marks that might wrap or appear in the title
+    optimizedTitle = optimizedTitle.replace(/["']/g, '').trim();
 
     // Retry updating the title if Printify temporarily disables editing
     const updateTitle = async () => {
