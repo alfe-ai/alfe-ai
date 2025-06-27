@@ -125,7 +125,7 @@
             <td>${dbLink}</td>
             <td>${job.type}</td>
             <td>${job.variant || ''}</td>
-            <td>${job.status}</td>
+            <td>${job.status === 'running' ? 'Running <span class="loading-spinner"></span>' : job.status}</td>
             <td>${jobLink}</td>
             <td>${job.resultPath || ''}</td>
             <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
