@@ -11,6 +11,7 @@ export default class PrintifyJobQueue {
     this.upscaleScript = options.upscaleScript || '';
     this.printifyScript = options.printifyScript || '';
     this.printifyPriceScript = options.printifyPriceScript || '';
+    this.printifyTitleFixScript = options.printifyTitleFixScript || '';
     this.db = options.db || null;
     this.persistencePath = options.persistencePath || null;
 
@@ -108,8 +109,13 @@ export default class PrintifyJobQueue {
     let script = '';
     if (job.type === 'upscale') {
       script = this.upscaleScript;
-    } else if (job.type === 'printify' || job.type === 'printifyPrice') {
-      script = job.type === 'printify' ? this.printifyScript : this.printifyPriceScript;
+    } else if (job.type === 'printify' || job.type === 'printifyPrice' || job.type === 'printifyTitleFix') {
+      script =
+        job.type === 'printify'
+          ? this.printifyScript
+          : job.type === 'printifyPrice'
+          ? this.printifyPriceScript
+          : this.printifyTitleFixScript;
       const ext = path.extname(filePath);
       const base = path.basename(filePath, ext);
       const searchDir = path.isAbsolute(job.file)
@@ -184,7 +190,7 @@ export default class PrintifyJobQueue {
 
     const cwd = path.dirname(script);
     const args = [];
-    if (job.type === 'printifyPrice') {
+    if (job.type === 'printifyPrice' || job.type === 'printifyTitleFix') {
       let url = job.productUrl || null;
       if (!url && this.db) {
         url = this.db.getProductUrlForImage(`/uploads/${job.file}`);
@@ -194,7 +200,19 @@ export default class PrintifyJobQueue {
         }
       }
       if (url) {
-        args.push(url);
+        job.productUrl = url;
+        if (job.type === 'printifyPrice') {
+          args.push(url);
+        } else {
+          const productId = (() => {
+            try {
+              return new URL(url).pathname.split('/').pop();
+            } catch {
+              return url.split('/').pop().split('?')[0];
+            }
+          })();
+          args.push(productId, filePath);
+        }
       } else {
         job.status = 'error';
         this.current = null;
