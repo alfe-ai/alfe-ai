@@ -99,6 +99,7 @@
         <th>Status</th>
         <th>Job ID</th>
         <th>Result Path</th>
+        <th>Product URL</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -127,6 +128,7 @@
             <td>${job.status}</td>
             <td>${jobLink}</td>
             <td>${job.resultPath || ''}</td>
+            <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
             <td><button data-id="${job.id}" class="removeBtn">Remove</button></td>
           `;
           tbody.appendChild(tr);
