@@ -507,7 +507,7 @@ function updateAccountButton(info){
       favBtn.style.display = info.id === 1 ? "inline-block" : "none";
     }
     togglePortfolioMenu(info.id === 1);
-    toggleImageIdColumn(info.id === 1);
+    toggleImageIdColumn();
   } else {
     accountInfo = null;
     btn.textContent = "Sign Up / Login";
@@ -516,7 +516,7 @@ function updateAccountButton(info){
       favBtn.style.display = "none";
     }
     togglePortfolioMenu(false);
-    toggleImageIdColumn(false);
+    toggleImageIdColumn();
   }
 }
 
@@ -3354,11 +3354,11 @@ function togglePortfolioMenu(visible){
   if(icon) icon.style.display = visible ? "" : "none";
 }
 
-function toggleImageIdColumn(visible){
+function toggleImageIdColumn(){
   const header = document.getElementById('numericIdHeader');
-  if(header) header.style.display = visible ? '' : 'none';
+  if(header) header.style.display = '';
   document.querySelectorAll('#secureFilesList td.id-col').forEach(td => {
-    td.style.display = visible ? '' : 'none';
+    td.style.display = '';
   });
 }
 function toggleNewTabProjectField(visible){
