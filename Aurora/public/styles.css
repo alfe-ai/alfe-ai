@@ -1190,7 +1190,6 @@ button:disabled {
   display: none !important;
 }
 
-<<<<<<< HEAD
 /* Queued chat bubbles */
 .chat-queue-container {
   position: absolute;
@@ -1211,7 +1210,8 @@ button:disabled {
   max-width: 250px;
   font-size: 0.9rem;
   opacity: 0.7;
-=======
+}
+
 /* Cookie consent banner */
 #cookieBanner {
   position: fixed;
@@ -1234,7 +1234,6 @@ button:disabled {
   border: none;
   padding: 0.3rem 0.6rem;
   cursor: pointer;
->>>>>>> Aurora/Aurelix/dev/main-rel6
 }
 
 
