@@ -636,6 +636,9 @@ const printifyQueue = new PrintifyJobQueue(jobManager, {
   printifyPriceScript:
     process.env.PRINTIFY_PRICE_SCRIPT_PATH ||
     "/home/admin/Puppets/PrintifyPricePuppet/run.sh",
+  printifyTitleFixScript:
+    process.env.PRINTIFY_TITLE_FIX_SCRIPT_PATH ||
+    path.join(__dirname, "../scripts/printifyTitleFix.js"),
   db,
 });
 
