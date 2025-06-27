@@ -168,7 +168,7 @@
             optionsDiv.style.display = 'none';
             updatePreview(f.name);
             const type = document.getElementById('jobType').value;
-            if(type === 'printify' || type === 'printifyPrice' || type === 'all'){
+            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'all'){
               updateVariantUI(f.name);
             }
           });
@@ -199,7 +199,7 @@
 
     document.getElementById('jobType').addEventListener('change', () => {
       const type = document.getElementById('jobType').value;
-      if(type === 'printify' || type === 'printifyPrice' || type === 'all'){
+      if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'all'){
         updateVariantUI(document.getElementById('imageSelect').dataset.value);
       } else {
         document.getElementById('variantChoice').style.display = 'none';
@@ -263,7 +263,7 @@ async function updateVariantUI(file){
       if(!file) return;
       try{
         if(type === 'all'){
-          const steps = ['upscale','printify','printifyPrice'];
+          const steps = ['upscale','printify','printifyTitleFix'];
           for(const step of steps){
             await fetch('/api/pipelineQueue', {
               method: 'POST',

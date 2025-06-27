@@ -11,6 +11,7 @@ export default class PrintifyJobQueue {
     this.upscaleScript = options.upscaleScript || '';
     this.printifyScript = options.printifyScript || '';
     this.printifyPriceScript = options.printifyPriceScript || '';
+    this.printifyTitleFixScript = options.printifyTitleFixScript || '';
     this.db = options.db || null;
     this.persistencePath = options.persistencePath || null;
 
@@ -108,8 +109,18 @@ export default class PrintifyJobQueue {
     let script = '';
     if (job.type === 'upscale') {
       script = this.upscaleScript;
-    } else if (job.type === 'printify' || job.type === 'printifyPrice') {
-      script = job.type === 'printify' ? this.printifyScript : this.printifyPriceScript;
+    } else if (
+      job.type === 'printify' ||
+      job.type === 'printifyPrice' ||
+      job.type === 'printifyTitleFix'
+    ) {
+      if (job.type === 'printify') {
+        script = this.printifyScript;
+      } else if (job.type === 'printifyPrice') {
+        script = this.printifyPriceScript;
+      } else {
+        script = this.printifyTitleFixScript;
+      }
       const ext = path.extname(filePath);
       const base = path.basename(filePath, ext);
       const searchDir = path.isAbsolute(job.file)
@@ -202,6 +213,30 @@ export default class PrintifyJobQueue {
         this._processNext();
         return;
       }
+    } else if (job.type === 'printifyTitleFix') {
+      let url = job.productUrl || null;
+      if (!url && this.db) {
+        url = this.db.getProductUrlForImage(`/uploads/${job.file}`);
+        if (!url) {
+          const status = this.db.getImageStatusForUrl(`/uploads/${job.file}`);
+          url = extractPrintifyUrl(status || '');
+        }
+      }
+      if (url) {
+        let id = null;
+        try {
+          id = new URL(url).pathname.split('/').pop();
+        } catch {
+          id = url.split('/').pop().split('?')[0];
+        }
+        args.push(id, filePath);
+      } else {
+        job.status = 'error';
+        this.current = null;
+        this._saveJobs();
+        this._processNext();
+        return;
+      }
     } else {
       args.push(filePath);
     }
@@ -231,6 +266,13 @@ export default class PrintifyJobQueue {
             this.db.setProductUrl(originalUrl, url);
           }
           job.resultPath = url;
+        }
+      } else if (job.type === 'printifyTitleFix') {
+        if (this.db) {
+          try {
+            const originalUrl = `/uploads/${job.file}`;
+            this.db.setImageStatus(originalUrl, 'Printify API Title Fix');
+          } catch {}
         }
       }
       this.current = null;
