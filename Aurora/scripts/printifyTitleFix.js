@@ -68,16 +68,43 @@ async function main() {
       process.exit(1);
     }
 
-    await axios.put(
-      url,
-      { title: optimizedTitle },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+    // Retry updating the title if Printify temporarily disables editing
+    const updateTitle = async () => {
+      await axios.put(
+        url,
+        { title: optimizedTitle },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
+      );
+    };
+
+    let attempt = 0;
+    while (true) {
+      try {
+        await updateTitle();
+        break;
+      } catch (err) {
+        const reason =
+          err.response?.data?.errors?.reason || err.response?.data?.message;
+        const code = err.response?.data?.code;
+        if (
+          attempt < 9 &&
+          (reason === 'Product is disabled for editing' || code === 8252)
+        ) {
+          attempt++;
+          console.warn(
+            `Attempt ${attempt} failed: ${reason}. Retrying in 5 seconds...`
+          );
+          await new Promise(r => setTimeout(r, 5000));
+          continue;
+        }
+        throw err;
       }
-    );
+    }
     console.log('Updated Title:', optimizedTitle);
   } catch (err) {
     const status = err.response?.status;
