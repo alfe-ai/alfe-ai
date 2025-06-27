@@ -3435,14 +3435,10 @@ function renderFileList(){
     const tr = document.createElement("tr");
     tr.dataset.fileName = f.name;
     const tdIndex = document.createElement("td");
-<<<<<<< HEAD
     tdIndex.textContent = f.uuid ?? "";
     const tdId = document.createElement("td");
     tdId.className = "id-col";
     tdId.textContent = (f.id !== null && f.id !== undefined) ? `img-${f.id}` : "";
-=======
-    tdIndex.textContent = (f.id ?? f.uuid ?? "");
->>>>>>> Aurora/Aurelix/dev/main-rel6
     const tdThumb = document.createElement("td");
     const thumbImg = document.createElement("img");
     thumbImg.src = `/uploads/${encodeURIComponent(f.name)}`;
