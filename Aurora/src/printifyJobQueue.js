@@ -97,6 +97,28 @@ export default class PrintifyJobQueue {
     return true;
   }
 
+  removeByDbId(dbId) {
+    let removed = false;
+    for (let i = this.jobs.length - 1; i >= 0; i--) {
+      const job = this.jobs[i];
+      if (job.dbId === dbId) {
+        if (job.status === 'running' && job.jobId) {
+          this.jobManager.stopJob(job.jobId);
+        }
+        this.jobs.splice(i, 1);
+        if (this.current && this.current.id === job.id) {
+          this.current = null;
+        }
+        removed = true;
+      }
+    }
+    if (removed) {
+      this._saveJobs();
+      this._processNext();
+    }
+    return removed;
+  }
+
   stopAll() {
     for (const job of this.jobs) {
       if (job.status === 'running' && job.jobId) {

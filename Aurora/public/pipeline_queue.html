@@ -132,8 +132,12 @@
             seen.add(job.dbId);
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
-            groupTr.innerHTML = `<td colspan="9">DB ID: ${job.dbId}</td>`;
+            groupTr.innerHTML = `<td colspan="9">DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
+            groupTr.querySelector('.removeDbBtn').addEventListener('click', async () => {
+              if(!confirm(`Remove all jobs for DB ID ${job.dbId}?`)) return;
+              await removeJobsByDbId(job.dbId);
+            });
           }
 
           const tr = document.createElement('tr');
@@ -343,6 +347,15 @@ async function updateVariantUI(file){
         await loadQueue();
       }catch(e){
         console.error('Failed to remove job', e);
+      }
+    }
+
+    async function removeJobsByDbId(dbId){
+      try{
+        await fetch(`/api/pipelineQueue/db/${encodeURIComponent(dbId)}`, { method: 'DELETE' });
+        await loadQueue();
+      }catch(e){
+        console.error('Failed to remove jobs', e);
       }
     }
 

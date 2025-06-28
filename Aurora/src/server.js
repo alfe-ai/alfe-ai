@@ -2787,6 +2787,12 @@ app.delete("/api/pipelineQueue/:id", (req, res) => {
   res.json({ removed: true });
 });
 
+app.delete("/api/pipelineQueue/db/:dbId", (req, res) => {
+  const ok = printifyQueue.removeByDbId(req.params.dbId);
+  if (!ok) return res.status(404).json({ error: "Jobs not found" });
+  res.json({ removed: true });
+});
+
 app.post("/api/pipelineQueue/stopAll", (req, res) => {
   printifyQueue.stopAll();
   res.json({ stopped: true });
