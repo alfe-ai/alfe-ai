@@ -2276,7 +2276,7 @@ app.post("/api/upscale", async (req, res) => {
         // RIBT step
         const ribtScript =
           process.env.RIBT_SCRIPT_PATH ||
-          '/mnt/part5/dot_fayra/Whimsical/git/LogisticaRIBT/run.sh';
+          '/home/admin/git/LogisticaRIBT/run.sh';
         const ribtCwd = path.dirname(ribtScript);
         const ribtOutput = path.join(ribtCwd, 'output.png');
         try {

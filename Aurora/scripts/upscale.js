@@ -32,7 +32,7 @@ const nobgPath = path.join(path.dirname(inputPath), `${base}_upscaled_nobg${ext}
 
 const RIBT_SCRIPT =
   process.env.RIBT_SCRIPT_PATH ||
-  '/mnt/part5/dot_fayra/Whimsical/git/LogisticaRIBT/run.sh';
+  '/home/admin/git/LogisticaRIBT/run.sh';
 const ribtCwd = path.dirname(RIBT_SCRIPT);
 const ribtOutput = path.join(ribtCwd, 'output.png');
 
