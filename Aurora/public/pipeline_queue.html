@@ -327,6 +327,9 @@ async function updateVariantUI(file){
       choiceDiv.style.display = '';
       if(nbPath){
         nobgRadio.checked = true;
+      } else if(type === 'all'){
+        nobgRadio.checked = true;
+        normalRadio.checked = false;
       } else if(upPath){
         normalRadio.checked = true;
       } else {
