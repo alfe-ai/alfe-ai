@@ -6,6 +6,10 @@ const base = process.env.PROGRAMATIC_PUPPET_API_BASE || 'https://localhost:3005'
 const puppet = process.argv[2];
 const productUrl = process.argv[3];
 
+console.debug('[RunPuppet Debug] Base URL =>', base);
+console.debug('[RunPuppet Debug] Puppet =>', puppet);
+if (productUrl) console.debug('[RunPuppet Debug] Product URL =>', productUrl);
+
 if (!puppet) {
   console.error('Usage: runPuppet.js <puppetName> [productUrl]');
   process.exit(1);
@@ -29,6 +33,19 @@ const agent = base.startsWith('https://')
     });
   } catch (err) {
     console.error('Failed to run puppet:', err.message || err);
+    if (err.response) {
+      console.error('[RunPuppet Debug] Response status:', err.response.status);
+      if (err.response.data) {
+        const data =
+          typeof err.response.data === 'string'
+            ? err.response.data
+            : JSON.stringify(err.response.data);
+        console.error('[RunPuppet Debug] Response body:', data);
+      }
+    }
+    if (err.stack) {
+      console.error('[RunPuppet Debug] Stack:', err.stack);
+    }
     process.exit(1);
   }
 })();

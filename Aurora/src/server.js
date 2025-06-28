@@ -2606,11 +2606,17 @@ app.post("/api/printifyFixMockups", async (req, res) => {
     const { file } = req.body || {};
     if (!file) return res.status(400).json({ error: "Missing file" });
 
+    console.debug("[Server Debug] /api/printifyFixMockups called with file =>", file);
+
     let productUrl = db.getProductUrlForImage(`/uploads/${file}`);
     if (!productUrl) {
       const status = db.getImageStatusForUrl(`/uploads/${file}`);
       productUrl = extractPrintifyUrl(status || "");
     }
+    console.debug(
+      "[Server Debug] /api/printifyFixMockups resolved productUrl =>",
+      productUrl
+    );
     if (!productUrl) return res.status(400).json({ error: "Missing Printify URL" });
 
     const scriptPath = path.join(__dirname, "../scripts/runPuppet.js");
@@ -2618,6 +2624,8 @@ app.post("/api/printifyFixMockups", async (req, res) => {
     if (!fs.existsSync(scriptPath)) {
       return res.status(500).json({ error: `Puppet script missing at ${scriptPath}` });
     }
+
+    console.debug("[Server Debug] /api/printifyFixMockups running script =>", scriptPath);
 
     const job = jobManager.createJob(scriptPath, ["PrintifyFixMockups", productUrl], { cwd: scriptCwd, file });
     jobManager.addDoneListener(job, () => {
