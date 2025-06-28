@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { extractProductUrl, extractPrintifyUrl } from './printifyUtils.js';
+import child_process from "child_process";
 
 export default class PrintifyJobQueue {
   constructor(jobManager, options = {}) {
@@ -206,6 +207,21 @@ export default class PrintifyJobQueue {
       this._saveJobs();
       this._processNext();
       return;
+    }
+
+    if (job.type === 'printify') {
+      try {
+        const colorScript = path.join(__dirname, '../scripts/detectColors.js');
+        const detected = child_process
+          .execFileSync(colorScript, [filePath], { encoding: 'utf8' })
+          .trim();
+        console.log('[PrintifyJobQueue] Detected colors:', detected);
+      } catch (err) {
+        console.error(
+          '[PrintifyJobQueue] Color detection failed:',
+          err.message || err
+        );
+      }
     }
 
     const cwd = path.dirname(script);
