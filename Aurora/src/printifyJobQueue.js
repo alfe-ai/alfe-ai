@@ -14,6 +14,7 @@ export default class PrintifyJobQueue {
     this.printifyPriceScript = options.printifyPriceScript || '';
     this.printifyTitleFixScript = options.printifyTitleFixScript || '';
     this.runPuppetScript = options.runPuppetScript || '';
+    this.ebayCheckScript = options.ebayCheckScript || '';
     this.db = options.db || null;
     this.persistencePath = options.persistencePath || null;
 
@@ -215,6 +216,8 @@ export default class PrintifyJobQueue {
         if (nobgFound) filePath = nobgFound;
         else if (normalFound) filePath = normalFound;
       }
+    } else if (job.type === 'ebayCheck') {
+      script = this.ebayCheckScript;
     } else {
       job.status = 'error';
       this.current = null;
@@ -339,10 +342,14 @@ export default class PrintifyJobQueue {
           printifyPrice: 'Printify API Updates',
           printifyTitleFix: 'Printify API Title Fix',
           printifyFixMockups: 'Printify Fix Mockups',
-          printifyFinalize: 'Printify Finalize'
+          printifyFinalize: 'Printify Finalize',
+          ebayCheck: 'eBay Check'
         };
         const status = statusMap[job.type] || job.type;
         this.db.setImageStatus(originalUrl, status);
+        if (job.type === 'printifyFinalize' && this.ebayCheckScript) {
+          this.enqueue(job.file, 'ebayCheck', job.dbId);
+        }
       }
       this.current = null;
       this._saveJobs();

@@ -77,6 +77,7 @@
         <option value="printifyTitleFix">Printify Title Fix</option>
         <option value="printifyFixMockups">Printify Fix Mockups</option>
         <option value="printifyFinalize">Printify Finalize</option>
+        <option value="ebayCheck">eBay Check</option>
         <option value="all">All</option>
       </select>
     </label>
@@ -210,7 +211,7 @@
             optionsDiv.style.display = 'none';
             updatePreview(f.name);
             const type = document.getElementById('jobType').value;
-            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
+            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'ebayCheck' || type === 'all'){
               updateVariantUI(f.name);
             }
           });
@@ -253,7 +254,7 @@
 
     document.getElementById('jobType').addEventListener('change', () => {
       const type = document.getElementById('jobType').value;
-      if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
+      if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'ebayCheck' || type === 'all'){
         updateVariantUI(document.getElementById('imageSelect').dataset.value);
       } else {
         document.getElementById('variantChoice').style.display = 'none';
@@ -320,7 +321,7 @@ async function updateVariantUI(file){
       if(!file) return;
       try{
         if(type === 'all'){
-          const steps = ['upscale','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
+          const steps = ['upscale','printify','printifyTitleFix','printifyFixMockups','printifyFinalize','ebayCheck'];
           for(const step of steps){
             await fetch('/api/pipelineQueue', {
               method: 'POST',
