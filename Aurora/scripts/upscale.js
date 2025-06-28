@@ -10,6 +10,8 @@ if (!API_KEY) {
   process.exit(1);
 }
 
+console.log('Using Stability AI upscaler');
+
 const input = process.argv[2];
 if (!input) {
   console.error('Usage: upscale.js <imagePath>');
