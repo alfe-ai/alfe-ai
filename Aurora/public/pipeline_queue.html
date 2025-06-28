@@ -230,9 +230,9 @@
         imgOffset = 0;
         imgHasMore = true;
         optionsDiv.querySelectorAll('.option').forEach(o => o.remove());
-        dropdown.dataset.value = '';
-        dropdown.dataset.id = '';
-        selectedDiv.textContent = '-- choose --';
+        if(!dropdown.dataset.value){
+          selectedDiv.textContent = '-- choose --';
+        }
       }
       if(!imgHasMore) return;
       imgLoading = true;
