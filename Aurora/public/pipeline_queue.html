@@ -157,15 +157,25 @@
     const selectedDiv = dropdown.querySelector('.selected');
     const optionsDiv = dropdown.querySelector('.options');
 
-    async function loadImages(){
-      try{
-        const res = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId));
-        const files = await res.json();
-        files.sort((a,b) => b.mtime - a.mtime);
+    let imgOffset = 0;
+    let imgHasMore = true;
+    let imgLoading = false;
+
+    async function loadImages(reset=false){
+      if(imgLoading) return;
+      if(reset){
+        imgOffset = 0;
+        imgHasMore = true;
         optionsDiv.innerHTML = '';
         dropdown.dataset.value = '';
         dropdown.dataset.id = '';
         selectedDiv.textContent = '-- choose --';
+      }
+      if(!imgHasMore) return;
+      imgLoading = true;
+      try{
+        const res = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${imgOffset}`);
+        const files = await res.json();
         files.forEach(f => {
           const item = document.createElement('div');
           item.className = 'option';
@@ -188,17 +198,29 @@
           });
           optionsDiv.appendChild(item);
         });
+        imgOffset += files.length;
+        if(files.length < 20) imgHasMore = false;
       }catch(e){
         console.error('Failed to load images', e);
       }
+      imgLoading = false;
     }
 
     dropdown.addEventListener('click', () => {
       optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
+      if(optionsDiv.style.display === 'block' && optionsDiv.innerHTML === ''){
+        loadImages(true);
+      }
     });
 
     document.addEventListener('click', e => {
       if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
+    });
+
+    optionsDiv.addEventListener('scroll', () => {
+      if(optionsDiv.scrollTop + optionsDiv.clientHeight >= optionsDiv.scrollHeight - 5){
+        loadImages();
+      }
     });
 
     function updatePreview(val){
@@ -318,7 +340,7 @@ async function updateVariantUI(file){
     });
 
     loadQueue();
-    loadImages();
+    loadImages(true);
     document.getElementById('jobType').dispatchEvent(new Event('change'));
     setInterval(loadQueue, 5000);
   </script>
