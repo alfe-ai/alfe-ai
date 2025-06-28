@@ -17,6 +17,7 @@ export default class JobManager {
       productUrl: null,
       status: "running",
       startTime: Date.now(),
+      finishTime: null,
       log: "",
       listeners: [],
       doneListeners: [],
@@ -35,6 +36,7 @@ export default class JobManager {
 
     child.on("error", (err) => {
       job.status = "error";
+      job.finishTime = Date.now();
       this._append(job, `[error] ${err.toString()}`);
       this._notifyDone(job);
     });
@@ -43,6 +45,7 @@ export default class JobManager {
       if (job.status === "running") {
         job.status = code === 0 ? "finished" : "failed";
       }
+      job.finishTime = Date.now();
       this._append(job, `\n[process exited with code ${code}]`);
       this._notifyDone(job);
     });
@@ -70,6 +73,7 @@ export default class JobManager {
       file: j.file,
       status: j.status,
       startTime: j.startTime,
+      finishTime: j.finishTime,
       resultPath: j.resultPath,
       productUrl: j.productUrl,
     }));
@@ -109,6 +113,7 @@ export default class JobManager {
     const job = this.jobs.get(id);
     if (!job || job.status !== "running") return;
     job.status = "finished";
+    job.finishTime = Date.now();
     this._append(job, "\n[force finished]");
     this._notifyDone(job);
   }
