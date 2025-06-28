@@ -2304,14 +2304,14 @@ app.post("/api/upscale", async (req, res) => {
             // Copy final
             const upscaleName = `${dbId || base}_upscale${ext}`;
             const upscaleDest = path.join(uploadsDir, upscaleName);
-            const ribtCopySrc = ribtOutput;
-            if (fs.existsSync(ribtCopySrc)) {
-              fs.copyFileSync(ribtCopySrc, upscaleDest);
+            const originalUpscaledSrc = job.resultPath;
+            if (fs.existsSync(originalUpscaledSrc)) {
+              fs.copyFileSync(originalUpscaledSrc, upscaleDest);
               job.resultPath = upscaleDest;
               console.debug('[Server Debug] Copied final upscale to =>', upscaleDest);
               db.setUpscaledImage(originalUrl, upscaleDest);
             } else {
-              console.debug('[Server Debug] Expected upscale output not found at', ribtCopySrc);
+              console.debug('[Server Debug] Expected upscale output not found at', originalUpscaledSrc);
             }
           } else {
             console.debug('[Server Debug] RIBT output not found at', ribtOutput);
