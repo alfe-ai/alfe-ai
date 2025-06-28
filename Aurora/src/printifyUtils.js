@@ -13,7 +13,8 @@ export function extractPrintifyUrl(status = '') {
 
 export function extractUpdatedTitle(log = '') {
   if (!log) return null;
-  const matches = [...log.matchAll(/Updated Title:\s*(.+)/i)];
+  // use a global regex so matchAll retrieves all occurrences
+  const matches = [...log.matchAll(/Updated Title:\s*(.+)/gi)];
   const m = matches[matches.length - 1];
   return m ? m[1].trim() : null;
 }
