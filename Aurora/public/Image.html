@@ -52,6 +52,21 @@
     <button id="printifyFinishButton" style="margin-left:auto;">Programatic: Printify Finish</button>
   </div>
   <pre id="upscaleTerminal" style="background:#000;color:#0f0;padding:0.5rem;margin-top:0.5rem;height:200px;overflow:auto;font-family:monospace;"></pre>
+  <h3>Product Types</h3>
+  <table id="productTypesTable" style="width:100%;border-collapse:collapse;margin-top:1rem;">
+    <thead>
+      <tr>
+        <th>Product Name</th>
+        <th>Printify URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Gildan 5000</td>
+        <td id="productUrlCell"></td>
+      </tr>
+    </tbody>
+  </table>
   <script src="/session.js"></script>
   <script>
 
@@ -132,6 +147,7 @@
             statusText.textContent = current;
           }
           if(printifyTitleFixBtn) printifyTitleFixBtn.hidden = !printifyUrl;
+          updateProductTable();
         }
       if(current === 'Printify API Title Fix'){
           if(stageItems[3]) stageItems[3].classList.add('completed');
@@ -201,6 +217,7 @@
       if(productUrl){
         printifyUrl = productUrl;
       }
+      updateProductTable();
       statusOptions.forEach(v => {
         const o = document.createElement('option');
         o.value = v;
@@ -299,6 +316,7 @@
     let printifyTitleFixBtn;
     let printifyPriceBtn;
     let setProductUrlBtn;
+    let productUrlCell;
     let printifyUrl = null;
 
     function updateChoiceUI(){
@@ -337,6 +355,20 @@
         choiceDiv.style.display = 'none';
         printifyBtn.hidden = true;
         if(printifyPriceBtn) printifyPriceBtn.hidden = true;
+      }
+    }
+
+    function updateProductTable(){
+      if(!productUrlCell) return;
+      if(printifyUrl){
+        const link = document.createElement('a');
+        link.href = printifyUrl;
+        link.textContent = printifyUrl;
+        link.target = '_blank';
+        productUrlCell.innerHTML = '';
+        productUrlCell.appendChild(link);
+      } else {
+        productUrlCell.textContent = '';
       }
     }
     async function checkUpscaled(){
@@ -383,6 +415,7 @@
     printifyTitleFixBtn = document.getElementById('printifyTitleFixButton');
     printifyPriceBtn = document.getElementById('printifyPriceButton');
     setProductUrlBtn = document.getElementById('setProductUrlButton');
+    productUrlCell = document.getElementById('productUrlCell');
     const printifyApiBtn = document.getElementById('printifyApiButton');
     const terminalEl = document.getElementById('upscaleTerminal');
     const jobsListEl = document.getElementById('jobsList');
