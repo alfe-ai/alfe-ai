@@ -183,6 +183,10 @@ function updatePageTitle(){
 
 // Data and state for the secure files list
 let fileListData = [];
+const fileListLimit = 20;
+let fileListOffset = 0;
+let fileListEnd = false;
+let fileListLoading = false;
 // Default to sorting by last modified descending so newest files appear first
 let fileSortColumn = "mtime";
 let fileSortAsc = false;
@@ -3620,15 +3624,33 @@ function setupFileSorting(){
   });
 }
 
-async function loadFileList() {
+async function loadFileList(reset = true) {
+  if(fileListLoading) return;
+  if(reset){
+    fileListOffset = 0;
+    fileListEnd = false;
+    fileListData = [];
+    $("#secureFilesList tbody").innerHTML = "";
+  }
+  await loadNextFilePage();
+}
+
+async function loadNextFilePage(){
+  if(fileListLoading || fileListEnd) return;
+  fileListLoading = true;
   try {
-    fileListData = await fetch(`/api/upload/list?sessionId=${encodeURIComponent(sessionId)}&showHidden=1`).then(r => r.json());
+    const resp = await fetch(`/api/upload/list?sessionId=${encodeURIComponent(sessionId)}&showHidden=1&limit=${fileListLimit}&offset=${fileListOffset}`);
+    const data = await resp.json();
+    fileListData = fileListData.concat(data);
+    fileListOffset += data.length;
+    if(data.length < fileListLimit) fileListEnd = true;
     sortFileData();
     renderFileList();
     updateImageLimitInfo(fileListData);
   } catch(e) {
     console.error("Error fetching file list:", e);
   }
+  fileListLoading = false;
 }
 
 $("#secureUploadForm").addEventListener("submit", async e => {
@@ -4401,6 +4423,14 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
 
   await loadFileList();
   setupFileSorting();
+  const uploaderContainer = document.getElementById("sidebarViewUploader");
+  if(uploaderContainer){
+    uploaderContainer.addEventListener("scroll", async () => {
+      if(uploaderContainer.scrollTop + uploaderContainer.clientHeight >= uploaderContainer.scrollHeight - 20){
+        await loadNextFilePage();
+      }
+    });
+  }
 
   favElement = document.getElementById("favicon");
   if (favElement) {
