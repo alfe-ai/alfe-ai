@@ -24,7 +24,9 @@ const agent = base.startsWith('https://')
   try {
     const resp = await axios.post(
       base + '/runPuppet',
-      productUrl ? { puppetName: puppet, printifyProductURL: productUrl } : { puppetName: puppet },
+      productUrl
+        ? { puppetName: puppet, printifyProductURL: productUrl, productUrl }
+        : { puppetName: puppet },
       { responseType: 'stream', httpsAgent: agent }
     );
     await new Promise((resolve, reject) => {
@@ -37,10 +39,16 @@ const agent = base.startsWith('https://')
     if (err.response) {
       console.error('[RunPuppet Debug] Response status:', err.response.status);
       if (err.response.data) {
-        const data =
-          typeof err.response.data === 'string'
-            ? err.response.data
-            : inspect(err.response.data, { depth: null });
+        let data = err.response.data;
+        if (typeof data !== 'string') {
+          try {
+            const chunks = [];
+            for await (const chunk of data) chunks.push(chunk);
+            data = Buffer.concat(chunks).toString('utf8');
+          } catch (e) {
+            data = inspect(data, { depth: null });
+          }
+        }
         console.error('[RunPuppet Debug] Response body:', data);
       }
     }
