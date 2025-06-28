@@ -2083,6 +2083,19 @@ app.post("/api/upload", upload.single("myfile"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
+
+  const sessionId = getSessionIdFromRequest(req);
+  const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
+    .split(",")[0]
+    .trim();
+
+  if (sessionId) {
+    db.ensureImageSession(sessionId);
+  }
+
+  const url = `/uploads/${req.file.filename}`;
+  db.createImagePair(url, "", 1, "", "Uploaded", sessionId, ipAddress, "", 0, "", "");
+
   db.logActivity("File upload", JSON.stringify({ filename: req.file.originalname }));
   res.json({ success: true, file: req.file });
 });
