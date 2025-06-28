@@ -48,6 +48,14 @@
     .img-dropdown .option:hover {
       background-color: #333;
     }
+    .img-dropdown .hide-btn {
+      margin-left: auto;
+      background: none;
+      border: 1px solid #444;
+      color: #f33;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
     .upscaled-label {
       color: cyan;
       margin-left: 0.25rem;
@@ -86,7 +94,6 @@
         <div class="options"></div>
       </div>
     </label>
-    <label style="margin-left:0.5rem;"><input type="checkbox" id="hideImageCheck"> Hide</label>
     <img id="imagePreview" style="display:none;max-height:80px;border:1px solid #444;" />
     <div id="variantChoice" style="display:none;flex-direction:column;margin-left:0.5rem;">
       <label style="display:block;margin-bottom:0.25rem;">
@@ -202,7 +209,21 @@
           const idx = (f.id !== null && f.id !== undefined) ? f.id : '';
           const upscaled = f.status && /upscaled/i.test(f.status);
           const label = upscaled ? '<span class="upscaled-label">[upscaled]</span>' : '';
-          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
+          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span> <button class="hide-btn">Hide</button>`;
+          const hideBtn = item.querySelector('.hide-btn');
+          hideBtn.addEventListener('click', async ev => {
+            ev.stopPropagation();
+            try{
+              await fetch('/api/upload/hidden', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: f.name, hidden: true })
+              });
+              item.remove();
+            }catch(err){
+              console.error('Failed to hide image', err);
+            }
+          });
           item.addEventListener('click', () => {
             selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
             dropdown.dataset.value = f.name;
@@ -334,15 +355,6 @@ async function updateVariantUI(file){
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file, type, dbId, variant })
           });
-        }
-        if(document.getElementById('hideImageCheck').checked){
-          await fetch('/api/upload/hidden', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: file, hidden: true })
-          });
-          document.getElementById('hideImageCheck').checked = false;
-          loadImages(true);
         }
         await loadQueue();
       }catch(e){
