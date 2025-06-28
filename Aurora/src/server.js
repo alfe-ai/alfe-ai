@@ -445,9 +445,7 @@ const queueDataPath = path.join(__dirname, "../printifyQueue.json");
 const printifyQueue = new PrintifyJobQueue(jobManager, {
   uploadsDir,
   persistencePath: queueDataPath,
-  upscaleScript:
-    process.env.UPSCALE_SCRIPT_PATH ||
-    "/mnt/part5/dot_fayra/Whimsical/git/PrintifyPuppet-PuppetCore-Sterling/LeonardoUpscalePuppet/loop.sh",
+  upscaleScript: process.env.UPSCALE_SCRIPT_PATH || '',
   printifyScript:
     process.env.PRINTIFY_SCRIPT_PATH ||
     "/mnt/part5/dot_fayra/Whimsical/git/PrintifyPuppet-PuppetCore-Sterling/PrintifyPuppet/run.sh",
@@ -1968,7 +1966,7 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
   }
 });
 
-// Trigger the Leonardo upscaler script for a given uploaded file and stream
+// Trigger the image upscaler script for a given uploaded file and stream
 // the script output back to the client.
 app.post("/api/upscale", async (req, res) => {
   try {
@@ -1988,13 +1986,14 @@ app.post("/api/upscale", async (req, res) => {
       return res.status(403).json({ error: "upscale restricted" });
     }
 
-    const scriptPath =
-      process.env.UPSCALE_SCRIPT_PATH ||
-      "/mnt/part5/dot_fayra/Whimsical/git/PrintifyPuppet-PuppetCore-Sterling/LeonardoUpscalePuppet/loop.sh";
+    const scriptPath = process.env.UPSCALE_SCRIPT_PATH;
     console.debug(
       "[Server Debug] /api/upscale => using scriptPath =>",
       scriptPath
     );
+    if (!scriptPath) {
+      return res.status(500).json({ error: "UPSCALE_SCRIPT_PATH not set" });
+    }
     const scriptCwd = path.dirname(scriptPath);
     console.debug(
       "[Server Debug] /api/upscale => using scriptCwd =>",
@@ -2018,7 +2017,7 @@ app.post("/api/upscale", async (req, res) => {
       return res
         .status(500)
         .json({
-          error: `Upscale script missing. Expected at ${scriptPath} (set UPSCALE_SCRIPT_PATH to override).`,
+          error: `Upscale script missing at ${scriptPath}`,
         });
     }
 
