@@ -10,3 +10,10 @@ export function extractPrintifyUrl(status = '') {
   const m = status.match(/Printify URL:\s*(\S+)/i);
   return m ? m[1].trim() : null;
 }
+
+export function extractUpdatedTitle(log = '') {
+  if (!log) return null;
+  const matches = [...log.matchAll(/Updated Title:\s*(.+)/i)];
+  const m = matches[matches.length - 1];
+  return m ? m[1].trim() : null;
+}

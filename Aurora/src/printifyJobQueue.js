@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { extractProductUrl, extractPrintifyUrl } from './printifyUtils.js';
+import { extractProductUrl, extractPrintifyUrl, extractUpdatedTitle } from './printifyUtils.js';
 import child_process from "child_process";
 
 export default class PrintifyJobQueue {
@@ -294,6 +294,11 @@ export default class PrintifyJobQueue {
             this.db.setProductUrl(originalUrl, url);
           }
           job.resultPath = url;
+        }
+      } else if (job.type === 'printifyTitleFix') {
+        const title = extractUpdatedTitle(jmJob.log);
+        if (title && this.db) {
+          this.db.setImageTitle(originalUrl, title);
         }
       }
       if (this.db) {
