@@ -62,7 +62,6 @@ async function upscale() {
     child_process.execFileSync(RIBT_SCRIPT, [outputPath], { cwd: ribtCwd });
     if (fs.existsSync(ribtOutput)) {
       fs.copyFileSync(ribtOutput, nobgPath);
-      fs.copyFileSync(ribtOutput, outputPath);
       console.log(`Background removed output saved to: ${nobgPath}`);
     } else {
       console.error('RIBT output not found at', ribtOutput);
