@@ -847,6 +847,12 @@ body {
   text-align: left;
 }
 
+/* Hide the UUID/hash column */
+#secureFilesList th[data-col="uuid"],
+#secureFilesList td.uuid-col {
+  display: none;
+}
+
 /* Links in the secure uploader table */
 #secureFilesList a {
   color: cyan;
