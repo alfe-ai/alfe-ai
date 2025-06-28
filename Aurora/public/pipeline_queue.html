@@ -71,6 +71,8 @@
       color: cyan;
       font-weight: bold;
     }
+    .db-group { cursor: pointer; }
+    .db-group .toggle { margin-right: 0.25rem; }
   </style>
 </head>
 <body style="padding:1rem;">
@@ -128,6 +130,7 @@
   </table>
   <script src="/session.js"></script>
   <script>
+    const collapsedGroups = new Set();
     async function loadQueue(){
       try{
         const res = await fetch('/api/pipelineQueue');
@@ -140,10 +143,28 @@
             seen.add(job.dbId);
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
-            groupTr.innerHTML = `<td colspan="9">DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.dataset.dbid = job.dbId;
+            const collapsed = collapsedGroups.has(job.dbId);
+            groupTr.innerHTML = `<td colspan="9"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
-            groupTr.querySelector('.removeDbBtn').addEventListener('click', async () => {
+            groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
+              ev.stopPropagation();
               await removeJobsByDbId(job.dbId);
+            });
+            groupTr.addEventListener('click', e => {
+              if(e.target.classList.contains('removeDbBtn')) return;
+              const collapsedNow = collapsedGroups.has(job.dbId);
+              const toggle = groupTr.querySelector('.toggle');
+              if(collapsedNow){
+                collapsedGroups.delete(job.dbId);
+                toggle.textContent = '[-]';
+              }else{
+                collapsedGroups.add(job.dbId);
+                toggle.textContent = '[+]';
+              }
+              tbody.querySelectorAll(`tr[data-dbid="${job.dbId}"]`).forEach(r => {
+                if(r !== groupTr) r.style.display = collapsedGroups.has(job.dbId) ? 'none' : '';
+              });
             });
           }
 
@@ -169,6 +190,8 @@
             <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
             <td><button data-id="${job.id}" class="removeBtn">Remove</button></td>
           `;
+          tr.dataset.dbid = job.dbId || '';
+          if(job.dbId && collapsedGroups.has(job.dbId)) tr.style.display = 'none';
           tbody.appendChild(tr);
           tr.querySelector('.removeBtn').addEventListener('click', async () => {
             await removeJob(job.id);
