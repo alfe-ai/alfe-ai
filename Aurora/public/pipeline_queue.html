@@ -189,9 +189,10 @@
                 });
                 const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
                 opt?.remove();
-                if(dropdown.dataset.value === file){
+                if(dropdown.dataset.value === file || dropdown.value === file){
                   selectedDiv.textContent = '-- choose --';
                   dropdown.dataset.value = '';
+                  dropdown.value = '';
                   dropdown.dataset.id = '';
                   updatePreview('');
                   updateVariantUI('');
@@ -349,7 +350,8 @@
     document.getElementById('jobType').addEventListener('change', () => {
       const type = document.getElementById('jobType').value;
       if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
-        updateVariantUI(document.getElementById('imageSelect').dataset.value);
+        const sel = document.getElementById('imageSelect');
+        updateVariantUI(sel.dataset.value || sel.value);
       } else {
         document.getElementById('variantChoice').style.display = 'none';
       }
@@ -410,8 +412,12 @@ async function updateVariantUI(file){
 }
 
     document.getElementById('enqueueBtn').addEventListener('click', async () => {
-      const file = document.getElementById('imageSelect').dataset.value;
-      const dbId = document.getElementById('imageSelect').dataset.id;
+      const selectEl = document.getElementById('imageSelect');
+      const file = selectEl.dataset.value || selectEl.value;
+      let dbId = selectEl.dataset.id;
+      if(!dbId && selectEl.selectedOptions && selectEl.selectedOptions[0]){
+        dbId = selectEl.selectedOptions[0].dataset.id || '';
+      }
       const type = document.getElementById('jobType').value;
       const variantChoice = document.querySelector('input[name="queueVariant"]:checked');
       const variant = variantChoice ? variantChoice.value : null;
@@ -443,9 +449,10 @@ async function updateVariantUI(file){
             });
             const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
             opt?.remove();
-            if(dropdown.dataset.value === file){
+            if(dropdown.dataset.value === file || dropdown.value === file){
               selectedDiv.textContent = '-- choose --';
               dropdown.dataset.value = '';
+              dropdown.value = '';
               dropdown.dataset.id = '';
               updatePreview('');
               updateVariantUI('');
@@ -461,7 +468,8 @@ async function updateVariantUI(file){
     });
 
     document.getElementById('hideSelectedBtn').addEventListener('click', async () => {
-      const file = document.getElementById('imageSelect').dataset.value;
+      const selectEl = document.getElementById('imageSelect');
+      const file = selectEl.dataset.value || selectEl.value;
       if(!file) return;
       try{
         await fetch('/api/upload/hidden', {
@@ -473,6 +481,7 @@ async function updateVariantUI(file){
         opt?.remove();
         selectedDiv.textContent = '-- choose --';
         dropdown.dataset.value = '';
+        dropdown.value = '';
         dropdown.dataset.id = '';
         updatePreview('');
         updateVariantUI('');
