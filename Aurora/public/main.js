@@ -3418,7 +3418,10 @@ function sortFileData(){
   fileListData.sort((a,b)=>{
     let va=a[fileSortColumn];
     let vb=b[fileSortColumn];
-    if(fileSortColumn==='name'){ va = va.toLowerCase(); vb = vb.toLowerCase(); }
+    if(fileSortColumn==='name' || fileSortColumn==='productUrl'){
+      va = (va||'').toLowerCase();
+      vb = (vb||'').toLowerCase();
+    }
     if(fileSortColumn==='mtime'){ va = new Date(va).getTime(); vb = new Date(vb).getTime(); }
     if(fileSortColumn==='id'){ va = parseInt(va,10)||0; vb = parseInt(vb,10)||0; }
     if(va<vb) return fileSortAsc ? -1 : 1;
@@ -3456,16 +3459,18 @@ function renderFileList(){
     const tdSource = document.createElement("td");
     tdSource.textContent = f.source || "";
     const tdStatus = document.createElement("td");
+    tdStatus.textContent = f.status || "";
+    tdStatus.className = "img-status-cell";
+    const tdProductUrl = document.createElement("td");
     if(f.productUrl){
       const link = document.createElement("a");
       link.href = f.productUrl;
       link.textContent = f.productUrl;
       link.target = "_blank";
-      tdStatus.appendChild(link);
+      tdProductUrl.appendChild(link);
     } else {
-      tdStatus.textContent = f.status || "";
+      tdProductUrl.textContent = "";
     }
-    tdStatus.className = "img-status-cell";
     const tdPortfolio = document.createElement("td");
     const portCheck = document.createElement("input");
     portCheck.type = "checkbox";
@@ -3530,6 +3535,7 @@ function renderFileList(){
     tr.appendChild(tdTitle);
     tr.appendChild(tdSource);
     tr.appendChild(tdStatus);
+    tr.appendChild(tdProductUrl);
     tr.appendChild(tdPortfolio);
     tr.appendChild(tdSize);
     tr.appendChild(tdMtime);
