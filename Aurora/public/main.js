@@ -3438,6 +3438,7 @@ function renderFileList(){
     const tr = document.createElement("tr");
     tr.dataset.fileName = f.name;
     const tdIndex = document.createElement("td");
+    tdIndex.className = "uuid-col";
     tdIndex.textContent = f.uuid ?? "";
     const tdId = document.createElement("td");
     tdId.className = "id-col";
