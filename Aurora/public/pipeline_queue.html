@@ -52,6 +52,12 @@
       color: cyan;
       margin-left: 0.25rem;
     }
+    .status-success {
+      color: #0f0;
+    }
+    .status-failed {
+      color: #f33;
+    }
   </style>
 </head>
 <body style="padding:1rem;">
@@ -122,13 +128,19 @@
           const dbLink = job.dbId
             ? `<a href="/Image.html?file=${encodeURIComponent(job.file)}" target="_blank">${job.dbId}</a>`
             : '';
+          const statusHtml = (() => {
+            if(job.status === 'running') return 'Running <span class="loading-spinner"></span>';
+            if(job.status === 'finished') return '<span class="status-success">Finished</span>';
+            if(job.status === 'failed' || job.status === 'error') return '<span class="status-failed">Failed</span>';
+            return job.status;
+          })();
           tr.innerHTML = `
             <td>${job.id}</td>
             <td>${job.file}</td>
             <td>${dbLink}</td>
             <td>${job.type}</td>
             <td>${job.variant || ''}</td>
-            <td>${job.status === 'running' ? 'Running <span class="loading-spinner"></span>' : job.status}</td>
+            <td>${statusHtml}</td>
             <td>${jobLink}</td>
             <td>${job.resultPath || ''}</td>
             <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
