@@ -2091,6 +2091,8 @@ app.get("/api/upload/list", (req, res) => {
   console.debug("[Server Debug] GET /api/upload/list => listing files.", req.query);
   try {
     const sessionId = req.query.sessionId || "";
+    const limit = parseInt(req.query.limit) || 0;
+    const offset = parseInt(req.query.offset) || 0;
     const fileNames = fs.readdirSync(uploadsDir);
     const files = [];
     for (const name of fileNames) {
@@ -2107,7 +2109,16 @@ app.get("/api/upload/list", (req, res) => {
       const ebayUrl = db.getEbayUrlForImage(`/uploads/${name}`);
       files.push({ id, uuid, name, size, mtime, title, source, status, portfolio, productUrl, ebayUrl });
     }
-    res.json(files);
+
+    // Sort by database id (highest first)
+    files.sort((a, b) => (b.id || 0) - (a.id || 0));
+
+    // Apply pagination if requested
+    const start = offset > 0 ? offset : 0;
+    const end = limit > 0 ? start + limit : undefined;
+    const slice = files.slice(start, end);
+
+    res.json(slice);
   } catch (err) {
     console.error("[Server Debug] /api/upload/list error:", err);
     res.status(500).json({ error: "Internal server error" });
