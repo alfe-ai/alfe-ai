@@ -64,6 +64,8 @@
         <option value="upscale">Upscale</option>
         <option value="printify">Printify</option>
         <option value="printifyTitleFix">Printify Title Fix</option>
+        <option value="printifyFixMockups">Printify Fix Mockups</option>
+        <option value="printifyFinalize">Printify Finalize</option>
         <option value="all">All</option>
       </select>
     </label>
@@ -169,7 +171,7 @@
             optionsDiv.style.display = 'none';
             updatePreview(f.name);
             const type = document.getElementById('jobType').value;
-            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'all'){
+            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
               updateVariantUI(f.name);
             }
           });
@@ -200,7 +202,7 @@
 
     document.getElementById('jobType').addEventListener('change', () => {
       const type = document.getElementById('jobType').value;
-      if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'all'){
+      if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
         updateVariantUI(document.getElementById('imageSelect').dataset.value);
       } else {
         document.getElementById('variantChoice').style.display = 'none';
@@ -264,7 +266,7 @@ async function updateVariantUI(file){
       if(!file) return;
       try{
         if(type === 'all'){
-          const steps = ['upscale','printify','printifyTitleFix'];
+          const steps = ['upscale','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
           for(const step of steps){
             await fetch('/api/pipelineQueue', {
               method: 'POST',

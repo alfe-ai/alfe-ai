@@ -12,6 +12,7 @@ export default class PrintifyJobQueue {
     this.printifyScript = options.printifyScript || '';
     this.printifyPriceScript = options.printifyPriceScript || '';
     this.printifyTitleFixScript = options.printifyTitleFixScript || '';
+    this.runPuppetScript = options.runPuppetScript || '';
     this.db = options.db || null;
     this.persistencePath = options.persistencePath || null;
 
@@ -120,13 +121,21 @@ export default class PrintifyJobQueue {
     let script = '';
     if (job.type === 'upscale') {
       script = this.upscaleScript;
-    } else if (job.type === 'printify' || job.type === 'printifyPrice' || job.type === 'printifyTitleFix') {
+    } else if (
+      job.type === 'printify' ||
+      job.type === 'printifyPrice' ||
+      job.type === 'printifyTitleFix' ||
+      job.type === 'printifyFixMockups' ||
+      job.type === 'printifyFinalize'
+    ) {
       script =
         job.type === 'printify'
           ? this.printifyScript
           : job.type === 'printifyPrice'
           ? this.printifyPriceScript
-          : this.printifyTitleFixScript;
+          : job.type === 'printifyTitleFix'
+          ? this.printifyTitleFixScript
+          : this.runPuppetScript;
       const ext = path.extname(filePath);
       const base = path.basename(filePath, ext);
       const searchDir = path.isAbsolute(job.file)
@@ -201,7 +210,15 @@ export default class PrintifyJobQueue {
 
     const cwd = path.dirname(script);
     const args = [];
-    if (job.type === 'printifyPrice' || job.type === 'printifyTitleFix') {
+    if (job.type === 'printifyFixMockups' || job.type === 'printifyFinalize') {
+      args.push(job.type === 'printifyFixMockups' ? 'PrintifyFixMockups' : 'PrintifyFinalize');
+    }
+    if (
+      job.type === 'printifyPrice' ||
+      job.type === 'printifyTitleFix' ||
+      job.type === 'printifyFixMockups' ||
+      job.type === 'printifyFinalize'
+    ) {
       let url = job.productUrl || null;
       if (!url && this.db) {
         url = this.db.getProductUrlForImage(`/uploads/${job.file}`);
@@ -212,7 +229,7 @@ export default class PrintifyJobQueue {
       }
       if (url) {
         job.productUrl = url;
-        if (job.type === 'printifyPrice') {
+        if (job.type === 'printifyPrice' || job.type === 'printifyFixMockups' || job.type === 'printifyFinalize') {
           args.push(url);
         } else {
           const productId = (() => {

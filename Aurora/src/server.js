@@ -637,6 +637,7 @@ const printifyQueue = new PrintifyJobQueue(jobManager, {
   printifyTitleFixScript:
     process.env.PRINTIFY_TITLE_FIX_SCRIPT_PATH ||
     path.join(__dirname, "../scripts/printifyTitleFix.js"),
+  runPuppetScript: path.join(__dirname, "../scripts/runPuppet.js"),
   db,
 });
 
@@ -2596,6 +2597,76 @@ app.post("/api/printifyTitleFix", async (req, res) => {
     res.json({ jobId: job.id });
   } catch (err) {
     console.error("Error in /api/printifyTitleFix:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/printifyFixMockups", async (req, res) => {
+  try {
+    const { file } = req.body || {};
+    if (!file) return res.status(400).json({ error: "Missing file" });
+
+    let productUrl = db.getProductUrlForImage(`/uploads/${file}`);
+    if (!productUrl) {
+      const status = db.getImageStatusForUrl(`/uploads/${file}`);
+      productUrl = extractPrintifyUrl(status || "");
+    }
+    if (!productUrl) return res.status(400).json({ error: "Missing Printify URL" });
+
+    const scriptPath = path.join(__dirname, "../scripts/runPuppet.js");
+    const scriptCwd = path.dirname(scriptPath);
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(500).json({ error: `Puppet script missing at ${scriptPath}` });
+    }
+
+    const job = jobManager.createJob(scriptPath, ["PrintifyFixMockups", productUrl], { cwd: scriptCwd, file });
+    jobManager.addDoneListener(job, () => {
+      try {
+        const url = `/uploads/${file}`;
+        db.setImageStatus(url, "Printify Fix Mockups");
+      } catch (e) {
+        console.error("[Server Debug] Failed to set status after fix mockups =>", e);
+      }
+    });
+
+    res.json({ jobId: job.id });
+  } catch (err) {
+    console.error("Error in /api/printifyFixMockups:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/printifyFinalize", async (req, res) => {
+  try {
+    const { file } = req.body || {};
+    if (!file) return res.status(400).json({ error: "Missing file" });
+
+    let productUrl = db.getProductUrlForImage(`/uploads/${file}`);
+    if (!productUrl) {
+      const status = db.getImageStatusForUrl(`/uploads/${file}`);
+      productUrl = extractPrintifyUrl(status || "");
+    }
+    if (!productUrl) return res.status(400).json({ error: "Missing Printify URL" });
+
+    const scriptPath = path.join(__dirname, "../scripts/runPuppet.js");
+    const scriptCwd = path.dirname(scriptPath);
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(500).json({ error: `Puppet script missing at ${scriptPath}` });
+    }
+
+    const job = jobManager.createJob(scriptPath, ["PrintifyFinalize", productUrl], { cwd: scriptCwd, file });
+    jobManager.addDoneListener(job, () => {
+      try {
+        const url = `/uploads/${file}`;
+        db.setImageStatus(url, "Printify Finalize");
+      } catch (e) {
+        console.error("[Server Debug] Failed to set status after finalize =>", e);
+      }
+    });
+
+    res.json({ jobId: job.id });
+  } catch (err) {
+    console.error("Error in /api/printifyFinalize:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
