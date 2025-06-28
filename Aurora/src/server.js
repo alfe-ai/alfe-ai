@@ -638,6 +638,7 @@ const printifyQueue = new PrintifyJobQueue(jobManager, {
     process.env.PRINTIFY_TITLE_FIX_SCRIPT_PATH ||
     path.join(__dirname, "../scripts/printifyTitleFix.js"),
   runPuppetScript: path.join(__dirname, "../scripts/runPuppet.js"),
+  ebayCheckScript: path.join(__dirname, "../scripts/ebayCheck.js"),
   db,
 });
 
