@@ -108,6 +108,7 @@
       </label>
     </div>
     <button id="enqueueBtn">Add to Queue</button>
+    <button id="hideSelectedBtn" style="margin-left:0.5rem;">Hide</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
     <span id="queueState" style="margin-left:0.5rem;">Running</span>
     <button id="pauseBtn" style="margin-left:0.5rem;">Pause</button>
@@ -403,6 +404,27 @@ async function updateVariantUI(file){
         await loadQueue();
       }catch(e){
         console.error('Failed to enqueue job', e);
+      }
+    });
+
+    document.getElementById('hideSelectedBtn').addEventListener('click', async () => {
+      const file = document.getElementById('imageSelect').dataset.value;
+      if(!file) return;
+      try{
+        await fetch('/api/upload/hidden', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: file, hidden: true })
+        });
+        const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
+        opt?.remove();
+        selectedDiv.textContent = '-- choose --';
+        dropdown.dataset.value = '';
+        dropdown.dataset.id = '';
+        updatePreview('');
+        updateVariantUI('');
+      }catch(e){
+        console.error('Failed to hide image', e);
       }
     });
 
