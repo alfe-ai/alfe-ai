@@ -107,6 +107,9 @@
         <span id="queueNobgPath"></span>
       </label>
     </div>
+    <label style="margin-left:0.5rem;">
+      <input type="checkbox" id="hideWhenAdd" /> Hide when adding to queue
+    </label>
     <button id="enqueueBtn">Add to Queue</button>
     <button id="hideSelectedBtn" style="margin-left:0.5rem;">Hide</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
@@ -383,6 +386,7 @@ async function updateVariantUI(file){
       const type = document.getElementById('jobType').value;
       const variantChoice = document.querySelector('input[name="queueVariant"]:checked');
       const variant = variantChoice ? variantChoice.value : null;
+      const hideFlag = document.getElementById('hideWhenAdd').checked;
       if(!file) return;
       try{
         if(type === 'all'){
@@ -400,6 +404,26 @@ async function updateVariantUI(file){
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file, type, dbId, variant })
           });
+        }
+        if(hideFlag){
+          try{
+            await fetch('/api/upload/hidden', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: file, hidden: true })
+            });
+            const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
+            opt?.remove();
+            if(dropdown.dataset.value === file){
+              selectedDiv.textContent = '-- choose --';
+              dropdown.dataset.value = '';
+              dropdown.dataset.id = '';
+              updatePreview('');
+              updateVariantUI('');
+            }
+          }catch(err){
+            console.error('Failed to hide image', err);
+          }
         }
         await loadQueue();
       }catch(e){
