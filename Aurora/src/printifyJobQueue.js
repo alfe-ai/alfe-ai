@@ -259,15 +259,14 @@ export default class PrintifyJobQueue {
     this.jobManager.addDoneListener(jmJob, () => {
       job.status = jmJob.status;
       job.resultPath = jmJob.resultPath;
+      const originalUrl = `/uploads/${job.file}`;
       if (job.type === 'upscale') {
         const matches = [...jmJob.log.matchAll(/Final output saved to:\s*(.+)/gi)];
         const m = matches[matches.length - 1];
         if (m) {
           job.resultPath = m[1].trim();
           if (this.db) {
-            const originalUrl = `/uploads/${job.file}`;
             this.db.setUpscaledImage(originalUrl, job.resultPath);
-            this.db.setImageStatus(originalUrl, 'Upscaled');
           }
         }
       } else if (job.type === 'printify') {
@@ -276,11 +275,22 @@ export default class PrintifyJobQueue {
           job.productUrl = url;
           jmJob.productUrl = url;
           if (this.db) {
-            const originalUrl = `/uploads/${job.file}`;
             this.db.setProductUrl(originalUrl, url);
           }
           job.resultPath = url;
         }
+      }
+      if (this.db) {
+        const statusMap = {
+          upscale: 'Upscaled',
+          printify: 'Printify Price Puppet',
+          printifyPrice: 'Printify API Updates',
+          printifyTitleFix: 'Printify API Title Fix',
+          printifyFixMockups: 'Printify Fix Mockups',
+          printifyFinalize: 'Printify Finalize'
+        };
+        const status = statusMap[job.type] || job.type;
+        this.db.setImageStatus(originalUrl, status);
       }
       this.current = null;
       this._saveJobs();
