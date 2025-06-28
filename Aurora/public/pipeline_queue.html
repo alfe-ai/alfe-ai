@@ -125,6 +125,8 @@
         <th>DB ID</th>
         <th>Type</th>
         <th>Variant</th>
+        <th>Start</th>
+        <th>Finish</th>
         <th>Status</th>
         <th>Job ID</th>
         <th>Result Path</th>
@@ -151,7 +153,7 @@
             groupTr.className = 'db-group';
             groupTr.dataset.dbid = job.dbId;
             const collapsed = collapsedGroups.has(job.dbId);
-            groupTr.innerHTML = `<td colspan="9"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.innerHTML = `<td colspan="11"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
@@ -185,11 +187,15 @@
             if(job.status === 'failed' || job.status === 'error') return '<span class="status-failed">Failed</span>';
             return job.status;
           })();
+          const startStr = job.startTime ? new Date(job.startTime).toLocaleString() : '';
+          const finishStr = job.finishTime ? new Date(job.finishTime).toLocaleString() : '';
           tr.innerHTML = `
             <td>${job.id}</td>
             <td>${dbLink}</td>
             <td>${job.type}</td>
             <td>${job.variant || ''}</td>
+            <td>${startStr}</td>
+            <td>${finishStr}</td>
             <td>${statusHtml}</td>
             <td>${jobLink}</td>
             <td>${job.resultPath || ''}</td>
