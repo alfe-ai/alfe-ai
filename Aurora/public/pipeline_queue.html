@@ -135,7 +135,6 @@
             groupTr.innerHTML = `<td colspan="9">DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async () => {
-              if(!confirm(`Remove all jobs for DB ID ${job.dbId}?`)) return;
               await removeJobsByDbId(job.dbId);
             });
           }
