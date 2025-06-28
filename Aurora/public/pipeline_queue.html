@@ -226,6 +226,7 @@ async function updateVariantUI(file){
   const nobgRadio = document.getElementById('choiceQueueNobg');
   const normalPath = document.getElementById('queueNormalPath');
   const nobgPath = document.getElementById('queueNobgPath');
+  const type = document.getElementById('jobType').value;
 
   if(!file){
     choiceDiv.style.display = 'none';
@@ -242,22 +243,24 @@ async function updateVariantUI(file){
       normalPath.textContent = upPath;
       normalRadio.disabled = false;
     }else{
-      normalPath.textContent = '(not found)';
-      normalRadio.disabled = true;
+      normalPath.textContent = type === 'all' ? '(will be generated)' : '(not found)';
+      normalRadio.disabled = type !== 'all';
     }
     if(nbPath){
       nobgPath.textContent = nbPath;
       nobgRadio.disabled = false;
     }else{
-      nobgPath.textContent = '(not found)';
-      nobgRadio.disabled = true;
+      nobgPath.textContent = type === 'all' ? '(will be generated)' : '(not found)';
+      nobgRadio.disabled = type !== 'all';
     }
-    if(upPath || nbPath){
+    if(upPath || nbPath || type === 'all'){
       choiceDiv.style.display = '';
       if(nbPath){
         nobgRadio.checked = true;
       } else if(upPath){
         normalRadio.checked = true;
+      } else {
+        normalRadio.checked = nobgRadio.checked = false;
       }
     }else{
       choiceDiv.style.display = 'none';
