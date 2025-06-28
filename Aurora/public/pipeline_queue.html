@@ -249,7 +249,7 @@
           tr.querySelector('.removeBtn').addEventListener('click', async () => {
             await removeJob(job.id);
           });
-        });
+        }
       }catch(e){
         console.error('Failed to load queue', e);
       }
