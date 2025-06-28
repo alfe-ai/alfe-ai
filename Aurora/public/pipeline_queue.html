@@ -109,6 +109,8 @@
     </div>
     <button id="enqueueBtn">Add to Queue</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
+    <span id="queueState" style="margin-left:0.5rem;"></span>
+    <button id="togglePauseBtn" style="margin-left:0.5rem;">Pause Jobs</button>
   </div>
   <table id="queueTable">
     <thead>
@@ -128,10 +130,15 @@
   </table>
   <script src="/session.js"></script>
   <script>
+    let queuePaused = false;
     async function loadQueue(){
       try{
         const res = await fetch('/api/pipelineQueue');
-        const queue = await res.json();
+        const data = await res.json();
+        const queue = data.jobs || [];
+        queuePaused = !!data.paused;
+        document.getElementById('queueState').textContent = queuePaused ? 'Jobs Paused' : 'Jobs Enabled';
+        document.getElementById('togglePauseBtn').textContent = queuePaused ? 'Resume Jobs' : 'Pause Jobs';
         const tbody = document.querySelector('#queueTable tbody');
         tbody.innerHTML = '';
         const seen = new Set();
@@ -387,6 +394,16 @@ async function updateVariantUI(file){
         await loadQueue();
       }catch(e){
         console.error('Failed to stop all jobs', e);
+      }
+    });
+
+    document.getElementById('togglePauseBtn').addEventListener('click', async () => {
+      try{
+        const endpoint = queuePaused ? '/api/pipelineQueue/resume' : '/api/pipelineQueue/pause';
+        await fetch(endpoint, { method: 'POST' });
+        await loadQueue();
+      }catch(e){
+        console.error('Failed to toggle queue state', e);
       }
     });
 

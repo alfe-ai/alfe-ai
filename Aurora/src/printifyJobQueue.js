@@ -8,6 +8,7 @@ export default class PrintifyJobQueue {
     this.jobManager = jobManager;
     this.jobs = [];
     this.current = null;
+    this.paused = false;
     this.uploadsDir = options.uploadsDir || '';
     this.upscaleScript = options.upscaleScript || '';
     this.printifyScript = options.printifyScript || '';
@@ -31,6 +32,9 @@ export default class PrintifyJobQueue {
           return j;
         });
       }
+      if (typeof data.paused === 'boolean') {
+        this.paused = data.paused;
+      }
     } catch (err) {
       // ignore if file doesn't exist or can't be read
     }
@@ -41,7 +45,7 @@ export default class PrintifyJobQueue {
     try {
       fs.writeFileSync(
         this.persistencePath,
-        JSON.stringify({ jobs: this.jobs }, null, 2)
+        JSON.stringify({ jobs: this.jobs, paused: this.paused }, null, 2)
       );
     } catch (err) {
       // ignore write errors
@@ -68,7 +72,7 @@ export default class PrintifyJobQueue {
   }
 
   list() {
-    return this.jobs.map(j => ({
+    const jobs = this.jobs.map(j => ({
       id: j.id,
       file: j.file,
       type: j.type,
@@ -79,6 +83,7 @@ export default class PrintifyJobQueue {
       dbId: j.dbId || null,
       variant: j.variant || null
     }));
+    return { paused: this.paused, jobs };
   }
 
   remove(id) {
@@ -130,8 +135,23 @@ export default class PrintifyJobQueue {
     this._saveJobs();
   }
 
+  pause() {
+    this.paused = true;
+    this._saveJobs();
+  }
+
+  resume() {
+    this.paused = false;
+    this._saveJobs();
+    this._processNext();
+  }
+
+  isPaused() {
+    return this.paused;
+  }
+
   _processNext() {
-    if (this.current) return;
+    if (this.current || this.paused) return;
     const job = this.jobs.find(j => j.status === 'queued');
     if (!job) return;
     this.current = job;

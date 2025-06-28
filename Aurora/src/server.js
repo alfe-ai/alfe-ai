@@ -2816,6 +2816,20 @@ app.post("/api/pipelineQueue/stopAll", (req, res) => {
   res.json({ stopped: true });
 });
 
+app.post("/api/pipelineQueue/pause", (req, res) => {
+  printifyQueue.pause();
+  res.json({ paused: true });
+});
+
+app.post("/api/pipelineQueue/resume", (req, res) => {
+  printifyQueue.resume();
+  res.json({ paused: false });
+});
+
+app.get("/api/pipelineQueue/state", (req, res) => {
+  res.json({ paused: printifyQueue.isPaused() });
+});
+
 app.get("/api/upscale/result", (req, res) => {
   try {
     const file = req.query.file;
