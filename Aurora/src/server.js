@@ -629,7 +629,7 @@ const printifyQueue = new PrintifyJobQueue(jobManager, {
   persistencePath: queueDataPath,
   upscaleScript:
     process.env.UPSCALE_SCRIPT_PATH ||
-    "/mnt/part5/dot_fayra/Whimsical/git/PrintifyPuppet-PuppetCore-Sterling/LeonardoUpscalePuppet/loop.sh",
+    path.join(__dirname, "../scripts/upscale.js"),
   printifyScript:
     process.env.PRINTIFY_SCRIPT_PATH ||
     "/home/admin/Puppets/PrintifyPuppet/run.sh",
@@ -2233,7 +2233,7 @@ app.post("/api/upscale", async (req, res) => {
 
     const scriptPath =
       process.env.UPSCALE_SCRIPT_PATH ||
-      "/mnt/part5/dot_fayra/Whimsical/git/PrintifyPuppet-PuppetCore-Sterling/LeonardoUpscalePuppet/loop.sh";
+      path.join(__dirname, "../scripts/upscale.js");
     console.debug(
       "[Server Debug] /api/upscale => using scriptPath =>",
       scriptPath
