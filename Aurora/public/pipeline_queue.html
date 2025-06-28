@@ -318,18 +318,17 @@
     };
 
     if(window.PointerEvent){
+      const handleClick = e => {
+        if(!e.pointerType || e.pointerType === 'mouse') toggleOptions();
+      };
       selectedDiv.addEventListener('pointerdown', e => {
         if(e.pointerType === 'touch'){
           e.preventDefault();
           toggleOptions();
         }
       });
-      selectedDiv.addEventListener('mousedown', e => {
-        if(e.button === 0) toggleOptions();
-      });
-      selectedDiv.addEventListener('click', e => {
-        if(!e.pointerType || e.pointerType === 'mouse') toggleOptions();
-      });
+      selectedDiv.addEventListener('click', handleClick);
+      dropdown.addEventListener('click', handleClick);
       document.addEventListener('pointerdown', e => {
         if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
       });
@@ -337,11 +336,11 @@
         if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
       });
     }else{
+      const handleTouch = e => { e.preventDefault(); toggleOptions(); };
       selectedDiv.addEventListener('click', toggleOptions);
-      selectedDiv.addEventListener('touchstart', e => {
-        e.preventDefault();
-        toggleOptions();
-      });
+      dropdown.addEventListener('click', toggleOptions);
+      selectedDiv.addEventListener('touchstart', handleTouch);
+      dropdown.addEventListener('touchstart', handleTouch);
       document.addEventListener('click', e => {
         if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
       });
