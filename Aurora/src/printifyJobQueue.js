@@ -209,6 +209,7 @@ export default class PrintifyJobQueue {
       return;
     }
 
+    let colorArgs = [];
     if (job.type === 'printify') {
       try {
         const colorScript = path.join(__dirname, '../scripts/detectColors.js');
@@ -216,6 +217,11 @@ export default class PrintifyJobQueue {
           .execFileSync(colorScript, [filePath], { encoding: 'utf8' })
           .trim();
         console.log('[PrintifyJobQueue] Detected colors:', detected);
+        colorArgs = detected
+          .split(/\s*,\s*/)
+          .map(c => c.trim())
+          .filter(Boolean)
+          .slice(0, 3);
       } catch (err) {
         console.error(
           '[PrintifyJobQueue] Color detection failed:',
@@ -267,6 +273,9 @@ export default class PrintifyJobQueue {
       }
     } else {
       args.push(filePath);
+      if (job.type === 'printify' && colorArgs.length) {
+        args.push(...colorArgs);
+      }
     }
     console.log(`[PrintifyJobQueue] Running ${job.type} with script: ${script}`);
     console.debug('[PrintifyJobQueue Debug] args =>', args.join(' '));
