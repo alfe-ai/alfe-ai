@@ -3449,6 +3449,7 @@ function renderFileList(){
     thumbImg.className = "table-thumb";
     tdThumb.appendChild(thumbImg);
     const tdName = document.createElement("td");
+    tdName.className = "name-col";
     const link = document.createElement("a");
     link.href = `/uploads/${f.name}`;
     link.target = "_blank";

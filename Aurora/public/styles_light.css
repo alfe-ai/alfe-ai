@@ -855,6 +855,12 @@ body {
   color: cyan;
 }
 
+/* Hide file name column in image table */
+#secureFilesList th[data-col="name"],
+#secureFilesList td.name-col {
+  display: none;
+}
+
 
 /* Pipeline queue table */
 #queueTable {
