@@ -3638,6 +3638,8 @@ async function loadFileList(reset = true) {
 async function loadNextFilePage(){
   if(fileListLoading || fileListEnd) return;
   fileListLoading = true;
+  const spin = $("#uploaderLoading");
+  if(spin) spin.style.display = "block";
   try {
     const resp = await fetch(`/api/upload/list?sessionId=${encodeURIComponent(sessionId)}&showHidden=1&limit=${fileListLimit}&offset=${fileListOffset}`);
     const data = await resp.json();
@@ -3651,6 +3653,7 @@ async function loadNextFilePage(){
     console.error("Error fetching file list:", e);
   }
   fileListLoading = false;
+  if(spin) spin.style.display = "none";
 }
 
 $("#secureUploadForm").addEventListener("submit", async e => {
