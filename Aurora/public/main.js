@@ -126,7 +126,7 @@ let nexumTabsMenuVisible = false;     // show Nexum Tabs menu item
 let imageGeneratorMenuVisible = false; // show Image Generator menu item
 let fileTreeMenuVisible = false;      // show File Tree button
 let aiModelsMenuVisible = false;      // show AI Models link
-let tasksMenuVisible = false;         // show Tasks button
+let tasksMenuVisible = true;          // show Tasks button by default
 let jobsMenuVisible = false;         // show Jobs button
 let chatTabsMenuVisible = true;     // show Chats button
 let showSessionId = false;          // display session ID hash
@@ -4479,6 +4479,7 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   let lastView = await getSetting("last_sidebar_view");
   if(!lastView) lastView = "uploader";
   switch(lastView){
+    case "tasks": showTasksPanel(); break;
     case "uploader": showUploaderPanel(); break;
     case "fileTree": showFileTreePanel(); break;
     case "fileCabinet": showFileCabinetPanel(); break;
