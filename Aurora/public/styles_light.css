@@ -865,8 +865,16 @@ body {
 
 #queueTable th,
 #queueTable td {
-  border: 1px solid #aaa;
+  border: none;
   padding: 4px 6px;
+}
+
+#queueTable tbody tr:nth-child(odd) {
+  background-color: #f0f0f0;
+}
+
+#queueTable tbody tr:nth-child(even) {
+  background-color: #e6e6e6;
 }
 
 #queueTable th {
