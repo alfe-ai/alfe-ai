@@ -137,7 +137,6 @@
   <script src="/session.js"></script>
   <script>
     const collapsedGroups = new Set();
-    const knownDbIds = new Set();
     const titleCache = {};
     async function getTitle(file){
       if(titleCache.hasOwnProperty(file)) return titleCache[file];
@@ -161,8 +160,7 @@
         for(const job of queue){
           if(job.dbId && !seen.has(job.dbId)){
             seen.add(job.dbId);
-            if(!knownDbIds.has(job.dbId)){
-              knownDbIds.add(job.dbId);
+            if(!collapsedGroups.has(job.dbId)){
               collapsedGroups.add(job.dbId);
             }
             const groupTr = document.createElement('tr');
