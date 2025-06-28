@@ -163,7 +163,6 @@
             seen.add(job.dbId);
             if(!knownDbIds.has(job.dbId)){
               knownDbIds.add(job.dbId);
-              collapsedGroups.add(job.dbId);
             }
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
