@@ -256,7 +256,7 @@
             }
           });
           item.addEventListener('click', () => {
-            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
+            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span> <button class="hide-btn">Hide</button>`;
             dropdown.dataset.value = f.name;
             dropdown.dataset.id = f.id ?? '';
             optionsDiv.style.display = 'none';
@@ -265,6 +265,25 @@
             if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
               updateVariantUI(f.name);
             }
+            const selHideBtn = selectedDiv.querySelector('.hide-btn');
+            selHideBtn.addEventListener('click', async ev => {
+              ev.stopPropagation();
+              try{
+                await fetch('/api/upload/hidden', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: f.name, hidden: true })
+                });
+                selectedDiv.textContent = '-- choose --';
+                dropdown.dataset.value = '';
+                dropdown.dataset.id = '';
+                updatePreview('');
+                updateVariantUI('');
+                item.remove();
+              }catch(err){
+                console.error('Failed to hide image', err);
+              }
+            });
           });
           optionsDiv.appendChild(item);
         });
