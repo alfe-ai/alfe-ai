@@ -21,7 +21,6 @@ npm start
 | `OPENAI_API_KEY` | OpenAI API key for AI features ([get here](https://platform.openai.com/api-keys)) |
 | `OPENAI_MODEL`   | (Optional) Model ID for completions (default: deepseek/deepseek-chat)  |
 | `STABILITY_API_KEY` | (Optional) API key for the Stability AI upscaler |
-| `UPSCALE_SCRIPT_PATH` | (Optional) Path to the image upscale script. Defaults to `scripts/upscale.js` |
 | `PRINTIFY_SCRIPT_PATH` | (Optional) Path to the Printify submission script. Defaults to the included run.sh |
 | `PRINTIFY_PRICE_SCRIPT_PATH` | (Optional) Path to the Printify price update script. Defaults to `/home/admin/Puppets/PrintifyPricePuppet/run.sh` |
 | `PRINTIFY_TITLE_FIX_SCRIPT_PATH` | (Optional) Path to the script used for the Printify API Title Fix step. Defaults to `scripts/printifyTitleFix.js` |

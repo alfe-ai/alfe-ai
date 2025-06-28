@@ -627,9 +627,7 @@ const queueDataPath = path.join(__dirname, "../printifyQueue.json");
 const printifyQueue = new PrintifyJobQueue(jobManager, {
   uploadsDir,
   persistencePath: queueDataPath,
-  upscaleScript:
-    process.env.UPSCALE_SCRIPT_PATH ||
-    path.join(__dirname, "../scripts/upscale.js"),
+  upscaleScript: path.join(__dirname, "../scripts/upscale.js"),
   printifyScript:
     process.env.PRINTIFY_SCRIPT_PATH ||
     "/home/admin/Puppets/PrintifyPuppet/run.sh",
@@ -2231,9 +2229,7 @@ app.post("/api/upscale", async (req, res) => {
       return res.status(403).json({ error: "upscale restricted" });
     }
 
-    const scriptPath =
-      process.env.UPSCALE_SCRIPT_PATH ||
-      path.join(__dirname, "../scripts/upscale.js");
+    const scriptPath = path.join(__dirname, "../scripts/upscale.js");
     console.debug(
       "[Server Debug] /api/upscale => using scriptPath =>",
       scriptPath
@@ -2260,9 +2256,7 @@ app.post("/api/upscale", async (req, res) => {
       );
       return res
         .status(500)
-        .json({
-          error: `Upscale script missing. Expected at ${scriptPath} (set UPSCALE_SCRIPT_PATH to override).`,
-        });
+        .json({ error: `Upscale script missing at ${scriptPath}` });
     }
 
     console.debug('[Server Debug] launching upscale job with script =>', scriptPath);
