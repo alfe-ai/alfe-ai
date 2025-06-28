@@ -49,7 +49,8 @@ async function main() {
           content: [
             {
               type: 'text',
-              text: 'Generate an optimized eBay shirt listing title for this design. Only return the title.'
+              text:
+                "Generate an optimized eBay shirt listing title for this design. Use gender-neutral phrasing and do not mention 'Men's' or 'Women's'. Only return the title."
             },
             {
               type: 'image_url',
@@ -70,6 +71,13 @@ async function main() {
 
     // Remove any quotation marks that might wrap or appear in the title
     optimizedTitle = optimizedTitle.replace(/["']/g, '').trim();
+
+    // Strip gendered words like "Men's" or "Women's" to keep the title neutral
+    optimizedTitle = optimizedTitle
+      .replace(/\bmen'?s\b/gi, '')
+      .replace(/\bwomen'?s\b/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
 
     // Retry updating the title if Printify temporarily disables editing
     const updateTitle = async () => {
