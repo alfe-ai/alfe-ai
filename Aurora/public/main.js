@@ -3481,18 +3481,30 @@ function renderFileList(){
     } else {
       tdEbayUrl.textContent = "";
     }
-    const tdPortfolio = document.createElement("td");
-    const portCheck = document.createElement("input");
-    portCheck.type = "checkbox";
-    portCheck.checked = !!f.portfolio;
-    portCheck.addEventListener("change", async () => {
-      await fetch('/api/upload/portfolio', {
+   const tdPortfolio = document.createElement("td");
+   const portCheck = document.createElement("input");
+   portCheck.type = "checkbox";
+   portCheck.checked = !!f.portfolio;
+   portCheck.addEventListener("change", async () => {
+     await fetch('/api/upload/portfolio', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ name: f.name, portfolio: portCheck.checked })
+     });
+   });
+   tdPortfolio.appendChild(portCheck);
+    const tdHidden = document.createElement("td");
+    const hidCheck = document.createElement("input");
+    hidCheck.type = "checkbox";
+    hidCheck.checked = !!f.hidden;
+    hidCheck.addEventListener("change", async () => {
+      await fetch('/api/upload/hidden', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: f.name, portfolio: portCheck.checked })
+        body: JSON.stringify({ name: f.name, hidden: hidCheck.checked })
       });
     });
-    tdPortfolio.appendChild(portCheck);
+    tdHidden.appendChild(hidCheck);
     const tdSize = document.createElement("td");
     tdSize.textContent = Math.round(f.size / 1024) + " KB";
     const tdMtime = document.createElement("td");
@@ -3567,6 +3579,7 @@ function renderFileList(){
     tr.appendChild(tdProductUrl);
     tr.appendChild(tdEbayUrl);
     tr.appendChild(tdPortfolio);
+    tr.appendChild(tdHidden);
     tr.appendChild(tdSize);
     tr.appendChild(tdMtime);
     tr.appendChild(tdAction);
@@ -3607,7 +3620,7 @@ function setupFileSorting(){
 
 async function loadFileList() {
   try {
-    fileListData = await fetch(`/api/upload/list?sessionId=${encodeURIComponent(sessionId)}`).then(r => r.json());
+    fileListData = await fetch(`/api/upload/list?sessionId=${encodeURIComponent(sessionId)}&showHidden=1`).then(r => r.json());
     sortFileData();
     renderFileList();
     updateImageLimitInfo(fileListData);

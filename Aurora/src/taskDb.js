@@ -264,6 +264,12 @@ export default class TaskDB {
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_pairs.ebay_url column exists, skipping.", e.message);
     }
+    try {
+      this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN image_hidden INTEGER DEFAULT 0;`);
+      console.debug("[TaskDB Debug] Added chat_pairs.image_hidden column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_pairs.image_hidden column exists, skipping.", e.message);
+    }
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS image_sessions (
@@ -1127,6 +1133,22 @@ export default class TaskDB {
         .prepare("SELECT ebay_url FROM chat_pairs WHERE image_url=? ORDER BY id DESC LIMIT 1")
         .get(url);
     return row ? row.ebay_url : '';
+  }
+
+  setImageHidden(url, hidden) {
+    const stmt = this.db.prepare("UPDATE chat_pairs SET image_hidden=? WHERE image_url=?");
+    const info = stmt.run(hidden ? 1 : 0, url);
+    if(info.changes === 0){
+      const id = this.createImagePair(url, '', 1, '', '', '', '', '', 0, '', '');
+      this.db.prepare("UPDATE chat_pairs SET image_hidden=? WHERE id=?").run(hidden ? 1 : 0, id);
+    }
+  }
+
+  getImageHiddenForUrl(url) {
+    const row = this.db
+        .prepare("SELECT image_hidden FROM chat_pairs WHERE image_url=? ORDER BY id DESC LIMIT 1")
+        .get(url);
+    return row ? !!row.image_hidden : false;
   }
 
   isGeneratedImage(url) {

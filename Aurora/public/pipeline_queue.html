@@ -86,6 +86,7 @@
         <div class="options"></div>
       </div>
     </label>
+    <label style="margin-left:0.5rem;"><input type="checkbox" id="hideImageCheck"> Hide</label>
     <img id="imagePreview" style="display:none;max-height:80px;border:1px solid #444;" />
     <div id="variantChoice" style="display:none;flex-direction:column;margin-left:0.5rem;">
       <label style="display:block;margin-bottom:0.25rem;">
@@ -191,7 +192,7 @@
       if(!imgHasMore) return;
       imgLoading = true;
       try{
-        const res = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${imgOffset}`);
+        const res = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${imgOffset}&showHidden=0`);
         const files = await res.json();
         files.forEach(f => {
           const item = document.createElement('div');
@@ -333,6 +334,15 @@ async function updateVariantUI(file){
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file, type, dbId, variant })
           });
+        }
+        if(document.getElementById('hideImageCheck').checked){
+          await fetch('/api/upload/hidden', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: file, hidden: true })
+          });
+          document.getElementById('hideImageCheck').checked = false;
+          loadImages(true);
         }
         await loadQueue();
       }catch(e){

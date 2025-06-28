@@ -2091,6 +2091,7 @@ app.get("/api/upload/list", (req, res) => {
   console.debug("[Server Debug] GET /api/upload/list => listing files.", req.query);
   try {
     const sessionId = req.query.sessionId || "";
+    const showHidden = req.query.showHidden === '1';
     const limit = parseInt(req.query.limit) || 0;
     const offset = parseInt(req.query.offset) || 0;
     const fileNames = fs.readdirSync(uploadsDir);
@@ -2098,6 +2099,8 @@ app.get("/api/upload/list", (req, res) => {
     for (const name of fileNames) {
       const imgSession = db.getImageSessionForUrl(`/uploads/${name}`);
       if (sessionId && imgSession !== sessionId) continue;
+      const hidden = db.getImageHiddenForUrl(`/uploads/${name}`) ? 1 : 0;
+      if(!showHidden && hidden) continue;
       const { size, mtime } = fs.statSync(path.join(uploadsDir, name));
       const title = db.getImageTitleForUrl(`/uploads/${name}`);
       const id = db.getImageIdForUrl(`/uploads/${name}`);
@@ -2107,7 +2110,7 @@ app.get("/api/upload/list", (req, res) => {
       const portfolio = db.getImagePortfolioForUrl(`/uploads/${name}`) ? 1 : 0;
       const productUrl = db.getProductUrlForImage(`/uploads/${name}`);
       const ebayUrl = db.getEbayUrlForImage(`/uploads/${name}`);
-      files.push({ id, uuid, name, size, mtime, title, source, status, portfolio, productUrl, ebayUrl });
+      files.push({ id, uuid, name, size, mtime, title, source, status, portfolio, hidden, productUrl, ebayUrl });
     }
 
     // Sort by database id (highest first)
@@ -2196,6 +2199,21 @@ app.post("/api/upload/portfolio", (req, res) => {
     res.json({ success: true });
   } catch(err){
     console.error("[Server Debug] /api/upload/portfolio error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/upload/hidden", (req, res) => {
+  try {
+    const { name, hidden } = req.body || {};
+    if(!name){
+      return res.status(400).json({ error: "Missing name" });
+    }
+    const url = `/uploads/${name}`;
+    db.setImageHidden(url, hidden ? 1 : 0);
+    res.json({ success: true });
+  } catch(err){
+    console.error("[Server Debug] /api/upload/hidden error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
