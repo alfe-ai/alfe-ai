@@ -41,7 +41,7 @@ export default class JobManager {
 
     child.on("close", (code) => {
       if (job.status === "running") {
-        job.status = "finished";
+        job.status = code === 0 ? "finished" : "failed";
       }
       this._append(job, `\n[process exited with code ${code}]`);
       this._notifyDone(job);
