@@ -95,6 +95,17 @@ export default class PrintifyJobQueue {
     return true;
   }
 
+  stopAll() {
+    for (const job of this.jobs) {
+      if (job.status === 'running' && job.jobId) {
+        this.jobManager.stopJob(job.jobId);
+      }
+    }
+    this.jobs = [];
+    this.current = null;
+    this._saveJobs();
+  }
+
   _processNext() {
     if (this.current) return;
     const job = this.jobs.find(j => j.status === 'queued');
