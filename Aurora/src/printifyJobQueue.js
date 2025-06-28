@@ -8,6 +8,7 @@ export default class PrintifyJobQueue {
     this.jobManager = jobManager;
     this.jobs = [];
     this.current = null;
+    this.paused = false;
     this.uploadsDir = options.uploadsDir || '';
     this.upscaleScript = options.upscaleScript || '';
     this.printifyScript = options.printifyScript || '';
@@ -31,6 +32,7 @@ export default class PrintifyJobQueue {
           return j;
         });
       }
+      this.paused = !!data.paused;
     } catch (err) {
       // ignore if file doesn't exist or can't be read
     }
@@ -41,11 +43,30 @@ export default class PrintifyJobQueue {
     try {
       fs.writeFileSync(
         this.persistencePath,
-        JSON.stringify({ jobs: this.jobs }, null, 2)
+        JSON.stringify({ jobs: this.jobs, paused: this.paused }, null, 2)
       );
     } catch (err) {
       // ignore write errors
     }
+  }
+
+  pause() {
+    if (!this.paused) {
+      this.paused = true;
+      this._saveJobs();
+    }
+  }
+
+  resume() {
+    if (this.paused) {
+      this.paused = false;
+      this._saveJobs();
+      this._processNext();
+    }
+  }
+
+  isPaused() {
+    return this.paused;
   }
 
   enqueue(file, type, dbId = null, variant = null) {
@@ -131,7 +152,7 @@ export default class PrintifyJobQueue {
   }
 
   _processNext() {
-    if (this.current) return;
+    if (this.current || this.paused) return;
     const job = this.jobs.find(j => j.status === 'queued');
     if (!job) return;
     this.current = job;

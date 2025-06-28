@@ -117,6 +117,8 @@
     </div>
     <button id="enqueueBtn">Add to Queue</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
+    <span id="queueState" style="margin-left:0.5rem;">Running</span>
+    <button id="pauseBtn" style="margin-left:0.5rem;">Pause</button>
   </div>
   <table id="queueTable">
     <thead>
@@ -434,6 +436,28 @@ async function updateVariantUI(file){
       }
     }
 
+    async function loadQueueState(){
+      try{
+        const res = await fetch('/api/pipelineQueue/state');
+        const data = await res.json();
+        document.getElementById('queueState').textContent = data.paused ? 'Paused' : 'Running';
+        document.getElementById('pauseBtn').textContent = data.paused ? 'Resume' : 'Pause';
+      }catch(e){
+        console.error('Failed to load queue state', e);
+      }
+    }
+
+    document.getElementById('pauseBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('pauseBtn');
+      const paused = btn.textContent === 'Resume';
+      try{
+        await fetch('/api/pipelineQueue/' + (paused ? 'resume' : 'pause'), { method: 'POST' });
+        await loadQueueState();
+      }catch(e){
+        console.error('Failed to toggle queue state', e);
+      }
+    });
+
     document.getElementById('stopAllBtn').addEventListener('click', async () => {
       if(!confirm('Stop all jobs?')) return;
       try{
@@ -447,7 +471,8 @@ async function updateVariantUI(file){
     loadQueue();
     loadImages(true);
     document.getElementById('jobType').dispatchEvent(new Event('change'));
-    setInterval(loadQueue, 5000);
+    loadQueueState();
+    setInterval(() => { loadQueue(); loadQueueState(); }, 5000);
   </script>
 </body>
 </html>
