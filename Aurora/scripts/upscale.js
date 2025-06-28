@@ -31,16 +31,17 @@ const outputPath = path.join(path.dirname(inputPath), `${base}_upscaled${ext}`);
 async function upscale() {
   const form = new FormData();
   form.append("image", fs.createReadStream(inputPath));
-  form.append("scale", "4");
-  form.append("mode", "latent");
+  // let the API return the same format as the input
+  form.append("output_format", ext.slice(1));
 
   const res = await axios.post(
-    "https://api.stability.ai/v2beta/upscale",
+    "https://api.stability.ai/v2beta/stable-image/upscale/fast",
     form,
     {
       headers: {
         Authorization: `Bearer ${API_KEY}`,
         ...form.getHeaders(),
+        Accept: "image/*",
       },
       responseType: "arraybuffer",
       timeout: 120000,
@@ -52,6 +53,13 @@ async function upscale() {
 }
 
 upscale().catch((err) => {
-  console.error(err.response?.data || err);
+  if (err.response) {
+    const data = Buffer.isBuffer(err.response.data)
+      ? err.response.data.toString()
+      : JSON.stringify(err.response.data);
+    console.error(`Upscale failed: ${err.response.status} ${data}`);
+  } else {
+    console.error('Upscale failed:', err.message);
+  }
   process.exit(1);
 });
