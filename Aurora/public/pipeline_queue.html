@@ -133,6 +133,7 @@
   <script src="/session.js"></script>
   <script>
     const collapsedGroups = new Set();
+    const knownDbIds = new Set();
     async function loadQueue(){
       try{
         const res = await fetch('/api/pipelineQueue');
@@ -143,6 +144,10 @@
         queue.forEach(job => {
           if(job.dbId && !seen.has(job.dbId)){
             seen.add(job.dbId);
+            if(!knownDbIds.has(job.dbId)){
+              knownDbIds.add(job.dbId);
+              collapsedGroups.add(job.dbId);
+            }
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
             groupTr.dataset.dbid = job.dbId;
