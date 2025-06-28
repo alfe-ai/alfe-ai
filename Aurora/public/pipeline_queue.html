@@ -6,9 +6,51 @@
   <title>Design Production Queue</title>
   <link rel="stylesheet" href="/styles.css">
   <style>
-    #imageSelect {
+    .img-dropdown {
+      position: relative;
       min-width: 400px;
       width: 400px;
+      cursor: pointer;
+    }
+    .img-dropdown .selected {
+      border: 1px solid #444;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: #222;
+    }
+    .img-dropdown .selected img {
+      max-height: 240px;
+    }
+    .img-dropdown .options {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      background-color: #222;
+      border: 1px solid #444;
+      max-height: 600px;
+      overflow-y: auto;
+      width: 400px;
+      z-index: 1000;
+      display: none;
+    }
+    .img-dropdown .option {
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .img-dropdown .option img {
+      max-height: 240px;
+    }
+    .img-dropdown .option:hover {
+      background-color: #333;
+    }
+    .img-dropdown .loading-more {
+      text-align: center;
+      padding: 4px;
     }
     .upscaled-label {
       color: cyan;
@@ -45,9 +87,12 @@
       </select>
     </label>
     <label>Image:
-      <select id="imageSelect">
-        <option value="">-- choose --</option>
-      </select>
+      <div id="imageSelect" class="img-dropdown">
+        <div class="selected">-- choose --</div>
+        <div class="options">
+          <div class="loading-more"><span class="loading-spinner"></span></div>
+        </div>
+      </div>
     </label>
     <img id="imagePreview" style="display:none;max-height:80px;border:1px solid #444;" />
     <div id="variantChoice" style="display:none;flex-direction:column;margin-left:0.5rem;">
@@ -142,10 +187,10 @@
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ name: file, hidden: true })
                 });
-                const opt = dropdown.querySelector(`option[value="${CSS.escape(file)}"]`);
+                const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
                 opt?.remove();
-                if(dropdown.value === file){
-                  dropdown.value = '';
+                if(dropdown.dataset.value === file){
+                  selectedDiv.textContent = '-- choose --';
                   dropdown.dataset.value = '';
                   dropdown.dataset.id = '';
                   updatePreview('');
@@ -210,36 +255,84 @@
       }
     }
     const dropdown = document.getElementById('imageSelect');
+    const selectedDiv = dropdown.querySelector('.selected');
+    const optionsDiv = dropdown.querySelector('.options');
+    const loadingDiv = optionsDiv.querySelector('.loading-more');
 
-    async function loadImages(){
+    let imgOffset = 0;
+    let imgHasMore = true;
+    let imgLoading = false;
+
+    async function loadImages(reset=false){
+      if(imgLoading) return;
+      if(reset){
+        imgOffset = 0;
+        imgHasMore = true;
+        optionsDiv.querySelectorAll('.option').forEach(o => o.remove());
+        if(!dropdown.dataset.value){
+          selectedDiv.textContent = '-- choose --';
+        }
+      }
+      if(!imgHasMore) return;
+      imgLoading = true;
+      loadingDiv.style.display = 'block';
       try{
-        const res = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId));
+        const res = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${imgOffset}&showHidden=0`);
         const files = await res.json();
-        dropdown.innerHTML = '<option value="">-- choose --</option>';
         files.forEach(f => {
-          const opt = document.createElement('option');
-          opt.value = f.name;
+          const item = document.createElement('div');
+          item.className = 'option';
+          item.dataset.value = f.name;
+          item.dataset.id = f.id ?? '';
           const idx = (f.id !== null && f.id !== undefined) ? f.id : '';
           const upscaled = f.status && /upscaled/i.test(f.status);
-          opt.textContent = idx + (upscaled ? ' [upscaled]' : '');
-          opt.dataset.id = f.id ?? '';
-          dropdown.appendChild(opt);
+          const label = upscaled ? '<span class="upscaled-label">[upscaled]</span>' : '';
+          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
+          item.addEventListener('click', ev => {
+            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
+            dropdown.dataset.value = f.name;
+            dropdown.dataset.id = f.id ?? '';
+            optionsDiv.style.display = 'none';
+            updatePreview(f.name);
+            const type = document.getElementById('jobType').value;
+            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
+              updateVariantUI(f.name);
+            }
+          });
+          optionsDiv.appendChild(item);
         });
+        imgOffset += files.length;
+        if(files.length < 20) imgHasMore = false;
       }catch(e){
         console.error('Failed to load images', e);
       }
+      imgLoading = false;
+      loadingDiv.style.display = 'none';
     }
 
-    dropdown.addEventListener('change', () => {
-      const opt = dropdown.options[dropdown.selectedIndex];
-      dropdown.dataset.value = dropdown.value;
-      dropdown.dataset.id = opt ? opt.dataset.id : '';
-      updatePreview(dropdown.value);
-      const type = document.getElementById('jobType').value;
-      if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
-        updateVariantUI(dropdown.value);
-      } else {
-        document.getElementById('variantChoice').style.display = 'none';
+    const toggleOptions = () => {
+      optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
+      if(optionsDiv.style.display === 'block' && optionsDiv.querySelectorAll('.option').length === 0){
+        loadImages(true);
+      }
+    };
+
+    selectedDiv.addEventListener('click', toggleOptions);
+    selectedDiv.addEventListener('touchstart', e => {
+      e.preventDefault();
+      toggleOptions();
+    });
+
+    document.addEventListener('click', e => {
+      if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
+    });
+    document.addEventListener('touchstart', e => {
+      if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
+    });
+
+    optionsDiv.addEventListener('scroll', () => {
+      if(optionsDiv.scrollTop + optionsDiv.clientHeight >= optionsDiv.scrollHeight - 5){
+        loadImages();
       }
     });
 
@@ -256,7 +349,7 @@
     document.getElementById('jobType').addEventListener('change', () => {
       const type = document.getElementById('jobType').value;
       if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
-        updateVariantUI(document.getElementById('imageSelect').value);
+        updateVariantUI(document.getElementById('imageSelect').dataset.value);
       } else {
         document.getElementById('variantChoice').style.display = 'none';
       }
@@ -348,10 +441,10 @@ async function updateVariantUI(file){
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: file, hidden: true })
             });
-            const opt = dropdown.querySelector(`option[value="${CSS.escape(file)}"]`);
+            const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
             opt?.remove();
-            if(dropdown.value === file){
-              dropdown.value = '';
+            if(dropdown.dataset.value === file){
+              selectedDiv.textContent = '-- choose --';
               dropdown.dataset.value = '';
               dropdown.dataset.id = '';
               updatePreview('');
@@ -376,9 +469,9 @@ async function updateVariantUI(file){
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: file, hidden: true })
         });
-        const opt = dropdown.querySelector(`option[value="${CSS.escape(file)}"]`);
+        const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
         opt?.remove();
-        dropdown.value = '';
+        selectedDiv.textContent = '-- choose --';
         dropdown.dataset.value = '';
         dropdown.dataset.id = '';
         updatePreview('');
@@ -439,7 +532,7 @@ async function updateVariantUI(file){
     });
 
     loadQueue();
-    loadImages();
+    loadImages(true);
     document.getElementById('jobType').dispatchEvent(new Event('change'));
     loadQueueState();
     setInterval(() => { loadQueue(); loadQueueState(); }, 5000);
