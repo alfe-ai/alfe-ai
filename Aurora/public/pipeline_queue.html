@@ -58,6 +58,11 @@
     .status-failed {
       color: #f33;
     }
+    .db-group td {
+      background-color: #333;
+      color: cyan;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body style="padding:1rem;">
@@ -121,7 +126,16 @@
         const queue = await res.json();
         const tbody = document.querySelector('#queueTable tbody');
         tbody.innerHTML = '';
+        const seen = new Set();
         queue.forEach(job => {
+          if(job.dbId && !seen.has(job.dbId)){
+            seen.add(job.dbId);
+            const groupTr = document.createElement('tr');
+            groupTr.className = 'db-group';
+            groupTr.innerHTML = `<td colspan="9">DB ID: ${job.dbId}</td>`;
+            tbody.appendChild(groupTr);
+          }
+
           const tr = document.createElement('tr');
           const jobLink = job.jobId ? `<a href="jobs.html?jobId=${job.jobId}" target="_blank">${job.jobId}</a>` : '';
           const dbLink = job.dbId
