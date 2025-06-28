@@ -310,14 +310,23 @@
       loadingDiv.style.display = 'none';
     }
 
-    selectedDiv.addEventListener('click', async e => {
+    const toggleOptions = () => {
       optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
       if(optionsDiv.style.display === 'block' && optionsDiv.querySelectorAll('.option').length === 0){
         loadImages(true);
       }
+    };
+
+    selectedDiv.addEventListener('click', toggleOptions);
+    selectedDiv.addEventListener('touchstart', e => {
+      e.preventDefault();
+      toggleOptions();
     });
 
     document.addEventListener('click', e => {
+      if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
+    });
+    document.addEventListener('touchstart', e => {
       if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
     });
 
