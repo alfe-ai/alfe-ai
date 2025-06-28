@@ -87,6 +87,7 @@
       </label>
     </div>
     <button id="enqueueBtn">Add to Queue</button>
+    <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
   </div>
   <table id="queueTable" style="width:100%;border-collapse:collapse;">
     <thead>
@@ -292,6 +293,16 @@ async function updateVariantUI(file){
         console.error('Failed to remove job', e);
       }
     }
+
+    document.getElementById('stopAllBtn').addEventListener('click', async () => {
+      if(!confirm('Stop all jobs?')) return;
+      try{
+        await fetch('/api/pipelineQueue/stopAll', { method: 'POST' });
+        await loadQueue();
+      }catch(e){
+        console.error('Failed to stop all jobs', e);
+      }
+    });
 
     loadQueue();
     loadImages();

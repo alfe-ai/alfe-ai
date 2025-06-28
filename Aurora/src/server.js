@@ -2694,6 +2694,11 @@ app.delete("/api/pipelineQueue/:id", (req, res) => {
   res.json({ removed: true });
 });
 
+app.post("/api/pipelineQueue/stopAll", (req, res) => {
+  printifyQueue.stopAll();
+  res.json({ stopped: true });
+});
+
 app.get("/api/upscale/result", (req, res) => {
   try {
     const file = req.query.file;
