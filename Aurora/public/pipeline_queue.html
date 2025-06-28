@@ -48,14 +48,6 @@
     .img-dropdown .option:hover {
       background-color: #333;
     }
-    .img-dropdown .hide-btn {
-      margin-left: auto;
-      background: none;
-      border: 1px solid #444;
-      color: #f33;
-      cursor: pointer;
-      padding: 2px 4px;
-    }
     .img-dropdown .loading-more {
       text-align: center;
       padding: 4px;
@@ -155,11 +147,34 @@
             groupTr.className = 'db-group';
             groupTr.dataset.dbid = job.dbId;
             const collapsed = collapsedGroups.has(job.dbId);
-            groupTr.innerHTML = `<td colspan="11"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.innerHTML = `<td colspan="11"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId} <button class="hideImageBtn" data-file="${encodeURIComponent(job.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
               await removeJobsByDbId(job.dbId);
+            });
+            groupTr.querySelector('.hideImageBtn').addEventListener('click', async ev => {
+              ev.stopPropagation();
+              const file = decodeURIComponent(ev.target.dataset.file || '');
+              if(!file) return;
+              try{
+                await fetch('/api/upload/hidden', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: file, hidden: true })
+                });
+                const opt = optionsDiv.querySelector(`.option[data-value="${CSS.escape(file)}"]`);
+                opt?.remove();
+                if(dropdown.dataset.value === file){
+                  selectedDiv.textContent = '-- choose --';
+                  dropdown.dataset.value = '';
+                  dropdown.dataset.id = '';
+                  updatePreview('');
+                  updateVariantUI('');
+                }
+              }catch(err){
+                console.error('Failed to hide image', err);
+              }
             });
             groupTr.addEventListener('click', e => {
               if(e.target.classList.contains('removeDbBtn')) return;
@@ -248,24 +263,9 @@
           const idx = (f.id !== null && f.id !== undefined) ? f.id : '';
           const upscaled = f.status && /upscaled/i.test(f.status);
           const label = upscaled ? '<span class="upscaled-label">[upscaled]</span>' : '';
-          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span> <button class="hide-btn">Hide</button>`;
-          const hideBtn = item.querySelector('.hide-btn');
-          hideBtn.addEventListener('click', async ev => {
-            ev.stopPropagation();
-            try{
-              await fetch('/api/upload/hidden', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: f.name, hidden: true })
-              });
-              item.remove();
-            }catch(err){
-              console.error('Failed to hide image', err);
-            }
-          });
+          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
           item.addEventListener('click', ev => {
-            if(ev.target.closest('.hide-btn')) return;
-            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span> <button class="hide-btn">Hide</button>`;
+            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
             dropdown.dataset.value = f.name;
             dropdown.dataset.id = f.id ?? '';
             optionsDiv.style.display = 'none';
@@ -287,28 +287,6 @@
     }
 
     selectedDiv.addEventListener('click', async e => {
-      if(e.target.closest('.hide-btn')){
-        e.stopPropagation();
-        const name = dropdown.dataset.value;
-        if(!name) return;
-        try{
-          await fetch('/api/upload/hidden', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, hidden: true })
-          });
-          selectedDiv.textContent = '-- choose --';
-          const opt = optionsDiv.querySelector(`.option[data-value="${name}"]`);
-          opt?.remove();
-          dropdown.dataset.value = '';
-          dropdown.dataset.id = '';
-          updatePreview('');
-          updateVariantUI('');
-        }catch(err){
-          console.error('Failed to hide image', err);
-        }
-        return;
-      }
       optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
       if(optionsDiv.style.display === 'block' && optionsDiv.querySelectorAll('.option').length === 0){
         loadImages(true);
