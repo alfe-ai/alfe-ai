@@ -169,7 +169,8 @@ export default class TaskDB {
                                               session_id TEXT DEFAULT '',
                                               image_uuid TEXT DEFAULT '',
                                               publish_portfolio INTEGER DEFAULT 0,
-                                              product_url TEXT DEFAULT ''
+                                              product_url TEXT DEFAULT '',
+                                              ebay_url TEXT DEFAULT ''
       );
     `);
 
@@ -256,6 +257,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_pairs.product_url column");
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_pairs.product_url column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN ebay_url TEXT DEFAULT '';`);
+      console.debug("[TaskDB Debug] Added chat_pairs.ebay_url column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_pairs.ebay_url column exists, skipping.", e.message);
     }
 
     this.db.exec(`
@@ -682,16 +689,16 @@ export default class TaskDB {
     });
   }
 
-  createImagePair(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', ipAddress = '', model = '', publish = 0, productUrl = '') {
+  createImagePair(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', ipAddress = '', model = '', publish = 0, productUrl = '', ebayUrl = '') {
     const ts = new Date().toISOString();
     const uuid = randomUUID().split('-')[0];
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, token_info,
-        image_url, image_alt, image_title, image_status, session_id, ip_address, image_uuid, publish_portfolio, product_url
-      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url)
-    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, ip_address: ipAddress, uuid, model, publish: publish ? 1 : 0, product_url: productUrl });
+        image_url, image_alt, image_title, image_status, session_id, ip_address, image_uuid, publish_portfolio, product_url, ebay_url
+      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url, @ebay_url)
+    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, ip_address: ipAddress, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl });
     return lastInsertRowid;
   }
 
@@ -1072,7 +1079,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET image_status=? WHERE image_url=?");
     const info = stmt.run(status, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', status, '', '', '', 0, '');
+      this.createImagePair(url, '', 1, '', status, '', '', '', 0, '', '');
     }
   }
 
@@ -1080,7 +1087,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET publish_portfolio=? WHERE image_url=?");
     const info = stmt.run(flag ? 1 : 0, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', flag ? 1 : 0, '');
+      this.createImagePair(url, '', 1, '', '', '', '', '', flag ? 1 : 0, '', '');
     }
   }
 
@@ -1088,7 +1095,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET product_url=? WHERE image_url=?");
     const info = stmt.run(productUrl, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', 0, productUrl);
+      this.createImagePair(url, '', 1, '', '', '', '', '', 0, productUrl, '');
     }
   }
 
@@ -1097,6 +1104,21 @@ export default class TaskDB {
         .prepare("SELECT product_url FROM chat_pairs WHERE image_url=? ORDER BY id DESC LIMIT 1")
         .get(url);
     return row ? row.product_url : '';
+  }
+
+  setEbayUrl(url, ebayUrl) {
+    const stmt = this.db.prepare("UPDATE chat_pairs SET ebay_url=? WHERE image_url=?");
+    const info = stmt.run(ebayUrl, url);
+    if(info.changes === 0){
+      this.createImagePair(url, '', 1, '', '', '', '', '', 0, '', ebayUrl);
+    }
+  }
+
+  getEbayUrlForImage(url) {
+    const row = this.db
+        .prepare("SELECT ebay_url FROM chat_pairs WHERE image_url=? ORDER BY id DESC LIMIT 1")
+        .get(url);
+    return row ? row.ebay_url : '';
   }
 
   isGeneratedImage(url) {
