@@ -229,6 +229,7 @@ export default class PrintifyJobQueue {
       }
       if (url) {
         job.productUrl = url;
+        console.debug('[PrintifyJobQueue Debug] Resolved productUrl =>', url);
         if (job.type === 'printifyPrice' || job.type === 'printifyFixMockups' || job.type === 'printifyFinalize') {
           args.push(url);
         } else {
@@ -252,6 +253,7 @@ export default class PrintifyJobQueue {
       args.push(filePath);
     }
     console.log(`[PrintifyJobQueue] Running ${job.type} with script: ${script}`);
+    console.debug('[PrintifyJobQueue Debug] args =>', args.join(' '));
     const jmJob = this.jobManager.createJob(script, args, { cwd, file: job.file });
     job.jobId = jmJob.id;
     this.jobManager.addDoneListener(jmJob, () => {
