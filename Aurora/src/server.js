@@ -2178,6 +2178,20 @@ app.get("/api/upload/byId", (req, res) => {
   }
 });
 
+app.get("/api/upload/title", (req, res) => {
+  try {
+    const name = req.query.name;
+    if(!name){
+      return res.status(400).json({ error: "Missing name" });
+    }
+    const title = db.getImageTitleForUrl(`/uploads/${name}`);
+    res.json({ title: title || "" });
+  } catch(err){
+    console.error("[Server Debug] /api/upload/title error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/upload/status", (req, res) => {
   try {
     const { name, status, productUrl, ebayUrl } = req.body || {};
