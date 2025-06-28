@@ -121,6 +121,8 @@
         <th>Job ID</th>
         <th>Result Path</th>
         <th>Product URL</th>
+        <th>Start Time</th>
+        <th>Finish Time</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -140,7 +142,7 @@
             seen.add(job.dbId);
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
-            groupTr.innerHTML = `<td colspan="9">DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.innerHTML = `<td colspan="11">DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async () => {
               await removeJobsByDbId(job.dbId);
@@ -158,6 +160,8 @@
             if(job.status === 'failed' || job.status === 'error') return '<span class="status-failed">Failed</span>';
             return job.status;
           })();
+          const startHtml = job.startTime ? new Date(job.startTime).toLocaleString() : '';
+          const finishHtml = job.finishTime ? new Date(job.finishTime).toLocaleString() : '';
           tr.innerHTML = `
             <td>${job.id}</td>
             <td>${dbLink}</td>
@@ -167,6 +171,8 @@
             <td>${jobLink}</td>
             <td>${job.resultPath || ''}</td>
             <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
+            <td>${startHtml}</td>
+            <td>${finishHtml}</td>
             <td><button data-id="${job.id}" class="removeBtn">Remove</button></td>
           `;
           tbody.appendChild(tr);

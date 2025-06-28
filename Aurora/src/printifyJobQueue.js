@@ -28,6 +28,8 @@ export default class PrintifyJobQueue {
       if (Array.isArray(data.jobs)) {
         this.jobs = data.jobs.map(j => {
           if (j.status === 'running') j.status = 'queued';
+          if (!('startTime' in j)) j.startTime = null;
+          if (!('finishTime' in j)) j.finishTime = null;
           return j;
         });
       }
@@ -59,7 +61,9 @@ export default class PrintifyJobQueue {
       resultPath: null,
       productUrl: null,
       dbId,
-      variant
+      variant,
+      startTime: null,
+      finishTime: null
     };
     this.jobs.push(job);
     this._saveJobs();
@@ -77,7 +81,9 @@ export default class PrintifyJobQueue {
       resultPath: j.resultPath || null,
       productUrl: j.productUrl || null,
       dbId: j.dbId || null,
-      variant: j.variant || null
+      variant: j.variant || null,
+      startTime: j.startTime || null,
+      finishTime: j.finishTime || null
     }));
   }
 
@@ -136,6 +142,8 @@ export default class PrintifyJobQueue {
     if (!job) return;
     this.current = job;
     job.status = 'running';
+    job.startTime = Date.now();
+    job.finishTime = null;
     this._saveJobs();
 
     let filePath = path.isAbsolute(job.file)
@@ -332,6 +340,7 @@ export default class PrintifyJobQueue {
           this.db.setImageTitle(originalUrl, title);
         }
       }
+      job.finishTime = Date.now();
       if (this.db) {
         const statusMap = {
           upscale: 'Upscaled',
