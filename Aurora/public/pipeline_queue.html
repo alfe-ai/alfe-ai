@@ -304,9 +304,10 @@
       loadingDiv.style.display = 'none';
     }
 
-    dropdown.addEventListener('click', () => {
+    selectedDiv.addEventListener('click', e => {
+      if(e.target.closest('.hide-btn')) return;
       optionsDiv.style.display = optionsDiv.style.display === 'block' ? 'none' : 'block';
-      if(optionsDiv.style.display === 'block' && optionsDiv.innerHTML === ''){
+      if(optionsDiv.style.display === 'block' && optionsDiv.querySelectorAll('.option').length === 0){
         loadImages(true);
       }
     });
