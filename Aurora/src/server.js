@@ -120,7 +120,7 @@ import os from "os";
 import child_process from "child_process";
 import JobManager from "./jobManager.js";
 import PrintifyJobQueue from "./printifyJobQueue.js";
-import { extractProductUrl, extractPrintifyUrl } from "./printifyUtils.js";
+import { extractProductUrl, extractPrintifyUrl, extractUpdatedTitle } from "./printifyUtils.js";
 
 const db = new TaskDB();
 console.debug("[Server Debug] Checking or setting default 'ai_model' in DB...");
@@ -2589,6 +2589,10 @@ app.post("/api/printifyTitleFix", async (req, res) => {
     jobManager.addDoneListener(job, () => {
       try {
         const url = `/uploads/${file}`;
+        const title = extractUpdatedTitle(job.log);
+        if (title) {
+          db.setImageTitle(url, title);
+        }
         db.setImageStatus(url, "Printify API Title Fix");
       } catch (e) {
         console.error(

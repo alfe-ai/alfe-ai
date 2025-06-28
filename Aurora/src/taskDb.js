@@ -1083,6 +1083,14 @@ export default class TaskDB {
     }
   }
 
+  setImageTitle(url, title) {
+    const stmt = this.db.prepare("UPDATE chat_pairs SET image_title=? WHERE image_url=?");
+    const info = stmt.run(title, url);
+    if (info.changes === 0) {
+      this.createImagePair(url, '', 1, title, '', '', '', '', 0, '', '');
+    }
+  }
+
   setImagePortfolio(url, flag) {
     const stmt = this.db.prepare("UPDATE chat_pairs SET publish_portfolio=? WHERE image_url=?");
     const info = stmt.run(flag ? 1 : 0, url);
