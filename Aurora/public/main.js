@@ -3418,7 +3418,7 @@ function sortFileData(){
   fileListData.sort((a,b)=>{
     let va=a[fileSortColumn];
     let vb=b[fileSortColumn];
-    if(fileSortColumn==='name' || fileSortColumn==='productUrl'){
+    if(fileSortColumn==='name' || fileSortColumn==='productUrl' || fileSortColumn==='ebayUrl'){
       va = (va||'').toLowerCase();
       vb = (vb||'').toLowerCase();
     }
@@ -3470,6 +3470,16 @@ function renderFileList(){
       tdProductUrl.appendChild(link);
     } else {
       tdProductUrl.textContent = "";
+    }
+    const tdEbayUrl = document.createElement("td");
+    if(f.ebayUrl){
+      const link = document.createElement("a");
+      link.href = f.ebayUrl;
+      link.textContent = f.ebayUrl;
+      link.target = "_blank";
+      tdEbayUrl.appendChild(link);
+    } else {
+      tdEbayUrl.textContent = "";
     }
     const tdPortfolio = document.createElement("td");
     const portCheck = document.createElement("input");
@@ -3528,6 +3538,25 @@ function renderFileList(){
       }
     });
     tdAction.appendChild(urlBtn);
+    const ebayBtn = document.createElement("button");
+    ebayBtn.textContent = "Set eBay";
+    ebayBtn.addEventListener("click", async () => {
+      const current = f.ebayUrl || "";
+      const url = prompt("Enter eBay Listing URL:", current);
+      if(!url) return;
+      try{
+        await fetch('/api/upload/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: f.name, ebayUrl: url })
+        });
+        await loadFileList();
+      }catch(err){
+        console.error('Failed to set eBay URL =>', err);
+        alert('Failed to set eBay URL');
+      }
+    });
+    tdAction.appendChild(ebayBtn);
     tr.appendChild(tdIndex);
     tr.appendChild(tdId);
     tr.appendChild(tdThumb);
@@ -3536,6 +3565,7 @@ function renderFileList(){
     tr.appendChild(tdSource);
     tr.appendChild(tdStatus);
     tr.appendChild(tdProductUrl);
+    tr.appendChild(tdEbayUrl);
     tr.appendChild(tdPortfolio);
     tr.appendChild(tdSize);
     tr.appendChild(tdMtime);

@@ -2104,7 +2104,8 @@ app.get("/api/upload/list", (req, res) => {
       const status = db.getImageStatusForUrl(`/uploads/${name}`) || (source === 'Generated' ? 'Generated' : 'Uploaded');
       const portfolio = db.getImagePortfolioForUrl(`/uploads/${name}`) ? 1 : 0;
       const productUrl = db.getProductUrlForImage(`/uploads/${name}`);
-      files.push({ id, uuid, name, size, mtime, title, source, status, portfolio, productUrl });
+      const ebayUrl = db.getEbayUrlForImage(`/uploads/${name}`);
+      files.push({ id, uuid, name, size, mtime, title, source, status, portfolio, productUrl, ebayUrl });
     }
     res.json(files);
   } catch (err) {
@@ -2152,7 +2153,7 @@ app.get("/api/upload/byId", (req, res) => {
 
 app.post("/api/upload/status", (req, res) => {
   try {
-    const { name, status, productUrl } = req.body || {};
+    const { name, status, productUrl, ebayUrl } = req.body || {};
     if(!name){
       return res.status(400).json({ error: "Missing name" });
     }
@@ -2162,6 +2163,9 @@ app.post("/api/upload/status", (req, res) => {
     }
     if(productUrl !== undefined){
       db.setProductUrl(url, productUrl || "");
+    }
+    if(ebayUrl !== undefined){
+      db.setEbayUrl(url, ebayUrl || "");
     }
     res.json({ success: true });
   } catch(err){
