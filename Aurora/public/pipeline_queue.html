@@ -101,7 +101,6 @@
     <thead>
       <tr>
         <th>ID</th>
-        <th>File</th>
         <th>DB ID</th>
         <th>Type</th>
         <th>Variant</th>
@@ -136,7 +135,6 @@
           })();
           tr.innerHTML = `
             <td>${job.id}</td>
-            <td>${job.file}</td>
             <td>${dbLink}</td>
             <td>${job.type}</td>
             <td>${job.variant || ''}</td>
@@ -175,9 +173,9 @@
           const idx = (f.id !== null && f.id !== undefined) ? f.id : '';
           const upscaled = f.status && /upscaled/i.test(f.status);
           const label = upscaled ? '<span class="upscaled-label">[upscaled]</span>' : '';
-          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}: ${f.name}${label}</span>`;
+          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
           item.addEventListener('click', () => {
-            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}: ${f.name}${label}</span>`;
+            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
             dropdown.dataset.value = f.name;
             dropdown.dataset.id = f.id ?? '';
             optionsDiv.style.display = 'none';
