@@ -2265,6 +2265,7 @@ app.post("/api/upscale", async (req, res) => {
         });
     }
 
+    console.debug('[Server Debug] launching upscale job with script =>', scriptPath);
     const job = jobManager.createJob(scriptPath, [filePath], { cwd: scriptCwd, file });
     jobManager.addDoneListener(job, () => {
       const matches = [...job.log.matchAll(/Final output saved to:\s*(.+)/gi)];

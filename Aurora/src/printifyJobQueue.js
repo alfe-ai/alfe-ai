@@ -223,6 +223,7 @@ export default class PrintifyJobQueue {
     } else {
       args.push(filePath);
     }
+    console.log(`[PrintifyJobQueue] Running ${job.type} with script: ${script}`);
     const jmJob = this.jobManager.createJob(script, args, { cwd, file: job.file });
     job.jobId = jmJob.id;
     this.jobManager.addDoneListener(jmJob, () => {
