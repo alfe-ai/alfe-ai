@@ -317,37 +317,11 @@
       }
     };
 
-    if(window.PointerEvent){
-      const handleClick = e => {
-        if(!e.pointerType || e.pointerType === 'mouse') toggleOptions();
-      };
-      selectedDiv.addEventListener('pointerdown', e => {
-        if(e.pointerType === 'touch'){
-          e.preventDefault();
-          toggleOptions();
-        }
-      });
-      selectedDiv.addEventListener('click', handleClick);
-      dropdown.addEventListener('click', handleClick);
-      document.addEventListener('pointerdown', e => {
-        if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
-      });
-      document.addEventListener('click', e => {
-        if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
-      });
-    }else{
-      const handleTouch = e => { e.preventDefault(); toggleOptions(); };
-      selectedDiv.addEventListener('click', toggleOptions);
-      dropdown.addEventListener('click', toggleOptions);
-      selectedDiv.addEventListener('touchstart', handleTouch);
-      dropdown.addEventListener('touchstart', handleTouch);
-      document.addEventListener('click', e => {
-        if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
-      });
-      document.addEventListener('touchstart', e => {
-        if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
-      });
-    }
+    selectedDiv.addEventListener('click', toggleOptions);
+    dropdown.addEventListener('click', toggleOptions);
+    document.addEventListener('click', e => {
+      if(!dropdown.contains(e.target)) optionsDiv.style.display = 'none';
+    });
 
     optionsDiv.addEventListener('scroll', () => {
       if(optionsDiv.scrollTop + optionsDiv.clientHeight >= optionsDiv.scrollHeight - 5){
