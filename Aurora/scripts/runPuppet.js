@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import axios from 'axios';
 import https from 'https';
+import { inspect } from 'util';
 
 const base = process.env.PROGRAMATIC_PUPPET_API_BASE || 'https://localhost:3005';
 const puppet = process.argv[2];
@@ -39,7 +40,7 @@ const agent = base.startsWith('https://')
         const data =
           typeof err.response.data === 'string'
             ? err.response.data
-            : JSON.stringify(err.response.data);
+            : inspect(err.response.data, { depth: null });
         console.error('[RunPuppet Debug] Response body:', data);
       }
     }
