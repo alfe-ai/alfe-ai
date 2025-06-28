@@ -324,6 +324,9 @@
           toggleOptions();
         }
       });
+      selectedDiv.addEventListener('mousedown', e => {
+        if(e.button === 0) toggleOptions();
+      });
       selectedDiv.addEventListener('click', e => {
         if(!e.pointerType || e.pointerType === 'mouse') toggleOptions();
       });
