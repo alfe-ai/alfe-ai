@@ -410,6 +410,8 @@ async function updateVariantUI(file){
 }
 
     document.getElementById('enqueueBtn').addEventListener('click', async () => {
+      // Ensure the dropdown is closed so the click isn't intercepted
+      optionsDiv.style.display = 'none';
       const file = document.getElementById('imageSelect').dataset.value;
       const dbId = document.getElementById('imageSelect').dataset.id;
       const type = document.getElementById('jobType').value;
