@@ -1005,6 +1005,11 @@ body {
   animation: loading-spin 0.75s linear infinite;
 }
 
+.loading-more {
+  text-align: center;
+  padding: 4px;
+}
+
 @keyframes loading-spin {
   to { transform: rotate(360deg); }
 }
