@@ -136,6 +136,14 @@
   </table>
   <script src="./session.js"></script>
   <script>
+    if (typeof window.CSS === 'undefined') window.CSS = {};
+    if (typeof window.CSS.escape !== 'function') {
+      window.CSS.escape = function(str) {
+        return String(str).replace(/[^\w-]/g, function(ch) {
+          return '\\' + ch;
+        });
+      };
+    }
     const collapsedGroups = new Set();
     const titleCache = {};
     async function getTitle(file){
