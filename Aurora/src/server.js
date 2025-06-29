@@ -2814,10 +2814,12 @@ app.post("/api/jobs/:id/stop", (req, res) => {
 // Printify pipeline job queue endpoints
 // ---------------------------------------------------------------------------
 app.get("/api/pipelineQueue", (req, res) => {
+  console.debug("[Server Debug] GET /api/pipelineQueue");
   res.json(printifyQueue.list());
 });
 
 app.post("/api/pipelineQueue", (req, res) => {
+  console.debug("[Server Debug] POST /api/pipelineQueue =>", req.body);
   const { file, type, dbId, variant } = req.body || {};
   if (!file || !type) {
     return res.status(400).json({ error: "Missing file or type" });
@@ -2827,32 +2829,41 @@ app.post("/api/pipelineQueue", (req, res) => {
 });
 
 app.delete("/api/pipelineQueue/:id", (req, res) => {
+  console.debug("[Server Debug] DELETE /api/pipelineQueue/:id =>", req.params.id);
   const ok = printifyQueue.remove(req.params.id);
   if (!ok) return res.status(404).json({ error: "Job not found" });
   res.json({ removed: true });
 });
 
 app.delete("/api/pipelineQueue/db/:dbId", (req, res) => {
+  console.debug(
+    "[Server Debug] DELETE /api/pipelineQueue/db/:dbId =>",
+    req.params.dbId
+  );
   const ok = printifyQueue.removeByDbId(req.params.dbId);
   if (!ok) return res.status(404).json({ error: "Jobs not found" });
   res.json({ removed: true });
 });
 
 app.post("/api/pipelineQueue/stopAll", (req, res) => {
+  console.debug("[Server Debug] POST /api/pipelineQueue/stopAll");
   printifyQueue.stopAll();
   res.json({ stopped: true });
 });
 
 app.get("/api/pipelineQueue/state", (req, res) => {
+  console.debug("[Server Debug] GET /api/pipelineQueue/state");
   res.json({ paused: printifyQueue.isPaused() });
 });
 
 app.post("/api/pipelineQueue/pause", (req, res) => {
+  console.debug("[Server Debug] POST /api/pipelineQueue/pause");
   printifyQueue.pause();
   res.json({ paused: true });
 });
 
 app.post("/api/pipelineQueue/resume", (req, res) => {
+  console.debug("[Server Debug] POST /api/pipelineQueue/resume");
   printifyQueue.resume();
   res.json({ paused: false });
 });
