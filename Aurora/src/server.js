@@ -577,9 +577,10 @@ app.options("*", cors({
   res.sendStatus(200);
 });
 
-// Restrict access by IP when WHITELIST_IP is set
+// Restrict access by IP when WHITELIST_IP is set. Localhost is always allowed
 const whitelistIp = process.env.whitelist_ip || process.env.WHITELIST_IP;
 if (whitelistIp) {
+  const localIps = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
   app.use((req, res, next) => {
     const requestIp =
       (req.headers["x-forwarded-for"] || "")
@@ -592,7 +593,11 @@ if (whitelistIp) {
       return next();
     }
 
-    if (requestIp === whitelistIp || requestIp === `::ffff:${whitelistIp}`) {
+    const allowed =
+      localIps.has(requestIp) ||
+      requestIp === whitelistIp ||
+      requestIp === `::ffff:${whitelistIp}`;
+    if (allowed) {
       return next();
     }
 
