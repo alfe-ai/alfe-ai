@@ -3,7 +3,8 @@ const assert = require('assert');
 
 async function runTests() {
   const port = process.env.AURORA_PORT || process.env.PORT || 3000;
-  const baseUrl = `http://localhost:${port}`;
+  const protocol = process.env.AURORA_PROTOCOL || 'http';
+  const baseUrl = `${protocol}://localhost:${port}`;
 
   // Test GET /api/pipelineQueue
   const getRes = await axios.get(`${baseUrl}/api/pipelineQueue`).catch(err => err.response || err);
