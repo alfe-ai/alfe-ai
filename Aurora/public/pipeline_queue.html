@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <!--  <title>Printify Pipeline Queue</title>-->
   <title>Design Production Queue</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="./styles.css">
   <style>
     .img-dropdown {
       position: relative;
@@ -134,14 +134,14 @@
     </thead>
     <tbody></tbody>
   </table>
-  <script src="/session.js"></script>
+  <script src="./session.js"></script>
   <script>
     const collapsedGroups = new Set();
     const titleCache = {};
     async function getTitle(file){
       if(titleCache.hasOwnProperty(file)) return titleCache[file];
       try{
-        const r = await fetch('/api/upload/title?name=' + encodeURIComponent(file));
+        const r = await fetch('api/upload/title?name=' + encodeURIComponent(file));
         const d = await r.json();
         titleCache[file] = d.title || '';
       }catch(e){
@@ -152,7 +152,7 @@
     }
     async function loadQueue(){
       try{
-        const res = await fetch('/api/pipelineQueue');
+        const res = await fetch('api/pipelineQueue');
         const queue = await res.json();
         const tbody = document.querySelector('#queueTable tbody');
         tbody.innerHTML = '';
@@ -169,7 +169,7 @@
             const collapsed = collapsedGroups.has(job.dbId);
             const title = await getTitle(job.file);
             const titlePart = title ? ` - ${title}` : '';
-            groupTr.innerHTML = `<td colspan="11"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId}${titlePart}<img src="/uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(job.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.innerHTML = `<td colspan="11"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId}${titlePart}<img src="uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(job.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
@@ -180,7 +180,7 @@
               const file = decodeURIComponent(ev.target.dataset.file || '');
               if(!file) return;
               try{
-                await fetch('/api/upload/hidden', {
+                await fetch('api/upload/hidden', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ name: file, hidden: true })
@@ -276,7 +276,7 @@
       imgLoading = true;
       loadingDiv.style.display = 'block';
       try{
-        const res = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${imgOffset}&showHidden=0`);
+        const res = await fetch('api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${imgOffset}&showHidden=0`);
         const files = await res.json();
         files.forEach(f => {
           const item = document.createElement('div');
@@ -286,9 +286,9 @@
           const idx = (f.id !== null && f.id !== undefined) ? f.id : '';
           const upscaled = f.status && /upscaled/i.test(f.status);
           const label = upscaled ? '<span class="upscaled-label">[upscaled]</span>' : '';
-          item.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
+          item.innerHTML = `<img src="uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
           item.addEventListener('click', ev => {
-            selectedDiv.innerHTML = `<img src="/uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
+            selectedDiv.innerHTML = `<img src="uploads/${encodeURIComponent(f.name)}" /> <span>${idx}${label}</span>`;
             dropdown.dataset.value = f.name;
             dropdown.dataset.id = f.id ?? '';
             optionsDiv.style.display = 'none';
@@ -338,7 +338,7 @@
     function updatePreview(val){
       const img = document.getElementById('imagePreview');
       if(val){
-        img.src = '/uploads/' + encodeURIComponent(val);
+        img.src = 'uploads/' + encodeURIComponent(val);
         img.style.display = '';
       }else{
         img.style.display = 'none';
@@ -370,7 +370,7 @@ async function updateVariantUI(file){
     return;
   }
   try{
-    const res = await fetch(`/api/upscale/result?file=${encodeURIComponent(file)}`);
+    const res = await fetch(`api/upscale/result?file=${encodeURIComponent(file)}`);
     const data = await res.json();
     const upPath = data.url || null;
     const nbPath = data.nobgUrl || (data.url && /(?:[_-](?:no)?[-_]?bg)/i.test(data.url) ? data.url : null);
@@ -425,14 +425,14 @@ async function updateVariantUI(file){
         if(type === 'all'){
           const steps = ['upscale','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
           for(const step of steps){
-            await fetch('/api/pipelineQueue', {
+            await fetch('api/pipelineQueue', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ file, type: step, dbId, variant })
             });
           }
         } else {
-          await fetch('/api/pipelineQueue', {
+          await fetch('api/pipelineQueue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file, type, dbId, variant })
@@ -440,7 +440,7 @@ async function updateVariantUI(file){
         }
         if(hideFlag){
           try{
-            await fetch('/api/upload/hidden', {
+            await fetch('api/upload/hidden', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name: file, hidden: true })
@@ -470,7 +470,7 @@ async function updateVariantUI(file){
       const file = selectEl.dataset.value || selectEl.value;
       if(!file) return;
       try{
-        await fetch('/api/upload/hidden', {
+        await fetch('api/upload/hidden', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: file, hidden: true })
@@ -490,7 +490,7 @@ async function updateVariantUI(file){
 
     async function removeJob(id){
       try{
-        await fetch(`/api/pipelineQueue/${id}`, { method: 'DELETE' });
+        await fetch(`api/pipelineQueue/${id}`, { method: 'DELETE' });
         await loadQueue();
       }catch(e){
         console.error('Failed to remove job', e);
@@ -499,7 +499,7 @@ async function updateVariantUI(file){
 
     async function removeJobsByDbId(dbId){
       try{
-        await fetch(`/api/pipelineQueue/db/${encodeURIComponent(dbId)}`, { method: 'DELETE' });
+        await fetch(`api/pipelineQueue/db/${encodeURIComponent(dbId)}`, { method: 'DELETE' });
         await loadQueue();
       }catch(e){
         console.error('Failed to remove jobs', e);
@@ -508,7 +508,7 @@ async function updateVariantUI(file){
 
     async function loadQueueState(){
       try{
-        const res = await fetch('/api/pipelineQueue/state');
+        const res = await fetch('api/pipelineQueue/state');
         const data = await res.json();
         document.getElementById('queueState').textContent = data.paused ? 'Paused' : 'Running';
         document.getElementById('pauseBtn').textContent = data.paused ? 'Resume' : 'Pause';
@@ -521,7 +521,7 @@ async function updateVariantUI(file){
       const btn = document.getElementById('pauseBtn');
       const paused = btn.textContent === 'Resume';
       try{
-        await fetch('/api/pipelineQueue/' + (paused ? 'resume' : 'pause'), { method: 'POST' });
+        await fetch('api/pipelineQueue/' + (paused ? 'resume' : 'pause'), { method: 'POST' });
         await loadQueueState();
       }catch(e){
         console.error('Failed to toggle queue state', e);
@@ -531,7 +531,7 @@ async function updateVariantUI(file){
     document.getElementById('stopAllBtn').addEventListener('click', async () => {
       if(!confirm('Stop all jobs?')) return;
       try{
-        await fetch('/api/pipelineQueue/stopAll', { method: 'POST' });
+        await fetch('api/pipelineQueue/stopAll', { method: 'POST' });
         await loadQueue();
       }catch(e){
         console.error('Failed to stop all jobs', e);
