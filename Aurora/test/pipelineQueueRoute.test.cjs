@@ -4,12 +4,12 @@ const assert = require('assert');
 
 async function runTests() {
   const port = process.env.AURORA_PORT || process.env.PORT || 3000;
-  const protocol = process.env.AURORA_PROTOCOL || 'http';
+  const protocol = 'https';
   const baseUrl = `${protocol}://localhost:${port}`;
   const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
   // Test GET /api/pipelineQueue
-  const opts = protocol === 'https' ? { httpsAgent } : {};
+  const opts = { httpsAgent };
   const getRes = await axios.get(`${baseUrl}/api/pipelineQueue`, opts).catch(err => err.response || err);
   assert.strictEqual(getRes.status, 200, `Expected 200, got ${getRes.status}`);
   assert.ok(Array.isArray(getRes.data), 'Response should be an array');
