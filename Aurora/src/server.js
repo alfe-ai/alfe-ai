@@ -2820,7 +2820,12 @@ app.post("/api/jobs/:id/stop", (req, res) => {
 // ---------------------------------------------------------------------------
 app.get("/api/pipelineQueue", (req, res) => {
   console.debug("[Server Debug] GET /api/pipelineQueue");
-  res.json(printifyQueue.list());
+  const queue = printifyQueue.list();
+  console.debug(
+    "[Server Debug] Current queue =>",
+    JSON.stringify(queue, null, 2)
+  );
+  res.json(queue);
 });
 
 app.post("/api/pipelineQueue", (req, res) => {
@@ -2830,6 +2835,10 @@ app.post("/api/pipelineQueue", (req, res) => {
     return res.status(400).json({ error: "Missing file or type" });
   }
   const job = printifyQueue.enqueue(file, type, dbId || null, variant || null);
+  console.debug(
+    "[Server Debug] Enqueued job =>",
+    JSON.stringify(job, null, 2)
+  );
   res.json({ jobId: job.id });
 });
 
@@ -2837,6 +2846,7 @@ app.delete("/api/pipelineQueue/:id", (req, res) => {
   console.debug("[Server Debug] DELETE /api/pipelineQueue/:id =>", req.params.id);
   const ok = printifyQueue.remove(req.params.id);
   if (!ok) return res.status(404).json({ error: "Job not found" });
+  console.debug("[Server Debug] Job removed. Queue =>", JSON.stringify(printifyQueue.list(), null, 2));
   res.json({ removed: true });
 });
 
@@ -2847,29 +2857,42 @@ app.delete("/api/pipelineQueue/db/:dbId", (req, res) => {
   );
   const ok = printifyQueue.removeByDbId(req.params.dbId);
   if (!ok) return res.status(404).json({ error: "Jobs not found" });
+  console.debug(
+    "[Server Debug] Jobs removed for DB =>",
+    req.params.dbId,
+    JSON.stringify(printifyQueue.list(), null, 2)
+  );
   res.json({ removed: true });
 });
 
 app.post("/api/pipelineQueue/stopAll", (req, res) => {
   console.debug("[Server Debug] POST /api/pipelineQueue/stopAll");
   printifyQueue.stopAll();
+  console.debug(
+    "[Server Debug] stopAll called. Queue =>",
+    JSON.stringify(printifyQueue.list(), null, 2)
+  );
   res.json({ stopped: true });
 });
 
 app.get("/api/pipelineQueue/state", (req, res) => {
   console.debug("[Server Debug] GET /api/pipelineQueue/state");
-  res.json({ paused: printifyQueue.isPaused() });
+  const paused = printifyQueue.isPaused();
+  console.debug("[Server Debug] Queue paused?", paused);
+  res.json({ paused });
 });
 
 app.post("/api/pipelineQueue/pause", (req, res) => {
   console.debug("[Server Debug] POST /api/pipelineQueue/pause");
   printifyQueue.pause();
+  console.debug("[Server Debug] Queue paused");
   res.json({ paused: true });
 });
 
 app.post("/api/pipelineQueue/resume", (req, res) => {
   console.debug("[Server Debug] POST /api/pipelineQueue/resume");
   printifyQueue.resume();
+  console.debug("[Server Debug] Queue resumed");
   res.json({ paused: false });
 });
 

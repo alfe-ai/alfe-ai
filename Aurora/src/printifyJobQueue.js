@@ -97,6 +97,7 @@ export default class PrintifyJobQueue {
       finishTime: null
     };
     this.jobs.push(job);
+    console.debug('[PrintifyJobQueue Debug] Enqueued job =>', job);
     this._saveJobs();
     this._processNext();
     return job;
@@ -129,6 +130,7 @@ export default class PrintifyJobQueue {
     if (this.current && this.current.id === id) {
       this.current = null;
     }
+    console.debug('[PrintifyJobQueue Debug] Removed job =>', job);
     this._saveJobs();
     this._processNext();
     return true;
@@ -146,6 +148,7 @@ export default class PrintifyJobQueue {
         if (this.current && this.current.id === job.id) {
           this.current = null;
         }
+        console.debug('[PrintifyJobQueue Debug] Removed job =>', job);
         removed = true;
       }
     }
@@ -162,6 +165,7 @@ export default class PrintifyJobQueue {
         this.jobManager.stopJob(job.jobId);
       }
     }
+    console.debug('[PrintifyJobQueue Debug] stopAll clearing', this.jobs.length, 'jobs');
     this.jobs = [];
     this.current = null;
     this._saveJobs();
@@ -171,6 +175,7 @@ export default class PrintifyJobQueue {
     if (this.current || this.paused) return;
     const job = this.jobs.find(j => j.status === 'queued');
     if (!job) return;
+    console.debug('[PrintifyJobQueue Debug] Starting job =>', job);
     this.current = job;
     job.status = 'running';
     job.startTime = Date.now();

@@ -136,6 +136,7 @@
   </table>
   <script src="./session.js"></script>
   <script>
+    console.debug('[Queue UI] script loaded');
     if (typeof window.CSS === 'undefined') window.CSS = {};
     if (typeof window.CSS.escape !== 'function') {
       window.CSS.escape = function(str) {
@@ -159,9 +160,11 @@
       return titleCache[file];
     }
     async function loadQueue(){
+      console.debug('[Queue UI] loading queue...');
       try{
         const res = await fetch('api/pipelineQueue');
         const queue = await res.json();
+        console.debug('[Queue UI] queue data =>', queue);
         const tbody = document.querySelector('#queueTable tbody');
         tbody.innerHTML = '';
         const seen = new Set();
@@ -271,6 +274,7 @@
     let imgLoading = false;
 
     async function loadImages(reset=false){
+      console.debug('[Queue UI] loadImages reset=' + reset);
       if(imgLoading) return;
       if(reset){
         imgOffset = 0;
@@ -286,6 +290,7 @@
       try{
         const res = await fetch('api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${imgOffset}&showHidden=0`);
         const files = await res.json();
+        console.debug('[Queue UI] loaded images =>', files);
         files.forEach(f => {
           const item = document.createElement('div');
           item.className = 'option';
@@ -364,6 +369,7 @@
     });
 
 async function updateVariantUI(file){
+  console.debug('[Queue UI] updateVariantUI for', file);
   const choiceDiv = document.getElementById('variantChoice');
   const normalRadio = document.getElementById('choiceQueueNormal');
   const nobgRadio = document.getElementById('choiceQueueNobg');
@@ -429,6 +435,7 @@ async function updateVariantUI(file){
       const variant = variantChoice ? variantChoice.value : null;
       const hideFlag = document.getElementById('hideWhenAdd').checked;
       if(!file) return;
+      console.debug('[Queue UI] enqueue clicked file=' + file + ' type=' + type + ' variant=' + variant);
       try{
         if(type === 'all'){
           const steps = ['upscale','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
@@ -445,6 +452,7 @@ async function updateVariantUI(file){
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file, type, dbId, variant })
           });
+          console.debug('[Queue UI] job enqueued');
         }
         if(hideFlag){
           try{
@@ -497,6 +505,7 @@ async function updateVariantUI(file){
     });
 
     async function removeJob(id){
+      console.debug('[Queue UI] removeJob', id);
       try{
         await fetch(`api/pipelineQueue/${id}`, { method: 'DELETE' });
         await loadQueue();
@@ -506,6 +515,7 @@ async function updateVariantUI(file){
     }
 
     async function removeJobsByDbId(dbId){
+      console.debug('[Queue UI] removeJobsByDbId', dbId);
       try{
         await fetch(`api/pipelineQueue/db/${encodeURIComponent(dbId)}`, { method: 'DELETE' });
         await loadQueue();
