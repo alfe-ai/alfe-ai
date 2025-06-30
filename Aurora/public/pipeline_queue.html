@@ -524,13 +524,11 @@
           btnOrig.textContent = 'All - Original';
           btnOrig.addEventListener('click', () => {
             queueAllVariants(f.name, id, ['normal']);
-            hideSidebar();
           });
           const btnNobg = document.createElement('button');
           btnNobg.textContent = 'All - No BG';
           btnNobg.addEventListener('click', () => {
             queueAllVariants(f.name, id, ['nobg']);
-            hideSidebar();
           });
           const btnContainer = document.createElement('div');
           btnContainer.appendChild(btnOrig);
