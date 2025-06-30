@@ -172,7 +172,8 @@ if (db.getSetting("show_session_id") === undefined) {
 const app = express();
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
-const jobManager = new JobManager();
+const jobHistoryPath = path.join(__dirname, "../jobsHistory.json");
+const jobManager = new JobManager({ historyPath: jobHistoryPath });
 
 // Printify configuration
 // Support both legacy PRINTIFY_TOKEN and the newer PRINTIFY_API_TOKEN env vars
@@ -2778,6 +2779,16 @@ app.post("/api/printify/updateProduct", async (req, res) => {
 
 app.get("/api/jobs", (req, res) => {
   res.json(jobManager.listJobs());
+});
+
+app.get("/api/jobHistory", (req, res) => {
+  res.json(jobManager.listHistory());
+});
+
+app.get("/api/jobHistory/:id/log", (req, res) => {
+  const rec = jobManager.getHistory(req.params.id);
+  if (!rec) return res.status(404).json({ error: "Job not found" });
+  res.type("text/plain").send(rec.log || "");
 });
 
 app.get("/api/jobs/:id/log", (req, res) => {
