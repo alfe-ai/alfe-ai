@@ -154,7 +154,10 @@
         });
       };
     }
-    const collapsedGroups = new Set();
+    const collapsedGroups = new Set(JSON.parse(localStorage.getItem('collapsedQueueGroups') || '[]'));
+    const saveCollapsed = () => {
+      localStorage.setItem('collapsedQueueGroups', JSON.stringify([...collapsedGroups]));
+    };
     const titleCache = {};
     async function getTitle(file){
       if(titleCache.hasOwnProperty(file)) return titleCache[file];
@@ -262,6 +265,7 @@
                 collapsedGroups.add(dbId);
                 toggle.textContent = '[+]';
               }
+              saveCollapsed();
               tbody.querySelectorAll(`tr[data-dbid="${dbId}"]`).forEach(r => {
                 if(r !== groupTr) r.style.display = collapsedGroups.has(dbId) ? 'none' : '';
               });
@@ -562,6 +566,8 @@ async function updateVariantUI(file){
       console.debug('[Queue UI] removeJobsByDbId', dbId);
       try{
         await fetch(`api/pipelineQueue/db/${encodeURIComponent(dbId)}`, { method: 'DELETE' });
+        collapsedGroups.delete(String(dbId));
+        saveCollapsed();
         await loadQueue();
       }catch(e){
         console.error('Failed to remove jobs', e);
