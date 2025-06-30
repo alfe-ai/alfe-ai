@@ -104,6 +104,7 @@
     <div id="imageSidebar" class="sidebar">
       <div id="thumbnailContainer"></div>
       <div id="sidebarLoading" class="loading-more" style="display:none;"><span class="loading-spinner"></span></div>
+      <button id="sidebarLoadMoreBtn" style="display:none;width:100%;margin-top:0.5rem;">Load More</button>
     </div>
     <div class="chat-panel" style="padding:1rem;">
 <!--  <h2>Printify Pipeline Queue</h2>-->
@@ -532,6 +533,13 @@
     let sidebarOffset = 0;
     let sidebarHasMore = true;
     let sidebarLoading = false;
+    const sidebarLoadMoreBtn = document.getElementById('sidebarLoadMoreBtn');
+
+    function updateSidebarLoadMore(){
+      if(!sidebarLoadMoreBtn) return;
+      sidebarLoadMoreBtn.style.display = sidebarHasMore ? 'block' : 'none';
+      sidebarLoadMoreBtn.disabled = sidebarLoading;
+    }
 
     async function loadSidebarImages(reset=false){
       console.debug('[Queue UI] loadSidebarImages reset=' + reset);
@@ -541,8 +549,12 @@
         sidebarHasMore = true;
         document.getElementById('thumbnailContainer').innerHTML = '';
       }
-      if(!sidebarHasMore) return;
+      if(!sidebarHasMore){
+        updateSidebarLoadMore();
+        return;
+      }
       sidebarLoading = true;
+      updateSidebarLoadMore();
       document.getElementById('sidebarLoading').style.display = 'block';
       try{
         const res = await fetch('api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${sidebarOffset}&showHidden=0`);
@@ -586,6 +598,7 @@
       }
       sidebarLoading = false;
       document.getElementById('sidebarLoading').style.display = 'none';
+      updateSidebarLoadMore();
     }
 
     async function hideImageUI(file, entryDiv){
@@ -940,6 +953,10 @@ async function updateVariantUI(file){
     updateLoadMoreBtn();
     loadImages(true);
     loadSidebarImages(true);
+    updateSidebarLoadMore();
+    if(sidebarLoadMoreBtn){
+      sidebarLoadMoreBtn.addEventListener('click', () => loadSidebarImages());
+    }
     document.getElementById('imageSidebar').addEventListener('scroll', () => {
       const sb = document.getElementById('imageSidebar');
       if(sb.scrollTop + sb.clientHeight >= sb.scrollHeight - 5){
