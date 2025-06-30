@@ -96,6 +96,7 @@ export default class JobManager {
       productUrl: null,
       log: "",
       ...(extra || {}),
+      extra: extra || {},
     };
     job.historyRecord = record;
     this.history.push(record);
@@ -140,17 +141,10 @@ export default class JobManager {
   }
 
   listHistory() {
-    return this.history.map((r) => ({
-      id: r.id,
-      file: r.file,
-      command: r.command,
-      status: r.status,
-      startTime: r.startTime,
-      finishTime: r.finishTime,
-      resultPath: r.resultPath,
-      productUrl: r.productUrl,
-      ...(r.extra || {}),
-    }));
+    return this.history.map((r) => {
+      const { args, cwd, log, extra, ...rest } = r;
+      return { ...rest, ...(extra || {}) };
+    });
   }
 
   getHistory(id) {
