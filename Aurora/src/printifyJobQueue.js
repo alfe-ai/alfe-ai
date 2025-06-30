@@ -7,7 +7,8 @@ export default class PrintifyJobQueue {
   constructor(jobManager, options = {}) {
     this.jobManager = jobManager;
     this.jobs = [];
-    this.current = null;
+    this.currentLocal = null;
+    this.currentPuppet = null;
     this.paused = false;
     this.uploadsDir = options.uploadsDir || '';
     this.upscaleScript = options.upscaleScript || '';
@@ -151,8 +152,11 @@ export default class PrintifyJobQueue {
       this.jobManager.stopJob(job.jobId);
     }
     this.jobs.splice(idx, 1);
-    if (this.current && this.current.id === id) {
-      this.current = null;
+    if (this.currentLocal && this.currentLocal.id === id) {
+      this.currentLocal = null;
+    }
+    if (this.currentPuppet && this.currentPuppet.id === id) {
+      this.currentPuppet = null;
     }
     console.debug('[PrintifyJobQueue Debug] Removed job =>', job);
     this._saveJobs();
@@ -169,8 +173,11 @@ export default class PrintifyJobQueue {
           this.jobManager.stopJob(job.jobId);
         }
         this.jobs.splice(i, 1);
-        if (this.current && this.current.id === job.id) {
-          this.current = null;
+        if (this.currentLocal && this.currentLocal.id === job.id) {
+          this.currentLocal = null;
+        }
+        if (this.currentPuppet && this.currentPuppet.id === job.id) {
+          this.currentPuppet = null;
         }
         console.debug('[PrintifyJobQueue Debug] Removed job =>', job);
         removed = true;
@@ -191,16 +198,38 @@ export default class PrintifyJobQueue {
     }
     console.debug('[PrintifyJobQueue Debug] stopAll clearing', this.jobs.length, 'jobs');
     this.jobs = [];
-    this.current = null;
+    this.currentLocal = null;
+    this.currentPuppet = null;
     this._saveJobs();
   }
 
   _processNext() {
-    if (this.current || this.paused) return;
-    const job = this.jobs.find(j => j.status === 'queued');
-    if (!job) return;
+    if (this.paused) return;
+
+    if (!this.currentLocal) {
+      const job = this.jobs.find(
+        (j) => j.status === 'queued' && !this._isProgramaticPuppetJob(j)
+      );
+      if (job) return this._startJob(job, 'local');
+    }
+
+    if (!this.currentPuppet) {
+      const job = this.jobs.find(
+        (j) => j.status === 'queued' && this._isProgramaticPuppetJob(j)
+      );
+      if (job) return this._startJob(job, 'puppet');
+    }
+
+    return;
+  }
+
+  _isProgramaticPuppetJob(job) {
+    return job.type === 'printifyFixMockups' || job.type === 'printifyFinalize';
+  }
+
+  _startJob(job, slot) {
     console.debug('[PrintifyJobQueue Debug] Starting job =>', job);
-    this.current = job;
+    if (slot === 'local') this.currentLocal = job; else this.currentPuppet = job;
     job.status = 'running';
     job.startTime = Date.now();
     job.finishTime = null;
@@ -285,7 +314,7 @@ export default class PrintifyJobQueue {
       }
     } else {
       job.status = 'error';
-      this.current = null;
+      if (slot === 'local') this.currentLocal = null; else this.currentPuppet = null;
       this._saveJobs();
       this._processNext();
       return;
@@ -293,7 +322,7 @@ export default class PrintifyJobQueue {
 
     if (!fs.existsSync(filePath) || !fs.existsSync(script)) {
       job.status = 'error';
-      this.current = null;
+      if (slot === 'local') this.currentLocal = null; else this.currentPuppet = null;
       this._saveJobs();
       this._processNext();
       return;
@@ -356,7 +385,7 @@ export default class PrintifyJobQueue {
         }
       } else {
         job.status = 'error';
-        this.current = null;
+        if (slot === 'local') this.currentLocal = null; else this.currentPuppet = null;
         this._saveJobs();
         this._processNext();
         return;
@@ -414,7 +443,7 @@ export default class PrintifyJobQueue {
         const status = statusMap[job.type] || job.type;
         this.db.setImageStatus(originalUrl, status);
       }
-      this.current = null;
+      if (slot === 'local') this.currentLocal = null; else this.currentPuppet = null;
       this._saveJobs();
       this._processNext();
     });
