@@ -3524,6 +3524,13 @@ function renderFileList(){
       });
     tdAction.appendChild(openBtn);
 
+    const cropBtn = document.createElement("button");
+    cropBtn.textContent = "Crop";
+    cropBtn.addEventListener("click", () => {
+      window.open(`/crop.html?file=${encodeURIComponent(f.name)}`, "_blank");
+    });
+    tdAction.appendChild(cropBtn);
+
     const dlBtn = document.createElement("button");
     dlBtn.className = "download-chat-btn table-download-btn";
     dlBtn.textContent = "⤓";
