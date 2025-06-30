@@ -539,9 +539,15 @@
             await queueAllVariants(f.name, id, ['nobg']);
             await hideImageUI(f.name, div);
           });
+          const btnHide = document.createElement('button');
+          btnHide.textContent = 'Hide';
+          btnHide.addEventListener('click', async () => {
+            await hideImageUI(f.name, div);
+          });
           const btnContainer = document.createElement('div');
           btnContainer.appendChild(btnOrig);
           btnContainer.appendChild(btnNobg);
+          btnContainer.appendChild(btnHide);
           div.appendChild(btnContainer);
           container.appendChild(div);
         });
