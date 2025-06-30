@@ -157,6 +157,7 @@
       };
     }
     const collapsedGroups = new Set(JSON.parse(localStorage.getItem('collapsedQueueGroups') || '[]'));
+    const seenDbIds = new Set();
     const saveCollapsed = () => {
       localStorage.setItem('collapsedQueueGroups', JSON.stringify([...collapsedGroups]));
     };
@@ -205,6 +206,12 @@
 
         for(const [dbId, jobs] of groupEntries){
           if(dbId){
+            const isNewGroup = !seenDbIds.has(dbId);
+            seenDbIds.add(dbId);
+            if(isNewGroup && !collapsedGroups.has(dbId)){
+              collapsedGroups.add(dbId);
+              saveCollapsed();
+            }
             const firstJob = jobs[0];
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
