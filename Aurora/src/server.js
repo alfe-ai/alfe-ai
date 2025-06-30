@@ -2951,6 +2951,19 @@ app.post("/api/pipelineQueue/retryFailed", (req, res) => {
   res.json({ retried: count });
 });
 
+app.post("/api/pipelineQueue/reorder", (req, res) => {
+  console.debug("[Server Debug] POST /api/pipelineQueue/reorder =>", req.body);
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  const ok = printifyQueue.reorder(ids);
+  console.debug(
+    "[Server Debug] reorder result =>",
+    ok,
+    JSON.stringify(printifyQueue.list(), null, 2)
+  );
+  if (!ok) return res.status(400).json({ error: "Invalid ids" });
+  res.json({ reordered: true });
+});
+
 app.get("/api/pipelineQueue/state", (req, res) => {
   console.debug("[Server Debug] GET /api/pipelineQueue/state");
   const paused = printifyQueue.isPaused();

@@ -47,6 +47,19 @@ async function runTests() {
     console.log('✓ Job appears in queue');
     console.log('Updated queue:\n', JSON.stringify(listRes.data, null, 2));
   }
+
+  if (process.argv.includes('--reorder')) {
+    const listRes = await axios
+      .get(`${baseUrl}/api/pipelineQueue`, opts)
+      .catch((err) => err.response || err);
+    assert.strictEqual(listRes.status, 200, `Expected 200, got ${listRes.status}`);
+    const ids = listRes.data.map((j) => j.id).reverse();
+    const reorderRes = await axios
+      .post(`${baseUrl}/api/pipelineQueue/reorder`, { ids }, opts)
+      .catch((err) => err.response || err);
+    assert.strictEqual(reorderRes.status, 200, `Expected 200, got ${reorderRes.status}`);
+    console.log('✓ POST /api/pipelineQueue/reorder');
+  }
 }
 
 runTests().catch(err => {
