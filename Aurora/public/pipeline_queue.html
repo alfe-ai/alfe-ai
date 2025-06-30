@@ -279,7 +279,8 @@
 
             const startTimes = jobs.map(j => j.startTime).filter(t => t);
             const earliestStart = startTimes.length ? Math.min(...startTimes) : null;
-            const finalizeJob = jobs.find(j => j.type === 'printifyFinalize');
+            const finalizeJobs = jobs.filter(j => j.type === 'printifyFinalize');
+            const finalizeJob = finalizeJobs[finalizeJobs.length - 1];
             const finishTime = finalizeJob && finalizeJob.finishTime ? finalizeJob.finishTime : null;
             const productUrl = (finalizeJob && finalizeJob.productUrl) || (jobs.find(j => j.productUrl) || {}).productUrl || '';
             let groupStatus = 'queued';

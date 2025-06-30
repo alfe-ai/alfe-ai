@@ -234,7 +234,8 @@ export default class PrintifyJobQueue {
     let count = 0;
     for (const [dbId, list] of groups.entries()) {
       if (dbId === null || dbId === undefined) continue;
-      const finalizeJob = list.find(j => j.type === 'printifyFinalize');
+      const finalizeJobs = list.filter(j => j.type === 'printifyFinalize');
+      const finalizeJob = finalizeJobs[finalizeJobs.length - 1];
       if (
         finalizeJob &&
         finalizeJob.status === 'finished' &&
