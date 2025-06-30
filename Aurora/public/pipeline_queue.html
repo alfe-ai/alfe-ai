@@ -258,13 +258,7 @@
           groups.get(key).push(job);
         }
 
-        for(const list of groups.values()){
-          list.sort((a,b) => parseTime(a) - parseTime(b));
-        }
-
-        const groupEntries = Array.from(groups.entries()).sort((a,b) => {
-          return parseTime(a[1][0]) - parseTime(b[1][0]);
-        });
+        const groupEntries = Array.from(groups.entries());
 
         for(const [dbId, jobs] of groupEntries){
           if(dbId){
