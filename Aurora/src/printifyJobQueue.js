@@ -149,6 +149,31 @@ export default class PrintifyJobQueue {
     });
   }
 
+  listPaginatedByDbId(limit = 20, offset = 0) {
+    const all = this.list();
+    const groups = new Map();
+    const parseTime = (j) => {
+      if (j.startTime) return j.startTime;
+      const n = parseInt(j.id, 36);
+      return Number.isNaN(n) ? 0 : n;
+    };
+    for (const job of all) {
+      const key = job.dbId ?? '';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(job);
+    }
+    for (const list of groups.values()) {
+      list.sort((a, b) => parseTime(a) - parseTime(b));
+    }
+    const entries = Array.from(groups.values()).sort(
+      (a, b) => parseTime(a[0]) - parseTime(b[0])
+    );
+    const start = offset > 0 ? offset : 0;
+    const end = limit > 0 ? start + limit : undefined;
+    const slice = entries.slice(start, end);
+    return slice.flat();
+  }
+
   remove(id) {
     const idx = this.jobs.findIndex(j => j.id === id);
     if (idx === -1) return false;
