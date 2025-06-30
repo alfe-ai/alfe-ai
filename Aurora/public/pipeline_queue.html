@@ -67,6 +67,10 @@
       color: cyan;
       font-weight: bold;
     }
+    .group-header td {
+      background-color: #222;
+      font-weight: bold;
+    }
     .db-group { cursor: pointer; }
     .db-group .toggle { margin-right: 0.25rem; }
   </style>
@@ -179,6 +183,12 @@
             const titlePart = title ? ` - ${title}` : '';
             groupTr.innerHTML = `<td colspan="11"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId}${titlePart}<img src="uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(job.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
+            const headerTr = document.createElement('tr');
+            headerTr.className = 'group-header';
+            headerTr.dataset.dbid = job.dbId;
+            headerTr.innerHTML = document.querySelector('#queueTable thead tr').innerHTML;
+            if(collapsed) headerTr.style.display = 'none';
+            tbody.appendChild(headerTr);
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
               await removeJobsByDbId(job.dbId);
