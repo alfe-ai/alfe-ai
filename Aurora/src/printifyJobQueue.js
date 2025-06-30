@@ -222,23 +222,23 @@ export default class PrintifyJobQueue {
   }
 
   removeFinished() {
-    const groups = new Map();
-    for (const job of this.jobs) {
-      if (!groups.has(job.dbId)) groups.set(job.dbId, []);
-      groups.get(job.dbId).push(job);
-    }
     let count = 0;
-    for (const [dbId, list] of groups.entries()) {
-      if (dbId === null || dbId === undefined) continue;
-      const finalizeJobs = list.filter(j => j.type === 'printifyFinalize');
-      const finalizeJob = finalizeJobs[finalizeJobs.length - 1];
-      if (
-        finalizeJob &&
-        finalizeJob.status === 'finished' &&
-        !list.some(j => j.status === 'queued' || j.status === 'running')
-      ) {
-        if (this.removeByDbId(dbId)) count++;
+    for (let i = this.jobs.length - 1; i >= 0; i--) {
+      const job = this.jobs[i];
+      if (job.status !== 'queued' && job.status !== 'running') {
+        this.jobs.splice(i, 1);
+        if (this.currentLocal && this.currentLocal.id === job.id) {
+          this.currentLocal = null;
+        }
+        if (this.currentPuppet && this.currentPuppet.id === job.id) {
+          this.currentPuppet = null;
+        }
+        count++;
       }
+    }
+    if (count > 0) {
+      this._saveJobs();
+      this._processNext();
     }
     return count;
   }
