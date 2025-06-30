@@ -221,7 +221,8 @@
             if(dbIdTh){
               dbIdTh.innerHTML = `<span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button>`;
             }
-            if(collapsed) headerTr.style.display = 'none';
+            // Always display the header row even when group is collapsed
+            // Only job rows should be hidden when collapsed
             tbody.appendChild(headerTr);
             headerTr.querySelector('.removeDbBtn')?.addEventListener('click', async ev => {
               ev.stopPropagation();
@@ -268,7 +269,7 @@
                 if(t) t.textContent = nowCollapsed ? '[+]' : '[-]';
               });
               saveCollapsed();
-              tbody.querySelectorAll(`tr[data-dbid="${dbId}"]`).forEach(r => {
+              tbody.querySelectorAll(`tr[data-dbid="${dbId}"]:not(.group-header)`).forEach(r => {
                 if(r !== groupTr) r.style.display = nowCollapsed ? 'none' : '';
               });
             };
