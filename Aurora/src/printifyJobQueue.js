@@ -213,6 +213,25 @@ export default class PrintifyJobQueue {
     this._saveJobs();
   }
 
+  retryFailed() {
+    let count = 0;
+    for (const job of this.jobs) {
+      if (job.status === 'failed' || job.status === 'error') {
+        job.status = 'queued';
+        job.jobId = null;
+        job.startTime = null;
+        job.finishTime = null;
+        job.resultPath = null;
+        count++;
+      }
+    }
+    if (count > 0) {
+      this._saveJobs();
+      this._processNext();
+    }
+    return count;
+  }
+
   _processNext() {
     if (this.paused) return;
 

@@ -2899,6 +2899,18 @@ app.post("/api/pipelineQueue/stopAll", (req, res) => {
   res.json({ stopped: true });
 });
 
+app.post("/api/pipelineQueue/retryFailed", (req, res) => {
+  console.debug("[Server Debug] POST /api/pipelineQueue/retryFailed");
+  const count = printifyQueue.retryFailed();
+  console.debug(
+    "[Server Debug] retryFailed called. Count =>",
+    count,
+    "Queue =>",
+    JSON.stringify(printifyQueue.list(), null, 2)
+  );
+  res.json({ retried: count });
+});
+
 app.get("/api/pipelineQueue/state", (req, res) => {
   console.debug("[Server Debug] GET /api/pipelineQueue/state");
   const paused = printifyQueue.isPaused();
