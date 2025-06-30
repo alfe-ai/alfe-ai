@@ -502,17 +502,19 @@
           img.src = 'uploads/' + encodeURIComponent(f.name);
           div.appendChild(img);
           const id = f.id ?? '';
-          const btnBoth = document.createElement('button');
-          btnBoth.textContent = 'All - Both';
-          btnBoth.addEventListener('click', () => queueAllVariants(f.name, id, ['normal','nobg']));
           const btnOrig = document.createElement('button');
           btnOrig.textContent = 'All - Original';
-          btnOrig.addEventListener('click', () => queueAllVariants(f.name, id, ['normal']));
+          btnOrig.addEventListener('click', () => {
+            queueAllVariants(f.name, id, ['normal']);
+            hideSidebar();
+          });
           const btnNobg = document.createElement('button');
           btnNobg.textContent = 'All - No BG';
-          btnNobg.addEventListener('click', () => queueAllVariants(f.name, id, ['nobg']));
+          btnNobg.addEventListener('click', () => {
+            queueAllVariants(f.name, id, ['nobg']);
+            hideSidebar();
+          });
           const btnContainer = document.createElement('div');
-          btnContainer.appendChild(btnBoth);
           btnContainer.appendChild(btnOrig);
           btnContainer.appendChild(btnNobg);
           div.appendChild(btnContainer);
@@ -521,6 +523,11 @@
       }catch(e){
         console.error('Failed to load sidebar images', e);
       }
+    }
+
+    function hideSidebar(){
+      const sb = document.getElementById('imageSidebar');
+      if(sb) sb.style.display = 'none';
     }
 
     function updatePreview(val){
