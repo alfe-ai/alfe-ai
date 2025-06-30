@@ -74,9 +74,30 @@
     .db-group { cursor: pointer; }
     .db-group .toggle { margin-right: 0.25rem; }
     .group-header .toggle { margin-right: 0.25rem; cursor: pointer; }
+    #thumbnailContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .thumb-entry img {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      max-height: 200px;
+      border: 1px solid #444;
+    }
+    .thumb-entry button {
+      margin-top: 0.25rem;
+      margin-right: 0.25rem;
+    }
   </style>
 </head>
-<body style="padding:1rem;">
+<body>
+  <div class="app">
+    <div id="imageSidebar" class="sidebar">
+      <div id="thumbnailContainer"></div>
+    </div>
+    <div class="chat-panel" style="padding:1rem;">
 <!--  <h2>Printify Pipeline Queue</h2>-->
 <h2>Design Production Queue</h2>
   <p>
@@ -454,6 +475,54 @@
       }
     });
 
+    async function queueAllVariants(file, dbId, variants){
+      const steps = ['upscale','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
+      for(const variant of variants){
+        for(const step of steps){
+          await fetch('api/pipelineQueue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file, type: step, dbId, variant })
+          });
+        }
+      }
+      await loadQueue();
+    }
+
+    async function loadSidebarImages(){
+      try{
+        const res = await fetch('api/upload/list?sessionId=' + encodeURIComponent(sessionId) + '&limit=100&offset=0&showHidden=0');
+        const files = await res.json();
+        const container = document.getElementById('thumbnailContainer');
+        container.innerHTML = '';
+        files.forEach(f => {
+          const div = document.createElement('div');
+          div.className = 'thumb-entry';
+          const img = document.createElement('img');
+          img.src = 'uploads/' + encodeURIComponent(f.name);
+          div.appendChild(img);
+          const id = f.id ?? '';
+          const btnBoth = document.createElement('button');
+          btnBoth.textContent = 'All - Both';
+          btnBoth.addEventListener('click', () => queueAllVariants(f.name, id, ['normal','nobg']));
+          const btnOrig = document.createElement('button');
+          btnOrig.textContent = 'All - Original';
+          btnOrig.addEventListener('click', () => queueAllVariants(f.name, id, ['normal']));
+          const btnNobg = document.createElement('button');
+          btnNobg.textContent = 'All - No BG';
+          btnNobg.addEventListener('click', () => queueAllVariants(f.name, id, ['nobg']));
+          const btnContainer = document.createElement('div');
+          btnContainer.appendChild(btnBoth);
+          btnContainer.appendChild(btnOrig);
+          btnContainer.appendChild(btnNobg);
+          div.appendChild(btnContainer);
+          container.appendChild(div);
+        });
+      }catch(e){
+        console.error('Failed to load sidebar images', e);
+      }
+    }
+
     function updatePreview(val){
       const img = document.getElementById('imagePreview');
       if(val){
@@ -707,9 +776,12 @@ async function updateVariantUI(file){
 
     loadQueue();
     loadImages(true);
+    loadSidebarImages();
     document.getElementById('jobType').dispatchEvent(new Event('change'));
     loadQueueState();
     setInterval(() => { loadQueue(); loadQueueState(); }, 5000);
   </script>
+    </div>
+  </div>
 </body>
 </html>
