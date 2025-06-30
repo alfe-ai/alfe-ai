@@ -29,6 +29,14 @@ export default class PrintifyJobQueue {
       if (Array.isArray(data.jobs)) {
         this.jobs = data.jobs.map(j => {
           if (j.status === 'running') j.status = 'queued';
+          let dbId = j.dbId || null;
+          if (dbId === null && this.db) {
+            try {
+              dbId = this.db.getImageIdForUrl(`/uploads/${j.file}`);
+            } catch (e) {
+              dbId = null;
+            }
+          }
           return {
             id: j.id,
             file: j.file,
@@ -37,7 +45,7 @@ export default class PrintifyJobQueue {
             jobId: j.jobId || null,
             resultPath: j.resultPath || null,
             productUrl: j.productUrl || null,
-            dbId: j.dbId || null,
+            dbId,
             variant: j.variant || null,
             startTime: j.startTime || null,
             finishTime: j.finishTime || null,
