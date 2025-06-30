@@ -172,35 +172,56 @@
         console.debug('[Queue UI] queue data =>', queue);
         const tbody = document.querySelector('#queueTable tbody');
         tbody.innerHTML = '';
-        const seen = new Set();
+
+        const parseTime = j => {
+          if(j.startTime) return j.startTime;
+          const n = parseInt(j.id, 36);
+          return Number.isNaN(n) ? 0 : n;
+        };
+
+        const groups = new Map();
         for(const job of queue){
-          if(job.dbId && !seen.has(job.dbId)){
-            seen.add(job.dbId);
+          const key = job.dbId || '';
+          if(!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(job);
+        }
+
+        for(const list of groups.values()){
+          list.sort((a,b) => parseTime(b) - parseTime(a));
+        }
+
+        const groupEntries = Array.from(groups.entries()).sort((a,b) => {
+          return parseTime(b[1][0]) - parseTime(a[1][0]);
+        });
+
+        for(const [dbId, jobs] of groupEntries){
+          if(dbId){
+            const firstJob = jobs[0];
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
-            groupTr.dataset.dbid = job.dbId;
-            const collapsed = collapsedGroups.has(job.dbId);
-            const title = await getTitle(job.file);
+            groupTr.dataset.dbid = dbId;
+            const collapsed = collapsedGroups.has(dbId);
+            const title = await getTitle(firstJob.file);
             const titlePart = title ? ` - ${title}` : '';
-            groupTr.innerHTML = `<td colspan="12"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId}${titlePart}<img src="uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(job.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.innerHTML = `<td colspan="12"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}${titlePart}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(firstJob.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             const headerTr = document.createElement('tr');
             headerTr.className = 'group-header';
-            headerTr.dataset.dbid = job.dbId;
+            headerTr.dataset.dbid = dbId;
             headerTr.innerHTML = document.querySelector('#queueTable thead tr').innerHTML;
             const dbIdTh = headerTr.querySelector('th:nth-child(2)');
             if(dbIdTh){
-              dbIdTh.innerHTML = `DB ID: ${job.dbId}<img src="uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove</button>`;
+              dbIdTh.innerHTML = `DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button>`;
             }
             if(collapsed) headerTr.style.display = 'none';
             tbody.appendChild(headerTr);
             headerTr.querySelector('.removeDbBtn')?.addEventListener('click', async ev => {
               ev.stopPropagation();
-              await removeJobsByDbId(job.dbId);
+              await removeJobsByDbId(dbId);
             });
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
-              await removeJobsByDbId(job.dbId);
+              await removeJobsByDbId(dbId);
             });
             groupTr.querySelector('.hideImageBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
@@ -228,22 +249,23 @@
             });
             groupTr.addEventListener('click', e => {
               if(e.target.classList.contains('removeDbBtn')) return;
-              const collapsedNow = collapsedGroups.has(job.dbId);
+              const collapsedNow = collapsedGroups.has(dbId);
               const toggle = groupTr.querySelector('.toggle');
               if(collapsedNow){
-                collapsedGroups.delete(job.dbId);
+                collapsedGroups.delete(dbId);
                 toggle.textContent = '[-]';
               }else{
-                collapsedGroups.add(job.dbId);
+                collapsedGroups.add(dbId);
                 toggle.textContent = '[+]';
               }
-              tbody.querySelectorAll(`tr[data-dbid="${job.dbId}"]`).forEach(r => {
-                if(r !== groupTr) r.style.display = collapsedGroups.has(job.dbId) ? 'none' : '';
+              tbody.querySelectorAll(`tr[data-dbid="${dbId}"]`).forEach(r => {
+                if(r !== groupTr) r.style.display = collapsedGroups.has(dbId) ? 'none' : '';
               });
             });
           }
 
-          const tr = document.createElement('tr');
+          for(const job of jobs){
+            const tr = document.createElement('tr');
           const jobLink = job.jobId ? `<a href="jobs.html?jobId=${job.jobId}" target="_blank">${job.jobId}</a>` : '';
           const dbLink = job.dbId
             ? `<a href="/Image.html?file=${encodeURIComponent(job.file)}" target="_blank">${job.dbId}</a>`
@@ -270,12 +292,13 @@
             <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
             <td><button data-id="${job.id}" class="removeBtn">Remove</button></td>
           `;
-          tr.dataset.dbid = job.dbId || '';
-          if(job.dbId && collapsedGroups.has(job.dbId)) tr.style.display = 'none';
-          tbody.appendChild(tr);
-          tr.querySelector('.removeBtn').addEventListener('click', async () => {
-            await removeJob(job.id);
-          });
+            tr.dataset.dbid = job.dbId || '';
+            if(job.dbId && collapsedGroups.has(job.dbId)) tr.style.display = 'none';
+            tbody.appendChild(tr);
+            tr.querySelector('.removeBtn').addEventListener('click', async () => {
+              await removeJob(job.id);
+            });
+          }
         }
       }catch(e){
         console.error('Failed to load queue', e);
