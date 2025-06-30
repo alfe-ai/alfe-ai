@@ -200,6 +200,27 @@ export default class PrintifyJobQueue {
     return removed;
   }
 
+  removeFinished() {
+    const groups = new Map();
+    for (const job of this.jobs) {
+      if (!groups.has(job.dbId)) groups.set(job.dbId, []);
+      groups.get(job.dbId).push(job);
+    }
+    let count = 0;
+    for (const [dbId, list] of groups.entries()) {
+      if (dbId === null || dbId === undefined) continue;
+      const finalizeJob = list.find(j => j.type === 'printifyFinalize');
+      if (
+        finalizeJob &&
+        finalizeJob.status === 'finished' &&
+        !list.some(j => j.status === 'queued' || j.status === 'running')
+      ) {
+        if (this.removeByDbId(dbId)) count++;
+      }
+    }
+    return count;
+  }
+
   stopAll() {
     for (const job of this.jobs) {
       if (job.status === 'running' && job.jobId) {

@@ -152,6 +152,7 @@
     <button id="hideSelectedBtn" style="margin-left:0.5rem;">Hide</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
     <button id="retryFailedBtn" style="margin-left:0.5rem;">Retry Failed</button>
+    <button id="removeFinishedBtn" style="margin-left:0.5rem;">Remove All Finished</button>
     <label style="margin-left:0.5rem;">
       <input type="checkbox" id="autoRetryCheckbox" /> Auto Retry Failed
     </label>
@@ -801,6 +802,16 @@ async function updateVariantUI(file){
         await loadQueue();
       }catch(e){
         console.error('Failed to retry failed jobs', e);
+      }
+    });
+
+    document.getElementById('removeFinishedBtn').addEventListener('click', async () => {
+      if(!confirm('Remove all finished jobs?')) return;
+      try{
+        await fetch('api/pipelineQueue/finished', { method: 'DELETE' });
+        await loadQueue();
+      }catch(e){
+        console.error('Failed to remove finished jobs', e);
       }
     });
 

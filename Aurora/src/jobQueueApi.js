@@ -37,6 +37,11 @@ export default class JobQueueApi {
     return true;
   }
 
+  async removeFinished() {
+    await this.axios.delete('/api/pipelineQueue/finished');
+    return true;
+  }
+
   async stopAll() {
     await this.axios.post('/api/pipelineQueue/stopAll');
     return true;
