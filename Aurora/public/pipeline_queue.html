@@ -188,8 +188,16 @@
             headerTr.className = 'group-header';
             headerTr.dataset.dbid = job.dbId;
             headerTr.innerHTML = document.querySelector('#queueTable thead tr').innerHTML;
+            const dbIdTh = headerTr.querySelector('th:nth-child(2)');
+            if(dbIdTh){
+              dbIdTh.innerHTML = `DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove DB</button>`;
+            }
             if(collapsed) headerTr.style.display = 'none';
             tbody.appendChild(headerTr);
+            headerTr.querySelector('.removeDbBtn')?.addEventListener('click', async ev => {
+              ev.stopPropagation();
+              await removeJobsByDbId(job.dbId);
+            });
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
               await removeJobsByDbId(job.dbId);
