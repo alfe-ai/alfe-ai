@@ -171,9 +171,6 @@
         for(const job of queue){
           if(job.dbId && !seen.has(job.dbId)){
             seen.add(job.dbId);
-            if(!collapsedGroups.has(job.dbId)){
-              collapsedGroups.add(job.dbId);
-            }
             const groupTr = document.createElement('tr');
             groupTr.className = 'db-group';
             groupTr.dataset.dbid = job.dbId;
