@@ -73,6 +73,7 @@
     }
     .db-group { cursor: pointer; }
     .db-group .toggle { margin-right: 0.25rem; }
+    .group-header .toggle { margin-right: 0.25rem; cursor: pointer; }
   </style>
 </head>
 <body style="padding:1rem;">
@@ -218,7 +219,7 @@
             headerTr.innerHTML = document.querySelector('#queueTable thead tr').innerHTML;
             const dbIdTh = headerTr.querySelector('th:nth-child(2)');
             if(dbIdTh){
-              dbIdTh.innerHTML = `DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button>`;
+              dbIdTh.innerHTML = `<span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button>`;
             }
             if(collapsed) headerTr.style.display = 'none';
             tbody.appendChild(headerTr);
@@ -254,21 +255,30 @@
                 console.error('Failed to hide image', err);
               }
             });
-            groupTr.addEventListener('click', e => {
-              if(e.target.classList.contains('removeDbBtn')) return;
-              const collapsedNow = collapsedGroups.has(dbId);
-              const toggle = groupTr.querySelector('.toggle');
-              if(collapsedNow){
+            const toggleGroup = () => {
+              const wasCollapsed = collapsedGroups.has(dbId);
+              if(wasCollapsed){
                 collapsedGroups.delete(dbId);
-                toggle.textContent = '[-]';
               }else{
                 collapsedGroups.add(dbId);
-                toggle.textContent = '[+]';
               }
+              const nowCollapsed = collapsedGroups.has(dbId);
+              [groupTr, headerTr].forEach(row => {
+                const t = row.querySelector('.toggle');
+                if(t) t.textContent = nowCollapsed ? '[+]' : '[-]';
+              });
               saveCollapsed();
               tbody.querySelectorAll(`tr[data-dbid="${dbId}"]`).forEach(r => {
-                if(r !== groupTr) r.style.display = collapsedGroups.has(dbId) ? 'none' : '';
+                if(r !== groupTr) r.style.display = nowCollapsed ? 'none' : '';
               });
+            };
+            groupTr.addEventListener('click', e => {
+              if(e.target.classList.contains('removeDbBtn') || e.target.classList.contains('hideImageBtn')) return;
+              toggleGroup();
+            });
+            headerTr.addEventListener('click', e => {
+              if(e.target.classList.contains('removeDbBtn')) return;
+              toggleGroup();
             });
           }
 
