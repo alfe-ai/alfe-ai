@@ -489,7 +489,16 @@ export default class PrintifyJobQueue {
               return url.split('/').pop().split('?')[0];
             }
           })();
-          args.push(productId, filePath);
+          let initialTitle = '';
+          if (this.db) {
+            try {
+              initialTitle =
+                this.db.getImageTitleForUrl(`/uploads/${job.file}`) || '';
+            } catch (e) {
+              initialTitle = '';
+            }
+          }
+          args.push(productId, filePath, initialTitle);
         }
       } else {
         job.status = 'error';

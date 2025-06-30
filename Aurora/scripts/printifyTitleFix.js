@@ -18,8 +18,9 @@ if (!shopId) {
 
 const productId = process.argv[2];
 const imagePathArg = process.argv[3];
+const initialTitle = process.argv[4] || '';
 if (!productId || !imagePathArg) {
-  console.error('Usage: printifyTitleFix.js <productId> <imagePath>');
+  console.error('Usage: printifyTitleFix.js <productId> <imagePath> [initialTitle]');
   process.exit(1);
 }
 
@@ -50,6 +51,9 @@ async function main() {
             {
               type: 'text',
               text:
+                (initialTitle
+                  ? `Current title: ${initialTitle}. `
+                  : '') +
                 "Generate an optimized eBay shirt listing title for this design. Use gender-neutral phrasing and do not mention 'Men's' or 'Women's'. Only return the title."
             },
             {

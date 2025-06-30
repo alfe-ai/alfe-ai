@@ -2667,10 +2667,11 @@ app.post("/api/printifyTitleFix", async (req, res) => {
     const filePath = path.isAbsolute(file)
       ? file
       : path.join(uploadsDir, file);
+    const initialTitle = db.getImageTitleForUrl(`/uploads/${file}`) || '';
 
     const job = jobManager.createJob(
       "node",
-      [scriptPath, productId, filePath],
+      [scriptPath, productId, filePath, initialTitle],
       {
         cwd: scriptCwd,
         file,
