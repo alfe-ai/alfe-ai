@@ -34,7 +34,7 @@ export default class JobManager {
     }
   }
 
-  createJob(command, args = [], { cwd, file } = {}) {
+  createJob(command, args = [], { cwd, file, extra } = {}) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const job = {
       id,
@@ -42,6 +42,7 @@ export default class JobManager {
       args,
       cwd,
       file,
+      ...(extra || {}),
       resultPath: null,
       productUrl: null,
       status: "running",
@@ -51,6 +52,7 @@ export default class JobManager {
       listeners: [],
       doneListeners: [],
     };
+    job.extra = extra || {};
 
     const child = child_process.spawn(command, args, { cwd });
     job.child = child;
@@ -93,6 +95,7 @@ export default class JobManager {
       resultPath: null,
       productUrl: null,
       log: "",
+      ...(extra || {}),
     };
     job.historyRecord = record;
     this.history.push(record);
@@ -132,6 +135,7 @@ export default class JobManager {
       finishTime: j.finishTime,
       resultPath: j.resultPath,
       productUrl: j.productUrl,
+      ...(j.extra || {}),
     }));
   }
 
@@ -145,6 +149,7 @@ export default class JobManager {
       finishTime: r.finishTime,
       resultPath: r.resultPath,
       productUrl: r.productUrl,
+      ...(r.extra || {}),
     }));
   }
 

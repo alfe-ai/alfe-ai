@@ -13,7 +13,23 @@
 </head>
 <body style="padding:1rem;">
   <h2>Jobs Log</h2>
-  <ul id="jobsList"></ul>
+  <table id="historyTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>DB ID</th>
+        <th>Type</th>
+        <th>Location</th>
+        <th>Variant</th>
+        <th>Start</th>
+        <th>Finish</th>
+        <th>Status</th>
+        <th>Result Path</th>
+        <th>Product URL</th>
+      </tr>
+    </thead>
+    <tbody id="jobsList"></tbody>
+  </table>
   <pre id="terminal" style="background:#000;color:#0f0;padding:0.5rem;margin-top:0.5rem;height:80vh;overflow:auto;font-family:monospace;resize:vertical;"></pre>
   <dialog id="printifyDialog" style="padding:1rem;"></dialog>
 <script>
@@ -50,18 +66,27 @@ function checkPrintifyStatus(msg){
 async function loadJobs() {
   const res = await fetch('/api/jobHistory');
   const jobs = await res.json();
-  const ul = document.getElementById('jobsList');
-  ul.innerHTML = '';
+  const tbody = document.getElementById('jobsList');
+  tbody.innerHTML = '';
   jobs.forEach(j => {
-    const li = document.createElement('li');
-    let text = `${j.file || j.command} - ${j.status}`;
-    if(j.resultPath){
-      text += ` -> ${j.resultPath}`;
-    }
-    li.textContent = text;
-    li.style.cursor = 'pointer';
-    li.addEventListener('click', () => openJob(j.id));
-    ul.appendChild(li);
+    const tr = document.createElement('tr');
+    const startStr = j.startTime ? new Date(j.startTime).toLocaleString() : '';
+    const finishStr = j.finishTime ? new Date(j.finishTime).toLocaleString() : '';
+    tr.innerHTML = `
+      <td>${j.id}</td>
+      <td>${j.dbId || ''}</td>
+      <td>${j.type || ''}</td>
+      <td>${j.location || ''}</td>
+      <td>${j.variant || ''}</td>
+      <td>${startStr}</td>
+      <td>${finishStr}</td>
+      <td>${j.status}</td>
+      <td>${j.resultPath || ''}</td>
+      <td>${j.productUrl ? `<a href="${j.productUrl}" target="_blank">${j.productUrl}</a>` : ''}</td>
+    `;
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => openJob(j.id));
+    tbody.appendChild(tr);
   });
 }
 let currentJobId = null;

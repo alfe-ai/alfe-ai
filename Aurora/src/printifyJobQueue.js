@@ -421,7 +421,13 @@ export default class PrintifyJobQueue {
     }
     console.log(`[PrintifyJobQueue] Running ${job.type} with script: ${script}`);
     console.debug('[PrintifyJobQueue Debug] args =>', args.join(' '));
-    const jmJob = this.jobManager.createJob(script, args, { cwd, file: job.file });
+    const location = slot === 'local' ? 'Local' : 'ProgramaticPuppet';
+    job.location = location;
+    const jmJob = this.jobManager.createJob(script, args, {
+      cwd,
+      file: job.file,
+      extra: { type: job.type, dbId: job.dbId, variant: job.variant, location },
+    });
     job.jobId = jmJob.id;
     job.startTime = jmJob.startTime;
     this.jobManager.addDoneListener(jmJob, () => {
