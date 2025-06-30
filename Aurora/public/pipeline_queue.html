@@ -226,10 +226,10 @@
             let groupStatus = 'queued';
             if(jobs.some(j => j.status === 'failed' || j.status === 'error')){
               groupStatus = 'failed';
-            }else if(finalizeJob && finalizeJob.status === 'finished'){
-              groupStatus = 'finished';
             }else if(jobs.some(j => j.status === 'running')){
               groupStatus = 'running';
+            }else if(finalizeJob && finalizeJob.status === 'finished' && !jobs.some(j => j.status === 'queued')){
+              groupStatus = 'finished';
             }
             const statusHtml = (() => {
               if(groupStatus === 'running') return 'Running <span class="loading-spinner"></span>';
