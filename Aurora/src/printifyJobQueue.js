@@ -225,12 +225,25 @@ export default class PrintifyJobQueue {
 
     if (!this.currentPuppet) {
       const job = this.jobs.find(
-        (j) => j.status === 'queued' && this._isProgramaticPuppetJob(j)
+        (j) =>
+          j.status === 'queued' &&
+          this._isProgramaticPuppetJob(j) &&
+          !this._hasPendingLocalJobsForDbId(j.dbId)
       );
       if (job) return this._startJob(job, 'puppet');
     }
 
     return;
+  }
+
+  _hasPendingLocalJobsForDbId(dbId) {
+    if (dbId === null || dbId === undefined) return false;
+    return this.jobs.some(
+      (j) =>
+        j.dbId === dbId &&
+        !this._isProgramaticPuppetJob(j) &&
+        (j.status === 'queued' || j.status === 'running')
+    );
   }
 
   _isProgramaticPuppetJob(job) {
