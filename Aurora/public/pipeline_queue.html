@@ -533,7 +533,7 @@ async function updateVariantUI(file){
       console.debug('[Queue UI] enqueue clicked file=' + file + ' type=' + type + ' variant=' + variant);
       try{
         if(type === 'all'){
-          const steps = ['upscale','printify','printifyFixMockups','printifyFinalize','printifyTitleFix'];
+          const steps = ['upscale','printify','printifyFixMockups','printifyTitleFix','printifyFinalize'];
           for(const step of steps){
             await fetch('api/pipelineQueue', {
               method: 'POST',
