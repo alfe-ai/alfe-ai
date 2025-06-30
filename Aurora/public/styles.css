@@ -54,7 +54,8 @@ body {
   padding: 1rem;
   background-color: #1e1e1e;
   color: #ddd;
-  overflow: hidden; /* Hide overflow here */
+  overflow-y: auto; /* Allow scrolling */
+  overflow-x: hidden;
   min-height: 0;    /* Allow flex children to scroll properly */
 }
 
