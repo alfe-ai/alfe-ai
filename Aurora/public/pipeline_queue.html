@@ -216,11 +216,46 @@
             const headerTr = document.createElement('tr');
             headerTr.className = 'group-header';
             headerTr.dataset.dbid = dbId;
-            headerTr.innerHTML = document.querySelector('#queueTable thead tr').innerHTML;
-            const dbIdTh = headerTr.querySelector('th:nth-child(2)');
-            if(dbIdTh){
-              dbIdTh.innerHTML = `<span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button>`;
+
+            const startTimes = jobs.map(j => j.startTime).filter(t => t);
+            const earliestStart = startTimes.length ? Math.min(...startTimes) : null;
+            const finalizeJob = jobs.find(j => j.type === 'printifyFinalize');
+            const finishTime = finalizeJob && finalizeJob.finishTime ? finalizeJob.finishTime : null;
+            const productUrl = (finalizeJob && finalizeJob.productUrl) || (jobs.find(j => j.productUrl) || {}).productUrl || '';
+            let groupStatus = 'queued';
+            if(jobs.some(j => j.status === 'failed' || j.status === 'error')){
+              groupStatus = 'failed';
+            }else if(finalizeJob && finalizeJob.status === 'finished'){
+              groupStatus = 'finished';
+            }else if(jobs.some(j => j.status === 'running')){
+              groupStatus = 'running';
             }
+            const statusHtml = (() => {
+              if(groupStatus === 'running') return 'Running <span class="loading-spinner"></span>';
+              if(groupStatus === 'finished') return '<span class="status-success">Finished</span>';
+              if(groupStatus === 'failed') return '<span class="status-failed">Failed</span>';
+              return groupStatus;
+            })();
+            const startStr = earliestStart ? new Date(earliestStart).toLocaleString() : '';
+            const finishStr = finishTime ? new Date(finishTime).toLocaleString() : '';
+
+            const productLink = productUrl ? `<a href="${productUrl}" target="_blank">${productUrl}</a>` : '';
+
+            headerTr.innerHTML = `
+              <td></td>
+              <td><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>${startStr}</td>
+              <td>${finishStr}</td>
+              <td>${statusHtml}</td>
+              <td></td>
+              <td></td>
+              <td>${productLink}</td>
+              <td></td>
+            `;
+
             // Always display the header row even when group is collapsed
             // Only job rows should be hidden when collapsed
             tbody.appendChild(headerTr);
