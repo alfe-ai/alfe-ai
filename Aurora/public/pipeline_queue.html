@@ -122,6 +122,7 @@
         <th>ID</th>
         <th>DB ID</th>
         <th>Type</th>
+        <th>Location</th>
         <th>Variant</th>
         <th>Start</th>
         <th>Finish</th>
@@ -177,7 +178,7 @@
             const collapsed = collapsedGroups.has(job.dbId);
             const title = await getTitle(job.file);
             const titlePart = title ? ` - ${title}` : '';
-            groupTr.innerHTML = `<td colspan="11"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId}${titlePart}<img src="uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(job.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.innerHTML = `<td colspan="12"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${job.dbId}${titlePart}<img src="uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(job.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
@@ -241,6 +242,7 @@
             <td>${job.id}</td>
             <td>${dbLink}</td>
             <td>${job.type}</td>
+            <td>${job.location}</td>
             <td>${job.variant || ''}</td>
             <td>${startStr}</td>
             <td>${finishStr}</td>
