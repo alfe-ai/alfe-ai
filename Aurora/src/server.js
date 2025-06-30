@@ -2834,7 +2834,12 @@ app.post("/api/pipelineQueue", (req, res) => {
   if (!file || !type) {
     return res.status(400).json({ error: "Missing file or type" });
   }
-  const job = printifyQueue.enqueue(file, type, dbId || null, variant || null);
+  let parsedDbId = null;
+  if (dbId !== undefined && dbId !== null && dbId !== "") {
+    const n = parseInt(dbId, 10);
+    if (!Number.isNaN(n)) parsedDbId = n;
+  }
+  const job = printifyQueue.enqueue(file, type, parsedDbId, variant || null);
   console.debug(
     "[Server Debug] Enqueued job =>",
     JSON.stringify(job, null, 2)
@@ -2855,11 +2860,16 @@ app.delete("/api/pipelineQueue/db/:dbId", (req, res) => {
     "[Server Debug] DELETE /api/pipelineQueue/db/:dbId =>",
     req.params.dbId
   );
-  const ok = printifyQueue.removeByDbId(req.params.dbId);
+  let parsedDbId = null;
+  if (req.params.dbId !== undefined && req.params.dbId !== null && req.params.dbId !== "") {
+    const n = parseInt(req.params.dbId, 10);
+    if (!Number.isNaN(n)) parsedDbId = n;
+  }
+  const ok = printifyQueue.removeByDbId(parsedDbId);
   if (!ok) return res.status(404).json({ error: "Jobs not found" });
   console.debug(
     "[Server Debug] Jobs removed for DB =>",
-    req.params.dbId,
+    parsedDbId,
     JSON.stringify(printifyQueue.list(), null, 2)
   );
   res.json({ removed: true });

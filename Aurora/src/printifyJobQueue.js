@@ -92,6 +92,11 @@ export default class PrintifyJobQueue {
 
   enqueue(file, type, dbId = null, variant = null) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    let parsedDbId = null;
+    if (dbId !== null && dbId !== undefined && dbId !== '') {
+      const n = Number(dbId);
+      if (!Number.isNaN(n)) parsedDbId = n;
+    }
     const job = {
       id,
       file,
@@ -100,7 +105,7 @@ export default class PrintifyJobQueue {
       jobId: null,
       resultPath: null,
       productUrl: null,
-      dbId,
+      dbId: parsedDbId,
       variant,
       startTime: null,
       finishTime: null
@@ -165,10 +170,15 @@ export default class PrintifyJobQueue {
   }
 
   removeByDbId(dbId) {
+    let target = null;
+    if (dbId !== null && dbId !== undefined && dbId !== '') {
+      const n = Number(dbId);
+      if (!Number.isNaN(n)) target = n;
+    }
     let removed = false;
     for (let i = this.jobs.length - 1; i >= 0; i--) {
       const job = this.jobs[i];
-      if (job.dbId === dbId) {
+      if (job.dbId === target) {
         if (job.status === 'running' && job.jobId) {
           this.jobManager.stopJob(job.jobId);
         }
