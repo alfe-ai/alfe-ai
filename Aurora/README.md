@@ -54,3 +54,21 @@ so the specified user can access the key and certificate without root.
    - Create new secret key and paste into `.env`
 
 The script prints matching open issues and the current queue size.
+
+### Job Queue Node API
+A small helper class is provided for interacting with the printify pipeline queue from other Node.js processes. This allows running another Aurora server instance on a different machine and enqueueing jobs remotely.
+
+```javascript
+import JobQueueApi from './src/jobQueueApi.js';
+
+const api = new JobQueueApi({ baseURL: 'http://remote-host:3000' });
+
+// Add a job
+await api.enqueue('image.png', 'upscale');
+
+// Check current queue
+const queue = await api.list();
+console.log(queue);
+```
+
+All queue endpoints exposed by `server.js` are available through this API: `enqueue`, `remove`, `removeByDbId`, `stopAll`, `pause`, `resume`, and `state`.
