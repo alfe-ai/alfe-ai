@@ -116,6 +116,9 @@ import { fileURLToPath } from "url";
 import OpenAI from "openai";
 import { encoding_for_model } from "tiktoken";
 import axios from "axios";
+
+// __dirname replacement for ES modules
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import os from "os";
 import child_process from "child_process";
 import JobManager from "./jobManager.js";
@@ -611,7 +614,6 @@ if (whitelistIp) {
 }
 
 // Determine uploads directory
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "../uploads");
 try {
   fs.mkdirSync(uploadsDir, { recursive: true });
