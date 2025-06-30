@@ -71,4 +71,4 @@ const queue = await api.list();
 console.log(queue);
 ```
 
-All queue endpoints exposed by `server.js` are available through this API: `enqueue`, `remove`, `removeByDbId`, `stopAll`, `pause`, `resume`, and `state`.
+All queue endpoints exposed by `server.js` are available through this API: `enqueue`, `remove`, `removeByDbId`, `removeFinished`, `stopAll`, `pause`, `resume`, and `state`.
