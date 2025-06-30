@@ -220,7 +220,7 @@ export default class PrintifyJobQueue {
       const job = this.jobs.find(
         (j) => j.status === 'queued' && !this._isProgramaticPuppetJob(j)
       );
-      if (job) return this._startJob(job, 'local');
+      if (job) this._startJob(job, 'local');
     }
 
     if (!this.currentPuppet) {
@@ -230,7 +230,7 @@ export default class PrintifyJobQueue {
           this._isProgramaticPuppetJob(j) &&
           !this._hasPendingLocalJobsForDbId(j.dbId)
       );
-      if (job) return this._startJob(job, 'puppet');
+      if (job) this._startJob(job, 'puppet');
     }
 
     return;
