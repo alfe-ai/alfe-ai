@@ -437,8 +437,11 @@ export default class PrintifyJobQueue {
         }
       } else if (job.type === 'printifyTitleFix') {
         const title = extractUpdatedTitle(jmJob.log);
-        if (title && this.db) {
-          this.db.setImageTitle(originalUrl, title);
+        if (title) {
+          job.resultPath = title;
+          if (this.db) {
+            this.db.setImageTitle(originalUrl, title);
+          }
         }
       }
       if (this.db) {
