@@ -208,18 +208,30 @@
         console.error('Failed to prefetch titles', e);
       }
     }
+
+    let queueOffset = 0;
+    let queueHasMore = true;
+    let queueLoading = false;
     function getTitle(file){
       return titleCache[file] || '';
     }
-    async function loadQueue(){
-      console.debug('[Queue UI] loading queue...');
+    async function loadQueue(reset=false){
+      console.debug('[Queue UI] loading queue... reset=' + reset);
+      if(queueLoading) return;
+      if(reset){
+        queueOffset = 0;
+        queueHasMore = true;
+        seenDbIds.clear();
+        document.querySelector('#queueTable tbody').innerHTML = '';
+      }
+      if(!queueHasMore) return;
+      queueLoading = true;
       await prefetchTitles();
       try{
-        const res = await fetch('api/pipelineQueue');
+        const res = await fetch(`api/pipelineQueue?limit=20&offset=${queueOffset}`);
         const queue = await res.json();
         console.debug('[Queue UI] queue data =>', queue);
         const tbody = document.querySelector('#queueTable tbody');
-        tbody.innerHTML = '';
 
         const parseTime = j => {
           if(j.startTime) return j.startTime;
@@ -403,10 +415,13 @@
               await removeJob(job.id);
             });
           }
+          queueOffset++;
         }
+        if(groupEntries.length < 20) queueHasMore = false;
       }catch(e){
         console.error('Failed to load queue', e);
       }
+      queueLoading = false;
     }
     const dropdown = document.getElementById('imageSelect');
     const selectedDiv = dropdown.querySelector('.selected');
@@ -503,7 +518,7 @@
           });
         }
       }
-      await loadQueue();
+      await loadQueue(true);
     }
 
     let sidebarOffset = 0;
@@ -720,7 +735,7 @@ async function updateVariantUI(file){
             console.error('Failed to hide image', err);
           }
         }
-        await loadQueue();
+        await loadQueue(true);
       }catch(e){
         console.error('Failed to enqueue job', e);
       }
@@ -753,7 +768,7 @@ async function updateVariantUI(file){
       console.debug('[Queue UI] removeJob', id);
       try{
         await fetch(`api/pipelineQueue/${id}`, { method: 'DELETE' });
-        await loadQueue();
+        await loadQueue(true);
       }catch(e){
         console.error('Failed to remove job', e);
       }
@@ -765,7 +780,7 @@ async function updateVariantUI(file){
         await fetch(`api/pipelineQueue/db/${encodeURIComponent(dbId)}`, { method: 'DELETE' });
         collapsedGroups.delete(String(dbId));
         saveCollapsed();
-        await loadQueue();
+        await loadQueue(true);
       }catch(e){
         console.error('Failed to remove jobs', e);
       }
@@ -800,7 +815,7 @@ async function updateVariantUI(file){
       if(!confirm('Stop all jobs?')) return;
       try{
         await fetch('api/pipelineQueue/stopAll', { method: 'POST' });
-        await loadQueue();
+        await loadQueue(true);
       }catch(e){
         console.error('Failed to stop all jobs', e);
       }
@@ -809,7 +824,7 @@ async function updateVariantUI(file){
     document.getElementById('retryFailedBtn').addEventListener('click', async () => {
       try{
         await fetch('api/pipelineQueue/retryFailed', { method: 'POST' });
-        await loadQueue();
+        await loadQueue(true);
       }catch(e){
         console.error('Failed to retry failed jobs', e);
       }
@@ -819,7 +834,7 @@ async function updateVariantUI(file){
       if(!confirm('Remove all finished jobs?')) return;
       try{
         await fetch('api/pipelineQueue/finished', { method: 'DELETE' });
-        await loadQueue();
+        await loadQueue(true);
       }catch(e){
         console.error('Failed to remove finished jobs', e);
       }
@@ -842,7 +857,7 @@ async function updateVariantUI(file){
       if(retryCountdown <= 0){
         retryCountdown = RETRY_INTERVAL;
         fetch('api/pipelineQueue/retryFailed', { method: 'POST' })
-          .then(() => loadQueue())
+          .then(() => loadQueue(true))
           .catch(e => console.error('Failed to auto retry jobs', e));
       } else {
         retryCountdown--;
@@ -909,7 +924,7 @@ async function updateVariantUI(file){
     setInterval(updateRetryCountdown, 1000);
     updateRetryCountdown();
 
-    loadQueue();
+    loadQueue(true);
     loadImages(true);
     loadSidebarImages(true);
     document.getElementById('imageSidebar').addEventListener('scroll', () => {
@@ -918,9 +933,14 @@ async function updateVariantUI(file){
         loadSidebarImages();
       }
     });
+    window.addEventListener('scroll', () => {
+      if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 5){
+        loadQueue();
+      }
+    });
     document.getElementById('jobType').dispatchEvent(new Event('change'));
     loadQueueState();
-    setInterval(() => { loadQueue(); loadQueueState(); }, 5000);
+    setInterval(() => { if(queueOffset === 0) loadQueue(true); loadQueueState(); }, 5000);
   </script>
     </div>
   </div>

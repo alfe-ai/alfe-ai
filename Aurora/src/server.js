@@ -2861,8 +2861,12 @@ app.post("/api/jobs/:id/stop", (req, res) => {
 // Printify pipeline job queue endpoints
 // ---------------------------------------------------------------------------
 app.get("/api/pipelineQueue", (req, res) => {
-  console.debug("[Server Debug] GET /api/pipelineQueue");
-  const queue = printifyQueue.list();
+  console.debug("[Server Debug] GET /api/pipelineQueue", req.query);
+  const limit = parseInt(req.query.limit) || 0;
+  const offset = parseInt(req.query.offset) || 0;
+  const queue = limit || offset
+    ? printifyQueue.listPaginatedByDbId(limit, offset)
+    : printifyQueue.list();
   console.debug(
     "[Server Debug] Current queue =>",
     JSON.stringify(queue, null, 2)
