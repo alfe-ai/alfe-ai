@@ -190,7 +190,7 @@
             headerTr.innerHTML = document.querySelector('#queueTable thead tr').innerHTML;
             const dbIdTh = headerTr.querySelector('th:nth-child(2)');
             if(dbIdTh){
-              dbIdTh.innerHTML = `DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove DB</button>`;
+              dbIdTh.innerHTML = `DB ID: ${job.dbId}<img src="uploads/${encodeURIComponent(job.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${job.dbId}" style="margin-left:0.5rem;">Remove</button>`;
             }
             if(collapsed) headerTr.style.display = 'none';
             tbody.appendChild(headerTr);
