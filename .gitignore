@@ -7,3 +7,4 @@ TaskQueue/.env
 printifyQueue.json
  
 mosaic/
+jobsHistory.json
