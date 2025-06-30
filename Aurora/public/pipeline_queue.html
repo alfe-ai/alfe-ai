@@ -122,6 +122,7 @@
     <button id="enqueueBtn">Add to Queue</button>
     <button id="hideSelectedBtn" style="margin-left:0.5rem;">Hide</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
+    <button id="retryFailedBtn" style="margin-left:0.5rem;">Retry Failed</button>
     <span id="queueState" style="margin-left:0.5rem;">Running</span>
     <button id="pauseBtn" style="margin-left:0.5rem;">Pause</button>
   </div>
@@ -649,6 +650,15 @@ async function updateVariantUI(file){
         await loadQueue();
       }catch(e){
         console.error('Failed to stop all jobs', e);
+      }
+    });
+
+    document.getElementById('retryFailedBtn').addEventListener('click', async () => {
+      try{
+        await fetch('api/pipelineQueue/retryFailed', { method: 'POST' });
+        await loadQueue();
+      }catch(e){
+        console.error('Failed to retry failed jobs', e);
       }
     });
 
