@@ -402,7 +402,7 @@
             optionsDiv.style.display = 'none';
             updatePreview(f.name);
             const type = document.getElementById('jobType').value;
-            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyTitleFix' || type === 'printifyFixMockups' || type === 'printifyFinalize' || type === 'all'){
+            if(type === 'printify' || type === 'printifyPrice' || type === 'printifyFixMockups' || type === 'printifyTitleFix' || type === 'printifyFinalize' || type === 'all'){
               updateVariantUI(f.name);
             }
           });
@@ -533,7 +533,7 @@ async function updateVariantUI(file){
       console.debug('[Queue UI] enqueue clicked file=' + file + ' type=' + type + ' variant=' + variant);
       try{
         if(type === 'all'){
-          const steps = ['upscale','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
+          const steps = ['upscale','printify','printifyFixMockups','printifyTitleFix','printifyFinalize'];
           for(const step of steps){
             await fetch('api/pipelineQueue', {
               method: 'POST',
