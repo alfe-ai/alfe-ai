@@ -232,6 +232,29 @@ export default class PrintifyJobQueue {
     return count;
   }
 
+  reorder(idList) {
+    if (!Array.isArray(idList)) return false;
+    const idSet = new Set();
+    const newJobs = [];
+    for (const id of idList) {
+      const idx = this.jobs.findIndex((j) => j.id === id);
+      if (idx !== -1) {
+        newJobs.push(this.jobs[idx]);
+        idSet.add(id);
+      }
+    }
+    for (const job of this.jobs) {
+      if (!idSet.has(job.id)) newJobs.push(job);
+    }
+    if (newJobs.length === this.jobs.length) {
+      this.jobs = newJobs;
+      this._saveJobs();
+      this._processNext();
+      return true;
+    }
+    return false;
+  }
+
   _processNext() {
     if (this.paused) return;
 

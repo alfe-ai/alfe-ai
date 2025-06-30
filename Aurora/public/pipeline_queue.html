@@ -246,9 +246,11 @@
             const titlePart = title ? ` - ${title}` : '';
             groupTr.innerHTML = `<td colspan="12"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}${titlePart}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(firstJob.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
+            groupTr.draggable = true;
             const headerTr = document.createElement('tr');
             headerTr.className = 'group-header';
             headerTr.dataset.dbid = dbId;
+            headerTr.draggable = true;
 
             const startTimes = jobs.map(j => j.startTime).filter(t => t);
             const earliestStart = startTimes.length ? Math.min(...startTimes) : null;
@@ -380,6 +382,8 @@
             <td><button data-id="${job.id}" class="removeBtn">Remove</button></td>
           `;
             tr.dataset.dbid = job.dbId || '';
+            tr.dataset.id = job.id;
+            tr.draggable = true;
             if(job.dbId && collapsedGroups.has(job.dbId)) tr.style.display = 'none';
             tbody.appendChild(tr);
             tr.querySelector('.removeBtn').addEventListener('click', async () => {
@@ -770,6 +774,58 @@ async function updateVariantUI(file){
       retryCountdown = RETRY_INTERVAL;
       updateRetryCountdown();
     });
+
+    const tbodyEl = document.querySelector('#queueTable tbody');
+    let dragRow = null;
+    tbodyEl.addEventListener('dragstart', ev => {
+      const row = ev.target.closest('tr');
+      if(row){
+        dragRow = row;
+        ev.dataTransfer.effectAllowed = 'move';
+      }
+    });
+    tbodyEl.addEventListener('dragover', ev => {
+      if(dragRow) ev.preventDefault();
+    });
+    tbodyEl.addEventListener('drop', ev => {
+      ev.preventDefault();
+      const target = ev.target.closest('tr');
+      if(!dragRow || !target || dragRow === target){ dragRow = null; return; }
+      if(dragRow.classList.contains('db-group') || dragRow.classList.contains('group-header')){
+        const dbId = dragRow.dataset.dbid;
+        const rows = Array.from(tbodyEl.querySelectorAll(`tr[data-dbid="${CSS.escape(dbId)}"]`));
+        const frag = document.createDocumentFragment();
+        rows.forEach(r => frag.appendChild(r));
+        let insertBefore = target;
+        if(!target.classList.contains('db-group') && !target.classList.contains('group-header')){
+          insertBefore = tbodyEl.querySelector(`tr.db-group[data-dbid="${CSS.escape(target.dataset.dbid)}"]`) || target;
+        }
+        tbodyEl.insertBefore(frag, insertBefore);
+      } else {
+        if(target.classList.contains('db-group') || target.classList.contains('group-header')){ dragRow = null; return; }
+        tbodyEl.insertBefore(dragRow, target);
+      }
+      dragRow = null;
+      saveNewOrder();
+    });
+    tbodyEl.addEventListener('dragend', () => { dragRow = null; });
+
+    async function saveNewOrder(){
+      const ids = [];
+      document.querySelectorAll('#queueTable tbody tr').forEach(tr => {
+        if(tr.dataset.id) ids.push(tr.dataset.id);
+      });
+      if(ids.length === 0) return;
+      try{
+        await fetch('api/pipelineQueue/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids })
+        });
+      }catch(e){
+        console.error('Failed to reorder queue', e);
+      }
+    }
 
     setInterval(updateRetryCountdown, 1000);
     updateRetryCountdown();
