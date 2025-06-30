@@ -187,11 +187,11 @@
         }
 
         for(const list of groups.values()){
-          list.sort((a,b) => parseTime(b) - parseTime(a));
+          list.sort((a,b) => parseTime(a) - parseTime(b));
         }
 
         const groupEntries = Array.from(groups.entries()).sort((a,b) => {
-          return parseTime(b[1][0]) - parseTime(a[1][0]);
+          return parseTime(a[1][0]) - parseTime(b[1][0]);
         });
 
         for(const [dbId, jobs] of groupEntries){
