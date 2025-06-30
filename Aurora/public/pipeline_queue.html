@@ -96,6 +96,7 @@
   <div class="app">
     <div id="imageSidebar" class="sidebar">
       <div id="thumbnailContainer"></div>
+      <div id="sidebarLoading" class="loading-more" style="display:none;"><span class="loading-spinner"></span></div>
     </div>
     <div class="chat-panel" style="padding:1rem;">
 <!--  <h2>Printify Pipeline Queue</h2>-->
@@ -187,20 +188,24 @@
       localStorage.setItem('collapsedQueueGroups', JSON.stringify([...collapsedGroups]));
     };
     const titleCache = {};
-    async function getTitle(file){
-      if(titleCache.hasOwnProperty(file)) return titleCache[file];
+    let titlesLoaded = false;
+    async function prefetchTitles(){
+      if(titlesLoaded) return;
       try{
-        const r = await fetch('api/upload/title?name=' + encodeURIComponent(file));
-        const d = await r.json();
-        titleCache[file] = d.title || '';
+        const r = await fetch('api/upload/list?sessionId=' + encodeURIComponent(sessionId) + '&showHidden=1&limit=0&offset=0');
+        const list = await r.json();
+        list.forEach(f => { titleCache[f.name] = f.title || ''; });
+        titlesLoaded = true;
       }catch(e){
-        console.error('Failed to fetch title', e);
-        titleCache[file] = '';
+        console.error('Failed to prefetch titles', e);
       }
-      return titleCache[file];
+    }
+    function getTitle(file){
+      return titleCache[file] || '';
     }
     async function loadQueue(){
       console.debug('[Queue UI] loading queue...');
+      await prefetchTitles();
       try{
         const res = await fetch('api/pipelineQueue');
         const queue = await res.json();
@@ -242,7 +247,7 @@
             groupTr.className = 'db-group';
             groupTr.dataset.dbid = dbId;
             const collapsed = collapsedGroups.has(dbId);
-            const title = await getTitle(firstJob.file);
+            const title = getTitle(firstJob.file);
             const titlePart = title ? ` - ${title}` : '';
             groupTr.innerHTML = `<td colspan="12"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}${titlePart}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(firstJob.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
@@ -489,12 +494,25 @@
       await loadQueue();
     }
 
-    async function loadSidebarImages(){
+    let sidebarOffset = 0;
+    let sidebarHasMore = true;
+    let sidebarLoading = false;
+
+    async function loadSidebarImages(reset=false){
+      console.debug('[Queue UI] loadSidebarImages reset=' + reset);
+      if(sidebarLoading) return;
+      if(reset){
+        sidebarOffset = 0;
+        sidebarHasMore = true;
+        document.getElementById('thumbnailContainer').innerHTML = '';
+      }
+      if(!sidebarHasMore) return;
+      sidebarLoading = true;
+      document.getElementById('sidebarLoading').style.display = 'block';
       try{
-        const res = await fetch('api/upload/list?sessionId=' + encodeURIComponent(sessionId) + '&limit=100&offset=0&showHidden=0');
+        const res = await fetch('api/upload/list?sessionId=' + encodeURIComponent(sessionId) + `&limit=20&offset=${sidebarOffset}&showHidden=0`);
         const files = await res.json();
         const container = document.getElementById('thumbnailContainer');
-        container.innerHTML = '';
         files.forEach(f => {
           const div = document.createElement('div');
           div.className = 'thumb-entry';
@@ -520,9 +538,13 @@
           div.appendChild(btnContainer);
           container.appendChild(div);
         });
+        sidebarOffset += files.length;
+        if(files.length < 20) sidebarHasMore = false;
       }catch(e){
         console.error('Failed to load sidebar images', e);
       }
+      sidebarLoading = false;
+      document.getElementById('sidebarLoading').style.display = 'none';
     }
 
     function hideSidebar(){
@@ -783,7 +805,13 @@ async function updateVariantUI(file){
 
     loadQueue();
     loadImages(true);
-    loadSidebarImages();
+    loadSidebarImages(true);
+    document.getElementById('imageSidebar').addEventListener('scroll', () => {
+      const sb = document.getElementById('imageSidebar');
+      if(sb.scrollTop + sb.clientHeight >= sb.scrollHeight - 5){
+        loadSidebarImages();
+      }
+    });
     document.getElementById('jobType').dispatchEvent(new Event('change'));
     loadQueueState();
     setInterval(() => { loadQueue(); loadQueueState(); }, 5000);
