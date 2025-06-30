@@ -112,19 +112,30 @@ export default class PrintifyJobQueue {
   }
 
   list() {
-    return this.jobs.map(j => ({
-      id: j.id,
-      file: j.file,
-      type: j.type,
-      status: j.status,
-      jobId: j.jobId,
-      resultPath: j.resultPath || null,
-      productUrl: j.productUrl || null,
-      dbId: j.dbId || null,
-      variant: j.variant || null,
-      startTime: j.startTime || null,
-      finishTime: j.finishTime || null
-    }));
+    return this.jobs.map(j => {
+      let dbId = j.dbId || null;
+      if (dbId === null && this.db) {
+        try {
+          dbId = this.db.getImageIdForUrl(`/uploads/${j.file}`);
+          if (dbId !== null && dbId !== undefined) j.dbId = dbId;
+        } catch (e) {
+          dbId = null;
+        }
+      }
+      return {
+        id: j.id,
+        file: j.file,
+        type: j.type,
+        status: j.status,
+        jobId: j.jobId,
+        resultPath: j.resultPath || null,
+        productUrl: j.productUrl || null,
+        dbId,
+        variant: j.variant || null,
+        startTime: j.startTime || null,
+        finishTime: j.finishTime || null
+      };
+    });
   }
 
   remove(id) {
