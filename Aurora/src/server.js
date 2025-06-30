@@ -3015,6 +3015,8 @@ app.get("/api/upscale/result", (req, res) => {
 app.post("/api/image/generate", async (req, res) => {
   try {
     const { prompt, n, size, model, provider, tabId, sessionId } = req.body || {};
+    const extraInstruction = " Do not include color palette sample swatches anywhere on the image.";
+    const finalPrompt = (prompt || "").trim() + extraInstruction;
     const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     console.debug(
       "[Server Debug] /api/image/generate =>",
@@ -3071,7 +3073,7 @@ app.post("/api/image/generate", async (req, res) => {
       }
       const [w, h] = imgSize.split("x").map(v => parseInt(v, 10));
       const sdEndpoint = sdBase.replace(/\/$/, "") + "/sdapi/v1/txt2img";
-      const payload = { prompt, width: w, height: h, steps: 20, batch_size: countParsed };
+      const payload = { prompt: finalPrompt, width: w, height: h, steps: 20, batch_size: countParsed };
       if (model) payload.model = model;
       console.debug("[Server Debug] Calling Stable Diffusion =>", sdEndpoint, JSON.stringify(payload));
       const resp = await axios.post(sdEndpoint, payload);
@@ -3126,7 +3128,7 @@ app.post("/api/image/generate", async (req, res) => {
     try {
       result = await openaiClient.images.generate({
         model: modelName,
-        prompt: prompt.slice(0, 1000),
+        prompt: finalPrompt.slice(0, 1000),
         n: countParsed,
         size: imgSize,
         response_format: "url"
@@ -3139,7 +3141,7 @@ app.post("/api/image/generate", async (req, res) => {
         try {
           result = await openaiClient.images.generate({
             model: "dall-e-2",
-            prompt: prompt.slice(0, 1000),
+            prompt: finalPrompt.slice(0, 1000),
             n: Math.min(countParsed, 4),
             size: "1024x1024",
             response_format: "url"
