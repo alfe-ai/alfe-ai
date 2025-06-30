@@ -62,6 +62,12 @@
     .status-failed {
       color: #f33;
     }
+    .queue-state-running {
+      color: #006400;
+    }
+    .queue-state-paused {
+      color: #ff8c00;
+    }
     .db-group td {
       background-color: #333;
       color: cyan;
@@ -150,7 +156,7 @@
       <input type="checkbox" id="autoRetryCheckbox" /> Auto Retry Failed
     </label>
     <span id="retryCountdown" style="margin-left:0.25rem;display:none;"></span>
-    <span id="queueState" style="margin-left:0.5rem;">Running</span>
+    <span id="queueState" style="margin-left:0.5rem;" class="queue-state-running">Running</span>
     <button id="pauseBtn" style="margin-left:0.5rem;">Pause</button>
   </div>
   <table id="queueTable">
@@ -758,7 +764,10 @@ async function updateVariantUI(file){
       try{
         const res = await fetch('api/pipelineQueue/state');
         const data = await res.json();
-        document.getElementById('queueState').textContent = data.paused ? 'Paused' : 'Running';
+        const stateEl = document.getElementById('queueState');
+        stateEl.textContent = data.paused ? 'Paused' : 'Running';
+        stateEl.classList.toggle('queue-state-paused', data.paused);
+        stateEl.classList.toggle('queue-state-running', !data.paused);
         document.getElementById('pauseBtn').textContent = data.paused ? 'Resume' : 'Pause';
       }catch(e){
         console.error('Failed to load queue state', e);
