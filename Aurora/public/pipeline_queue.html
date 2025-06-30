@@ -67,7 +67,8 @@
       color: cyan;
       font-weight: bold;
     }
-    .group-header td {
+    .group-header td,
+    .group-header th {
       background-color: #222;
       font-weight: bold;
     }
@@ -187,9 +188,25 @@
             const headerTr = document.createElement('tr');
             headerTr.className = 'group-header';
             headerTr.dataset.dbid = job.dbId;
-            headerTr.innerHTML = document.querySelector('#queueTable thead tr').innerHTML;
+            headerTr.innerHTML = `
+              <th colspan="2">DB ID: ${job.dbId} <button class="removeDbBtn" data-dbid="${job.dbId}">Remove DB</button></th>
+              <th>Type</th>
+              <th>Location</th>
+              <th>Variant</th>
+              <th>Start</th>
+              <th>Finish</th>
+              <th>Status</th>
+              <th>Job ID</th>
+              <th>Result Path</th>
+              <th>Product URL</th>
+              <th>Actions</th>
+            `;
             if(collapsed) headerTr.style.display = 'none';
             tbody.appendChild(headerTr);
+            headerTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
+              ev.stopPropagation();
+              await removeJobsByDbId(job.dbId);
+            });
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
               await removeJobsByDbId(job.dbId);
