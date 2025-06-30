@@ -123,6 +123,10 @@
     <button id="hideSelectedBtn" style="margin-left:0.5rem;">Hide</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
     <button id="retryFailedBtn" style="margin-left:0.5rem;">Retry Failed</button>
+    <label style="margin-left:0.5rem;">
+      <input type="checkbox" id="autoRetryCheckbox" /> Auto Retry Failed
+    </label>
+    <span id="retryCountdown" style="margin-left:0.25rem;display:none;"></span>
     <span id="queueState" style="margin-left:0.5rem;">Running</span>
     <button id="pauseBtn" style="margin-left:0.5rem;">Pause</button>
   </div>
@@ -668,6 +672,38 @@ async function updateVariantUI(file){
         console.error('Failed to retry failed jobs', e);
       }
     });
+
+    const autoRetryCheckbox = document.getElementById('autoRetryCheckbox');
+    const retryCountdownSpan = document.getElementById('retryCountdown');
+    const RETRY_INTERVAL = 300; // seconds
+    let retryCountdown = RETRY_INTERVAL;
+
+    function updateRetryCountdown(){
+      if(!autoRetryCheckbox.checked){
+        retryCountdownSpan.style.display = 'none';
+        return;
+      }
+      retryCountdownSpan.style.display = 'inline';
+      const m = Math.floor(retryCountdown / 60);
+      const s = String(retryCountdown % 60).padStart(2, '0');
+      retryCountdownSpan.textContent = `(${m}:${s})`;
+      if(retryCountdown <= 0){
+        retryCountdown = RETRY_INTERVAL;
+        fetch('api/pipelineQueue/retryFailed', { method: 'POST' })
+          .then(() => loadQueue())
+          .catch(e => console.error('Failed to auto retry jobs', e));
+      } else {
+        retryCountdown--;
+      }
+    }
+
+    autoRetryCheckbox.addEventListener('change', () => {
+      retryCountdown = RETRY_INTERVAL;
+      updateRetryCountdown();
+    });
+
+    setInterval(updateRetryCountdown, 1000);
+    updateRetryCountdown();
 
     loadQueue();
     loadImages(true);
