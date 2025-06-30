@@ -182,6 +182,7 @@
   </table>
   <div style="text-align:center;margin-top:1rem;">
     <button id="loadMoreBtn" style="display:none;">Load More</button>
+    <button id="loadAllBtn" style="display:none;margin-left:0.5rem;">Load All</button>
   </div>
   <script src="./session.js"></script>
   <script>
@@ -214,10 +215,16 @@
     }
 
     const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const loadAllBtn = document.getElementById('loadAllBtn');
     function updateLoadMoreBtn(){
-      if(!loadMoreBtn) return;
-      loadMoreBtn.style.display = queueHasMore ? 'block' : 'none';
-      loadMoreBtn.disabled = queueLoading;
+      if(loadMoreBtn){
+        loadMoreBtn.style.display = queueHasMore ? 'block' : 'none';
+        loadMoreBtn.disabled = queueLoading;
+      }
+      if(loadAllBtn){
+        loadAllBtn.style.display = queueHasMore ? 'block' : 'none';
+        loadAllBtn.disabled = queueLoading;
+      }
     }
 
     let queueOffset = 0;
@@ -944,6 +951,11 @@ async function updateVariantUI(file){
 
     loadMoreBtn?.addEventListener('click', () => {
       loadQueue();
+    });
+    loadAllBtn?.addEventListener('click', async () => {
+      while(queueHasMore){
+        await loadQueue();
+      }
     });
 
     setInterval(updateRetryCountdown, 1000);
