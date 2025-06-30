@@ -826,7 +826,17 @@ document.getElementById("closeSidebarIcon")?.addEventListener("click", ev => {
     toggleSidebar();
   }
 });
-// removed hide/show sidebar buttons; sidebar will be controlled via menu clicks
+document.getElementById("hideSidebarBtn")?.addEventListener("click", ev => {
+  ev.stopPropagation();
+  toggleSidebar();
+});
+
+document.getElementById("expandSidebarBtn").addEventListener("click", ev => {
+  ev.stopPropagation();
+  if(!sidebarVisible) {
+    toggleSidebar();
+  }
+});
 
 const collapsedLogoEl = document.getElementById("collapsedSidebarLogo");
 collapsedLogoEl?.addEventListener("click", ev => {
@@ -849,7 +859,7 @@ collapsedArrowEl?.addEventListener("click", ev => {
 // easier on touch devices without needing to tap the toggle
 // button again.
 document.addEventListener("click", ev => {
-  if(!sidebarVisible) return;
+  if(!isMobileViewport() || !sidebarVisible) return;
   const sidebarEl = document.querySelector(".sidebar");
   const dividerEl = document.getElementById("divider");
   if(!sidebarEl) return;

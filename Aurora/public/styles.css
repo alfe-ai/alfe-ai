@@ -716,7 +716,25 @@ body {
   display: none !important;
 }
 
+/* Button to hide the sidebar */
+#hideSidebarBtn.hide-sidebar-btn {
+  position: absolute;
+  top: 45px;
+  right: 8px;
+  background: #444;
+  border: 1px solid #666;
+  color: #ddd;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  z-index: 1000;
+  display: none !important;
+}
+
 /* Hide the expand sidebar button for now */
+#expandSidebarBtn {
+  display: none !important;
+}
 
 /* When the image generation limit is reached (50/50),
    highlight the info text in dark red for visibility
