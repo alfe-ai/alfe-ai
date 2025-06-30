@@ -179,6 +179,9 @@
     </thead>
     <tbody></tbody>
   </table>
+  <div style="text-align:center;margin-top:1rem;">
+    <button id="loadMoreBtn" style="display:none;">Load More</button>
+  </div>
   <script src="./session.js"></script>
   <script>
     console.debug('[Queue UI] script loaded');
@@ -209,6 +212,13 @@
       }
     }
 
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    function updateLoadMoreBtn(){
+      if(!loadMoreBtn) return;
+      loadMoreBtn.style.display = queueHasMore ? 'block' : 'none';
+      loadMoreBtn.disabled = queueLoading;
+    }
+
     let queueOffset = 0;
     let queueHasMore = true;
     let queueLoading = false;
@@ -223,9 +233,11 @@
         queueHasMore = true;
         seenDbIds.clear();
         document.querySelector('#queueTable tbody').innerHTML = '';
+        updateLoadMoreBtn();
       }
       if(!queueHasMore) return;
       queueLoading = true;
+      updateLoadMoreBtn();
       await prefetchTitles();
       try{
         const res = await fetch(`api/pipelineQueue?limit=20&offset=${queueOffset}`);
@@ -423,6 +435,7 @@
         console.error('Failed to load queue', e);
       }
       queueLoading = false;
+      updateLoadMoreBtn();
     }
     const dropdown = document.getElementById('imageSelect');
     const selectedDiv = dropdown.querySelector('.selected');
@@ -922,10 +935,15 @@ async function updateVariantUI(file){
       }
     }
 
+    loadMoreBtn?.addEventListener('click', () => {
+      loadQueue();
+    });
+
     setInterval(updateRetryCountdown, 1000);
     updateRetryCountdown();
 
     loadQueue(true);
+    updateLoadMoreBtn();
     loadImages(true);
     loadSidebarImages(true);
     document.getElementById('imageSidebar').addEventListener('scroll', () => {
