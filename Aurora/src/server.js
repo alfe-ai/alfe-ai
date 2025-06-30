@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import https from "https";
+import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
 import TaskDBLocal from "./taskDb.js";
@@ -563,6 +564,33 @@ async function createInitialTabMessage(tabId, type, sessionId = '') {
   const pairId = db.createChatPair('', tabId, '', sessionId);
   const defaultModel = db.getSetting("ai_model") || 'deepseek/deepseek-chat';
   db.finalizeChatPair(pairId, greeting, defaultModel, new Date().toISOString(), null);
+}
+
+async function removeColorSwatches(filePath) {
+  try {
+    const img = await Jimp.read(filePath);
+    const { width, height } = img.bitmap;
+    const sliceHeight = Math.round(height * 0.15);
+    const bottom = img.clone().crop(0, height - sliceHeight, width, sliceHeight);
+    const small = bottom.clone().resize(10, 1);
+    const diff = (c1, c2) => {
+      const a = Jimp.intToRGBA(c1);
+      const b = Jimp.intToRGBA(c2);
+      return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2);
+    };
+    let changes = 0;
+    for (let x = 1; x < 10; x++) {
+      const c1 = small.getPixelColor(x - 1, 0);
+      const c2 = small.getPixelColor(x, 0);
+      if (diff(c1, c2) > 40) changes++;
+    }
+    if (changes >= 5) {
+      img.crop(0, 0, width, height - sliceHeight);
+      await img.writeAsync(filePath);
+    }
+  } catch (err) {
+    console.error('[Server Debug] palette removal failed =>', err);
+  }
 }
 
 // Explicit CORS configuration
@@ -1636,8 +1664,7 @@ app.post("/api/chat", async (req, res) => {
         `3. If the user asks for the time, if you need the time for something, use the userTime value provided by the user.\n` +
         `4. Don't say anything like "Since I can’t create images directly here..." . You can. You have a built in hook to generate images automatically, you don't need to worry about that.\n` +
         `5. Don't Hallucinate anything like this, "Got it! I’m creating a simple, cute image of a penguin for you right now. Here it comes: ![Penguin](https://cdn.openai.com/penguin.png)" You have a built in hook to generate AND DISPLAY images automatically, you don't need to worry about that.\n` +
-        `6. If including an example URL to an image, please use https://alfe.sh, e.g. ![Abstract Calming Blue-Green](https://alfe.sh/abstract-blue-green.png)\n` +
-        `7. When providing an image prompt, explicitly state that no color palette sample swatches should appear on the image.`;
+        `6. If including an example URL to an image, please use https://alfe.sh, e.g. ![Abstract Calming Blue-Green](https://alfe.sh/abstract-blue-green.png)`;
       finalUserMessage = `${prependInstr}\n\n${userMessage}`;
     }
 
@@ -3016,8 +3043,7 @@ app.get("/api/upscale/result", (req, res) => {
 app.post("/api/image/generate", async (req, res) => {
   try {
     const { prompt, n, size, model, provider, tabId, sessionId } = req.body || {};
-    const extraInstruction = " Do not include color palette sample swatches anywhere on the image.";
-    const finalPrompt = (prompt || "").trim() + extraInstruction;
+    const finalPrompt = (prompt || "").trim();
     const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     console.debug(
       "[Server Debug] /api/image/generate =>",
@@ -3086,6 +3112,7 @@ app.post("/api/image/generate", async (req, res) => {
       const filename = `sd-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`;
       const filePath = path.join(uploadsDir, filename);
       fs.writeFileSync(filePath, buffer);
+      await removeColorSwatches(filePath);
       console.debug("[Server Debug] Saved Stable Diffusion image =>", filePath);
       const localUrl = `/uploads/${filename}`;
       db.logActivity(
@@ -3169,6 +3196,7 @@ app.post("/api/image/generate", async (req, res) => {
       const filename = `generated-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
       const filePath = path.join(uploadsDir, filename);
       fs.writeFileSync(filePath, resp.data);
+      await removeColorSwatches(filePath);
       console.debug("[Server Debug] Saved OpenAI image =>", filePath);
       localUrl = `/uploads/${filename}`;
     } catch(downloadErr) {
