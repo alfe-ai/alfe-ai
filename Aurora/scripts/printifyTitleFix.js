@@ -72,12 +72,13 @@ async function main() {
     // Remove any quotation marks that might wrap or appear in the title
     optimizedTitle = optimizedTitle.replace(/["']/g, '').trim();
 
-    // Strip gendered words like "Men's" or "Women's" to keep the title neutral
-    optimizedTitle = optimizedTitle
-      .replace(/\bmen'?s\b/gi, '')
-      .replace(/\bwomen'?s\b/gi, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
+  // Strip gendered words like "Men's" or "Women's" and remove "Urban" to keep the title neutral
+  optimizedTitle = optimizedTitle
+    .replace(/\bmen'?s\b/gi, '')
+    .replace(/\bwomen'?s\b/gi, '')
+    .replace(/\burban\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 
     // Retry updating the title if Printify temporarily disables editing
     const updateTitle = async () => {
