@@ -122,10 +122,15 @@ export default class PrintifyJobQueue {
           dbId = null;
         }
       }
+      const location =
+        j.type === 'printifyFixMockups' || j.type === 'printifyFinalize'
+          ? 'ProgramaticPuppet'
+          : 'Local';
       return {
         id: j.id,
         file: j.file,
         type: j.type,
+        location,
         status: j.status,
         jobId: j.jobId,
         resultPath: j.resultPath || null,
