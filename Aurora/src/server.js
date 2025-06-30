@@ -2653,6 +2653,7 @@ app.post("/api/printifyTitleFix", async (req, res) => {
         const title = extractUpdatedTitle(job.log);
         if (title) {
           db.setImageTitle(url, title);
+          job.resultPath = title;
         }
         db.setImageStatus(url, "Printify API Title Fix");
       } catch (e) {
