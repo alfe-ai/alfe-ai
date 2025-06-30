@@ -105,7 +105,7 @@ async function main() {
           err.response?.data?.errors?.reason || err.response?.data?.message;
         const code = err.response?.data?.code;
         if (
-          attempt < 9 &&
+          attempt < 2 &&
           (reason === 'Product is disabled for editing' || code === 8252)
         ) {
           attempt++;
