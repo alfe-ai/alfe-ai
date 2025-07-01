@@ -284,7 +284,7 @@
             const collapsed = collapsedGroups.has(dbId);
             const title = getTitle(firstJob.file);
             const titlePart = title ? ` - ${title}` : '';
-            groupTr.innerHTML = `<td colspan="12"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}${titlePart}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(firstJob.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
+            groupTr.innerHTML = `<td colspan="12"><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}${titlePart}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="hideImageBtn" data-file="${encodeURIComponent(firstJob.file)}" style="margin-left:0.5rem;">Hide Image</button> <button class="moveTopBtn" style="margin-left:0.5rem;">Move to top</button> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove All</button></td>`;
             tbody.appendChild(groupTr);
             groupTr.draggable = true;
             const headerTr = document.createElement('tr');
@@ -319,7 +319,7 @@
 
             headerTr.innerHTML = `
               <td></td>
-              <td><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button></td>
+              <td><span class="toggle">${collapsed ? '[+]' : '[-]'}</span> DB ID: ${dbId}<img src="uploads/${encodeURIComponent(firstJob.file)}" style="max-height:40px;margin-left:0.5rem;vertical-align:middle;" /> <button class="removeDbBtn" data-dbid="${dbId}" style="margin-left:0.5rem;">Remove</button> <button class="moveTopBtn" style="margin-left:0.5rem;">Move to top</button></td>
               <td></td>
               <td></td>
               <td></td>
@@ -342,6 +342,14 @@
             groupTr.querySelector('.removeDbBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
               await removeJobsByDbId(dbId);
+            });
+            const moveBtnHeader = headerTr.querySelector('.moveTopBtn');
+            const moveBtnGroup = groupTr.querySelector('.moveTopBtn');
+            [moveBtnHeader, moveBtnGroup].forEach(btn => {
+              btn?.addEventListener('click', ev => {
+                ev.stopPropagation();
+                moveGroupToTop(dbId);
+              });
             });
             groupTr.querySelector('.hideImageBtn').addEventListener('click', async ev => {
               ev.stopPropagation();
@@ -813,6 +821,18 @@ async function updateVariantUI(file){
       }catch(e){
         console.error('Failed to remove jobs', e);
       }
+    }
+
+    function moveGroupToTop(dbId){
+      console.debug('[Queue UI] moveGroupToTop', dbId);
+      const tbodyEl = document.querySelector('#queueTable tbody');
+      const rows = Array.from(tbodyEl.querySelectorAll(`tr[data-dbid="${CSS.escape(dbId)}"]`));
+      if(rows.length === 0) return;
+      const frag = document.createDocumentFragment();
+      rows.forEach(r => frag.appendChild(r));
+      const firstRow = tbodyEl.firstChild;
+      tbodyEl.insertBefore(frag, firstRow);
+      saveNewOrder();
     }
 
     async function loadQueueState(){
