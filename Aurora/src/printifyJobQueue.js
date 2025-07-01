@@ -91,7 +91,7 @@ export default class PrintifyJobQueue {
     return this.paused;
   }
 
-  enqueue(file, type, dbId = null, variant = null) {
+  enqueue(file, type, dbId = null, variant = null, toTop = false) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     let parsedDbId = null;
     if (dbId !== null && dbId !== undefined && dbId !== '') {
@@ -111,7 +111,7 @@ export default class PrintifyJobQueue {
       startTime: null,
       finishTime: null
     };
-    this.jobs.push(job);
+    if (toTop) this.jobs.unshift(job); else this.jobs.push(job);
     console.debug('[PrintifyJobQueue Debug] Enqueued job =>', job);
     this._saveJobs();
     this._processNext();

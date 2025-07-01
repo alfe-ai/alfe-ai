@@ -2902,7 +2902,7 @@ app.get("/api/pipelineQueue", (req, res) => {
 
 app.post("/api/pipelineQueue", (req, res) => {
   console.debug("[Server Debug] POST /api/pipelineQueue =>", req.body);
-  const { file, type, dbId, variant } = req.body || {};
+  const { file, type, dbId, variant, toTop } = req.body || {};
   if (!file || !type) {
     return res.status(400).json({ error: "Missing file or type" });
   }
@@ -2911,7 +2911,7 @@ app.post("/api/pipelineQueue", (req, res) => {
     const n = parseInt(dbId, 10);
     if (!Number.isNaN(n)) parsedDbId = n;
   }
-  const job = printifyQueue.enqueue(file, type, parsedDbId, variant || null);
+  const job = printifyQueue.enqueue(file, type, parsedDbId, variant || null, !!toTop);
   console.debug(
     "[Server Debug] Enqueued job =>",
     JSON.stringify(job, null, 2)
