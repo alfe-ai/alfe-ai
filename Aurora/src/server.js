@@ -2482,7 +2482,11 @@ app.post("/api/printify", async (req, res) => {
     }
 
     const colors = detectProminentColors(filePath);
-    const jobArgs = [filePath, ...colors];
+    // PrintifyPuppet expects: <designPath> "<description>" [color1] [color2] [color3]
+    // We currently do not capture a description from the request, so pass an
+    // empty string placeholder to ensure the colour arguments are parsed
+    // correctly by the external script.
+    const jobArgs = [filePath, "", ...colors];
     const job = jobManager.createJob(scriptPath, jobArgs, { cwd: scriptCwd, file });
     console.debug("[Server Debug] /api/printify => job started", job.id);
 
