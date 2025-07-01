@@ -561,7 +561,15 @@ export default class PrintifyJobQueue {
           }
         }
       } else if (job.type === 'colorIdentify') {
-        const last = jmJob.log.trim().split(/[\r\n]+/).pop().trim();
+        const lines = jmJob.log
+          .trim()
+          .split(/[\r\n]+/)
+          .map(l => l.trim())
+          .filter(Boolean);
+        const last = lines
+          .slice()
+          .reverse()
+          .find(l => !/^\[process exited/i.test(l));
         if (last) {
           job.resultPath = last;
         }
