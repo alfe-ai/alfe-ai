@@ -17,12 +17,13 @@ export default class JobQueueApi {
     return data;
   }
 
-  async enqueue(file, type, dbId = null, variant = null) {
+  async enqueue(file, type, dbId = null, variant = null, toTop = false) {
     const { data } = await this.axios.post('/api/pipelineQueue', {
       file,
       type,
       dbId,
       variant,
+      toTop,
     });
     return data;
   }

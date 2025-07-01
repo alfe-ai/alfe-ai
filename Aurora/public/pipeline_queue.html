@@ -151,6 +151,9 @@
     <label style="margin-left:0.5rem;">
       <input type="checkbox" id="hideWhenAdd" /> Hide when adding to queue
     </label>
+    <label style="margin-left:0.5rem;">
+      <input type="checkbox" id="queueTopCheckbox" /> Add to top
+    </label>
     <button id="enqueueBtn">Add to Queue</button>
     <button id="hideSelectedBtn" style="margin-left:0.5rem;">Hide</button>
     <button id="stopAllBtn" style="margin-left:0.5rem;">Stop All</button>
@@ -202,6 +205,11 @@
     const saveCollapsed = () => {
       localStorage.setItem('collapsedQueueGroups', JSON.stringify([...collapsedGroups]));
     };
+    const queueTopCheckbox = document.getElementById('queueTopCheckbox');
+    queueTopCheckbox.checked = localStorage.getItem('queueAddTop') === '1';
+    queueTopCheckbox.addEventListener('change', () => {
+      localStorage.setItem('queueAddTop', queueTopCheckbox.checked ? '1' : '0');
+    });
     const titleCache = {};
     let titlesLoaded = false;
     async function prefetchTitles(){
@@ -733,6 +741,7 @@ async function updateVariantUI(file){
       const variantChoice = document.querySelector('input[name="queueVariant"]:checked');
       const variant = variantChoice ? variantChoice.value : null;
       const hideFlag = document.getElementById('hideWhenAdd').checked;
+      const toTop = document.getElementById('queueTopCheckbox').checked;
       if(!file) return;
       console.debug('[Queue UI] enqueue clicked file=' + file + ' type=' + type + ' variant=' + variant);
       try{
@@ -742,14 +751,14 @@ async function updateVariantUI(file){
             await fetch('api/pipelineQueue', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ file, type: step, dbId, variant })
+              body: JSON.stringify({ file, type: step, dbId, variant, toTop })
             });
           }
         } else {
           await fetch('api/pipelineQueue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file, type, dbId, variant })
+            body: JSON.stringify({ file, type, dbId, variant, toTop })
           });
           console.debug('[Queue UI] job enqueued');
         }
