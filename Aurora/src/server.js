@@ -2919,6 +2919,19 @@ app.post("/api/pipelineQueue", (req, res) => {
   res.json({ jobId: job.id });
 });
 
+// Remove all finished or failed jobs
+app.delete("/api/pipelineQueue/finished", (req, res) => {
+  console.debug("[Server Debug] DELETE /api/pipelineQueue/finished");
+  const count = printifyQueue.removeFinished();
+  console.debug(
+    "[Server Debug] removeFinished called. Count =>",
+    count,
+    "Queue =>",
+    JSON.stringify(printifyQueue.list(), null, 2)
+  );
+  res.json({ removed: count });
+});
+
 app.delete("/api/pipelineQueue/:id", (req, res) => {
   console.debug("[Server Debug] DELETE /api/pipelineQueue/:id =>", req.params.id);
   const ok = printifyQueue.remove(req.params.id);
@@ -2945,18 +2958,6 @@ app.delete("/api/pipelineQueue/db/:dbId", (req, res) => {
     JSON.stringify(printifyQueue.list(), null, 2)
   );
   res.json({ removed: true });
-});
-
-app.delete("/api/pipelineQueue/finished", (req, res) => {
-  console.debug("[Server Debug] DELETE /api/pipelineQueue/finished");
-  const count = printifyQueue.removeFinished();
-  console.debug(
-    "[Server Debug] removeFinished called. Count =>",
-    count,
-    "Queue =>",
-    JSON.stringify(printifyQueue.list(), null, 2)
-  );
-  res.json({ removed: count });
 });
 
 app.post("/api/pipelineQueue/stopAll", (req, res) => {
