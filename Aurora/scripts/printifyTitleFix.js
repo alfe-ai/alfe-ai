@@ -82,6 +82,7 @@ async function main() {
     .replace(/\bwomen'?s\b/gi, '')
     .replace(/\burban\b/gi, '')
     .replace(/\bwhimsical\b/gi, '')
+    .replace(/\bpride\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 
