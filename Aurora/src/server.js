@@ -340,6 +340,24 @@ async function updatePrintifyProduct(productId, variants) {
   }
 }
 
+function detectProminentColors(filePath) {
+  try {
+    const colorScript = path.join(__dirname, '../scripts/detectColors.js');
+    const detected = child_process
+      .execFileSync(colorScript, [filePath], { encoding: 'utf8' })
+      .trim();
+    console.debug('[Server Debug] Detected colors =>', detected);
+    return detected
+      .split(/\s*,\s*/)
+      .map(c => c.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+  } catch (err) {
+    console.error('[Server Debug] Color detection failed =>', err.message || err);
+    return [];
+  }
+}
+
 app.use('/api/printify/updateProduct', (req, res, next) => {
   if (!req.body.productId?.match(/^[0-9a-f]{24}$/i)) {
     return res.status(400).json({ error: 'Invalid product ID format' });
@@ -2462,7 +2480,9 @@ app.post("/api/printify", async (req, res) => {
         .json({ error: `Printify script missing at ${scriptPath}` });
     }
 
-    const job = jobManager.createJob(scriptPath, [filePath], { cwd: scriptCwd, file });
+    const colors = detectProminentColors(filePath);
+    const jobArgs = [filePath, ...colors];
+    const job = jobManager.createJob(scriptPath, jobArgs, { cwd: scriptCwd, file });
     console.debug("[Server Debug] /api/printify => job started", job.id);
 
     const doneRegex = /All steps completed/i;
