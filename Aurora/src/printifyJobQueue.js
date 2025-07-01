@@ -537,6 +537,10 @@ export default class PrintifyJobQueue {
         args.push(...colorArgs);
       }
     }
+
+    if (job.type.startsWith('printify')) {
+      this._killChromium();
+    }
     console.log(`[PrintifyJobQueue] Running ${job.type} with script: ${script}`);
     console.debug('[PrintifyJobQueue Debug] args =>', args.join(' '));
     const location = slot === 'local' ? 'Local' : 'ProgramaticPuppet';
@@ -611,5 +615,14 @@ export default class PrintifyJobQueue {
       this._saveJobs();
       this._processNext();
     });
+  }
+
+  _killChromium() {
+    try {
+      child_process.execSync('pkill -9 chromium || true', { stdio: 'ignore' });
+    } catch {}
+    try {
+      child_process.execSync('pkill -9 chromium-browser || true', { stdio: 'ignore' });
+    } catch {}
   }
 }
