@@ -118,7 +118,7 @@
   <div id="addJob" style="margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">
     <label>Type:
       <select id="jobType">
-        <option value="upscale">Upscale</option>
+        <option value="upscale">Upscale/BackgroundRemove</option>
         <option value="colorIdentify">Color Identify</option>
         <option value="printify">Printify</option>
         <option value="printifyTitleFix">Printify Title Fix</option>
@@ -417,10 +417,11 @@
           })();
           const startStr = job.startTime ? new Date(job.startTime).toLocaleString() : '';
           const finishStr = job.finishTime ? new Date(job.finishTime).toLocaleString() : '';
+          const typeDisplay = job.type === 'upscale' ? 'upscale/backgroundRemove' : job.type;
           tr.innerHTML = `
             <td>${job.id}</td>
             <td>${dbLink}</td>
-            <td>${job.type}</td>
+            <td>${typeDisplay}</td>
             <td>${job.location}</td>
             <td>${job.variant || ''}</td>
             <td>${startStr}</td>
