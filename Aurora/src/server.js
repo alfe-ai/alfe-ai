@@ -691,6 +691,7 @@ const printifyQueue = new PrintifyJobQueue(jobManager, {
   printifyTitleFixScript:
     process.env.PRINTIFY_TITLE_FIX_SCRIPT_PATH ||
     path.join(__dirname, "../scripts/printifyTitleFix.js"),
+  colorIdentifyScript: path.join(__dirname, "../scripts/detectColors.js"),
   runPuppetScript: path.join(__dirname, "../scripts/runPuppet.js"),
   db,
 });

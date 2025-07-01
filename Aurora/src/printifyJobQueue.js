@@ -16,6 +16,7 @@ export default class PrintifyJobQueue {
     this.printifyPriceScript = options.printifyPriceScript || '';
     this.printifyTitleFixScript = options.printifyTitleFixScript || '';
     this.runPuppetScript = options.runPuppetScript || '';
+    this.colorIdentifyScript = options.colorIdentifyScript || '';
     this.db = options.db || null;
     this.persistencePath = options.persistencePath || null;
 
@@ -354,7 +355,8 @@ export default class PrintifyJobQueue {
       job.type === 'printifyPrice' ||
       job.type === 'printifyTitleFix' ||
       job.type === 'printifyFixMockups' ||
-      job.type === 'printifyFinalize'
+      job.type === 'printifyFinalize' ||
+      job.type === 'colorIdentify'
     ) {
       script =
         job.type === 'printify'
@@ -363,6 +365,8 @@ export default class PrintifyJobQueue {
           ? this.printifyPriceScript
           : job.type === 'printifyTitleFix'
           ? this.printifyTitleFixScript
+          : job.type === 'colorIdentify'
+          ? this.colorIdentifyScript
           : this.runPuppetScript;
       const ext = path.extname(filePath);
       const base = path.basename(filePath, ext);
@@ -556,6 +560,11 @@ export default class PrintifyJobQueue {
             this.db.setImageTitle(originalUrl, title);
           }
         }
+      } else if (job.type === 'colorIdentify') {
+        const last = jmJob.log.trim().split(/[\r\n]+/).pop().trim();
+        if (last) {
+          job.resultPath = last;
+        }
       }
       if (this.db) {
         const statusMap = {
@@ -564,7 +573,8 @@ export default class PrintifyJobQueue {
           printifyPrice: 'Printify API Updates',
           printifyTitleFix: 'Printify API Title Fix',
           printifyFixMockups: 'Printify Fix Mockups',
-          printifyFinalize: 'Printify Finalize'
+          printifyFinalize: 'Printify Finalize',
+          colorIdentify: 'Color Identify'
         };
         const status = statusMap[job.type] || job.type;
         this.db.setImageStatus(originalUrl, status);
