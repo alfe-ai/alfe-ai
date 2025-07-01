@@ -1829,7 +1829,7 @@ async function toggleArchiveTab(tabId, archived){
     renderArchivedSidebarTabs();
     updatePageTitle();
     if(chatTabs.length > 0 && chatTabs.every(t => t.archived)){
-      location.href = '/nexum.html';
+      location.href = '/index.html';
     }
   }
 }
