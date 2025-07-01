@@ -3294,14 +3294,14 @@ app.get("/", (req, res) => {
   const sessionId = getSessionIdFromRequest(req);
   try {
     if (!sessionId) {
-      console.debug("[Server Debug] GET / => Redirecting to nexum.html");
-      return res.redirect("/nexum.html");
+      console.debug("[Server Debug] GET / => Redirecting to index.html");
+      return res.redirect("/index.html");
     }
 
     const tabs = db.listChatTabs(null, false, sessionId);
     if (tabs.length === 0) {
-      console.debug("[Server Debug] GET / => Redirecting to nexum.html");
-      return res.redirect("/nexum.html");
+      console.debug("[Server Debug] GET / => Redirecting to index.html");
+      return res.redirect("/index.html");
     }
 
     const lastTabId = db.getSetting("last_chat_tab");
