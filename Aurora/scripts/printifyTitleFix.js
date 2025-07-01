@@ -84,6 +84,7 @@ async function main() {
     .replace(/\bwhimsical\b/gi, '')
     .replace(/\bpride\b/gi, '')
     .replace(/\bpatriot\b/gi, '')
+    .replace(/\bheavy\b/gi, '')
     .replace(/\b(?:marijuana|cannabis|lsd|dmt|cocaine)\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
