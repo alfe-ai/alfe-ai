@@ -442,22 +442,42 @@ export default class PrintifyJobQueue {
 
     let colorArgs = [];
     if (job.type === 'printify') {
-      try {
-        const colorScript = path.join(__dirname, '../scripts/detectColors.js');
-        const detected = child_process
-          .execFileSync(colorScript, [filePath], { encoding: 'utf8' })
-          .trim();
-        console.log('[PrintifyJobQueue] Detected colors:', detected);
-        colorArgs = detected
+      const prevColorJob = this.jobs.find(
+        j =>
+          j.type === 'colorIdentify' &&
+          j.file === job.file &&
+          j.variant === job.variant &&
+          j.status === 'finished' &&
+          j.resultPath
+      );
+      if (prevColorJob) {
+        console.debug(
+          '[PrintifyJobQueue Debug] Using colors from previous colorIdentify job =>',
+          prevColorJob.resultPath
+        );
+        colorArgs = prevColorJob.resultPath
           .split(/\s*,\s*/)
           .map(c => c.trim())
           .filter(Boolean)
           .slice(0, 3);
-      } catch (err) {
-        console.error(
-          '[PrintifyJobQueue] Color detection failed:',
-          err.message || err
-        );
+      } else {
+        try {
+          const colorScript = path.join(__dirname, '../scripts/detectColors.js');
+          const detected = child_process
+            .execFileSync(colorScript, [filePath], { encoding: 'utf8' })
+            .trim();
+          console.log('[PrintifyJobQueue] Detected colors:', detected);
+          colorArgs = detected
+            .split(/\s*,\s*/)
+            .map(c => c.trim())
+            .filter(Boolean)
+            .slice(0, 3);
+        } catch (err) {
+          console.error(
+            '[PrintifyJobQueue] Color detection failed:',
+            err.message || err
+          );
+        }
       }
     }
 
