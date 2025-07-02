@@ -243,6 +243,51 @@
     function getTitle(file){
       return titleCache[file] || '';
     }
+
+    function hexToColorName(hex){
+      if(!hex) return '';
+      hex = hex.trim();
+      if(hex.startsWith('#')) hex = hex.slice(1);
+      if(hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+      const r = parseInt(hex.slice(0,2),16)/255;
+      const g = parseInt(hex.slice(2,4),16)/255;
+      const b = parseInt(hex.slice(4,6),16)/255;
+      const max = Math.max(r,g,b), min = Math.min(r,g,b);
+      const l = (max + min) / 2;
+      const d = max - min;
+      let h = 0, s = 0;
+      if(d !== 0){
+        s = d / (1 - Math.abs(2*l - 1));
+        switch(max){
+          case r: h = ((g-b)/d) % 6; break;
+          case g: h = (b-r)/d + 2; break;
+          case b: h = (r-g)/d + 4; break;
+        }
+        h *= 60;
+        if(h < 0) h += 360;
+      }
+      if(s < 0.1){
+        if(l >= 0.9) return 'white';
+        if(l <= 0.1) return 'black';
+        return 'gray';
+      }
+      if(h < 15 || h >= 345) return 'red';
+      if(h < 45) return 'orange';
+      if(h < 75) return 'yellow';
+      if(h < 165) return 'green';
+      if(h < 195) return 'cyan';
+      if(h < 255) return 'blue';
+      if(h < 285) return 'purple';
+      if(h < 315) return 'magenta';
+      return 'pink';
+    }
+
+    function formatColorIdentifyResult(str){
+      return str
+        .split(/\s*,\s*/)
+        .map(c => /^#/i.test(c) ? hexToColorName(c) : c)
+        .join(', ');
+    }
     async function loadQueue(reset=false){
       console.debug('[Queue UI] loading queue... reset=' + reset);
       if(queueLoading) return;
@@ -426,6 +471,9 @@
           const startStr = job.startTime ? new Date(job.startTime).toLocaleString() : '';
           const finishStr = job.finishTime ? new Date(job.finishTime).toLocaleString() : '';
           const typeDisplay = job.type === 'upscale' ? 'upscale/backgroundRemove' : job.type;
+          const resultText = job.type === 'colorIdentify'
+            ? formatColorIdentifyResult(job.resultPath || '')
+            : (job.resultPath || '');
           tr.innerHTML = `
             <td>${job.id}</td>
             <td>${dbLink}</td>
@@ -436,7 +484,7 @@
             <td>${finishStr}</td>
             <td>${statusHtml}</td>
             <td>${jobLink}</td>
-            <td>${job.resultPath || ''}</td>
+            <td>${resultText}</td>
             <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
             <td><button data-id="${job.id}" class="removeBtn">Remove</button></td>
           `;
