@@ -2300,6 +2300,26 @@ app.post("/api/upload/hidden", (req, res) => {
   }
 });
 
+app.post("/api/ebay/bulkUpdate", (req, res) => {
+  try {
+    const { listings } = req.body || {};
+    if (!Array.isArray(listings)) {
+      return res.status(400).json({ error: "Invalid listings" });
+    }
+    let updated = 0;
+    for (const item of listings) {
+      const { printifyId, ebayId } = item || {};
+      if (!printifyId || !ebayId) continue;
+      const ebayUrl = `https://www.ebay.com/itm/${ebayId}`;
+      updated += db.setEbayUrlForProductId(printifyId, ebayUrl);
+    }
+    res.json({ success: true, updated });
+  } catch (err) {
+    console.error("[Server Debug] /api/ebay/bulkUpdate error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
   try {
     if(!req.file){
