@@ -1128,6 +1128,14 @@ export default class TaskDB {
     }
   }
 
+  setEbayUrlForProductId(productId, ebayUrl) {
+    const stmt = this.db.prepare(
+      "UPDATE chat_pairs SET ebay_url=? WHERE product_url LIKE '%' || ? || '%'"
+    );
+    const info = stmt.run(ebayUrl, productId);
+    return info.changes;
+  }
+
   getEbayUrlForImage(url) {
     const row = this.db
         .prepare("SELECT ebay_url FROM chat_pairs WHERE image_url=? ORDER BY id DESC LIMIT 1")

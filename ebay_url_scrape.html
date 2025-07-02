@@ -34,32 +34,54 @@
   <textarea id="input" placeholder="Paste text from eBay page here..."></textarea>
   <br/>
   <button id="scrapeBtn">Extract URLs</button>
+  <button id="updateBtn" style="display:none;">Update Database</button>
   <div id="results"></div>
 
   <script>
   const input = document.getElementById('input');
   const results = document.getElementById('results');
+  const updateBtn = document.getElementById('updateBtn');
+  let pairs = [];
+
   document.getElementById('scrapeBtn').addEventListener('click', () => {
     const text = input.value;
+    const ebayIds = [...text.matchAll(/\b(\d{9,})\b/g)].map(m => m[1]);
+    const printifyIds = [...text.matchAll(/\b([a-f0-9]{24})\b/gi)].map(m => m[1]);
+    const len = Math.min(ebayIds.length, printifyIds.length);
+    pairs = [];
     const urls = [];
-    const urlRegex = /https?:\/\/[\w.-]*ebay\.[\w.-]+\/[^\s"']+/gi;
-    let match;
-    while((match = urlRegex.exec(text)) !== null){
-      urls.push(match[0]);
+    for(let i=0;i<len;i++){
+      pairs.push({ printifyId: printifyIds[i], ebayId: ebayIds[i] });
+      urls.push(`https://www.ebay.com/itm/${ebayIds[i]}`);
     }
-    const idRegex = /\b(\d{9,})\b/g;
-    const ids = new Set();
-    while((match = idRegex.exec(text)) !== null){
-      ids.add(match[1]);
-    }
-    ids.forEach(id => urls.push(`https://www.ebay.com/itm/${id}`));
-    const unique = [...new Set(urls)];
-    if(unique.length === 0){
+    if(urls.length === 0){
       results.textContent = 'No URLs found.';
+      updateBtn.style.display = 'none';
       return;
     }
-    results.innerHTML = '<h3>Found URLs</h3>' + unique.map(u =>
+    results.innerHTML = '<h3>Found URLs</h3>' + urls.map(u =>
       `<a href="${u}" target="_blank">${u}</a>`).join('');
+    updateBtn.style.display = 'inline-block';
+  });
+
+  updateBtn.addEventListener('click', async () => {
+    if(pairs.length === 0) return;
+    try {
+      const resp = await fetch('/api/ebay/bulkUpdate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listings: pairs })
+      });
+      const data = await resp.json();
+      if(data && data.success){
+        results.innerHTML += `<p>Updated ${data.updated} records.</p>`;
+      } else {
+        results.innerHTML += '<p>Update failed.</p>';
+      }
+    } catch(err){
+      console.error('Update failed', err);
+      alert('Failed to update database');
+    }
   });
   </script>
 </body>
