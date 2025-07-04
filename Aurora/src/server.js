@@ -1688,7 +1688,11 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const { provider } = parseProviderModel(model || "deepseek/deepseek-chat");
-    const systemContext = `System Context:\n${savedInstructions}\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
+    let systemContext = `System Context:\n${savedInstructions}`;
+    if (tabInfo && tabInfo.project_name) {
+      systemContext += `\nProject: ${tabInfo.project_name}`;
+    }
+    systemContext += `\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
 
     const conversation = [{ role: "system", content: systemContext }];
 
@@ -2110,9 +2114,21 @@ app.get("/pair/:id", (req, res) => {
   const pair = db.getPairById(pairId);
   if (!pair) return res.status(404).send("Pair not found");
   const allPairs = db.getAllChatPairs(pair.chat_tab_id);
+  const tabInfo = db.getChatTab(pair.chat_tab_id);
+  const project = tabInfo ? tabInfo.project_name || "" : "";
+  if (project && pair.system_context && !pair.system_context.includes("Project:")) {
+    const lines = pair.system_context.split("\n");
+    if (lines.length > 1) {
+      lines.splice(1, 0, `Project: ${project}`);
+    } else {
+      lines.push(`Project: ${project}`);
+    }
+    pair.system_context = lines.join("\n");
+  }
   res.json({
     pair,
-    conversation: allPairs
+    conversation: allPairs,
+    project
   });
 });
 
