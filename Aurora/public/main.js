@@ -1793,9 +1793,10 @@ async function openRenameTabModal(tabId){
   if(typeSel) typeSel.value = t ? t.tab_type || 'chat' : 'chat';
   const projSel = $("#renameProjectSelect");
   if(projSel){
-    const projects = Array.from(new Set(chatTabs.map(c => c.project_name).filter(p => p)));
+    const existing = chatTabs.map(c => c.project_name).filter(p => p);
+    const allProjects = Array.from(new Set([...existing, ...projectGroups.filter(p => p)]));
     projSel.innerHTML = '<option value="">(none)</option>' +
-      projects.map(p => `<option value="${p}">${p}</option>`).join('');
+      allProjects.map(p => `<option value="${p}">${p}</option>`).join('');
     projSel.value = t && t.project_name ? t.project_name : '';
   }
   const modal = $("#renameTabModal");
