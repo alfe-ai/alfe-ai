@@ -829,11 +829,24 @@ body {
   font-weight: bold;
 }
 
-#projectGroupsContainer .project-group-header {
-  margin: 6px 0 2px;
-  font-size: 0.9rem;
+#projectGroupsContainer button {
+  display: inline-flex;
+  background-color: #333;
+  border: 1px solid #444;
   color: #0ff;
+  padding: 4px 6px;
+  cursor: move;
+  align-items: center;
+  text-align: left;
+  border-radius: 8px;
   font-weight: bold;
+  margin: 6px 0 2px;
+}
+#projectGroupsContainer button.drag-over {
+  border-color: #0ff;
+}
+#verticalTabsContainer .project-indented {
+  margin-left: 10px;
 }
 
 #verticalTabsContainer button.active {

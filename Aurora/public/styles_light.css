@@ -831,6 +831,28 @@ body {
   font-weight: bold;
 }
 
+#projectGroupsContainer button {
+  display: inline-flex;
+  background-color: #ccc;
+  border: 1px solid #aaa;
+  color: #111;
+  padding: 4px 6px;
+  cursor: move;
+  align-items: center;
+  text-align: left;
+  border-radius: 8px;
+  font-weight: bold;
+  margin: 6px 0 2px;
+}
+
+#projectGroupsContainer button.drag-over {
+  border-color: #111;
+}
+
+#verticalTabsContainer .project-indented {
+  margin-left: 10px;
+}
+
 #verticalTabsContainer button.active {
   background-color: #ccc;
   border-color: #aaa;
