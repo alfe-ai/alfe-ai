@@ -1,6 +1,6 @@
 # Confused Apparel Theme
 
-This folder contains a minimalist Shopify theme. Follow these steps to upload and apply it to your store.
+This folder contains a minimalist dark Shopify theme. Follow these steps to upload and apply it to your store.
 
 ## Applying the Theme
 
