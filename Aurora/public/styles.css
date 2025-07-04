@@ -829,6 +829,13 @@ body {
   font-weight: bold;
 }
 
+#projectGroupsContainer .project-group-header {
+  margin: 6px 0 2px;
+  font-size: 0.9rem;
+  color: #0ff;
+  font-weight: bold;
+}
+
 #verticalTabsContainer button.active {
   background-color: #555;
   border-color: #aaa;

@@ -66,6 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateChatPanelVisibility();
   loadMosaicFiles();
   loadMosaicRepoPath();
+  loadProjectGroups();
+  renderProjectGroups();
   window.addEventListener('resize', updateChatPanelVisibility);
 });
 
@@ -111,6 +113,7 @@ let topChatTabsBarVisible = false; // visibility of the top chat tabs bar
 let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
 let groupTabsByProject = false;   // group chat tabs by project
+let projectGroups = [];           // custom project group headers
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -338,6 +341,38 @@ async function loadMosaicRepoPath(){
   } catch(e){
     console.error('Error loading mosaic repo path', e);
   }
+}
+
+function loadProjectGroups(){
+  try {
+    projectGroups = JSON.parse(localStorage.getItem('projectGroups') || '[]');
+  } catch(e){
+    projectGroups = [];
+  }
+}
+
+function saveProjectGroups(){
+  localStorage.setItem('projectGroups', JSON.stringify(projectGroups));
+}
+
+function renderProjectGroups(){
+  const container = document.getElementById('projectGroupsContainer');
+  if(!container) return;
+  container.innerHTML = '';
+  projectGroups.forEach(name => {
+    const div = document.createElement('div');
+    div.className = 'project-group-header';
+    div.textContent = name;
+    container.appendChild(div);
+  });
+}
+
+function addProjectGroup(){
+  const name = prompt('Enter project group name:');
+  if(!name) return;
+  projectGroups.push(name.trim());
+  saveProjectGroups();
+  renderProjectGroups();
 }
 
 async function openMosaicEditModal(file){
@@ -2090,6 +2125,7 @@ function renderArchivedSidebarTabs(){
 }
 
 document.getElementById("newSideTabBtn").addEventListener("click", openNewTabModal);
+document.getElementById("newProjectGroupBtn")?.addEventListener("click", addProjectGroup);
 const newTabBtnEl = document.getElementById("newTabBtn");
 if (newTabBtnEl) newTabBtnEl.addEventListener("click", openNewTabModal);
 $$('#newTabTypeButtons .start-type-btn').forEach(btn => {
