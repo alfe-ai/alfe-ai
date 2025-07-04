@@ -1691,7 +1691,19 @@ app.post("/api/chat", async (req, res) => {
     let systemContext = `System Context:\n${savedInstructions}`;
     let projectContext = '';
     if (tabInfo && tabInfo.project_name) {
+      const projectPairs = db.getChatPairsByProject(tabInfo.project_name);
+      const history = projectPairs
+        .map(p => {
+          const parts = [];
+          if (p.user_text) parts.push(`User: ${p.user_text}`);
+          if (p.ai_text) parts.push(`Assistant: ${p.ai_text}`);
+          return parts.join('\n');
+        })
+        .join('\n');
       projectContext = `Project: ${tabInfo.project_name}`;
+      if (history) {
+        projectContext += `\n${history}`;
+      }
     }
     const fullContext = projectContext ?
       `${systemContext}\n${projectContext}` : systemContext;
