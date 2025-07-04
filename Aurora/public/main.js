@@ -114,6 +114,7 @@ let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
 let groupTabsByProject = false;   // group chat tabs by project
 let projectGroups = [];           // custom project group headers
+let draggingProjectIndex = null;  // index of project group being dragged
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -359,11 +360,37 @@ function renderProjectGroups(){
   const container = document.getElementById('projectGroupsContainer');
   if(!container) return;
   container.innerHTML = '';
-  projectGroups.forEach(name => {
-    const div = document.createElement('div');
-    div.className = 'project-group-header';
-    div.textContent = name;
-    container.appendChild(div);
+  projectGroups.forEach((name, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'project-group-button';
+    btn.textContent = name;
+    btn.draggable = true;
+    btn.dataset.index = idx;
+    btn.addEventListener('dragstart', e => {
+      draggingProjectIndex = idx;
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    btn.addEventListener('dragover', e => {
+      if(draggingProjectIndex === null || draggingProjectIndex === idx) return;
+      e.preventDefault();
+      btn.classList.add('drag-over');
+    });
+    btn.addEventListener('dragleave', () => btn.classList.remove('drag-over'));
+    btn.addEventListener('drop', e => {
+      e.preventDefault();
+      btn.classList.remove('drag-over');
+      if(draggingProjectIndex === null || draggingProjectIndex === idx) return;
+      const [moved] = projectGroups.splice(draggingProjectIndex, 1);
+      projectGroups.splice(idx, 0, moved);
+      draggingProjectIndex = null;
+      saveProjectGroups();
+      renderProjectGroups();
+    });
+    btn.addEventListener('dragend', () => {
+      draggingProjectIndex = null;
+      btn.classList.remove('drag-over');
+    });
+    container.appendChild(btn);
   });
 }
 
@@ -1989,7 +2016,7 @@ function renderSidebarTabs(){
       header.className = "tab-project-header";
       header.textContent = project || "(No project)";
       container.appendChild(header);
-      list.forEach(tab => renderSidebarTabRow(container, tab));
+      list.forEach(tab => renderSidebarTabRow(container, tab, true));
     }
     return;
   }
@@ -2007,12 +2034,13 @@ function renderSidebarTabs(){
   });
 }
 
-function renderSidebarTabRow(container, tab){
+function renderSidebarTabRow(container, tab, indented=false){
   const wrapper = document.createElement("div");
   wrapper.style.display = "flex";
   wrapper.style.alignItems = "center";
   wrapper.style.gap = "4px";
   wrapper.style.width = "100%";
+  if(indented) wrapper.classList.add("project-indented");
 
   const info = document.createElement("div");
   info.style.display = "flex";
