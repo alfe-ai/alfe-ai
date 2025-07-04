@@ -722,6 +722,23 @@ export default class TaskDB {
         .all(tabId);
   }
 
+  getAllChatPairsByProject(projectName, sessionId = '') {
+    if (sessionId) {
+      return this.db.prepare(`
+        SELECT cp.* FROM chat_pairs cp
+        JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
+        WHERE ct.project_name = ? AND ct.session_id = ?
+        ORDER BY cp.id ASC
+      `).all(projectName, sessionId);
+    }
+    return this.db.prepare(`
+      SELECT cp.* FROM chat_pairs cp
+      JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
+      WHERE ct.project_name = ?
+      ORDER BY cp.id ASC
+    `).all(projectName);
+  }
+
   hasUserMessages(tabId = 1) {
     const row = this.db
         .prepare("SELECT 1 FROM chat_pairs WHERE chat_tab_id=? AND user_text<>'' LIMIT 1")

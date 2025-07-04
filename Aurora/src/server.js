@@ -1665,7 +1665,15 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).send("Missing message");
     }
 
-    const priorPairsAll = db.getAllChatPairs(chatTabId);
+    let priorPairsAll;
+    if (tabInfo.project_name) {
+      priorPairsAll = db.getAllChatPairsByProject(
+        tabInfo.project_name,
+        tabInfo.session_id || ''
+      );
+    } else {
+      priorPairsAll = db.getAllChatPairs(chatTabId);
+    }
     const isFirstMessage = !db.hasUserMessages(chatTabId);
     let model = db.getSetting("ai_model");
     const savedInstructions = db.getSetting("agent_instructions") || "";
@@ -2116,9 +2124,14 @@ app.get("/pair/:id", (req, res) => {
   if (Number.isNaN(pairId)) return res.status(400).send("Invalid pair ID");
   const pair = db.getPairById(pairId);
   if (!pair) return res.status(404).send("Pair not found");
-  const allPairs = db.getAllChatPairs(pair.chat_tab_id);
   const tabInfo = db.getChatTab(pair.chat_tab_id);
   const project = tabInfo ? tabInfo.project_name || "" : "";
+  let allPairs = [];
+  if (project) {
+    allPairs = db.getAllChatPairsByProject(project, tabInfo ? tabInfo.session_id || '' : '');
+  } else {
+    allPairs = db.getAllChatPairs(pair.chat_tab_id);
+  }
   if (project && (!('project_context' in pair) || !pair.project_context)) {
     if (pair.system_context && pair.system_context.includes("Project:")) {
       const lines = pair.system_context.split("\n");
