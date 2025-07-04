@@ -1,0 +1,24 @@
+{% layout 'theme' %}
+<section class="collection-grid">
+  <h2>Collection: Aliens, UFOs</h2>
+  <div class="filters">
+    <!-- Filter placeholders -->
+    <span>Filter:</span>
+    <span>Availability</span>
+    <span>Price</span>
+    <span>Sort by:</span>
+  </div>
+  <ul class="product-grid">
+    {% for product in collections.all.products limit: 12 %}
+      <li class="product-item">
+        <a href="{{ product.url }}">
+          {% if product.featured_image %}
+            <img src="{{ product.featured_image | image_url: width: 300 }}" alt="{{ product.title }}">
+          {% endif %}
+          <h3>{{ product.title }}</h3>
+        </a>
+        <span class="price">{{ product.price | money }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>

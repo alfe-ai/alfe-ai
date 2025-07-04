@@ -1,0 +1,19 @@
+{% layout 'theme' %}
+<section class="collection-page">
+  <h1>{{ collection.title }}</h1>
+  <ul class="product-grid">
+    {% for product in collection.products %}
+      <li class="product-item">
+        <a href="{{ product.url }}">
+          {% if product.featured_image %}
+            <img src="{{ product.featured_image | image_url: width: 300 }}" alt="{{ product.title }}">
+          {% endif %}
+          <h3>{{ product.title }}</h3>
+        </a>
+        <span class="price">{{ product.price | money }}</span>
+      </li>
+    {% else %}
+      <li>No products found</li>
+    {% endfor %}
+  </ul>
+</section>
