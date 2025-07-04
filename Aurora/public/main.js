@@ -1791,6 +1791,13 @@ async function openRenameTabModal(tabId){
   $("#renameShowMosaicCheck").checked = mosaicPanelVisible;
   const typeSel = $("#renameTabTypeSelect");
   if(typeSel) typeSel.value = t ? t.tab_type || 'chat' : 'chat';
+  const projSel = $("#renameProjectSelect");
+  if(projSel){
+    const projects = Array.from(new Set(chatTabs.map(c => c.project_name).filter(p => p)));
+    projSel.innerHTML = '<option value="">(none)</option>' +
+      projects.map(p => `<option value="${p}">${p}</option>`).join('');
+    projSel.value = t && t.project_name ? t.project_name : '';
+  }
   const modal = $("#renameTabModal");
   if(!modal){
     renameTab(tabId);
@@ -1835,8 +1842,8 @@ $("#renameTabInput").addEventListener("keydown", evt => {
 $("#renameAssignProjectBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
   const tabId = parseInt(modal.dataset.tabId, 10);
-  let project = prompt("Project name:");
-  if(project === null) return;
+  const projSel = $("#renameProjectSelect");
+  let project = projSel ? projSel.value : "";
   project = project.trim();
   const tab = chatTabs.find(t => t.id === tabId) || {};
   const repo = tab.repo_ssh_url || '';
