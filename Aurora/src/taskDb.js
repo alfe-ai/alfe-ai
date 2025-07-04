@@ -161,6 +161,7 @@ export default class TaskDB {
                                               ai_timestamp TEXT,
                                               chat_tab_id INTEGER DEFAULT 1,
                                               system_context TEXT,
+                                              project_context TEXT,
                                               token_info TEXT,
                                               image_url TEXT,
                                               image_alt TEXT DEFAULT '',
@@ -263,6 +264,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_pairs.ebay_url column");
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_pairs.ebay_url column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN project_context TEXT DEFAULT '';`);
+      console.debug("[TaskDB Debug] Added chat_pairs.project_context column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_pairs.project_context column exists, skipping.", e.message);
     }
     try {
       this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN image_hidden INTEGER DEFAULT 0;`);
@@ -655,17 +662,17 @@ export default class TaskDB {
         .run(message, type, new Date().toISOString());
   }
 
-  createChatPair(userText, chatTabId = 1, systemContext = "", sessionId = "") {
+  createChatPair(userText, chatTabId = 1, systemContext = "", projectContext = "", sessionId = "") {
     const timestamp = new Date().toISOString();
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
-        chat_tab_id, system_context, token_info,
+        chat_tab_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, session_id
       )
       VALUES (
         @user_text, '', '', @timestamp, NULL,
-        @chat_tab_id, @system_context, NULL,
+        @chat_tab_id, @system_context, @project_context, NULL,
         NULL, '', '', @session_id
       )
     `).run({
@@ -673,6 +680,7 @@ export default class TaskDB {
       timestamp,
       chat_tab_id: chatTabId,
       system_context: systemContext,
+      project_context: projectContext,
       session_id: sessionId
     });
     return lastInsertRowid;
@@ -701,9 +709,9 @@ export default class TaskDB {
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
-        chat_tab_id, system_context, token_info,
+        chat_tab_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, image_status, session_id, ip_address, image_uuid, publish_portfolio, product_url, ebay_url
-      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url, @ebay_url)
+      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', '', NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url, @ebay_url)
     `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, ip_address: ipAddress, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl });
     return lastInsertRowid;
   }
@@ -854,12 +862,12 @@ export default class TaskDB {
     this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
-        chat_tab_id, system_context, token_info,
+        chat_tab_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, image_status,
         session_id, ip_address, image_uuid, publish_portfolio, product_url
       )
       SELECT user_text, ai_text, model, timestamp, ai_timestamp,
-        @new_id, system_context, token_info,
+        @new_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, image_status,
         session_id, ip_address, image_uuid, publish_portfolio, product_url
       FROM chat_pairs WHERE chat_tab_id=@old_id
