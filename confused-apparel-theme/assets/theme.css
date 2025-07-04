@@ -1,0 +1,32 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+}
+header, footer {
+  background: #f1f1f1;
+  padding: 1em;
+}
+header nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 1em;
+}
+.product-grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1em;
+}
+.product-item {
+  border: 1px solid #ddd;
+  padding: 1em;
+  text-align: center;
+}
+.user-links {
+  float: right;
+}
