@@ -2,41 +2,59 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>{{ shop.name }}</title>
+    <title>{{ shop.name }} — Confused Apparel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {{ content_for_header }}
     <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
   </head>
   <body>
-    <header>
-      <h1>Welcome to our store</h1>
-      <h2>{{ shop.name }}</h2>
-      <nav>
-        <ul>
-          <li><a href="{{ routes.root_url }}">Home</a></li>
-          <li><a href="{{ routes.all_products_collection_url }}">Catalog</a></li>
-          <li><a href="/pages/contact">Contact</a></li>
-        </ul>
-      </nav>
-      <div class="user-links">
-        <a href="/account">Log in</a>
-        <a href="/cart">Cart</a>
+    <!-- Header -->
+    <header class="site-header">
+      <div class="container flex-between">
+        <a class="logo" href="{{ routes.root_url }}">
+          {% if settings.logo != blank %}
+            <img src="{{ settings.logo | image_url: width: 160 }}" alt="{{ shop.name }} logo">
+          {% else %}
+            <span>{{ shop.name }}</span>
+          {% endif %}
+        </a>
+
+        <nav class="main-nav">
+          <ul class="flex-center gap-md">
+            <li><a href="{{ routes.root_url }}">Home</a></li>
+            <li><a href="{{ routes.all_products_collection_url }}">Catalog</a></li>
+            <li><a href="/pages/contact">Contact</a></li>
+          </ul>
+        </nav>
+
+        <div class="user-links flex-center gap-sm">
+          <a class="icon-link" href="/search"><span class="icon-search"></span></a>
+          <a class="icon-link" href="/account"><span class="icon-user"></span></a>
+          <a class="icon-link" href="/cart"><span class="icon-cart"></span></a>
+        </div>
       </div>
     </header>
 
-    <main>
+    <main class="container">
       {{ content_for_layout }}
     </main>
 
-    <footer>
-      <form method="post" action="/contact#ContactFooter">
-        <label for="SubscribeEmail">Subscribe to our emails</label>
-        <input type="email" name="contact[email]" id="SubscribeEmail" placeholder="Email">
-        <button type="submit">Subscribe</button>
-      </form>
-      {{ payment_methods }}
-      <p>&copy; {{ 'now' | date: '%Y' }}, {{ shop.name }} Powered by Shopify</p>
-      <a href="/policies/privacy-policy">Privacy policy</a>
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container grid-2 gap-lg">
+        <div>
+          <h4>Stay in the loop</h4>
+          <form method="post" action="/contact#ContactFooter" class="newsletter">
+            <input type="email" name="contact[email]" id="SubscribeEmail" placeholder="Your email" required>
+            <button type="submit">Subscribe</button>
+          </form>
+        </div>
+        <div class="text-right">
+          {{ payment_methods }}
+          <p>&copy; {{ 'now' | date: '%Y' }}, {{ shop.name }} Powered by Shopify</p>
+          <a href="/policies/privacy-policy">Privacy policy</a>
+        </div>
+      </div>
     </footer>
     {{ content_for_footer }}
   </body>

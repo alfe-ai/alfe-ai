@@ -8,6 +8,52 @@ header, footer {
   background: #f1f1f1;
   padding: 1em;
 }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1em;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+}
+
+.gap-md {
+  gap: 1em;
+}
+
+.gap-sm {
+  gap: 0.5em;
+}
+
+.gap-lg {
+  gap: 2em;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.icon-link span {
+  display: inline-block;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.logo img {
+  max-height: 40px;
+}
 header nav ul {
   list-style: none;
   padding: 0;
