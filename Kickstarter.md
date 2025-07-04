@@ -10,6 +10,8 @@ Alfe AI combines three core components into a single open-source stack:
 
 Everything is released under the Alfe AI License and available on GitHub for self-hosting or customization. The project ships with convenient deploy scripts and sample environment files to get you up and running quickly.
 
+In addition to the open-source version, a private cloud edition and native Android/iOS apps are available for purchase.
+
 ## The Story
 **Problem**
 - Creative and development teams juggle several SaaS tools, paying high fees and exposing private data.
