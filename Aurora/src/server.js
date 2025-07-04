@@ -579,7 +579,7 @@ async function generateInitialGreeting(type, client = null) {
 
 async function createInitialTabMessage(tabId, type, sessionId = '') {
   const greeting = await generateInitialGreeting(type);
-  const pairId = db.createChatPair('', tabId, '', sessionId);
+  const pairId = db.createChatPair('', tabId, '', '', sessionId);
   const defaultModel = db.getSetting("ai_model") || 'deepseek/deepseek-chat';
   db.finalizeChatPair(pairId, greeting, defaultModel, new Date().toISOString(), null);
 }
@@ -1689,12 +1689,15 @@ app.post("/api/chat", async (req, res) => {
 
     const { provider } = parseProviderModel(model || "deepseek/deepseek-chat");
     let systemContext = `System Context:\n${savedInstructions}`;
+    let projectContext = '';
     if (tabInfo && tabInfo.project_name) {
-      systemContext += `\nProject: ${tabInfo.project_name}`;
+      projectContext = `Project: ${tabInfo.project_name}`;
     }
-    systemContext += `\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
+    const fullContext = projectContext ?
+      `${systemContext}\n${projectContext}` : systemContext;
+    const sysContent = `${fullContext}\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
 
-    const conversation = [{ role: "system", content: systemContext }];
+    const conversation = [{ role: "system", content: sysContent }];
 
     for (const p of priorPairsAll) {
       conversation.push({ role: "user", content: p.user_text });
@@ -1703,7 +1706,7 @@ app.post("/api/chat", async (req, res) => {
       }
     }
 
-    const chatPairId = db.createChatPair(userMessage, chatTabId, systemContext, sessionId);
+    const chatPairId = db.createChatPair(userMessage, chatTabId, systemContext, projectContext, sessionId);
     conversation.push({ role: "user", content: finalUserMessage });
     db.logActivity("User chat", JSON.stringify({ tabId: chatTabId, message: userMessage, userTime }));
 
@@ -1796,7 +1799,7 @@ app.post("/api/chat", async (req, res) => {
     let diffMs = requestEndTime - requestStartTime;
     let responseTime = Math.ceil(diffMs * 0.01) / 100;
 
-    const systemTokens = countTokens(encoder, systemContext);
+    const systemTokens = countTokens(encoder, sysContent);
     let prevAssistantTokens = 0;
     let historyTokens = 0;
     for (const p of priorPairsAll) {
@@ -2116,14 +2119,18 @@ app.get("/pair/:id", (req, res) => {
   const allPairs = db.getAllChatPairs(pair.chat_tab_id);
   const tabInfo = db.getChatTab(pair.chat_tab_id);
   const project = tabInfo ? tabInfo.project_name || "" : "";
-  if (project && pair.system_context && !pair.system_context.includes("Project:")) {
-    const lines = pair.system_context.split("\n");
-    if (lines.length > 1) {
-      lines.splice(1, 0, `Project: ${project}`);
-    } else {
-      lines.push(`Project: ${project}`);
+  if (project && (!('project_context' in pair) || !pair.project_context)) {
+    if (pair.system_context && pair.system_context.includes("Project:")) {
+      const lines = pair.system_context.split("\n");
+      const idx = lines.findIndex(l => l.startsWith("Project:"));
+      if (idx !== -1) {
+        pair.project_context = lines.splice(idx, 1)[0];
+        pair.system_context = lines.join("\n");
+      }
     }
-    pair.system_context = lines.join("\n");
+    if (!pair.project_context) {
+      pair.project_context = `Project: ${project}`;
+    }
   }
   res.json({
     pair,

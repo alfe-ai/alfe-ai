@@ -4690,7 +4690,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
         addChatMessage(
             p.id, p.user_text, p.timestamp,
             p.ai_text, p.ai_timestamp,
-            p.model, p.system_context, null, p.token_info,
+            p.model, p.system_context, p.project_context, null, p.token_info,
             p.image_url, p.image_alt, p.image_title
         );
       }
@@ -4875,7 +4875,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
   }
 }
 
-function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemContext, fullHistory, tokenInfo, imageUrl=null, imageAlt='', imageTitle='') {
+function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemContext, projectContext, fullHistory, tokenInfo, imageUrl=null, imageAlt='', imageTitle='') {
   const chatMessagesEl = document.getElementById("chatMessages");
   const ts = userTs || aiTs || new Date().toISOString();
   const dateStr = isoDate(ts);
@@ -5093,6 +5093,24 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
         scDetails.appendChild(lineBubble);
       });
       metaContainer.appendChild(scDetails);
+    }
+
+    if (projectContext) {
+      const prDetails = document.createElement("details");
+      const prSum = document.createElement("summary");
+      prSum.textContent = `Project Context`;
+      prDetails.appendChild(prSum);
+
+      const prLines = projectContext.split(/\r?\n/);
+      prLines.forEach(line => {
+        if (!line.trim()) return;
+        const lineBubble = document.createElement("div");
+        lineBubble.className = "chat-bot";
+        lineBubble.style.marginTop = "4px";
+        lineBubble.textContent = line;
+        prDetails.appendChild(lineBubble);
+      });
+      metaContainer.appendChild(prDetails);
     }
 
     if (fullHistory) {
