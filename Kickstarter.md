@@ -70,8 +70,6 @@ We’re seeking **$60,000** to bring Alfe AI to a polished v1.0 release.
 
 ## The Team
 - **Lochner Tech** – Lead developer and project maintainer
-- **UX Designer** – Specializes in developer tools and intuitive UI
-- **Community Manager** – Former open-source project lead focused on privacy advocacy
 
 ## Why Back Alfe AI?
 - Own and control your AI tooling end-to-end.
