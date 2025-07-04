@@ -110,6 +110,7 @@ let showArchivedTabs = false;
 let topChatTabsBarVisible = false; // visibility of the top chat tabs bar
 let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
+let groupTabsByProject = false;   // group chat tabs by project
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -956,7 +957,7 @@ async function loadSettings(){
     "ai_models_menu_visible","tasks_menu_visible","jobs_menu_visible",
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
-    "new_tab_project_enabled"
+    "new_tab_project_enabled","group_tabs_by_project"
   ];
   const map = await getSettings(keys);
 
@@ -1077,6 +1078,10 @@ async function loadSettings(){
 
   if(typeof map.show_archived_tabs !== "undefined"){
     showArchivedTabs = !!map.show_archived_tabs;
+  }
+
+  if(typeof map.group_tabs_by_project !== "undefined"){
+    groupTabsByProject = map.group_tabs_by_project !== false;
   }
 
   if(typeof map.show_dependencies_column !== "undefined"){
@@ -1936,8 +1941,25 @@ function renderTabs(){
 function renderSidebarTabs(){
   const container = document.getElementById("verticalTabsContainer");
   container.innerHTML="";
+  const tabs = chatTabs.filter(t => showArchivedTabs || !t.archived);
+  if(groupTabsByProject){
+    const groups = new Map();
+    tabs.forEach(t => {
+      const key = t.project_name || "";
+      if(!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
+    });
+    for(const [project, list] of groups.entries()){
+      const header = document.createElement("div");
+      header.className = "tab-project-header";
+      header.textContent = project || "(No project)";
+      container.appendChild(header);
+      list.forEach(tab => renderSidebarTabRow(container, tab));
+    }
+    return;
+  }
   let lastDate = null;
-  chatTabs.filter(t => showArchivedTabs || !t.archived).forEach(tab => {
+  tabs.forEach(tab => {
     const tabDate = isoDate(tab.created_at);
     if(tabDate !== lastDate){
       const header = document.createElement("div");
@@ -1946,78 +1968,80 @@ function renderSidebarTabs(){
       container.appendChild(header);
       lastDate = tabDate;
     }
-    const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
-    wrapper.style.alignItems = "center";
-    wrapper.style.gap = "4px";
-    wrapper.style.width = "100%";
-
-    // Container holding the tab title and creation date
-    const info = document.createElement("div");
-    info.style.display = "flex";
-    info.style.justifyContent = "space-between";
-    info.style.alignItems = "center";
-    info.style.flexGrow = "1";
-
-    const b = document.createElement("button");
-    const icon = document.createElement("span");
-    icon.className = "tab-icon";
-    icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
-    b.appendChild(icon);
-    b.appendChild(document.createTextNode(tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "")));
-    if (tab.id === currentTabId) {
-      b.classList.add("active");
-    }
-    b.style.flexGrow = "1";
-    b.addEventListener("click", () => {
-      selectTab(tab.id);
-      if(isMobileViewport() && sidebarVisible){
-        toggleSidebar();
-      }
-    });
-    b.addEventListener("contextmenu", e => {
-      e.preventDefault();
-      if(tab.tab_uuid){
-        window.open(`/chat/${tab.tab_uuid}`, "_blank");
-      }
-    });
-
-    const dateSpan = document.createElement("span");
-    dateSpan.textContent = isoDate(tab.created_at);
-    dateSpan.className = "tab-date";
-
-    // Place title button and date in the info container
-    info.appendChild(b);
-    info.appendChild(dateSpan);
-
-    const renameBtn = document.createElement("button");
-    renameBtn.innerHTML = "&#9881;";
-    renameBtn.addEventListener("click", e => {
-      e.stopPropagation();
-      openRenameTabModal(tab.id);
-    });
-
-    const forkBtn = document.createElement("button");
-    forkBtn.textContent = "Fork";
-    forkBtn.addEventListener("click", e => {
-      e.stopPropagation();
-      duplicateTab(tab.id);
-    });
-
-    const archBtn = document.createElement("button");
-    archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
-    archBtn.title = tab.archived ? "Unarchive" : "Archive";
-    archBtn.addEventListener("click", e => {
-      e.stopPropagation();
-      toggleArchiveTab(tab.id, !tab.archived);
-    });
-
-    wrapper.appendChild(info);
-    wrapper.appendChild(renameBtn);
-    wrapper.appendChild(forkBtn);
-    wrapper.appendChild(archBtn);
-    container.appendChild(wrapper);
+    renderSidebarTabRow(container, tab);
   });
+}
+
+function renderSidebarTabRow(container, tab){
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.alignItems = "center";
+  wrapper.style.gap = "4px";
+  wrapper.style.width = "100%";
+
+  const info = document.createElement("div");
+  info.style.display = "flex";
+  info.style.justifyContent = "space-between";
+  info.style.alignItems = "center";
+  info.style.flexGrow = "1";
+
+  const b = document.createElement("button");
+  const icon = document.createElement("span");
+  icon.className = "tab-icon";
+  icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
+  b.appendChild(icon);
+  b.appendChild(document.createTextNode(tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "")));
+  if (tab.id === currentTabId) {
+    b.classList.add("active");
+  }
+  b.style.flexGrow = "1";
+  b.addEventListener("click", () => {
+    selectTab(tab.id);
+    if(isMobileViewport() && sidebarVisible){
+      toggleSidebar();
+    }
+  });
+  b.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    if(tab.tab_uuid){
+      window.open(`/chat/${tab.tab_uuid}`, "_blank");
+    }
+  });
+
+  const dateSpan = document.createElement("span");
+  dateSpan.textContent = isoDate(tab.created_at);
+  dateSpan.className = "tab-date";
+
+  info.appendChild(b);
+  info.appendChild(dateSpan);
+
+  const renameBtn = document.createElement("button");
+  renameBtn.innerHTML = "&#9881;";
+  renameBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    openRenameTabModal(tab.id);
+  });
+
+  const forkBtn = document.createElement("button");
+  forkBtn.textContent = "Fork";
+  forkBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    duplicateTab(tab.id);
+  });
+
+  const archBtn = document.createElement("button");
+  archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
+  archBtn.title = tab.archived ? "Unarchive" : "Archive";
+  archBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    toggleArchiveTab(tab.id, !tab.archived);
+  });
+
+  wrapper.appendChild(info);
+  wrapper.appendChild(renameBtn);
+  wrapper.appendChild(forkBtn);
+  wrapper.appendChild(archBtn);
+  container.appendChild(wrapper);
 }
 
 function renderArchivedSidebarTabs(){
@@ -5514,7 +5538,7 @@ async function loadFeatureFlags(){
     "nexum_chat_menu_visible","nexum_tabs_menu_visible","image_generator_menu_visible",
     "file_tree_menu_visible","ai_models_menu_visible","tasks_menu_visible",
     "jobs_menu_visible","view_tabs_bar_visible","chat_tabs_menu_visible",
-    "show_project_name_in_tabs","up_arrow_history_enabled","new_tab_project_enabled",
+    "show_project_name_in_tabs","group_tabs_by_project","up_arrow_history_enabled","new_tab_project_enabled",
     "show_session_id"
   ];
   const map = await getSettings(keys);
@@ -5531,6 +5555,7 @@ async function loadFeatureFlags(){
   if(typeof map.view_tabs_bar_visible !== "undefined") viewTabsBarVisible = !!map.view_tabs_bar_visible;
   if(typeof map.chat_tabs_menu_visible !== "undefined") chatTabsMenuVisible = map.chat_tabs_menu_visible !== false;
   if(typeof map.show_project_name_in_tabs !== "undefined") showProjectNameInTabs = map.show_project_name_in_tabs !== false;
+  if(typeof map.group_tabs_by_project !== "undefined") groupTabsByProject = map.group_tabs_by_project !== false;
   if(typeof map.up_arrow_history_enabled !== "undefined") upArrowHistoryEnabled = map.up_arrow_history_enabled !== false;
   if(typeof map.new_tab_project_enabled !== "undefined") newTabProjectNameEnabled = map.new_tab_project_enabled !== false;
   if(typeof map.show_session_id !== "undefined") showSessionId = map.show_session_id !== false;
@@ -5550,6 +5575,7 @@ document.getElementById("featureFlagsBtn").addEventListener("click", async () =>
   document.getElementById("chatTabsMenuCheck").checked = chatTabsMenuVisible;
   document.getElementById("viewTabsBarFlagCheck").checked = viewTabsBarVisible;
   document.getElementById("showProjectNameTabsCheck").checked = showProjectNameInTabs;
+  document.getElementById("groupTabsByProjectCheck").checked = groupTabsByProject;
   document.getElementById("showSessionIdCheck").checked = showSessionId;
   document.getElementById("imageGeneratorMenuCheck").checked = imageGeneratorMenuVisible;
   document.getElementById("upArrowHistoryCheck").checked = upArrowHistoryEnabled;
@@ -5573,6 +5599,7 @@ document.getElementById("featureFlagsSaveBtn").addEventListener("click", async (
   chatTabsMenuVisible = document.getElementById("chatTabsMenuCheck").checked;
   viewTabsBarVisible = document.getElementById("viewTabsBarFlagCheck").checked;
   showProjectNameInTabs = document.getElementById("showProjectNameTabsCheck").checked;
+  groupTabsByProject = document.getElementById("groupTabsByProjectCheck").checked;
   showSessionId = document.getElementById("showSessionIdCheck").checked;
   upArrowHistoryEnabled = document.getElementById("upArrowHistoryCheck").checked;
   newTabProjectNameEnabled = document.getElementById("newTabProjectFlagCheck").checked;
@@ -5587,6 +5614,7 @@ document.getElementById("featureFlagsSaveBtn").addEventListener("click", async (
   await setSetting("chat_tabs_menu_visible", chatTabsMenuVisible);
   await setSetting("view_tabs_bar_visible", viewTabsBarVisible);
   await setSetting("show_project_name_in_tabs", showProjectNameInTabs);
+  await setSetting("group_tabs_by_project", groupTabsByProject);
   await setSetting("show_session_id", showSessionId);
   await setSetting("up_arrow_history_enabled", upArrowHistoryEnabled);
   await setSetting("new_tab_project_enabled", newTabProjectNameEnabled);

@@ -821,6 +821,14 @@ body {
   color: #aaa;
 }
 
+/* Project header separating chat tabs by project */
+#verticalTabsContainer .tab-project-header {
+  margin: 6px 0 2px;
+  font-size: 0.9rem;
+  color: #aaa;
+  font-weight: bold;
+}
+
 #verticalTabsContainer button.active {
   background-color: #555;
   border-color: #aaa;
