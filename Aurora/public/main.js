@@ -1832,6 +1832,25 @@ $("#renameTabInput").addEventListener("keydown", evt => {
   if(evt.key === "Enter") $("#renameTabSaveBtn").click();
   else if(evt.key === "Escape") $("#renameTabCancelBtn").click();
 });
+$("#renameAssignProjectBtn").addEventListener("click", async () => {
+  const modal = $("#renameTabModal");
+  const tabId = parseInt(modal.dataset.tabId, 10);
+  let project = prompt("Project name:");
+  if(project === null) return;
+  project = project.trim();
+  const tab = chatTabs.find(t => t.id === tabId) || {};
+  const repo = tab.repo_ssh_url || '';
+  const type = tab.tab_type || 'chat';
+  await fetch('/api/chat/tabs/config', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({tabId, project, repo, type, sessionId})
+  });
+  await loadTabs();
+  renderTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
+});
 async function duplicateTab(tabId){
   const t = chatTabs.find(t => t.id===tabId);
   const newName = prompt("Enter name for forked tab:", t ? `${t.name} Copy` : "");
