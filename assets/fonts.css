@@ -1,11 +1,7 @@
-@font-face {
-  font-family: 'Press Start 2P';
-  src: url('PressStart2P.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
+/* Load brand fonts from Google Fonts so they work consistently across browsers */
+@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Press+Start+2P&display=swap');
 
 :root {
   --font-heading: 'Press Start 2P', cursive;
+  --brand-font: 'Luckiest Guy', cursive;
 }
