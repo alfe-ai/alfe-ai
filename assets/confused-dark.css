@@ -27,7 +27,10 @@ a:hover {color: #7dffd1;}
 /* ======  nav bar ====== */
 .site-header, .header-wrapper {background: var(--panel);} 
 .site-header a {color: var(--text-main);} 
-.site-header a:hover {color: var(--accent);} 
+.site-header a:hover {color: var(--accent);}
+
+/* logo text */
+.logo span {font-family: var(--brand-font);}
 
 /* ======  grid ====== */
 .product-grid {
@@ -110,7 +113,6 @@ hr,
   display: block;
 }
 .product-info h1 {
-  font-family: var(--brand-font);
   margin-top: 0;
 }
 .product-price {
