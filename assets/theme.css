@@ -281,12 +281,19 @@ header nav a {
 
   .mobile-menu-toggle {
     display: block;
+    margin-left: auto;
   }
 
   .user-links {
-    order: -1;
-    width: 100%;
+    order: 1;
+    width: auto;
+    margin-left: 0.5rem;
+    float: none;
     justify-content: flex-end;
+  }
+
+  .user-links > a:not([href="/cart"]) {
+    display: none;
   }
 }
 
