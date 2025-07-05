@@ -6,7 +6,7 @@
         <img class="secondary-image" src="{{ product.images[1] | image_url: width: 300 }}" loading="lazy" alt="">
       {% endif %}
     {% endif %}
-    <h3>{{ product.title }}</h3>
+    <h3 title="{{ product.title }}">{{ product.title }}</h3>
   </a>
   <span class="price">{{ product.price | money }}</span>
   {% if product.tags contains 'cat' %}
