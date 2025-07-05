@@ -427,6 +427,11 @@ input[type="number"] {
   color: var(--color-muted-gray);
 }
 
+.modal-title {
+  font-family: var(--brand-font);
+  margin-top: 0;
+}
+
 .modal-content .close {
   position: absolute;
   top: 0.25rem;
