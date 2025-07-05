@@ -259,6 +259,15 @@ header nav a {
   gap: 1rem;
 }
 
+/* Desktop placement for cart icon */
+.user-links > a.mobile-cart {
+  display: none;
+}
+
+.nav-cart-item {
+  display: inline-block;
+}
+
 .mobile-menu-toggle {
   display: none;
   font-size: 1.5rem;
@@ -312,6 +321,14 @@ header nav a {
 
   .user-links > a:not([href="/cart"]) {
     display: none;
+  }
+
+  .nav-cart-item {
+    display: none;
+  }
+
+  .user-links > a.mobile-cart {
+    display: inline-block;
   }
 }
 
