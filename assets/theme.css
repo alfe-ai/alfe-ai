@@ -63,6 +63,11 @@ footer {
   max-height: 40px;
 }
 
+.logo span {
+  font-size: 1.75rem;
+  font-family: var(--font-heading);
+}
+
 a {
   color: var(--color-neon-green);
   text-decoration: none;
