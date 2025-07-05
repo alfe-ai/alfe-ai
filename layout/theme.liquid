@@ -5,6 +5,8 @@
     <title>{{ shop.name }} — Confused Apparel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {{ content_for_header }}
+    <link rel="preload" href="{{ 'starfield.svg' | asset_url }}" as="image">
+    <link rel="stylesheet" href="{{ 'fonts.css' | asset_url }}">
     <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
   </head>
   <body>
@@ -56,6 +58,7 @@
         </div>
       </div>
     </footer>
+    <script src="{{ 'theme.js' | asset_url }}" defer></script>
     {{ content_for_footer }}
   </body>
 </html>

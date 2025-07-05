@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Confused Palette",
+    "settings": [
+      {
+        "type": "color",
+        "id": "color_bg_space",
+        "label": "Background space",
+        "default": "#060608"
+      },
+      {
+        "type": "color",
+        "id": "color_neon_green",
+        "label": "Neon green",
+        "default": "#34FFB9"
+      },
+      {
+        "type": "color",
+        "id": "color_magenta",
+        "label": "Magenta",
+        "default": "#FF2ED4"
+      },
+      {
+        "type": "color",
+        "id": "color_muted_gray",
+        "label": "Muted gray",
+        "default": "#999999"
+      }
+    ]
+  },
+  {
+    "name": "Typography",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "use_glitch_font",
+        "label": "Use glitch heading font",
+        "default": true
+      }
+    ]
+  }
+]
