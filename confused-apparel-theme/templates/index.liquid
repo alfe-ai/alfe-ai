@@ -1,15 +1,10 @@
 {% layout 'theme' %}
+{% assign target_collection = collections['aliens-ufos'] %}
 <section class="collection-grid">
-  <h2>Collection: Aliens, UFOs</h2>
-  <div class="filters">
-    <!-- Filter placeholders -->
-    <span>Filter:</span>
-    <span>Availability</span>
-    <span>Price</span>
-    <span>Sort by:</span>
-  </div>
+  <h2>{{ target_collection.title }}</h2>
   <ul class="product-grid">
-    {% for product in collections.all.products limit: 12 %}
+    {% assign sorted_products = target_collection.products | sort: 'created_at' %}
+    {% for product in sorted_products limit: 12 %}
       <li class="product-item">
         <a href="{{ product.url }}">
           {% if product.featured_image %}
@@ -19,6 +14,8 @@
         </a>
         <span class="price">{{ product.price | money }}</span>
       </li>
+    {% else %}
+      <li>No products found</li>
     {% endfor %}
   </ul>
 </section>
