@@ -223,13 +223,6 @@ header nav a {
   color: var(--color-neon-green);
 }
 
-.quick-view {
-  background: transparent;
-  border: none;
-  color: var(--color-magenta);
-  cursor: pointer;
-  font-size: 1.2rem;
-}
 
 .filters {
   position: sticky;

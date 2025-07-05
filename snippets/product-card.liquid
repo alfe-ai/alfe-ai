@@ -8,7 +8,6 @@
     {% endif %}
     <h3>{{ product.title }}</h3>
   </a>
-  <button class="quick-view" data-quick-view="{{ product.handle }}">&#128065;</button>
   <span class="price">{{ product.price | money }}</span>
   {% if product.tags contains 'cat' %}
     <span class="badge">cat</span>
