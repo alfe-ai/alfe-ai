@@ -1,7 +1,6 @@
 {% layout 'theme' %}
 {% section 'hero-glitch' %}
 <section class="collection-grid">
-  <h2>Collection: Aliens, UFOs</h2>
   <ul class="product-grid">
     {% for product in collections.all.products limit: 12 %}
       {% render 'product-card', product: product %}
