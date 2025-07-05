@@ -390,6 +390,10 @@ input[type="number"] {
   padding: 0.5rem;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .floating-cart-icon {
   width: 2rem;
   height: 2rem;
