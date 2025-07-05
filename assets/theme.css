@@ -263,6 +263,7 @@ header nav a {
   font-size: 1.5rem;
   cursor: pointer;
   margin-left: auto;
+  margin-right: 10px;
   color: var(--color-muted-gray);
 }
 
@@ -285,6 +286,7 @@ header nav a {
   .mobile-menu-toggle {
     display: block;
     margin-left: auto;
+    margin-right: 10px;
   }
 
   .user-links {
