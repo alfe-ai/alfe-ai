@@ -3,6 +3,8 @@
   --color-neon-green: {{ settings.color_neon_green }};
   --color-magenta: {{ settings.color_magenta }};
   --color-muted-gray: {{ settings.color_muted_gray }};
+  --color-button-blue: #007bff;
+  --color-button-blue-hover: #3399ff;
   --color-foreground: 255,255,255;
   --font-heading: {% if settings.use_glitch_font %}'Press Start 2P', cursive{% else %}'Luckiest Guy', cursive{% endif %};
 }
@@ -78,15 +80,15 @@ a:hover {
 }
 
 button {
-  background: #333;
-  color: var(--color-muted-gray);
-  border: 1px solid #555;
+  background: var(--color-button-blue);
+  color: #fff;
+  border: 1px solid #004a99;
   padding: 0.5em 1em;
   cursor: pointer;
 }
 
 button:hover {
-  background: var(--color-neon-green);
+  background: var(--color-button-blue-hover);
 }
 
 @media (prefers-reduced-motion:no-preference) {
@@ -96,9 +98,9 @@ button:hover {
 }
 
 @keyframes glitch {
-  0%,100% { clip-path: inset(0 0 0 0); }
-  33% { clip-path: inset(0 0 50% 0); transform: skew(0.5deg); }
-  66% { clip-path: inset(50% 0 0 0); transform: skew(-0.5deg); }
+  0%,100% { color: inherit; }
+  33% { color: var(--color-magenta); }
+  66% { color: var(--color-neon-green); }
 }
 
 input[type="email"] {
@@ -181,15 +183,15 @@ header nav a {
 
 .btn {
   display: inline-block;
-  background: #333;
-  color: #e6e6e6;
-  border: 1px solid #555;
+  background: var(--color-button-blue);
+  color: #fff;
+  border: 1px solid #004a99;
   padding: 0.5em 1em;
   text-decoration: none;
 }
 
 .btn:hover {
-  background: #444;
+  background: var(--color-button-blue-hover);
 }
 .user-links {
   float: right;
