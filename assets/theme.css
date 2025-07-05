@@ -262,6 +262,7 @@ header nav a {
   flex-wrap: wrap;
 }
 
+
 .nav-links {
   display: flex;
   gap: 1rem;
@@ -277,14 +278,17 @@ header nav a {
 
 @media (max-width: 768px) {
   .nav-links {
-    display: none;
+    display: flex;
     flex-direction: column;
     width: 100%;
     margin-top: 0.5rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
   }
 
   .nav-links.active {
-    display: flex;
+    max-height: 300px;
   }
 
   .mobile-menu-toggle {
