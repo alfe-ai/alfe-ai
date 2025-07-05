@@ -40,3 +40,18 @@ document.addEventListener('DOMContentLoaded', function() {
     desc.innerHTML = desc.innerHTML.replace(/sust\s*ainable/gi, 'sustainable');
   }
 });
+
+function openAboutModal(event) {
+  if (event) event.preventDefault();
+  const modal = document.getElementById('about-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeAboutModal() {
+  const modal = document.getElementById('about-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}

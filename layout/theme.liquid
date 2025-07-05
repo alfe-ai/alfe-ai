@@ -28,7 +28,7 @@
             <ul class="nav-links flex-center gap-md">
               <li><a href="{{ routes.root_url }}">Home</a></li>
               <li><a href="{{ routes.all_products_collection_url }}">Catalog</a></li>
-              <li><a href="/pages/about">About</a></li>
+              <li><a href="#" id="about-link" onclick="openAboutModal(event)">About</a></li>
               <li><a href="{{ pages.contact.url }}">Contact</a></li>
               <li><a href="https://bsky.app/profile/confused-art.bsky.social" target="_blank" rel="noopener">Bluesky</a></li>
             </ul>
@@ -70,6 +70,12 @@
         </div>
       </div>
     </footer>
+    <div id="about-modal" class="modal hidden">
+      <div class="modal-content">
+        <span class="close" onclick="closeAboutModal()">&times;</span>
+        <p>Arcane symbols. Forgotten gods. Hidden meanings. Confused Apparel offers esoteric apparel for those walking between worlds. Shirts and gear inspired by ritual, conspiracy, and chaos magic. Wear the sigil. Confuse the system. Stay soft.</p>
+      </div>
+    </div>
     <script src="{{ 'theme.js' | asset_url }}" defer></script>
     {{ content_for_footer }}
   </body>
