@@ -37,6 +37,12 @@ a:hover {color: #7dffd1;}
   padding-bottom: 4rem;
 }
 
+@media (min-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  }
+}
+
 /* ======  product card ====== */
 .product-card,
 .card-wrapper {        /* theme variations */
@@ -59,15 +65,19 @@ a:hover {color: #7dffd1;}
 }
 /* title */
 .product-card__title,
-.card-information__text {
+.card-information__text,
+.product-item h3 {
   padding: .75rem .9rem 0;
   font-size: .95rem;
-  line-height: 1.25;
-  height: 2.5rem;                  /* two-line clamp */
+  line-height: 1.3;
+  max-height: 3.4rem;               /* ~2.5 lines */
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 2;            /* clamp to two lines */
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;          /* show ellipsis when truncated */
+  color: #e7e7e7;                   /* softer than neon */
+  font-weight: 500;
 }
 /* price */
 .price,
@@ -75,6 +85,7 @@ a:hover {color: #7dffd1;}
   color: var(--accent);
   font-weight: 600;
   padding: 0 .9rem 1rem;
+  margin-top: auto;                 /* align to card bottom */
 }
 .price--on-sale .price-item--regular {opacity:.5;}
 /* hide the black “divider bars” if those are theme elements */
