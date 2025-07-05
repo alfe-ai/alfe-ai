@@ -12,3 +12,7 @@ This folder contains a minimalist dark Shopify theme. Follow these steps to uplo
 
 The theme files are inside the `assets`, `layout`, `sections`, `snippets` and `templates` folders.
 Additional color and typography settings can be configured under the **Confused Palette** section in the theme editor.
+
+## Required Pages
+
+Create an **About** page and a **Return policy** page in your Shopify admin so the navigation links work correctly. Set the handles to `about` and `returns`, then assign the `page.about` and `page.returns` templates.
