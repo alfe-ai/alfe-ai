@@ -368,13 +368,5 @@ input[type="number"] {
   border-radius: 4px;
 }
 
-.ebay-reviews {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-}
-
-.ebay-reviews a {
-  color: var(--color-neon-green);
-}
 
 
