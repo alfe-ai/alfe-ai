@@ -11,21 +11,7 @@
   </div>
   <ul class="product-grid">
     {% for product in collections.all.products limit: 12 %}
-<<<<<<< HEAD
-      <li class="product-item">
-        <a href="{{ product.url }}" class="product-image">
-          {% if product.featured_image %}
-            <img src="{{ product.featured_image | image_url: width: 300 }}" alt="{{ product.title }}">
-          {% endif %}
-        </a>
-        <h3>{{ product.title }}</h3>
-        <span class="price">{{ product.price | money }}</span>
-      </li>
-    {% else %}
-      <li class="no-results">No products found</li>
-=======
       {% render 'product-card', product: product %}
->>>>>>> origin/codex/implement-confused-apparel-theme-customizations
     {% endfor %}
   </ul>
 </section>

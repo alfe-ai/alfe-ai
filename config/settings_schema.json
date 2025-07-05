@@ -1,25 +1,5 @@
 [
   {
-<<<<<<< HEAD
-    "name": "Theme settings",
-    "settings": [
-      {
-        "type": "image_picker",
-        "id": "logo",
-        "label": "Logo"
-      },
-      {
-        "type": "color",
-        "id": "bg_color",
-        "label": "Background color",
-        "default": "#121212"
-      },
-      {
-        "type": "color",
-        "id": "text_color",
-        "label": "Text color",
-        "default": "#e6e6e6"
-=======
     "name": "Confused Palette",
     "settings": [
       {
@@ -56,7 +36,6 @@
         "id": "use_glitch_font",
         "label": "Use glitch heading font",
         "default": true
->>>>>>> origin/codex/implement-confused-apparel-theme-customizations
       }
     ]
   }
