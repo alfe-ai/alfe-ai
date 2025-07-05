@@ -3,6 +3,7 @@
   {% section 'hero-glitch' %}
 {% endif %}
 <section class="collection-page">
+  <h1 class="page-title">{{ collection.title }}</h1>
   <ul class="product-grid">
     {% for product in collection.products %}
       {% render 'product-card', product: product %}
