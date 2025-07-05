@@ -145,7 +145,7 @@ header nav a {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1em;
+  gap: 2em; /* more breathing room */
   justify-content: center;
 }
 
@@ -159,6 +159,17 @@ header nav a {
   align-items: center;
   border-radius: 0.5em;
   overflow: hidden;
+  min-height: 360px; /* consistent card height */
+  transition: transform 0.2s ease-out;
+}
+.product-item:hover {
+  transform: translateY(-4px);
+}
+.product-item h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 }
 
 /* Ensure product descriptions inherit theme fonts/colors even if pasted
@@ -206,7 +217,8 @@ header nav a {
 .hero-glitch {
   position: relative;
   text-align: center;
-  padding: 2rem 1rem 1rem; /* tighter space above and below */
+  padding: 4rem 1rem 2rem; /* more space around hero */
+  margin-top: 4rem; /* create separation from nav */
   background-size: cover;
   color: var(--color-neon-green);
 }
@@ -216,8 +228,8 @@ header nav a {
 }
 
 .hero-glitch .hero-logo {
-  max-width: 500px;
-  width: 80%;
+  max-width: 600px;
+  width: 90%;
   height: auto;
   margin: 0 auto 0.5rem;
   display: block;
