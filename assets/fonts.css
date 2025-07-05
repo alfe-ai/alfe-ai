@@ -1,0 +1,11 @@
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('PressStart2P.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-heading: 'Press Start 2P', cursive;
+}

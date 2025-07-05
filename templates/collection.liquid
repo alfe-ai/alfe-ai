@@ -1,8 +1,12 @@
 {% layout 'theme' %}
+{% if collection.handle contains 'aliens-ufo' %}
+  {% section 'hero-glitch' %}
+{% endif %}
 <section class="collection-page">
   <h1>{{ collection.title }}</h1>
   <ul class="product-grid">
     {% for product in collection.products %}
+<<<<<<< HEAD
       <li class="product-item">
         <a href="{{ product.url }}" class="product-image">
           {% if product.featured_image %}
@@ -12,6 +16,9 @@
         <h3>{{ product.title }}</h3>
         <span class="price">{{ product.price | money }}</span>
       </li>
+=======
+      {% render 'product-card', product: product %}
+>>>>>>> origin/codex/implement-confused-apparel-theme-customizations
     {% else %}
       <li class="no-results">No products found</li>
     {% endfor %}
