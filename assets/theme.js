@@ -36,8 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       parent.removeChild(el);
     });
-    // Fix line break "sust\nainable" -> "sustainable"
-    desc.innerHTML = desc.innerHTML.replace(/sust\s*ainable/gi, 'sustainable');
+    // Fix line break "sust\nainable" or "sust<br>ainable" -> "sustainable"
+    // Match any whitespace or HTML tags between "sust" and "ainable"
+    desc.innerHTML = desc.innerHTML.replace(/sust(?:\s|<[^>]+>)*ainable/gi, 'sustainable');
   }
 });
 
