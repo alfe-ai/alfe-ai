@@ -189,19 +189,12 @@ header nav a {
   color: var(--color-neon-green);
 }
 
-.hero-glitch .glitch {
-  font-size: 2rem;
-  position: relative;
-  color: var(--color-neon-green);
-}
-
-.hero-glitch .glitch::after {
-  content: attr(data-text);
-  position: absolute;
-  left: 2px;
-  top: 0;
-  color: var(--color-magenta);
-  mix-blend-mode: difference;
+.hero-glitch .hero-logo {
+  max-width: 500px;
+  width: 80%;
+  height: auto;
+  margin: 0 auto 1rem;
+  display: block;
 }
 
 .product-item .secondary-image {
