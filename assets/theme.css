@@ -216,4 +216,38 @@ header nav a {
   color: var(--color-neon-green);
 }
 
+/* ====== product detail layout ====== */
+.product-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.product-detail .product-image {
+  flex: 1 1 50%;
+  min-width: 250px;
+}
+
+.product-detail .product-info {
+  flex: 1 1 300px;
+}
+
+.product-detail .product-price {
+  font-size: 1.4rem;
+  color: var(--color-neon-green);
+  margin: 0.5rem 0;
+}
+
+.product-detail label {
+  display: block;
+  margin-top: 1rem;
+}
+
+.shipping-note {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
 

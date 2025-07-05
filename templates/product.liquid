@@ -1,18 +1,27 @@
 {% layout 'theme' %}
 <article class="product-detail">
-  <h1>{{ product.title }}</h1>
   {% if product.featured_image %}
     <div class="product-image">
       <img src="{{ product.featured_image | image_url: width: 600 }}" alt="{{ product.title }}">
     </div>
   {% endif %}
-  <div class="product-description">
-    {{ product.description }}
+  <div class="product-info">
+    <h1>{{ product.title }}</h1>
+    <div class="product-price">{{ product.price | money }}</div>
+    {% if product.variants.size > 1 %}
+      {% for option in product.options_with_values %}
+        <label for="option-{{ option.position }}">{{ option.name }}</label>
+        <select id="option-{{ option.position }}" name="options[{{ option.position }}]">
+          {% for value in option.values %}
+            <option value="{{ value | escape }}">{{ value }}</option>
+          {% endfor %}
+        </select>
+      {% endfor %}
+    {% endif %}
+    {% form 'product', product %}
+      <button type="submit">Add to cart</button>
+    {% endform %}
+    <div class="product-description">{{ product.description }}</div>
+    <p class="shipping-note">Ships in 2-5 business days from USA.</p>
   </div>
-  <div class="product-price">
-    {{ product.price | money }}
-  </div>
-  {% form 'product', product %}
-    <button type="submit">Add to cart</button>
-  {% endform %}
 </article>
