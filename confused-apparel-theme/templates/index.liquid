@@ -9,7 +9,7 @@
     <span>Sort by:</span>
   </div>
   <ul class="product-grid">
-    {% for product in collections.all.products limit: 12 %}
+    {% for product in collections.all.products reversed limit: 12 %}
       <li class="product-item">
         <a href="{{ product.url }}">
           {% if product.featured_image %}
