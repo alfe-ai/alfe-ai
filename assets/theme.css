@@ -4,7 +4,7 @@
   --color-magenta: {{ settings.color_magenta }};
   --color-muted-gray: {{ settings.color_muted_gray }};
   --color-foreground: 255,255,255;
-  --font-heading: {% if settings.use_glitch_font %}'Press Start 2P', cursive{% else %}'Orbitron', sans-serif{% endif %};
+  --font-heading: {% if settings.use_glitch_font %}'Press Start 2P', cursive{% else %}'Luckiest Guy', cursive{% endif %};
 }
 
 body {
