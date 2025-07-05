@@ -25,7 +25,11 @@ a:hover {color: #7dffd1;}
 .collection-hero__description {text-align:center; opacity:.7;}
 
 /* ======  nav bar ====== */
-.site-header, .header-wrapper {background: var(--panel);} 
+.site-header, .header-wrapper {background: var(--panel);}
+.site-header {
+  /* reduce vertical padding to shrink nav bar height by 30px */
+  padding: calc(1em - 15px) 1em;
+}
 .site-header a {
   color: var(--text-main);
   font-family: var(--font-nav);
