@@ -39,4 +39,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fix line break "sust\nainable" -> "sustainable"
     desc.innerHTML = desc.innerHTML.replace(/sust\s*ainable/gi, 'sustainable');
   }
+
+  const returnLink = document.getElementById('return-policy-link');
+  const returnModal = document.getElementById('return-modal');
+  const returnClose = document.getElementById('return-modal-close');
+  if (returnLink && returnModal && returnClose) {
+    returnLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      returnModal.classList.remove('hidden');
+    });
+    returnClose.addEventListener('click', function() {
+      returnModal.classList.add('hidden');
+    });
+    returnModal.addEventListener('click', function(e) {
+      if (e.target === returnModal) {
+        returnModal.classList.add('hidden');
+      }
+    });
+  }
 });

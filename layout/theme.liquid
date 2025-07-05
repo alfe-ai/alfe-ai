@@ -63,14 +63,22 @@
         <div class="text-right">
           {{ payment_methods }}
           <p>&copy; 2024 - 2025, {{ shop.name }}</p>
-          <a href="/policies/privacy-policy">Privacy policy</a> |
-            <a href="/pages/returns">Return policy</a> |
+            <a href="/policies/privacy-policy">Privacy policy</a> |
+              <a href="#" id="return-policy-link">Return policy</a> |
             <a href="{{ pages.contact.url }}">Contact</a> |
           <a href="https://bsky.app/profile/confused-art.bsky.social" target="_blank" rel="noopener">Bluesky</a>
         </div>
       </div>
-    </footer>
-    <script src="{{ 'theme.js' | asset_url }}" defer></script>
-    {{ content_for_footer }}
-  </body>
-</html>
+      </footer>
+
+      <div id="return-modal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-content">
+          <button id="return-modal-close" class="modal-close" aria-label="Close">&times;</button>
+          <h2>Return Policy</h2>
+          <p>Returns are accepted within 30 days of purchase for new, unused products in their original condition. Contact us first so we can help.</p>
+        </div>
+      </div>
+      <script src="{{ 'theme.js' | asset_url }}" defer></script>
+      {{ content_for_footer }}
+    </body>
+  </html>
