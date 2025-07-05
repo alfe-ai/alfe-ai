@@ -10,4 +10,4 @@ This folder contains a minimalist dark Shopify theme. Follow these steps to uplo
 4. After the upload finishes, click **Publish** to activate the theme.
 5. Use **Customize** to adjust colors, fonts and sections to fit your brand.
 
-The theme files are inside the `assets`, `layout` and `templates` folders.
+The theme files are inside the `assets`, `config`, `layout` and `templates` folders.
