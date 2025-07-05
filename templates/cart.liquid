@@ -27,7 +27,11 @@
                 {% endif %}
               </td>
               <td>
-                <input type="number" name="updates[]" value="{{ item.quantity }}" min="0">
+                <select name="updates[]">
+                  {% for i in (0..4) %}
+                    <option value="{{ i }}" {% if item.quantity == i %}selected{% endif %}>{{ i }}</option>
+                  {% endfor %}
+                </select>
                 <input type="hidden" name="id[]" value="{{ item.key }}">
               </td>
               <td>{{ item.line_price | money }}</td>
