@@ -70,3 +70,18 @@ function closeReturnsModal() {
     modal.classList.add('hidden');
   }
 }
+
+function openTosModal(event) {
+  if (event) event.preventDefault();
+  const modal = document.getElementById('tos-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeTosModal() {
+  const modal = document.getElementById('tos-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
