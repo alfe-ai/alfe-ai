@@ -386,9 +386,10 @@ input[type="number"] {
   padding: 0.5rem;
 }
 
-.floating-cart .icon-cart {
+.floating-cart-icon {
   width: 2rem;
   height: 2rem;
+  display: block;
 }
 
 
