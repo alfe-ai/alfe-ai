@@ -31,15 +31,16 @@
               <li><a href="#" id="about-link" onclick="openAboutModal(event)">About</a></li>
               <li><a href="{{ pages.contact.url }}">Contact</a></li>
               <li><a href="https://bsky.app/profile/confused-art.bsky.social" target="_blank" rel="noopener">Bluesky</a></li>
-            </ul>
-          </nav>
+              <li class="nav-cart-item"><a class="icon-link" href="/cart"><span class="icon-cart"></span></a></li>
+              </ul>
+            </nav>
 
         <div class="mobile-menu-toggle" onclick="toggleMenu()">&#9776;</div>
 
         <div class="user-links flex-center gap-sm">
           <a class="icon-link" href="/search"><span class="icon-search"></span></a>
           <a class="icon-link" href="/account"><span class="icon-user"></span></a>
-          <a class="icon-link" href="/cart"><span class="icon-cart"></span></a>
+          <a class="icon-link mobile-cart" href="/cart"><span class="icon-cart"></span></a>
         </div>
       </div>
     </header>
