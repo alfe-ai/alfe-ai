@@ -2,13 +2,6 @@
 {% section 'hero-glitch' %}
 <section class="collection-grid">
   <h2>Collection: Aliens, UFOs</h2>
-  <div class="filters">
-    <!-- Filter placeholders -->
-    <span>Filter:</span>
-    <span>Availability</span>
-    <span>Price</span>
-    <span>Sort by:</span>
-  </div>
   <ul class="product-grid">
     {% for product in collections.all.products limit: 12 %}
       {% render 'product-card', product: product %}
