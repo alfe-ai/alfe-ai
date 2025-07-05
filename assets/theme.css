@@ -270,6 +270,10 @@ header nav a {
   transform: translate(30px, -40px);
 }
 
+.mobile-menu-toggle.open {
+  transform: translate(20px, -40px);
+}
+
 @media (max-width: 768px) {
   .nav-links {
     display: flex;
@@ -292,6 +296,10 @@ header nav a {
     margin-right: 60px;
     /* Move hamburger icon up by 40px and right by 30px */
     transform: translate(30px, -40px);
+  }
+
+  .mobile-menu-toggle.open {
+    transform: translate(20px, -40px);
   }
 
   .user-links {
