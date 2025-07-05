@@ -172,6 +172,11 @@ header nav a {
   font-family: inherit !important;
 }
 
+/* Prevent line wrapping for fixed words */
+.no-break {
+  white-space: nowrap;
+}
+
 .product-image {
   width: 100%;
   aspect-ratio: 4 / 3;
