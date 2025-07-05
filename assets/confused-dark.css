@@ -1,0 +1,83 @@
+/* ======  brand palette ====== */
+:root {
+  --bg: #0b0d0e;             /* page background */
+  --panel: #16181c;          /* cards / nav */
+  --text-main: #ffffffee;    /* body text */
+  --accent: #39ffb6;         /* neon beam green */
+  --brand-font: 'Orbitron', sans-serif;
+}
+
+/* ======  global ====== */
+body, .shopify-section {background: var(--bg); color: var(--text-main);} 
+a {color: var(--accent); transition: color .15s;} 
+a:hover {color: #7dffd1;}
+
+/* ======  header fixes ====== */
+.template-collection .page-title {display: none;}      /* kill duplicate */
+.collection-hero__title {
+  font-family: var(--brand-font);
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 1rem 0 .25rem;
+}
+.collection-hero__description {text-align:center; opacity:.7;}
+
+/* ======  nav bar ====== */
+.site-header, .header-wrapper {background: var(--panel);} 
+.site-header a {color: var(--text-main);} 
+.site-header a:hover {color: var(--accent);} 
+
+/* ======  grid ====== */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+  gap: 1.8rem;
+  padding-bottom: 4rem;
+}
+
+/* ======  product card ====== */
+.product-card,
+.card-wrapper {        /* theme variations */
+  background: var(--panel);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.product-card:hover,
+.card-wrapper:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 12px var(--accent);
+}
+/* images */
+.product-card .media,
+.card-wrapper .media {
+  aspect-ratio: 1/1;               /* keeps square thumbs */
+  object-fit: cover;
+}
+/* title */
+.product-card__title,
+.card-information__text {
+  padding: .75rem .9rem 0;
+  font-size: .95rem;
+  line-height: 1.25;
+  height: 2.5rem;                  /* two-line clamp */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* price */
+.price,
+.product-card__price {
+  color: var(--accent);
+  font-weight: 600;
+  padding: 0 .9rem 1rem;
+}
+.price--on-sale .price-item--regular {opacity:.5;}
+/* hide the black “divider bars” if those are theme elements */
+hr,
+.divider,
+.card__separator {display:none;}
