@@ -26,7 +26,10 @@ a:hover {color: #7dffd1;}
 
 /* ======  nav bar ====== */
 .site-header, .header-wrapper {background: var(--panel);} 
-.site-header a {color: var(--text-main);} 
+.site-header a {
+  color: var(--text-main);
+  font-family: var(--font-heading);
+}
 .site-header a:hover {color: var(--accent);}
 
 /* logo text */

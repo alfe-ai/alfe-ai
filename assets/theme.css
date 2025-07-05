@@ -141,6 +141,7 @@ header nav ul {
 header nav a {
   color: var(--color-muted-gray);
   font-size: 1.25rem;
+  font-family: var(--font-heading);
 }
 .product-grid {
   list-style: none;
