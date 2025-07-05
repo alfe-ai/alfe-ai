@@ -206,6 +206,10 @@ header nav a {
   float: right;
 }
 
+.user-links .icon-cart {
+  display: none;
+}
+
 .hero-glitch {
   position: relative;
   text-align: center;
@@ -310,8 +314,16 @@ header nav a {
     justify-content: flex-end;
   }
 
+  .nav-cart {
+    display: none;
+  }
+
   .user-links > a:not([href="/cart"]) {
     display: none;
+  }
+
+  .user-links .icon-cart {
+    display: inline-block;
   }
 }
 
