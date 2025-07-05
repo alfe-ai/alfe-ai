@@ -276,7 +276,8 @@ header nav a {
   }
 
   .nav-links.active {
-    max-height: 300px;
+     max-height: 300px;
+     margin-left: 20px;
   }
 
   .mobile-menu-toggle {
