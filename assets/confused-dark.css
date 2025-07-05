@@ -99,6 +99,10 @@ hr,
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 2rem;
   padding: 2rem 0;
+  color: var(--text-main);
+}
+.product-detail .product-info {
+  color: var(--text-main);
 }
 .product-media img {
   width: 100%;
