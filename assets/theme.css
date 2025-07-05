@@ -375,5 +375,21 @@ input[type="number"] {
   border-radius: 4px;
 }
 
+.floating-cart {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  background: #1b1b1b;
+  border: 1px solid #333;
+  border-radius: 50%;
+  padding: 0.5rem;
+}
+
+.floating-cart .icon-cart {
+  width: 2rem;
+  height: 2rem;
+}
+
 
 
