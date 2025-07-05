@@ -63,6 +63,7 @@
           {{ payment_methods }}
           <p>&copy; 2024 - 2025, {{ shop.name }}</p>
           <a href="/policies/privacy-policy">Privacy policy</a> |
+            <a href="#" onclick="openTosModal(event)">Terms of Service</a> |
             <a href="#" onclick="openReturnsModal(event)">Return policy</a> |
             <a href="{{ pages.contact.url }}">Contact</a> |
             <a href="{{ routes.root_url }}">Home</a> |
@@ -90,6 +91,14 @@
         <h2 style="font-family: var(--brand-font);">Return Policy</h2>
         <p>We accept returns of new, unused products in their original condition within 30 days of receipt.</p>
         <p>To initiate a return, please email orders@confused.store with your order ID and reason for return.</p>
+      </div>
+    </div>
+    <div id="tos-modal" class="modal hidden">
+      <div class="modal-content">
+        <span class="close" onclick="closeTosModal()">&times;</span>
+        <h2 style="font-family: var(--brand-font);">Terms of Service</h2>
+        <p>Using this store means you agree not to misuse our Services. All items are offered as-is and orders may be canceled at our discretion.</p>
+        <p>We may update these terms as needed. See our <a href="/policies/privacy-policy">Privacy Policy</a> for details on how we handle information.</p>
       </div>
     </div>
     <script src="{{ 'theme.js' | asset_url }}" defer></script>
