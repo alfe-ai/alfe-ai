@@ -271,6 +271,7 @@ header nav a {
 
 .nav-cart-item {
   display: inline-block;
+  margin-left: -0.75rem;
 }
 
 .mobile-menu-toggle {
@@ -412,16 +413,6 @@ input[type="number"] {
   border-radius: 4px;
 }
 
-.floating-cart {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 1000;
-  background: #1b1b1b;
-  border: 1px solid #333;
-  border-radius: 50%;
-  padding: 0.5rem;
-}
 
 .hidden {
   display: none !important;
@@ -463,11 +454,6 @@ input[type="number"] {
   color: var(--color-muted-gray);
 }
 
-.floating-cart-icon {
-  width: 2rem;
-  height: 2rem;
-  display: block;
-}
 
 
 
