@@ -119,11 +119,6 @@ input[type="email"] {
   display: inline-block;
 }
 
-.ufo-cart-link img {
-  display: block;
-  width: 1.5rem;
-  height: 1.5rem;
-}
 
 .text-right {
   text-align: right;
