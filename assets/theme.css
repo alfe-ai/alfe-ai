@@ -119,6 +119,13 @@ input[type="email"] {
   display: inline-block;
 }
 
+.icon-cart {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: url('{{ "ufo-cart.svg" | asset_url }}') no-repeat center/contain;
+  display: inline-block;
+}
+
 
 .text-right {
   text-align: right;
