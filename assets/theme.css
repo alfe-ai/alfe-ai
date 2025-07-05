@@ -153,6 +153,14 @@ header nav a {
   overflow: hidden;
 }
 
+/* Ensure product descriptions inherit theme fonts/colors even if pasted
+   rich text includes inline styles */
+.product-description,
+.product-description * {
+  color: var(--color-muted-gray) !important;
+  font-family: inherit !important;
+}
+
 .product-image {
   width: 100%;
   aspect-ratio: 4 / 3;
