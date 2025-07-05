@@ -1,4 +1,5 @@
 <div class="hero-glitch" style="background-image:url({{ section.settings.bg_image | image_url }});">
+  <img src="{{ 'hero-ambient.svg' | asset_url }}" alt="" class="hero-ambient" aria-hidden="true">
   {% if section.settings.hero_image != blank %}
     <img src="{{ section.settings.hero_image | image_url }}" alt="{{ section.settings.headline }}" class="hero-logo">
   {% else %}
