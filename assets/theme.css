@@ -6,7 +6,7 @@
   --color-button-blue: #007bff;
   --color-button-blue-hover: #3399ff;
   --color-foreground: 255,255,255;
-  --font-heading: {% if settings.use_glitch_font %}'Press Start 2P', cursive{% else %}'Luckiest Guy', cursive{% endif %};
+  --font-heading: {% if settings.use_glitch_font %}'Orbitron', sans-serif{% else %}'Bungee', cursive{% endif %};
 }
 
 body {
