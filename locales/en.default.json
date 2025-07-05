@@ -4,7 +4,8 @@
       "name": "Glitch Hero",
       "settings": {
         "headline": "Stay Confused",
-        "sub": "Aliens \u2022 UFOs \u2022 Cats"
+        "sub": "Aliens \u2022 UFOs \u2022 Cats",
+        "hero_image": "Hero logo"
       }
     }
   }

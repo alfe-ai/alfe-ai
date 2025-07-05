@@ -1,7 +1,9 @@
 <div class="hero-glitch" style="background-image:url({{ section.settings.bg_image | image_url }});">
-  <div class="glitch" data-text="{{ section.settings.headline }}">
-    {{ section.settings.headline }}
-  </div>
+  {% if section.settings.hero_image != blank %}
+    <img src="{{ section.settings.hero_image | image_url }}" alt="{{ section.settings.headline }}" class="hero-logo">
+  {% else %}
+    <img src="{{ 'hero-logo.svg' | asset_url }}" alt="{{ section.settings.headline }}" class="hero-logo">
+  {% endif %}
   <p>{{ section.settings.sub }}</p>
 </div>
 
@@ -10,6 +12,7 @@
   "name": "Glitch Hero",
   "settings": [
     { "type": "image_picker", "id": "bg_image", "label": "Background" },
+    { "type": "image_picker", "id": "hero_image", "label": "Hero logo" },
     { "type": "text", "id": "headline", "label": "Headline", "default": "Stay Confused" },
     { "type": "text", "id": "sub", "label": "Sub-text", "default": "Aliens • UFOs • Cats" }
   ]
