@@ -2,8 +2,16 @@
 function toggleMenu() {
   const menu = document.querySelector('.nav-links');
   const cart = document.querySelector('.floating-cart');
+  const toggle = document.querySelector('.mobile-menu-toggle');
   if (menu) {
     menu.classList.toggle('active');
+    if (toggle) {
+      if (menu.classList.contains('active')) {
+        toggle.classList.add('open');
+      } else {
+        toggle.classList.remove('open');
+      }
+    }
     if (cart) {
       if (menu.classList.contains('active')) {
         cart.classList.add('hidden');
