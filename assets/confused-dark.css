@@ -2,7 +2,7 @@
 :root {
   --bg: #0b0d0e;             /* page background */
   --panel: #16181c;          /* cards / nav */
-  --text-main: #ffffffee;    /* body text */
+  --text-main: #e5e5e5;    /* body text */
   --accent: #39ffb6;         /* neon beam green */
   --brand-font: 'Orbitron', sans-serif;
 }
@@ -81,3 +81,39 @@ a:hover {color: #7dffd1;}
 hr,
 .divider,
 .card__separator {display:none;}
+
+/* ====== product detail layout ====== */
+.product-detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+}
+.product-media img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.product-info h1 {
+  font-family: var(--brand-font);
+  margin-top: 0;
+}
+.product-price {
+  color: var(--accent);
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 1rem 0;
+}
+.product-options select {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--panel);
+  color: var(--text-main);
+  border: 1px solid #444;
+  margin-bottom: 1rem;
+}
+.ship-note {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 0.5rem;
+}
