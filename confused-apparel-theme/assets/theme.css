@@ -116,3 +116,10 @@ header nav a {
 .user-links {
   float: right;
 }
+
+.icon-link svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  vertical-align: middle;
+}
