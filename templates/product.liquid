@@ -11,24 +11,71 @@
     <div class="product-price">{{ product.price | money }}</div>
     <div class="product-description">{{ product.description }}</div>
 
-    {% form 'product', product %}
-      {% if product.variants.size > 1 %}
-        <div class="product-options">
-          <label for="product-select">Select option</label>
-          <select id="product-select" name="id">
-            {% for variant in product.variants %}
-              <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %}>
-                {{ variant.title }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-      {% else %}
-        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
-      {% endif %}
+      {% form 'product', product %}
+        {% if product.variants.size > 1 %}
+          {% assign option_color = product.options_with_values | where: 'name', 'Color' | first %}
+          {% assign option_size  = product.options_with_values | where: 'name', 'Size'  | first %}
 
-      <button type="submit">Add to cart</button>
-    {% endform %}
+          <input type="hidden" name="id" id="variant-id" value="{{ product.selected_or_first_available_variant.id }}">
+
+          {% if option_color %}
+            <div class="product-options">
+              <label for="color-select">Color</label>
+              <select id="color-select">
+                {% for value in option_color.values %}
+                  <option value="{{ value }}" {% if product.selected_or_first_available_variant.options[option_color.position | minus: 1] == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+
+          {% if option_size %}
+            <div class="product-options">
+              <label for="size-select">Size</label>
+              <select id="size-select">
+                {% for value in option_size.values %}
+                  <option value="{{ value }}" {% if product.selected_or_first_available_variant.options[option_size.position | minus: 1] == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+        {% else %}
+          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        {% endif %}
+
+        <button type="submit">Add to cart</button>
+      {% endform %}
+      {% if product.variants.size > 1 %}
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            var variants = {{ product.variants | json }};
+            var variantInput = document.getElementById('variant-id');
+            var colorSelect = document.getElementById('color-select');
+            var sizeSelect = document.getElementById('size-select');
+
+            function updateVariant() {
+              var selectedColor = colorSelect ? colorSelect.value : null;
+              var selectedSize = sizeSelect ? sizeSelect.value : null;
+              var matched = variants.find(function(v) {
+                var match = true;
+                {% if option_color %}
+                if (colorSelect) match = match && v.option{{ option_color.position }} === selectedColor;
+                {% endif %}
+                {% if option_size %}
+                if (sizeSelect) match = match && v.option{{ option_size.position }} === selectedSize;
+                {% endif %}
+                return match;
+              });
+              if (matched) {
+                variantInput.value = matched.id;
+              }
+            }
+
+            if (colorSelect) colorSelect.addEventListener('change', updateVariant);
+            if (sizeSelect) sizeSelect.addEventListener('change', updateVariant);
+          });
+        </script>
+      {% endif %}
     <p class="ship-note">Ships in 2-5 business days from USA.</p>
   </div>
 </article>
