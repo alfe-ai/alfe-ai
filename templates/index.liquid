@@ -2,7 +2,7 @@
 {% section 'hero-glitch' %}
 <section class="collection-grid">
   <ul class="product-grid">
-    {% for product in collections.all.products limit: 12 %}
+    {% for product in collections.all.products | sort: 'created_at' limit: 12 %}
       {% render 'product-card', product: product %}
     {% endfor %}
   </ul>
