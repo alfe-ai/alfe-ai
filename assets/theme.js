@@ -1,8 +1,16 @@
 // Theme scripts
 function toggleMenu() {
   const menu = document.querySelector('.nav-links');
+  const cart = document.querySelector('.floating-cart');
   if (menu) {
     menu.classList.toggle('active');
+    if (cart) {
+      if (menu.classList.contains('active')) {
+        cart.classList.add('hidden');
+      } else {
+        cart.classList.remove('hidden');
+      }
+    }
   }
 }
 
