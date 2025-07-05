@@ -1,0 +1,116 @@
+commit 807298c1edcc4bf13fe1951f8a7a5b25344d4b41
+Author: Lochner <lochner@lochner.tech>
+Date:   Fri Jul 4 19:33:51 2025 -0500
+
+            modified:   assets/theme.css
+            modified:   templates/collection.liquid
+            modified:   templates/index.liquid
+            modified:   templates/product.liquid
+
+diff --git a/assets/theme.css b/assets/theme.css
+index 695b1d2..473c12f 100644
+--- a/assets/theme.css
++++ b/assets/theme.css
+@@ -112,6 +112,40 @@ header nav a {
+   border: 1px solid #333;
+   padding: 1em;
+   text-align: center;
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++}
++
++.product-image {
++  width: 100%;
++  aspect-ratio: 4 / 3;
++  overflow: hidden;
++}
++
++.product-image img {
++  width: 100%;
++  height: 100%;
++  object-fit: contain;
++  display: block;
++}
++
++.no-results {
++  text-align: center;
++  padding: 2em 0;
++}
++
++.btn {
++  display: inline-block;
++  background: #333;
++  color: #e6e6e6;
++  border: 1px solid #555;
++  padding: 0.5em 1em;
++  text-decoration: none;
++}
++
++.btn:hover {
++  background: #444;
+ }
+ .user-links {
+   float: right;
+diff --git a/templates/collection.liquid b/templates/collection.liquid
+index f5fc8f3..333c11a 100644
+--- a/templates/collection.liquid
++++ b/templates/collection.liquid
+@@ -4,16 +4,16 @@
+   <ul class="product-grid">
+     {% for product in collection.products %}
+       <li class="product-item">
+-        <a href="{{ product.url }}">
++        <a href="{{ product.url }}" class="product-image">
+           {% if product.featured_image %}
+             <img src="{{ product.featured_image | image_url: width: 300 }}" alt="{{ product.title }}">
+           {% endif %}
+-          <h3>{{ product.title }}</h3>
+         </a>
++        <h3>{{ product.title }}</h3>
+         <span class="price">{{ product.price | money }}</span>
+       </li>
+     {% else %}
+-      <li>No products found</li>
++      <li class="no-results">No products found</li>
+     {% endfor %}
+   </ul>
+ </section>
+diff --git a/templates/index.liquid b/templates/index.liquid
+index cbca286..2ef1cd3 100644
+--- a/templates/index.liquid
++++ b/templates/index.liquid
+@@ -11,14 +11,16 @@
+   <ul class="product-grid">
+     {% for product in collections.all.products limit: 12 %}
+       <li class="product-item">
+-        <a href="{{ product.url }}">
++        <a href="{{ product.url }}" class="product-image">
+           {% if product.featured_image %}
+             <img src="{{ product.featured_image | image_url: width: 300 }}" alt="{{ product.title }}">
+           {% endif %}
+-          <h3>{{ product.title }}</h3>
+         </a>
++        <h3>{{ product.title }}</h3>
+         <span class="price">{{ product.price | money }}</span>
+       </li>
++    {% else %}
++      <li class="no-results">No products found</li>
+     {% endfor %}
+   </ul>
+ </section>
+diff --git a/templates/product.liquid b/templates/product.liquid
+index 99cb2ce..b1ed0b2 100644
+--- a/templates/product.liquid
++++ b/templates/product.liquid
+@@ -2,7 +2,9 @@
+ <article class="product-detail">
+   <h1>{{ product.title }}</h1>
+   {% if product.featured_image %}
+-    <img src="{{ product.featured_image | image_url: width: 600 }}" alt="{{ product.title }}">
++    <div class="product-image">
++      <img src="{{ product.featured_image | image_url: width: 600 }}" alt="{{ product.title }}">
++    </div>
+   {% endif %}
+   <div class="product-description">
+     {{ product.description }}
