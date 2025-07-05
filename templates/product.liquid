@@ -46,35 +46,43 @@
         <button type="submit" formmethod="post" formaction="/cart/add?return_to=/checkout">Buy Now</button>
       {% endform %}
       {% if product.variants.size > 1 %}
-        <script>
-          document.addEventListener('DOMContentLoaded', function() {
-            var variants = {{ product.variants | json }};
-            var variantInput = document.getElementById('variant-id');
-            var colorSelect = document.getElementById('color-select');
-            var sizeSelect = document.getElementById('size-select');
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              var variants = {{ product.variants | json }};
+              var variantInput = document.getElementById('variant-id');
+              var colorSelect = document.getElementById('color-select');
+              var sizeSelect = document.getElementById('size-select');
+              var imageElem = document.querySelector('.product-media img');
 
-            function updateVariant() {
-              var selectedColor = colorSelect ? colorSelect.value : null;
-              var selectedSize = sizeSelect ? sizeSelect.value : null;
-              var matched = variants.find(function(v) {
-                var match = true;
-                {% if option_color %}
-                if (colorSelect) match = match && v.option{{ option_color.position }} === selectedColor;
-                {% endif %}
-                {% if option_size %}
-                if (sizeSelect) match = match && v.option{{ option_size.position }} === selectedSize;
-                {% endif %}
-                return match;
-              });
-              if (matched) {
-                variantInput.value = matched.id;
+              function updateVariant() {
+                var selectedColor = colorSelect ? colorSelect.value : null;
+                var selectedSize = sizeSelect ? sizeSelect.value : null;
+                var matched = variants.find(function(v) {
+                  var match = true;
+                  {% if option_color %}
+                  if (colorSelect) match = match && v.option{{ option_color.position }} === selectedColor;
+                  {% endif %}
+                  {% if option_size %}
+                  if (sizeSelect) match = match && v.option{{ option_size.position }} === selectedSize;
+                  {% endif %}
+                  return match;
+                });
+                if (matched) {
+                  variantInput.value = matched.id;
+                  if (matched.featured_image && imageElem) {
+                    var src = matched.featured_image.src.split('?')[0] + '?width=600';
+                    imageElem.src = src;
+                    imageElem.alt = matched.featured_image.alt || imageElem.alt;
+                  }
+                }
               }
-            }
 
-            if (colorSelect) colorSelect.addEventListener('change', updateVariant);
-            if (sizeSelect) sizeSelect.addEventListener('change', updateVariant);
-          });
-        </script>
+              if (colorSelect) colorSelect.addEventListener('change', updateVariant);
+              if (sizeSelect) sizeSelect.addEventListener('change', updateVariant);
+
+              updateVariant();
+            });
+          </script>
       {% endif %}
       <p class="ship-note">Ships in 2-5 business days from USA.</p>
       <div class="product-description">{{ product.description }}</div>
