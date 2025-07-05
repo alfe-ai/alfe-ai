@@ -9,7 +9,6 @@
   <div class="product-info">
     <h1>{{ product.title }}</h1>
     <div class="product-price">{{ product.price | money }}</div>
-    <div class="product-description">{{ product.description }}</div>
 
       {% form 'product', product %}
         {% if product.variants.size > 1 %}
@@ -76,6 +75,7 @@
           });
         </script>
       {% endif %}
-    <p class="ship-note">Ships in 2-5 business days from USA.</p>
+      <p class="ship-note">Ships in 2-5 business days from USA.</p>
+      <div class="product-description">{{ product.description }}</div>
   </div>
 </article>
