@@ -43,13 +43,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function positionFloatingCart() {
   const cart = document.querySelector('.floating-cart');
-  const bluesky = document.querySelector('a[href="https://bsky.app/profile/confused-art.bsky.social"]');
-  if (!cart || !bluesky) return;
+  if (!cart) return;
   if (window.matchMedia('(min-width: 769px)').matches) {
-    const rect = bluesky.getBoundingClientRect();
-    cart.style.left = rect.right + 8 + 'px';
-    cart.style.top = rect.top + 'px';
-    cart.style.right = 'auto';
+    cart.style.top = '1rem';
+    cart.style.right = '1rem';
+    cart.style.left = 'auto';
   } else {
     cart.style.top = '1rem';
     cart.style.right = '1rem';
