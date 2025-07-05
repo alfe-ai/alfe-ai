@@ -3,7 +3,7 @@
 <section class="collection-grid">
   <h2>{{ target_collection.title }}</h2>
   <ul class="product-grid">
-    {% assign sorted_products = target_collection.products | sort: 'created_at' | reverse %}
+    {% assign sorted_products = target_collection.products | sort: 'created_at' %}
     {% for product in sorted_products limit: 12 %}
       <li class="product-item">
         <a href="{{ product.url }}">
