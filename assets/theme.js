@@ -55,3 +55,18 @@ function closeAboutModal() {
     modal.classList.add('hidden');
   }
 }
+
+function openReturnsModal(event) {
+  if (event) event.preventDefault();
+  const modal = document.getElementById('returns-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeReturnsModal() {
+  const modal = document.getElementById('returns-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
