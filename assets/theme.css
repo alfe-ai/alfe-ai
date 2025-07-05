@@ -315,6 +315,18 @@ header nav a {
   }
 }
 
+@media (max-width: 768px) {
+  .nav-cart {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .user-links > a[href="/cart"] {
+    display: none;
+  }
+}
+
 /* --- Cart page styling --- */
 .cart-page {
   background: #1b1b1b;
