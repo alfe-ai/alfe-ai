@@ -1,0 +1,48 @@
+{% layout 'theme' %}
+<section class="cart-page">
+  <h1>Your cart</h1>
+  {% if cart.item_count > 0 %}
+    <form action="/cart" method="post">
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th></th>
+            <th>Quantity</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in cart.items %}
+            <tr class="cart-item">
+              <td class="item-info">
+                <a href="{{ item.url }}">
+                  {% if item.image %}
+                    <img src="{{ item.image | image_url: width: 80 }}" alt="" loading="lazy">
+                  {% endif %}
+                  {{ item.product.title }}
+                </a>
+                {% if item.variant.title != 'Default Title' %}
+                  <div class="variant-title">{{ item.variant.title }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <input type="number" name="updates[]" value="{{ item.quantity }}" min="0">
+                <input type="hidden" name="id[]" value="{{ item.key }}">
+              </td>
+              <td>{{ item.line_price | money }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="cart-total">Subtotal: {{ cart.total_price | money }}</p>
+      <div class="cart-actions">
+        <button type="submit" name="update">Update cart</button>
+        <button type="submit" name="checkout">Check out</button>
+      </div>
+    </form>
+  {% else %}
+    <p>Your cart is empty.</p>
+  {% endif %}
+</section>
+
