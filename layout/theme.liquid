@@ -16,7 +16,7 @@
   <body>
     <!-- Header -->
     <header class="site-header">
-      <div class="container flex-between">
+      <div class="container header-wrapper">
         <a class="logo" href="{{ routes.root_url }}">
           {% if settings.logo != blank %}
             <img src="{{ settings.logo | image_url: width: 160 }}" alt="{{ shop.name }} logo">
@@ -26,12 +26,14 @@
         </a>
 
         <nav class="main-nav">
-          <ul class="flex-center gap-md">
+          <ul class="nav-links flex-center gap-md">
             <li><a href="{{ routes.root_url }}">Home</a></li>
             <li><a href="{{ routes.all_products_collection_url }}">Catalog</a></li>
             <li><a href="/pages/contact">Contact</a></li>
           </ul>
         </nav>
+
+        <div class="mobile-menu-toggle" onclick="toggleMenu()">&#9776;</div>
 
         <div class="user-links flex-center gap-sm">
           <a class="icon-link" href="/search"><span class="icon-search"></span></a>
