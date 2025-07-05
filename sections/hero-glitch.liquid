@@ -2,7 +2,7 @@
   {% if section.settings.hero_image != blank %}
     <img src="{{ section.settings.hero_image | image_url }}" alt="{{ section.settings.headline }}" class="hero-logo">
   {% else %}
-    <img src="{{ 'hero-logo.svg' | asset_url }}" alt="{{ section.settings.headline }}" class="hero-logo">
+    {% render 'hero-logo-svg' %}
   {% endif %}
   <p>{{ section.settings.sub }}</p>
 </div>
