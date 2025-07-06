@@ -52,8 +52,14 @@ function positionFloatingCart() {
     cart.style.top = '1rem';
     if (bluesky) {
       const rect = bluesky.getBoundingClientRect();
-      cart.style.left = rect.right + 8 + 'px';
-      cart.style.right = 'auto';
+      const offsetRight = rect.right;
+      if (offsetRight > 0) {
+        cart.style.left = offsetRight + window.pageXOffset + 8 + 'px';
+        cart.style.right = 'auto';
+      } else {
+        cart.style.left = 'auto';
+        cart.style.right = '1rem';
+      }
     } else {
       cart.style.left = 'auto';
       cart.style.right = '1rem';
@@ -69,6 +75,7 @@ function positionFloatingCart() {
 document.addEventListener('DOMContentLoaded', positionFloatingCart);
 window.addEventListener('load', positionFloatingCart);
 window.addEventListener('resize', positionFloatingCart);
+window.addEventListener('scroll', positionFloatingCart);
 
 function openAboutModal(event) {
   if (event) event.preventDefault();
