@@ -323,10 +323,15 @@ header nav a {
     margin-right: 60px;
     /* Move hamburger icon up by 40px and right by 30px */
     transform: translate(30px, -40px);
+    margin-top: 30px;
   }
 
   .mobile-menu-toggle.open {
     transform: translate(20px, -40px);
+  }
+
+  .logo {
+    margin-top: 30px;
   }
 
   .user-links {
