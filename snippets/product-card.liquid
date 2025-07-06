@@ -8,7 +8,14 @@
     {% endif %}
     <h3 title="{{ product.title }}">{{ product.title }}</h3>
   </a>
-  <span class="price">{{ product.price | money }}</span>
+  <span class="price{% if product.compare_at_price > product.price %} price--on-sale{% endif %}">
+    {% if product.compare_at_price > product.price %}
+      <span class="price-item price-item--regular">{{ product.compare_at_price | money }}</span>
+      <span class="price-item price-item--sale">{{ product.price | money }}</span>
+    {% else %}
+      {{ product.price | money }}
+    {% endif %}
+  </span>
   {% if product.tags contains 'cat' %}
     <span class="badge">cat</span>
   {% elsif product.tags contains 'ufo' %}
