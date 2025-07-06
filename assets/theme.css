@@ -293,12 +293,12 @@ header nav a {
   margin-left: auto;
   margin-right: 60px;
   color: var(--color-muted-gray);
-  /* Move hamburger icon up by 40px and right by 30px */
-  transform: translate(30px, -40px);
+  /* Move hamburger icon up by 30px and right by 30px */
+  transform: translate(30px, -30px);
 }
 
 .mobile-menu-toggle.open {
-  transform: translate(20px, -40px);
+  transform: translate(20px, -30px);
 }
 
 @media (max-width: 768px) {
@@ -326,13 +326,13 @@ header nav a {
     display: block;
     margin-left: auto;
     margin-right: 60px;
-    /* Move hamburger icon up by 40px and right by 30px */
-    transform: translate(30px, -40px);
+    /* Move hamburger icon up by 30px and right by 30px */
+    transform: translate(30px, -30px);
     margin-top: 30px;
   }
 
   .mobile-menu-toggle.open {
-    transform: translate(20px, -40px);
+    transform: translate(20px, -30px);
   }
 
   .user-links {
