@@ -292,10 +292,11 @@ header nav a {
   cursor: pointer;
   margin-left: auto;
   color: var(--color-muted-gray);
+  transition: transform 0.3s ease;
 }
 
 .mobile-menu-toggle.open {
-  /* no positional shift when menu opens */
+  transform: translateX(-30px);
 }
 
 @media (max-width: 768px) {
@@ -328,7 +329,7 @@ header nav a {
   }
 
   .mobile-menu-toggle.open {
-    /* keep icon aligned when menu opens */
+    transform: translateX(-30px);
   }
 
   .user-links {
