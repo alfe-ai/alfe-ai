@@ -436,6 +436,12 @@ input[type="number"] {
   padding: 0.5rem;
 }
 
+@media (min-width: 769px) {
+  .floating-cart {
+    transform: translateX(200px);
+  }
+}
+
 .hidden {
   display: none !important;
 }
