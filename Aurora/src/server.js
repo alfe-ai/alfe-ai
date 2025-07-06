@@ -3269,8 +3269,7 @@ app.post("/api/image/generate", async (req, res) => {
         model: modelName,
         prompt: finalPrompt.slice(0, 1000),
         n: countParsed,
-        size: imgSize,
-        response_format: "url"
+        size: imgSize
       });
     } catch (err) {
       if (
@@ -3282,8 +3281,7 @@ app.post("/api/image/generate", async (req, res) => {
             model: "dall-e-2",
             prompt: finalPrompt.slice(0, 1000),
             n: Math.min(countParsed, 4),
-            size: "1024x1024",
-            response_format: "url"
+            size: "1024x1024"
           });
           modelName = "dall-e-2";
         } catch (err2) {
