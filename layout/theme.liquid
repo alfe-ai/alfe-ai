@@ -47,6 +47,9 @@
 
     <a href="/cart" class="floating-cart icon-link" aria-label="Cart">
       <img src="{{ 'ufo-cart.svg' | asset_url }}" alt="Cart icon" class="floating-cart-icon" />
+      {% if cart.item_count > 0 %}
+        <span class="cart-count">{{ cart.item_count }}</span>
+      {% endif %}
     </a>
 
     <main class="container">
