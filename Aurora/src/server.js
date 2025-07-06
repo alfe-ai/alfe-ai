@@ -3247,12 +3247,12 @@ app.post("/api/image/generate", async (req, res) => {
     const openaiClient = new OpenAI({ apiKey: openAiKey });
 
     let modelName = (model || "dall-e-3").toLowerCase();
-    const allowedModels = ["dall-e-2", "dall-e-3"];
+    const allowedModels = ["dall-e-2", "dall-e-3", "gpt-image-1"];
     if (!allowedModels.includes(modelName)) {
       return res.status(400).json({ error: "Invalid model" });
     }
 
-    if (modelName === "dall-e-3") {
+    if (modelName === "dall-e-3" || modelName === "gpt-image-1") {
       countParsed = 1;
     } else {
       countParsed = Math.min(countParsed, 4);
@@ -3274,7 +3274,7 @@ app.post("/api/image/generate", async (req, res) => {
       });
     } catch (err) {
       if (
-        modelName === "dall-e-3" &&
+        (modelName === "dall-e-3" || modelName === "gpt-image-1") &&
         err?.type === "image_generation_user_error"
       ) {
         try {
