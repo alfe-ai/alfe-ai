@@ -322,7 +322,7 @@ header nav a {
   .mobile-menu-toggle {
     display: block;
     margin-left: auto;
-    margin-right: 40px;
+    margin-right: 30px;
   }
 
   .mobile-menu-toggle.open {
