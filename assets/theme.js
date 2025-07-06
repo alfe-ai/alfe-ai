@@ -51,11 +51,11 @@ function positionFloatingCart() {
     cart.style.top = '1rem';
     if (bluesky) {
       const rect = bluesky.getBoundingClientRect();
-      cart.style.left = rect.right + 8 + 'px';
+      cart.style.left = rect.right + 208 + 'px';
       cart.style.right = 'auto';
     } else {
       cart.style.left = 'auto';
-      cart.style.right = '1rem';
+      cart.style.right = '-200px';
     }
   } else {
     cart.style.top = '1rem';
