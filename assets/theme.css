@@ -291,14 +291,11 @@ header nav a {
   font-size: 1.5rem;
   cursor: pointer;
   margin-left: auto;
-  margin-right: 60px;
   color: var(--color-muted-gray);
-  /* Move hamburger icon up by 40px and right by 30px */
-  transform: translate(30px, -40px);
 }
 
 .mobile-menu-toggle.open {
-  transform: translate(20px, -40px);
+  /* no positional shift when menu opens */
 }
 
 @media (max-width: 768px) {
@@ -325,14 +322,10 @@ header nav a {
   .mobile-menu-toggle {
     display: block;
     margin-left: auto;
-    margin-right: 60px;
-    /* Move hamburger icon up by 40px and right by 30px */
-    transform: translate(30px, -40px);
-    margin-top: 30px;
   }
 
   .mobile-menu-toggle.open {
-    transform: translate(20px, -40px);
+    /* keep icon aligned when menu opens */
   }
 
   .user-links {
