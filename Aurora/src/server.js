@@ -3265,13 +3265,16 @@ app.post("/api/image/generate", async (req, res) => {
 
     let result;
     try {
-      result = await openaiClient.images.generate({
+      const params = {
         model: modelName,
         prompt: finalPrompt.slice(0, 1000),
         n: countParsed,
-        size: imgSize,
-        response_format: "url"
-      });
+        size: imgSize
+      };
+      if (modelName !== "gpt-image-1") {
+        params.response_format = "url";
+      }
+      result = await openaiClient.images.generate(params);
     } catch (err) {
       if (
         (modelName === "dall-e-3" || modelName === "gpt-image-1") &&
