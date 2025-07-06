@@ -217,6 +217,10 @@ header nav a {
   padding: 2rem 1rem 1rem; /* tighter space above and below */
   background-size: cover;
   color: var(--color-neon-green);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .hero-glitch .hero-ambient {
   position: absolute;
