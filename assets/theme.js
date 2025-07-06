@@ -48,6 +48,7 @@ function positionFloatingCart() {
   );
   if (!cart) return;
   if (window.matchMedia('(min-width: 769px)').matches) {
+    cart.style.position = 'sticky';
     cart.style.top = '1rem';
     if (bluesky) {
       const rect = bluesky.getBoundingClientRect();
@@ -58,12 +59,14 @@ function positionFloatingCart() {
       cart.style.right = '1rem';
     }
   } else {
+    cart.style.position = 'fixed';
     cart.style.top = '1rem';
     cart.style.right = '1rem';
     cart.style.left = 'auto';
   }
 }
 
+document.addEventListener('DOMContentLoaded', positionFloatingCart);
 window.addEventListener('load', positionFloatingCart);
 window.addEventListener('resize', positionFloatingCart);
 
