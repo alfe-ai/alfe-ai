@@ -173,6 +173,11 @@ if (db.getSetting("show_session_id") === undefined) {
   db.setSetting("show_session_id", false);
 }
 
+console.debug("[Server Debug] Checking or setting default 'remove_color_swatches' in DB...");
+if (db.getSetting("remove_color_swatches") === undefined) {
+  db.setSetting("remove_color_swatches", false);
+}
+
 const app = express();
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
@@ -585,6 +590,8 @@ async function createInitialTabMessage(tabId, type, sessionId = '') {
 }
 
 async function removeColorSwatches(filePath) {
+  const enabled = db.getSetting("remove_color_swatches");
+  if (!enabled) return;
   try {
     const img = await Jimp.read(filePath);
     const { width, height } = img.bitmap;
