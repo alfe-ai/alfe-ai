@@ -289,6 +289,15 @@
         .map(c => /^#/i.test(c) ? hexToColorName(c) : c)
         .join(', ');
     }
+    function toUrl(p){
+      if(!p) return null;
+      const idx = p.lastIndexOf('/uploads/');
+      if(idx !== -1){
+        const rel = p.slice(idx + 9).split('/').map(encodeURIComponent).join('/');
+        return '/uploads/' + rel;
+      }
+      return p;
+    }
     async function loadQueue(reset=false){
       console.debug('[Queue UI] loading queue... reset=' + reset);
       if(queueLoading) return;
@@ -472,9 +481,13 @@
           const startStr = job.startTime ? new Date(job.startTime).toLocaleString() : '';
           const finishStr = job.finishTime ? new Date(job.finishTime).toLocaleString() : '';
           const typeDisplay = job.type === 'upscale' ? 'upscale/backgroundRemove' : job.type;
+          const resultRaw = job.resultPath || '';
           const resultText = job.type === 'colorIdentify'
-            ? formatColorIdentifyResult(job.resultPath || '')
-            : (job.resultPath || '');
+            ? formatColorIdentifyResult(resultRaw)
+            : resultRaw;
+          const resultHtml = resultRaw && job.type !== 'colorIdentify'
+            ? `<a href="${toUrl(resultRaw)}" target="_blank">${resultText}</a>`
+            : resultText;
           tr.innerHTML = `
             <td>${job.id}</td>
             <td>${dbLink}</td>
@@ -485,7 +498,7 @@
             <td>${finishStr}</td>
             <td>${statusHtml}</td>
             <td>${jobLink}</td>
-            <td>${resultText}</td>
+            <td>${resultHtml}</td>
             <td>${job.productUrl ? `<a href="${job.productUrl}" target="_blank">${job.productUrl}</a>` : ''}</td>
             <td><button data-id="${job.id}" class="removeBtn">Remove</button></td>
           `;
