@@ -3297,7 +3297,13 @@ app.post("/api/image/generate", async (req, res) => {
       }
     }
 
-    const first = result.data?.[0]?.url || null;
+    let first = null;
+    if (result && Array.isArray(result.data) && result.data[0]) {
+      first = result.data[0].url || result.data[0].image_url || null;
+      if (first && typeof first === 'object' && first.url) {
+        first = first.url;
+      }
+    }
     console.debug("[Server Debug] OpenAI response url =>", first);
     if (!first) {
       return res.status(502).json({ error: "Received empty response from AI service" });
