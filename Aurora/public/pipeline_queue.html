@@ -119,6 +119,7 @@
     <label>Type:
       <select id="jobType">
         <option value="upscale">Upscale/BackgroundRemove</option>
+        <option value="removeBg">Remove Background</option>
         <option value="colorIdentify">Color Identify</option>
         <option value="printify">Printify</option>
         <option value="printifyTitleFix">Printify Title Fix</option>
@@ -591,7 +592,7 @@
     });
 
     async function queueAllVariants(file, dbId, variants){
-      const steps = ['upscale','colorIdentify','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
+      const steps = ['upscale','removeBg','colorIdentify','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
       for(const variant of variants){
         for(const step of steps){
           await fetch('api/pipelineQueue', {
@@ -794,7 +795,7 @@ async function updateVariantUI(file){
       console.debug('[Queue UI] enqueue clicked file=' + file + ' type=' + type + ' variant=' + variant);
       try{
         if(type === 'all'){
-          const steps = ['upscale','colorIdentify','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
+          const steps = ['upscale','removeBg','colorIdentify','printify','printifyTitleFix','printifyFixMockups','printifyFinalize'];
           for(const step of steps){
             await fetch('api/pipelineQueue', {
               method: 'POST',
