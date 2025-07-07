@@ -63,6 +63,15 @@ function checkPrintifyStatus(msg){
     }
   }
 }
+function toUrl(p){
+  if(!p) return null;
+  const idx = p.lastIndexOf('/uploads/');
+  if(idx !== -1){
+    const rel = p.slice(idx + 9).split('/').map(encodeURIComponent).join('/');
+    return '/uploads/' + rel;
+  }
+  return p;
+}
 async function loadJobs() {
   const res = await fetch('/api/jobHistory');
   const jobs = await res.json();
@@ -81,7 +90,7 @@ async function loadJobs() {
       <td>${startStr}</td>
       <td>${finishStr}</td>
       <td>${j.status}</td>
-      <td>${j.resultPath || ''}</td>
+      <td>${j.resultPath ? `<a href="${toUrl(j.resultPath)}" target="_blank">${j.resultPath}</a>` : ''}</td>
       <td>${j.productUrl ? `<a href="${j.productUrl}" target="_blank">${j.productUrl}</a>` : ''}</td>
     `;
     tr.style.cursor = 'pointer';
