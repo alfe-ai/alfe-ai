@@ -3298,29 +3298,48 @@ app.post("/api/image/generate", async (req, res) => {
     }
 
     let first = null;
+    let b64 = null;
     if (result && Array.isArray(result.data) && result.data[0]) {
-      first = result.data[0].url || result.data[0].image_url || null;
-      if (first && typeof first === 'object' && first.url) {
+      const item = result.data[0];
+      first = item.url || item.image_url || null;
+      if (first && typeof first === "object" && first.url) {
         first = first.url;
+      }
+      if (!first && item.b64_json) {
+        b64 = item.b64_json;
       }
     }
     console.debug("[Server Debug] OpenAI response url =>", first);
-    if (!first) {
+    if (!first && !b64) {
       return res.status(502).json({ error: "Received empty response from AI service" });
     }
 
-    let localUrl = first;
-    try {
-      const resp = await axios.get(first, { responseType: "arraybuffer" });
-      const ext = path.extname(new URL(first).pathname) || ".png";
-      const filename = `generated-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-      const filePath = path.join(uploadsDir, filename);
-      fs.writeFileSync(filePath, resp.data);
-      await removeColorSwatches(filePath);
-      console.debug("[Server Debug] Saved OpenAI image =>", filePath);
-      localUrl = `/uploads/${filename}`;
-    } catch(downloadErr) {
-      console.error("[Server Debug] Failed to download generated image:", downloadErr);
+    let localUrl = first || null;
+    if (b64) {
+      try {
+        const buffer = Buffer.from(b64, "base64");
+        const filename = `generated-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, buffer);
+        await removeColorSwatches(filePath);
+        console.debug("[Server Debug] Saved OpenAI image =>", filePath);
+        localUrl = `/uploads/${filename}`;
+      } catch (writeErr) {
+        console.error("[Server Debug] Failed to save base64 image:", writeErr);
+      }
+    } else if (first) {
+      try {
+        const resp = await axios.get(first, { responseType: "arraybuffer" });
+        const ext = path.extname(new URL(first).pathname) || ".png";
+        const filename = `generated-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, resp.data);
+        await removeColorSwatches(filePath);
+        console.debug("[Server Debug] Saved OpenAI image =>", filePath);
+        localUrl = `/uploads/${filename}`;
+      } catch (downloadErr) {
+        console.error("[Server Debug] Failed to download generated image:", downloadErr);
+      }
     }
 
     db.logActivity(
