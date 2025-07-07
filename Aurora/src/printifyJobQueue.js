@@ -17,6 +17,7 @@ export default class PrintifyJobQueue {
     this.printifyTitleFixScript = options.printifyTitleFixScript || '';
     this.runPuppetScript = options.runPuppetScript || '';
     this.colorIdentifyScript = options.colorIdentifyScript || '';
+    this.removeBgScript = options.removeBgScript || '';
     this.db = options.db || null;
     this.persistencePath = options.persistencePath || null;
 
@@ -350,6 +351,8 @@ export default class PrintifyJobQueue {
     let script = '';
     if (job.type === 'upscale') {
       script = this.upscaleScript;
+    } else if (job.type === 'removeBg') {
+      script = this.removeBgScript;
     } else if (
       job.type === 'printify' ||
       job.type === 'printifyPrice' ||
@@ -531,6 +534,12 @@ export default class PrintifyJobQueue {
         this._processNext();
         return;
       }
+    } else if (job.type === 'removeBg') {
+      const ext = path.extname(filePath);
+      const base = path.basename(filePath, ext);
+      const outPath = path.join(path.dirname(filePath), `${base}_nobg.png`);
+      args.push(filePath, outPath);
+      job.resultPath = outPath;
     } else {
       args.push(filePath);
       if (job.type === 'printify' && colorArgs.length) {
@@ -550,6 +559,7 @@ export default class PrintifyJobQueue {
       file: job.file,
       extra: { type: job.type, dbId: job.dbId, variant: job.variant, location },
     });
+    if (job.type === 'removeBg') jmJob.resultPath = job.resultPath;
     job.jobId = jmJob.id;
     job.startTime = jmJob.startTime;
     this.jobManager.addDoneListener(jmJob, () => {
@@ -597,6 +607,10 @@ export default class PrintifyJobQueue {
         if (last) {
           job.resultPath = last;
         }
+      } else if (job.type === 'removeBg') {
+        if (this.db) {
+          this.db.setUpscaledImage(`${originalUrl}-nobg`, job.resultPath);
+        }
       }
       if (this.db) {
         const statusMap = {
@@ -606,7 +620,8 @@ export default class PrintifyJobQueue {
           printifyTitleFix: 'Printify API Title Fix',
           printifyFixMockups: 'Printify Fix Mockups',
           printifyFinalize: 'Printify Finalize',
-          colorIdentify: 'Color Identify'
+          colorIdentify: 'Color Identify',
+          removeBg: 'Background Removed'
         };
         const status = statusMap[job.type] || job.type;
         this.db.setImageStatus(originalUrl, status);
