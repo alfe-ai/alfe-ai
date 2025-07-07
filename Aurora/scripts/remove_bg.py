@@ -2,25 +2,9 @@
 # remove_bg.py - make artwork transparencies for DTG/DTF printing
 import sys
 import pathlib
-import subprocess
-
-try:
-    from PIL import Image
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "Pillow"])
-    from PIL import Image
-
-try:
-    from rembg import remove
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "rembg"])
-    from rembg import remove
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
-    from tqdm import tqdm
+from PIL import Image
+from rembg import remove
+from tqdm import tqdm
 
 
 def process_image(src: pathlib.Path, dst: pathlib.Path):
