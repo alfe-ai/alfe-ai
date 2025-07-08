@@ -3435,7 +3435,7 @@ app.get("/Image.html", (req, res) => {
 // Default landing page
 app.get("/", (req, res) => {
   const sessionId = getSessionIdFromRequest(req);
-  if (req.hostname === "dev.alfe.sh" && sessionId) {
+  if (["dev.alfe.sh", "mvp2.alfe.sh", "app.alfe.sh"].includes(req.hostname) && sessionId) {
     try {
       const account = db.getAccountBySession(sessionId);
       if (account) {
