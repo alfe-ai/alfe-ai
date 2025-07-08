@@ -5928,14 +5928,18 @@ async function openGlobalAiSettings(){
   try {
     const service = await getSetting("ai_service");
     const searchModel = await getSetting("ai_search_model");
+    const reasoningModel = await getSetting("ai_reasoning_model");
     const resp = await fetch("/api/ai/models");
     if(resp.ok){
       const data = await resp.json();
       const sel = document.getElementById("globalAiModelSelect");
+      const reasoningSel = document.getElementById("globalAiReasoningModelSelect");
       sel.innerHTML = "";
+      reasoningSel.innerHTML = "";
       const favs = (data.models || []).filter(m => m.favorite);
       if(favs.length === 0){
         sel.appendChild(new Option("(no favorites)", ""));
+        reasoningSel.appendChild(new Option("(no favorites)", ""));
       } else {
         const showPrices = accountInfo && accountInfo.id === 1;
         favs.forEach(m => {
@@ -5943,10 +5947,12 @@ async function openGlobalAiSettings(){
               ? `${m.id} (limit ${m.tokenLimit}, in ${m.inputCost}, out ${m.outputCost})`
               : `${m.id} (limit ${m.tokenLimit})`;
           sel.appendChild(new Option(label, m.id));
+          reasoningSel.appendChild(new Option(label, m.id));
         });
       }
       const curModel = await getSetting("ai_model");
       if(curModel) sel.value = curModel;
+      if(reasoningModel) reasoningSel.value = reasoningModel;
     }
     if(searchModel){
       document.getElementById("globalAiSearchModelSelect").value = searchModel;
@@ -5970,11 +5976,13 @@ async function saveGlobalAiSettings(){
   const svc = document.getElementById("globalAiServiceSelect").value;
   const model = document.getElementById("globalAiModelSelect").value;
   const searchModel = document.getElementById("globalAiSearchModelSelect").value;
-  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel });
+  const reasoningModel = document.getElementById("globalAiReasoningModelSelect").value;
+  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel, ai_reasoning_model: reasoningModel });
   // keep local cache in sync so toggles use latest values immediately
   settingsCache.ai_service = svc;
   settingsCache.ai_model = model;
   settingsCache.ai_search_model = searchModel;
+  settingsCache.ai_reasoning_model = reasoningModel;
   modelName = model || "unknown";
   document.getElementById("modelHud").textContent = `Model: ${modelName}`;
   hideModal(document.getElementById("globalAiSettingsModal"));
