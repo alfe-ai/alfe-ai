@@ -2677,7 +2677,11 @@ function countTokens(encoder, text) {
 const chatInputEl = document.getElementById("chatInput");
 const chatSendBtnEl = document.getElementById("chatSendBtn");
 const waitingElem = document.getElementById("waitingCounter");
+const totalWaitingElem = document.getElementById("totalWaitCounter");
+let totalWaitTime = 0;
 const scrollDownBtnEl = document.getElementById("scrollDownBtn");
+
+if(totalWaitingElem) totalWaitingElem.textContent = "Total Waiting: 0.0s";
 
 setLoopUi(imageLoopEnabled);
 
@@ -2919,6 +2923,8 @@ chatSendBtnEl.addEventListener("click", async () => {
     });
     clearInterval(waitInterval);
     waitingElem.textContent = "";
+    totalWaitTime += waitTime;
+    if(totalWaitingElem) totalWaitingElem.textContent = `Total Waiting: ${totalWaitTime.toFixed(1)}s`;
 
     if(!resp.ok){
       clearInterval(ellipsisInterval);
@@ -2966,6 +2972,8 @@ chatSendBtnEl.addEventListener("click", async () => {
     clearInterval(waitInterval);
     clearInterval(ellipsisInterval);
     waitingElem.textContent = "";
+    totalWaitTime += waitTime;
+    if(totalWaitingElem) totalWaitingElem.textContent = `Total Waiting: ${totalWaitTime.toFixed(1)}s`;
     botTextSpan.textContent = "[Error occurred]";
     botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
   }

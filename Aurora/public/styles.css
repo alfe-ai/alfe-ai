@@ -212,6 +212,12 @@ body {
   height: 1.2em;
   margin-bottom: 0.5rem;
 }
+#totalWaitCounter {
+  font-size: 0.9rem;
+  color: #888;
+  height: 1.2em;
+  margin-bottom: 0.5rem;
+}
 
 /* Chat message bubble grouping */
 .chat-sequence {
