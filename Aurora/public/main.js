@@ -1410,7 +1410,7 @@ async function loadTasks(){
 }
 
 async function populateFilters(){
-  const pj = await (await fetch("/api/projects")).json();
+  const pj = await (await fetch("/api/projects?showArchived=0")).json();
   $("#projectFilter").innerHTML = '<option value="">All projects</option>' +
       pj.map(p=>`<option value="${p.project}">${p.project}</option>`).join("");
   const sp = await (await fetch("/api/sprints")).json();
@@ -1842,18 +1842,28 @@ async function openRenameTabModal(tabId){
   setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
-function openProjectSettingsModal(project){
+async function openProjectSettingsModal(project){
   const input = $("#projectSettingsNameInput");
   const modal = $("#projectSettingsModal");
   if(!input || !modal) return;
   input.value = project || "";
   modal.dataset.project = project || "";
   const tabs = chatTabs.filter(t => (t.project_name || "") === (project || ""));
-  const allArchived = tabs.length > 0 && tabs.every(t => t.archived);
+  let isArchived = tabs.length > 0 && tabs.every(t => t.archived);
+  if(tabs.length === 0){
+    try {
+      const res = await fetch('/api/projects?showArchived=1');
+      if(res.ok){
+        const list = await res.json();
+        const info = list.find(p => p.project === project);
+        if(info) isArchived = !!info.archived;
+      }
+    }catch(e){ console.error(e); }
+  }
   const archBtn = $("#projectSettingsArchiveBtn");
   if(archBtn){
-    archBtn.textContent = allArchived ? "Unarchive" : "Archive";
-    archBtn.dataset.archived = allArchived ? "1" : "0";
+    archBtn.textContent = isArchived ? "Unarchive" : "Archive";
+    archBtn.dataset.archived = isArchived ? "1" : "0";
   }
   showModal(modal);
   setTimeout(() => { input.focus(); input.select(); }, 0);
@@ -4021,7 +4031,7 @@ async function renderProjectsTable(){
   tblBody.innerHTML = "";
 
   const [projects, branches] = await Promise.all([
-    fetch("/api/projects").then(r=>r.json()),
+    fetch("/api/projects?showArchived=1").then(r=>r.json()),
     fetch("/api/projectBranches").then(r=>r.json())
   ]);
 
@@ -4034,13 +4044,16 @@ async function renderProjectsTable(){
   const allProjectNames = [...projNamesSet].sort();
 
   allProjectNames.forEach(projectName => {
+    const info = projects.find(p => p.project === projectName) || { archived: 0 };
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="project-rename-cell" style="border:1px solid #444; padding:2px 4px;" data-oldproj="${projectName}">${projectName}</td>
       <td style="border:1px solid #444; padding:2px 4px;">
         <input type="text" data-proj="${projectName}" class="projBranchInput" style="width:95%;" />
       </td>
-      <td style="border:1px solid #444; padding:2px 4px;"></td>
+      <td style="border:1px solid #444; padding:2px 4px;">
+        <button class="projArchBtn" data-proj="${projectName}" data-arch="${info.archived ? 1 : 0}">${info.archived ? 'Unarchive' : 'Archive'}</button>
+      </td>
     `;
     tblBody.appendChild(tr);
   });
@@ -4048,6 +4061,15 @@ async function renderProjectsTable(){
   $$(".projBranchInput", tblBody).forEach(inp => {
     const proj = inp.dataset.proj;
     inp.value = branchMap[proj] || "";
+  });
+
+  $$(".projArchBtn", tblBody).forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const proj = btn.dataset.proj;
+      const arch = btn.dataset.arch === "1";
+      await fetch('/api/projects/archive', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({project: proj, archived: !arch})});
+      await renderProjectsTable();
+    });
   });
 }
 
