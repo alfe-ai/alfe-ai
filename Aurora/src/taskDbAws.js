@@ -243,6 +243,38 @@ export default class TaskDBAws {
     }
   }
 
+  async createTask(title, project = '', sprint = '') {
+    const client = await this.pool.connect();
+    try {
+      const { rows } = await client.query('SELECT MAX(priority_number) AS m FROM issues');
+      const priority_number = (rows[0].m || 0) + 1;
+      const numRes = await client.query('SELECT MAX(number) AS m FROM issues');
+      const number = (numRes.rows[0].m || 0) + 1;
+      const created_at = new Date().toISOString();
+      const { rows: inserted } = await client.query(
+        `INSERT INTO issues (
+           github_id, repository, number, title, html_url,
+           task_id_slug, priority_number, priority, hidden,
+           project, sprint, fib_points, assignee, created_at, closed, status,
+           dependencies, blocking
+         ) VALUES (
+           NULL, 'local', $1, $2, '#',
+           $3, $4, 'Medium', 0,
+           $5, $6, NULL, NULL, $7, 0, 'Not Started',
+           '', ''
+         ) RETURNING id`,
+        [number, title, `local#${number}`, priority_number, project, sprint, created_at]
+      );
+      return inserted[0].id;
+    } finally {
+      client.release();
+    }
+  }
+
+  async setTitle(id, newTitle) {
+    await this.pool.query('UPDATE issues SET title=$1 WHERE id=$2', [newTitle, id]);
+  }
+
   // Placeholder methods for the rest of the TaskDB API used by server.js
   // Not fully implemented in this initial AWS port.
 }

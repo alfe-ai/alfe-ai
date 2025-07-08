@@ -1,6 +1,6 @@
 # TaskQueue
 
-Small Node.js utility that pulls open GitHub issues (labelled `task` by default) into an in-memory queue.
+Small Node.js utility that stores tasks in a local SQLite database.
 
 ## Quick start
 ```bash
@@ -14,10 +14,6 @@ npm start
 
 | Name             | Purpose                                               |
 | ---------------- | ----------------------------------------------------- |
-| `GITHUB_TOKEN`   | Personal access token (classic) with `repo` scope.    |
-| `GITHUB_OWNER`   | Repository owner or organisation.                     |
-| `GITHUB_REPO`    | Repository name.                                      |
-| `GITHUB_LABEL`   | (Optional) Issue label to filter on. If omitted, **all** open issues are returned. |
 | `OPENAI_API_KEY` | OpenAI API key for AI features ([get here](https://platform.openai.com/api-keys)) |
 | `OPENAI_MODEL`   | (Optional) Model ID for completions (default: deepseek/deepseek-chat)  |
 | `STABILITY_API_KEY` | (Optional) API key for the Stability AI upscaler |
@@ -45,15 +41,10 @@ Let's Encrypt. After generation, execute `../setup_ssl_permissions.sh <domain> [
 so the specified user can access the key and certificate without root.
 
 ### Obtaining API Keys
-1. **GitHub Token**:  
-   - Go to **Settings → Developer settings → Personal access tokens → Tokens (classic)**  
-   - Create token with `repo` scope
-
-2. **OpenAI API Key**:  
-   - Visit [OpenAI API Keys](https://platform.openai.com/api-keys)  
+1. **OpenAI API Key**:
+   - Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
    - Create new secret key and paste into `.env`
 
-The script prints matching open issues and the current queue size.
 
 ### Job Queue Node API
 A small helper class is provided for interacting with the printify pipeline queue from other Node.js processes. This allows running another Aurora server instance on a different machine and enqueueing jobs remotely.
