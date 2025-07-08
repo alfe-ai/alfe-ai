@@ -281,6 +281,7 @@
       <div id="chatPanel" style="position: relative;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
           <div id="modelHud" style="font-size:0.9rem; color:#aaa; margin-bottom:4px;"></div>
+          <button id="tabModelSettingsBtn" class="top-btn" title="Tab Model Settings">⚙️</button>
         </div>
 
 
@@ -323,6 +324,22 @@
     <div class="modal-buttons">
       <button id="colSaveBtn">Save</button>
       <button id="colCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="tabModelSettingsModal" class="modal">
+  <div class="modal-content">
+    <h2>Tab AI Model</h2>
+    <div style="margin-top:8px;">
+      <label>AI Model:
+        <select id="tabModelSelect"></select>
+      </label>
+    </div>
+    <div class="modal-buttons">
+      <button id="tabModelSaveBtn">Save</button>
+      <button id="tabModelClearBtn">Clear</button>
+      <button id="tabModelCancelBtn">Cancel</button>
     </div>
   </div>
 </div>

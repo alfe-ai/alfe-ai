@@ -90,6 +90,7 @@ export default class TaskDB {
                                                nexum INTEGER DEFAULT 0,
                                                project_name TEXT DEFAULT '',
                                                repo_ssh_url TEXT DEFAULT '',
+                                               model_override TEXT DEFAULT '',
                                                tab_type TEXT DEFAULT 'chat',
                                                session_id TEXT DEFAULT '',
                                              tab_uuid TEXT DEFAULT ''
@@ -130,6 +131,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_tabs.repo_ssh_url column");
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_tabs.repo_ssh_url column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec("ALTER TABLE chat_tabs ADD COLUMN model_override TEXT DEFAULT '';" );
+      console.debug("[TaskDB Debug] Added chat_tabs.model_override column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_tabs.model_override column exists, skipping.", e.message);
     }
     try {
       this.db.exec("ALTER TABLE chat_tabs ADD COLUMN tab_type TEXT DEFAULT 'chat';" );
@@ -820,6 +827,18 @@ export default class TaskDB {
   setChatTabGenerateImages(tabId, enabled = 1) {
     this.db.prepare("UPDATE chat_tabs SET generate_images=? WHERE id=?")
         .run(enabled ? 1 : 0, tabId);
+  }
+
+  setChatTabModel(tabId, model = '') {
+    this.db.prepare("UPDATE chat_tabs SET model_override=? WHERE id=?")
+        .run(model, tabId);
+  }
+
+  getChatTabModel(tabId) {
+    const row = this.db
+        .prepare("SELECT model_override FROM chat_tabs WHERE id=?")
+        .get(tabId);
+    return row ? row.model_override || '' : '';
   }
 
   getChatTabGenerateImages(tabId) {

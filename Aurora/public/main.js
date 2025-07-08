@@ -86,6 +86,7 @@ let visibleCols = new Set(columnsOrder.map(c => c.key));
 let allTasks = [];
 let dragSrcRow = null;
 let modelName = "unknown";
+let tabModelOverride = '';
 let previousModelName = null; // remember model when toggling search
 let tasksVisible = true;
 let markdownPanelVisible = false;
@@ -1959,6 +1960,13 @@ async function selectTab(tabId){
   loadChatHistory(tabId, true);
   const t = chatTabs.find(t => t.id === tabId);
   currentTabType = t ? t.tab_type || 'chat' : 'chat';
+  tabModelOverride = t && t.model_override ? t.model_override : '';
+  {
+    const globalModel = await getSetting("ai_model");
+    modelName = tabModelOverride || globalModel || "unknown";
+    const hud = document.getElementById("modelHud");
+    if(hud) hud.textContent = `Model: ${modelName}`;
+  }
   tabGenerateImages = currentTabType === 'design';
   const chk = document.getElementById("tabGenerateImagesCheck");
   if(chk){
@@ -5650,6 +5658,68 @@ document.getElementById("globalAiSettingsBtn").addEventListener("click", openGlo
 document.getElementById("globalAiSettingsSaveBtn").addEventListener("click", saveGlobalAiSettings);
 document.getElementById("globalAiSettingsCancelBtn").addEventListener("click", () => {
   hideModal(document.getElementById("globalAiSettingsModal"));
+});
+
+// ----------------------------------------------------------------------
+// Tab Model Settings modal
+// ----------------------------------------------------------------------
+async function openTabModelSettings(){
+  if(!currentTabId) return;
+  showPageLoader();
+  try{
+    const resp = await fetch("/api/ai/models");
+    if(resp.ok){
+      const data = await resp.json();
+      const sel = document.getElementById("tabModelSelect");
+      sel.innerHTML = "<option value=''>Default</option>";
+      const favs = (data.models||[]).filter(m=>m.favorite);
+      favs.forEach(m=>sel.appendChild(new Option(m.id,m.id)));
+      const t = chatTabs.find(t=>t.id===currentTabId);
+      if(t && t.model_override) sel.value = t.model_override;
+    }
+  }catch(e){
+    console.error("Error opening tab model settings:", e);
+  }finally{
+    hidePageLoader();
+    showModal(document.getElementById("tabModelSettingsModal"));
+  }
+}
+
+async function saveTabModelSettings(){
+  const model = document.getElementById("tabModelSelect").value.trim();
+  await fetch("/api/chat/tabs/model", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tabId: currentTabId, model, sessionId})
+  });
+  await loadTabs();
+  const t = chatTabs.find(tt=>tt.id===currentTabId);
+  tabModelOverride = t && t.model_override ? t.model_override : '';
+  const globalModel = await getSetting("ai_model");
+  modelName = tabModelOverride || globalModel || "unknown";
+  document.getElementById("modelHud").textContent = `Model: ${modelName}`;
+  hideModal(document.getElementById("tabModelSettingsModal"));
+}
+
+async function clearTabModelSettings(){
+  await fetch("/api/chat/tabs/model", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tabId: currentTabId, model:'', sessionId})
+  });
+  await loadTabs();
+  tabModelOverride = '';
+  const globalModel = await getSetting("ai_model");
+  modelName = globalModel || "unknown";
+  document.getElementById("modelHud").textContent = `Model: ${modelName}`;
+  hideModal(document.getElementById("tabModelSettingsModal"));
+}
+
+document.getElementById("tabModelSettingsBtn")?.addEventListener("click", openTabModelSettings);
+document.getElementById("tabModelSaveBtn")?.addEventListener("click", saveTabModelSettings);
+document.getElementById("tabModelClearBtn")?.addEventListener("click", clearTabModelSettings);
+document.getElementById("tabModelCancelBtn")?.addEventListener("click", () => {
+  hideModal(document.getElementById("tabModelSettingsModal"));
 });
 
 // ----------------------------------------------------------------------
