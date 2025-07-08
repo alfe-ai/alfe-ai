@@ -59,44 +59,12 @@ async function main() {
     // ------------------------------------------------------------------
     backupDb();
 
-    const client = new GitHubClient({
-      token: process.env.GITHUB_TOKEN,
-      owner: process.env.GITHUB_OWNER,
-      repo: process.env.GITHUB_REPO
-    });
-
     const db = new TaskDB(); // uses AWS RDS when AWS_DB_URL or AWS_DB_HOST is set
     const queue = new TaskQueue();
 
-    const label = process.env.GITHUB_LABEL;
-    console.log(
-      `[TaskQueue] Fetching tasks from GitHub ${
-        label ? `(label='${label}')` : "(all open issues)"
-      } …`
-    );
-
-    //const issues = client.fetchOpenIssues(label?.trim() || undefined);
-    const issues = null;
-
-    const resolvedIssues = Array.isArray(issues) ? issues : [];
-
-    // Build full repository slug once
-    const repositorySlug = `${client.owner}/${client.repo}`;
-
-    // ------------------------------------------------------------------
-    // 1. Synchronise local DB
-    // ------------------------------------------------------------------
-    resolvedIssues.forEach((iss) => db.upsertIssue(iss, repositorySlug));
-
-    // Closed issue detection
-    const openIds = resolvedIssues.map((i) => i.id);
-    db.markClosedExcept(openIds);
-
-    // ------------------------------------------------------------------
-    // 2. Populate in-memory queue (only open issues)
-    resolvedIssues.forEach((issue) => queue.enqueue(issue));
-
-    console.log(`[TaskQueue] ${queue.size()} task(s) in queue.`);
+    const tasks = db.listTasks(true);
+    tasks.forEach(t => queue.enqueue(t));
+    console.log(`[TaskQueue] ${queue.size()} task(s) loaded from DB.`);
     // Intentionally omit printing the full issue list to keep logs concise
 
     // Debug: show DB snapshot (can be removed)
@@ -992,35 +960,11 @@ app.post("/api/tasks/new", async (req, res) => {
       return res.status(400).json({ error: "Title required" });
     }
 
-    const gh = new GitHubClient({
-      token: process.env.GITHUB_TOKEN,
-      owner: process.env.GITHUB_OWNER,
-      repo: process.env.GITHUB_REPO
-    });
-
-    if (!gh.octokit) {
-      console.debug(
-        "[Server Debug] GitHub credentials missing; skipping issue creation."
-      );
-      return res
-        .status(200)
-        .json({ success: false, message: "GitHub not configured" });
-    }
-
-    const newIssue = await gh.createIssue(title, body || "");
-    db.upsertIssue(newIssue, `${gh.owner}/${gh.repo}`);
-    db.logActivity(
-      "New task",
-      JSON.stringify({ title, body, project: project || null })
-    );
-
-    const defaultProject = db.getSetting("default_project");
-    const defaultSprint = db.getSetting("default_sprint");
-    if (defaultProject) db.setProjectByGithubId(newIssue.id, defaultProject);
-    if (defaultSprint) db.setSprintByGithubId(newIssue.id, defaultSprint);
-    if (project) db.setProjectByGithubId(newIssue.id, project);
-
-    res.json({ success: true, id: newIssue.id });
+    const defaultProject = db.getSetting('default_project');
+    const defaultSprint = db.getSetting('default_sprint');
+    const taskId = db.createTask(title, project || defaultProject || '', defaultSprint || '');
+    db.logActivity('New task', JSON.stringify({ title, project: project || null }));
+    res.json({ success: true, id: taskId });
   } catch (err) {
     console.error("POST /api/tasks/new error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -1339,13 +1283,7 @@ app.post("/api/tasks/rename", async (req, res) => {
       return res.status(404).json({ error: "Task not found" });
     }
 
-    const gh = new GitHubClient({
-      token: process.env.GITHUB_TOKEN,
-      owner: process.env.GITHUB_OWNER,
-      repo: process.env.GITHUB_REPO
-    });
-    await gh.updateIssueTitle(task.number, newTitle);
-
+    
     db.setTitle(id, newTitle);
     db.logActivity("Rename task", JSON.stringify({ id, newTitle }));
 

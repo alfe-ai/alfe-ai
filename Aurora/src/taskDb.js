@@ -662,6 +662,37 @@ export default class TaskDB {
         .all(sprint);
   }
 
+  createTask(title, project = '', sprint = '') {
+    const maxPrio = this.db.prepare('SELECT MAX(priority_number) AS m FROM issues').get().m || 0;
+    const priority_number = maxPrio + 1;
+    const maxNumber = this.db.prepare('SELECT MAX(number) AS m FROM issues').get().m || 0;
+    const number = maxNumber + 1;
+    const created_at = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      INSERT INTO issues (
+        github_id, repository, number, title, html_url,
+        task_id_slug, priority_number, priority, hidden,
+        project, sprint, fib_points, assignee, created_at, closed, status,
+        dependencies, blocking
+      ) VALUES (
+        NULL, 'local', @number, @title, '#',
+        @task_id_slug, @priority_number, 'Medium', 0,
+        @project, @sprint, NULL, NULL, @created_at, 0, 'Not Started',
+        '', ''
+      )
+    `);
+    const { lastInsertRowid } = stmt.run({
+      number,
+      title,
+      task_id_slug: `local#${number}`,
+      priority_number,
+      project,
+      sprint,
+      created_at
+    });
+    return lastInsertRowid;
+  }
+
   setTitle(id, newTitle) {
     this.db.prepare("UPDATE issues SET title = ? WHERE id = ?").run(newTitle, id);
   }
