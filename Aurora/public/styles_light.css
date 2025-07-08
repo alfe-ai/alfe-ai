@@ -829,6 +829,12 @@ body {
   font-size: 0.9rem;
   color: #666;
   font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+#verticalTabsContainer .project-collapse-arrow {
+  margin-right: 4px;
 }
 
 #projectGroupsContainer button {

@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMosaicFiles();
   loadMosaicRepoPath();
   loadProjectGroups();
+  loadCollapsedProjectGroups();
   renderProjectGroups();
   window.addEventListener('resize', updateChatPanelVisibility);
 });
@@ -116,6 +117,7 @@ let showProjectNameInTabs = false; // append project name to chat tab titles
 let groupTabsByProject = true;   // group chat tabs by project
 let projectGroups = [];           // custom project group headers
 let draggingProjectIndex = null;  // index of project group being dragged
+let collapsedProjectGroups = {};  // project group collapse states
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -352,6 +354,18 @@ function loadProjectGroups(){
   } catch(e){
     projectGroups = [];
   }
+}
+
+function loadCollapsedProjectGroups(){
+  try {
+    collapsedProjectGroups = JSON.parse(localStorage.getItem('collapsedProjectGroups') || '{}');
+  } catch(e){
+    collapsedProjectGroups = {};
+  }
+}
+
+function saveCollapsedProjectGroups(){
+  localStorage.setItem('collapsedProjectGroups', JSON.stringify(collapsedProjectGroups));
 }
 
 function saveProjectGroups(){
@@ -2046,11 +2060,25 @@ function renderSidebarTabs(){
       groups.get(key).push(t);
     });
     for(const [project, list] of groups.entries()){
+      const collapsed = collapsedProjectGroups[project];
       const header = document.createElement("div");
       header.className = "tab-project-header";
-      header.textContent = project || "(No project)";
+      const arrow = document.createElement("span");
+      arrow.className = "project-collapse-arrow";
+      arrow.textContent = collapsed ? "\u25B6" : "\u25BC"; // ▶ or ▼
+      header.appendChild(arrow);
+      header.appendChild(document.createTextNode(" " + (project || "(No project)")));
+      header.addEventListener("click", () => {
+        collapsedProjectGroups[project] = !collapsedProjectGroups[project];
+        saveCollapsedProjectGroups();
+        renderSidebarTabs();
+      });
       container.appendChild(header);
-      list.forEach(tab => renderSidebarTabRow(container, tab, true));
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "project-tab-group";
+      if(collapsed) groupDiv.style.display = "none";
+      list.forEach(tab => renderSidebarTabRow(groupDiv, tab, true));
+      container.appendChild(groupDiv);
     }
     return;
   }
