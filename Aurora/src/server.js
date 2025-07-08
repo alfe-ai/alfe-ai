@@ -3481,6 +3481,11 @@ app.get("/splash", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/splash.html"));
 });
 
+app.get("/pm_agi", (req, res) => {
+  console.debug("[Server Debug] GET /pm_agi => Serving pm_agi.html");
+  res.sendFile(path.join(__dirname, "../public/pm_agi.html"));
+});
+
 app.delete("/api/chat/pair/:id", (req, res) => {
   console.debug("[Server Debug] DELETE /api/chat/pair =>", req.params.id);
   try {
