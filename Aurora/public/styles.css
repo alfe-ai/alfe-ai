@@ -856,7 +856,7 @@ body {
 #verticalTabsContainer .project-add-btn {
   background: none;
   border: none;
-  color: var(--text-color);
+  color: #fff;
   cursor: pointer;
   margin-left: 4px;
   transition: color 0.3s;
