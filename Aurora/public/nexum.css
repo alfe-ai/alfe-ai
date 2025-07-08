@@ -259,7 +259,7 @@ button:hover {
   color: #fff;
 }
 
-#settingsBtn,
+#settingsBtn,#projectNewTabBtn,
 #feedbackBtn {
   background: none;
   border: none;
