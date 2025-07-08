@@ -89,6 +89,7 @@ let dragSrcRow = null;
 let modelName = "unknown";
 let tabModelOverride = '';
 let previousModelName = null; // remember model when toggling search
+let reasoningPreviousModelName = null; // remember model when toggling reasoning
 let tasksVisible = true;
 let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
@@ -151,6 +152,7 @@ let editingMessageInfo = null; // {pairId, type, callback}
 let accountInfo = null; // details returned from /api/account
 let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
+let reasoningEnabled = false; // toggle reasoning mode
 window.agentName = "Alfe";
 
 // For per-tab model arrays
@@ -1112,7 +1114,8 @@ async function loadSettings(){
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
     "new_tab_project_enabled","group_tabs_by_project",
-    "search_enabled","ai_search_model"
+    "search_enabled","ai_search_model",
+    "reasoning_enabled","ai_reasoning_model"
   ];
   const map = await getSettings(keys);
 
@@ -1322,7 +1325,11 @@ async function loadSettings(){
   if(typeof map.search_enabled !== "undefined"){
     searchEnabled = map.search_enabled !== false;
   }
+  if(typeof map.reasoning_enabled !== "undefined"){
+    reasoningEnabled = map.reasoning_enabled !== false;
+  }
   updateSearchButton();
+  updateReasoningButton();
 }
 async function saveSettings(){
   await fetch("/api/settings",{
@@ -3763,6 +3770,12 @@ function updateSearchButton(){
   btn.classList.toggle("active", searchEnabled);
 }
 
+function updateReasoningButton(){
+  const btn = document.getElementById("reasoningToggleBtn");
+  if(!btn) return;
+  btn.classList.toggle("active", reasoningEnabled);
+}
+
 async function toggleSearch(){
   searchEnabled = !searchEnabled;
   await setSetting("search_enabled", searchEnabled);
@@ -3779,6 +3792,27 @@ async function toggleSearch(){
   }
   const hud = document.getElementById("modelHud");
   if(hud) hud.textContent = `Model: ${modelName}`;
+  updateSearchButton();
+  updateReasoningButton();
+}
+
+async function toggleReasoning(){
+  reasoningEnabled = !reasoningEnabled;
+  await setSetting("reasoning_enabled", reasoningEnabled);
+  if(reasoningEnabled){
+    reasoningPreviousModelName = modelName; // remember current model
+    const reasoningModel = await getSetting("ai_reasoning_model") || "openrouter/perplexity/sonar-reasoning";
+    await setSetting("ai_model", reasoningModel);
+    modelName = reasoningModel;
+  } else {
+    const restoreModel = reasoningPreviousModelName || "deepseek/deepseek-chat";
+    await setSetting("ai_model", restoreModel);
+    modelName = restoreModel;
+    reasoningPreviousModelName = null;
+  }
+  const hud = document.getElementById("modelHud");
+  if(hud) hud.textContent = `Model: ${modelName}`;
+  updateReasoningButton();
   updateSearchButton();
 }
 
@@ -6530,6 +6564,7 @@ registerActionHook("embedMockImages", async ({response}) => {
 });
 
 document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
+document.getElementById("reasoningToggleBtn")?.addEventListener("click", toggleReasoning);
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
 setTimeout(() => {
