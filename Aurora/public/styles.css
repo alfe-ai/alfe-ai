@@ -807,6 +807,11 @@ body {
   color: #aaa;
   white-space: nowrap;
 }
+#tabsContainer .tab-date {
+  font-size: 0.8rem;
+  color: #aaa;
+  white-space: nowrap;
+}
 #archivedTabsContainer .tab-date {
   font-size: 0.8rem;
   color: #aaa;

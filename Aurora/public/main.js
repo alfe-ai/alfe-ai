@@ -2073,6 +2073,12 @@ function renderTabs(){
     nameSpan.addEventListener("click", ()=>selectTab(tab.id));
     tabBtn.appendChild(nameSpan);
 
+    const dateSpan = document.createElement("span");
+    dateSpan.textContent = isoDateTime(tab.created_at);
+    dateSpan.className = "tab-date";
+    dateSpan.style.marginLeft = "4px";
+    tabBtn.appendChild(dateSpan);
+
     const renameBtn = document.createElement("button");
     renameBtn.innerHTML = "&#9881;";
     renameBtn.style.marginLeft = "4px";
