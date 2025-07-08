@@ -85,6 +85,7 @@ let visibleCols = new Set(columnsOrder.map(c => c.key));
 let allTasks = [];
 let dragSrcRow = null;
 let modelName = "unknown";
+let previousModelName = null; // remember model when toggling search
 let tasksVisible = true;
 let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
@@ -3507,11 +3508,14 @@ async function toggleSearch(){
   searchEnabled = !searchEnabled;
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
+    previousModelName = modelName; // remember current model
     await setSetting("ai_model", "openrouter/perplexity/sonar");
     modelName = "openrouter/perplexity/sonar";
   } else {
-    await setSetting("ai_model", "deepseek/deepseek-chat");
-    modelName = "deepseek/deepseek-chat";
+    const restoreModel = previousModelName || "deepseek/deepseek-chat";
+    await setSetting("ai_model", restoreModel);
+    modelName = restoreModel;
+    previousModelName = null;
   }
   const hud = document.getElementById("modelHud");
   if(hud) hud.textContent = `Model: ${modelName}`;
