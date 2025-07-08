@@ -3435,6 +3435,24 @@ app.get("/Image.html", (req, res) => {
 // Default landing page
 app.get("/", (req, res) => {
   const sessionId = getSessionIdFromRequest(req);
+  if (req.hostname === "dev.alfe.sh" && sessionId) {
+    try {
+      const account = db.getAccountBySession(sessionId);
+      if (account) {
+        const { uuid } = db.createChatTab(
+          "Untitled",
+          0,
+          "",
+          "",
+          "chat",
+          sessionId
+        );
+        return res.redirect(`/chat/${uuid}`);
+      }
+    } catch (err) {
+      console.error("[Server Debug] Auto new tab error:", err);
+    }
+  }
   try {
     if (!sessionId) {
       console.debug("[Server Debug] GET / => Redirecting to index.html");
