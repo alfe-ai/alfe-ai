@@ -276,7 +276,7 @@ function addCodeCopyButtons(root){
   });
 }
 
-function truncateTabTitle(title, max=20){
+function truncateTabTitle(title, max=40){
   if(!title) return '';
   return title.length > max ? title.slice(0, max - 2) + '..' : title;
 }
