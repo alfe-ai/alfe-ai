@@ -2379,26 +2379,49 @@ app.post("/api/ebay/bulkUpdate", (req, res) => {
 
 app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
   try {
-    if(!req.file){
+    if (!req.file) {
       return res.status(400).json({ error: "No image file received." });
     }
 
-    const scriptPath = `${process.env.HOME}/git/imgs_db/imagedesc.sh`;
     const filePath = path.join(uploadsDir, req.file.filename);
 
     let desc = "";
     try {
-      const cmd = `${scriptPath} "${filePath}"`;
-      console.log("[Server Debug] Running command =>", cmd);
-      desc = child_process.execSync(cmd).toString().trim();
-    } catch(e){
-      console.error("[Server Debug] Error calling imagedesc.sh =>", e);
+      const openaiClient = getOpenAiClient();
+      const imageData = fs.readFileSync(filePath, { encoding: "base64" });
+      const visionModel = "gpt-4o";
+      const completion = await openaiClient.chat.completions.create({
+        model: visionModel,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Describe this image in one sentence." },
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${imageData}` }
+              }
+            ]
+          }
+        ],
+        max_tokens: 60,
+        temperature: 0.3
+      });
+      desc = completion.choices?.[0]?.message?.content?.trim();
+      if (!desc) {
+        desc = "(Could not generate description.)";
+      }
+    } catch (e) {
+      console.error("[Server Debug] Error calling OpenAI vision API =>", e);
       desc = "(Could not generate description.)";
     }
 
-    db.logActivity("Image upload", JSON.stringify({ file: req.file.filename, desc }));
+    db.logActivity(
+      "Image upload",
+      JSON.stringify({ file: req.file.filename, desc })
+    );
     res.json({ success: true, desc, filename: req.file.filename });
-  } catch(e){
+  } catch (e) {
     console.error("Error in /api/chat/image:", e);
     res.status(500).json({ error: "Internal server error" });
   }
