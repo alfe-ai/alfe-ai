@@ -113,6 +113,15 @@ if (!currentSearchModel) {
   console.debug("[Server Debug] 'ai_search_model' found =>", currentSearchModel);
 }
 
+console.debug("[Server Debug] Checking or setting default 'ai_reasoning_model' in DB...");
+const currentReasoningModel = db.getSetting("ai_reasoning_model");
+if (!currentReasoningModel) {
+  console.debug("[Server Debug] 'ai_reasoning_model' is missing in DB, setting default to 'openrouter/perplexity/sonar-reasoning'.");
+  db.setSetting("ai_reasoning_model", "openrouter/perplexity/sonar-reasoning");
+} else {
+  console.debug("[Server Debug] 'ai_reasoning_model' found =>", currentReasoningModel);
+}
+
 console.debug("[Server Debug] Checking or setting default 'ai_service' in DB...");
 if (!db.getSetting("ai_service")) {
   db.setSetting("ai_service", "openrouter");
@@ -158,6 +167,11 @@ if (db.getSetting("remove_color_swatches") === undefined) {
 console.debug("[Server Debug] Checking or setting default 'search_enabled' in DB...");
 if (db.getSetting("search_enabled") === undefined) {
   db.setSetting("search_enabled", false);
+}
+
+console.debug("[Server Debug] Checking or setting default 'reasoning_enabled' in DB...");
+if (db.getSetting("reasoning_enabled") === undefined) {
+  db.setSetting("reasoning_enabled", false);
 }
 
 const app = express();

@@ -300,6 +300,7 @@
         <input type="file" id="imageUploadInput" accept="image/*" style="display:none" multiple />
         <button id="chatImageBtn" class="send-btn" title="Upload Image" style="display:none;">🖼</button>
         <button id="searchToggleBtn" class="send-btn search-toggle-btn" title="Toggle Search">🔍</button>
+        <button id="reasoningToggleBtn" class="send-btn reasoning-toggle-btn" title="Toggle Reasoning">🧠</button>
 
         <textarea id="chatInput" placeholder="Type your message..." style="position:relative; top:20px;"></textarea>
         <button id="chatSendBtn" class="send-btn">
@@ -587,6 +588,14 @@
           <option value="openai/gpt-4o-mini-search-preview">openai/gpt-4o-mini-search-preview</option>
           <option value="openrouter/perplexity/sonar">openrouter/perplexity/sonar</option>
           <option value="openrouter/perplexity/sonar-pro">openrouter/perplexity/sonar-pro</option>
+          <option value="openrouter/perplexity/sonar-reasoning">openrouter/perplexity/sonar-reasoning</option>
+          <option value="openrouter/perplexity/sonar-reasoning-pro">openrouter/perplexity/sonar-reasoning-pro</option>
+        </select>
+      </label>
+    </div>
+    <div style="margin-top:8px;">
+      <label>AI Reasoning Model:
+        <select id="globalAiReasoningModelSelect">
           <option value="openrouter/perplexity/sonar-reasoning">openrouter/perplexity/sonar-reasoning</option>
           <option value="openrouter/perplexity/sonar-reasoning-pro">openrouter/perplexity/sonar-reasoning-pro</option>
         </select>

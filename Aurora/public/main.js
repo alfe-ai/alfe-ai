@@ -88,7 +88,8 @@ let allTasks = [];
 let dragSrcRow = null;
 let modelName = "unknown";
 let tabModelOverride = '';
-let previousModelName = null; // remember model when toggling search
+let previousSearchModelName = null; // remember model when toggling search
+let previousReasoningModelName = null; // remember model when toggling reasoning
 let tasksVisible = true;
 let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
@@ -151,6 +152,7 @@ let editingMessageInfo = null; // {pairId, type, callback}
 let accountInfo = null; // details returned from /api/account
 let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
+let reasoningEnabled = false; // toggle reasoning mode
 window.agentName = "Alfe";
 
 // For per-tab model arrays
@@ -1093,7 +1095,8 @@ async function loadSettings(){
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
     "new_tab_project_enabled","group_tabs_by_project",
-    "search_enabled","ai_search_model"
+    "search_enabled","ai_search_model",
+    "reasoning_enabled","ai_reasoning_model"
   ];
   const map = await getSettings(keys);
 
@@ -1304,6 +1307,10 @@ async function loadSettings(){
     searchEnabled = map.search_enabled !== false;
   }
   updateSearchButton();
+  if(typeof map.reasoning_enabled !== "undefined"){
+    reasoningEnabled = map.reasoning_enabled !== false;
+  }
+  updateReasoningButton();
 }
 async function saveSettings(){
   await fetch("/api/settings",{
@@ -3744,23 +3751,48 @@ function updateSearchButton(){
   btn.classList.toggle("active", searchEnabled);
 }
 
+function updateReasoningButton(){
+  const btn = document.getElementById("reasoningToggleBtn");
+  if(!btn) return;
+  btn.classList.toggle("active", reasoningEnabled);
+}
+
 async function toggleSearch(){
   searchEnabled = !searchEnabled;
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
-    previousModelName = modelName; // remember current model
+    previousSearchModelName = modelName; // remember current model
     const searchModel = await getSetting("ai_search_model") || "openrouter/perplexity/sonar";
     await setSetting("ai_model", searchModel);
     modelName = searchModel;
   } else {
-    const restoreModel = previousModelName || "deepseek/deepseek-chat";
+    const restoreModel = previousSearchModelName || "deepseek/deepseek-chat";
     await setSetting("ai_model", restoreModel);
     modelName = restoreModel;
-    previousModelName = null;
+    previousSearchModelName = null;
   }
   const hud = document.getElementById("modelHud");
   if(hud) hud.textContent = `Model: ${modelName}`;
   updateSearchButton();
+}
+
+async function toggleReasoning(){
+  reasoningEnabled = !reasoningEnabled;
+  await setSetting("reasoning_enabled", reasoningEnabled);
+  if(reasoningEnabled){
+    previousReasoningModelName = modelName;
+    const reasonModel = await getSetting("ai_reasoning_model") || "openrouter/perplexity/sonar-reasoning";
+    await setSetting("ai_model", reasonModel);
+    modelName = reasonModel;
+  } else {
+    const restoreModel = previousReasoningModelName || "deepseek/deepseek-chat";
+    await setSetting("ai_model", restoreModel);
+    modelName = restoreModel;
+    previousReasoningModelName = null;
+  }
+  const hud = document.getElementById("modelHud");
+  if(hud) hud.textContent = `Model: ${modelName}`;
+  updateReasoningButton();
 }
 
 (function installDividerDrag(){
@@ -4762,7 +4794,8 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   if(placeholderEl) placeholderEl.style.display = "";
   await loadSettings();
   await getSettings([
-    "ai_model","ai_search_model","last_chat_tab","last_sidebar_view",
+    "ai_model","ai_search_model","ai_reasoning_model",
+    "last_chat_tab","last_sidebar_view",
     "model_tabs","last_model_tab",
     "sterling_project","sterling_chat_url"
   ]);
@@ -5875,6 +5908,7 @@ async function openGlobalAiSettings(){
   try {
     const service = await getSetting("ai_service");
     const searchModel = await getSetting("ai_search_model");
+    const reasoningModel = await getSetting("ai_reasoning_model");
     const resp = await fetch("/api/ai/models");
     if(resp.ok){
       const data = await resp.json();
@@ -5898,6 +5932,9 @@ async function openGlobalAiSettings(){
     if(searchModel){
       document.getElementById("globalAiSearchModelSelect").value = searchModel;
     }
+    if(reasoningModel){
+      document.getElementById("globalAiReasoningModelSelect").value = reasoningModel;
+    }
     document.getElementById("globalAiServiceSelect").value = service || "openrouter";
   } catch(e){
     console.error("Error opening global AI settings:", e);
@@ -5917,11 +5954,13 @@ async function saveGlobalAiSettings(){
   const svc = document.getElementById("globalAiServiceSelect").value;
   const model = document.getElementById("globalAiModelSelect").value;
   const searchModel = document.getElementById("globalAiSearchModelSelect").value;
-  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel });
+  const reasoningModel = document.getElementById("globalAiReasoningModelSelect").value;
+  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel, ai_reasoning_model: reasoningModel });
   // keep local cache in sync so toggles use latest values immediately
   settingsCache.ai_service = svc;
   settingsCache.ai_model = model;
   settingsCache.ai_search_model = searchModel;
+  settingsCache.ai_reasoning_model = reasoningModel;
   modelName = model || "unknown";
   document.getElementById("modelHud").textContent = `Model: ${modelName}`;
   hideModal(document.getElementById("globalAiSettingsModal"));
@@ -6511,6 +6550,7 @@ registerActionHook("embedMockImages", async ({response}) => {
 });
 
 document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
+document.getElementById("reasoningToggleBtn")?.addEventListener("click", toggleReasoning);
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
 setTimeout(() => {

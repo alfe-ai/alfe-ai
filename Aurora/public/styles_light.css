@@ -1361,4 +1361,18 @@ button:disabled {
   color: #fff;
 }
 
+#reasoningToggleBtn {
+  background: #ccc;
+  border: 1px solid #666;
+  color: #111;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+#reasoningToggleBtn.active {
+  background: #0062cc;
+  color: #fff;
+}
+
 
