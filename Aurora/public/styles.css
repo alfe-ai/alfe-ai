@@ -1314,16 +1314,13 @@ button:disabled {
 
 /* Search toggle button in bottom-left corner */
 #searchToggleBtn {
-  position: fixed;
-  bottom: 8px;
-  left: 8px;
   background: #474747;
   border: 1px solid #666;
   color: #ddd;
   padding: 4px 6px;
   border-radius: 8px;
   cursor: pointer;
-  z-index: 1000;
+  margin-right: 0.5rem;
 }
 #searchToggleBtn.active {
   background: #0062cc;
