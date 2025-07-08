@@ -839,7 +839,7 @@ body {
   display: inline-flex;
   background-color: #333;
   border: 1px solid #444;
-  color: #0ff;
+  color: #aaa;
   padding: 4px 6px;
   cursor: move;
   align-items: center;
@@ -849,7 +849,7 @@ body {
   margin: 6px 0 2px;
 }
 #projectGroupsContainer button.drag-over {
-  border-color: #0ff;
+  border-color: #aaa;
 }
 #verticalTabsContainer .project-indented {
   margin-left: 10px;

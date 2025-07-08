@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMosaicRepoPath();
   loadProjectGroups();
   loadCollapsedProjectGroups();
-  renderProjectGroups();
+  // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', updateChatPanelVisibility);
 });
 
@@ -406,7 +406,7 @@ function renderProjectGroups(){
       projectGroups.splice(idx, 0, moved);
       draggingProjectIndex = null;
       saveProjectGroups();
-      renderProjectGroups();
+      renderSidebarTabs();
     });
     btn.addEventListener('dragend', () => {
       draggingProjectIndex = null;
@@ -421,7 +421,7 @@ function addProjectGroup(){
   if(!name) return;
   projectGroups.push(name.trim());
   saveProjectGroups();
-  renderProjectGroups();
+  renderSidebarTabs();
 }
 
 async function openMosaicEditModal(file){
@@ -2067,6 +2067,11 @@ function renderSidebarTabs(){
   const tabs = chatTabs.filter(t => showArchivedTabs || !t.archived);
   if(groupTabsByProject){
     const groups = new Map();
+    // Include user-defined project groups first so they appear even if empty
+    projectGroups.forEach(name => {
+      if(!groups.has(name)) groups.set(name, []);
+    });
+    // Add projects based on existing chat tabs
     tabs.forEach(t => {
       const key = t.project_name || "";
       if(!groups.has(key)) groups.set(key, []);
