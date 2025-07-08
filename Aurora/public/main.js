@@ -276,6 +276,11 @@ function addCodeCopyButtons(root){
   });
 }
 
+function truncateTabTitle(title, max=20){
+  if(!title) return '';
+  return title.length > max ? title.slice(0, max - 2) + '..' : title;
+}
+
 // ------------------ Mosaic Helpers ------------------
 function ensureMosaicList(){
   const panel = document.getElementById("mosaicPanel");
@@ -2026,7 +2031,9 @@ function renderTabs(){
     iconSpan.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
     tabBtn.appendChild(iconSpan);
     const nameSpan = document.createElement("span");
-    nameSpan.textContent = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
+    const fullName = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
+    nameSpan.textContent = truncateTabTitle(fullName);
+    nameSpan.title = fullName;
     nameSpan.style.flexGrow = "1";
     nameSpan.addEventListener("click", ()=>selectTab(tab.id));
     tabBtn.appendChild(nameSpan);
@@ -2143,7 +2150,9 @@ function renderSidebarTabRow(container, tab, indented=false){
   icon.className = "tab-icon";
   icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
   b.appendChild(icon);
-  b.appendChild(document.createTextNode(tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "")));
+  const fullName = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
+  b.appendChild(document.createTextNode(truncateTabTitle(fullName)));
+  b.title = fullName;
   if (tab.id === currentTabId) {
     b.classList.add("active");
   }
@@ -2238,7 +2247,9 @@ function addArchivedRow(container, tab){
   info.style.flexGrow = "1";
 
   const label = document.createElement("span");
-  label.textContent = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
+  const fullName = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
+  label.textContent = truncateTabTitle(fullName);
+  label.title = fullName;
 
   const dateSpan = document.createElement("span");
   dateSpan.className = "tab-date";
