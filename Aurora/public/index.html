@@ -155,6 +155,9 @@
           <option value="task">Project</option>
         </select>
       </label>
+      <label style="margin-top:8px;">Assign Task:<br/>
+        <select id="tabTaskSelect" style="width:100%;"><option value="">(loading...)</option></select>
+      </label>
       <label style="margin-top:8px;">Codex Chat URL:<br/>
         <input type="text" id="codexChatUrlInput" style="width:100%;" />
       </label>
@@ -817,6 +820,14 @@
       document.getElementById('tabProjectInput').value = t.project_name || '';
       document.getElementById('tabRepoInput').value = t.repo_ssh_url || '';
       document.getElementById('tabTypeSelect').value = t.tab_type || 'chat';
+      const taskSel = document.getElementById('tabTaskSelect');
+      if(taskSel){
+        taskSel.innerHTML = '<option value="">(none)</option>';
+        fetch('/api/tasks?includeHidden=1').then(r=>r.json()).then(ts=>{
+          taskSel.innerHTML = '<option value="">(none)</option>' + ts.map(tk=>`<option value="${tk.id}">${tk.title}</option>`).join('');
+          taskSel.value = t.task_id || '';
+        }).catch(()=>{taskSel.innerHTML='<option value="">(error)</option>';});
+      }
       const modal = document.getElementById('tabConfigModal');
       modal.dataset.tabId = tabId;
       modal.style.display = 'flex';
@@ -1175,7 +1186,8 @@
       const project = document.getElementById('tabProjectInput').value;
       const repo = document.getElementById('tabRepoInput').value;
       const type = document.getElementById('tabTypeSelect').value;
-      await fetch('/api/chat/tabs/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId, project, repo, type})});
+      const taskId = document.getElementById('tabTaskSelect')?.value || '';
+      await fetch('/api/chat/tabs/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId, project, repo, type, taskId})});
       modal.style.display = 'none';
       await loadTabs();
       renderTabs();
