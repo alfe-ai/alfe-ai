@@ -4702,7 +4702,7 @@ function initChatScrollLoading(){
   if(!chatMessagesEl) return;
 
   chatMessagesEl.addEventListener("scroll", async ()=>{
-    if(chatMessagesEl.scrollTop < 50){
+    if(chatMessagesEl.scrollTop < 50 && !chatHistoryLoading){
       console.debug(`[ChatHistory Debug] scrollTop=${chatMessagesEl.scrollTop}, chatHasMore=${chatHasMore}, offset=${chatHistoryOffset}`);
       if(chatHasMore){
         await loadChatHistory(currentTabId, false);
@@ -4715,9 +4715,12 @@ function initChatScrollLoading(){
 
 let chatHistoryOffset = 0;
 let chatHasMore = true;
+let chatHistoryLoading = false; // prevent duplicate history loads
 let lastChatDate = null;
 
 async function loadChatHistory(tabId = 1, reset=false) {
+  if(chatHistoryLoading) return;
+  chatHistoryLoading = true;
   const chatMessagesEl = document.getElementById("chatMessages");
   console.debug(`[ChatHistory Debug] loadChatHistory(tabId=${tabId}, reset=${reset}, offset=${chatHistoryOffset})`);
   if(reset){
@@ -4937,6 +4940,8 @@ async function loadChatHistory(tabId = 1, reset=false) {
     }
   } catch (err) {
     console.error("Error loading chat history:", err);
+  } finally {
+    chatHistoryLoading = false;
   }
 }
 
