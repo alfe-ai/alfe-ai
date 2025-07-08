@@ -429,6 +429,18 @@ function addProjectGroup(){
   renderSidebarTabs();
 }
 
+function removeProjectGroupIfEmpty(project){
+  if(!project) return;
+  const exists = chatTabs.some(t => (t.project_name || '') === project && !t.archived);
+  if(!exists){
+    const idx = projectGroups.indexOf(project);
+    if(idx !== -1){
+      projectGroups.splice(idx, 1);
+      saveProjectGroups();
+    }
+  }
+}
+
 async function openMosaicEditModal(file){
   if(!file) return;
   mosaicEditingFile = file;
@@ -4068,6 +4080,7 @@ async function renderProjectsTable(){
       const proj = btn.dataset.proj;
       const arch = btn.dataset.arch === "1";
       await fetch('/api/projects/archive', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({project: proj, archived: !arch})});
+      if(!arch) removeProjectGroupIfEmpty(proj);
       await renderProjectsTable();
     });
   });
@@ -4125,6 +4138,7 @@ $("#projectSettingsArchiveBtn")?.addEventListener("click", async () => {
   });
   await loadTabs();
   await loadArchivedTabs();
+  if(archived) removeProjectGroupIfEmpty(project);
   renderSidebarTabs();
   renderArchivedSidebarTabs();
 });
