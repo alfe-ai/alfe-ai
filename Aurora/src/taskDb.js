@@ -325,6 +325,13 @@ export default class TaskDB {
     `);
 
     this.db.exec(`
+      CREATE TABLE IF NOT EXISTS project_meta (
+        project TEXT PRIMARY KEY,
+        archived INTEGER DEFAULT 0
+      );
+    `);
+
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE NOT NULL,
@@ -585,19 +592,27 @@ export default class TaskDB {
         .run(key, val);
   }
 
-  listProjects() {
-    return this.db
-        .prepare(
-            `SELECT
-               project,
-               COUNT(*) AS count
-             FROM issues
-             WHERE closed = 0 AND hidden = 0
-             GROUP BY project
-             HAVING project <> ''
-             ORDER BY count DESC;`
-        )
-        .all();
+  listProjects(includeArchived = false) {
+    const stmt = this.db.prepare(
+        `SELECT p.project,
+                COALESCE(c.count, 0) AS count,
+                COALESCE(pm.archived, 0) AS archived
+         FROM (
+           SELECT project FROM project_meta
+           UNION
+           SELECT project FROM issues WHERE project <> ''
+         ) p
+         LEFT JOIN (
+           SELECT project, COUNT(*) AS count
+           FROM issues
+           WHERE closed = 0 AND hidden = 0
+           GROUP BY project
+         ) c ON c.project = p.project
+         LEFT JOIN project_meta pm ON pm.project = p.project
+         ${includeArchived ? '' : 'WHERE COALESCE(pm.archived, 0) = 0'}
+         ORDER BY count DESC, p.project ASC;`
+    );
+    return stmt.all();
   }
 
   listSprints() {
@@ -766,6 +781,7 @@ export default class TaskDB {
   createChatTab(name, nexum = 0, project = '', repo = '', type = 'chat', sessionId = '') {
     const ts = new Date().toISOString();
     const genImages = type === 'design' ? 1 : 0;
+    if (project) this.ensureProjectMeta(project);
     const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, tab_type, session_id, tab_uuid)
@@ -826,6 +842,12 @@ export default class TaskDB {
 
   setProjectArchived(project, archived = 1) {
     if (!project) return;
+    this.ensureProjectMeta(project);
+    this.db
+        .prepare(
+            "UPDATE project_meta SET archived=? WHERE project=?"
+        )
+        .run(archived ? 1 : 0, project);
     if (archived) {
       this.db.prepare(
         "UPDATE chat_tabs SET archived=1, archived_at=? WHERE project_name=?"
@@ -970,6 +992,15 @@ export default class TaskDB {
     this.db.prepare("DELETE FROM project_branches WHERE project=?").run(project);
   }
 
+  ensureProjectMeta(project) {
+    if (!project) return;
+    this.db
+        .prepare(
+            "INSERT OR IGNORE INTO project_meta (project, archived) VALUES (?, 0)"
+        )
+        .run(project);
+  }
+
   renameProject(oldProject, newProject) {
     const row = this.db
         .prepare("SELECT base_branch FROM project_branches WHERE project=?")
@@ -981,11 +1012,26 @@ export default class TaskDB {
 
     if (newProject) {
       this.upsertProjectBranch(newProject, baseBranch);
+      this.ensureProjectMeta(newProject);
     }
 
     this.db
         .prepare("UPDATE issues SET project=? WHERE project=?")
         .run(newProject, oldProject);
+
+    this.db.prepare(
+        "UPDATE chat_tabs SET project_name=? WHERE project_name=?"
+    ).run(newProject, oldProject);
+
+    const meta = this.db
+        .prepare("SELECT archived FROM project_meta WHERE project=?")
+        .get(oldProject);
+    if (meta) {
+      this.db.prepare("DELETE FROM project_meta WHERE project=?").run(oldProject);
+      this.db.prepare(
+          "INSERT OR REPLACE INTO project_meta (project, archived) VALUES (?, ?)"
+      ).run(newProject, meta.archived);
+    }
   }
 
   /* ------------------------------------------------------------------ */

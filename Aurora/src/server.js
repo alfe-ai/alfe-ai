@@ -773,7 +773,8 @@ app.get("/api/tasks", (req, res) => {
 app.get("/api/projects", (req, res) => {
   console.debug("[Server Debug] GET /api/projects called.");
   try {
-    const projects = db.listProjects();
+    const showArchived = req.query.showArchived === '1';
+    const projects = db.listProjects(showArchived);
     console.debug("[Server Debug] Found projects =>", projects.length);
     res.json(projects);
   } catch (err) {
