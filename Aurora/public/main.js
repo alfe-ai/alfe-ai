@@ -4984,10 +4984,20 @@ async function loadChatHistory(tabId = 1, reset=false) {
         }
 
         if(p.model){
-          // Show model name at bottom-left of AI bubble
+          // Show model name and response time at bottom-left of AI bubble
           const modelDiv = document.createElement("div");
           modelDiv.className = "model-indicator";
-          modelDiv.textContent = `${shortModel}`;
+          let displayText = `${shortModel}`;
+          if(p.token_info){
+            try {
+              const tInfo = JSON.parse(p.token_info);
+              if(tInfo && typeof tInfo.responseTime !== 'undefined'){
+                const respTime = (tInfo.responseTime * 10).toFixed(2);
+                displayText += ` (${respTime}s)`;
+              }
+            } catch(e){}
+          }
+          modelDiv.textContent = displayText;
           botDiv.appendChild(modelDiv);
         }
 
@@ -5187,10 +5197,20 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   }
 
   if(model){
-    // Show model name at bottom-left of AI bubble
+    // Show model name and response time at bottom-left of AI bubble
     const modelDiv = document.createElement("div");
     modelDiv.className = "model-indicator";
-    modelDiv.textContent = `${shortModel}`;
+    let displayText = `${shortModel}`;
+    if(tokenInfo){
+      try {
+        const tInfo = JSON.parse(tokenInfo);
+        if(tInfo && typeof tInfo.responseTime !== 'undefined'){
+          const respTime = (tInfo.responseTime * 10).toFixed(2);
+          displayText += ` (${respTime}s)`;
+        }
+      } catch(e){}
+    }
+    modelDiv.textContent = displayText;
     botDiv.appendChild(modelDiv);
   }
 
@@ -5279,7 +5299,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       tuDetails.appendChild(tuSum);
 
       const respTime = tokObj.responseTime*10;
-      console.log('respTime: ' + respTime);
 
       const usageDiv = document.createElement("div");
       usageDiv.style.marginLeft = "1em";
