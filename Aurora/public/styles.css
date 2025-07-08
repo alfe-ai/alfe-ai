@@ -893,6 +893,14 @@ body {
   margin-left: 10px;
 }
 
+#verticalTabsContainer .sidebar-tab-row.drag-over {
+  border: 1px dashed #aaa;
+}
+
+#verticalTabsContainer .sidebar-tab-row .drag-handle {
+  cursor: move;
+}
+
 #verticalTabsContainer button.active {
   background-color: #555;
   border-color: #aaa;

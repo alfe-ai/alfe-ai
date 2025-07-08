@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMosaicRepoPath();
   loadProjectGroups();
   loadCollapsedProjectGroups();
+  loadChatTabOrder();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', updateChatPanelVisibility);
 });
@@ -119,6 +120,8 @@ let groupTabsByProject = true;   // group chat tabs by project
 let projectGroups = [];           // custom project group headers
 let draggingProjectIndex = null;  // index of project group being dragged
 let collapsedProjectGroups = {};  // project group collapse states
+let chatTabOrder = {};            // per-project tab ordering
+let draggingTabRow = null;        // element of tab row being dragged
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -452,6 +455,24 @@ function removeProjectGroupIfEmpty(project){
       saveProjectGroups();
     }
   }
+}
+
+function loadChatTabOrder(){
+  try {
+    chatTabOrder = JSON.parse(localStorage.getItem('chatTabOrder') || '{}');
+  } catch(e){
+    chatTabOrder = {};
+  }
+}
+
+function saveChatTabOrder(){
+  localStorage.setItem('chatTabOrder', JSON.stringify(chatTabOrder));
+}
+
+function updateChatTabOrder(project, container){
+  if(!container) return;
+  chatTabOrder[project] = [...container.children].map(el => +el.dataset.tabId);
+  saveChatTabOrder();
 }
 
 async function openMosaicEditModal(file){
@@ -1343,6 +1364,46 @@ function handleDragEnd(){
   $$(`tr.drag-over`).forEach(r=>r.classList.remove("drag-over"));
   dragSrcRow = null;
 }
+
+function tabDragStart(e){
+  draggingTabRow = e.target.closest('.sidebar-tab-row');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function tabDragOver(e){
+  if(draggingTabRow && e.currentTarget !== draggingTabRow &&
+     e.currentTarget.dataset.project === draggingTabRow.dataset.project){
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+
+function tabDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function tabDrop(e){
+  e.preventDefault();
+  const target = e.currentTarget;
+  target.classList.remove('drag-over');
+  if(draggingTabRow && target !== draggingTabRow &&
+     target.dataset.project === draggingTabRow.dataset.project){
+    const parent = target.parentNode;
+    const rows = [...parent.children];
+    let from = rows.indexOf(draggingTabRow);
+    let to = rows.indexOf(target);
+    parent.removeChild(draggingTabRow);
+    if(from < to) to--;
+    parent.insertBefore(draggingTabRow, parent.children[to]);
+    updateChatTabOrder(target.dataset.project, parent);
+  }
+  draggingTabRow = null;
+}
+
+function tabDragEnd(){
+  $$('div.sidebar-tab-row.drag-over').forEach(el=>el.classList.remove('drag-over'));
+  draggingTabRow = null;
+}
 async function saveNewOrderToServer(){
   const ids = $$("#tasks tbody tr").map(r=>+r.dataset.taskId);
   await fetch("/api/tasks/reorderAll",{
@@ -2171,12 +2232,31 @@ function renderSidebarTabs(){
       container.appendChild(header);
       const groupDiv = document.createElement("div");
       groupDiv.className = "project-tab-group";
+      groupDiv.dataset.project = project;
       if(collapsed) groupDiv.style.display = "none";
+      const order = chatTabOrder[project] || [];
+      list.sort((a,b)=>{
+        const ia = order.indexOf(a.id);
+        const ib = order.indexOf(b.id);
+        if(ia === -1 && ib === -1) return 0;
+        if(ia === -1) return 1;
+        if(ib === -1) return -1;
+        return ia - ib;
+      });
       list.forEach(tab => renderSidebarTabRow(groupDiv, tab, true));
       container.appendChild(groupDiv);
     }
     return;
   }
+  const order = chatTabOrder[''] || [];
+  tabs.sort((a,b)=>{
+    const ia = order.indexOf(a.id);
+    const ib = order.indexOf(b.id);
+    if(ia === -1 && ib === -1) return 0;
+    if(ia === -1) return 1;
+    if(ib === -1) return -1;
+    return ia - ib;
+  });
   let lastDate = null;
   tabs.forEach(tab => {
     const tabDate = isoDate(tab.created_at);
@@ -2193,11 +2273,21 @@ function renderSidebarTabs(){
 
 function renderSidebarTabRow(container, tab, indented=false){
   const wrapper = document.createElement("div");
+  wrapper.className = "sidebar-tab-row";
   wrapper.style.display = "flex";
   wrapper.style.alignItems = "center";
   wrapper.style.gap = "4px";
   wrapper.style.width = "100%";
   if(indented) wrapper.classList.add("project-indented");
+  wrapper.dataset.tabId = tab.id;
+  wrapper.dataset.project = tab.project_name || "";
+
+  const grab = document.createElement("span");
+  grab.className = "drag-handle";
+  grab.textContent = "⠿";
+  grab.draggable = true;
+  grab.addEventListener("dragstart", tabDragStart);
+  wrapper.appendChild(grab);
 
   const info = document.createElement("div");
   info.style.display = "flex";
@@ -2263,6 +2353,10 @@ function renderSidebarTabRow(container, tab, indented=false){
   wrapper.appendChild(renameBtn);
   wrapper.appendChild(forkBtn);
   wrapper.appendChild(archBtn);
+  wrapper.addEventListener("dragover", tabDragOver);
+  wrapper.addEventListener("dragleave", tabDragLeave);
+  wrapper.addEventListener("drop", tabDrop);
+  wrapper.addEventListener("dragend", tabDragEnd);
   container.appendChild(wrapper);
 }
 
