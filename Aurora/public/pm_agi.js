@@ -3,12 +3,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputEl = document.getElementById('chatInput');
   const formEl = document.getElementById('chatForm');
   const instrEl = document.getElementById('agentInstructions');
+  const taskEl = document.getElementById('taskListMarkdown');
 
   // Load default instructions if available
   fetch('/pm_agi_instructions.txt')
     .then(res => res.ok ? res.text() : '')
     .then(text => { instrEl.value = text; })
     .catch(() => { /* ignore */ });
+
+  // Load task list markdown
+  const savedTasks = localStorage.getItem('pm_agi_task_list');
+  if(savedTasks) {
+    taskEl.value = savedTasks;
+  } else {
+    fetch('/pm_agi_task_list.md')
+      .then(res => res.ok ? res.text() : '')
+      .then(text => { taskEl.value = text; })
+      .catch(() => { /* ignore */ });
+  }
+
+  taskEl.addEventListener('input', () => {
+    localStorage.setItem('pm_agi_task_list', taskEl.value);
+  });
 
   function addMessage(author, text) {
     const div = document.createElement('div');
