@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlfePM AGI Prototype</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #chatLog { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; }
+    #inputArea { margin-top: 10px; }
+    #messageInput { width: 80%; }
+    #sendBtn { width: 18%; }
+    #agentInstructions { width: 100%; height: 100px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>AlfePM AGI Prototype</h1>
+  <div id="chatLog"></div>
+  <div id="inputArea">
+    <input id="messageInput" placeholder="Type your message..." />
+    <button id="sendBtn">Send</button>
+  </div>
+  <h2>Agent Instructions</h2>
+  <textarea id="agentInstructions" placeholder="Enter instructions for the agent..."></textarea>
+  <script>
+    const chatLog = document.getElementById('chatLog');
+    function appendMessage(sender, text) {
+      const div = document.createElement('div');
+      div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // Initial message from AlfePM AGI
+    appendMessage('AlfePM AGI', 'What are you working on?');
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage('You', text);
+      input.value = '';
+      // In a real prototype, messages would be sent to the backend here.
+    });
+  </script>
+</body>
+</html>
