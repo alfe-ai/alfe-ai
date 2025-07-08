@@ -264,12 +264,31 @@ function escapeHtml(text){
     .replace(/>/g, "&gt;");
 }
 
+// Apply simple markdown styling while preserving the original syntax
+function applyMarkdownSyntax(text){
+  if(!text) return "";
+  let html = escapeHtml(text);
+  // Headings
+  html = html.replace(/^###### (.*)$/gm, '<span class="md-h6">$&</span>');
+  html = html.replace(/^##### (.*)$/gm, '<span class="md-h5">$&</span>');
+  html = html.replace(/^#### (.*)$/gm,  '<span class="md-h4">$&</span>');
+  html = html.replace(/^### (.*)$/gm,   '<span class="md-h3">$&</span>');
+  html = html.replace(/^## (.*)$/gm,    '<span class="md-h2">$&</span>');
+  html = html.replace(/^# (.*)$/gm,     '<span class="md-h1">$&</span>');
+  // Bold and italic
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">**$1**</span>');
+  html = html.replace(/\*([^*]+)\*/g, '<span class="md-italic">*$1*</span>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<span class="md-inline-code">`$1`</span>');
+  return html.replace(/\n/g, "<br>");
+}
+
 function formatCodeBlocks(text){
   if(!text) return "";
   const parts = text.split(/```/);
   return parts.map((part, idx) => {
     if(idx % 2 === 0){
-      return escapeHtml(part).replace(/\n/g, "<br>");
+      return applyMarkdownSyntax(part);
     }
     return `<pre><code>${escapeHtml(part)}</code></pre>`;
   }).join("");

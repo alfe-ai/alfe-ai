@@ -1361,4 +1361,25 @@ button:disabled {
   color: #fff;
 }
 
+/* Minimal markdown highlighting */
+.md-h1,.md-h2,.md-h3,.md-h4,.md-h5,.md-h6{
+  display:block;
+  font-weight:bold;
+}
+.md-h1{font-size:1.4rem;}
+.md-h2{font-size:1.3rem;}
+.md-h3{font-size:1.2rem;}
+.md-h4{font-size:1.1rem;}
+.md-h5{font-size:1rem;}
+.md-h6{font-size:0.95rem;}
+
+.md-bold{font-weight:bold;}
+.md-italic{font-style:italic;}
+.md-inline-code{
+  font-family:monospace;
+  background:#eee;
+  padding:2px 4px;
+  border-radius:4px;
+}
+
 
