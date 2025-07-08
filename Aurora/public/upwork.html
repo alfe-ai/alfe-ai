@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upwork Bidding Tracker</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { padding:1rem; }
+    table { border-collapse: collapse; width:100%; margin-top:1rem; }
+    th, td { border:1px solid #444; padding:4px 6px; }
+    th { background:#222; }
+    td a { color:cyan; }
+  </style>
+</head>
+<body>
+  <h2>Upwork Bidding Tracker</h2>
+  <p><button id="backBtn">&larr; Back to Aurora</button></p>
+  <form id="addForm" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-end;">
+    <input id="titleInput" placeholder="Job title" required style="flex:2;" />
+    <input id="linkInput" placeholder="Job link" required style="flex:3;" />
+    <input id="bidInput" placeholder="Bid" style="width:6rem;" />
+    <select id="statusInput">
+      <option value="Bidding">Bidding</option>
+      <option value="Interview">Interview</option>
+      <option value="Hired">Hired</option>
+      <option value="Closed">Closed</option>
+    </select>
+    <input id="notesInput" placeholder="Notes" style="flex:3;" />
+    <button type="submit">Add</button>
+  </form>
+  <table id="jobsTable">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Link</th>
+        <th>Bid</th>
+        <th>Status</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+<script>
+const STORAGE_KEY = 'upworkJobs';
+const backBtn = document.getElementById('backBtn');
+backBtn.addEventListener('click', () => { window.location.href = '/'; });
+const addForm = document.getElementById('addForm');
+const tbody = document.querySelector('#jobsTable tbody');
+let jobs = [];
+function saveJobs(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs)); }
+function loadJobs(){
+  jobs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+function render(){
+  tbody.innerHTML = '';
+  jobs.forEach((j, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${j.title}</td>
+      <td>${j.link ? `<a href="${j.link}" target="_blank">Link</a>` : ''}</td>
+      <td>${j.bid || ''}</td>
+      <td>${j.status}</td>
+      <td>${j.notes || ''}</td>
+      <td><button data-i="${idx}" class="deleteBtn">Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+addForm.addEventListener('submit', ev => {
+  ev.preventDefault();
+  const job = {
+    title: document.getElementById('titleInput').value.trim(),
+    link: document.getElementById('linkInput').value.trim(),
+    bid: document.getElementById('bidInput').value.trim(),
+    status: document.getElementById('statusInput').value,
+    notes: document.getElementById('notesInput').value.trim()
+  };
+  jobs.push(job);
+  saveJobs();
+  render();
+  addForm.reset();
+});
+tbody.addEventListener('click', ev => {
+  if(ev.target.classList.contains('deleteBtn')){
+    const idx = parseInt(ev.target.dataset.i);
+    jobs.splice(idx,1);
+    saveJobs();
+    render();
+  }
+});
+loadJobs();
+render();
+</script>
+</body>
+</html>

@@ -4426,6 +4426,7 @@ const btnAiModels = document.getElementById("navAiModelsBtn");
 const btnImageGenerator = document.getElementById("navImageGeneratorBtn");
 const btnPortfolio = document.getElementById("navPortfolioBtn");
 const btnJobs = document.getElementById("navJobsBtn");
+const btnUpwork = document.getElementById("navUpworkBtn");
 const btnPipelineQueue = document.getElementById("navPipelineQueueBtn");
 const btnNodes = document.getElementById("navNodesBtn");
 const btnPrintifyProducts = document.getElementById("navPrintifyProductsBtn");
@@ -4447,6 +4448,7 @@ const btnAiModelsIcon = document.getElementById("navAiModelsIcon");
 const btnImageGeneratorIcon = document.getElementById("navImageGeneratorIcon");
 const btnPortfolioIcon = document.getElementById("navPortfolioIcon");
 const btnJobsIcon = document.getElementById("navJobsIcon");
+const btnUpworkIcon = document.getElementById("navUpworkIcon");
 const btnPipelineQueueIcon = document.getElementById("navPipelineQueueIcon");
 const btnNodesIcon = document.getElementById("navNodesIcon");
 const btnActivityIframeIcon = document.getElementById("navActivityIframeIcon");
@@ -4474,6 +4476,11 @@ btnPortfolio?.addEventListener("click", () => {
 btnJobs?.addEventListener("click", () => {
   const url = btnJobs.dataset.url;
   window.open(url, "_blank");
+});
+btnUpwork?.addEventListener("click", () => {
+  const url = btnUpwork.dataset.url;
+  const target = btnUpwork.dataset.target || "_self";
+  window.open(url, target);
 });
 btnPipelineQueue?.addEventListener("click", () => {
   const url = btnPipelineQueue.dataset.url;
@@ -4520,6 +4527,7 @@ btnPortfolioIcon?.addEventListener("click", () => {
   window.open(url, "_blank");
 });
 btnJobsIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); const url = btnJobs.dataset.url; window.open(url, "_blank"); });
+btnUpworkIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); const url = btnUpwork.dataset.url; const target = btnUpwork.dataset.target || "_self"; window.open(url, target); });
 btnPipelineQueueIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); const url = btnPipelineQueue.dataset.url; window.open(url, "_blank"); });
 btnNodesIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); const url = btnNodes.dataset.url; const target = btnNodes.dataset.target || "_self"; window.open(url, target); });
 btnPrintifyProductsIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); showPrintifyProductsPanel(); });
