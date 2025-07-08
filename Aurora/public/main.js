@@ -143,6 +143,7 @@ let editingSubroutineId = null;
 let editingMessageInfo = null; // {pairId, type, callback}
 let accountInfo = null; // details returned from /api/account
 let currentView = 'chat';
+let searchEnabled = false; // toggle search mode
 window.agentName = "Alfe";
 
 // For per-tab model arrays
@@ -1019,7 +1020,8 @@ async function loadSettings(){
     "ai_models_menu_visible","tasks_menu_visible","jobs_menu_visible",
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
-    "new_tab_project_enabled","group_tabs_by_project"
+    "new_tab_project_enabled","group_tabs_by_project",
+    "search_enabled"
   ];
   const map = await getSettings(keys);
 
@@ -1226,6 +1228,10 @@ async function loadSettings(){
     newTabProjectNameEnabled = map.new_tab_project_enabled !== false;
   }
   toggleNewTabProjectField(newTabProjectNameEnabled);
+  if(typeof map.search_enabled !== "undefined"){
+    searchEnabled = map.search_enabled !== false;
+  }
+  updateSearchButton();
 }
 async function saveSettings(){
   await fetch("/api/settings",{
@@ -3489,6 +3495,27 @@ function runImageLoop(){
   if(!imageLoopEnabled || !accountInfo || accountInfo.id !== 1) return;
   if(chatInputEl) chatInputEl.value = imageLoopMessage;
   if(chatSendBtnEl) chatSendBtnEl.click();
+}
+
+function updateSearchButton(){
+  const btn = document.getElementById("searchToggleBtn");
+  if(!btn) return;
+  btn.classList.toggle("active", searchEnabled);
+}
+
+async function toggleSearch(){
+  searchEnabled = !searchEnabled;
+  await setSetting("search_enabled", searchEnabled);
+  if(searchEnabled){
+    await setSetting("ai_model", "openrouter/perplexity/sonar");
+    modelName = "openrouter/perplexity/sonar";
+  } else {
+    await setSetting("ai_model", "deepseek/deepseek-chat");
+    modelName = "deepseek/deepseek-chat";
+  }
+  const hud = document.getElementById("modelHud");
+  if(hud) hud.textContent = `Model: ${modelName}`;
+  updateSearchButton();
 }
 
 (function installDividerDrag(){
@@ -6071,6 +6098,8 @@ registerActionHook("embedMockImages", async ({response}) => {
   lastBotText.innerHTML = html;
   scrollChatToBottom();
 });
+
+document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
 setTimeout(() => {

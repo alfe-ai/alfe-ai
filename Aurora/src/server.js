@@ -178,6 +178,11 @@ if (db.getSetting("remove_color_swatches") === undefined) {
   db.setSetting("remove_color_swatches", false);
 }
 
+console.debug("[Server Debug] Checking or setting default 'search_enabled' in DB...");
+if (db.getSetting("search_enabled") === undefined) {
+  db.setSetting("search_enabled", false);
+}
+
 const app = express();
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
