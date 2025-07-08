@@ -136,6 +136,15 @@ if (!currentModel) {
   console.debug("[Server Debug] 'ai_model' found =>", currentModel);
 }
 
+console.debug("[Server Debug] Checking or setting default 'ai_search_model' in DB...");
+const currentSearchModel = db.getSetting("ai_search_model");
+if (!currentSearchModel) {
+  console.debug("[Server Debug] 'ai_search_model' is missing in DB, setting default to 'openrouter/perplexity/sonar'.");
+  db.setSetting("ai_search_model", "openrouter/perplexity/sonar");
+} else {
+  console.debug("[Server Debug] 'ai_search_model' found =>", currentSearchModel);
+}
+
 console.debug("[Server Debug] Checking or setting default 'ai_service' in DB...");
 if (!db.getSetting("ai_service")) {
   db.setSetting("ai_service", "openrouter");

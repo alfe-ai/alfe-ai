@@ -1022,7 +1022,7 @@ async function loadSettings(){
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
     "new_tab_project_enabled","group_tabs_by_project",
-    "search_enabled"
+    "search_enabled","ai_search_model"
   ];
   const map = await getSettings(keys);
 
@@ -3509,8 +3509,9 @@ async function toggleSearch(){
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
     previousModelName = modelName; // remember current model
-    await setSetting("ai_model", "openrouter/perplexity/sonar");
-    modelName = "openrouter/perplexity/sonar";
+    const searchModel = await getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    await setSetting("ai_model", searchModel);
+    modelName = searchModel;
   } else {
     const restoreModel = previousModelName || "deepseek/deepseek-chat";
     await setSetting("ai_model", restoreModel);
@@ -4471,7 +4472,7 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   if(placeholderEl) placeholderEl.style.display = "";
   await loadSettings();
   await getSettings([
-    "ai_model","last_chat_tab","last_sidebar_view",
+    "ai_model","ai_search_model","last_chat_tab","last_sidebar_view",
     "model_tabs","last_model_tab",
     "sterling_project","sterling_chat_url"
   ]);
@@ -5559,6 +5560,7 @@ async function openGlobalAiSettings(){
   showPageLoader();
   try {
     const service = await getSetting("ai_service");
+    const searchModel = await getSetting("ai_search_model");
     const resp = await fetch("/api/ai/models");
     if(resp.ok){
       const data = await resp.json();
@@ -5579,6 +5581,9 @@ async function openGlobalAiSettings(){
       const curModel = await getSetting("ai_model");
       if(curModel) sel.value = curModel;
     }
+    if(searchModel){
+      document.getElementById("globalAiSearchModelSelect").value = searchModel;
+    }
     document.getElementById("globalAiServiceSelect").value = service || "openrouter";
   } catch(e){
     console.error("Error opening global AI settings:", e);
@@ -5597,7 +5602,8 @@ async function openGlobalAiSettings(){
 async function saveGlobalAiSettings(){
   const svc = document.getElementById("globalAiServiceSelect").value;
   const model = document.getElementById("globalAiModelSelect").value;
-  await setSettings({ ai_service: svc, ai_model: model });
+  const searchModel = document.getElementById("globalAiSearchModelSelect").value;
+  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel });
   modelName = model || "unknown";
   document.getElementById("modelHud").textContent = `Model: ${modelName}`;
   hideModal(document.getElementById("globalAiSettingsModal"));
