@@ -3682,6 +3682,7 @@ app.post("/api/projects/archive", (req, res) => {
       return res.status(400).json({ error: "Missing project" });
     }
     db.setProjectArchived(project, archived ? 1 : 0);
+    db.setProjectHidden(project, archived ? 1 : 0);
     db.logActivity("Archive project", JSON.stringify({ project, archived }));
     res.json({ success: true });
   } catch (err) {

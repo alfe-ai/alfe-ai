@@ -837,6 +837,13 @@ export default class TaskDB {
     }
   }
 
+  setProjectHidden(project, hidden = 1) {
+    if (!project) return;
+    this.db
+        .prepare("UPDATE issues SET hidden=? WHERE project=?")
+        .run(hidden ? 1 : 0, project);
+  }
+
   setChatTabGenerateImages(tabId, enabled = 1) {
     this.db.prepare("UPDATE chat_tabs SET generate_images=? WHERE id=?")
         .run(enabled ? 1 : 0, tabId);
