@@ -1689,7 +1689,9 @@ app.post("/api/chat", async (req, res) => {
 
     const priorPairsAll = db.getAllChatPairs(chatTabId);
     const isFirstMessage = !db.hasUserMessages(chatTabId);
-    let model = db.getSetting("ai_model");
+    let model = tabInfo && tabInfo.model_override
+      ? tabInfo.model_override
+      : db.getSetting("ai_model");
     const savedInstructions = db.getSetting("agent_instructions") || "";
 
     const isDesignTab = tabInfo && tabInfo.tab_type === 'design';
@@ -2063,6 +2065,25 @@ app.post("/api/chat/tabs/config", (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/chat/tabs/model", (req, res) => {
+  console.debug("[Server Debug] POST /api/chat/tabs/model =>", req.body);
+  try {
+    const { tabId, model = '', sessionId = '' } = req.body;
+    if (!tabId) {
+      return res.status(400).json({ error: "Missing tabId" });
+    }
+    const tab = db.getChatTab(tabId, sessionId || null);
+    if (!tab) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    db.setChatTabModel(tabId, model.trim());
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[TaskQueue] POST /api/chat/tabs/model error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
