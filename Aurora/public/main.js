@@ -2163,7 +2163,8 @@ function renderSidebarTabs(){
         addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
         header.appendChild(addBtn);
       }
-      header.addEventListener("click", () => {
+      header.addEventListener("click", e => {
+        e.stopPropagation();
         collapsedProjectGroups[project] = !collapsedProjectGroups[project];
         saveCollapsedProjectGroups();
         renderSidebarTabs();
