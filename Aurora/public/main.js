@@ -5912,6 +5912,27 @@ document.getElementById("imageUploadInput").addEventListener("change", async (ev
   ev.target.value="";
 });
 
+// Allow pasting images directly into the chat input
+chatInputEl.addEventListener("paste", (ev) => {
+  if(!imageUploadEnabled) return;
+  const items = ev.clipboardData && ev.clipboardData.items;
+  if(!items) return;
+  let found = false;
+  for(const item of items){
+    if(item.type && item.type.startsWith("image/")){
+      const file = item.getAsFile();
+      if(file){
+        pendingImages.push(file);
+        found = true;
+      }
+    }
+  }
+  if(found){
+    ev.preventDefault();
+    updateImagePreviewList();
+  }
+});
+
 /*
   Show a small list of “buffered” images that will attach with the next message.
 */
