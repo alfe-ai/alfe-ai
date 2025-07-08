@@ -153,6 +153,7 @@
           <option value="chat">Chat</option>
           <option value="code">Code</option>
           <option value="design">Design</option>
+          <option value="pm_agi">PM AGI</option>
           <option value="task">Project</option>
         </select>
       </label>
@@ -182,6 +183,10 @@
           <button data-type="design" class="start-type-btn">
             <div class="icon">🎨</div>
             <div>Design</div>
+          </button>
+          <button data-type="pm_agi" class="start-type-btn">
+            <div class="icon">🤖</div>
+            <div>PM AGI</div>
           </button>
         </div>
         <label style="margin-top:8px;">Message:<br/>
@@ -251,6 +256,10 @@
           <button data-type="design" class="start-type-btn">
             <div class="icon">🎨</div>
             <div>Design</div>
+          </button>
+          <button data-type="pm_agi" class="start-type-btn">
+            <div class="icon">🤖</div>
+            <div>PM AGI</div>
           </button>
           <button data-type="task" class="start-type-btn disabled" disabled>
             <div class="icon">📋</div>
@@ -1084,7 +1093,7 @@
       if(chatBtn) chatBtn.style.display = '';
       const advanced = enableStartAdvanced;
       const disableTypes = advanced ? [] : ['code','task'];
-      ['code','design','task'].forEach(t => {
+      ['code','design','task','pm_agi'].forEach(t => {
         const disabled = disableTypes.includes(t);
         const btn = document.querySelector(`#startTypeButtons .start-type-btn[data-type="${t}"]`);
         if(btn){

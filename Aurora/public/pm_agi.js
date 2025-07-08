@@ -60,12 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const r = await fetch(`/api/chat/tabs?sessionId=${encodeURIComponent(sessionId)}`);
       if(r.ok){
         const tabs = await r.json();
-        if(tabs.length>0){
-          currentTabId = tabs[0].id;
+        const found = tabs.find(t => t.tab_type === 'pm_agi');
+        if(found){
+          currentTabId = found.id;
         }
       }
       if(!currentTabId){
-        const body = { name:'PM AGI', nexum:0, type:'chat', project:'', repo:'', sessionId };
+        const body = { name:'PM AGI', nexum:0, type:'pm_agi', project:'', repo:'', sessionId };
         const r2 = await fetch('/api/chat/tabs/new', {
           method:'POST',
           headers:{'Content-Type':'application/json'},

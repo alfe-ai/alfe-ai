@@ -164,7 +164,7 @@ const defaultFavicon = "/alfe_favicon_64x64.ico";
 const rotatingFavicon = "/alfe_favicon_64x64.ico";
 let favElement = null;
 
-const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋" };
+const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖" };
 let newTabSelectedType = 'chat';
 
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
