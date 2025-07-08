@@ -552,6 +552,8 @@ async function generateInitialGreeting(type, client = null) {
   let prompt = 'Write a brief friendly greeting as an AI assistant named Alfe. ';
   if (type === 'design') {
     prompt += 'Invite the user to share what they would like to create.';
+  } else if (type === 'pm_agi') {
+    prompt += 'Ask the user what they are working on and help them plan tasks.';
   } else {
     prompt += 'Invite the user to share what they would like to talk about.';
   }
@@ -575,7 +577,9 @@ async function generateInitialGreeting(type, client = null) {
 
   return type === 'design'
     ? 'Hello! I am Alfe, your AI assistant. What would you like to design today?'
-    : 'Hello! I am Alfe, your AI assistant. What would you like to talk about?';
+    : type === 'pm_agi'
+      ? 'What are you working on?'
+      : 'Hello! I am Alfe, your AI assistant. What would you like to talk about?';
 }
 
 async function createInitialTabMessage(tabId, type, sessionId = '') {
