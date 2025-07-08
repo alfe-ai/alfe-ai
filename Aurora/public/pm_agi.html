@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AlfePM AGI Prototype</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <h1>AlfePM AGI Prototype</h1>
+  <div style="margin-bottom:1rem;">
+    <h3>Agent Instructions</h3>
+    <textarea id="agentInstructions" rows="8" style="width:100%;"></textarea>
+  </div>
+  <div id="chatPanel" class="chat-panel" style="height:60vh;">
+    <div id="chatMessages" style="overflow-y:auto;height:calc(100% - 3rem);"></div>
+    <form id="chatForm" style="margin-top:0.5rem;display:flex;">
+      <input id="chatInput" type="text" placeholder="Type a message..." style="flex:1;">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+  <script src="/session.js"></script>
+  <script src="/pm_agi.js"></script>
+</body>
+</html>
