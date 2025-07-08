@@ -220,6 +220,19 @@ function isoDate(d) {
   });
 }
 
+function isoDateTime(d) {
+  const date = new Date(d);
+  const dateStr = date.toLocaleDateString([], {
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const timeStr = date
+    .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+    .toLowerCase();
+  return `${dateStr} ${timeStr}`;
+}
+
 // Format date with weekday (e.g. "Mon 06/16/25")
 function isoDateWithDay(d) {
   const date = new Date(d);
@@ -2073,6 +2086,12 @@ function renderTabs(){
     nameSpan.addEventListener("click", ()=>selectTab(tab.id));
     tabBtn.appendChild(nameSpan);
 
+    const dateSpan = document.createElement("span");
+    dateSpan.textContent = isoDateTime(tab.created_at);
+    dateSpan.className = "tab-date";
+    dateSpan.style.marginLeft = "4px";
+    tabBtn.appendChild(dateSpan);
+
     const renameBtn = document.createElement("button");
     renameBtn.innerHTML = "&#9881;";
     renameBtn.style.marginLeft = "4px";
@@ -2212,7 +2231,7 @@ function renderSidebarTabRow(container, tab, indented=false){
   });
 
   const dateSpan = document.createElement("span");
-  dateSpan.textContent = isoDate(tab.created_at);
+  dateSpan.textContent = isoDateTime(tab.created_at);
   dateSpan.className = "tab-date";
 
   info.appendChild(b);
@@ -2294,7 +2313,7 @@ function addArchivedRow(container, tab){
 
   const dateSpan = document.createElement("span");
   dateSpan.className = "tab-date";
-  dateSpan.textContent = `Created ${isoDate(tab.created_at)} \u2022 Archived ${isoDate(tab.archived_at)}`;
+  dateSpan.textContent = `Created ${isoDateTime(tab.created_at)} \u2022 Archived ${isoDateTime(tab.archived_at)}`;
 
   info.appendChild(label);
   info.appendChild(dateSpan);

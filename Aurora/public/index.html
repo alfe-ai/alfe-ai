@@ -539,7 +539,7 @@
       date.className = 'tab-date';
       date.style.fontSize = '0.8rem';
       date.style.opacity = '0.8';
-      date.textContent = `Created ${isoDate(t.created_at)} \u2022 Archived ${isoDate(t.archived_at)}`;
+      date.textContent = `Created ${isoDateTime(t.created_at)} \u2022 Archived ${isoDateTime(t.archived_at)}`;
 
       info.appendChild(label);
       info.appendChild(date);
@@ -555,6 +555,13 @@
 
     function isoDate(d){
       return new Date(d).toLocaleDateString([], {year:'2-digit',month:'2-digit',day:'2-digit'});
+    }
+
+    function isoDateTime(d){
+      const date = new Date(d);
+      const dateStr = date.toLocaleDateString([], {year:'2-digit',month:'2-digit',day:'2-digit'});
+      const timeStr = date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true}).toLowerCase();
+      return `${dateStr} ${timeStr}`;
     }
 
     function sortTasks(){
