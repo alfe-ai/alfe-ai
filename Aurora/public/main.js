@@ -376,6 +376,11 @@ function renderProjectGroups(){
   const container = document.getElementById('projectGroupsContainer');
   if(!container) return;
   container.innerHTML = '';
+  container.style.display = projectGroups.length ? 'flex' : 'none';
+  if(projectGroups.length){
+    container.style.flexDirection = 'column';
+    container.style.gap = '4px';
+  }
   projectGroups.forEach((name, idx) => {
     const btn = document.createElement('button');
     btn.className = 'project-group-button';
