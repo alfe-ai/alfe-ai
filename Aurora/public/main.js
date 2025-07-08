@@ -1881,6 +1881,19 @@ async function openProjectSettingsModal(project){
   setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
+async function quickAddTabToProject(project){
+  const r = await fetch("/api/chat/tabs/new", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "", nexum: 0, project, type: "chat", sessionId })
+  });
+  if(r.ok){
+    const data = await r.json();
+    await loadTabs();
+    await selectTab(data.id);
+  }
+}
+
 $("#renameTabSaveBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
   const tabId = parseInt(modal.dataset.tabId, 10);
@@ -2125,6 +2138,11 @@ function renderSidebarTabs(){
         gear.className = "project-gear-btn config-btn";
         gear.addEventListener("click", e => { e.stopPropagation(); openProjectSettingsModal(project); });
         header.appendChild(gear);
+        const addBtn = document.createElement("button");
+        addBtn.textContent = "\u2795"; // ➕
+        addBtn.className = "project-add-btn config-btn";
+        addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
+        header.appendChild(addBtn);
       }
       header.addEventListener("click", () => {
         collapsedProjectGroups[project] = !collapsedProjectGroups[project];
