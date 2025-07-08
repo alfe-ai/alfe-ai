@@ -841,7 +841,7 @@ body {
   display: inline-flex;
   background-color: #ccc;
   border: 1px solid #aaa;
-  color: #111;
+  color: #666;
   padding: 4px 6px;
   cursor: move;
   align-items: center;
@@ -852,7 +852,7 @@ body {
 }
 
 #projectGroupsContainer button.drag-over {
-  border-color: #111;
+  border-color: #666;
 }
 
 #verticalTabsContainer .project-indented {
