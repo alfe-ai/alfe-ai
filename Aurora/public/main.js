@@ -1837,6 +1837,23 @@ async function openRenameTabModal(tabId){
   setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
+function openProjectSettingsModal(project){
+  const input = $("#projectSettingsNameInput");
+  const modal = $("#projectSettingsModal");
+  if(!input || !modal) return;
+  input.value = project || "";
+  modal.dataset.project = project || "";
+  const tabs = chatTabs.filter(t => (t.project_name || "") === (project || ""));
+  const allArchived = tabs.length > 0 && tabs.every(t => t.archived);
+  const archBtn = $("#projectSettingsArchiveBtn");
+  if(archBtn){
+    archBtn.textContent = allArchived ? "Unarchive" : "Archive";
+    archBtn.dataset.archived = allArchived ? "1" : "0";
+  }
+  showModal(modal);
+  setTimeout(() => { input.focus(); input.select(); }, 0);
+}
+
 $("#renameTabSaveBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
   const tabId = parseInt(modal.dataset.tabId, 10);
@@ -2084,8 +2101,18 @@ function renderSidebarTabs(){
       const arrow = document.createElement("span");
       arrow.className = "project-collapse-arrow";
       arrow.textContent = collapsed ? "\u25B6" : "\u25BC"; // ▶ or ▼
+      const label = document.createElement("span");
+      label.textContent = " " + (project || "(No project)");
+      label.style.flexGrow = "1";
       header.appendChild(arrow);
-      header.appendChild(document.createTextNode(" " + (project || "(No project)")));
+      header.appendChild(label);
+      if(project){
+        const gear = document.createElement("button");
+        gear.innerHTML = "&#9881;";
+        gear.className = "project-gear-btn config-btn";
+        gear.addEventListener("click", e => { e.stopPropagation(); openProjectSettingsModal(project); });
+        header.appendChild(gear);
+      }
       header.addEventListener("click", () => {
         collapsedProjectGroups[project] = !collapsedProjectGroups[project];
         saveCollapsedProjectGroups();
@@ -2191,45 +2218,64 @@ function renderArchivedSidebarTabs(){
   const container = document.getElementById("archivedTabsContainer");
   if(!container) return;
   container.innerHTML = "";
-  archivedTabs.forEach(tab => {
-    const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
-    wrapper.style.alignItems = "center";
-    wrapper.style.gap = "4px";
-    wrapper.style.width = "100%";
-
-    const icon = document.createElement("span");
-    icon.className = "tab-icon";
-    icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
-
-    const info = document.createElement("div");
-    info.style.display = "flex";
-    info.style.flexDirection = "column";
-    info.style.flexGrow = "1";
-
-    const label = document.createElement("span");
-    label.textContent = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
-
-    const dateSpan = document.createElement("span");
-    dateSpan.className = "tab-date";
-    dateSpan.textContent = `Created ${isoDate(tab.created_at)} \u2022 Archived ${isoDate(tab.archived_at)}`;
-
-    info.appendChild(label);
-    info.appendChild(dateSpan);
-
-    const unarchBtn = document.createElement("button");
-    unarchBtn.textContent = "Unarchive";
-    unarchBtn.addEventListener("click", async () => {
-      await toggleArchiveTab(tab.id, false);
-      await loadTabs();
-      renderArchivedSidebarTabs();
+  const tabs = archivedTabs;
+  if(groupTabsByProject){
+    const groups = new Map();
+    tabs.forEach(t => {
+      const key = t.project_name || "";
+      if(!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
     });
+    for(const [project, list] of groups.entries()){
+      const header = document.createElement("div");
+      header.className = "tab-project-header";
+      header.textContent = project || "(No project)";
+      container.appendChild(header);
+      list.forEach(tab => addArchivedRow(container, tab));
+    }
+    return;
+  }
+  tabs.forEach(tab => addArchivedRow(container, tab));
+}
 
-    wrapper.appendChild(icon);
-    wrapper.appendChild(info);
-    wrapper.appendChild(unarchBtn);
-    container.appendChild(wrapper);
+function addArchivedRow(container, tab){
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.alignItems = "center";
+  wrapper.style.gap = "4px";
+  wrapper.style.width = "100%";
+
+  const icon = document.createElement("span");
+  icon.className = "tab-icon";
+  icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
+
+  const info = document.createElement("div");
+  info.style.display = "flex";
+  info.style.flexDirection = "column";
+  info.style.flexGrow = "1";
+
+  const label = document.createElement("span");
+  label.textContent = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
+
+  const dateSpan = document.createElement("span");
+  dateSpan.className = "tab-date";
+  dateSpan.textContent = `Created ${isoDate(tab.created_at)} \u2022 Archived ${isoDate(tab.archived_at)}`;
+
+  info.appendChild(label);
+  info.appendChild(dateSpan);
+
+  const unarchBtn = document.createElement("button");
+  unarchBtn.textContent = "Unarchive";
+  unarchBtn.addEventListener("click", async () => {
+    await toggleArchiveTab(tab.id, false);
+    await loadTabs();
+    renderArchivedSidebarTabs();
   });
+
+  wrapper.appendChild(icon);
+  wrapper.appendChild(info);
+  wrapper.appendChild(unarchBtn);
+  container.appendChild(wrapper);
 }
 
 document.getElementById("newSideTabBtn").addEventListener("click", openNewTabModal);
@@ -4032,6 +4078,42 @@ async function saveProjectBranches(){
 $("#projConfigBtn").addEventListener("click", openProjectsModal);
 $("#projectsSaveBtn").addEventListener("click", saveProjectBranches);
 $("#projectsCancelBtn").addEventListener("click", ()=>hideModal($("#projectsModal")));
+
+$("#projectSettingsSaveBtn")?.addEventListener("click", async () => {
+  const modal = $("#projectSettingsModal");
+  const oldName = modal.dataset.project || "";
+  const newName = $("#projectSettingsNameInput").value.trim();
+  hideModal(modal);
+  if(!newName || newName === oldName) return;
+  await fetch('/api/projects/rename', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ oldProject: oldName, newProject: newName })
+  });
+  await loadTabs();
+  await loadArchivedTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
+});
+
+$("#projectSettingsArchiveBtn")?.addEventListener("click", async () => {
+  const modal = $("#projectSettingsModal");
+  const project = modal.dataset.project || "";
+  const btn = $("#projectSettingsArchiveBtn");
+  const archived = btn.dataset.archived !== "1";
+  hideModal(modal);
+  await fetch('/api/projects/archive', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ project, archived })
+  });
+  await loadTabs();
+  await loadArchivedTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
+});
+
+$("#projectSettingsCancelBtn")?.addEventListener("click", () => hideModal($("#projectSettingsModal")));
 
 const navFileTreeBtn = document.getElementById("navFileTreeBtn");
 const navFileCabinetBtn = document.getElementById("navFileCabinetBtn");

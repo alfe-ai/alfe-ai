@@ -835,6 +835,23 @@ body {
   margin-right: 4px;
 }
 
+#verticalTabsContainer .project-gear-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  margin-left: auto;
+  transition: color 0.3s;
+  width: 24px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#verticalTabsContainer .project-gear-btn:hover {
+  color: var(--accent-light);
+}
+
 #projectGroupsContainer button {
   display: inline-flex;
   background-color: #333;

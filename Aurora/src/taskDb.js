@@ -824,6 +824,19 @@ export default class TaskDB {
     }
   }
 
+  setProjectArchived(project, archived = 1) {
+    if (!project) return;
+    if (archived) {
+      this.db.prepare(
+        "UPDATE chat_tabs SET archived=1, archived_at=? WHERE project_name=?"
+      ).run(new Date().toISOString(), project);
+    } else {
+      this.db.prepare(
+        "UPDATE chat_tabs SET archived=0, archived_at=NULL WHERE project_name=?"
+      ).run(project);
+    }
+  }
+
   setChatTabGenerateImages(tabId, enabled = 1) {
     this.db.prepare("UPDATE chat_tabs SET generate_images=? WHERE id=?")
         .run(enabled ? 1 : 0, tabId);
