@@ -1361,6 +1361,21 @@ button:disabled {
   color: #fff;
 }
 
+/* Reasoning toggle button */
+#reasoningToggleBtn {
+  background: #ccc;
+  border: 1px solid #666;
+  color: #111;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+#reasoningToggleBtn.active {
+  background: #0062cc;
+  color: #fff;
+}
+
 /* Minimal markdown highlighting */
 .md-h1,.md-h2,.md-h3,.md-h4,.md-h5,.md-h6{
   display:block;
