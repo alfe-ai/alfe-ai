@@ -59,6 +59,7 @@
         <button id="viewTabTasks" class="view-tab" style="position:relative; left: 40px;">☑️ Tasks</button>
         <button id="viewTabArchive" class="view-tab" style="position:relative; left: 40px;">Archive</button>
         <button id="settingsBtn" title="Settings" style="margin-left:auto;background:none;border:none;color:#ddd;font-size:1.2rem;cursor:pointer;">&#9881;</button>
+        <button id="projectNewTabBtn" title="New Chat Tab" style="background:none;border:none;color:#ddd;font-size:1.2rem;cursor:pointer;margin-left:0.5rem;">➕</button>
         <button id="feedbackBtn" title="Send Feedback" style="background:none;border:none;color:#ddd;font-size:1.2rem;cursor:pointer;margin-left:0.5rem;">📝</button>
       </div>
 <!--      <h1>Nexum Chat</h1>-->
@@ -730,11 +731,11 @@
       if(section) section.style.display = newTabSelectedType === 'code' ? '' : 'none';
     }
 
-    async function createStartTab(type){
-      const repoEl = document.getElementById('startRepoInput');
-      const repo = repoEl ? repoEl.value.trim() : '';
-      showPageLoader(startInAurora ? 'cyan' : null);
-      const body = { name:'New Tab', nexum: startInAurora ? 0 : 1, type, project:'', repo, sessionId };
+      async function createStartTab(type){
+        const repoEl = document.getElementById('startRepoInput');
+        const repo = repoEl ? repoEl.value.trim() : '';
+        showPageLoader(startInAurora ? 'cyan' : null);
+        const body = { name:'New Tab', nexum: startInAurora ? 0 : 1, type, project:'', repo, sessionId };
       try{
         const r = await fetch('/api/chat/tabs/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         if(r.ok){
@@ -848,6 +849,21 @@
           askBtn.style.display = isCode ? '' : 'none';
           codeBtn.style.display = isCode && hasRepo ? '' : 'none';
         }
+      }
+
+      async function quickAddProjectTab(){
+        try{
+          const project = await getSetting('sterling_project') || '';
+          const body = { name:'New Tab', nexum:1, type:'chat', project, repo:'', sessionId };
+          const r = await fetch('/api/chat/tabs/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+          if(r.ok){
+            const data = await r.json();
+            await loadTabs();
+            currentTabId = data.id;
+            renderTabs();
+            applyTabView();
+          }
+        }catch(e){ console.error(e); }
       }
 
       const taskPanel = document.getElementById('taskListPanel');
@@ -1135,12 +1151,13 @@
       await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'nexum_theme_mode', value: currentMode})});
     });
 
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-      document.getElementById('settingsModal').style.display = 'flex';
-    });
-    document.getElementById('closeSettingsBtn').addEventListener('click', () => {
-      document.getElementById('settingsModal').style.display = 'none';
-    });
+      document.getElementById('settingsBtn').addEventListener('click', () => {
+        document.getElementById('settingsModal').style.display = 'flex';
+      });
+      document.getElementById('projectNewTabBtn').addEventListener('click', quickAddProjectTab);
+      document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+        document.getElementById('settingsModal').style.display = 'none';
+      });
     document.getElementById('settingsModal').addEventListener('click', e => {
       if(e.target === e.currentTarget) e.currentTarget.style.display = 'none';
     });
