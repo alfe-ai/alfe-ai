@@ -3674,6 +3674,22 @@ app.post("/api/projects/rename", (req, res) => {
   }
 });
 
+app.post("/api/projects/archive", (req, res) => {
+  console.debug("[Server Debug] POST /api/projects/archive =>", req.body);
+  try {
+    const { project, archived = true } = req.body;
+    if (!project) {
+      return res.status(400).json({ error: "Missing project" });
+    }
+    db.setProjectArchived(project, archived ? 1 : 0);
+    db.logActivity("Archive project", JSON.stringify({ project, archived }));
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[TaskQueue] /api/projects/archive error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/ai/favorites", (req, res) => {
   try {
     const sessionId = getSessionIdFromRequest(req);
