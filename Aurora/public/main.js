@@ -5604,6 +5604,10 @@ async function saveGlobalAiSettings(){
   const model = document.getElementById("globalAiModelSelect").value;
   const searchModel = document.getElementById("globalAiSearchModelSelect").value;
   await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel });
+  // keep local cache in sync so toggles use latest values immediately
+  settingsCache.ai_service = svc;
+  settingsCache.ai_model = model;
+  settingsCache.ai_search_model = searchModel;
   modelName = model || "unknown";
   document.getElementById("modelHud").textContent = `Model: ${modelName}`;
   hideModal(document.getElementById("globalAiSettingsModal"));
