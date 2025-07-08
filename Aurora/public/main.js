@@ -2107,6 +2107,7 @@ function renderSidebarTabs(){
       groups.get(key).push(t);
     });
     for(const [project, list] of groups.entries()){
+      if(list.length === 0) continue;
       const collapsed = collapsedProjectGroups[project];
       const header = document.createElement("div");
       header.className = "tab-project-header";
