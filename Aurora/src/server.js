@@ -751,6 +751,10 @@ app.get("/api/tasks", (req, res) => {
       req.query.includeHidden === "true";
     console.debug("[Server Debug] includeHidden =", includeHidden);
     const tasks = db.listTasks(includeHidden);
+    tasks.forEach(t => {
+      const uuid = db.getChatTabUuidByTaskId(t.id);
+      if (uuid) t.chat_sha = uuid;
+    });
     console.debug("[Server Debug] Found tasks =>", tasks.length);
     res.json(tasks);
   } catch (err) {

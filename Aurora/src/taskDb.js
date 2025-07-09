@@ -970,6 +970,13 @@ export default class TaskDB {
     return this.db.prepare("SELECT * FROM chat_tabs WHERE tab_uuid=?").get(uuid);
   }
 
+  getChatTabUuidByTaskId(taskId) {
+    const row = this.db
+        .prepare("SELECT tab_uuid FROM chat_tabs WHERE task_id=?")
+        .get(taskId);
+    return row ? row.tab_uuid : null;
+  }
+
   duplicateChatTab(tabId, name = null) {
     const tab = this.getChatTab(tabId);
     if (!tab) return null;
