@@ -858,6 +858,8 @@ body {
   border: none;
   color: #fff;
   cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
   margin-left: 4px;
   transition: color 0.3s;
   width: 24px;
