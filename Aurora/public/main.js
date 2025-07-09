@@ -2204,8 +2204,7 @@ async function selectTab(tabId){
   {
     const globalModel = await getSetting("ai_model");
     modelName = tabModelOverride || globalModel || "unknown";
-    const hud = document.getElementById("modelHud");
-    if(hud) hud.textContent = `Model: ${modelName}`;
+    updateModelHud();
   }
   tabGenerateImages = currentTabType === 'design';
   const chk = document.getElementById("tabGenerateImagesCheck");
@@ -3688,7 +3687,7 @@ async function chatSettingsSaveFlow() {
     const { provider: autoProvider } = parseProviderModel(modelName);
     console.log("[OBTAINED PROVIDER] => (global model removed in UI, fallback only)");
     console.log("[OBTAINED PROVIDER] =>", autoProvider);
-    $("#modelHud").textContent = `Model: ${modelName}`;
+    updateModelHud();
   }
 
   hideModal($("#chatSettingsModal"));
@@ -3884,6 +3883,13 @@ function runImageLoop(){
   if(chatSendBtnEl) chatSendBtnEl.click();
 }
 
+function updateModelHud(){
+  const hud = document.getElementById("modelHud");
+  if(!hud) return;
+  const prefix = searchEnabled ? "\uD83D\uDD0D " : ""; // magnifying glass when searching
+  hud.textContent = `Model: ${prefix}${modelName}`;
+}
+
 function updateSearchButton(){
   const btn = document.getElementById("searchToggleBtn");
   if(!btn) return;
@@ -3914,8 +3920,7 @@ async function toggleSearch(){
     modelName = restoreModel;
     previousModelName = null;
   }
-  const hud = document.getElementById("modelHud");
-  if(hud) hud.textContent = `Model: ${modelName}`;
+  updateModelHud();
   updateSearchButton();
   updateReasoningButton();
 }
@@ -3938,8 +3943,7 @@ async function toggleReasoning(){
     modelName = restoreModel;
     reasoningPreviousModelName = null;
   }
-  const hud = document.getElementById("modelHud");
-  if(hud) hud.textContent = `Model: ${modelName}`;
+  updateModelHud();
   updateReasoningButton();
   updateSearchButton();
 }
@@ -4972,7 +4976,7 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   console.log("[OBTAINED PROVIDER] => (global model removed in UI, fallback only)");
   const { provider: autoProvider } = parseProviderModel(modelName);
   console.log("[OBTAINED PROVIDER] =>", autoProvider);
-  $("#modelHud").textContent = `Model: ${modelName}`;
+  updateModelHud();
 
   await loadTabs();
   await loadSubroutines();
@@ -6127,7 +6131,7 @@ async function saveGlobalAiSettings(){
   settingsCache.ai_search_model = searchModel;
   settingsCache.ai_reasoning_model = reasoningModel;
   modelName = model || "unknown";
-  document.getElementById("modelHud").textContent = `Model: ${modelName}`;
+  updateModelHud();
   hideModal(document.getElementById("globalAiSettingsModal"));
 }
 
@@ -6174,7 +6178,7 @@ async function saveTabModelSettings(){
   tabModelOverride = t && t.model_override ? t.model_override : '';
   const globalModel = await getSetting("ai_model");
   modelName = tabModelOverride || globalModel || "unknown";
-  document.getElementById("modelHud").textContent = `Model: ${modelName}`;
+  updateModelHud();
   hideModal(document.getElementById("tabModelSettingsModal"));
 }
 
@@ -6188,7 +6192,7 @@ async function clearTabModelSettings(){
   tabModelOverride = '';
   const globalModel = await getSetting("ai_model");
   modelName = globalModel || "unknown";
-  document.getElementById("modelHud").textContent = `Model: ${modelName}`;
+  updateModelHud();
   hideModal(document.getElementById("tabModelSettingsModal"));
 }
 
