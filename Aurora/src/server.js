@@ -264,20 +264,10 @@ function countTokens(encoder, text) {
   return encoder.encode(text || "").length;
 }
 
-async function callOpenAiModel(client, model, options = {}) {
-  const { messages = [], max_tokens, temperature, stream } = options;
-  if (model === "codex-mini-latest") {
-    const prompt = Array.isArray(messages)
-      ? messages.map(m => `${m.role}: ${m.content}`).join("\n")
-      : String(messages || "");
-    return client.completions.create({
-      model,
-      prompt,
-      max_tokens,
-      temperature,
-      stream
-    });
-  }
+async function callOpenAiModel(client, model, opts = {}) {
+  const { messages = [], max_tokens, temperature, stream = false } = opts;
+
+  // All chat-style models—including codex-mini-latest—use the chat endpoint
   return client.chat.completions.create({
     model,
     messages,
