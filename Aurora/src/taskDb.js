@@ -456,13 +456,15 @@ export default class TaskDB {
   }
 
   markClosedExcept(openGithubIds) {
+    // Only auto-close tasks that originated from GitHub.
+    // Locally created tasks have a NULL github_id and should not be affected.
     if (!openGithubIds.length) {
-      this.db.exec("UPDATE issues SET closed = 1 WHERE closed = 0;");
+      this.db.exec("UPDATE issues SET closed = 1 WHERE github_id IS NOT NULL AND closed = 0;");
       return;
     }
     const placeholders = openGithubIds.map(() => "?").join(",");
     this.db
-        .prepare(`UPDATE issues SET closed = 1 WHERE github_id NOT IN (${placeholders});`)
+        .prepare(`UPDATE issues SET closed = 1 WHERE github_id IS NOT NULL AND github_id NOT IN (${placeholders});`)
         .run(...openGithubIds);
   }
 

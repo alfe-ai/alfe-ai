@@ -150,12 +150,14 @@ export default class TaskDBAws {
   async markClosedExcept(openGithubIds) {
     const client = await this.pool.connect();
     try {
+      // Only auto-close tasks that originated from GitHub.
+      // Locally created tasks have a NULL github_id and should not be affected.
       if (!openGithubIds.length) {
-        await client.query('UPDATE issues SET closed = 1 WHERE closed = 0');
+        await client.query('UPDATE issues SET closed = 1 WHERE github_id IS NOT NULL AND closed = 0');
       } else {
         const placeholders = openGithubIds.map((_, i) => `$${i + 1}`).join(',');
         await client.query(
-          `UPDATE issues SET closed = 1 WHERE github_id NOT IN (${placeholders})`,
+          `UPDATE issues SET closed = 1 WHERE github_id IS NOT NULL AND github_id NOT IN (${placeholders})`,
           openGithubIds
         );
       }
