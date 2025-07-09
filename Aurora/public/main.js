@@ -82,7 +82,8 @@ let columnsOrder = [
   { key: "title",        label: "Title"      },
   { key: "dependencies", label: "Depends On" },
   { key: "project",      label: "Project"    },
-  { key: "created",      label: "Created"    }
+  { key: "created",      label: "Created"    },
+  { key: "hide",         label: "Hide"       }
 ];
 let visibleCols = new Set(columnsOrder.map(c => c.key));
 let allTasks = [];
@@ -1477,10 +1478,7 @@ function renderBody(){
         const tr = document.createElement("tr");
         tr.dataset.taskId = t.id;
         if(t.hidden) tr.classList.add("hidden");
-        [
-          "drag","priority","status","number","title",
-          "dependencies","project","created"
-        ].forEach(key=>{
+        columnsOrder.map(c=>c.key).forEach(key=>{
           if(!showDependenciesColumn && key === "dependencies") return;
           if(!visibleCols.has(key)) return;
           const td = document.createElement("td");
@@ -1514,6 +1512,9 @@ function renderBody(){
               break;
             case "created":
               td.textContent = isoDate(t.created_at);
+              break;
+            case "hide":
+              td.innerHTML = `<button class="eye" data-id="${t.id}">${t.hidden ? "🙈" : "👁️"}</button>`;
               break;
             default:
               td.textContent = t[key]||"";
