@@ -42,19 +42,19 @@
     <tbody></tbody>
   </table>
 <script>
-const STORAGE_KEY = 'upworkJobs';
+const API = '/api/upworkJobs';
 const backBtn = document.getElementById('backBtn');
 backBtn.addEventListener('click', () => { window.location.href = '/'; });
 const addForm = document.getElementById('addForm');
 const tbody = document.querySelector('#jobsTable tbody');
 let jobs = [];
-function saveJobs(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs)); }
-function loadJobs(){
-  jobs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+async function loadJobs(){
+  const res = await fetch(API);
+  jobs = await res.json();
 }
 function render(){
   tbody.innerHTML = '';
-  jobs.forEach((j, idx) => {
+  jobs.forEach((j) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${j.title}</td>
@@ -62,11 +62,11 @@ function render(){
       <td>${j.bid || ''}</td>
       <td>${j.status}</td>
       <td>${j.notes || ''}</td>
-      <td><button data-i="${idx}" class="deleteBtn">Delete</button></td>`;
+      <td><button data-id="${j.id}" class="deleteBtn">Delete</button></td>`;
     tbody.appendChild(tr);
   });
 }
-addForm.addEventListener('submit', ev => {
+addForm.addEventListener('submit', async ev => {
   ev.preventDefault();
   const job = {
     title: document.getElementById('titleInput').value.trim(),
@@ -75,21 +75,24 @@ addForm.addEventListener('submit', ev => {
     status: document.getElementById('statusInput').value,
     notes: document.getElementById('notesInput').value.trim()
   };
-  jobs.push(job);
-  saveJobs();
+  await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(job)
+  });
+  await loadJobs();
   render();
   addForm.reset();
 });
-tbody.addEventListener('click', ev => {
+tbody.addEventListener('click', async ev => {
   if(ev.target.classList.contains('deleteBtn')){
-    const idx = parseInt(ev.target.dataset.i);
-    jobs.splice(idx,1);
-    saveJobs();
+    const id = ev.target.dataset.id;
+    await fetch(`${API}/${id}`, { method: 'DELETE' });
+    await loadJobs();
     render();
   }
 });
-loadJobs();
-render();
+loadJobs().then(render);
 </script>
 </body>
 </html>
