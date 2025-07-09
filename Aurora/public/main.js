@@ -205,7 +205,11 @@ let pendingImageDescs = [];
 function updatePageTitle(){
   const active = chatTabs.find(t => t.id === currentTabId);
   if(active && active.name){
-    document.title = `Alfe - ${active.name}`;
+    if(active.task_id){
+      document.title = `Alfe - #${active.task_id} ${active.name}`;
+    } else {
+      document.title = `Alfe - ${active.name}`;
+    }
   } else {
     document.title = defaultTitle;
   }
