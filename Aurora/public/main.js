@@ -1943,6 +1943,10 @@ async function openRenameTabModal(tabId){
       allProjects.map(p => `<option value="${p}">${p}</option>`).join('');
     projSel.value = t && t.project_name ? t.project_name : '';
   }
+  const extraInp = $("#renameExtraProjectsInput");
+  if(extraInp){
+    extraInp.value = t && t.extra_projects ? t.extra_projects : '';
+  }
   const modal = $("#renameTabModal");
   if(!modal){
     renameTab(tabId);
@@ -2009,11 +2013,13 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   const projSel = $("#renameProjectSelect");
   let project = projSel ? projSel.value : '';
   project = project.trim();
+  const extraInp = $("#renameExtraProjectsInput");
+  let extraProjects = extraInp ? extraInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
   await fetch('/api/chat/tabs/config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({tabId, project, repo, type, sessionId})
+    body: JSON.stringify({tabId, project, repo, extraProjects, type, sessionId})
   });
   await loadTabs();
   renderTabs();
