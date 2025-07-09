@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateChatPanelVisibility();
   loadMosaicFiles();
   loadMosaicRepoPath();
+  updateMosaicPanelVisibility();
   loadProjectGroups();
   loadCollapsedProjectGroups();
   loadChatTabOrder();
@@ -101,6 +102,7 @@ let archivedTabs = [];
 let currentTabId = 1;
 let initialTabUuid = null;
 let currentTabType = 'chat';
+const mosaicAllowedType = 'PM AGI';
 let chatHideMetadata = false;
 let chatTabAutoNaming = false;
 let showSubbubbleToken = false;
@@ -915,10 +917,26 @@ async function toggleSubroutinePanel(){
   await setSetting("subroutine_panel_visible", subroutinePanelVisible);
 }
 
-async function toggleMosaicPanel(){
-  mosaicPanelVisible = !mosaicPanelVisible;
+function canUseMosaic(){
+  return currentTabType === mosaicAllowedType;
+}
+
+function updateMosaicPanelVisibility(){
   const pnl = document.getElementById("mosaicPanel");
-  if(pnl) pnl.style.display = mosaicPanelVisible ? "" : "none";
+  if(pnl){
+    const visible = mosaicPanelVisible && canUseMosaic();
+    pnl.style.display = visible ? "" : "none";
+  }
+  const renameLbl = document.getElementById("renameShowMosaicCheck")?.closest('label');
+  if(renameLbl) renameLbl.style.display = canUseMosaic() ? '' : 'none';
+  const settingsLbl = document.getElementById("showMosaicPanelCheck")?.closest('label');
+  if(settingsLbl) settingsLbl.style.display = canUseMosaic() ? '' : 'none';
+}
+
+async function toggleMosaicPanel(){
+  if(!canUseMosaic()) return;
+  mosaicPanelVisible = !mosaicPanelVisible;
+  updateMosaicPanelVisibility();
   await setSetting("mosaic_panel_visible", mosaicPanelVisible);
   if(currentTabId){
     await setSetting(mosaicKey(currentTabId), mosaicPanelVisible);
@@ -1145,8 +1163,7 @@ async function loadSettings(){
   if(typeof map.mosaic_panel_visible !== "undefined"){
     mosaicPanelVisible = !!map.mosaic_panel_visible;
   }
-  const mosaic = document.getElementById("mosaicPanel");
-  if(mosaic) mosaic.style.display = mosaicPanelVisible ? "" : "none";
+  updateMosaicPanelVisibility();
 
   if(typeof map.subroutine_panel_visible !== "undefined"){
     subroutinePanelVisible = !!map.subroutine_panel_visible;
@@ -1933,6 +1950,7 @@ async function openRenameTabModal(tabId){
     mosaicPanelVisible = !!saved;
   }
   $("#renameShowMosaicCheck").checked = mosaicPanelVisible;
+  updateMosaicPanelVisibility();
   const typeSel = $("#renameTabTypeSelect");
   if(typeSel) typeSel.value = t ? t.tab_type || 'chat' : 'chat';
   const projSel = $("#renameProjectSelect");
@@ -2004,8 +2022,7 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   const name = $("#renameTabInput").value.trim();
   const type = $("#renameTabTypeSelect")?.value || 'chat';
   mosaicPanelVisible = $("#renameShowMosaicCheck").checked;
-  const pnl = document.getElementById("mosaicPanel");
-  if(tabId === currentTabId && pnl) pnl.style.display = mosaicPanelVisible ? "" : "none";
+  updateMosaicPanelVisibility();
   await setSetting("mosaic_panel_visible", mosaicPanelVisible);
   await setSetting(mosaicKey(tabId), mosaicPanelVisible);
   if(name) await renameTab(tabId, name);
@@ -2143,8 +2160,7 @@ async function selectTab(tabId){
     const defVal = await getSetting("mosaic_panel_visible");
     if(typeof defVal !== "undefined") mosaicPanelVisible = !!defVal;
   }
-  const mosaicPanel = document.getElementById("mosaicPanel");
-  if(mosaicPanel) mosaicPanel.style.display = mosaicPanelVisible ? "" : "none";
+  updateMosaicPanelVisibility();
 }
 function renderTabs(){
   const tc = $("#tabsContainer");
@@ -3371,6 +3387,7 @@ async function openChatSettings(){
   $("#showDependenciesColumnCheck").checked = showDependenciesColumn;
   $("#showSubroutinePanelCheck").checked = subroutinePanelVisible;
   $("#showMosaicPanelCheck").checked = mosaicPanelVisible;
+  updateMosaicPanelVisibility();
   $("#enterSubmitCheck").checked = enterSubmitsMessage;
   $("#chatQueueCheck").checked = chatQueueEnabled;
   $("#showNavMenuCheck").checked = navMenuVisible;
@@ -3530,6 +3547,7 @@ async function chatSettingsSaveFlow() {
   showDependenciesColumn = $("#showDependenciesColumnCheck").checked;
   subroutinePanelVisible = $("#showSubroutinePanelCheck").checked;
   mosaicPanelVisible = $("#showMosaicPanelCheck").checked;
+  updateMosaicPanelVisibility();
   enterSubmitsMessage = $("#enterSubmitCheck").checked;
   chatQueueEnabled = $("#chatQueueCheck").checked;
   navMenuVisible = $("#showNavMenuCheck").checked;
@@ -3599,8 +3617,7 @@ async function chatSettingsSaveFlow() {
   if(pnl) pnl.style.display = markdownPanelVisible ? "" : "none";
   const subPanel = document.getElementById("chatSubroutinesPanel");
   if(subPanel) subPanel.style.display = subroutinePanelVisible ? "" : "none";
-  const mosaicPanel = document.getElementById("mosaicPanel");
-  if(mosaicPanel) mosaicPanel.style.display = mosaicPanelVisible ? "" : "none";
+  updateMosaicPanelVisibility();
   renderTabs();
   renderSidebarTabs();
   renderArchivedSidebarTabs();
