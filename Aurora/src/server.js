@@ -264,6 +264,29 @@ function countTokens(encoder, text) {
   return encoder.encode(text || "").length;
 }
 
+async function callOpenAiModel(client, model, options = {}) {
+  const { messages = [], max_tokens, temperature, stream } = options;
+  if (model === "codex-mini-latest") {
+    const prompt = Array.isArray(messages)
+      ? messages.map(m => `${m.role}: ${m.content}`).join("\n")
+      : String(messages || "");
+    return client.responses.create({
+      model,
+      prompt,
+      max_tokens,
+      temperature,
+      stream
+    });
+  }
+  return client.chat.completions.create({
+    model,
+    messages,
+    max_tokens,
+    temperature,
+    stream
+  });
+}
+
 function getSessionIdFromRequest(req) {
   const header = req.headers.cookie || "";
   const cookies = {};
@@ -453,8 +476,7 @@ async function deriveImageTitle(prompt, client = null) {
 
   if (openAiClient) {
     try {
-      const completion = await openAiClient.chat.completions.create({
-        model: modelForOpenAI,
+      const completion = await callOpenAiModel(openAiClient, modelForOpenAI, {
         messages: [
           {
             role: 'system',
@@ -467,7 +489,9 @@ async function deriveImageTitle(prompt, client = null) {
         max_tokens: 16,
         temperature: 0.5
       });
-      const title = completion.choices?.[0]?.message?.content?.trim();
+      const title =
+        completion.choices?.[0]?.message?.content?.trim() ||
+        completion.choices?.[0]?.text?.trim();
       if (title) return title.replace(/^"|"$/g, '');
     } catch (e) {
       console.debug('[Server Debug] AI title generation failed, falling back =>', e.message);
@@ -510,8 +534,7 @@ async function deriveTabTitle(message, client = null) {
 
   if (openAiClient) {
     try {
-      const completion = await openAiClient.chat.completions.create({
-        model: modelForOpenAI,
+      const completion = await callOpenAiModel(openAiClient, modelForOpenAI, {
         messages: [
           { role: 'system', content: 'Create a short 3-6 word title summarizing the user message.' },
           { role: 'user', content: message }
@@ -519,7 +542,9 @@ async function deriveTabTitle(message, client = null) {
         max_tokens: 16,
         temperature: 0.5
       });
-      const title = completion.choices?.[0]?.message?.content?.trim();
+      const title =
+        completion.choices?.[0]?.message?.content?.trim() ||
+        completion.choices?.[0]?.text?.trim();
       if (title) return title.replace(/^"|"$/g, '');
     } catch (e) {
       console.debug('[Server Debug] AI tab title generation failed, falling back =>', e.message);
@@ -563,15 +588,16 @@ async function generateInitialGreeting(type, client = null) {
 
   if (openAiClient) {
     try {
-      const completion = await openAiClient.chat.completions.create({
-        model: modelForOpenAI,
+      const completion = await callOpenAiModel(openAiClient, modelForOpenAI, {
         messages: [
           { role: 'user', content: prompt }
         ],
         max_tokens: 60,
         temperature: 0.7
       });
-      const text = completion.choices?.[0]?.message?.content?.trim();
+      const text =
+        completion.choices?.[0]?.message?.content?.trim() ||
+        completion.choices?.[0]?.text?.trim();
       if (text) return text;
     } catch (e) {
       console.debug('[Server Debug] Initial greeting generation failed =>', e.message);
@@ -1812,8 +1838,7 @@ app.post("/api/chat", async (req, res) => {
     const useStreaming = (streamingSetting === false) ? false : true;
 
     if (useStreaming) {
-      const stream = await openaiClient.chat.completions.create({
-        model: modelForOpenAI,
+      const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
         stream: true
       });
@@ -1821,7 +1846,10 @@ app.post("/api/chat", async (req, res) => {
       console.debug("[Server Debug] AI streaming started...");
 
       for await (const part of stream) {
-        const chunk = part.choices?.[0]?.delta?.content || "";
+        const chunk =
+          part.choices?.[0]?.delta?.content ||
+          part.choices?.[0]?.delta?.text ||
+          part.choices?.[0]?.text || "";
         if (chunk.includes("[DONE]")) {
           break;
         }
@@ -1832,11 +1860,12 @@ app.post("/api/chat", async (req, res) => {
       console.debug("[Server Debug] AI streaming finished, total length =>", assistantMessage.length);
 
     } else {
-      const completion = await openaiClient.chat.completions.create({
-        model: modelForOpenAI,
+      const completion = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation
       });
-      assistantMessage = completion.choices?.[0]?.message?.content || "";
+      assistantMessage =
+        completion.choices?.[0]?.message?.content ||
+        completion.choices?.[0]?.text || "";
       res.write(assistantMessage);
       res.end();
       console.debug("[Server Debug] AI non-streaming completed, length =>", assistantMessage.length);
