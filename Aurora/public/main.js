@@ -2343,7 +2343,7 @@ function renderSidebarTabs(){
       arrow.textContent = collapsed ? "\u25B6" : "\u25BC"; // ▶ or ▼
       const label = document.createElement("span");
       label.textContent = " " + (project || "(No project)");
-      label.style.flexGrow = "1";
+      label.style.flexGrow = "0";
       header.appendChild(arrow);
       header.appendChild(label);
       if(project){

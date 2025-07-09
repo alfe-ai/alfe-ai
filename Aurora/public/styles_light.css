@@ -847,7 +847,7 @@ body {
   border: none;
   color: var(--text-color);
   cursor: pointer;
-  margin-left: auto;
+  margin-left: 4px;
   transition: color 0.3s;
   width: 24px;
   padding: 4px;
