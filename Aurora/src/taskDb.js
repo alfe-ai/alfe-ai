@@ -364,6 +364,17 @@ export default class TaskDB {
       // column exists
     }
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS upwork_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        link TEXT DEFAULT '',
+        bid TEXT DEFAULT '',
+        status TEXT DEFAULT 'Bidding',
+        notes TEXT DEFAULT ''
+      );
+    `);
+
     console.debug("[TaskDB Debug] Finished DB schema init.");
   }
 
@@ -1379,6 +1390,32 @@ export default class TaskDB {
       }
     }
     this.db.prepare('DELETE FROM image_sessions WHERE session_id=?').run(sourceId);
+  }
+
+  addUpworkJob(job) {
+    const { lastInsertRowid } = this.db
+      .prepare(
+        `INSERT INTO upwork_jobs (title, link, bid, status, notes)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(
+        job.title,
+        job.link || '',
+        job.bid || '',
+        job.status || 'Bidding',
+        job.notes || ''
+      );
+    return lastInsertRowid;
+  }
+
+  listUpworkJobs() {
+    return this.db
+      .prepare('SELECT * FROM upwork_jobs ORDER BY id DESC')
+      .all();
+  }
+
+  deleteUpworkJob(id) {
+    this.db.prepare('DELETE FROM upwork_jobs WHERE id=?').run(id);
   }
 }
 
