@@ -286,6 +286,9 @@ function applyMarkdownSyntax(text){
   html = html.replace(/\*([^*]+)\*/g, '<span class="md-italic">*$1*</span>');
   // Inline code
   html = html.replace(/`([^`]+)`/g, '<span class="md-inline-code">`$1`</span>');
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" title="$2">$1</a>');
   return html.replace(/\n/g, "<br>");
 }
 
