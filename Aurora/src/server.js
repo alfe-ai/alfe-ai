@@ -85,6 +85,7 @@ import { fileURLToPath } from "url";
 import OpenAI from "openai";
 import { encoding_for_model } from "tiktoken";
 import axios from "axios";
+import { callOpenAiModel, toPrompt } from "./openAiUtils.js";
 
 // __dirname replacement for ES modules
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -255,8 +256,13 @@ function getEncoding(modelName) {
   try {
     return encoding_for_model(modelName);
   } catch (e) {
-    console.debug("[Server Debug] Tokenizer load failed, falling back to gpt-4.1-mini =>", e.message);
-    return encoding_for_model("gpt-4.1-mini");
+    console.warn(
+      "[Server Debug] Tokenizer load failed for",
+      modelName,
+      "- guessing gpt-3.5-turbo =>",
+      e.message
+    );
+    return encoding_for_model("gpt-3.5-turbo");
   }
 }
 
@@ -264,28 +270,6 @@ function countTokens(encoder, text) {
   return encoder.encode(text || "").length;
 }
 
-async function callOpenAiModel(client, model, options = {}) {
-  const { messages = [], max_tokens, temperature, stream } = options;
-  if (model === "codex-mini-latest") {
-    const prompt = Array.isArray(messages)
-      ? messages.map(m => `${m.role}: ${m.content}`).join("\n")
-      : String(messages || "");
-    return client.completions.create({
-      model,
-      prompt,
-      max_tokens,
-      temperature,
-      stream
-    });
-  }
-  return client.chat.completions.create({
-    model,
-    messages,
-    max_tokens,
-    temperature,
-    stream
-  });
-}
 
 function getSessionIdFromRequest(req) {
   const header = req.headers.cookie || "";
@@ -4030,16 +4014,21 @@ const certPath = process.env.HTTPS_CERT_PATH;
 console.log('keyPath: ', keyPath);
 console.log('certPath: ', certPath);
 
-if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-  const options = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath)
-  };
-  https.createServer(options, app).listen(PORT, () => {
-    console.log(`[TaskQueue] HTTPS server running on port ${PORT}`);
-  });
-} else {
-  app.listen(PORT, () => {
-    console.log(`[TaskQueue] Web server is running on port ${PORT} (verbose='true')`);
-  });
+const isMain = process.argv[1] === fileURLToPath(import.meta.url);
+if (isMain) {
+  if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    const options = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+    https.createServer(options, app).listen(PORT, () => {
+      console.log(`[TaskQueue] HTTPS server running on port ${PORT}`);
+    });
+  } else {
+    app.listen(PORT, () => {
+      console.log(`[TaskQueue] Web server is running on port ${PORT} (verbose='true')`);
+    });
+  }
 }
+
+export { getEncoding, countTokens };

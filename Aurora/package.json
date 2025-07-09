@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "web": "node src/server.js",
-    "lint": "echo \"(no linter configured)\""
+    "lint": "echo \"(no linter configured)\"",
+    "test": "node test/callOpenAiModel.test.js"
   },
   "author": "Alfe AI",
   "license": "MIT",
@@ -22,8 +23,7 @@
     "multer": "^1.4.5-lts.1",
     "openai": "^4.7.1",
     "tiktoken": "^1.0.4",
-    "speakeasy": "^2.0.0"
-    ,
+    "speakeasy": "^2.0.0",
     "pg": "^8.11.3",
     "jimp": "^0.22.10"
   }
