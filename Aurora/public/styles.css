@@ -1252,6 +1252,24 @@ body {
   color: #bfbbbb;
 }
 
+/* Footer at the bottom of the sidebar */
+.sidebar-footer {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  text-align: center;
+  color: #ccc;
+}
+
+.sidebar-footer a {
+  color: #ddd;
+  text-decoration: none;
+  margin: 0 0.25rem;
+}
+
+.sidebar-footer a:hover {
+  text-decoration: underline;
+}
+
 /* Simple toast notification */
 .toast {
   position: fixed;
