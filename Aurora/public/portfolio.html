@@ -121,7 +121,7 @@
 
     async function loadPortfolio(){
       try {
-        const resp = await fetch('/api/upload/list');
+        const resp = await fetch('/api/upload/list?showHidden=1');
         const data = await resp.json();
         const grid = document.getElementById('grid');
         grid.innerHTML = '';
