@@ -291,6 +291,16 @@ function applyMarkdownSyntax(text){
 
 function formatCodeBlocks(text){
   if(!text) return "";
+
+  // Support code fences wrapped in a single backtick on separate lines
+  // e.g.
+  // `
+  // const x = 1;
+  // `
+  text = text.replace(/(^|\n)`\n([\s\S]*?)\n`(?=\n|$)/g, (m, lead, code) => {
+    return `${lead}<pre><code>${escapeHtml(code)}</code></pre>`;
+  });
+
   const parts = text.split(/```/);
   return parts.map((part, idx) => {
     if(idx % 2 === 0){
