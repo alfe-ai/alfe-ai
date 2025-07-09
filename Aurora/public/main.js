@@ -139,7 +139,7 @@ let imageLoopMessage = "Next image";
 let imageGenService = 'openai';
 let isImageGenerating = false; // true while an image is being generated
 let lastImagePrompt = null; // avoid repeating generation for same prompt
-let imageUploadEnabled = true; // show image upload button
+let fileUploadEnabled = true; // show file upload button
 let imagePaintTrayEnabled = true; // show image paint tray button
 let activityIframeMenuVisible = false; // show Activity IFrame menu item
 let nexumChatMenuVisible = false;     // show Nexum Chat menu item
@@ -199,8 +199,8 @@ function getTabUuidFromLocation(){
 initialTabUuid = getTabUuidFromLocation();
 
 /* Introduce an image buffer and preview, plus an array to hold their descriptions. */
-let pendingImages = [];
-let pendingImageDescs = [];
+let pendingFiles = [];
+let pendingFileDescs = [];
 
 function updatePageTitle(){
   const active = chatTabs.find(t => t.id === currentTabId);
@@ -1323,9 +1323,9 @@ async function loadSettings(){
   }
 
   if(typeof map.image_upload_enabled !== "undefined"){
-    imageUploadEnabled = !!map.image_upload_enabled;
+    fileUploadEnabled = !!map.image_upload_enabled;
   }
-  toggleImageUploadButton(imageUploadEnabled);
+  toggleImageUploadButton(fileUploadEnabled);
 
   if(typeof map.image_paint_tray_enabled !== "undefined"){
     imagePaintTrayEnabled = map.image_paint_tray_enabled !== false;
@@ -2268,7 +2268,7 @@ async function selectTab(tabId){
   renderHeader();
   renderBody();
   setLoopUi(imageLoopEnabled);
-  toggleImageUploadButton(imageUploadEnabled);
+  toggleImageUploadButton(fileUploadEnabled);
   if(imageLoopEnabled && accountInfo && accountInfo.id === 1){
     setTimeout(runImageLoop, 0);
   }
@@ -3148,7 +3148,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   const chatMessagesEl = document.getElementById("chatMessages");
   const placeholderEl = document.getElementById("chatPlaceholder");
   const userMessage = chatInputEl.value.trim();
-  if(!userMessage && pendingImages.length===0) return;
+  if(!userMessage && pendingFiles.length===0) return;
   renderDesignSuggestions(false);
   chatSendBtnEl.disabled = true;
   if(userMessage){
@@ -3158,45 +3158,45 @@ chatSendBtnEl.addEventListener("click", async () => {
 
   if (favElement) favElement.href = rotatingFavicon;
 
-  // 1) If there are images pending, process them to get descriptions and
+  // 1) If there are files pending, process them to get descriptions and
   //    collect info for showing thumbnails in the chat history.
   let descsForThisSend = [];
-  let imageInfosForThisSend = [];
-  if(pendingImages.length>0){
-    // Show the loading indicator for image processing
-    const loaderEl = document.getElementById("imageProcessingIndicator");
+  let fileInfosForThisSend = [];
+  if(pendingFiles.length>0){
+    // Show the loading indicator for file processing
+    const loaderEl = document.getElementById("fileProcessingIndicator");
     if(loaderEl) {
       loaderEl.style.display = "";
       scrollChatToBottom();
     }
-    // Disable send button while images upload
+    // Disable send button while files upload
     chatSendBtnEl.disabled = true;
 
     try {
-      for(const f of pendingImages){
+      for(const f of pendingFiles){
         try {
           const formData = new FormData();
-          formData.append("imageFile", f);
+          formData.append("file", f);
           if(userMessage) formData.append("userInput", userMessage);
-          let uploadResp = await fetch(`/api/chat/image?tabId=${currentTabId}`, {
+          let uploadResp = await fetch(`/api/chat/file?tabId=${currentTabId}`, {
             method: "POST",
             body: formData
           });
           if(!uploadResp.ok){
-            console.error("Image upload error, status:", uploadResp.status);
+            console.error("File upload error, status:", uploadResp.status);
           } else {
             const json = await uploadResp.json();
             if(json.desc){
               // Show bracketed text with filename
               descsForThisSend.push(`[filename: ${json.filename}] [desc: ${json.desc}]`);
-              imageInfosForThisSend.push({
+              if(f.type.startsWith("image/")) fileInfosForThisSend.push({
                 url: `/uploads/${json.filename}`,
                 desc: json.desc
               });
             }
           }
         } catch(e){
-          console.error("Error uploading image:", e);
+          console.error("Error uploading file:", e);
         }
       }
     } finally {
@@ -3208,9 +3208,9 @@ chatSendBtnEl.addEventListener("click", async () => {
       // Send button remains disabled until streaming completes
     }
 
-    // Clear the buffer for images
-    pendingImages = [];
-    updateImagePreviewList();
+    // Clear the buffer for files
+    pendingFiles = [];
+    updateFilePreviewList();
   }
 
   // If user typed nothing but we have desc subbubbles, we can still show them in a single bubble
@@ -3244,7 +3244,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   userDiv.appendChild(userHead);
 
   // Show thumbnails for uploaded images
-  imageInfosForThisSend.forEach(info => {
+  fileInfosForThisSend.forEach(info => {
     const img = document.createElement("img");
     img.src = info.url;
     img.alt = info.desc;
@@ -3836,7 +3836,7 @@ function setLoopUi(active){
 }
 
 function toggleImageUploadButton(visible){
-  const btn = document.getElementById("chatImageBtn");
+  const btn = document.getElementById("chatFileBtn");
   if(!btn) return;
   btn.style.display = visible ? "" : "none";
 }
@@ -6340,7 +6340,7 @@ async function loadFeatureFlags(){
     "show_session_id"
   ];
   const map = await getSettings(keys);
-  if(typeof map.image_upload_enabled !== "undefined") imageUploadEnabled = !!map.image_upload_enabled;
+  if(typeof map.image_upload_enabled !== "undefined") fileUploadEnabled = !!map.image_upload_enabled;
   if(typeof map.image_paint_tray_enabled !== "undefined") imagePaintTrayEnabled = map.image_paint_tray_enabled !== false;
   if(typeof map.activity_iframe_menu_visible !== "undefined") activityIframeMenuVisible = map.activity_iframe_menu_visible !== false;
   if(typeof map.nexum_chat_menu_visible !== "undefined") nexumChatMenuVisible = map.nexum_chat_menu_visible !== false;
@@ -6361,7 +6361,7 @@ async function loadFeatureFlags(){
 
 document.getElementById("featureFlagsBtn").addEventListener("click", async () => {
   await loadFeatureFlags();
-  document.getElementById("imageUploadEnabledCheck").checked = imageUploadEnabled;
+  document.getElementById("imageUploadEnabledCheck").checked = fileUploadEnabled;
   document.getElementById("imagePaintTrayEnabledCheck").checked = imagePaintTrayEnabled;
   document.getElementById("activityIframeMenuCheck").checked = activityIframeMenuVisible;
   document.getElementById("nexumChatMenuCheck").checked = nexumChatMenuVisible;
@@ -6381,9 +6381,9 @@ document.getElementById("featureFlagsBtn").addEventListener("click", async () =>
   showModal(document.getElementById("featureFlagsModal"));
 });
 document.getElementById("featureFlagsSaveBtn").addEventListener("click", async () => {
-  imageUploadEnabled = document.getElementById("imageUploadEnabledCheck").checked;
-  await setSetting("image_upload_enabled", imageUploadEnabled);
-  toggleImageUploadButton(imageUploadEnabled);
+  fileUploadEnabled = document.getElementById("imageUploadEnabledCheck").checked;
+  await setSetting("image_upload_enabled", fileUploadEnabled);
+  toggleImageUploadButton(fileUploadEnabled);
   imagePaintTrayEnabled = document.getElementById("imagePaintTrayEnabledCheck").checked;
   await setSetting("image_paint_tray_enabled", imagePaintTrayEnabled);
   toggleImagePaintTrayButton(imagePaintTrayEnabled);
@@ -6535,9 +6535,9 @@ document.getElementById("saveMdBtn").addEventListener("click", async () => {
 /*
   Image button now simply populates a buffer and displays a preview.
 */
-document.getElementById("chatImageBtn").addEventListener("click", () => {
-  if(!imageUploadEnabled) return;
-  document.getElementById("imageUploadInput").click();
+document.getElementById("chatFileBtn").addEventListener("click", () => {
+  if(!fileUploadEnabled) return;
+  document.getElementById("fileUploadInput").click();
 });
 
 // Use user's text prompt to generate an image via the existing hook
@@ -6550,19 +6550,19 @@ document.getElementById("chatGenImageBtn").addEventListener("click", () => {
   }
 });
 
-document.getElementById("imageUploadInput").addEventListener("change", async (ev) => {
+document.getElementById("fileUploadInput").addEventListener("change", async (ev) => {
   const files = ev.target.files;
   if(!files || files.length===0) return;
   for(const f of files){
-    pendingImages.push(f);
+    pendingFiles.push(f);
   }
-  updateImagePreviewList();
+  updateFilePreviewList();
   ev.target.value="";
 });
 
 // Allow pasting images directly into the chat input
 chatInputEl.addEventListener("paste", (ev) => {
-  if(!imageUploadEnabled) return;
+  if(!fileUploadEnabled) return;
   const items = ev.clipboardData && ev.clipboardData.items;
   if(!items) return;
   let found = false;
@@ -6570,29 +6570,29 @@ chatInputEl.addEventListener("paste", (ev) => {
     if(item.type && item.type.startsWith("image/")){
       const file = item.getAsFile();
       if(file){
-        pendingImages.push(file);
+        pendingFiles.push(file);
         found = true;
       }
     }
   }
   if(found){
     ev.preventDefault();
-    updateImagePreviewList();
+    updateFilePreviewList();
   }
 });
 
 /*
   Show a small list of “buffered” images that will attach with the next message.
 */
-function updateImagePreviewList(){
-  const previewArea = document.getElementById("imagePreviewArea");
+function updateFilePreviewList(){
+  const previewArea = document.getElementById("filePreviewArea");
   if(!previewArea) return;
   previewArea.innerHTML = "";
-  if(pendingImages.length===0){
-    previewArea.innerHTML = "<em>No images selected</em>";
+  if(pendingFiles.length===0){
+    previewArea.innerHTML = "<em>No files selected</em>";
     return;
   }
-  pendingImages.forEach((f, idx) => {
+  pendingFiles.forEach((f, idx) => {
     const div = document.createElement("div");
     div.style.marginBottom="4px";
     div.textContent = f.name;
@@ -6600,8 +6600,8 @@ function updateImagePreviewList(){
     rmBtn.textContent = "Remove";
     rmBtn.style.marginLeft="8px";
     rmBtn.addEventListener("click", () => {
-      pendingImages.splice(idx,1);
-      updateImagePreviewList();
+      pendingFiles.splice(idx,1);
+      updateFilePreviewList();
     });
     div.appendChild(rmBtn);
     previewArea.appendChild(div);
