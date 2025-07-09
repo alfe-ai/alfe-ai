@@ -80,6 +80,7 @@ let columnsOrder = [
   { key: "status",       label: "Status"     },
   { key: "number",       label: "#"          },
   { key: "title",        label: "Title"      },
+  { key: "chat_sha",    label: "Chat"       },
   { key: "dependencies", label: "Depends On" },
   { key: "project",      label: "Project"    },
   { key: "created",      label: "Created"    },
@@ -1501,6 +1502,11 @@ function renderBody(){
             case "title":
               td.textContent = t.title;
               td.className="title-cell";
+              break;
+            case "chat_sha":
+              if(t.chat_sha){
+                td.innerHTML = `<a href="/chat/${t.chat_sha}" target="_blank">${t.chat_sha}</a>`;
+              }
               break;
             case "dependencies":
               td.textContent = t.dependencies;
