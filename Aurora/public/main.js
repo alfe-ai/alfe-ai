@@ -2894,6 +2894,17 @@ function parseProviderModel(model) {
   return { provider: "Unknown", shortModel: model };
 }
 
+function getModelCost(modelId, inputTokens, outputTokens) {
+  if (!window.allAiModels) return null;
+  const info = window.allAiModels.find(m => m.id === modelId);
+  if (!info) return null;
+  const inRate = parseFloat(String(info.inputCost || '').replace('$', ''));
+  const outRate = parseFloat(String(info.outputCost || '').replace('$', ''));
+  if (isNaN(inRate) || isNaN(outRate)) return null;
+  const cost = (inputTokens / 1000) * inRate + (outputTokens / 1000) * outRate;
+  return cost;
+}
+
 function getEncoding(modelName) {
   console.debug("[Server Debug] Attempting to load tokenizer for model =>", modelName);
   try {
@@ -5528,7 +5539,14 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
     if (tokObj) {
       const tuDetails = document.createElement("details");
       const tuSum = document.createElement("summary");
-      tuSum.textContent = `Token Usage (${tokObj.total})`;
+      let costStr = "";
+      if(model){
+        const inT = (tokObj.systemTokens || 0) + (tokObj.historyTokens || 0) + (tokObj.inputTokens || 0);
+        const outT = (tokObj.assistantTokens || 0) + (tokObj.finalAssistantTokens || 0);
+        const c = getModelCost(model, inT, outT);
+        if(c !== null) costStr = ` | $${c.toFixed(4)}`;
+      }
+      tuSum.textContent = `Token Usage (${tokObj.total}${costStr})`;
       tuDetails.appendChild(tuSum);
 
       const respTime = tokObj.responseTime*10;
