@@ -43,38 +43,7 @@
 </head>
 <body>
   <a href="/about.html" style="position:absolute; top:8px; left:8px; font-size:0.8rem; color:#fff;">About</a>
-  <div id="title">Alfe AI:</div>
-  <div id="your">Your</div>
-  <script>
-    const phrases = [
-      "AI Software Engineer",
-      "AI Developer",
-      "AI Project Manager",
-      "AI Scrum Master",
-      "AI QA Tester",
-      "AI UX Designer",
-      "AI Data Scientist",
-      "AI DevOps Engineer",
-      "AI Security Analyst",
-      "AI Picasso",
-      "AI Van Gogh",
-      "AI Monet",
-      "AI CTO",
-      "AI Solutions Architect",
-      "Beta Rollout"
-    ];
-    let idx = 0;
-    function spawn() {
-      const span = document.createElement('span');
-      span.className = 'racecar';
-      span.textContent = phrases[idx % phrases.length];
-      idx++;
-      span.style.top = (60 + Math.random()*30) + 'vh';
-      document.body.appendChild(span);
-      span.addEventListener('animationend', () => span.remove());
-      setTimeout(spawn, 700);
-    }
-    spawn();
-  </script>
+  <div id="title">Alfe AI</div>
+  <div id="your">AI Software Development, Image Design, and Project Management</div>
 </body>
 </html>
