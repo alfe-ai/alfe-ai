@@ -1914,6 +1914,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
     const repo = req.body.repo || '';
     const type = req.body.type || 'chat';
     const sessionId = req.body.sessionId || '';
+    const taskId = req.body.taskId ? parseInt(req.body.taskId, 10) : null;
 
     const autoNaming = db.getSetting("chat_tab_auto_naming");
     const projectName = db.getSetting("sterling_project") || "";
@@ -1921,7 +1922,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, type, sessionId);
+    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, type, sessionId, taskId);
     res.json({ success: true, id: tabId, uuid });
     createInitialTabMessage(tabId, type, sessionId).catch(e =>
       console.error('[Server Debug] Initial message error:', e.message));
@@ -2010,7 +2011,8 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
 app.post("/api/chat/tabs/config", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
-    const { tabId, project = '', repo = '', type = 'chat', sessionId = '' } = req.body;
+    const { tabId, project = '', repo = '', type = 'chat', taskId = null, sessionId = '' } = req.body;
+    const taskIdNum = taskId ? parseInt(taskId, 10) : null;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
@@ -2018,7 +2020,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    db.setChatTabConfig(tabId, project, repo, type);
+    db.setChatTabConfig(tabId, project, repo, type, taskIdNum);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
