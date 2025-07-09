@@ -2417,6 +2417,7 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
       return res.status(400).json({ error: "No image file received." });
     }
 
+    const userInput = req.body?.userInput || "";
     const filePath = path.join(uploadsDir, req.file.filename);
 
     let desc = "";
@@ -2424,18 +2425,18 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
       const openaiClient = getOpenAiClient();
       const imageData = fs.readFileSync(filePath, { encoding: "base64" });
       const visionModel = "gpt-4o";
+      const contentParts = [];
+      if (userInput) {
+        contentParts.push({ type: "text", text: userInput });
+      }
+      contentParts.push({ type: "text", text: "Describe this image in verbose detail." });
+      contentParts.push({ type: "image_url", image_url: { url: `data:image/png;base64,${imageData}` } });
       const completion = await openaiClient.chat.completions.create({
         model: visionModel,
         messages: [
           {
             role: "user",
-            content: [
-              { type: "text", text: "Describe this image in one sentence." },
-              {
-                type: "image_url",
-                image_url: { url: `data:image/png;base64,${imageData}` }
-              }
-            ]
+            content: contentParts
           }
         ],
         max_tokens: 60,
@@ -2452,7 +2453,7 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
 
     db.logActivity(
       "Image upload",
-      JSON.stringify({ file: req.file.filename, desc })
+      JSON.stringify({ file: req.file.filename, desc, userInput })
     );
     res.json({ success: true, desc, filename: req.file.filename });
   } catch (e) {
