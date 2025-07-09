@@ -2070,6 +2070,47 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   renderArchivedSidebarTabs();
   hideModal(modal);
 });
+$("#renameTabCreateTaskBtn").addEventListener("click", async () => {
+  const modal = $("#renameTabModal");
+  const tabId = parseInt(modal.dataset.tabId, 10);
+  const name = $("#renameTabInput").value.trim();
+  const type = $("#renameTabTypeSelect")?.value || 'chat';
+  mosaicPanelVisible = $("#renameShowMosaicCheck").checked;
+  updateMosaicPanelVisibility();
+  await setSetting("mosaic_panel_visible", mosaicPanelVisible);
+  await setSetting(mosaicKey(tabId), mosaicPanelVisible);
+  if(name) await renameTab(tabId, name);
+  const tab = chatTabs.find(t => t.id === tabId) || {};
+  const projSel = $("#renameProjectSelect");
+  let project = projSel ? projSel.value : '';
+  project = project.trim();
+  let taskId = 0;
+  try {
+    const res = await fetch('/api/tasks/new', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({title: name || tab.name || '', project})
+    });
+    if(res.ok){
+      const data = await res.json();
+      taskId = data.id || 0;
+    }
+  } catch(e) { console.error(e); }
+  const extraInp = $("#renameExtraProjectsInput");
+  let extraProjects = extraInp ? extraInp.value.trim() : '';
+  const repo = tab.repo_ssh_url || '';
+  await fetch('/api/chat/tabs/config', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({tabId, project, repo, extraProjects, taskId, type, sessionId})
+  });
+  await loadTabs();
+  renderTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
+  if(typeof loadTasks === 'function') await loadTasks();
+  hideModal(modal);
+});
 $("#renameTabCancelBtn").addEventListener("click", () => hideModal($("#renameTabModal")));
 $("#renameTabInput").addEventListener("keydown", evt => {
   if(evt.key === "Enter") $("#renameTabSaveBtn").click();
