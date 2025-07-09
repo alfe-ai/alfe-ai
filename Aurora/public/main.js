@@ -69,9 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
   updateMosaicPanelVisibility();
   loadProjectGroups();
   loadCollapsedProjectGroups();
+  loadTasksOnlyTabs();
   loadChatTabOrder();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', updateChatPanelVisibility);
+  const tasksOnlyChk = document.getElementById("tasksOnlyTabsCheck");
+  if(tasksOnlyChk) tasksOnlyChk.checked = tasksOnlyTabs;
 });
 
 let columnsOrder = [
@@ -118,6 +121,7 @@ let messageQueue = [];
 let navMenuVisible = true; // visibility of the top navigation menu
 let navMenuLoading = true;  // hide nav menu while showing spinner on load
 let showArchivedTabs = false;
+let tasksOnlyTabs = false; // filter chat tabs with tasks only
 let topChatTabsBarVisible = false; // visibility of the top chat tabs bar
 let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
@@ -429,6 +433,14 @@ function loadCollapsedProjectGroups(){
   } catch(e){
     collapsedProjectGroups = {};
   }
+}
+
+function loadTasksOnlyTabs(){
+  tasksOnlyTabs = localStorage.getItem('tasksOnlyTabs') === 'true';
+}
+
+function saveTasksOnlyTabs(){
+  localStorage.setItem('tasksOnlyTabs', tasksOnlyTabs);
 }
 
 function saveCollapsedProjectGroups(){
@@ -2344,7 +2356,7 @@ function renderTabs(){
 function renderSidebarTabs(){
   const container = document.getElementById("verticalTabsContainer");
   container.innerHTML="";
-  const tabs = chatTabs.filter(t => showArchivedTabs || !t.archived);
+  const tabs = chatTabs.filter(t => (showArchivedTabs || !t.archived) && (!tasksOnlyTabs || t.task_id));
   if(groupTabsByProject){
     const groups = new Map();
     // Include user-defined project groups first so they appear even if empty
@@ -2601,6 +2613,14 @@ function addArchivedRow(container, tab){
 
 document.getElementById("newSideTabBtn").addEventListener("click", openNewTabModal);
 document.getElementById("newProjectGroupBtn")?.addEventListener("click", addProjectGroup);
+const tasksOnlyTabsCheck = document.getElementById("tasksOnlyTabsCheck");
+if(tasksOnlyTabsCheck){
+  tasksOnlyTabsCheck.addEventListener("change", () => {
+    tasksOnlyTabs = tasksOnlyTabsCheck.checked;
+    saveTasksOnlyTabs();
+    renderSidebarTabs();
+  });
+}
 const newTabBtnEl = document.getElementById("newTabBtn");
 if (newTabBtnEl) newTabBtnEl.addEventListener("click", openNewTabModal);
 $$('#newTabTypeButtons .start-type-btn').forEach(btn => {
