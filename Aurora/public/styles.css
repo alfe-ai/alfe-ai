@@ -909,6 +909,14 @@ body {
   color: #fff;
 }
 
+#verticalTabsContainer .task-id,
+#archivedTabsContainer .task-id {
+  margin-left: auto;
+  color: var(--accent-light);
+  font-size: 0.8rem;
+  padding-left: 4px;
+}
+
 /* Secure uploader file table */
 #secureFilesList {
   width: 100%;

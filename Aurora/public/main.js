@@ -2472,10 +2472,17 @@ function renderSidebarTabRow(container, tab, indented=false){
     toggleArchiveTab(tab.id, !tab.archived);
   });
 
+  const taskIdSpan = document.createElement("span");
+  taskIdSpan.className = "task-id";
+  if (tab.task_id) {
+    taskIdSpan.textContent = `#${tab.task_id}`;
+  }
+
   wrapper.appendChild(info);
   wrapper.appendChild(renameBtn);
   wrapper.appendChild(forkBtn);
   wrapper.appendChild(archBtn);
+  if (tab.task_id) wrapper.appendChild(taskIdSpan);
   wrapper.addEventListener("dragover", tabDragOver);
   wrapper.addEventListener("dragleave", tabDragLeave);
   wrapper.addEventListener("drop", tabDrop);
@@ -2543,9 +2550,16 @@ function addArchivedRow(container, tab){
     renderArchivedSidebarTabs();
   });
 
+  const taskIdSpan = document.createElement("span");
+  taskIdSpan.className = "task-id";
+  if (tab.task_id) {
+    taskIdSpan.textContent = `#${tab.task_id}`;
+  }
+
   wrapper.appendChild(icon);
   wrapper.appendChild(info);
   wrapper.appendChild(unarchBtn);
+  if (tab.task_id) wrapper.appendChild(taskIdSpan);
   container.appendChild(wrapper);
 }
 
