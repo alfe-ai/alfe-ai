@@ -2245,7 +2245,7 @@ function renderSidebarTabs(){
         gear.addEventListener("click", e => { e.stopPropagation(); openProjectSettingsModal(project); });
         header.appendChild(gear);
         const addBtn = document.createElement("button");
-        addBtn.textContent = "\u2795"; // ➕
+        addBtn.textContent = "+";
         addBtn.className = "project-add-btn config-btn";
         addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
         header.appendChild(addBtn);
