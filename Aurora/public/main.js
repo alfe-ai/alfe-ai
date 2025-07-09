@@ -3234,15 +3234,8 @@ chatSendBtnEl.addEventListener("click", async () => {
       botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
     }
 
-    // POST: Code change request creation after user input
-    await fetch("/api/tasks/new", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({
-        title: "[Code Change Request] " + userMessage.slice(0,60),
-        body: partialText
-      })
-    });
+    // Code previously auto-created a task for every chat pair.
+    // This behavior has been disabled to avoid cluttering the task list.
 
     await loadChatHistory(currentTabId, true);
     await loadTabs();
