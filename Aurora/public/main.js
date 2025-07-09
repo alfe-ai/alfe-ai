@@ -1536,6 +1536,18 @@ async function loadTasks(){
   allTasks = await fetchTasks();
   renderHeader();
   renderBody();
+  showTasksUi();
+}
+
+function showTasksUi(){
+  const container = document.getElementById('sidebarViewTasks');
+  if(container){
+    container.querySelectorAll('[hidden]').forEach(el => {
+      el.hidden = false;
+    });
+  }
+  const loader = document.getElementById('tasksLoading');
+  if(loader) loader.style.display = 'none';
 }
 
 async function populateFilters(){
