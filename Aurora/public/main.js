@@ -3028,6 +3028,7 @@ chatSendBtnEl.addEventListener("click", async () => {
         try {
           const formData = new FormData();
           formData.append("imageFile", f);
+          if(userMessage) formData.append("userInput", userMessage);
           let uploadResp = await fetch(`/api/chat/image?tabId=${currentTabId}`, {
             method: "POST",
             body: formData
