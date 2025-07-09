@@ -1961,6 +1961,18 @@ async function openRenameTabModal(tabId){
       allProjects.map(p => `<option value="${p}">${p}</option>`).join('');
     projSel.value = t && t.project_name ? t.project_name : '';
   }
+  const taskSel = $("#renameTaskSelect");
+  if(taskSel){
+    try{
+      const res = await fetch('/api/tasks?includeHidden=1');
+      if(res.ok){
+        const list = await res.json();
+        taskSel.innerHTML = '<option value="0">(none)</option>' +
+          list.map(ts => `<option value="${ts.id}">${ts.title}</option>`).join('');
+      }
+    }catch(e){ console.error(e); }
+    taskSel.value = t && t.task_id ? String(t.task_id) : '0';
+  }
   const extraInp = $("#renameExtraProjectsInput");
   if(extraInp){
     extraInp.value = t && t.extra_projects ? t.extra_projects : '';
@@ -2030,13 +2042,15 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   const projSel = $("#renameProjectSelect");
   let project = projSel ? projSel.value : '';
   project = project.trim();
+  const taskSel = $("#renameTaskSelect");
+  let taskId = taskSel ? parseInt(taskSel.value,10) || 0 : 0;
   const extraInp = $("#renameExtraProjectsInput");
   let extraProjects = extraInp ? extraInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
   await fetch('/api/chat/tabs/config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({tabId, project, repo, extraProjects, type, sessionId})
+    body: JSON.stringify({tabId, project, repo, extraProjects, taskId, type, sessionId})
   });
   await loadTabs();
   renderTabs();
