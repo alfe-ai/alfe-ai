@@ -3795,6 +3795,10 @@ function updateReasoningButton(){
 }
 
 async function toggleSearch(){
+  if(!searchEnabled && reasoningEnabled){
+    showToast("Disable Reasoning mode first");
+    return;
+  }
   searchEnabled = !searchEnabled;
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
@@ -3815,6 +3819,10 @@ async function toggleSearch(){
 }
 
 async function toggleReasoning(){
+  if(!reasoningEnabled && searchEnabled){
+    showToast("Disable Search mode first");
+    return;
+  }
   reasoningEnabled = !reasoningEnabled;
   await setSetting("reasoning_enabled", reasoningEnabled);
   if(reasoningEnabled){
