@@ -1,0 +1,10 @@
+/* Aurora red dark theme */
+@import url('/styles.css');
+:root {
+  --bg-main: #111;
+  --bg-alt: #1a1a1a;
+  --accent: #ff6b6b;
+  --accent-light: #ffb3b3;
+  --text-color: #eee;
+  --border: #333;
+}

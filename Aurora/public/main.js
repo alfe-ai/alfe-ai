@@ -4,7 +4,7 @@ const defaultTitle = "Alfe - AI Image Design and Software Development Platform";
 // Disable automatic scrolling of the chat by default. Manual scrolling
 // (e.g. via the scroll down button) can still force scrolling.
 let chatAutoScroll = false;
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const sessEl = document.getElementById('sessionIdText');
   if (sessEl) sessEl.textContent = sessionId;
   updateImageLimitInfo();
@@ -13,15 +13,66 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Theme setup ----
   const themeLink = document.getElementById('themeStylesheet');
   const themeBtn = document.getElementById('themeToggleBtn');
-  let themeMode = localStorage.getItem('aurora_theme') || 'dark';
-  if (themeLink) themeLink.href = themeMode === 'light' ? '/styles_light.css' : '/styles.css';
+  let currentColor = 'purple';
+  let themeMode = 'dark';
+
+  async function loadTheme(){
+    try{
+      const resColor = await fetch('/api/settings/nexum_theme_color');
+      const resMode = await fetch('/api/settings/nexum_theme_mode');
+      if(resColor.ok){
+        const d = await resColor.json();
+        currentColor = d.value || 'purple';
+      }
+      if(resMode.ok){
+        const d = await resMode.json();
+        themeMode = d.value || 'dark';
+      }
+    }catch(e){ console.error(e); }
+    const selColor = document.getElementById('themeColorSelect');
+    if(selColor) selColor.value = currentColor;
+    const selMode = document.getElementById('themeModeSelect');
+    if(selMode) selMode.value = themeMode;
+    applyTheme(currentColor, themeMode);
+  }
+
+  function applyTheme(color, mode){
+    if(!themeLink) return;
+    const files = {
+      purple: {dark:'/styles_purple.css', light:'/styles_purple_light.css'},
+      lightblue: {dark:'/styles_lightblue.css', light:'/styles_lightblue_light.css'},
+      red: {dark:'/styles_red.css', light:'/styles_red_light.css'},
+      green: {dark:'/styles_green.css', light:'/styles_green_light.css'},
+      orange: {dark:'/styles_orange.css', light:'/styles_orange_light.css'},
+      teal: {dark:'/styles_teal.css', light:'/styles_teal_light.css'},
+      pink: {dark:'/styles_pink.css', light:'/styles_pink_light.css'}
+    };
+    themeLink.href = files[color]?.[mode] || '/styles.css';
+    if(themeBtn) themeBtn.textContent = mode === 'light' ? '🌙' : '☀️';
+  }
+
+  await loadTheme();
   if (themeBtn) {
-    themeBtn.textContent = themeMode === 'light' ? '🌙' : '☀️';
-    themeBtn.addEventListener('click', () => {
+    themeBtn.addEventListener('click', async () => {
       themeMode = themeMode === 'light' ? 'dark' : 'light';
-      if (themeLink) themeLink.href = themeMode === 'light' ? '/styles_light.css' : '/styles.css';
-      themeBtn.textContent = themeMode === 'light' ? '🌙' : '☀️';
-      localStorage.setItem('aurora_theme', themeMode);
+      applyTheme(currentColor, themeMode);
+      await setSetting('nexum_theme_mode', themeMode);
+    });
+  }
+  const selColor = document.getElementById('themeColorSelect');
+  if(selColor){
+    selColor.addEventListener('change', async e => {
+      currentColor = e.target.value;
+      applyTheme(currentColor, themeMode);
+      await setSetting('nexum_theme_color', currentColor);
+    });
+  }
+  const selMode = document.getElementById('themeModeSelect');
+  if(selMode){
+    selMode.addEventListener('change', async e => {
+      themeMode = e.target.value;
+      applyTheme(currentColor, themeMode);
+      await setSetting('nexum_theme_mode', themeMode);
     });
   }
 

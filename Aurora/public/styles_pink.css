@@ -1,0 +1,10 @@
+/* Aurora pink dark theme */
+@import url('/styles.css');
+:root {
+  --bg-main: #111;
+  --bg-alt: #1a1a1a;
+  --accent: #e83e8c;
+  --accent-light: #f6b3d1;
+  --text-color: #eee;
+  --border: #333;
+}
