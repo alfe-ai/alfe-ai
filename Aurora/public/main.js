@@ -5214,6 +5214,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
         <span class="loading-spinner"></span>
       </div>
       <div id="imageGenerationIndicator" style="display:none; color:#0ff; margin:8px 0;">Generating image<span class="loading-spinner"></span></div>
+      <div id="startSuggestions" style="display:none;"></div>
     `;
     chatHistoryOffset = 0;
     chatHasMore = true;
