@@ -270,7 +270,7 @@ async function callOpenAiModel(client, model, options = {}) {
     const prompt = Array.isArray(messages)
       ? messages.map(m => `${m.role}: ${m.content}`).join("\n")
       : String(messages || "");
-    return client.responses.create({
+    return client.completions.create({
       model,
       prompt,
       max_tokens,
