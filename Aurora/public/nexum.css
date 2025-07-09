@@ -104,6 +104,14 @@ body {
   color: var(--accent-light);
 }
 
+#tabsList .task-id,
+#archiveList .task-id {
+  margin-left: auto;
+  color: var(--accent-light);
+  font-size: 0.8rem;
+  padding-left: 4px;
+}
+
 main {
   flex: 1;
   padding: 1rem;

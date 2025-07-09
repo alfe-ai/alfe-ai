@@ -495,10 +495,17 @@
           toggleArchiveTab(t.id, !t.archived);
         });
 
+        const taskIdSpan = document.createElement('span');
+        taskIdSpan.className = 'task-id';
+        if (t.task_id) {
+          taskIdSpan.textContent = `#${t.task_id}`;
+        }
+
         item.appendChild(b);
         item.appendChild(gear);
         item.appendChild(renameBtn);
         item.appendChild(archBtn);
+        if (t.task_id) item.appendChild(taskIdSpan);
       container.appendChild(item);
     });
     checkNoTabsDialog();
@@ -559,8 +566,14 @@
       unarch.textContent = 'Unarchive';
       unarch.className = 'config-btn';
       unarch.addEventListener('click', () => toggleArchiveTab(t.id, false));
+      const taskIdSpan = document.createElement('span');
+      taskIdSpan.className = 'task-id';
+      if (t.task_id) {
+        taskIdSpan.textContent = `#${t.task_id}`;
+      }
       item.appendChild(info);
       item.appendChild(unarch);
+      if (t.task_id) item.appendChild(taskIdSpan);
       container.appendChild(item);
     });
   }
