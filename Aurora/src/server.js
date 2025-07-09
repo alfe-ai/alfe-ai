@@ -1674,20 +1674,29 @@ app.post("/api/chat", async (req, res) => {
     const { provider } = parseProviderModel(model || "deepseek/deepseek-chat");
     let systemContext = `System Context:\n${savedInstructions}`;
     let projectContext = '';
-    if (tabInfo && tabInfo.project_name) {
-      const projectPairs = db.getChatPairsByProject(tabInfo.project_name);
-      const history = projectPairs
-        .map(p => {
-          const parts = [];
-          if (p.user_text) parts.push(`User: ${p.user_text}`);
-          if (p.ai_text) parts.push(`Assistant: ${p.ai_text}`);
-          return parts.join('\n');
-        })
-        .join('\n');
-      projectContext = `Project: ${tabInfo.project_name}`;
-      if (history) {
-        projectContext += `\n${history}`;
+    if (tabInfo && (tabInfo.project_name || tabInfo.extra_projects)) {
+      const allProjects = [];
+      if (tabInfo.project_name) allProjects.push(tabInfo.project_name);
+      if (tabInfo.extra_projects) {
+        tabInfo.extra_projects.split(',').forEach(p => {
+          p = p.trim();
+          if (p && !allProjects.includes(p)) allProjects.push(p);
+        });
       }
+      const histories = [];
+      for (const pr of allProjects) {
+        const projectPairs = db.getChatPairsByProject(pr);
+        const history = projectPairs
+          .map(p => {
+            const parts = [];
+            if (p.user_text) parts.push(`User: ${p.user_text}`);
+            if (p.ai_text) parts.push(`Assistant: ${p.ai_text}`);
+            return parts.join('\n');
+          })
+          .join('\n');
+        histories.push(`Project: ${pr}` + (history ? `\n${history}` : ''));
+      }
+      projectContext = histories.join('\n');
     }
     const fullContext = projectContext ?
       `${systemContext}\n${projectContext}` : systemContext;
@@ -1915,6 +1924,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
     const nexum = req.body.nexum ? 1 : 0;
     const project = req.body.project || '';
     const repo = req.body.repo || '';
+    const extraProjects = req.body.extraProjects || '';
     const type = req.body.type || 'chat';
     const sessionId = req.body.sessionId || '';
 
@@ -1924,7 +1934,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, type, sessionId);
+    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, type, sessionId);
     res.json({ success: true, id: tabId, uuid });
     createInitialTabMessage(tabId, type, sessionId).catch(e =>
       console.error('[Server Debug] Initial message error:', e.message));
@@ -2013,7 +2023,7 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
 app.post("/api/chat/tabs/config", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
-    const { tabId, project = '', repo = '', type = 'chat', sessionId = '' } = req.body;
+    const { tabId, project = '', repo = '', extraProjects = '', type = 'chat', sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
@@ -2021,7 +2031,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    db.setChatTabConfig(tabId, project, repo, type);
+    db.setChatTabConfig(tabId, project, repo, extraProjects, type);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
@@ -2134,7 +2144,8 @@ app.get("/pair/:id", (req, res) => {
   const allPairs = db.getAllChatPairs(pair.chat_tab_id);
   const tabInfo = db.getChatTab(pair.chat_tab_id);
   const project = tabInfo ? tabInfo.project_name || "" : "";
-  if (project && (!('project_context' in pair) || !pair.project_context)) {
+  const extras = tabInfo && tabInfo.extra_projects ? tabInfo.extra_projects.split(',').map(p=>p.trim()).filter(Boolean) : [];
+  if ((project || extras.length) && (!('project_context' in pair) || !pair.project_context)) {
     if (pair.system_context && pair.system_context.includes("Project:")) {
       const lines = pair.system_context.split("\n");
       const idx = lines.findIndex(l => l.startsWith("Project:"));
@@ -2144,7 +2155,10 @@ app.get("/pair/:id", (req, res) => {
       }
     }
     if (!pair.project_context) {
-      pair.project_context = `Project: ${project}`;
+      const entries = [];
+      if(project) entries.push(`Project: ${project}`);
+      extras.forEach(p=>entries.push(`Project: ${p}`));
+      pair.project_context = entries.join('\n');
     }
   }
   res.json({
@@ -3404,6 +3418,7 @@ app.get("/", (req, res) => {
           0,
           "",
           "",
+          '',
           "chat",
           sessionId
         );

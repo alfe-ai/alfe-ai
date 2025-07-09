@@ -90,6 +90,7 @@ export default class TaskDB {
                                                nexum INTEGER DEFAULT 0,
                                                project_name TEXT DEFAULT '',
                                                repo_ssh_url TEXT DEFAULT '',
+                                               extra_projects TEXT DEFAULT '',
                                                model_override TEXT DEFAULT '',
                                                tab_type TEXT DEFAULT 'chat',
                                                session_id TEXT DEFAULT '',
@@ -131,6 +132,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_tabs.repo_ssh_url column");
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_tabs.repo_ssh_url column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec("ALTER TABLE chat_tabs ADD COLUMN extra_projects TEXT DEFAULT '';" );
+      console.debug("[TaskDB Debug] Added chat_tabs.extra_projects column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_tabs.extra_projects column exists, skipping.", e.message);
     }
     try {
       this.db.exec("ALTER TABLE chat_tabs ADD COLUMN model_override TEXT DEFAULT '';" );
@@ -809,14 +816,14 @@ export default class TaskDB {
         .get(id);
   }
 
-  createChatTab(name, nexum = 0, project = '', repo = '', type = 'chat', sessionId = '') {
+  createChatTab(name, nexum = 0, project = '', repo = '', extraProjects = '', type = 'chat', sessionId = '') {
     const ts = new Date().toISOString();
     const genImages = type === 'design' ? 1 : 0;
     if (project) this.ensureProjectMeta(project);
     const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
     const { lastInsertRowid } = this.db.prepare(`
-      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, tab_type, session_id, tab_uuid)
-      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @tab_type, @session_id, @uuid)
+      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, tab_type, session_id, tab_uuid)
+      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @tab_type, @session_id, @uuid)
     `).run({
       name,
       created_at: ts,
@@ -824,6 +831,7 @@ export default class TaskDB {
       nexum: nexum ? 1 : 0,
       project_name: project,
       repo_ssh_url: repo,
+      extra_projects: extraProjects,
       tab_type: type,
       session_id: sessionId,
       uuid
@@ -921,11 +929,11 @@ export default class TaskDB {
     return row ? !!row.generate_images : true;
   }
 
-  setChatTabConfig(tabId, project = '', repo = '', type = 'chat') {
+  setChatTabConfig(tabId, project = '', repo = '', extraProjects = '', type = 'chat') {
     const genImages = type === 'design' ? 1 : 0;
     this.db.prepare(
-        "UPDATE chat_tabs SET project_name=?, repo_ssh_url=?, tab_type=?, generate_images=? WHERE id=?"
-    ).run(project, repo, type, genImages, tabId);
+        "UPDATE chat_tabs SET project_name=?, repo_ssh_url=?, extra_projects=?, tab_type=?, generate_images=? WHERE id=?"
+    ).run(project, repo, extraProjects, type, genImages, tabId);
   }
 
   getChatTab(tabId, sessionId = null) {
@@ -948,8 +956,8 @@ export default class TaskDB {
     const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
     const newName = name || `${tab.name} Copy`;
     const { lastInsertRowid } = this.db.prepare(`
-      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, tab_type, session_id, tab_uuid)
-      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @tab_type, @session_id, @uuid)
+      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, tab_type, session_id, tab_uuid)
+      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @tab_type, @session_id, @uuid)
     `).run({
       name: newName,
       created_at: ts,
@@ -957,6 +965,7 @@ export default class TaskDB {
       nexum: tab.nexum,
       project_name: tab.project_name,
       repo_ssh_url: tab.repo_ssh_url,
+      extra_projects: tab.extra_projects,
       tab_type: tab.tab_type,
       session_id: tab.session_id,
       uuid
