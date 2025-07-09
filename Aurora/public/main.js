@@ -102,7 +102,7 @@ let archivedTabs = [];
 let currentTabId = 1;
 let initialTabUuid = null;
 let currentTabType = 'chat';
-const mosaicAllowedType = 'PM AGI';
+const mosaicAllowedTypes = ['PM AGI', 'task'];
 let chatHideMetadata = false;
 let chatTabAutoNaming = false;
 let showSubbubbleToken = false;
@@ -918,7 +918,7 @@ async function toggleSubroutinePanel(){
 }
 
 function canUseMosaic(){
-  return currentTabType === mosaicAllowedType;
+  return mosaicAllowedTypes.includes(currentTabType);
 }
 
 function updateMosaicPanelVisibility(){
