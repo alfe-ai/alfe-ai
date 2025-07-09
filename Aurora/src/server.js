@@ -2434,10 +2434,10 @@ app.post("/api/ebay/bulkUpdate", (req, res) => {
   }
 });
 
-app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
+app.post("/api/chat/file", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "No image file received." });
+      return res.status(400).json({ error: "No file received." });
     }
 
     const userInput = req.body?.userInput || "";
@@ -2445,42 +2445,46 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
 
     let desc = "";
     try {
-      const openaiClient = getOpenAiClient();
-      const imageData = fs.readFileSync(filePath, { encoding: "base64" });
-      const visionModel = "gpt-4o";
-      const contentParts = [];
-      if (userInput) {
-        contentParts.push({ type: "text", text: userInput });
+      if (req.file.mimetype.startsWith("image/")) {
+        const openaiClient = getOpenAiClient();
+        const imageData = fs.readFileSync(filePath, { encoding: "base64" });
+        const visionModel = "gpt-4o";
+        const contentParts = [];
+        if (userInput) {
+          contentParts.push({ type: "text", text: userInput });
+        }
+        contentParts.push({ type: "text", text: "Describe this image in verbose detail." });
+        contentParts.push({ type: "image_url", image_url: { url: `data:image/png;base64,${imageData}` } });
+        const completion = await openaiClient.chat.completions.create({
+          model: visionModel,
+          messages: [
+            {
+              role: "user",
+              content: contentParts
+            }
+          ],
+          max_tokens: 60,
+          temperature: 0.3
+        });
+        desc = completion.choices?.[0]?.message?.content?.trim();
+      } else if (req.file.mimetype === "text/plain") {
+        desc = fs.readFileSync(filePath, "utf8").slice(0, 500);
       }
-      contentParts.push({ type: "text", text: "Describe this image in verbose detail." });
-      contentParts.push({ type: "image_url", image_url: { url: `data:image/png;base64,${imageData}` } });
-      const completion = await openaiClient.chat.completions.create({
-        model: visionModel,
-        messages: [
-          {
-            role: "user",
-            content: contentParts
-          }
-        ],
-        max_tokens: 60,
-        temperature: 0.3
-      });
-      desc = completion.choices?.[0]?.message?.content?.trim();
       if (!desc) {
         desc = "(Could not generate description.)";
       }
     } catch (e) {
-      console.error("[Server Debug] Error calling OpenAI vision API =>", e);
+      console.error("[Server Debug] Error processing uploaded file =>", e);
       desc = "(Could not generate description.)";
     }
 
     db.logActivity(
-      "Image upload",
+      "File upload",
       JSON.stringify({ file: req.file.filename, desc, userInput })
     );
     res.json({ success: true, desc, filename: req.file.filename });
   } catch (e) {
-    console.error("Error in /api/chat/image:", e);
+    console.error("Error in /api/chat/file:", e);
     res.status(500).json({ error: "Internal server error" });
   }
 });
