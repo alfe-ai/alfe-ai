@@ -1,0 +1,10 @@
+/* Aurora lightblue dark theme */
+@import url('/styles.css');
+:root {
+  --bg-main: #111;
+  --bg-alt: #1a1a1a;
+  --accent: #1e90ff;
+  --accent-light: #9be8ff;
+  --text-color: #eee;
+  --border: #333;
+}
