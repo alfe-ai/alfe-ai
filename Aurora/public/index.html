@@ -242,7 +242,7 @@
     <a href="/about.html" target="_blank" style="position:absolute; top:8px; left:8px; font-size:0.8rem; color:var(--text-color);">About</a>
     <div id="splashAnim">
       <div id="splashTitle">Alfe AI</div>
-      <div id="splashYour">Alfe is your</div>
+      <div id="splashYour">AI Software Development, Image Design, and Project Management</div>
     </div>
     <div class="modal-content">
       <h3>Get Started</h3>
@@ -293,91 +293,9 @@
   </div>
   <script src="/session.js"></script>
   <script>
-    const splashPhrases = [
-      "AI Software Engineer",
-      "AI Developer",
-      "AI Project Manager",
-      "AI Scrum Master",
-      "AI QA Tester",
-      "AI UX Designer",
-      "AI Data Scientist",
-      "AI DevOps Engineer",
-      "AI Security Analyst",
-      "AI Picasso",
-      "AI Van Gogh",
-      "AI Monet",
-      "AI CTO",
-      "AI Solutions Architect",
-      "AI Logo Designer",
-      "AI Product Designer",
-      "AI Photographer",
-      "AI Digital Artist",
-      "AI Concept Artist",
-      "AI Graphic Designer",
-      "AI Animator",
-      "AI Character Designer",
-      "AI Landscape Painter",
-      "AI Michelangelo",
-      "AI Da Vinci",
-      "AI Salvador Dali",
-      "AI Rembrandt",
-      "AI Frida Kahlo",
-      "AI Warhol",
-      "AI Hokusai",
-      "AI Banksy",
-      "AI Escher",
-      "AI Fashion Designer",
-      "AI Industrial Designer",
-      "AI UX Researcher",
-      "AI Illustrator",
-      "AI Watercolor Artist",
-      "AI Sculptor",
-      "AI Street Artist",
-      "AI Mixed Media Artist",
-      "AI Comic Artist",
-      "AI Printmaker",
-      "AI Pixel Artist",
-      "AI Concept Illustrator",
-      "AI Art Director",
-      "AI 3D Modeler",
-      "AI Pastel Artist",
-      "Beta Rollout"
-    ];
-    function shuffle(arr){
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    }
-    shuffle(splashPhrases);
-    let splashIdx = 0;
-    let splashTimer = null;
     // default feature flags / state vars
     let enableStartAdvanced = false;
     let startInAurora = true;
-    function spawnSplashWord(){
-      const container = document.getElementById('splashAnim');
-      if(!container) return;
-      const span = document.createElement('span');
-      span.className = 'splash-word';
-      span.textContent = splashPhrases[splashIdx % splashPhrases.length];
-      splashIdx++;
-      span.style.top = (75 + Math.random()*20) + 'vh';
-      container.appendChild(span);
-      span.addEventListener('animationend', () => span.remove());
-      splashTimer = setTimeout(spawnSplashWord, 1400);
-    }
-
-    function startSplash(){
-      if(splashTimer === null) spawnSplashWord();
-    }
-
-    function stopSplash(){
-      if(splashTimer !== null){
-        clearTimeout(splashTimer);
-        splashTimer = null;
-      }
-    }
 
     function showPageLoader(color){
       const loader = document.getElementById('pageLoader');
@@ -517,11 +435,7 @@
     const noTabs = tabs.length === 0;
     const showDialog = alwaysShowSplash || noTabs;
     dlg.style.display = showDialog ? 'flex' : 'none';
-    if(showDialog){
-      startSplash();
-    } else {
-      stopSplash();
-    }
+    // Show splash dialog without animated text
     const chatPanel = document.getElementById('chatPanel');
     if(chatPanel) chatPanel.style.display = showDialog ? 'none' : '';
     const taskPanel = document.getElementById('taskListPanel');
@@ -773,7 +687,6 @@
         if(r.ok){
           const data = await r.json();
           document.getElementById('startDialog').style.display = 'none';
-          stopSplash();
           if(startInAurora){
             await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'last_chat_tab', value:data.id})});
             location.href = '/aurora.html';
@@ -1273,7 +1186,6 @@
 
     });
 
-    document.addEventListener('DOMContentLoaded', startSplash);
   </script>
   <div id="cookieBanner">
     This site uses cookies to store your preferences.
