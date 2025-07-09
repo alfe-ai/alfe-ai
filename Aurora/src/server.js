@@ -1687,10 +1687,9 @@ app.post("/api/chat", async (req, res) => {
 
     const priorPairsAll = db.getAllChatPairs(chatTabId);
     const isFirstMessage = !db.hasUserMessages(chatTabId);
-    let model = req.body.model
-      || (tabInfo && tabInfo.model_override
-        ? tabInfo.model_override
-        : db.getSetting("ai_model"));
+    let model = tabInfo && tabInfo.model_override
+      ? tabInfo.model_override
+      : db.getSetting("ai_model");
     const savedInstructions = db.getSetting("agent_instructions") || "";
 
     const isDesignTab = tabInfo && tabInfo.tab_type === 'design';
