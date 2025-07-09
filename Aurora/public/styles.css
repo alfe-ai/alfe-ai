@@ -1417,4 +1417,11 @@ button:disabled {
   border-radius:4px;
 }
 
+/* Pair Tabs for multi-model responses */
+.pair-tabs-container { margin-top: 0.5rem; }
+.pair-tab-buttons { display:flex; gap:4px; margin-bottom:4px; }
+.pair-tab-buttons button { background:#333; border:1px solid #666; color:#ddd; padding:2px 6px; border-radius:4px; cursor:pointer; }
+.pair-tab-buttons button.active { background:#666; color:#fff; }
+.pair-tab-content { display:none; }
+
 

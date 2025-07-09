@@ -3125,34 +3125,6 @@ chatSendBtnEl.addEventListener("click", async () => {
 
   seqDiv.appendChild(userDiv);
 
-  // The AI bubble
-  const botDiv = document.createElement("div");
-  botDiv.className = "chat-bot";
-
-  const botHead = document.createElement("div");
-  botHead.className = "bubble-header";
-  botHead.innerHTML = `
-    <div class="name-oval name-oval-ai" title="${modelName}">${window.agentName}</div>
-    <span style="opacity:0.8;">…</span>
-  `;
-  botDiv.appendChild(botHead);
-
-  const botBody = document.createElement("div");
-  const botTextSpan = document.createElement("span");
-  botTextSpan.textContent = "Thinking…";
-  botBody.appendChild(botTextSpan);
-  botDiv.appendChild(botBody);
-
-  seqDiv.appendChild(botDiv);
-  if(placeholderEl) placeholderEl.style.display = "none";
-  appendChatElement(seqDiv);
-  if(chatAutoScroll){
-    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-    // After the AI response has fully rendered, scroll once more
-    // with a slight delay to ensure any late DOM updates are captured.
-    setTimeout(scrollChatToBottom, 1000);
-  }
-
   let combinedUserText = "";
   if(descsForThisSend.length>0){
     combinedUserText = descsForThisSend.join("\n") + "\n\n";
@@ -3161,88 +3133,71 @@ chatSendBtnEl.addEventListener("click", async () => {
     combinedUserText += userMessage;
   }
 
-  let partialText = "";
-  let waitTime=0;
-  waitingElem.textContent = "Waiting: 0.0s";
-  const waitInterval = setInterval(()=>{
-    waitTime+=0.1;
-    waitingElem.textContent = `Waiting: ${waitTime.toFixed(1)}s`;
-  }, 100);
+  // Container for AI responses
+  const botDiv = document.createElement("div");
+  botDiv.className = "chat-bot";
 
-  // Start an animated ellipsis loader that appends dots to the bot's text
-  let ellipsisStep = 0;
-  const ellipsisInterval = setInterval(() => {
-    const dots = '.'.repeat((ellipsisStep % 3) + 1);
-    ellipsisStep++;
-    botTextSpan.textContent = stripPlaceholderImageLines(partialText) + dots;
-    if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-  }, 500);
+  const tabsContainer = document.createElement("div");
+  tabsContainer.className = "pair-tabs-container";
+  const tabBtns = document.createElement("div");
+  tabBtns.className = "pair-tab-buttons";
+  const tabContents = document.createElement("div");
 
-  try {
-    const resp = await fetch("/api/chat",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message:combinedUserText, tabId: currentTabId, userTime, sessionId})
+  const modelsToUse = modelTabs.length > 0 ? modelTabs.map(t=>t.modelId) : [modelName];
+  modelsToUse.forEach((mId, idx)=>{
+    const btn = document.createElement("button");
+    const { shortModel } = parseProviderModel(mId);
+    btn.textContent = shortModel;
+    if(idx===0) btn.classList.add("active");
+    btn.addEventListener("click",()=>{
+      [...tabContents.children].forEach(c=>c.style.display="none");
+      [...tabBtns.children].forEach(b=>b.classList.remove("active"));
+      const target = tabContents.children[idx];
+      if(target) target.style.display="";
+      btn.classList.add("active");
     });
-    clearInterval(waitInterval);
-    waitingElem.textContent = "";
+    tabBtns.appendChild(btn);
 
-    if(!resp.ok){
-      clearInterval(ellipsisInterval);
-      botTextSpan.textContent = "[Error contacting AI]";
-      botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
-    } else {
-      const reader = resp.body.getReader();
-      while(true){
-        const { value, done } = await reader.read();
-        if(done) break;
-        partialText += new TextDecoder().decode(value);
+    const content = document.createElement("div");
+    content.className = "pair-tab-content";
+    if(idx===0) content.style.display=""; else content.style.display="none";
+    content.textContent = "Thinking…";
+    tabContents.appendChild(content);
+
+    (async ()=>{
+      try {
+        const resp = await fetch("/api/chat",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({message:combinedUserText, tabId: currentTabId, userTime, sessionId, model:mId})
+        });
+        if(resp.ok){
+          const txt = await resp.text();
+          content.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(txt));
+          addCodeCopyButtons(content);
+          addFilesFromCodeBlocks(txt);
+        } else {
+          content.textContent = "[Error]";
+        }
+      } catch(e){
+        content.textContent = "[Error]";
       }
-      // Update once more without the loader after streaming finishes
-      botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(partialText));
-      addCodeCopyButtons(botBody);
-      addFilesFromCodeBlocks(partialText);
-      if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-      clearInterval(ellipsisInterval);
-      botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
-    }
+    })();
+  });
 
-    // POST: Code change request creation after user input
-    await fetch("/api/tasks/new", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({
-        title: "[Code Change Request] " + userMessage.slice(0,60),
-        body: partialText
-      })
-    });
+  tabsContainer.appendChild(tabBtns);
+  tabsContainer.appendChild(tabContents);
+  botDiv.appendChild(tabsContainer);
 
-    await loadChatHistory(currentTabId, true);
-    await loadTabs();
-    renderTabs();
-    renderSidebarTabs();
-    renderArchivedSidebarTabs();
-    updatePageTitle();
-    actionHooks.forEach(h => {
-      if(typeof h.fn === "function"){
-        try { h.fn({type:"afterSend", message: combinedUserText, response: partialText}); }
-        catch(err){ console.error("Action hook error:", err); }
-      }
-      });
-  } catch(e) {
-    clearInterval(waitInterval);
-    clearInterval(ellipsisInterval);
-    waitingElem.textContent = "";
-    botTextSpan.textContent = "[Error occurred]";
-    botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
+  seqDiv.appendChild(botDiv);
+  if(placeholderEl) placeholderEl.style.display = "none";
+  appendChatElement(seqDiv);
+  if(chatAutoScroll){
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    setTimeout(scrollChatToBottom, 1000);
   }
 
   if (favElement) favElement.href = defaultFavicon;
-
-  if(chatAutoScroll){
-    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-    setTimeout(scrollChatToBottom, 0);
-  }
   chatSendBtnEl.disabled = false;
   processNextQueueMessage();
 });
