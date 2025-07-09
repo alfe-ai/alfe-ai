@@ -159,6 +159,13 @@ let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
 window.agentName = "Alfe";
 
+const designStartPrompts = [
+  "A whimsical cat astronaut exploring space.",
+  "Retro-futuristic cityscape at sunset.",
+  "Minimalist mountain landscape poster.",
+  "Vibrant underwater scene with jellyfish."
+];
+
 // For per-tab model arrays
 let modelTabs = [];
 let currentModelTabId = null;
@@ -705,6 +712,23 @@ function showToast(msg, duration=1500){
   el.textContent = msg;
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), duration);
+}
+
+function renderDesignSuggestions(show = true){
+  const container = document.getElementById('startSuggestions');
+  if(!container) return;
+  container.innerHTML = '';
+  container.style.display = show ? 'grid' : 'none';
+  if(!show) return;
+  designStartPrompts.forEach(text => {
+    const b = document.createElement('button');
+    b.textContent = text;
+    b.addEventListener('click', () => {
+      chatInputEl.value = text;
+      chatSendBtnEl.click();
+    });
+    container.appendChild(b);
+  });
 }
 
 async function logout(){
@@ -2207,9 +2231,9 @@ async function toggleArchiveTab(tabId, archived){
 async function selectTab(tabId){
   currentTabId = tabId;
   await setSetting("last_chat_tab", tabId);
-  loadChatHistory(tabId, true);
   const t = chatTabs.find(t => t.id === tabId);
   currentTabType = t ? t.tab_type || 'chat' : 'chat';
+  loadChatHistory(tabId, true);
   tabModelOverride = t && t.model_override ? t.model_override : '';
   {
     const globalModel = await getSetting("ai_model");
@@ -3102,6 +3126,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   const placeholderEl = document.getElementById("chatPlaceholder");
   const userMessage = chatInputEl.value.trim();
   if(!userMessage && pendingImages.length===0) return;
+  renderDesignSuggestions(false);
   chatSendBtnEl.disabled = true;
   if(userMessage){
     inputHistory.push(userMessage);
@@ -5192,6 +5217,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
   }
   const placeholderEl = document.getElementById("chatPlaceholder");
   if(reset && placeholderEl) placeholderEl.style.display = "";
+  let pairs = [];
   try {
     console.debug(`[ChatHistory Debug] Fetching /api/chat/history?tabId=${tabId}&limit=10&offset=${chatHistoryOffset}`);
     const resp = await fetch(`/api/chat/history?tabId=${tabId}&limit=10&offset=${chatHistoryOffset}&sessionId=${encodeURIComponent(sessionId)}`);
@@ -5201,7 +5227,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
       return;
     }
     const data = await resp.json();
-    const pairs = data.pairs || [];
+    pairs = data.pairs || [];
     console.debug(`[ChatHistory Debug] Received ${pairs.length} pairs`);
     if(pairs.length<10){
       chatHasMore = false;
@@ -5408,6 +5434,9 @@ async function loadChatHistory(tabId = 1, reset=false) {
     console.error("Error loading chat history:", err);
   } finally {
     chatHistoryLoading = false;
+    if(reset){
+      renderDesignSuggestions(currentTabType === 'design' && pairs.length === 0);
+    }
   }
 }
 
