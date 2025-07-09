@@ -3786,7 +3786,7 @@ async function toggleSearch(){
     await setSetting("ai_model", searchModel);
     modelName = searchModel;
   } else {
-    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat";
+    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
     await setSetting("ai_model", restoreModel);
     modelName = restoreModel;
     previousModelName = null;
@@ -3806,7 +3806,7 @@ async function toggleReasoning(){
     await setSetting("ai_model", reasoningModel);
     modelName = reasoningModel;
   } else {
-    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat";
+    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
     await setSetting("ai_model", restoreModel);
     modelName = restoreModel;
     reasoningPreviousModelName = null;
