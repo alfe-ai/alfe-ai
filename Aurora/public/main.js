@@ -121,11 +121,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadProjectGroups();
   loadCollapsedProjectGroups();
   loadTasksOnlyTabs();
+  loadHideArchivedTabs();
   loadChatTabOrder();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', updateChatPanelVisibility);
   const tasksOnlyChk = document.getElementById("tasksOnlyTabsCheck");
   if(tasksOnlyChk) tasksOnlyChk.checked = tasksOnlyTabs;
+  const hideArchChk = document.getElementById("hideArchivedTabsCheck");
+  if(hideArchChk) hideArchChk.checked = hideArchivedTabs;
 });
 
 let columnsOrder = [
@@ -173,6 +176,7 @@ let navMenuVisible = true; // visibility of the top navigation menu
 let navMenuLoading = true;  // hide nav menu while showing spinner on load
 let showArchivedTabs = false;
 let tasksOnlyTabs = false; // filter chat tabs with tasks only
+let hideArchivedTabs = true; // filter out archived chat tabs
 let topChatTabsBarVisible = false; // visibility of the top chat tabs bar
 let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
@@ -496,6 +500,15 @@ function loadTasksOnlyTabs(){
 
 function saveTasksOnlyTabs(){
   localStorage.setItem('tasksOnlyTabs', tasksOnlyTabs);
+}
+
+function loadHideArchivedTabs(){
+  const val = localStorage.getItem('hideArchivedTabs');
+  hideArchivedTabs = val === null ? true : val === 'true';
+}
+
+function saveHideArchivedTabs(){
+  localStorage.setItem('hideArchivedTabs', hideArchivedTabs);
 }
 
 function saveCollapsedProjectGroups(){
@@ -2411,7 +2424,8 @@ function renderTabs(){
 function renderSidebarTabs(){
   const container = document.getElementById("verticalTabsContainer");
   container.innerHTML="";
-  const tabs = chatTabs.filter(t => (showArchivedTabs || !t.archived) && (!tasksOnlyTabs || t.task_id));
+  const showArchive = showArchivedTabs && !hideArchivedTabs;
+  const tabs = chatTabs.filter(t => (showArchive || !t.archived) && (!tasksOnlyTabs || t.task_id));
   if(groupTabsByProject){
     const groups = new Map();
     // Include user-defined project groups first so they appear even if empty
@@ -2673,6 +2687,14 @@ if(tasksOnlyTabsCheck){
   tasksOnlyTabsCheck.addEventListener("change", () => {
     tasksOnlyTabs = tasksOnlyTabsCheck.checked;
     saveTasksOnlyTabs();
+    renderSidebarTabs();
+  });
+}
+const hideArchivedTabsCheck = document.getElementById("hideArchivedTabsCheck");
+if(hideArchivedTabsCheck){
+  hideArchivedTabsCheck.addEventListener("change", () => {
+    hideArchivedTabs = hideArchivedTabsCheck.checked;
+    saveHideArchivedTabs();
     renderSidebarTabs();
   });
 }
