@@ -3667,6 +3667,47 @@ app.post("/api/chat/pair/:id/ai", (req, res) => {
   }
 });
 
+app.post("/api/projectSearch", async (req, res) => {
+  try {
+    const { project = "", query = "" } = req.body || {};
+    if (!project || !query) {
+      return res.status(400).json({ error: "Missing project or query" });
+    }
+    const pairs = db.getChatPairsByProject(project);
+    const history = pairs
+      .map(p => {
+        const parts = [];
+        if (p.user_text) parts.push(`User: ${p.user_text}`);
+        if (p.ai_text) parts.push(`Assistant: ${p.ai_text}`);
+        return parts.join('\n');
+      })
+      .join('\n');
+    const searchModel = db.getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    const openaiClient = getOpenAiClient();
+    function stripModelPrefix(m) {
+      if (!m) return "gpt-4o";
+      if (m.startsWith("openai/")) return m.substring("openai/".length);
+      if (m.startsWith("openrouter/")) return m.substring("openrouter/".length);
+      if (m.startsWith("deepseek/")) return m.substring("deepseek/".length);
+      return m;
+    }
+    const modelForOpenAI = stripModelPrefix(searchModel);
+    const prompt = `Search the following project chat history for "${query}" and provide a concise bullet list of results.\n\n${history}`;
+    const completion = await callOpenAiModel(openaiClient, modelForOpenAI, {
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 256,
+      temperature: 0.2
+    });
+    const text =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      completion.choices?.[0]?.text?.trim() || "";
+    res.json({ result: text });
+  } catch (err) {
+    console.error("[TaskQueue] /api/projectSearch error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/createSterlingChat", async (req, res) => {
   db.logActivity("Create Sterling Chat", "User triggered createSterlingChat endpoint.");
 

@@ -1407,6 +1407,24 @@ button:disabled {
   color: #fff;
 }
 
+/* Project search input and button */
+#projectSearchInput {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #ddd;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+#projectSearchBtn {
+  background: #007BFF;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  margin-left: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 /* Reasoning toggle button */
 #reasoningToggleBtn {
   background: #474747;
