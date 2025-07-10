@@ -4,8 +4,17 @@
  *  Usage:  node codex_cli_test.js "your code prompt here"
  */
 
-import fetch from "node-fetch";          // Node ≥18 has global fetch; keep for older LTS
-import readline from "node:readline";    // Only for interactive fallback
+// Node ≥18 exposes a global `fetch` function. Fall back to `node-fetch`
+// via dynamic import on older versions.
+const fetch =
+  typeof globalThis.fetch === "function"
+    ? globalThis.fetch
+    : async (...args) => {
+        const { default: fetch } = await import("node-fetch");
+        return fetch(...args);
+      };
+
+const readline = require("node:readline"); // Only for interactive fallback
 
 // ─── CONFIG ────────────────────────────────────────
 const API_KEY   = process.env.OPENROUTER_API_KEY || "PASTE-YOUR-KEY-HERE";
