@@ -18,7 +18,7 @@ const readline = require("node:readline"); // Only for interactive fallback
 
 // ─── CONFIG ────────────────────────────────────────
 const API_KEY   = process.env.OPENAI_API_KEY || "PASTE-YOUR-KEY-HERE";
-const MODEL     = "gpt-3.5-turbo";
+const MODEL     = "codex-mini-latest";
 const ENDPOINT  = "https://api.openai.com/v1/chat/completions";
 // ────────────────────────────────────────────
 
