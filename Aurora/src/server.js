@@ -2462,7 +2462,11 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
       if (userInput) {
         contentParts.push({ type: "text", text: userInput });
       }
-      contentParts.push({ type: "text", text: "Describe this image in verbose detail." });
+      contentParts.push({
+        type: "text",
+        text:
+          "Describe this image in verbose detail. Transcribe any text visible in the image exactly as written."
+      });
       contentParts.push({ type: "image_url", image_url: { url: `data:image/png;base64,${imageData}` } });
       const completion = await openaiClient.chat.completions.create({
         model: visionModel,
@@ -2472,7 +2476,7 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
             content: contentParts
           }
         ],
-        max_tokens: 60,
+        max_tokens: 120,
         temperature: 0.3
       });
       desc = completion.choices?.[0]?.message?.content?.trim();
