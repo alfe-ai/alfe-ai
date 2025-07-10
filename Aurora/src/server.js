@@ -113,6 +113,15 @@ if (!currentSearchModel) {
   console.debug("[Server Debug] 'ai_search_model' found =>", currentSearchModel);
 }
 
+console.debug("[Server Debug] Checking or setting default 'ai_chatsearch_model' in DB...");
+const currentChatSearchModel = db.getSetting("ai_chatsearch_model");
+if (!currentChatSearchModel) {
+  console.debug("[Server Debug] 'ai_chatsearch_model' is missing in DB, setting default to 'openai/gpt-4o'.");
+  db.setSetting("ai_chatsearch_model", "openai/gpt-4o");
+} else {
+  console.debug("[Server Debug] 'ai_chatsearch_model' found =>", currentChatSearchModel);
+}
+
 console.debug("[Server Debug] Checking or setting default 'ai_reasoning_model' in DB...");
 const currentReasoningModel = db.getSetting("ai_reasoning_model");
 if (!currentReasoningModel) {
@@ -3682,7 +3691,7 @@ app.post("/api/projectSearch", async (req, res) => {
         return parts.join('\n');
       })
       .join('\n');
-    const searchModel = db.getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    const searchModel = db.getSetting("ai_chatsearch_model") || "openai/gpt-4o";
     const openaiClient = getOpenAiClient();
     function stripModelPrefix(m) {
       if (!m) return "gpt-4o";
