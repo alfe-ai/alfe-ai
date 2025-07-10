@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-/*  codex_cli_test.js - Fixed version
- *  Now uses the correct /v1/responses endpoint for codex-mini-latest
- */
-
+/*  codex_cli_test.js - Fixed version */
 const fetch = typeof globalThis.fetch === "function"
     ? globalThis.fetch
     : async (...args) => {
@@ -12,10 +9,10 @@ const fetch = typeof globalThis.fetch === "function"
 
 const readline = require("node:readline");
 
-// ─── CONFIG (Updated) ──────────────────────────────
+// ─── CONFIG ────────────────────────────────────────
 const API_KEY   = process.env.OPENAI_API_KEY || "PASTE-YOUR-KEY-HERE";
 const MODEL     = "codex-mini-latest";
-const ENDPOINT  = "https://api.openai.com/v1/responses"; // CHANGED THIS LINE
+const ENDPOINT  = "https://api.openai.com/v1/responses";
 // ──────────────────────────────────────────────────
 
 const getPrompt = async () => {
@@ -41,11 +38,11 @@ const main = async () => {
     process.exit(1);
   }
 
-  // CHANGED: Using 'prompt' instead of 'messages' for /responses endpoint
+  // FIXED: Use correct parameters for /responses endpoint
   const body = {
     model: MODEL,
-    prompt: promptText,  // CHANGED THIS
-    max_tokens: 128,
+    prompt: promptText,
+    max_tokens: 128,       // Now supported after removing messages[]
     temperature: 0.2
   };
 
@@ -65,8 +62,7 @@ const main = async () => {
     }
 
     const json = await r.json();
-    // CHANGED: Accessing 'text' instead of 'message.content'
-    const responseText = json.choices?.[0]?.text ?? "(no content)";
+    const responseText = json.choices?.?.text ?? "(no content)";
     console.log("\n— Codex reply —\n");
     console.log(responseText.trim());
   } catch (e) {
