@@ -122,6 +122,15 @@ if (!currentReasoningModel) {
   console.debug("[Server Debug] 'ai_reasoning_model' found =>", currentReasoningModel);
 }
 
+console.debug("[Server Debug] Checking or setting default 'ai_vision_model' in DB...");
+const currentVisionModel = db.getSetting("ai_vision_model");
+if (!currentVisionModel) {
+  console.debug("[Server Debug] 'ai_vision_model' is missing in DB, setting default to 'openai/gpt-4o'.");
+  db.setSetting("ai_vision_model", "openai/gpt-4o");
+} else {
+  console.debug("[Server Debug] 'ai_vision_model' found =>", currentVisionModel);
+}
+
 console.debug("[Server Debug] Checking or setting default 'ai_service' in DB...");
 if (!db.getSetting("ai_service")) {
   db.setSetting("ai_service", "openrouter");
@@ -2449,7 +2458,15 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
     try {
       const openaiClient = getOpenAiClient();
       const imageData = fs.readFileSync(filePath, { encoding: "base64" });
-      const visionModel = "gpt-4o";
+      const visionSetting = db.getSetting("ai_vision_model") || "openai/gpt-4o";
+      function stripModelPrefix(m) {
+        if (!m) return "gpt-4o";
+        if (m.startsWith("openai/")) return m.substring("openai/".length);
+        if (m.startsWith("openrouter/")) return m.substring("openrouter/".length);
+        if (m.startsWith("deepseek/")) return m.substring("deepseek/".length);
+        return m;
+      }
+      const visionModel = stripModelPrefix(visionSetting);
       const contentParts = [];
       if (userInput) {
         contentParts.push({ type: "text", text: userInput });
