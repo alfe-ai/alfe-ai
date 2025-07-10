@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCollapsedProjectGroups();
   loadTasksOnlyTabs();
   loadHideArchivedTabs();
+  loadHideDoneTasks();
   loadChatTabOrder();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', updateChatPanelVisibility);
@@ -129,6 +130,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if(tasksOnlyChk) tasksOnlyChk.checked = tasksOnlyTabs;
   const hideArchChk = document.getElementById("hideArchivedTabsCheck");
   if(hideArchChk) hideArchChk.checked = hideArchivedTabs;
+  const hideDoneChk = document.getElementById("hideDoneTasksCheck");
+  if(hideDoneChk) hideDoneChk.checked = hideDoneTasks;
 });
 
 let columnsOrder = [
@@ -179,6 +182,7 @@ let navMenuLoading = true;  // hide nav menu while showing spinner on load
 let showArchivedTabs = false;
 let tasksOnlyTabs = false; // filter chat tabs with tasks only
 let hideArchivedTabs = true; // filter out archived chat tabs
+let hideDoneTasks = false; // hide tasks with status 'Done'
 let topChatTabsBarVisible = false; // visibility of the top chat tabs bar
 let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
@@ -519,6 +523,14 @@ function loadHideArchivedTabs(){
 
 function saveHideArchivedTabs(){
   localStorage.setItem('hideArchivedTabs', hideArchivedTabs);
+}
+
+function loadHideDoneTasks(){
+  hideDoneTasks = localStorage.getItem('hideDoneTasks') === 'true';
+}
+
+function saveHideDoneTasks(){
+  localStorage.setItem('hideDoneTasks', hideDoneTasks);
 }
 
 function saveCollapsedProjectGroups(){
@@ -1605,6 +1617,7 @@ function renderBody(){
       .filter(t=>{
         if(pj && t.project!==pj) return false;
         if(sp && t.sprint!==sp) return false;
+        if(hideDoneTasks && t.status === 'Done') return false;
         return true;
       })
       .forEach(t=>{
@@ -1832,6 +1845,11 @@ $("#tasks").addEventListener("click", async e=>{
 });
 
 $("#showHidden").addEventListener("change", loadTasks);
+$("#hideDoneTasksCheck").addEventListener("change", () => {
+  hideDoneTasks = $("#hideDoneTasksCheck").checked;
+  saveHideDoneTasks();
+  renderBody();
+});
 $("#projectFilter").addEventListener("change", renderBody);
 $("#sprintFilter").addEventListener("change", renderBody);
 
