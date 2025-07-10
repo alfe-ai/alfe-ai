@@ -1,6 +1,6 @@
 // sessionId is defined in session.js and available globally
 // sessionId is provided globally by session.js
-const defaultTitle = "Alfe - AI Image Design and Software Development Platform";
+const defaultTitle = "Alfe - AI Project Management, Image Design, and Software Development Platform";
 // Disable automatic scrolling of the chat by default. Manual scrolling
 // (e.g. via the scroll down button) can still force scrolling.
 let chatAutoScroll = false;
