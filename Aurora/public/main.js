@@ -3160,6 +3160,35 @@ async function updateProjectInfo() {
   }
 }
 
+async function projectSearch(){
+  const inp = document.getElementById("projectSearchInput");
+  if(!inp) return;
+  const query = inp.value.trim();
+  if(!query) return;
+  showPageLoader();
+  try {
+    const project = await getSetting("sterling_project");
+    const resp = await fetch("/api/projectSearch", {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ project, query })
+    });
+    hidePageLoader();
+    if(resp.ok){
+      const data = await resp.json();
+      const pre = document.getElementById("searchResultsPre");
+      if(pre) pre.textContent = data.result || "No results.";
+      showModal(document.getElementById("searchResultsModal"));
+    } else {
+      showToast("Search failed");
+    }
+  } catch(e){
+    hidePageLoader();
+    console.error("Project search error:", e);
+    showToast("Search error");
+  }
+}
+
 function parseProviderModel(model) {
   if(!model) return { provider: "Unknown", shortModel: "Unknown" };
   if(model.startsWith("openai/")) {
@@ -3901,7 +3930,8 @@ function toggleSterlingUrlVisibility(visible) {
 
 function toggleProjectInfoBarVisibility(visible){
   visible = visible && auroraProjectBarVisible;
-  const ids = ["projectInfo", "setProjectBtn", "createSterlingChatBtn", "changeSterlingBranchBtn"];
+  const ids = ["projectBar", "projectInfo", "projectSearchInput", "projectSearchBtn",
+               "setProjectBtn", "createSterlingChatBtn", "changeSterlingBranchBtn"];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if(el) el.style.display = visible ? "" : "none";
@@ -6211,6 +6241,20 @@ if(saveBtnSterling) saveBtnSterling.addEventListener("click", async () => {
     msgElem.textContent = "Error: " + err.message;
   }
 });
+
+// ----------------------------------------------------------------------
+// Project chat search events
+// ----------------------------------------------------------------------
+{
+  const btn = document.getElementById("projectSearchBtn");
+  if(btn) btn.addEventListener("click", projectSearch);
+  const inp = document.getElementById("projectSearchInput");
+  if(inp) inp.addEventListener("keydown", e => { if(e.key === "Enter") projectSearch(); });
+  const closeBtn = document.getElementById("searchResultsCloseBtn");
+  if(closeBtn) closeBtn.addEventListener("click", () => {
+    hideModal(document.getElementById("searchResultsModal"));
+  });
+}
 
 // ----------------------------------------------------------------------
 // Added click events for the “Markdown Menu” gear icon

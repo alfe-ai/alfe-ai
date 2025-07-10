@@ -243,16 +243,15 @@
       <button id="viewTabTasks" class="view-tab" hidden>☑️ Tasks</button>
       <button id="viewTabArchive" class="view-tab" hidden>Archive</button>
     </div>
-<!--    <div id="chatTabs" style="display:none; margin-bottom:30px;">-->
-<!--      <div id="tabsContainer" style="flex-wrap: wrap; display: flex; gap: 0.5rem;"></div>-->
-<!--      <button id="newTabBtn">➕ Tab</button>-->
-<!--      <button id="scrollDownBtn">Scroll to Bottom</button>-->
-<!--      <div id="projectInfo" style="display:none;font-size:0.9rem; color:#aaa; margin-bottom:4px;"></div>-->
-<!--      <button id="setProjectBtn" style="display:none;">Set Project</button>-->
-<!--      <button id="createSterlingChatBtn" style="display:none;">Create Sterling Chat</button>-->
-<!--      <button id="changeSterlingBranchBtn" style="margin-left:6px;">Change Sterling Branch</button>-->
-<!--      <span id="sterlingUrlLabel" style="margin-left:1rem; color:#0f0;"></span>-->
-<!--    </div>-->
+    <div id="projectBar" style="display:none; margin-bottom:8px;">
+      <span id="projectInfo" style="font-size:0.9rem; color:#aaa; margin-right:8px;"></span>
+      <input id="projectSearchInput" type="text" placeholder="Search project chats..." style="margin-right:4px;"/>
+      <button id="projectSearchBtn">Search</button>
+      <button id="setProjectBtn" style="display:none;">Set Project</button>
+      <button id="createSterlingChatBtn" style="display:none;">Create Sterling Chat</button>
+      <button id="changeSterlingBranchBtn" style="margin-left:6px;">Change Sterling Branch</button>
+      <span id="sterlingUrlLabel" style="margin-left:1rem; color:#0f0;"></span>
+    </div>
 
     <!-- New Empty Task List Panel Above Chat UI -->
     <div id="taskListPanel" style="display:none;border:1px dashed #666; padding:8px; margin:8px 0;">
@@ -948,6 +947,17 @@
     <div class="modal-buttons">
       <button id="mosaicEditSaveBtn">Save</button>
       <button id="mosaicEditCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Search results modal -->
+<div id="searchResultsModal" class="modal">
+  <div class="modal-content">
+    <h2>Search Results</h2>
+    <pre id="searchResultsPre" style="white-space:pre-wrap;"></pre>
+    <div class="modal-buttons">
+      <button id="searchResultsCloseBtn">Close</button>
     </div>
   </div>
 </div>
