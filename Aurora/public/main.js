@@ -198,6 +198,7 @@ let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
 let imageLoopEnabled = false; // automatic image generation loop mode
 let imageLoopMessage = "Next image";
 let imageGenService = 'openai';
+let imageGenModel = 'gptimage1';
 let isImageGenerating = false; // true while an image is being generated
 let lastImagePrompt = null; // avoid repeating generation for same prompt
 let imageUploadEnabled = true; // show image upload button
@@ -1265,7 +1266,7 @@ async function loadSettings(){
     "sidebar_width","model_tabs_bar_visible","top_chat_tabs_bar_visible",
     "project_info_bar_visible","aurora_project_bar_visible","nav_menu_visible",
     "view_tabs_bar_visible","show_project_name_in_tabs","show_archived_tabs",
-    "show_dependencies_column","image_gen_service","image_upload_enabled",
+    "show_dependencies_column","image_gen_service","image_gen_model","image_upload_enabled",
     "image_paint_tray_enabled","activity_iframe_menu_visible",
     "nexum_chat_menu_visible","nexum_tabs_menu_visible",
     "image_generator_menu_visible","file_tree_menu_visible",
@@ -1407,6 +1408,9 @@ async function loadSettings(){
 
   if(typeof map.image_gen_service !== "undefined" && map.image_gen_service){
     imageGenService = map.image_gen_service;
+  }
+  if(typeof map.image_gen_model !== "undefined" && map.image_gen_model){
+    imageGenModel = map.image_gen_model;
   }
 
   if(typeof map.image_upload_enabled !== "undefined"){
@@ -3620,6 +3624,11 @@ async function openChatSettings(){
   if(rImgSvc.ok){
     const { value } = await rImgSvc.json();
     if(value) imageGenService = value;
+  }
+  const rImgModel = await fetch("/api/settings/image_gen_model");
+  if(rImgModel.ok){
+    const { value } = await rImgModel.json();
+    if(value) imageGenModel = value;
   }
 
   const imgSvcSel = document.getElementById("imageServiceSelect");
@@ -6279,20 +6288,26 @@ async function openGlobalAiSettings(){
     const searchModel = await getSetting("ai_search_model");
     const reasoningModel = await getSetting("ai_reasoning_model");
     const visionModel = await getSetting("ai_vision_model");
+    const imageModel = await getSetting("image_gen_model");
     const resp = await fetch("/api/ai/models");
     if(resp.ok){
       const data = await resp.json();
       const sel = document.getElementById("globalAiModelSelect");
       const reasoningSel = document.getElementById("globalAiReasoningModelSelect");
       const visionSel = document.getElementById("globalAiVisionModelSelect");
+      const imageSel = document.getElementById("globalImageModelSelect");
       sel.innerHTML = "";
       reasoningSel.innerHTML = "";
       if(visionSel) visionSel.innerHTML = "";
+      if(imageSel) imageSel.innerHTML = "";
       const favs = (data.models || []).filter(m => m.favorite);
       if(favs.length === 0){
         sel.appendChild(new Option("(no favorites)", ""));
         reasoningSel.appendChild(new Option("(no favorites)", ""));
         if(visionSel) visionSel.appendChild(new Option("(no favorites)", ""));
+        if(imageSel){
+          ["gptimage1","dalle2","dalle3"].forEach(m => imageSel.appendChild(new Option(m, m)));
+        }
       } else {
         const showPrices = accountInfo && accountInfo.id === 1;
         favs.forEach(m => {
@@ -6303,11 +6318,15 @@ async function openGlobalAiSettings(){
           reasoningSel.appendChild(new Option(label, m.id));
           if(visionSel) visionSel.appendChild(new Option(label, m.id));
         });
+        if(imageSel){
+          ["gptimage1","dalle2","dalle3"].forEach(m => imageSel.appendChild(new Option(m, m)));
+        }
       }
       const curModel = await getSetting("ai_model");
       if(curModel) sel.value = curModel;
       if(reasoningModel) reasoningSel.value = reasoningModel;
       if(visionModel && visionSel) visionSel.value = visionModel;
+      if(imageModel && imageSel) imageSel.value = imageModel;
     }
     if(searchModel){
       document.getElementById("globalAiSearchModelSelect").value = searchModel;
@@ -6315,6 +6334,10 @@ async function openGlobalAiSettings(){
     const visionSelFinal = document.getElementById("globalAiVisionModelSelect");
     if(visionModel && visionSelFinal && !visionSelFinal.value){
       visionSelFinal.value = visionModel;
+    }
+    const imageSelFinal = document.getElementById("globalImageModelSelect");
+    if(imageModel && imageSelFinal && !imageSelFinal.value){
+      imageSelFinal.value = imageModel;
     }
     document.getElementById("globalAiServiceSelect").value = service || "openrouter";
   } catch(e){
@@ -6337,13 +6360,16 @@ async function saveGlobalAiSettings(){
   const searchModel = document.getElementById("globalAiSearchModelSelect").value;
   const reasoningModel = document.getElementById("globalAiReasoningModelSelect").value;
   const visionModel = document.getElementById("globalAiVisionModelSelect").value;
-  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel, ai_reasoning_model: reasoningModel, ai_vision_model: visionModel });
+  const imageModel = document.getElementById("globalImageModelSelect").value;
+  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel, ai_reasoning_model: reasoningModel, ai_vision_model: visionModel, image_gen_model: imageModel });
   // keep local cache in sync so toggles use latest values immediately
   settingsCache.ai_service = svc;
   settingsCache.ai_model = model;
   settingsCache.ai_search_model = searchModel;
   settingsCache.ai_reasoning_model = reasoningModel;
   settingsCache.ai_vision_model = visionModel;
+  settingsCache.image_gen_model = imageModel;
+  imageGenModel = imageModel;
   modelName = model || "unknown";
   updateModelHud();
   hideModal(document.getElementById("globalAiSettingsModal"));
@@ -6840,7 +6866,7 @@ registerActionHook("generateImage", async ({response}) => {
     isImageGenerating = true;
     if(chatSendBtnEl) chatSendBtnEl.disabled = true;
     showImageGenerationIndicator();
-    const payload = { prompt, tabId: currentTabId, provider: imageGenService, sessionId };
+    const payload = { prompt, tabId: currentTabId, provider: imageGenService, model: imageGenModel, sessionId };
     console.log('[Hook generateImage] sending request to /api/image/generate', payload);
     let r;
     try {
@@ -6916,7 +6942,7 @@ registerActionHook("embedMockImages", async ({response}) => {
       const r = await fetch('/api/image/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: alt, tabId: currentTabId, provider: imageGenService, sessionId })
+        body: JSON.stringify({ prompt: alt, tabId: currentTabId, provider: imageGenService, model: imageGenModel, sessionId })
       });
       const data = await r.json();
       if(r.ok && data.url){
