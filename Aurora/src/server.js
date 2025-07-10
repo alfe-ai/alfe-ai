@@ -267,7 +267,7 @@ function countTokens(encoder, text) {
 async function callOpenAiModel(client, model, opts = {}) {
   const { messages = [], max_tokens, temperature, stream = false } = opts;
 
-  // All chat-style models—including codex-mini-latest—use the chat endpoint
+  // All chat-style models—including codex-mini-latest and openrouter/openai/codex-mini—use the chat endpoint
   return client.chat.completions.create({
     model,
     messages,
@@ -1415,6 +1415,7 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-4o-mini-search-preview": 128000,
     "openai/gpt-3.5-turbo-1106": 16385,
     "openai/codex-mini-latest": 200000,
+    "openrouter/openai/codex-mini": 200000,
     "openai/o1-preview-2024-09-12": 128000,
     "openai/gpt-3.5-turbo-0613": 4095,
     "openai/gpt-4-turbo-preview": 128000,
@@ -1459,6 +1460,7 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-4o-mini-search-preview": { input: "$0.15", output: "$0.60" },
     "openai/gpt-3.5-turbo-1106": { input: "$1", output: "$2" },
     "openai/codex-mini-latest": { input: "$1.50", output: "$6" },
+    "openrouter/openai/codex-mini": { input: "$1.50", output: "$6" },
     "openai/o1-preview-2024-09-12": { input: "$15", output: "$60" },
     "openai/gpt-3.5-turbo-0613": { input: "$1", output: "$2" },
     "openai/gpt-4-turbo-preview": { input: "$10", output: "$30" },

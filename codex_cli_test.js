@@ -10,9 +10,17 @@ const fetch = typeof globalThis.fetch === "function"
 const readline = require("node:readline");
 
 // ─── CONFIG ────────────────────────────────────────
-const API_KEY   = process.env.OPENAI_API_KEY || "PASTE-YOUR-KEY-HERE";
-const MODEL     = "codex-mini-latest";
-const ENDPOINT  = "https://api.openai.com/v1/responses";
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || "";
+const USE_OPENROUTER = !!OPENROUTER_KEY;
+const API_KEY   = USE_OPENROUTER
+  ? OPENROUTER_KEY
+  : process.env.OPENAI_API_KEY || "PASTE-YOUR-KEY-HERE";
+const MODEL     = USE_OPENROUTER
+  ? "openrouter/openai/codex-mini"
+  : "codex-mini-latest";
+const ENDPOINT  = USE_OPENROUTER
+  ? "https://openrouter.ai/api/v1/responses"
+  : "https://api.openai.com/v1/responses";
 // ──────────────────────────────────────────────────
 
 const getPrompt = async () => {
@@ -34,7 +42,11 @@ const getPrompt = async () => {
 const main = async () => {
   const promptText = await getPrompt();
   if (!API_KEY || API_KEY === "PASTE-YOUR-KEY-HERE") {
-    console.error("✖ Set OPENAI_API_KEY env var or edit API_KEY constant");
+    console.error(
+      USE_OPENROUTER
+        ? "✖ Set OPENROUTER_API_KEY env var or edit API_KEY constant"
+        : "✖ Set OPENAI_API_KEY env var or edit API_KEY constant"
+    );
     process.exit(1);
   }
 
@@ -62,7 +74,7 @@ const main = async () => {
     }
 
     const json = await r.json();
-    const responseText = json.choices?.?.text ?? "(no content)";
+    const responseText = json.choices?.[0]?.text ?? "(no content)";
     console.log("\n— Codex reply —\n");
     console.log(responseText.trim());
   } catch (e) {
