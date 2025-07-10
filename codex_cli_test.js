@@ -17,9 +17,10 @@ const fetch =
 const readline = require("node:readline"); // Only for interactive fallback
 
 // ─── CONFIG ────────────────────────────────────────
-const API_KEY   = process.env.OPENAI_API_KEY || "PASTE-YOUR-KEY-HERE";
+const API_KEY   = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || "PASTE-YOUR-KEY-HERE";
 const MODEL     = "codex-mini-latest";
-const ENDPOINT  = "https://api.openai.com/v1/chat/completions";
+// `codex-mini-latest` uses OpenRouter's non-chat endpoint
+const ENDPOINT  = "https://openrouter.ai/api/v1/responses";
 // ────────────────────────────────────────────
 
 // Grab prompt from CLI or fall back to stdin.
@@ -33,13 +34,13 @@ const getPrompt = async () => {
 const main = async () => {
   const promptText = await getPrompt();
   if (!API_KEY || API_KEY === "PASTE-YOUR-KEY-HERE") {
-    console.error("\u274c  Set OPENAI_API_KEY env var or edit API_KEY constant");
+    console.error("\u274c  Set OPENROUTER_API_KEY (or OPENAI_API_KEY) env var or edit API_KEY constant");
     process.exit(1);
   }
 
   const body = {
     model: MODEL,
-    messages: [{ role: "user", content: promptText }],
+    prompt: promptText,
     max_tokens: 128,
     temperature: 0.2
   };
