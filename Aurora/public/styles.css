@@ -1422,6 +1422,21 @@ button:disabled {
   color: #fff;
 }
 
+/* Codex toggle button */
+#codexToggleBtn {
+  background: #474747;
+  border: 1px solid #666;
+  color: #ddd;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+#codexToggleBtn.active {
+  background: #0062cc;
+  color: #fff;
+}
+
 /* Minimal markdown highlighting */
 .md-h1,.md-h2,.md-h3,.md-h4,.md-h5,.md-h6{
   display:block;

@@ -147,6 +147,8 @@ let modelName = "unknown";
 let tabModelOverride = '';
 let previousModelName = null; // remember model when toggling search
 let reasoningPreviousModelName = null; // remember model when toggling reasoning
+let codexPreviousModelName = null; // remember model when toggling Codex
+let codexMiniEnabled = false; // toggle Codex Mini mode
 let tasksVisible = true;
 let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
@@ -1239,7 +1241,8 @@ async function loadSettings(){
     "chat_auto_scroll","show_session_id",
     "new_tab_project_enabled","group_tabs_by_project",
     "search_enabled","ai_search_model",
-    "reasoning_enabled","ai_reasoning_model"
+    "reasoning_enabled","ai_reasoning_model",
+    "codex_mini_enabled"
   ];
   const map = await getSettings(keys);
 
@@ -1451,8 +1454,12 @@ async function loadSettings(){
   if(typeof map.reasoning_enabled !== "undefined"){
     reasoningEnabled = map.reasoning_enabled !== false;
   }
+  if(typeof map.codex_mini_enabled !== "undefined"){
+    codexMiniEnabled = map.codex_mini_enabled !== false;
+  }
   updateSearchButton();
   updateReasoningButton();
+  updateCodexButton();
 }
 async function saveSettings(){
   await fetch("/api/settings",{
@@ -3996,7 +4003,7 @@ function runImageLoop(){
 function updateModelHud(){
   const hud = document.getElementById("modelHud");
   if(!hud) return;
-  const prefix = searchEnabled ? "\uD83D\uDD0D " : ""; // magnifying glass when searching
+  const prefix = searchEnabled ? "\uD83D\uDD0D " : codexMiniEnabled ? "</> " : ""; // magnifying glass when searching or code icon
   hud.textContent = `Model: ${prefix}${modelName}`;
 }
 
@@ -4012,9 +4019,15 @@ function updateReasoningButton(){
   btn.classList.toggle("active", reasoningEnabled);
 }
 
+function updateCodexButton(){
+  const btn = document.getElementById("codexToggleBtn");
+  if(!btn) return;
+  btn.classList.toggle("active", codexMiniEnabled);
+}
+
 async function toggleSearch(){
-  if(!searchEnabled && reasoningEnabled){
-    showToast("Disable Reasoning mode first");
+  if(!searchEnabled && (reasoningEnabled || codexMiniEnabled)){
+    showToast("Disable Reasoning/Codex mode first");
     return;
   }
   searchEnabled = !searchEnabled;
@@ -4033,11 +4046,12 @@ async function toggleSearch(){
   updateModelHud();
   updateSearchButton();
   updateReasoningButton();
+  updateCodexButton();
 }
 
 async function toggleReasoning(){
-  if(!reasoningEnabled && searchEnabled){
-    showToast("Disable Search mode first");
+  if(!reasoningEnabled && (searchEnabled || codexMiniEnabled)){
+    showToast("Disable Search/Codex mode first");
     return;
   }
   reasoningEnabled = !reasoningEnabled;
@@ -4056,6 +4070,31 @@ async function toggleReasoning(){
   updateModelHud();
   updateReasoningButton();
   updateSearchButton();
+  updateCodexButton();
+}
+
+async function toggleCodexMini(){
+  if(!codexMiniEnabled && (searchEnabled || reasoningEnabled)){
+    showToast("Disable Search/Reasoning mode first");
+    return;
+  }
+  codexMiniEnabled = !codexMiniEnabled;
+  await setSetting("codex_mini_enabled", codexMiniEnabled);
+  if(codexMiniEnabled){
+    codexPreviousModelName = modelName;
+    const codexModel = "openrouter/openai/codex-mini";
+    await setSetting("ai_model", codexModel);
+    modelName = codexModel;
+  } else {
+    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
+    await setSetting("ai_model", restoreModel);
+    modelName = restoreModel;
+    codexPreviousModelName = null;
+  }
+  updateModelHud();
+  updateCodexButton();
+  updateSearchButton();
+  updateReasoningButton();
 }
 
 (function installDividerDrag(){
@@ -6835,6 +6874,7 @@ registerActionHook("embedMockImages", async ({response}) => {
 
 document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
 document.getElementById("reasoningToggleBtn")?.addEventListener("click", toggleReasoning);
+document.getElementById("codexToggleBtn")?.addEventListener("click", toggleCodexMini);
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
 setTimeout(() => {
