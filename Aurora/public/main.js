@@ -375,7 +375,15 @@ function formatCodeBlocks(text){
     if(idx % 2 === 0){
       return applyMarkdownSyntax(part);
     }
-    return `<pre><code>${escapeHtml(part)}</code></pre>`;
+    let code = part;
+    const newlineIdx = code.indexOf('\n');
+    if(newlineIdx !== -1){
+      const first = code.slice(0, newlineIdx).trim();
+      if(/^[a-zA-Z0-9_-]+$/.test(first)){
+        code = code.slice(newlineIdx + 1);
+      }
+    }
+    return `<pre><code>${escapeHtml(code)}</code></pre>`;
   }).join("");
 }
 
