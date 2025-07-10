@@ -4,7 +4,9 @@
 
 The first version of the Alfe AI Cloud Platform https://alfe.sh <!-- has been released --> (beta-2.30).
 This initial cloud release includes the image design component of the Alfe AI Platform.
-It now defaults to OpenAI's **gpt-image-1** model for image generation via the built-in API.
+It now defaults to OpenAI's **gpt-image-1** model for image generation via the built-in API. You
+can change the model globally via the new `image_gen_model` setting which accepts `gptimage1`,
+`dalle2`, or `dalle3`.
 If the model returns a base64 string instead of a URL, the server automatically decodes and saves the image.
 The server also includes an optional color swatch detector that can trim any palette band from the bottom of generated images. This feature is disabled by default and can be enabled via the `remove_color_swatches` setting.
 The software development component is coming soon, and is available now as a Pre-release on GitHub.

@@ -158,6 +158,11 @@ if (!db.getSetting("image_gen_service")) {
   db.setSetting("image_gen_service", "openai");
 }
 
+console.debug("[Server Debug] Checking or setting default 'image_gen_model' in DB...");
+if (!db.getSetting("image_gen_model")) {
+  db.setSetting("image_gen_model", "gptimage1");
+}
+
 console.debug("[Server Debug] Checking or setting default 'image_upload_enabled' in DB...");
 if (db.getSetting("image_upload_enabled") === undefined) {
   db.setSetting("image_upload_enabled", true);
@@ -3368,7 +3373,10 @@ app.post("/api/image/generate", async (req, res) => {
 
     const openaiClient = new OpenAI({ apiKey: openAiKey });
 
-    let modelName = (model || "gpt-image-1").toLowerCase();
+    let modelName = (model || db.getSetting("image_gen_model") || "gptimage1").toLowerCase();
+    if (modelName === "gptimage1") modelName = "gpt-image-1";
+    if (modelName === "dalle2") modelName = "dall-e-2";
+    if (modelName === "dalle3") modelName = "dall-e-3";
     const allowedModels = ["dall-e-2", "dall-e-3", "gpt-image-1"];
     if (!allowedModels.includes(modelName)) {
       return res.status(400).json({ error: "Invalid model" });
