@@ -3508,7 +3508,24 @@ app.get("/Image.html", (req, res) => {
 // Default landing page
 app.get("/", (req, res) => {
   const sessionId = getSessionIdFromRequest(req);
-  if (["dev.alfe.sh", "mvp2.alfe.sh", "app.alfe.sh"].includes(req.hostname) && sessionId) {
+  if (req.hostname === "dev.alfe.sh") {
+    try {
+      const { uuid } = db.createChatTab(
+        "Untitled",
+        0,
+        "",
+        "",
+        '',
+        "chat",
+        sessionId
+      );
+      return res.redirect(`/chat/${uuid}`);
+    } catch (err) {
+      console.error("[Server Debug] Auto new tab error:", err);
+    }
+  }
+
+  if (["mvp2.alfe.sh", "app.alfe.sh"].includes(req.hostname) && sessionId) {
     try {
       const account = db.getAccountBySession(sessionId);
       if (account) {
