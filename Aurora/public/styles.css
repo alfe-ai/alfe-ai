@@ -1476,4 +1476,9 @@ button:disabled {
   border-radius:4px;
 }
 
+/* Links generated from applyMarkdownSyntax */
+.md-link {
+  color: cyan;
+}
+
 
