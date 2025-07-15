@@ -4155,6 +4155,51 @@ app.post('/api/amazon/createShipment', async (req, res) => {
   }
 });
 
+app.get('/api/amazon/skus', async (req, res) => {
+  const { sellerId, marketplaceId } = req.query || {};
+  if (!sellerId || !marketplaceId) {
+    return res.status(400).json({ error: 'Missing sellerId or marketplaceId' });
+  }
+
+  if (!SellingPartner) {
+    console.debug(
+      `[Server Debug] Received get SKUs request => sellerId=${sellerId}, marketplaceId=${marketplaceId}`
+    );
+    return res.json({ success: true, skus: ['TEST-SKU-1', 'TEST-SKU-2'] });
+  }
+
+  try {
+    const sp = new SellingPartner({
+      region: process.env.AMAZON_REGION || 'na',
+      refresh_token: process.env.AMAZON_REFRESH_TOKEN,
+      credentials: {
+        SELLING_PARTNER_APP_CLIENT_ID: process.env.AMAZON_CLIENT_ID,
+        SELLING_PARTNER_APP_CLIENT_SECRET: process.env.AMAZON_CLIENT_SECRET,
+        AWS_ACCESS_KEY_ID: process.env.AMAZON_AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: process.env.AMAZON_AWS_SECRET_ACCESS_KEY,
+        AWS_SELLING_PARTNER_ROLE: process.env.AMAZON_SELLING_PARTNER_ROLE
+      }
+    });
+    const result = await sp.callAPI({
+      operation: 'searchCatalogItems',
+      endpoint: 'catalogItems',
+      query: {
+        SellerId: sellerId,
+        MarketplaceIds: [marketplaceId]
+      }
+    });
+    const skus = Array.isArray(result?.Items)
+      ? result.Items.map(i =>
+          i.SKU || i.sku || i.SellerSKU || i.sellerSku
+        ).filter(Boolean)
+      : [];
+    res.json({ success: true, skus, raw: result });
+  } catch (err) {
+    console.error('Error in /api/amazon/skus:', err);
+    res.status(500).json({ error: 'Failed to fetch SKUs' });
+  }
+});
+
 const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||

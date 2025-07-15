@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Amazon SKU List</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body style="padding:1rem;">
+  <h2>Amazon SKU List</h2>
+  <form id="skuForm" style="display:flex;flex-direction:column;gap:0.5rem;max-width:400px;">
+    <label>Seller ID
+      <input type="text" id="sellerId" required>
+    </label>
+    <label>Marketplace ID
+      <input type="text" id="marketplaceId" required>
+    </label>
+    <button type="submit">Fetch SKUs</button>
+  </form>
+  <pre id="output" style="margin-top:1rem;background:#000;color:#0f0;padding:0.5rem;height:200px;overflow:auto;"></pre>
+  <script src="/session.js"></script>
+  <script>
+    const form = document.getElementById('skuForm');
+    const out = document.getElementById('output');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      out.textContent = 'Loading...';
+      const sellerId = document.getElementById('sellerId').value;
+      const marketplaceId = document.getElementById('marketplaceId').value;
+      try {
+        const resp = await fetch(`/api/amazon/skus?sellerId=${encodeURIComponent(sellerId)}&marketplaceId=${encodeURIComponent(marketplaceId)}`);
+        const data = await resp.json();
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch(err){
+        out.textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
