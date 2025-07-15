@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Amazon Shipment Setup</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body style="padding:1rem;">
+  <h2>Amazon Shipment Setup</h2>
+  <form id="shipmentForm" style="display:flex;flex-direction:column;gap:0.5rem;max-width:400px;">
+    <label>Seller ID
+      <input type="text" id="sellerId" required>
+    </label>
+    <label>Marketplace ID
+      <input type="text" id="marketplaceId" required>
+    </label>
+    <label>SKU
+      <input type="text" id="sku" required>
+    </label>
+    <label>Quantity
+      <input type="number" id="quantity" value="1" min="1" required>
+    </label>
+    <label>Prep Category
+      <input type="text" id="prepCategory" placeholder="e.g. Polybagging" required>
+    </label>
+    <button type="submit">Create Shipment</button>
+  </form>
+  <pre id="output" style="margin-top:1rem;background:#000;color:#0f0;padding:0.5rem;height:200px;overflow:auto;"></pre>
+  <script src="/session.js"></script>
+  <script>
+    const form = document.getElementById('shipmentForm');
+    const out = document.getElementById('output');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      out.textContent = 'Sending request...';
+      const body = {
+        sellerId: document.getElementById('sellerId').value,
+        marketplaceId: document.getElementById('marketplaceId').value,
+        items: [{
+          sellerSku: document.getElementById('sku').value,
+          quantity: parseInt(document.getElementById('quantity').value, 10),
+          prepDetails: {
+            prepInstruction: document.getElementById('prepCategory').value
+          }
+        }]
+      };
+      try {
+        const resp = await fetch('/api/amazon/createShipment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shipmentRequest: body })
+        });
+        const data = await resp.json();
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch(err){
+        out.textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

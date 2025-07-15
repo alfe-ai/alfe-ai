@@ -4104,6 +4104,57 @@ app.get('/api/mosaic/path', (req, res) => {
   }
 });
 
+// ------------------------------------------------------------------
+// Amazon Shipping API demo endpoint
+// ------------------------------------------------------------------
+let SellingPartner = null;
+try {
+  SellingPartner = require('amazon-sp-api');
+} catch (err) {
+  console.warn('[Server Debug] amazon-sp-api not installed =>', err.message);
+}
+
+app.post('/api/amazon/createShipment', async (req, res) => {
+  const { shipmentRequest } = req.body || {};
+  if (!shipmentRequest) {
+    return res.status(400).json({ error: 'Missing shipmentRequest' });
+  }
+
+  if (!SellingPartner) {
+    console.debug(
+      '[Server Debug] Received createShipment request =>',
+      JSON.stringify(shipmentRequest)
+    );
+    return res.json({
+      success: true,
+      message: 'amazon-sp-api not installed; request logged only'
+    });
+  }
+
+  try {
+    const sp = new SellingPartner({
+      region: process.env.AMAZON_REGION || 'na',
+      refresh_token: process.env.AMAZON_REFRESH_TOKEN,
+      credentials: {
+        SELLING_PARTNER_APP_CLIENT_ID: process.env.AMAZON_CLIENT_ID,
+        SELLING_PARTNER_APP_CLIENT_SECRET: process.env.AMAZON_CLIENT_SECRET,
+        AWS_ACCESS_KEY_ID: process.env.AMAZON_AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: process.env.AMAZON_AWS_SECRET_ACCESS_KEY,
+        AWS_SELLING_PARTNER_ROLE: process.env.AMAZON_SELLING_PARTNER_ROLE
+      }
+    });
+    const data = await sp.callAPI({
+      operation: 'createShipment',
+      endpoint: 'shipping',
+      body: shipmentRequest
+    });
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Error in /api/amazon/createShipment:', err);
+    res.status(500).json({ error: 'Failed to create shipment' });
+  }
+});
+
 const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||
