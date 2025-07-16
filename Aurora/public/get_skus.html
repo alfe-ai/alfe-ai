@@ -14,13 +14,54 @@
     <label>Marketplace ID
       <input type="text" id="marketplaceId" required>
     </label>
-    <button type="submit">Fetch SKUs</button>
+    <div style="display:flex;gap:0.5rem;">
+      <button type="submit">Fetch SKUs</button>
+      <button type="button" id="saveBtn">Save</button>
+    </div>
   </form>
   <pre id="output" style="margin-top:1rem;background:#000;color:#0f0;padding:0.5rem;height:200px;overflow:auto;"></pre>
   <script src="/session.js"></script>
   <script>
     const form = document.getElementById('skuForm');
     const out = document.getElementById('output');
+    const saveBtn = document.getElementById('saveBtn');
+
+    async function loadSettings(){
+      try {
+        const res = await fetch('/api/settings?keys=amazon_seller_id,amazon_marketplace_id');
+        if(res.ok){
+          const data = await res.json();
+          (data.settings || []).forEach(s => {
+            if(s.key === 'amazon_seller_id' && s.value){
+              document.getElementById('sellerId').value = s.value;
+            }
+            if(s.key === 'amazon_marketplace_id' && s.value){
+              document.getElementById('marketplaceId').value = s.value;
+            }
+          });
+        }
+      }catch(e){ console.error(e); }
+    }
+
+    saveBtn.addEventListener('click', async () => {
+      const sellerId = document.getElementById('sellerId').value;
+      const marketplaceId = document.getElementById('marketplaceId').value;
+      out.textContent = 'Saving...';
+      try {
+        await fetch('/api/settings/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: [
+            { key: 'amazon_seller_id', value: sellerId },
+            { key: 'amazon_marketplace_id', value: marketplaceId }
+          ] })
+        });
+        out.textContent = 'Saved.';
+      } catch(err){
+        out.textContent = 'Save failed: ' + err.message;
+      }
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       out.textContent = 'Loading...';
@@ -34,6 +75,8 @@
         out.textContent = 'Error: ' + err.message;
       }
     });
+
+    loadSettings();
   </script>
 </body>
 </html>
