@@ -4162,9 +4162,15 @@ app.post('/api/amazon/createShipment', async (req, res) => {
 });
 
 app.get('/api/amazon/skus', async (req, res) => {
-  const { sellerId, marketplaceId } = req.query || {};
+  const { sellerId, marketplaceId, keywords, identifiers } = req.query || {};
   if (!sellerId || !marketplaceId) {
     return res.status(400).json({ error: 'Missing sellerId or marketplaceId' });
+  }
+
+  if (!keywords && !identifiers) {
+    return res
+      .status(400)
+      .json({ error: "Missing 'keywords' or 'identifiers' query parameter" });
   }
 
   if (!SellingPartner) {
@@ -4194,13 +4200,17 @@ app.get('/api/amazon/skus', async (req, res) => {
     }
     const sp = new SellingPartner(spOptions);
     console.debug('[Server Debug] Using marketplaceIds =>', [marketplaceId]);
+    const query = {
+      sellerId: sellerId,
+      marketplaceIds: [marketplaceId]
+    };
+    if (keywords) query.keywords = keywords;
+    if (identifiers) query.identifiers = identifiers;
+
     const result = await sp.callAPI({
       operation: 'searchCatalogItems',
       endpoint: 'catalogItems',
-      query: {
-        sellerId: sellerId,
-        marketplaceIds: [marketplaceId]
-      }
+      query
     });
     const skus = Array.isArray(result?.Items)
       ? result.Items.map(i =>
