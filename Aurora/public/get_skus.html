@@ -14,6 +14,9 @@
     <label>Marketplace ID
       <input type="text" id="marketplaceId" required>
     </label>
+    <label>Keywords
+      <input type="text" id="keywords" placeholder="search term">
+    </label>
     <div style="display:flex;gap:0.5rem;">
       <button type="submit">Fetch SKUs</button>
       <button type="button" id="saveBtn">Save</button>
@@ -67,8 +70,14 @@
       out.textContent = 'Loading...';
       const sellerId = document.getElementById('sellerId').value;
       const marketplaceId = document.getElementById('marketplaceId').value;
+      const keywords = document.getElementById('keywords').value;
       try {
-        const resp = await fetch(`/api/amazon/skus?sellerId=${encodeURIComponent(sellerId)}&marketplaceId=${encodeURIComponent(marketplaceId)}`);
+        const params = new URLSearchParams({
+          sellerId,
+          marketplaceId
+        });
+        if (keywords) params.append('keywords', keywords);
+        const resp = await fetch(`/api/amazon/skus?${params.toString()}`);
         const data = await resp.json();
         out.textContent = JSON.stringify(data, null, 2);
       } catch(err){
