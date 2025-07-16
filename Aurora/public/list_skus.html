@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Local SKU Database</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body style="padding:1rem;">
+  <h2>Local SKU Database</h2>
+  <p>
+    <a href="/">&larr; Back</a>
+    |
+    <a href="get_skus.html">Import SKUs</a>
+  </p>
+  <table id="skuTable" style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>SKU</th>
+        <th>ASIN</th>
+        <th>Title</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button id="refreshBtn" style="margin-top:1rem;">Refresh</button>
+  <script src="/session.js"></script>
+  <script>
+    async function loadSkus(){
+      try {
+        const res = await fetch('/api/local_skus');
+        const data = await res.json();
+        const tbody = document.querySelector('#skuTable tbody');
+        tbody.innerHTML = '';
+        (data.skus || []).forEach(s => {
+          const tr = document.createElement('tr');
+          const created = (s.created_at || '').replace('T',' ').split('.')[0];
+          tr.innerHTML = `<td>${s.id}</td><td>${s.sku||''}</td><td>${s.asin||''}</td><td>${s.title||''}</td><td>${created}</td>`;
+          tbody.appendChild(tr);
+        });
+      } catch(err){
+        console.error(err);
+      }
+    }
+    document.getElementById('refreshBtn').addEventListener('click', loadSkus);
+    loadSkus();
+  </script>
+</body>
+</html>
