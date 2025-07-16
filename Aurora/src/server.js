@@ -4133,9 +4133,8 @@ app.post('/api/amazon/createShipment', async (req, res) => {
   }
 
   try {
-    const sp = new SellingPartner({
+    const spOptions = {
       region: process.env.AMAZON_REGION || 'na',
-      refresh_token: process.env.AMAZON_REFRESH_TOKEN,
       credentials: {
         SELLING_PARTNER_APP_CLIENT_ID: process.env.AMAZON_CLIENT_ID,
         SELLING_PARTNER_APP_CLIENT_SECRET: process.env.AMAZON_CLIENT_SECRET,
@@ -4143,7 +4142,13 @@ app.post('/api/amazon/createShipment', async (req, res) => {
         AWS_SECRET_ACCESS_KEY: process.env.AMAZON_AWS_SECRET_ACCESS_KEY,
         AWS_SELLING_PARTNER_ROLE: process.env.AMAZON_SELLING_PARTNER_ROLE
       }
-    });
+    };
+    if (process.env.AMAZON_REFRESH_TOKEN) {
+      spOptions.refresh_token = process.env.AMAZON_REFRESH_TOKEN;
+    } else {
+      spOptions.only_grantless_operations = true;
+    }
+    const sp = new SellingPartner(spOptions);
     const data = await sp.callAPI({
       operation: 'createShipment',
       endpoint: 'shipping',
@@ -4172,9 +4177,8 @@ app.get('/api/amazon/skus', async (req, res) => {
   }
 
   try {
-    const sp = new SellingPartner({
+    const spOptions = {
       region: process.env.AMAZON_REGION || 'na',
-      refresh_token: process.env.AMAZON_REFRESH_TOKEN,
       credentials: {
         SELLING_PARTNER_APP_CLIENT_ID: process.env.AMAZON_CLIENT_ID,
         SELLING_PARTNER_APP_CLIENT_SECRET: process.env.AMAZON_CLIENT_SECRET,
@@ -4182,7 +4186,13 @@ app.get('/api/amazon/skus', async (req, res) => {
         AWS_SECRET_ACCESS_KEY: process.env.AMAZON_AWS_SECRET_ACCESS_KEY,
         AWS_SELLING_PARTNER_ROLE: process.env.AMAZON_SELLING_PARTNER_ROLE
       }
-    });
+    };
+    if (process.env.AMAZON_REFRESH_TOKEN) {
+      spOptions.refresh_token = process.env.AMAZON_REFRESH_TOKEN;
+    } else {
+      spOptions.only_grantless_operations = true;
+    }
+    const sp = new SellingPartner(spOptions);
     const result = await sp.callAPI({
       operation: 'searchCatalogItems',
       endpoint: 'catalogItems',
