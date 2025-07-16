@@ -56,3 +56,16 @@ sudo ./forward_port_443.sh 3000
 Replace `3000` with your chosen `AURORA_PORT`. After adding the rule, start the
 server normally and clients can connect using `https://your-domain/` on port
 `443` while the Node.js process continues to run on the higher port.
+
+### Passthrough SQL server
+
+Set `SQL_SERVER_PORT` in `.env` (see `Aurora/.env.example`) to configure the port
+for a simple HTTP interface to the SQLite database. Start the server with:
+
+```bash
+npm run sqlserver --prefix Aurora
+```
+
+Send POST requests to `/sql` with a JSON body containing a `sql` string and
+optional `params` array. Select queries return rows while other statements
+return change information.
