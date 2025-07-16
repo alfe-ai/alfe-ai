@@ -4109,7 +4109,8 @@ app.get('/api/mosaic/path', (req, res) => {
 // ------------------------------------------------------------------
 let SellingPartner = null;
 try {
-  SellingPartner = require('amazon-sp-api');
+  const mod = await import('amazon-sp-api');
+  SellingPartner = mod.default || mod;
 } catch (err) {
   console.warn('[Server Debug] amazon-sp-api not installed =>', err.message);
 }
@@ -4165,7 +4166,9 @@ app.get('/api/amazon/skus', async (req, res) => {
     console.debug(
       `[Server Debug] Received get SKUs request => sellerId=${sellerId}, marketplaceId=${marketplaceId}`
     );
-    return res.json({ success: true, skus: ['TEST-SKU-1', 'TEST-SKU-2'] });
+    return res
+      .status(500)
+      .json({ error: 'amazon-sp-api not installed on server' });
   }
 
   try {
