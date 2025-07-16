@@ -382,6 +382,16 @@ export default class TaskDB {
       );
     `);
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS amazon_skus (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku TEXT UNIQUE,
+        asin TEXT,
+        title TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+      );
+    `);
+
     console.debug("[TaskDB Debug] Finished DB schema init.");
   }
 
@@ -1434,6 +1444,25 @@ export default class TaskDB {
 
   deleteUpworkJob(id) {
     this.db.prepare('DELETE FROM upwork_jobs WHERE id=?').run(id);
+  }
+
+  insertAmazonSkus(list) {
+    const stmt = this.db.prepare(
+      `INSERT OR REPLACE INTO amazon_skus (sku, asin, title, created_at)
+       VALUES (?, ?, ?, ?)`
+    );
+    const now = new Date().toISOString();
+    const insertMany = this.db.transaction(arr => {
+      for (const s of arr) {
+        if (!s.sku || !s.asin) continue;
+        stmt.run(s.sku, s.asin, s.title || '', now);
+      }
+    });
+    insertMany(list);
+  }
+
+  listAmazonSkus() {
+    return this.db.prepare('SELECT * FROM amazon_skus ORDER BY id DESC').all();
   }
 }
 

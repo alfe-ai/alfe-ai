@@ -4214,6 +4214,52 @@ app.get('/api/amazon/skus', async (req, res) => {
   }
 });
 
+function parseAmazonSkuText(text = '') {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const items = [];
+  let current = {};
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^product image$/i.test(line)) {
+      current.title = lines[i + 1] || '';
+      i++;
+    } else if (/^ASIN$/i.test(line)) {
+      current.asin = lines[i + 1] || '';
+      i++;
+    } else if (/^SKU$/i.test(line)) {
+      current.sku = lines[i + 1] || '';
+      i++;
+      if (current.asin && current.sku) {
+        items.push({ ...current });
+        current = {};
+      }
+    }
+  }
+  return items;
+}
+
+app.post('/api/local_skus/import', (req, res) => {
+  try {
+    const { text = '' } = req.body || {};
+    const items = parseAmazonSkuText(text);
+    db.insertAmazonSkus(items);
+    res.json({ success: true, count: items.length });
+  } catch (err) {
+    console.error('Error in /api/local_skus/import:', err);
+    res.status(500).json({ error: 'Failed to import SKUs' });
+  }
+});
+
+app.get('/api/local_skus', (req, res) => {
+  try {
+    const skus = db.listAmazonSkus();
+    res.json({ success: true, skus });
+  } catch (err) {
+    console.error('Error in /api/local_skus:', err);
+    res.status(500).json({ error: 'Failed to load SKUs' });
+  }
+});
+
 const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||
