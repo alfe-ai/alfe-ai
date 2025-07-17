@@ -20,6 +20,8 @@
         <th>ASIN</th>
         <th>Title</th>
         <th>Created</th>
+        <th>Prep Info</th>
+        <th>Labeling</th>
         <th>Action</th>
       </tr>
     </thead>
@@ -53,7 +55,7 @@
         (data.skus || []).forEach(s => {
           const tr = document.createElement('tr');
           const created = (s.created_at || '').replace('T',' ').split('.')[0];
-          tr.innerHTML = `<td>${s.id}</td><td>${s.sku||''}</td><td>${s.asin||''}</td><td>${s.title||''}</td><td>${created}</td><td><button class="prep-btn" data-sku="${s.sku||''}">Update Prep Info</button></td>`;
+          tr.innerHTML = `<td>${s.id}</td><td>${s.sku||''}</td><td>${s.asin||''}</td><td>${s.title||''}</td><td>${created}</td><td class="prep-info" data-sku="${s.sku||''}">-</td><td class="labeling-info" data-sku="${s.sku||''}">-</td><td><button class="prep-btn" data-sku="${s.sku||''}">Update Prep Info</button></td>`;
           const btn = tr.querySelector('.prep-btn');
           btn.addEventListener('click', () => updatePrep(btn.dataset.sku));
           tbody.appendChild(tr);
@@ -78,6 +80,12 @@
         });
         const data = await resp.json();
         console.log('Update response:', data);
+        if(data.success){
+          const prepEl = document.querySelector(`.prep-info[data-sku="${sku}"]`);
+          const labelEl = document.querySelector(`.labeling-info[data-sku="${sku}"]`);
+          if(prepEl) prepEl.textContent = 'Prep not needed';
+          if(labelEl) labelEl.textContent = 'seller labels units';
+        }
       } catch(err){
         console.error('Update failed:', err);
       }
