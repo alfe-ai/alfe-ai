@@ -4300,6 +4300,7 @@ app.post('/api/amazon/updatePrepInfo', async (req, res) => {
         mskuPrepDetails: [
           {
             msku: sku,
+            prepCategory: 'NONE',
             prepDetails: [
               {
                 prepInstruction: 'NoPrep',
