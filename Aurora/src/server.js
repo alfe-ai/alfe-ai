@@ -3618,6 +3618,27 @@ app.get("/search", (req, res) => {
   }
 });
 
+app.get("/new", (req, res) => {
+  try {
+    const sessionId = getSessionIdFromRequest(req);
+    const { id: tabId } = db.createChatTab(
+      "New Tab",
+      0,
+      "",
+      "",
+      "",
+      0,
+      "chat",
+      sessionId
+    );
+    db.setSetting("last_chat_tab", tabId);
+    res.sendFile(path.join(__dirname, "../public/aurora.html"));
+  } catch (err) {
+    console.error("[Server Debug] GET /new error:", err);
+    res.redirect("/index.html");
+  }
+});
+
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/beta", (req, res) => {
