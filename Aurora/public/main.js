@@ -241,7 +241,7 @@ const defaultFavicon = "/alfe_favicon_64x64.ico";
 const rotatingFavicon = "/alfe_favicon_64x64.ico";
 let favElement = null;
 
-const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖" };
+const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖", search: "🔍" };
 let newTabSelectedType = 'chat';
 
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
@@ -2081,6 +2081,9 @@ async function addNewTab(){
     hideModal($("#newTabModal"));
     await loadTabs();
     await selectTab(data.id);
+    if(tabType === 'search'){
+      await enableSearchMode('');
+    }
     // TODO: THIS WAS A TEMP FIX,
     // Reload the entire page so the new tab state is fully reflected
     // but only if this was the very first tab being created from the modal
