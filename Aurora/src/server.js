@@ -4294,13 +4294,18 @@ app.post('/api/amazon/updatePrepInfo', async (req, res) => {
       operation: 'setPrepDetails',
       endpoint: 'fulfillmentInbound',
       apiVersion: '2024-03-20',
-      path: { sellerId, marketplaceId },
+      path: { sellerId },
       body: {
-        sku,
-        prepDetails: [
+        marketplaceId,
+        mskuPrepDetails: [
           {
-            prepInstruction: 'NoPrep',
-            prepOwner: 'SELLER'
+            msku: sku,
+            prepDetails: [
+              {
+                prepInstruction: 'NoPrep',
+                prepOwner: 'SELLER'
+              }
+            ]
           }
         ]
       }
