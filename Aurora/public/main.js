@@ -263,6 +263,9 @@ initialTabUuid = getTabUuidFromLocation();
 const urlParamsInit = new URLSearchParams(window.location.search);
 const initialSearchQuery = urlParamsInit.get('q') || '';
 const initialSearchMode = urlParamsInit.has('search');
+if(initialSearchMode){
+  searchEnabled = true; // highlight search toggle immediately
+}
 
 /* Introduce an image buffer and preview, plus an array to hold their descriptions. */
 let pendingImages = [];
@@ -5282,6 +5285,10 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   const placeholderEl = document.getElementById("chatPlaceholder");
   if(placeholderEl) placeholderEl.style.display = "";
   await loadSettings();
+  if(initialSearchMode){
+    searchEnabled = true;
+    updateSearchButton();
+  }
   await getSettings([
     "ai_model","ai_search_model","last_chat_tab","last_sidebar_view",
     "model_tabs","last_model_tab",
