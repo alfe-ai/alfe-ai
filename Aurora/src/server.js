@@ -205,6 +205,11 @@ if (db.getSetting("reasoning_enabled") === undefined) {
   db.setSetting("reasoning_enabled", false);
 }
 
+console.debug("[Server Debug] Checking or setting default 'new_tab_opens_search' in DB...");
+if (db.getSetting("new_tab_opens_search") === undefined) {
+  db.setSetting("new_tab_opens_search", false);
+}
+
 const app = express();
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
@@ -3626,18 +3631,37 @@ app.get("/search", (req, res) => {
 app.get("/new", (req, res) => {
   try {
     const sessionId = getSessionIdFromRequest(req);
-    const { id: tabId } = db.createChatTab(
-      "New Tab",
-      0,
-      "",
-      "",
-      "",
-      0,
-      "chat",
-      sessionId
-    );
-    db.setSetting("last_chat_tab", tabId);
-    res.sendFile(path.join(__dirname, "../public/aurora.html"));
+    const openSearch = db.getSetting("new_tab_opens_search") === true;
+    if (openSearch) {
+      const { id: tabId, uuid } = db.createChatTab(
+        "New Tab",
+        0,
+        "",
+        "",
+        "",
+        0,
+        "search",
+        sessionId
+      );
+      const searchModel =
+        db.getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+      db.setChatTabModel(tabId, searchModel);
+      db.setSetting("last_chat_tab", tabId);
+      return res.redirect(`/chat/${uuid}?search=1`);
+    } else {
+      const { id: tabId } = db.createChatTab(
+        "New Tab",
+        0,
+        "",
+        "",
+        "",
+        0,
+        "chat",
+        sessionId
+      );
+      db.setSetting("last_chat_tab", tabId);
+      res.sendFile(path.join(__dirname, "../public/aurora.html"));
+    }
   } catch (err) {
     console.error("[Server Debug] GET /new error:", err);
     res.redirect("/index.html");
