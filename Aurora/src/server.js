@@ -2022,7 +2022,7 @@ app.get("/api/chat/tabs", (req, res) => {
 app.post("/api/chat/tabs/new", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/new =>", req.body);
   try {
-    let name = req.body.name || "Untitled";
+    let name = req.body.name || (req.body.type === 'search' ? 'Search' : 'Untitled');
     const nexum = req.body.nexum ? 1 : 0;
     const project = req.body.project || '';
     const repo = req.body.repo || '';
@@ -2039,8 +2039,13 @@ app.post("/api/chat/tabs/new", (req, res) => {
 
     const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId);
     res.json({ success: true, id: tabId, uuid });
-    createInitialTabMessage(tabId, type, sessionId).catch(e =>
-      console.error('[Server Debug] Initial message error:', e.message));
+    if (type === 'search') {
+      const searchModel = db.getSetting('ai_search_model') || 'openrouter/perplexity/sonar';
+      db.setChatTabModel(tabId, searchModel);
+    } else {
+      createInitialTabMessage(tabId, type, sessionId).catch(e =>
+        console.error('[Server Debug] Initial message error:', e.message));
+    }
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/new error:", err);
     res.status(500).json({ error: "Internal server error" });
