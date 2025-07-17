@@ -3577,6 +3577,31 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/aurora.html"));
 });
 
+app.get("/search", (req, res) => {
+  try {
+    const q = String(req.query.q || "");
+    const sessionId = getSessionIdFromRequest(req);
+    const { id: tabId, uuid } = db.createChatTab(
+      "Search",
+      0,
+      "",
+      "",
+      "",
+      0,
+      "chat",
+      sessionId
+    );
+    const searchModel =
+      db.getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    db.setChatTabModel(tabId, searchModel);
+    const query = q ? `?search=1&q=${encodeURIComponent(q)}` : "?search=1";
+    return res.redirect(`/chat/${uuid}${query}`);
+  } catch (err) {
+    console.error("[Server Debug] GET /search error:", err);
+    res.redirect("/index.html");
+  }
+});
+
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/beta", (req, res) => {

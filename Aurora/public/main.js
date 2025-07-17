@@ -259,6 +259,9 @@ function getTabUuidFromLocation(){
 }
 
 initialTabUuid = getTabUuidFromLocation();
+const urlParamsInit = new URLSearchParams(window.location.search);
+const initialSearchQuery = urlParamsInit.get('q') || '';
+const initialSearchMode = urlParamsInit.has('search');
 
 /* Introduce an image buffer and preview, plus an array to hold their descriptions. */
 let pendingImages = [];
@@ -4184,6 +4187,23 @@ async function toggleCodexMini(){
   updateReasoningButton();
 }
 
+async function enableSearchMode(query=""){
+  if(!searchEnabled){
+    searchEnabled = true;
+    previousModelName = modelName;
+    const searchModel = await getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    modelName = searchModel;
+    updateModelHud();
+    updateSearchButton();
+    updateReasoningButton();
+    updateCodexButton();
+  }
+  if(query){
+    chatInputEl.value = query;
+    chatSendBtnEl.click();
+  }
+}
+
 (function installDividerDrag(){
   const divider = $("#divider");
   let isDragging = false;
@@ -5380,6 +5400,10 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     }
   } catch(e) {
     console.error("Error loading markdown content:", e);
+  }
+
+  if(initialSearchMode){
+    await enableSearchMode(initialSearchQuery);
   }
 })();
 
