@@ -4125,11 +4125,21 @@ async function toggleSearch(){
   if(searchEnabled){
     previousModelName = modelName; // remember current model
     const searchModel = await getSetting("ai_search_model") || "openrouter/perplexity/sonar";
-    await setSetting("ai_model", searchModel);
+    await fetch("/api/chat/tabs/model", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tabId: currentTabId, model: searchModel, sessionId})
+    });
+    tabModelOverride = searchModel;
     modelName = searchModel;
   } else {
-    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
-    await setSetting("ai_model", restoreModel);
+    const restoreModel = previousModelName || await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
+    await fetch("/api/chat/tabs/model", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tabId: currentTabId, model: restoreModel, sessionId})
+    });
+    tabModelOverride = restoreModel;
     modelName = restoreModel;
     previousModelName = null;
   }
@@ -4149,11 +4159,21 @@ async function toggleReasoning(){
   if(reasoningEnabled){
     reasoningPreviousModelName = modelName; // remember current model
     const reasoningModel = await getSetting("ai_reasoning_model") || "openrouter/perplexity/sonar-reasoning";
-    await setSetting("ai_model", reasoningModel);
+    await fetch("/api/chat/tabs/model", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tabId: currentTabId, model: reasoningModel, sessionId})
+    });
+    tabModelOverride = reasoningModel;
     modelName = reasoningModel;
   } else {
-    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
-    await setSetting("ai_model", restoreModel);
+    const restoreModel = reasoningPreviousModelName || await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
+    await fetch("/api/chat/tabs/model", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tabId: currentTabId, model: restoreModel, sessionId})
+    });
+    tabModelOverride = restoreModel;
     modelName = restoreModel;
     reasoningPreviousModelName = null;
   }
@@ -4173,11 +4193,21 @@ async function toggleCodexMini(){
   if(codexMiniEnabled){
     codexPreviousModelName = modelName;
     const codexModel = "openrouter/openai/codex-mini";
-    await setSetting("ai_model", codexModel);
+    await fetch("/api/chat/tabs/model", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tabId: currentTabId, model: codexModel, sessionId})
+    });
+    tabModelOverride = codexModel;
     modelName = codexModel;
   } else {
-    const restoreModel = await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
-    await setSetting("ai_model", restoreModel);
+    const restoreModel = codexPreviousModelName || await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
+    await fetch("/api/chat/tabs/model", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tabId: currentTabId, model: restoreModel, sessionId})
+    });
+    tabModelOverride = restoreModel;
     modelName = restoreModel;
     codexPreviousModelName = null;
   }
@@ -4187,11 +4217,17 @@ async function toggleCodexMini(){
   updateReasoningButton();
 }
 
-async function enableSearchMode(query=""){
+async function enableSearchMode(query=""){ 
   if(!searchEnabled){
     searchEnabled = true;
     previousModelName = modelName;
     const searchModel = await getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    await fetch("/api/chat/tabs/model", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tabId: currentTabId, model: searchModel, sessionId})
+    });
+    tabModelOverride = searchModel;
     modelName = searchModel;
     updateModelHud();
     updateSearchButton();
