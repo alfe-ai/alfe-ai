@@ -870,10 +870,28 @@ body {
   align-items: center;
   justify-content: center;
 }
+#verticalTabsContainer .project-search-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-left: 4px;
+  transition: color 0.3s;
+  width: 24px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 #verticalTabsContainer .project-gear-btn:hover {
   color: var(--accent-light);
 }
 #verticalTabsContainer .project-add-btn:hover {
+  color: var(--accent-light);
+}
+#verticalTabsContainer .project-search-btn:hover {
   color: var(--accent-light);
 }
 

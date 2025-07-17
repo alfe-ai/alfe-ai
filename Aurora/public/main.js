@@ -2194,11 +2194,12 @@ async function openProjectSettingsModal(project){
   setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
-async function quickAddTabToProject(project){
+async function quickAddTabToProject(project, type = "chat"){
+  const reloadNeeded = chatTabs.length === 0;
   const r = await fetch("/api/chat/tabs/new", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "", nexum: 0, project, type: "chat", sessionId })
+    body: JSON.stringify({ name: "", nexum: 0, project, type, sessionId })
   });
   if(r.ok){
     const data = await r.json();
@@ -2209,6 +2210,12 @@ async function quickAddTabToProject(project){
     chatTabOrder[project].unshift(data.id);
     saveChatTabOrder();
     await selectTab(data.id);
+    if(type === "search"){
+      await enableSearchMode("");
+    }
+    if(reloadNeeded){
+      window.location.reload();
+    }
   }
 }
 
@@ -2510,6 +2517,11 @@ function renderSidebarTabs(){
         addBtn.className = "project-add-btn config-btn";
         addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
         header.appendChild(addBtn);
+        const searchBtn = document.createElement("button");
+        searchBtn.innerHTML = "&#128269;";
+        searchBtn.className = "project-search-btn config-btn";
+        searchBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project, 'search'); });
+        header.appendChild(searchBtn);
       }
       header.addEventListener("click", e => {
         e.stopPropagation();
