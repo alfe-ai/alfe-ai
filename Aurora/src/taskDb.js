@@ -1464,6 +1464,11 @@ export default class TaskDB {
   listAmazonSkus() {
     return this.db.prepare('SELECT * FROM amazon_skus ORDER BY id DESC').all();
   }
+
+  getAsinForSku(sku) {
+    const row = this.db.prepare('SELECT asin FROM amazon_skus WHERE sku=?').get(sku);
+    return row ? row.asin : null;
+  }
 }
 
 

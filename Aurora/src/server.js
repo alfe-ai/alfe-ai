@@ -4274,6 +4274,11 @@ app.post('/api/amazon/updatePrepInfo', async (req, res) => {
   }
 
   try {
+    const asin = db.getAsinForSku(sku);
+    if (!asin) {
+      return res.status(400).json({ error: 'ASIN not found for SKU' });
+    }
+
     const spOptions = {
       region: process.env.AMAZON_REGION || 'na',
       credentials: {
@@ -4291,14 +4296,12 @@ app.post('/api/amazon/updatePrepInfo', async (req, res) => {
     }
     const sp = new SellingPartner(spOptions);
     const result = await sp.callAPI({
-      operation: 'updatePrepInstructions',
-      endpoint: 'fbaInbound',
-      body: {
-        SellerId: sellerId,
-        MarketplaceId: marketplaceId,
-        SKU: sku,
-        PrepOwner: 'SELLER',
-        PrepInstruction: 'NoPrep'
+      operation: 'getItemEligibilityPreview',
+      endpoint: 'fbaInboundEligibility',
+      query: {
+        asin,
+        program: 'INBOUND',
+        marketplaceIds: marketplaceId
       }
     });
     res.json({ success: true, result });
