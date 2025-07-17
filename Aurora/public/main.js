@@ -5330,7 +5330,9 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     await loadChatHistory(currentTabId, true);
     const ct = chatTabs.find(t => t.id === currentTabId);
     if(ct && ct.tab_uuid){
-      window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
+      if(window.location.pathname.startsWith('/chat/')){
+        window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
+      }
     }
   }
 
