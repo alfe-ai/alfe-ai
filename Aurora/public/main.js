@@ -2203,6 +2203,11 @@ async function quickAddTabToProject(project){
   if(r.ok){
     const data = await r.json();
     await loadTabs();
+    // Prepend the new tab ID to the project's order so it appears at the top
+    chatTabOrder[project] = chatTabOrder[project] || [];
+    chatTabOrder[project] = chatTabOrder[project].filter(id => id !== data.id);
+    chatTabOrder[project].unshift(data.id);
+    saveChatTabOrder();
     await selectTab(data.id);
   }
 }
