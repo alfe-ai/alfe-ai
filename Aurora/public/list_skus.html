@@ -20,6 +20,7 @@
         <th>ASIN</th>
         <th>Title</th>
         <th>Created</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -27,6 +28,22 @@
   <button id="refreshBtn" style="margin-top:1rem;">Refresh</button>
   <script src="/session.js"></script>
   <script>
+    let sellerId = '';
+    let marketplaceId = '';
+
+    async function loadSettings(){
+      try {
+        const res = await fetch('/api/settings?keys=amazon_seller_id,amazon_marketplace_id');
+        if(res.ok){
+          const data = await res.json();
+          (data.settings || []).forEach(s => {
+            if(s.key === 'amazon_seller_id') sellerId = s.value || '';
+            if(s.key === 'amazon_marketplace_id') marketplaceId = s.value || '';
+          });
+        }
+      }catch(e){ console.error(e); }
+    }
+
     async function loadSkus(){
       try {
         const res = await fetch('/api/local_skus');
@@ -36,7 +53,9 @@
         (data.skus || []).forEach(s => {
           const tr = document.createElement('tr');
           const created = (s.created_at || '').replace('T',' ').split('.')[0];
-          tr.innerHTML = `<td>${s.id}</td><td>${s.sku||''}</td><td>${s.asin||''}</td><td>${s.title||''}</td><td>${created}</td>`;
+          tr.innerHTML = `<td>${s.id}</td><td>${s.sku||''}</td><td>${s.asin||''}</td><td>${s.title||''}</td><td>${created}</td><td><button class="prep-btn" data-sku="${s.sku||''}">Update Prep Info</button></td>`;
+          const btn = tr.querySelector('.prep-btn');
+          btn.addEventListener('click', () => updatePrep(btn.dataset.sku));
           tbody.appendChild(tr);
         });
       } catch(err){
@@ -44,7 +63,25 @@
       }
     }
     document.getElementById('refreshBtn').addEventListener('click', loadSkus);
-    loadSkus();
+    loadSettings().then(loadSkus);
+
+    async function updatePrep(sku){
+      if(!sellerId || !marketplaceId){
+        alert('Missing Amazon seller or marketplace ID');
+        return;
+      }
+      try {
+        const resp = await fetch('/api/amazon/updatePrepInfo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sellerId, marketplaceId, sku })
+        });
+        const data = await resp.json();
+        console.log('Update response:', data);
+      } catch(err){
+        console.error('Update failed:', err);
+      }
+    }
   </script>
 </body>
 </html>

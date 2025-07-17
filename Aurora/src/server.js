@@ -4214,6 +4214,59 @@ app.get('/api/amazon/skus', async (req, res) => {
   }
 });
 
+app.post('/api/amazon/updatePrepInfo', async (req, res) => {
+  const { sellerId, marketplaceId, sku } = req.body || {};
+  if (!sellerId || !marketplaceId || !sku) {
+    return res
+      .status(400)
+      .json({ error: 'Missing sellerId, marketplaceId or sku' });
+  }
+
+  if (!SellingPartner) {
+    console.debug(
+      `[Server Debug] Received updatePrepInfo request => sellerId=${sellerId}, marketplaceId=${marketplaceId}, sku=${sku}`
+    );
+    return res.json({
+      success: true,
+      message: 'amazon-sp-api not installed; request logged only'
+    });
+  }
+
+  try {
+    const spOptions = {
+      region: process.env.AMAZON_REGION || 'na',
+      credentials: {
+        SELLING_PARTNER_APP_CLIENT_ID: process.env.AMAZON_CLIENT_ID,
+        SELLING_PARTNER_APP_CLIENT_SECRET: process.env.AMAZON_CLIENT_SECRET,
+        AWS_ACCESS_KEY_ID: process.env.AMAZON_AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: process.env.AMAZON_AWS_SECRET_ACCESS_KEY,
+        AWS_SELLING_PARTNER_ROLE: process.env.AMAZON_SELLING_PARTNER_ROLE
+      }
+    };
+    if (process.env.AMAZON_REFRESH_TOKEN) {
+      spOptions.refresh_token = process.env.AMAZON_REFRESH_TOKEN;
+    } else {
+      spOptions.only_grantless_operations = true;
+    }
+    const sp = new SellingPartner(spOptions);
+    const result = await sp.callAPI({
+      operation: 'updatePrepInstructions',
+      endpoint: 'fbaInbound',
+      body: {
+        SellerId: sellerId,
+        MarketplaceId: marketplaceId,
+        SKU: sku,
+        PrepOwner: 'SELLER',
+        PrepInstruction: 'NoPrep'
+      }
+    });
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error('Error in /api/amazon/updatePrepInfo:', err);
+    res.status(500).json({ error: 'Failed to update prep info' });
+  }
+});
+
 function parseAmazonSkuText(text = '') {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const items = [];
