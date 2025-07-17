@@ -215,6 +215,7 @@ let chatTabsMenuVisible = true;     // show Chats button
 let showSessionId = false;          // display session ID hash
 let upArrowHistoryEnabled = true;    // use Arrow Up/Down for input history
 let newTabProjectNameEnabled = true; // show Project name field in New Tab dialog
+let newTabOpensSearch = false;       // /new creates search tab
 let chatSubroutines = [];
 let actionHooks = [];
 let editingSubroutineId = null;
@@ -771,6 +772,10 @@ function openSettingsModal(e){
   if(metaCheck){
     metaCheck.checked = !chatHideMetadata;
   }
+  const newTabSearchCheck = document.getElementById('accountNewTabSearchCheck');
+  if(newTabSearchCheck){
+    newTabSearchCheck.checked = newTabOpensSearch;
+  }
   showModal(document.getElementById("settingsModal"));
 }
 
@@ -1276,7 +1281,7 @@ async function loadSettings(){
     "ai_models_menu_visible","tasks_menu_visible","jobs_menu_visible",
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
-    "new_tab_project_enabled","group_tabs_by_project",
+    "new_tab_project_enabled","new_tab_opens_search","group_tabs_by_project",
     "search_enabled","ai_search_model",
     "reasoning_enabled","ai_reasoning_model","ai_vision_model",
     "codex_mini_enabled"
@@ -1486,6 +1491,9 @@ async function loadSettings(){
 
   if(typeof map.new_tab_project_enabled !== "undefined"){
     newTabProjectNameEnabled = map.new_tab_project_enabled !== false;
+  }
+  if(typeof map.new_tab_opens_search !== "undefined"){
+    newTabOpensSearch = !!map.new_tab_opens_search;
   }
   toggleNewTabProjectField(newTabProjectNameEnabled);
   if(typeof map.search_enabled !== "undefined"){
@@ -3080,6 +3088,14 @@ if(accountShowMetadataCheck){
   accountShowMetadataCheck.addEventListener('change', async () => {
     chatHideMetadata = !accountShowMetadataCheck.checked;
     await setSetting('chat_hide_metadata', chatHideMetadata);
+  });
+}
+
+const accountNewTabSearchCheck = document.getElementById('accountNewTabSearchCheck');
+if(accountNewTabSearchCheck){
+  accountNewTabSearchCheck.addEventListener('change', async () => {
+    newTabOpensSearch = accountNewTabSearchCheck.checked;
+    await setSetting('new_tab_opens_search', newTabOpensSearch);
   });
 }
 
