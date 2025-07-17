@@ -6346,7 +6346,6 @@ async function openGlobalAiSettings(){
       if(imageSel) imageSel.innerHTML = "";
       const favs = (data.models || []).filter(m => m.favorite);
       if(favs.length === 0){
-        sel.appendChild(new Option("(no favorites)", ""));
         reasoningSel.appendChild(new Option("(no favorites)", ""));
         if(visionSel) visionSel.appendChild(new Option("(no favorites)", ""));
         if(imageSel){
@@ -6358,7 +6357,6 @@ async function openGlobalAiSettings(){
           const label = showPrices
               ? `${m.id} (limit ${m.tokenLimit}, in ${m.inputCost}, out ${m.outputCost})`
               : `${m.id} (limit ${m.tokenLimit})`;
-          sel.appendChild(new Option(label, m.id));
           reasoningSel.appendChild(new Option(label, m.id));
           if(visionSel) visionSel.appendChild(new Option(label, m.id));
         });
@@ -6367,7 +6365,13 @@ async function openGlobalAiSettings(){
         }
       }
       const curModel = await getSetting("ai_model");
-      if(curModel) sel.value = curModel;
+      if(curModel){
+        sel.appendChild(new Option(curModel, curModel));
+        sel.value = curModel;
+      } else {
+        sel.appendChild(new Option("(env controlled)", ""));
+      }
+      sel.disabled = true;
       if(reasoningModel) reasoningSel.value = reasoningModel;
       if(visionModel && visionSel) visionSel.value = visionModel;
       if(imageModel && imageSel) imageSel.value = imageModel;
@@ -6400,21 +6404,18 @@ async function openGlobalAiSettings(){
 
 async function saveGlobalAiSettings(){
   const svc = document.getElementById("globalAiServiceSelect").value;
-  const model = document.getElementById("globalAiModelSelect").value;
   const searchModel = document.getElementById("globalAiSearchModelSelect").value;
   const reasoningModel = document.getElementById("globalAiReasoningModelSelect").value;
   const visionModel = document.getElementById("globalAiVisionModelSelect").value;
   const imageModel = document.getElementById("globalImageModelSelect").value;
-  await setSettings({ ai_service: svc, ai_model: model, ai_search_model: searchModel, ai_reasoning_model: reasoningModel, ai_vision_model: visionModel, image_gen_model: imageModel });
+  await setSettings({ ai_service: svc, ai_search_model: searchModel, ai_reasoning_model: reasoningModel, ai_vision_model: visionModel, image_gen_model: imageModel });
   // keep local cache in sync so toggles use latest values immediately
   settingsCache.ai_service = svc;
-  settingsCache.ai_model = model;
   settingsCache.ai_search_model = searchModel;
   settingsCache.ai_reasoning_model = reasoningModel;
   settingsCache.ai_vision_model = visionModel;
   settingsCache.image_gen_model = imageModel;
   imageGenModel = imageModel;
-  modelName = model || "unknown";
   updateModelHud();
   hideModal(document.getElementById("globalAiSettingsModal"));
 }
