@@ -4274,11 +4274,6 @@ app.post('/api/amazon/updatePrepInfo', async (req, res) => {
   }
 
   try {
-    const asin = db.getAsinForSku(sku);
-    if (!asin) {
-      return res.status(400).json({ error: 'ASIN not found for SKU' });
-    }
-
     const spOptions = {
       region: process.env.AMAZON_REGION || 'na',
       credentials: {
@@ -4296,15 +4291,25 @@ app.post('/api/amazon/updatePrepInfo', async (req, res) => {
     }
     const sp = new SellingPartner(spOptions);
     const result = await sp.callAPI({
-      operation: 'getItemEligibilityPreview',
-      endpoint: 'fbaInboundEligibility',
-      query: {
-        asin,
-        program: 'INBOUND',
-        marketplaceIds: marketplaceId
+      operation: 'setPrepDetails',
+      endpoint: 'fulfillmentInbound',
+      apiVersion: '2024-03-20',
+      path: { sellerId, marketplaceId },
+      body: {
+        sku,
+        prepDetails: [
+          {
+            prepInstruction: 'NoPrep',
+            prepOwner: 'SELLER'
+          }
+        ]
       }
     });
-    res.json({ success: true, result });
+    res.json({
+      success: true,
+      message: 'Prep info updated successfully',
+      result
+    });
   } catch (err) {
     console.error('Error in /api/amazon/updatePrepInfo:', err);
     res.status(500).json({ error: 'Failed to update prep info' });
