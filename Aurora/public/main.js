@@ -2540,17 +2540,17 @@ function renderSidebarTabs(){
         gear.className = "project-gear-btn config-btn";
         gear.addEventListener("click", e => { e.stopPropagation(); openProjectSettingsModal(project); });
         header.appendChild(gear);
-        const addBtn = document.createElement("button");
-        addBtn.textContent = "+";
-        addBtn.className = "project-add-btn config-btn";
-        addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
-        header.appendChild(addBtn);
-        const searchBtn = document.createElement("button");
-        searchBtn.innerHTML = "&#128269;";
-        searchBtn.className = "project-search-btn config-btn";
-        searchBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project, 'search'); });
-        header.appendChild(searchBtn);
       }
+      const addBtn = document.createElement("button");
+      addBtn.textContent = "+";
+      addBtn.className = "project-add-btn config-btn";
+      addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
+      header.appendChild(addBtn);
+      const searchBtn = document.createElement("button");
+      searchBtn.innerHTML = "&#128269;";
+      searchBtn.className = "project-search-btn config-btn";
+      searchBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project, 'search'); });
+      header.appendChild(searchBtn);
       header.addEventListener("click", e => {
         e.stopPropagation();
         collapsedProjectGroups[project] = !collapsedProjectGroups[project];
