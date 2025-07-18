@@ -2121,7 +2121,7 @@ async function renameTab(tabId, newName){
     renderArchivedSidebarTabs();
     updatePageTitle();
     const ct = chatTabs.find(t => t.id === currentTabId);
-    if(ct && ct.tab_uuid){
+    if(ct && ct.tab_uuid && window.location.pathname !== '/new'){
       window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
     }
   }
@@ -2324,7 +2324,7 @@ async function duplicateTab(tabId){
     renderArchivedSidebarTabs();
     await loadChatHistory(currentTabId, true);
     const ct = chatTabs.find(t => t.id === currentTabId);
-    if(ct && ct.tab_uuid){
+    if(ct && ct.tab_uuid && window.location.pathname !== '/new'){
       window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
     }
     updatePageTitle();
@@ -2346,7 +2346,7 @@ async function deleteTab(tabId){
     renderArchivedSidebarTabs();
     await loadChatHistory(currentTabId, true);
     const ct = chatTabs.find(t => t.id === currentTabId);
-    if(ct && ct.tab_uuid){
+    if(ct && ct.tab_uuid && window.location.pathname !== '/new'){
       window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
     }
     await loadTabs();
@@ -2405,7 +2405,7 @@ async function selectTab(tabId){
   updatePageTitle();
   if(t && t.tab_uuid){
     const newPath = `/chat/${t.tab_uuid}`;
-    if(window.location.pathname !== newPath){
+    if(window.location.pathname !== newPath && window.location.pathname !== '/new'){
       window.history.replaceState({}, '', newPath);
     }
   }
@@ -5353,7 +5353,7 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     await loadChatHistory(currentTabId, true);
     const ct = chatTabs.find(t => t.id === currentTabId);
     if(ct && ct.tab_uuid){
-      if(window.location.pathname.startsWith('/chat/')){
+      if(window.location.pathname.startsWith('/chat/') && window.location.pathname !== '/new'){
         window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
       }
     }
