@@ -907,6 +907,24 @@ body {
   margin-left: 0;
 }
 
+/* Tooltip for reasoning model configuration */
+.reasoning-tooltip {
+  position: absolute;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px;
+  display: none;
+  z-index: 10000;
+  box-shadow: var(--shadow);
+}
+.reasoning-tooltip select {
+  background: #474747;
+  border: 1px solid #666;
+  color: #ddd;
+  padding: 2px 4px;
+}
+
 #projectGroupsContainer button {
   display: inline-flex;
   background-color: #333;
