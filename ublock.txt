@@ -1,0 +1,51 @@
+! Jun 25, 2025 https://dev.alfe.sh
+dev.alfe.sh###printifyPriceButton
+dev.alfe.sh###printifyApiButton
+
+! Jul 8, 2025 https://dev.alfe.sh
+dev.alfe.sh###githubBtn
+dev.alfe.sh###blueskyBtn
+dev.alfe.sh###themeToggleBtn
+dev.alfe.sh###contactBtn
+
+! Jul 8, 2025 https://dev.alfe.sh
+dev.alfe.sh###chatPlaceholder
+
+! Jul 8, 2025 https://dev.alfe.sh
+! dev.alfe.sh###mosaicPanel
+! dev.alfe.sh###modelHud
+dev.alfe.sh##div.project-indented.sidebar-tab-row:has-text("Unarchive")
+
+! Jul 8, 2025 https://dev.alfe.sh
+!dev.alfe.sh###chatPanel > div > .top-btn
+
+! Jul 9, 2025 https://dev.alfe.sh
+dev.alfe.sh##[href="/pipeline_queue.html"]
+dev.alfe.sh###navFileCabinetBtn
+dev.alfe.sh###navPortfolioBtn
+dev.alfe.sh###navPrintifyProductsBtn
+dev.alfe.sh###navPipelineQueueBtn
+dev.alfe.sh###navNodesBtn
+dev.alfe.sh###navUpworkBtn
+dev.alfe.sh###sidebarViewTasks > p
+dev.alfe.sh###controls > label:has-text('Sprint')
+dev.alfe.sh###instrBtn
+dev.alfe.sh###repoBtn
+dev.alfe.sh###toggleTasksBtn
+dev.alfe.sh###toolbarCollapsible > summary
+dev.alfe.sh###gearBtn
+
+! Jul 11, 2025 https://dev.alfe.sh
+dev.alfe.sh##.sidebar-footer
+
+! Jul 12, 2025 https://dev.alfe.sh
+dev.alfe.sh###modelHud
+
+! Jul 17, 2025 https://dev.alfe.sh
+dev.alfe.sh##.reasoning-toggle-btn.send-btn
+dev.alfe.sh##.codex-toggle-btn.send-btn
+dev.alfe.sh###globalAiSettingsModal > .modal-content > div:nth-of-type(5)
+
+! Jul 18, 2025 https://dev.alfe.sh
+dev.alfe.sh##button.start-type-btn:nth-of-type(3)
+dev.alfe.sh##button.start-type-btn:nth-of-type(5)
