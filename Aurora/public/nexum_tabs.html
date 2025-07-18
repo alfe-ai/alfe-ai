@@ -46,40 +46,7 @@
 let tabs = [];
 
 let newTabProjectNameEnabled = true;
-
-let currentColor = 'purple';
-let currentMode = 'dark';
-
-async function loadTheme(){
-  try{
-    const resColor = await fetch('/api/settings/nexum_theme_color');
-    const resMode = await fetch('/api/settings/nexum_theme_mode');
-    if(resColor.ok){
-      const data = await resColor.json();
-      currentColor = data.value || 'purple';
-    } else { currentColor = 'purple'; }
-    if(resMode.ok){
-      const data = await resMode.json();
-      currentMode = data.value || 'dark';
-    } else { currentMode = 'dark'; }
-    applyTheme(currentColor, currentMode);
-  }catch(e){ applyTheme('purple','dark'); console.error(e); }
-}
-
-function applyTheme(color, mode){
-  const link = document.getElementById('themeStylesheet');
-  if(!link) return;
-  const files = {
-    purple: {dark:'/nexum.css', light:'/nexum_purple_light.css'},
-    lightblue: {dark:'/nexum_lightblue.css', light:'/nexum_lightblue_light.css'},
-    red: {dark:'/nexum_red.css', light:'/nexum_red_light.css'},
-    green: {dark:'/nexum_green.css', light:'/nexum_green_light.css'},
-    orange: {dark:'/nexum_orange.css', light:'/nexum_orange_light.css'},
-    teal: {dark:'/nexum_teal.css', light:'/nexum_teal_light.css'},
-    pink: {dark:'/nexum_pink.css', light:'/nexum_pink_light.css'}
-  };
-  link.href = files[color]?.[mode] || '/nexum.css';
-}
+// theming disabled
 
 async function loadTabs(){
   try{
@@ -197,7 +164,6 @@ document.querySelectorAll('#newTabTypeButtons .start-type-btn').forEach(btn => {
 });
 
 (async function(){
-  await loadTheme();
   try{
     const r = await fetch('/api/settings/new_tab_project_enabled');
     if(r.ok){

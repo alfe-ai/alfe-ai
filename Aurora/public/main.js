@@ -10,71 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateImageLimitInfo();
   document.title = defaultTitle;
 
-  // ---- Theme setup ----
-  const themeLink = document.getElementById('themeStylesheet');
-  const themeBtn = document.getElementById('themeToggleBtn');
-  let currentColor = 'purple';
-  let themeMode = 'dark';
-
-  async function loadTheme(){
-    try{
-      const resColor = await fetch('/api/settings/nexum_theme_color');
-      const resMode = await fetch('/api/settings/nexum_theme_mode');
-      if(resColor.ok){
-        const d = await resColor.json();
-        currentColor = d.value || 'purple';
-      }
-      if(resMode.ok){
-        const d = await resMode.json();
-        themeMode = d.value || 'dark';
-      }
-    }catch(e){ console.error(e); }
-    const selColor = document.getElementById('themeColorSelect');
-    if(selColor) selColor.value = currentColor;
-    const selMode = document.getElementById('themeModeSelect');
-    if(selMode) selMode.value = themeMode;
-    applyTheme(currentColor, themeMode);
-  }
-
-  function applyTheme(color, mode){
-    if(!themeLink) return;
-    const files = {
-      purple: {dark:'/styles_purple.css', light:'/styles_purple_light.css'},
-      lightblue: {dark:'/styles_lightblue.css', light:'/styles_lightblue_light.css'},
-      red: {dark:'/styles_red.css', light:'/styles_red_light.css'},
-      green: {dark:'/styles_green.css', light:'/styles_green_light.css'},
-      orange: {dark:'/styles_orange.css', light:'/styles_orange_light.css'},
-      teal: {dark:'/styles_teal.css', light:'/styles_teal_light.css'},
-      pink: {dark:'/styles_pink.css', light:'/styles_pink_light.css'}
-    };
-    themeLink.href = files[color]?.[mode] || '/styles.css';
-    if(themeBtn) themeBtn.textContent = mode === 'light' ? '🌙' : '☀️';
-  }
-
-  await loadTheme();
-  if (themeBtn) {
-    themeBtn.addEventListener('click', async () => {
-      themeMode = themeMode === 'light' ? 'dark' : 'light';
-      applyTheme(currentColor, themeMode);
-      await setSetting('nexum_theme_mode', themeMode);
-    });
-  }
-  const selColor = document.getElementById('themeColorSelect');
-  if(selColor){
-    selColor.addEventListener('change', async e => {
-      currentColor = e.target.value;
-      applyTheme(currentColor, themeMode);
-      await setSetting('nexum_theme_color', currentColor);
-    });
-  }
-  const selMode = document.getElementById('themeModeSelect');
-  if(selMode){
-    selMode.addEventListener('change', async e => {
-      themeMode = e.target.value;
-      applyTheme(currentColor, themeMode);
-      await setSetting('nexum_theme_mode', themeMode);
-    });
-  }
+  // theming disabled; always use default stylesheet
 
   fetch('/api/version')
     .then(r => r.ok ? r.json() : null)
