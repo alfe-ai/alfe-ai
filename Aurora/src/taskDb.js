@@ -101,6 +101,7 @@ export default class TaskDB {
                                                task_id INTEGER DEFAULT 0,
                                                model_override TEXT DEFAULT '',
                                                tab_type TEXT DEFAULT 'chat',
+                                               send_project_context INTEGER DEFAULT 1,
                                                session_id TEXT DEFAULT '',
                                              tab_uuid TEXT DEFAULT ''
       );
@@ -164,6 +165,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_tabs.tab_type column");
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_tabs.tab_type column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec('ALTER TABLE chat_tabs ADD COLUMN send_project_context INTEGER DEFAULT 1;');
+      console.debug("[TaskDB Debug] Added chat_tabs.send_project_context column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_tabs.send_project_context column exists, skipping.", e.message);
     }
     try {
       this.db.exec("ALTER TABLE chat_tabs ADD COLUMN session_id TEXT DEFAULT '';" );
@@ -862,14 +869,14 @@ export default class TaskDB {
         .get(id);
   }
 
-  createChatTab(name, nexum = 0, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sessionId = '') {
+  createChatTab(name, nexum = 0, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sessionId = '', sendProjectContext = 1) {
     const ts = new Date().toISOString();
     const genImages = type === 'design' ? 1 : 0;
     if (project) this.ensureProjectMeta(project);
     const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
     const { lastInsertRowid } = this.db.prepare(`
-      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, session_id, tab_uuid)
-      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @session_id, @uuid)
+      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, send_project_context, session_id, tab_uuid)
+      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @send_project_context, @session_id, @uuid)
     `).run({
       name,
       created_at: ts,
@@ -880,6 +887,7 @@ export default class TaskDB {
       extra_projects: extraProjects,
       task_id: taskId,
       tab_type: type,
+      send_project_context: sendProjectContext ? 1 : 0,
       session_id: sessionId,
       uuid
     });
@@ -976,11 +984,23 @@ export default class TaskDB {
     return row ? !!row.generate_images : true;
   }
 
-  setChatTabConfig(tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat') {
+  setChatTabSendProjectContext(tabId, enabled = 1) {
+    this.db.prepare("UPDATE chat_tabs SET send_project_context=? WHERE id=?")
+        .run(enabled ? 1 : 0, tabId);
+  }
+
+  getChatTabSendProjectContext(tabId) {
+    const row = this.db
+        .prepare("SELECT send_project_context FROM chat_tabs WHERE id=?")
+        .get(tabId);
+    return row ? !!row.send_project_context : true;
+  }
+
+  setChatTabConfig(tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 1) {
     const genImages = type === 'design' ? 1 : 0;
     this.db.prepare(
-        "UPDATE chat_tabs SET project_name=?, repo_ssh_url=?, extra_projects=?, task_id=?, tab_type=?, generate_images=? WHERE id=?"
-    ).run(project, repo, extraProjects, taskId, type, genImages, tabId);
+        "UPDATE chat_tabs SET project_name=?, repo_ssh_url=?, extra_projects=?, task_id=?, tab_type=?, generate_images=?, send_project_context=? WHERE id=?"
+    ).run(project, repo, extraProjects, taskId, type, genImages, sendProjectContext ? 1 : 0, tabId);
   }
 
   getChatTab(tabId, sessionId = null) {
@@ -1010,8 +1030,8 @@ export default class TaskDB {
     const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
     const newName = name || `${tab.name} Copy`;
     const { lastInsertRowid } = this.db.prepare(`
-      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, session_id, tab_uuid)
-      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @session_id, @uuid)
+      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, send_project_context, session_id, tab_uuid)
+      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @send_project_context, @session_id, @uuid)
     `).run({
       name: newName,
       created_at: ts,
@@ -1022,6 +1042,7 @@ export default class TaskDB {
       extra_projects: tab.extra_projects,
       task_id: tab.task_id,
       tab_type: tab.tab_type,
+      send_project_context: tab.send_project_context,
       session_id: tab.session_id,
       uuid
     });
