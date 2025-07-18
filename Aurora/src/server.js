@@ -1793,7 +1793,9 @@ app.post("/api/chat", async (req, res) => {
     let projectContext = '';
     if (tabInfo && (tabInfo.project_name || tabInfo.extra_projects)) {
       const allProjects = [];
-      if (tabInfo.project_name) allProjects.push(tabInfo.project_name);
+      if (tabInfo.project_name && tabInfo.project_name.trim()) {
+        allProjects.push(tabInfo.project_name.trim());
+      }
       if (tabInfo.extra_projects) {
         tabInfo.extra_projects.split(',').forEach(p => {
           p = p.trim();

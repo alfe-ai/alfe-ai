@@ -826,6 +826,9 @@ export default class TaskDB {
   }
 
   getChatPairsByProject(projectName) {
+    if (!projectName) {
+      return [];
+    }
     return this.db
         .prepare(
           `SELECT cp.* FROM chat_pairs cp
