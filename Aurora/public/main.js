@@ -4184,7 +4184,7 @@ function initReasoningTooltip(){
   const models = [
     'openai/o4-mini',
     'openrouter/openai/o4-mini-high',
-    'deepseek/r1-distill-llama-70b',
+    'deepseek/deepseek-r1-distill-llama-70b',
     'openai/codex-mini-latest',
     'openai/codex-mini'
   ];
