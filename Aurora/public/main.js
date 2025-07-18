@@ -132,8 +132,6 @@ let draggingTabRow = null;        // element of tab row being dragged
 let projectAddTooltip = null;     // floating toolbar for project add button
 let projectAddTooltipProject = null;
 let projectAddTooltipTimer = null;
-let reasoningTooltip = null;      // tooltip for reasoning config
-let reasoningTooltipTimer = null;
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -2236,61 +2234,6 @@ function hideProjectAddTooltip(){
 function scheduleHideProjectAddTooltip(){
   clearTimeout(projectAddTooltipTimer);
   projectAddTooltipTimer = setTimeout(hideProjectAddTooltip, 200);
-}
-
-function initReasoningTooltip(){
-  if(reasoningTooltip) return;
-  reasoningTooltip = document.createElement('div');
-  reasoningTooltip.className = 'reasoning-tooltip';
-  const select = document.createElement('select');
-  select.id = 'reasoningModelSelect';
-  const models = [
-    'openai/o4-mini',
-    'openrouter/openai/o4-mini-high',
-    'deepseek/r1-distill-llama-70b',
-    'openai/codex-mini-latest',
-    'openai/codex-mini'
-  ];
-  models.forEach(m => select.appendChild(new Option(m, m)));
-  select.addEventListener('change', async e => {
-    const model = e.target.value;
-    await setSetting('ai_reasoning_model', model);
-    if(reasoningEnabled){
-      await fetch('/api/chat/tabs/model', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({tabId: currentTabId, model, sessionId})
-      });
-      tabModelOverride = model;
-      modelName = model;
-      updateModelHud();
-    }
-  });
-  reasoningTooltip.appendChild(select);
-  reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
-  reasoningTooltip.addEventListener('mouseleave', scheduleHideReasoningTooltip);
-  document.body.appendChild(reasoningTooltip);
-}
-
-async function showReasoningTooltip(e){
-  initReasoningTooltip();
-  const select = document.getElementById('reasoningModelSelect');
-  const current = await getSetting('ai_reasoning_model');
-  if(current) select.value = current;
-  const rect = e.target.getBoundingClientRect();
-  reasoningTooltip.style.display = 'block';
-  reasoningTooltip.style.left = (rect.left + window.scrollX) + 'px';
-  reasoningTooltip.style.top = (rect.top + window.scrollY - reasoningTooltip.offsetHeight - 8) + 'px';
-  clearTimeout(reasoningTooltipTimer);
-}
-
-function hideReasoningTooltip(){
-  if(reasoningTooltip) reasoningTooltip.style.display = 'none';
-}
-
-function scheduleHideReasoningTooltip(){
-  clearTimeout(reasoningTooltipTimer);
-  reasoningTooltipTimer = setTimeout(hideReasoningTooltip, 200);
 }
 
 $("#renameTabSaveBtn").addEventListener("click", async () => {
@@ -7186,14 +7129,7 @@ registerActionHook("embedMockImages", async ({response}) => {
 });
 
 document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
-document.getElementById("reasoningToggleBtn")?.addEventListener("click", e => {
-  e.stopPropagation();
-  if(reasoningTooltip && reasoningTooltip.style.display === 'block'){
-    hideReasoningTooltip();
-  } else {
-    showReasoningTooltip(e);
-  }
-});
+document.getElementById("reasoningToggleBtn")?.addEventListener("click", toggleReasoning);
 document.getElementById("codexToggleBtn")?.addEventListener("click", toggleCodexMini);
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
