@@ -36,6 +36,7 @@ export default class TaskDBAws {
         number INTEGER,
         title TEXT,
         html_url TEXT,
+        codex_url TEXT,
         task_id_slug TEXT,
         priority_number REAL,
         priority TEXT DEFAULT 'Medium',
@@ -68,7 +69,7 @@ export default class TaskDBAws {
 
   async upsertIssue(issue, repositorySlug) {
     const { rows } = await this.pool.query(
-      'SELECT priority_number, priority, project, sprint, status, dependencies, blocking FROM issues WHERE github_id = $1',
+      'SELECT priority_number, priority, project, sprint, status, dependencies, blocking, codex_url FROM issues WHERE github_id = $1',
       [issue.id]
     );
     const existing = rows[0];
@@ -84,6 +85,7 @@ export default class TaskDBAws {
       number: issue.number,
       title: issue.title,
       html_url: issue.html_url,
+      codex_url: existing?.codex_url ?? null,
       task_id_slug: `${repositorySlug}#${issue.number}`,
       priority_number: priorityNum,
       priority: existing?.priority ?? 'Medium',
@@ -100,15 +102,15 @@ export default class TaskDBAws {
     };
     await this.pool.query(
       `INSERT INTO issues (
-        github_id, repository, number, title, html_url,
+        github_id, repository, number, title, html_url, codex_url,
         task_id_slug, priority_number, priority, hidden,
         project, sprint, fib_points, assignee, created_at, closed, status,
         dependencies, blocking
       ) VALUES (
-        $1,$2,$3,$4,$5,
-        $6,$7,$8,$9,
-        $10,$11,$12,$13,$14,$15,$16,
-        $17,$18
+        $1,$2,$3,$4,$5,$6,
+        $7,$8,$9,$10,
+        $11,$12,$13,$14,$15,$16,$17,
+        $18,$19
       )
       ON CONFLICT(github_id) DO UPDATE SET
         repository      = excluded.repository,
@@ -130,6 +132,7 @@ export default class TaskDBAws {
         row.number,
         row.title,
         row.html_url,
+        row.codex_url,
         row.task_id_slug,
         row.priority_number,
         row.priority,
@@ -198,15 +201,15 @@ export default class TaskDBAws {
       for (const row of issues) {
         await client.query(
           `INSERT INTO issues (
-            github_id, repository, number, title, html_url,
+            github_id, repository, number, title, html_url, codex_url,
             task_id_slug, priority_number, priority, hidden,
             project, sprint, fib_points, assignee, created_at,
             closed, status, dependencies, blocking
           ) VALUES (
-            $1,$2,$3,$4,$5,
-            $6,$7,$8,$9,
-            $10,$11,$12,$13,$14,
-            $15,$16,$17,$18
+            $1,$2,$3,$4,$5,$6,
+            $7,$8,$9,$10,
+            $11,$12,$13,$14,$15,
+            $16,$17,$18,$19
           )
           ON CONFLICT(github_id) DO NOTHING`,
           [
@@ -215,6 +218,7 @@ export default class TaskDBAws {
             row.number,
             row.title,
             row.html_url,
+            row.codex_url,
             row.task_id_slug,
             row.priority_number,
             row.priority,
@@ -255,12 +259,12 @@ export default class TaskDBAws {
       const created_at = new Date().toISOString();
       const { rows: inserted } = await client.query(
         `INSERT INTO issues (
-           github_id, repository, number, title, html_url,
+           github_id, repository, number, title, html_url, codex_url,
            task_id_slug, priority_number, priority, hidden,
            project, sprint, fib_points, assignee, created_at, closed, status,
            dependencies, blocking
          ) VALUES (
-           NULL, 'local', $1, $2, '#',
+           NULL, 'local', $1, $2, '#', '',
            $3, $4, 'Medium', 0,
            $5, $6, NULL, NULL, $7, 0, 'Not Started',
            '', ''
@@ -275,6 +279,10 @@ export default class TaskDBAws {
 
   async setTitle(id, newTitle) {
     await this.pool.query('UPDATE issues SET title=$1 WHERE id=$2', [newTitle, id]);
+  }
+
+  async setCodexUrl(id, url) {
+    await this.pool.query('UPDATE issues SET codex_url=$1 WHERE id=$2', [url, id]);
   }
 
   // Placeholder methods for the rest of the TaskDB API used by server.js

@@ -1067,6 +1067,19 @@ app.post("/api/tasks/blocking", (req, res) => {
   }
 });
 
+app.post("/api/tasks/codex-url", (req, res) => {
+  console.debug("[Server Debug] POST /api/tasks/codex-url => body:", req.body);
+  try {
+    const { id, url } = req.body;
+    db.setCodexUrl(id, url);
+    db.logActivity("Set codex_url", JSON.stringify({ id, url }));
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[TaskQueue] /api/tasks/codex-url failed:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/tasks/new", async (req, res) => {
   console.debug("[Server Debug] POST /api/tasks/new => body:", req.body);
   try {

@@ -21,6 +21,7 @@ export default class TaskDB {
                                           number          INTEGER,
                                           title           TEXT,
                                           html_url        TEXT,
+                                          codex_url       TEXT,
                                           task_id_slug    TEXT,
                                           priority_number REAL,
                                           priority        TEXT DEFAULT 'Medium',
@@ -54,6 +55,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Copied data from priority_number_old to priority_number");
     } catch(e) {
       console.debug("[TaskDB Debug] Skipped copy data (maybe no old data).", e.message);
+    }
+    try {
+      this.db.exec('ALTER TABLE issues ADD COLUMN codex_url TEXT;');
+      console.debug("[TaskDB Debug] Added issues.codex_url column");
+    } catch(e) {
+      // column already exists
     }
 
     this.db.exec(`
@@ -401,7 +408,7 @@ export default class TaskDB {
   upsertIssue(issue, repositorySlug) {
     const existing = this.db
         .prepare(
-            "SELECT priority_number, priority, project, sprint, status, dependencies, blocking FROM issues WHERE github_id = ?"
+            "SELECT priority_number, priority, project, sprint, status, dependencies, blocking, codex_url FROM issues WHERE github_id = ?"
         )
         .get(issue.id);
 
@@ -419,6 +426,7 @@ export default class TaskDB {
       number: issue.number,
       title: issue.title,
       html_url: issue.html_url,
+      codex_url: existing?.codex_url ?? '',
       task_id_slug: `${repositorySlug}#${issue.number}`,
       priority_number: priorityNum,
       priority: existing?.priority ?? "Medium",
@@ -436,16 +444,16 @@ export default class TaskDB {
 
     const stmt = this.db.prepare(`
       INSERT INTO issues (
-        github_id, repository, number, title, html_url,
+        github_id, repository, number, title, html_url, codex_url,
         task_id_slug, priority_number, priority, hidden,
         project, sprint, fib_points, assignee, created_at, closed, status,
         dependencies, blocking
       ) VALUES (
-                 @github_id, @repository, @number, @title, @html_url,
+                 @github_id, @repository, @number, @title, @html_url, @codex_url,
                  @task_id_slug, @priority_number, @priority, @hidden,
                  @project, @sprint, @fib_points, @assignee, @created_at, @closed, @status,
                  @dependencies, @blocking
-               )
+              )
         ON CONFLICT(github_id) DO UPDATE SET
         repository      = excluded.repository,
                                     number          = excluded.number,
@@ -595,6 +603,10 @@ export default class TaskDB {
     );
   }
 
+  setCodexUrl(id, url) {
+    this.db.prepare("UPDATE issues SET codex_url = ? WHERE id = ?").run(url, id);
+  }
+
   setProjectByGithubId(githubId, project) {
     this.db
         .prepare("UPDATE issues SET project = ? WHERE github_id = ?")
@@ -707,12 +719,12 @@ export default class TaskDB {
     const created_at = new Date().toISOString();
     const stmt = this.db.prepare(`
       INSERT INTO issues (
-        github_id, repository, number, title, html_url,
+        github_id, repository, number, title, html_url, codex_url,
         task_id_slug, priority_number, priority, hidden,
         project, sprint, fib_points, assignee, created_at, closed, status,
         dependencies, blocking
       ) VALUES (
-        NULL, 'local', @number, @title, '#',
+        NULL, 'local', @number, @title, '#', '',
         @task_id_slug, @priority_number, 'Medium', 0,
         @project, @sprint, NULL, NULL, @created_at, 0, 'Not Started',
         '', ''
@@ -721,6 +733,7 @@ export default class TaskDB {
     const { lastInsertRowid } = stmt.run({
       number,
       title,
+      codex_url: '',
       task_id_slug: `local#${number}`,
       priority_number,
       project,
