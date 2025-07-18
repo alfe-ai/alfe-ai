@@ -7186,7 +7186,10 @@ registerActionHook("embedMockImages", async ({response}) => {
 });
 
 document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
-document.getElementById("reasoningToggleBtn")?.addEventListener("click", showReasoningTooltip);
+const reasoningToggleBtn = document.getElementById("reasoningToggleBtn");
+reasoningToggleBtn?.addEventListener("click", toggleReasoning);
+reasoningToggleBtn?.addEventListener("mouseenter", showReasoningTooltip);
+reasoningToggleBtn?.addEventListener("mouseleave", scheduleHideReasoningTooltip);
 document.getElementById("codexToggleBtn")?.addEventListener("click", toggleCodexMini);
 document.addEventListener('click', e => {
   if(reasoningTooltip && reasoningTooltip.style.display === 'flex' &&
