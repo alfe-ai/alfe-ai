@@ -1776,7 +1776,7 @@ app.post("/api/chat", async (req, res) => {
     const { provider } = parseProviderModel(model || "deepseek/deepseek-chat");
     let systemContext = `System Context:\n${savedInstructions}`;
     let projectContext = '';
-    if (tabInfo && (tabInfo.project_name || tabInfo.extra_projects)) {
+    if (tabInfo && tabInfo.send_project_context && (tabInfo.project_name || tabInfo.extra_projects)) {
       const allProjects = [];
       if (tabInfo.project_name && tabInfo.project_name.trim()) {
         allProjects.push(tabInfo.project_name.trim());
@@ -2136,7 +2136,7 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
 app.post("/api/chat/tabs/config", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
-    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sessionId = '' } = req.body;
+    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 1, sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
@@ -2144,7 +2144,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type);
+    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, sendProjectContext ? 1 : 0);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
