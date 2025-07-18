@@ -6551,6 +6551,10 @@ document.getElementById("globalAiSettingsCancelBtn").addEventListener("click", (
 // Tab Model Settings modal
 // ----------------------------------------------------------------------
 async function openTabModelSettings(){
+  if(searchEnabled || reasoningEnabled){
+    showToast("Disable search/reasoning mode first");
+    return;
+  }
   if(!currentTabId) return;
   showPageLoader();
   try{
