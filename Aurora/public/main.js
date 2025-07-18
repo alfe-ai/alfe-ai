@@ -139,6 +139,7 @@ let columnsOrder = [
   { key: "priority",     label: "Prio"       },
   { key: "status",       label: "Status"     },
   { key: "number",       label: "#"          },
+  { key: "codex_url",   label: "Codex"     },
   { key: "title",        label: "Title"      },
   { key: "chat_sha",    label: "Chat"       },
   { key: "dependencies", label: "Depends On" },
@@ -1662,6 +1663,12 @@ function renderBody(){
             case "number":
               td.innerHTML = `<a href="${t.html_url}" target="_blank">#${t.number}</a>`;
               break;
+            case "codex_url":
+              if(t.codex_url){
+                td.innerHTML = `<a href="${t.codex_url}" target="_blank">link</a>`;
+              }
+              td.className="codex-url-cell";
+              break;
             case "title":
               td.textContent = t.title;
               td.className="title-cell";
@@ -1848,6 +1855,16 @@ $("#tasks").addEventListener("click", async e=>{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({id:taskId,dependencies:v})
+    }));
+  }
+  if(cell.classList.contains("codex-url-cell")){
+    const inp=document.createElement("input");
+    inp.type="text";
+    inp.value=cell.querySelector("a")?.href || "";
+    return inlineEdit(inp,v=>fetch("/api/tasks/codex-url",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id:taskId,url:v})
     }));
   }
   if(cell.classList.contains("title-cell")){
