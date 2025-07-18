@@ -129,6 +129,9 @@ let draggingProjectIndex = null;  // index of project group being dragged
 let collapsedProjectGroups = {};  // project group collapse states
 let chatTabOrder = {};            // per-project tab ordering
 let draggingTabRow = null;        // element of tab row being dragged
+let projectAddTooltip = null;     // floating toolbar for project add button
+let projectAddTooltipProject = null;
+let projectAddTooltipTimer = null;
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -2190,6 +2193,45 @@ async function quickAddTabToProject(project, type = "chat"){
   }
 }
 
+function initProjectAddTooltip(){
+  if(projectAddTooltip) return;
+  projectAddTooltip = document.createElement('div');
+  projectAddTooltip.className = 'project-toolbar-tooltip';
+  const btn = document.createElement('button');
+  btn.innerHTML = '&#128269;';
+  btn.className = 'project-search-btn config-btn';
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    if(projectAddTooltipProject!==null){
+      quickAddTabToProject(projectAddTooltipProject, 'search');
+      hideProjectAddTooltip();
+    }
+  });
+  projectAddTooltip.appendChild(btn);
+  projectAddTooltip.addEventListener('mouseenter', () => clearTimeout(projectAddTooltipTimer));
+  projectAddTooltip.addEventListener('mouseleave', scheduleHideProjectAddTooltip);
+  document.body.appendChild(projectAddTooltip);
+}
+
+function showProjectAddTooltip(project, e){
+  initProjectAddTooltip();
+  projectAddTooltipProject = project;
+  projectAddTooltip.style.display = 'flex';
+  projectAddTooltip.style.left = (e.pageX + 8) + 'px';
+  projectAddTooltip.style.top = (e.pageY + 8) + 'px';
+  clearTimeout(projectAddTooltipTimer);
+}
+
+function hideProjectAddTooltip(){
+  if(projectAddTooltip) projectAddTooltip.style.display = 'none';
+  projectAddTooltipProject = null;
+}
+
+function scheduleHideProjectAddTooltip(){
+  clearTimeout(projectAddTooltipTimer);
+  projectAddTooltipTimer = setTimeout(hideProjectAddTooltip, 200);
+}
+
 $("#renameTabSaveBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
   const tabId = parseInt(modal.dataset.tabId, 10);
@@ -2490,11 +2532,9 @@ function renderSidebarTabs(){
       addBtn.className = "project-add-btn config-btn";
       addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
       header.appendChild(addBtn);
-      const searchBtn = document.createElement("button");
-      searchBtn.innerHTML = "&#128269;";
-      searchBtn.className = "project-search-btn config-btn";
-      searchBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project, 'search'); });
-      header.appendChild(searchBtn);
+      addBtn.addEventListener("mouseenter", e => showProjectAddTooltip(project, e));
+      addBtn.addEventListener("mousemove", e => showProjectAddTooltip(project, e));
+      addBtn.addEventListener("mouseleave", scheduleHideProjectAddTooltip);
       header.addEventListener("click", e => {
         e.stopPropagation();
         collapsedProjectGroups[project] = !collapsedProjectGroups[project];
