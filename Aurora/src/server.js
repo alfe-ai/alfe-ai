@@ -3632,36 +3632,23 @@ app.get("/new", (req, res) => {
   try {
     const sessionId = getSessionIdFromRequest(req);
     const openSearch = db.getSetting("new_tab_opens_search") === true;
+    const { id: tabId } = db.createChatTab(
+      "New Tab",
+      0,
+      "",
+      "",
+      "",
+      0,
+      openSearch ? "search" : "chat",
+      sessionId
+    );
     if (openSearch) {
-      const { id: tabId, uuid } = db.createChatTab(
-        "New Tab",
-        0,
-        "",
-        "",
-        "",
-        0,
-        "search",
-        sessionId
-      );
       const searchModel =
         db.getSetting("ai_search_model") || "openrouter/perplexity/sonar";
       db.setChatTabModel(tabId, searchModel);
-      db.setSetting("last_chat_tab", tabId);
-      return res.redirect(`/chat/${uuid}?search=1`);
-    } else {
-      const { id: tabId } = db.createChatTab(
-        "New Tab",
-        0,
-        "",
-        "",
-        "",
-        0,
-        "chat",
-        sessionId
-      );
-      db.setSetting("last_chat_tab", tabId);
-      res.sendFile(path.join(__dirname, "../public/aurora.html"));
     }
+    db.setSetting("last_chat_tab", tabId);
+    res.sendFile(path.join(__dirname, "../public/aurora.html"));
   } catch (err) {
     console.error("[Server Debug] GET /new error:", err);
     res.redirect("/index.html");
