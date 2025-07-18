@@ -4167,6 +4167,63 @@ function updateCodexButton(){
   btn.classList.toggle("active", codexMiniEnabled);
 }
 
+let reasoningTooltip = null;
+let reasoningTooltipTimer = null;
+
+function initReasoningTooltip(){
+  if(reasoningTooltip) return;
+  reasoningTooltip = document.createElement('div');
+  reasoningTooltip.className = 'reasoning-tooltip';
+  const tBtn = document.createElement('button');
+  tBtn.textContent = 'Toggle Reasoning';
+  tBtn.addEventListener('click', async ev => {
+    ev.stopPropagation();
+    await toggleReasoning();
+  });
+  reasoningTooltip.appendChild(tBtn);
+  const models = [
+    'openai/o4-mini',
+    'openrouter/openai/o4-mini-high',
+    'deepseek/r1-distill-llama-70b',
+    'openai/codex-mini-latest',
+    'openai/codex-mini'
+  ];
+  models.forEach(m => {
+    const b = document.createElement('button');
+    b.textContent = m;
+    b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      await setSetting('ai_reasoning_model', m);
+      settingsCache.ai_reasoning_model = m;
+      hideReasoningTooltip();
+      showToast(`Reasoning model set to ${m}`);
+    });
+    reasoningTooltip.appendChild(b);
+  });
+  reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
+  reasoningTooltip.addEventListener('mouseleave', scheduleHideReasoningTooltip);
+  document.body.appendChild(reasoningTooltip);
+}
+
+function showReasoningTooltip(e){
+  initReasoningTooltip();
+  const rect = e.target.getBoundingClientRect();
+  reasoningTooltip.style.display = 'flex';
+  reasoningTooltip.style.flexDirection = 'column';
+  reasoningTooltip.style.left = rect.left + 'px';
+  reasoningTooltip.style.top = (rect.top - reasoningTooltip.offsetHeight - 4) + 'px';
+  clearTimeout(reasoningTooltipTimer);
+}
+
+function hideReasoningTooltip(){
+  if(reasoningTooltip) reasoningTooltip.style.display = 'none';
+}
+
+function scheduleHideReasoningTooltip(){
+  clearTimeout(reasoningTooltipTimer);
+  reasoningTooltipTimer = setTimeout(hideReasoningTooltip, 200);
+}
+
 async function toggleSearch(){
   if(!searchEnabled && (reasoningEnabled || codexMiniEnabled)){
     showToast("Disable Reasoning/Codex mode first");
@@ -7129,8 +7186,14 @@ registerActionHook("embedMockImages", async ({response}) => {
 });
 
 document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
-document.getElementById("reasoningToggleBtn")?.addEventListener("click", toggleReasoning);
+document.getElementById("reasoningToggleBtn")?.addEventListener("click", showReasoningTooltip);
 document.getElementById("codexToggleBtn")?.addEventListener("click", toggleCodexMini);
+document.addEventListener('click', e => {
+  if(reasoningTooltip && reasoningTooltip.style.display === 'flex' &&
+    !reasoningTooltip.contains(e.target) && e.target.id !== 'reasoningToggleBtn'){
+    hideReasoningTooltip();
+  }
+});
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
 setTimeout(() => {

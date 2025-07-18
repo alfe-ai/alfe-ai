@@ -1492,6 +1492,31 @@ button:disabled {
   color: #fff;
 }
 
+.reasoning-tooltip {
+  position: absolute;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px;
+  display: none;
+  z-index: 10000;
+  box-shadow: var(--shadow);
+}
+.reasoning-tooltip button {
+  display: block;
+  margin: 2px 0;
+  padding: 2px 4px;
+  background: #474747;
+  border: 1px solid #666;
+  color: #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.reasoning-tooltip button:hover {
+  background: #666;
+  color: #fff;
+}
+
 /* Minimal markdown highlighting */
 .md-h1,.md-h2,.md-h3,.md-h4,.md-h5,.md-h6{
   display:block;
