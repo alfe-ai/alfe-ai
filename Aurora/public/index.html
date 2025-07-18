@@ -101,25 +101,6 @@
         <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagAuroraStart"> Use Aurora for New Chat</label>
         <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagSplashAlways"> Always Show Splash</label>
       </div>
-      <div style="margin-top:0.5rem;">
-        <label>Color:
-          <select id="themeColorSelect">
-            <option value="purple">Purple</option>
-            <option value="lightblue">Light Blue</option>
-            <option value="red">Red</option>
-            <option value="green">Green</option>
-            <option value="orange">Orange</option>
-            <option value="teal">Teal</option>
-            <option value="pink">Pink</option>
-          </select>
-        </label>
-        <label style="margin-left:0.5rem;">Mode:
-          <select id="themeModeSelect">
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
-        </label>
-      </div>
       <button id="closeSettingsBtn" style="margin-top:1rem;">Close</button>
     </div>
   </div>
@@ -320,40 +301,7 @@
       if(loader) loader.classList.remove('show');
     }
 
-    async function loadTheme(){
-      try{
-        const resColor = await fetch('/api/settings/nexum_theme_color');
-        const resMode = await fetch('/api/settings/nexum_theme_mode');
-        if(resColor.ok){
-          const data = await resColor.json();
-          currentColor = data.value || 'purple';
-        } else { currentColor = 'purple'; }
-        if(resMode.ok){
-          const data = await resMode.json();
-          currentMode = data.value || 'dark';
-        } else { currentMode = 'dark'; }
-        const selColor = document.getElementById('themeColorSelect');
-        if(selColor) selColor.value = currentColor;
-        const selMode = document.getElementById('themeModeSelect');
-        if(selMode) selMode.value = currentMode;
-        applyTheme(currentColor, currentMode);
-      }catch(e){ applyTheme('purple','dark'); console.error(e); }
-    }
-
-    function applyTheme(color, mode){
-      const link = document.getElementById('themeStylesheet');
-      if(!link) return;
-      const files = {
-        purple: {dark:'/nexum.css', light:'/nexum_purple_light.css'},
-        lightblue: {dark:'/nexum_lightblue.css', light:'/nexum_lightblue_light.css'},
-        red: {dark:'/nexum_red.css', light:'/nexum_red_light.css'},
-        green: {dark:'/nexum_green.css', light:'/nexum_green_light.css'},
-        orange: {dark:'/nexum_orange.css', light:'/nexum_orange_light.css'},
-        teal: {dark:'/nexum_teal.css', light:'/nexum_teal_light.css'},
-        pink: {dark:'/nexum_pink.css', light:'/nexum_pink_light.css'}
-      };
-      link.href = files[color]?.[mode] || '/nexum.css';
-    }
+    function applyTheme(){ /* theming disabled */ }
     const urlParams = new URLSearchParams(location.search);
     const startTab = parseInt(urlParams.get('tabId'), 10);
     if(!Number.isNaN(startTab)) currentTabId = startTab;
@@ -1096,16 +1044,6 @@
       renderTabs();
     });
 
-    document.getElementById('themeColorSelect').addEventListener('change', async e => {
-      currentColor = e.target.value;
-      applyTheme(currentColor, currentMode);
-      await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'nexum_theme_color', value: currentColor})});
-    });
-    document.getElementById('themeModeSelect').addEventListener('change', async e => {
-      currentMode = e.target.value;
-      applyTheme(currentColor, currentMode);
-      await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'nexum_theme_mode', value: currentMode})});
-    });
 
       document.getElementById('settingsBtn').addEventListener('click', () => {
         document.getElementById('settingsModal').style.display = 'flex';
@@ -1164,7 +1102,6 @@
 
       async function init(){
         loadModelInfo();
-        await loadTheme();
         applyFeatureFlags();
         await loadTabs();
         await loadArchivedTabs();
