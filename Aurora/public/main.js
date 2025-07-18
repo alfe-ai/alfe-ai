@@ -5285,6 +5285,9 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   const placeholderEl = document.getElementById("chatPlaceholder");
   if(placeholderEl) placeholderEl.style.display = "";
   await loadSettings();
+  if(window.location.pathname === '/new' && newTabOpensSearch && !initialSearchMode){
+    await enableSearchMode('');
+  }
   if(initialSearchMode){
     searchEnabled = true;
     updateSearchButton();
