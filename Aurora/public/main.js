@@ -284,6 +284,13 @@ function updatePageTitle(){
   }
 }
 
+function markTabProcessing(tabId, flag){
+  document.querySelectorAll(`[data-tab-id='${tabId}']`).forEach(el => {
+    if(flag) el.classList.add('tab-processing');
+    else el.classList.remove('tab-processing');
+  });
+}
+
 // Data and state for the secure files list
 let fileListData = [];
 const fileListLimit = 20;
@@ -2424,6 +2431,7 @@ function renderTabs(){
   tc.innerHTML="";
   chatTabs.filter(t => showArchivedTabs || !t.archived).forEach(tab => {
     const tabBtn = document.createElement("div");
+    tabBtn.dataset.tabId = tab.id;
     tabBtn.style.display="flex";
     tabBtn.style.alignItems="center";
     tabBtn.style.cursor="pointer";
@@ -2607,6 +2615,7 @@ function renderSidebarTabRow(container, tab, indented=false){
   info.style.flexGrow = "1";
 
   const b = document.createElement("button");
+  b.dataset.tabId = tab.id;
   const icon = document.createElement("span");
   icon.className = "tab-icon";
   icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
@@ -3332,6 +3341,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   if(!userMessage && pendingImages.length===0) return;
   renderDesignSuggestions(false);
   chatSendBtnEl.disabled = true;
+  markTabProcessing(currentTabId, true);
   if(userMessage){
     inputHistory.push(userMessage);
     inputHistoryPos = -1;
@@ -3400,6 +3410,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   } else if(!userMessage && descsForThisSend.length===0){
     if (favElement) favElement.href = defaultFavicon;
     chatSendBtnEl.disabled = false;
+    markTabProcessing(currentTabId, false);
     processNextQueueMessage();
     return;
   }
@@ -3568,6 +3579,7 @@ chatSendBtnEl.addEventListener("click", async () => {
     setTimeout(scrollChatToBottom, 0);
   }
   chatSendBtnEl.disabled = false;
+  markTabProcessing(currentTabId, false);
   processNextQueueMessage();
 });
 

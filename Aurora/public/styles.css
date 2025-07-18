@@ -927,6 +927,11 @@ body {
   color: #fff;
 }
 
+/* Highlight chat tab title while waiting for AI response */
+.tab-processing {
+  color: blue !important;
+}
+
 #verticalTabsContainer .task-id,
 #archivedTabsContainer .task-id {
   margin-left: auto;
