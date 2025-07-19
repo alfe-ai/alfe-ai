@@ -172,6 +172,7 @@ let reasoningEnabled = false; // toggle reasoning mode
 const reasoningChatModels = [
   'deepseek/deepseek-chat-v3-0324',
   'openai/gpt-4o',
+  'openai/gpt-4o-mini',
   'openai/gpt-4.1',
   'openai/gpt-4.1-mini'
 ];
@@ -4247,34 +4248,41 @@ function initReasoningTooltip(){
   reasoningTooltip.appendChild(chatHeader);
 
   const chatModels = [
-    'deepseek/deepseek-chat-v3-0324',
-    'openai/gpt-4o',
-    'openai/gpt-4.1',
-    'openai/gpt-4.1-mini'
+    { name: 'deepseek/deepseek-chat-v3-0324' },
+    { name: 'openai/gpt-4o', label: 'pro' },
+    { name: 'openai/gpt-4o-mini' },
+    { name: 'openai/gpt-4.1', label: 'pro' },
+    { name: 'openai/gpt-4.1-mini' }
   ];
   chatModels.forEach(m => {
+    const name = typeof m === 'string' ? m : m.name;
+    const label = typeof m === 'object' && m.label;
     const b = document.createElement('button');
-    b.dataset.model = m;
-    b.textContent = m;
-    b.classList.toggle('active', modelName === m && !reasoningEnabled);
+    b.dataset.model = name;
+    if(label){
+      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
+    }else{
+      b.textContent = name;
+    }
+    b.classList.toggle('active', modelName === name && !reasoningEnabled);
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
       if(reasoningEnabled){
         await toggleReasoning();
       }
-      await setSetting('ai_model', m);
-      settingsCache.ai_model = m;
+      await setSetting('ai_model', name);
+      settingsCache.ai_model = name;
       await fetch('/api/chat/tabs/model', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({tabId: currentTabId, model: m, sessionId})
+        body:JSON.stringify({tabId: currentTabId, model: name, sessionId})
       });
-      tabModelOverride = m;
-      modelName = m;
+      tabModelOverride = name;
+      modelName = name;
       updateModelHud();
-      highlightReasoningModel(m);
+      highlightReasoningModel(name);
       hideReasoningTooltip();
-      showToast(`Chat model set to ${m}`);
+      showToast(`Chat model set to ${name}`);
     });
     reasoningTooltip.appendChild(b);
   });
