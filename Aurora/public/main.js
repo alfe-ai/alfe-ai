@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   updateChatPanelVisibility();
+  updateMobileThinSidebar();
   loadMosaicFiles();
   loadMosaicRepoPath();
   updateMosaicPanelVisibility();
@@ -61,7 +62,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadHideDoneTasks();
   loadChatTabOrder();
   // Project groups will be rendered within the sidebar tabs
-  window.addEventListener('resize', updateChatPanelVisibility);
+  window.addEventListener('resize', () => {
+    updateChatPanelVisibility();
+    updateMobileThinSidebar();
+  });
   const tasksOnlyChk = document.getElementById("tasksOnlyTabsCheck");
   if(tasksOnlyChk) tasksOnlyChk.checked = tasksOnlyTabs;
   const hideArchChk = document.getElementById("hideArchivedTabsCheck");
@@ -120,6 +124,7 @@ let showArchivedTabs = false;
 let tasksOnlyTabs = false; // filter chat tabs with tasks only
 let hideArchivedTabs = true; // filter out archived chat tabs
 let hideDoneTasks = false; // hide tasks with status 'Done'
+let mobileSidebarToolbar = true; // show thin sidebar toolbar on mobile
 let topChatTabsBarVisible = false; // visibility of the top chat tabs bar
 let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
@@ -722,6 +727,10 @@ function openSettingsModal(e){
   if(metaCheck){
     metaCheck.checked = !chatHideMetadata;
   }
+  const mobileCheck = document.getElementById('mobileThinSidebarCheck');
+  if(mobileCheck){
+    mobileCheck.checked = mobileSidebarToolbar;
+  }
   const newTabSearchCheck = document.getElementById('accountNewTabSearchCheck');
   if(newTabSearchCheck){
     newTabSearchCheck.checked = newTabOpensSearch;
@@ -1083,6 +1092,7 @@ async function toggleSidebar(){
   if(appEl){
     appEl.classList.toggle("sidebar-collapsed", !sidebarVisible);
   }
+  updateMobileThinSidebar();
 
   await setSetting("sidebar_visible", sidebarVisible);
 }
@@ -1234,7 +1244,7 @@ async function loadSettings(){
     "new_tab_project_enabled","new_tab_opens_search","group_tabs_by_project",
     "search_enabled","ai_search_model",
     "reasoning_enabled","ai_reasoning_model","ai_vision_model",
-    "codex_mini_enabled"
+    "codex_mini_enabled","mobile_sidebar_toolbar"
   ];
   const map = await getSettings(keys);
 
@@ -1455,9 +1465,13 @@ async function loadSettings(){
   if(typeof map.codex_mini_enabled !== "undefined"){
     codexMiniEnabled = map.codex_mini_enabled !== false;
   }
+  if(typeof map.mobile_sidebar_toolbar !== "undefined"){
+    mobileSidebarToolbar = map.mobile_sidebar_toolbar !== false;
+  }
   updateSearchButton();
   updateReasoningButton();
   updateCodexButton();
+  updateMobileThinSidebar();
 }
 async function saveSettings(){
   await fetch("/api/settings",{
@@ -3104,6 +3118,15 @@ if(accountShowMetadataCheck){
   });
 }
 
+const mobileThinSidebarCheck = document.getElementById('mobileThinSidebarCheck');
+if(mobileThinSidebarCheck){
+  mobileThinSidebarCheck.addEventListener('change', async () => {
+    mobileSidebarToolbar = mobileThinSidebarCheck.checked;
+    updateMobileThinSidebar();
+    await setSetting('mobile_sidebar_toolbar', mobileSidebarToolbar);
+  });
+}
+
 const accountNewTabSearchCheck = document.getElementById('accountNewTabSearchCheck');
 if(accountNewTabSearchCheck){
   accountNewTabSearchCheck.addEventListener('change', async () => {
@@ -4029,6 +4052,27 @@ function toggleSessionIdVisibility(visible) {
   const el = document.getElementById("sessionIdText");
   if(!el) return;
   el.style.display = visible ? "inline" : "none";
+}
+
+function updateMobileThinSidebar(){
+  const thin = document.getElementById("thinSidebar");
+  const logo = document.getElementById("collapsedSidebarLogo");
+  if(!thin || !logo) return;
+  if(isMobileViewport()){
+    if(mobileSidebarToolbar){
+      thin.style.display = "";
+      logo.style.left = "8px";
+      logo.style.right = "";
+    } else {
+      thin.style.display = "none";
+      logo.style.left = "auto";
+      logo.style.right = "56px";
+    }
+  } else {
+    thin.style.display = "";
+    logo.style.left = "8px";
+    logo.style.right = "";
+  }
 }
 
 function setLoopUi(active){
