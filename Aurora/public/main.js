@@ -4170,6 +4170,13 @@ function updateCodexButton(){
 let reasoningTooltip = null;
 let reasoningTooltipTimer = null;
 
+function highlightReasoningModel(model){
+  if(!reasoningTooltip) return;
+  Array.from(reasoningTooltip.querySelectorAll('button[data-model]')).forEach(b => {
+    b.classList.toggle('active', b.dataset.model === model);
+  });
+}
+
 function initReasoningTooltip(){
   if(reasoningTooltip) return;
   reasoningTooltip = document.createElement('div');
@@ -4185,12 +4192,13 @@ function initReasoningTooltip(){
     'openai/o4-mini',
     'openrouter/openai/o4-mini-high',
     'deepseek/deepseek-r1-distill-llama-70b',
-    'openai/codex-mini-latest',
     'openai/codex-mini'
   ];
   models.forEach(m => {
     const b = document.createElement('button');
+    b.dataset.model = m;
     b.textContent = m;
+    b.classList.toggle('active', settingsCache.ai_reasoning_model === m);
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
       await setSetting('ai_reasoning_model', m);
@@ -4205,11 +4213,13 @@ function initReasoningTooltip(){
         modelName = m;
         updateModelHud();
       }
+      highlightReasoningModel(m);
       hideReasoningTooltip();
       showToast(`Reasoning model set to ${m}`);
     });
     reasoningTooltip.appendChild(b);
   });
+  highlightReasoningModel(settingsCache.ai_reasoning_model);
   reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
   reasoningTooltip.addEventListener('mouseleave', scheduleHideReasoningTooltip);
   document.body.appendChild(reasoningTooltip);
