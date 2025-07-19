@@ -4356,12 +4356,12 @@ function initSearchTooltip(){
   searchTooltip.appendChild(tBtn);
 
   const models = [
-    'openai/gpt-4o-search-preview',
-    'openai/gpt-4o-mini-search-preview',
     'openrouter/perplexity/sonar',
     'openrouter/perplexity/sonar-pro',
     'openrouter/perplexity/sonar-reasoning',
-    'openrouter/perplexity/sonar-reasoning-pro'
+    'openrouter/perplexity/sonar-reasoning-pro',
+    'openai/gpt-4o-search-preview',
+    'openai/gpt-4o-mini-search-preview'
   ];
   models.forEach(m => {
     const b = document.createElement('button');
