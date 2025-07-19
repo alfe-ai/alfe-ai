@@ -4190,7 +4190,7 @@ function initReasoningTooltip(){
   reasoningTooltip.appendChild(tBtn);
   const models = [
     'openai/o4-mini',
-    'openrouter/openai/o4-mini-high',
+    'openai/o4-mini-high',
     'deepseek/deepseek-r1-distill-llama-70b',
     'openai/codex-mini'
   ];
