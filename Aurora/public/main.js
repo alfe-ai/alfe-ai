@@ -4289,6 +4289,88 @@ function scheduleHideReasoningTooltip(){
   reasoningTooltipTimer = setTimeout(hideReasoningTooltip, 200);
 }
 
+let searchTooltip = null;
+let searchTooltipTimer = null;
+
+function highlightSearchModel(model){
+  if(!searchTooltip) return;
+  Array.from(searchTooltip.querySelectorAll('button[data-model]')).forEach(b => {
+    b.classList.toggle('active', b.dataset.model === model);
+  });
+}
+
+function initSearchTooltip(){
+  if(searchTooltip) return;
+  searchTooltip = document.createElement('div');
+  searchTooltip.className = 'search-tooltip';
+  const tBtn = document.createElement('button');
+  tBtn.textContent = 'Toggle Search';
+  tBtn.addEventListener('click', async ev => {
+    ev.stopPropagation();
+    await toggleSearch();
+  });
+  searchTooltip.appendChild(tBtn);
+
+  const models = [
+    'openai/gpt-4o-search-preview',
+    'openai/gpt-4o-mini-search-preview',
+    'openrouter/perplexity/sonar',
+    'openrouter/perplexity/sonar-pro',
+    'openrouter/perplexity/sonar-reasoning',
+    'openrouter/perplexity/sonar-reasoning-pro'
+  ];
+  models.forEach(m => {
+    const b = document.createElement('button');
+    b.dataset.model = m;
+    b.textContent = m;
+    b.classList.toggle('active', settingsCache.ai_search_model === m);
+    b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      await setSetting('ai_search_model', m);
+      settingsCache.ai_search_model = m;
+      if(!searchEnabled){
+        await toggleSearch();
+      } else {
+        await fetch('/api/chat/tabs/model', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({tabId: currentTabId, model: m, sessionId})
+        });
+        tabModelOverride = m;
+        modelName = m;
+        updateModelHud();
+      }
+      highlightSearchModel(m);
+      hideSearchTooltip();
+      showToast(`Search model set to ${m}`);
+    });
+    searchTooltip.appendChild(b);
+  });
+  highlightSearchModel(settingsCache.ai_search_model);
+  searchTooltip.addEventListener('mouseenter', () => clearTimeout(searchTooltipTimer));
+  searchTooltip.addEventListener('mouseleave', scheduleHideSearchTooltip);
+  document.body.appendChild(searchTooltip);
+}
+
+function showSearchTooltip(e){
+  initSearchTooltip();
+  const rect = e.target.getBoundingClientRect();
+  searchTooltip.style.display = 'flex';
+  searchTooltip.style.flexDirection = 'column';
+  searchTooltip.style.left = rect.left + 'px';
+  searchTooltip.style.top = (rect.top - searchTooltip.offsetHeight - 4) + 'px';
+  clearTimeout(searchTooltipTimer);
+}
+
+function hideSearchTooltip(){
+  if(searchTooltip) searchTooltip.style.display = 'none';
+}
+
+function scheduleHideSearchTooltip(){
+  clearTimeout(searchTooltipTimer);
+  searchTooltipTimer = setTimeout(hideSearchTooltip, 200);
+}
+
 async function toggleSearch(){
   if(!searchEnabled && (reasoningEnabled || codexMiniEnabled)){
     if(reasoningEnabled) await toggleReasoning();
@@ -7250,7 +7332,10 @@ registerActionHook("embedMockImages", async ({response}) => {
   scrollChatToBottom();
 });
 
-document.getElementById("searchToggleBtn")?.addEventListener("click", toggleSearch);
+const searchToggleBtn = document.getElementById("searchToggleBtn");
+searchToggleBtn?.addEventListener("click", toggleSearch);
+searchToggleBtn?.addEventListener("mouseenter", showSearchTooltip);
+searchToggleBtn?.addEventListener("mouseleave", scheduleHideSearchTooltip);
 const reasoningToggleBtn = document.getElementById("reasoningToggleBtn");
 reasoningToggleBtn?.addEventListener("click", toggleReasoning);
 reasoningToggleBtn?.addEventListener("mouseenter", showReasoningTooltip);
@@ -7260,6 +7345,10 @@ document.addEventListener('click', e => {
   if(reasoningTooltip && reasoningTooltip.style.display === 'flex' &&
     !reasoningTooltip.contains(e.target) && e.target.id !== 'reasoningToggleBtn'){
     hideReasoningTooltip();
+  }
+  if(searchTooltip && searchTooltip.style.display === 'flex' &&
+    !searchTooltip.contains(e.target) && e.target.id !== 'searchToggleBtn'){
+    hideSearchTooltip();
   }
 });
 
