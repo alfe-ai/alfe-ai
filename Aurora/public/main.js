@@ -171,7 +171,9 @@ let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
 const reasoningChatModels = [
   'deepseek/deepseek-chat-v3-0324',
-  'openai/gpt-4o'
+  'openai/gpt-4o',
+  'openai/gpt-4.1',
+  'openai/gpt-4.1-mini'
 ];
 window.agentName = "Alfe";
 
@@ -4246,7 +4248,9 @@ function initReasoningTooltip(){
 
   const chatModels = [
     'deepseek/deepseek-chat-v3-0324',
-    'openai/gpt-4o'
+    'openai/gpt-4o',
+    'openai/gpt-4.1',
+    'openai/gpt-4.1-mini'
   ];
   chatModels.forEach(m => {
     const b = document.createElement('button');
