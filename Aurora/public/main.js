@@ -4288,8 +4288,8 @@ function initReasoningTooltip(){
     { name: 'deepseek/deepseek-r1-distill-llama-70b' },
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
-    { name: 'openai/o3', label: 'ultimate' },
-    { name: 'openai/codex-mini', label: 'pro' }
+    { name: 'openai/codex-mini', label: 'pro' },
+    { name: 'openai/o3', label: 'ultimate' }
   ];
   models.forEach(({name, label}) => {
       const b = document.createElement('button');
