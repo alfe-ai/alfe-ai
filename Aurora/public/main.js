@@ -4231,9 +4231,10 @@ function initReasoningTooltip(){
   reasoningTooltip.appendChild(reasoningHeader);
 
   const models = [
+    'deepseek/deepseek-r1-distill-llama-70b',
     'openai/o4-mini',
     'openai/o4-mini-high',
-    'deepseek/deepseek-r1-distill-llama-70b',
+    'openai/o3',
     'openai/codex-mini'
   ];
   models.forEach(m => {
