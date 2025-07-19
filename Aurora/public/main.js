@@ -171,10 +171,10 @@ let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
 const reasoningChatModels = [
   'deepseek/deepseek-chat-v3-0324',
-  'openai/gpt-4o',
   'openai/gpt-4o-mini',
-  'openai/gpt-4.1',
-  'openai/gpt-4.1-mini'
+  'openai/gpt-4.1-mini',
+  'openai/gpt-4o',
+  'openai/gpt-4.1'
 ];
 window.agentName = "Alfe";
 
@@ -4249,10 +4249,10 @@ function initReasoningTooltip(){
 
   const chatModels = [
     { name: 'deepseek/deepseek-chat-v3-0324' },
-    { name: 'openai/gpt-4o', label: 'pro' },
     { name: 'openai/gpt-4o-mini' },
-    { name: 'openai/gpt-4.1', label: 'pro' },
-    { name: 'openai/gpt-4.1-mini' }
+    { name: 'openai/gpt-4.1-mini' },
+    { name: 'openai/gpt-4o', label: 'pro' },
+    { name: 'openai/gpt-4.1', label: 'pro' }
   ];
   chatModels.forEach(m => {
     const name = typeof m === 'string' ? m : m.name;
