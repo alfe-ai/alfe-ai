@@ -12,6 +12,8 @@
           type="image/x-icon"
           href="/alfe_favicon_64x64.ico"
   />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#2d2d2d" />
 </head>
 <body>
 
@@ -971,6 +973,13 @@
 </div>
 <script src="/session.js"></script>
 <script src="/main.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js');
+    });
+  }
+</script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const banner = document.getElementById('cookieBanner');
