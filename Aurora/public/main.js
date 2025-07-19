@@ -4379,11 +4379,11 @@ function initSearchTooltip(){
 
   const models = [
     { name: 'openrouter/perplexity/sonar' },
+    { name: 'openai/gpt-4o-mini-search-preview' },
     { name: 'openrouter/perplexity/sonar-pro', label: 'pro' },
     { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro' },
     { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro' },
-    { name: 'openai/gpt-4o-search-preview' },
-    { name: 'openai/gpt-4o-mini-search-preview', label: 'pro' }
+    { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
   models.forEach(({name, label}) => {
     const b = document.createElement('button');
