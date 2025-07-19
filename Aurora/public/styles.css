@@ -1502,6 +1502,12 @@ button:disabled {
   z-index: 10000;
   box-shadow: var(--shadow);
 }
+.reasoning-tooltip .tooltip-section-header {
+  font-weight: bold;
+  color: #ddd;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
 .reasoning-tooltip button {
   display: block;
   margin: 2px 0;
