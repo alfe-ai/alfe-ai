@@ -169,6 +169,10 @@ let accountInfo = null; // details returned from /api/account
 let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
+const reasoningChatModels = [
+  'deepseek/deepseek-chat-v3-0324',
+  'openai/gpt-4o'
+];
 window.agentName = "Alfe";
 
 const designStartPrompts = [
@@ -4202,7 +4206,8 @@ function updateSearchButton(){
 function updateReasoningButton(){
   const btn = document.getElementById("reasoningToggleBtn");
   if(!btn) return;
-  btn.classList.toggle("active", reasoningEnabled);
+  const highlight = reasoningEnabled || reasoningChatModels.includes(modelName);
+  btn.classList.toggle("active", highlight);
 }
 
 function updateCodexButton(){
@@ -4219,6 +4224,7 @@ function highlightReasoningModel(model){
   Array.from(reasoningTooltip.querySelectorAll('button[data-model]')).forEach(b => {
     b.classList.toggle('active', b.dataset.model === model);
   });
+  updateReasoningButton();
 }
 
 function initReasoningTooltip(){
