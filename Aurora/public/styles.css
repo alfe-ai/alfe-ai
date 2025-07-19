@@ -1527,6 +1527,20 @@ button:disabled {
   color: #fff;
 }
 
+.reasoning-tooltip .model-label {
+  display: inline-block;
+  font-size: 0.7em;
+  padding: 1px 4px;
+  margin-right: 4px;
+  border-radius: 4px;
+  background: #0062cc;
+  color: #fff;
+  text-transform: uppercase;
+}
+.reasoning-tooltip .model-label.ultimate {
+  background: #8e44ad;
+}
+
 .search-tooltip {
   position: absolute;
   background: #333;
