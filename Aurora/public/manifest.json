@@ -1,0 +1,15 @@
+{
+  "name": "Alfe AI",
+  "short_name": "Alfe",
+  "start_url": "/new",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2d2d2d",
+  "icons": [
+    {
+      "src": "/alfe_favicon_64x64.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
