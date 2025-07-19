@@ -4377,10 +4377,13 @@ function initSearchTooltip(){
     'openai/gpt-4o-search-preview',
     'openai/gpt-4o-mini-search-preview'
   ];
+  function stripOpenrouterPrefix(m){
+    return m.startsWith('openrouter/') ? m.substring('openrouter/'.length) : m;
+  }
   models.forEach(m => {
     const b = document.createElement('button');
     b.dataset.model = m;
-    b.textContent = m;
+    b.textContent = stripOpenrouterPrefix(m);
     b.classList.toggle('active', settingsCache.ai_search_model === m);
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
@@ -4400,7 +4403,7 @@ function initSearchTooltip(){
       }
       highlightSearchModel(m);
       hideSearchTooltip();
-      showToast(`Search model set to ${m}`);
+      showToast(`Search model set to ${stripOpenrouterPrefix(m)}`);
     });
     searchTooltip.appendChild(b);
   });
