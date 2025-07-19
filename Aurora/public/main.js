@@ -4370,37 +4370,41 @@ function initSearchTooltip(){
   searchTooltip.appendChild(tBtn);
 
   const models = [
-    'openrouter/perplexity/sonar',
-    'openrouter/perplexity/sonar-pro',
-    'openrouter/perplexity/sonar-reasoning',
-    'openrouter/perplexity/sonar-reasoning-pro',
-    'openai/gpt-4o-search-preview',
-    'openai/gpt-4o-mini-search-preview'
+    { name: 'openrouter/perplexity/sonar' },
+    { name: 'openrouter/perplexity/sonar-pro', label: 'pro' },
+    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro' },
+    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro' },
+    { name: 'openai/gpt-4o-search-preview' },
+    { name: 'openai/gpt-4o-mini-search-preview', label: 'pro' }
   ];
-  models.forEach(m => {
+  models.forEach(({name, label}) => {
     const b = document.createElement('button');
-    b.dataset.model = m;
-    b.textContent = m;
-    b.classList.toggle('active', settingsCache.ai_search_model === m);
+    b.dataset.model = name;
+    if(label){
+      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
+    } else {
+      b.textContent = name;
+    }
+    b.classList.toggle('active', settingsCache.ai_search_model === name);
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
-      await setSetting('ai_search_model', m);
-      settingsCache.ai_search_model = m;
+      await setSetting('ai_search_model', name);
+      settingsCache.ai_search_model = name;
       if(!searchEnabled){
         await toggleSearch();
       } else {
         await fetch('/api/chat/tabs/model', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({tabId: currentTabId, model: m, sessionId})
+          body:JSON.stringify({tabId: currentTabId, model: name, sessionId})
         });
-        tabModelOverride = m;
-        modelName = m;
+        tabModelOverride = name;
+        modelName = name;
         updateModelHud();
       }
-      highlightSearchModel(m);
+      highlightSearchModel(name);
       hideSearchTooltip();
-      showToast(`Search model set to ${m}`);
+      showToast(`Search model set to ${name}`);
     });
     searchTooltip.appendChild(b);
   });
