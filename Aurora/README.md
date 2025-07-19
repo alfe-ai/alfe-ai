@@ -34,7 +34,7 @@ npm start
 | `AWS_DB_PASSWORD` | (Optional) Password for AWS RDS |
 | `AWS_DB_NAME` | (Optional) Database name for AWS RDS |
 | `AWS_DB_PORT` | (Optional) Port for AWS RDS (default: 5432) |
-| `WHITELIST_IP` | (Optional) Only allow UI access from this IP. Requests from `localhost` are always permitted |
+| `WHITELIST_IP` | (Optional) Comma-separated list of IP addresses allowed to access the UI. Requests from `localhost` are always permitted |
 
 Run `../setup_certbot.sh <domain> <email>` to quickly generate these files with
 Let's Encrypt. After generation, execute `../setup_ssl_permissions.sh <domain> [user]`
