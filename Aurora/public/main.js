@@ -4194,31 +4194,33 @@ function initReasoningTooltip(){
     'deepseek/deepseek-r1-distill-llama-70b',
     'openai/codex-mini'
   ];
-  models.forEach(m => {
-    const b = document.createElement('button');
-    b.dataset.model = m;
-    b.textContent = m;
-    b.classList.toggle('active', settingsCache.ai_reasoning_model === m);
-    b.addEventListener('click', async ev => {
-      ev.stopPropagation();
-      await setSetting('ai_reasoning_model', m);
-      settingsCache.ai_reasoning_model = m;
-      if(reasoningEnabled){
-        await fetch("/api/chat/tabs/model", {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({tabId: currentTabId, model: m, sessionId})
-        });
-        tabModelOverride = m;
-        modelName = m;
-        updateModelHud();
-      }
-      highlightReasoningModel(m);
-      hideReasoningTooltip();
-      showToast(`Reasoning model set to ${m}`);
+    models.forEach(m => {
+      const b = document.createElement('button');
+      b.dataset.model = m;
+      b.textContent = m;
+      b.classList.toggle('active', settingsCache.ai_reasoning_model === m);
+      b.addEventListener('click', async ev => {
+        ev.stopPropagation();
+        await setSetting('ai_reasoning_model', m);
+        settingsCache.ai_reasoning_model = m;
+        if(!reasoningEnabled){
+          await toggleReasoning();
+        } else {
+          await fetch("/api/chat/tabs/model", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({tabId: currentTabId, model: m, sessionId})
+          });
+          tabModelOverride = m;
+          modelName = m;
+          updateModelHud();
+        }
+        highlightReasoningModel(m);
+        hideReasoningTooltip();
+        showToast(`Reasoning model set to ${m}`);
+      });
+      reasoningTooltip.appendChild(b);
     });
-    reasoningTooltip.appendChild(b);
-  });
   highlightReasoningModel(settingsCache.ai_reasoning_model);
   reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
   reasoningTooltip.addEventListener('mouseleave', scheduleHideReasoningTooltip);
