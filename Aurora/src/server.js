@@ -3665,7 +3665,15 @@ app.get("/new", (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(
+  express.static(path.join(__dirname, "../public"), {
+    etag: false,
+    maxAge: 0,
+    setHeaders: (res) => {
+      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    },
+  })
+);
 
 app.get("/beta", (req, res) => {
   console.debug("[Server Debug] GET /beta => Redirecting to home page");
