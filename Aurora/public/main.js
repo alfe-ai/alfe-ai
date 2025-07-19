@@ -4195,6 +4195,16 @@ function initReasoningTooltip(){
       ev.stopPropagation();
       await setSetting('ai_reasoning_model', m);
       settingsCache.ai_reasoning_model = m;
+      if(reasoningEnabled){
+        await fetch("/api/chat/tabs/model", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({tabId: currentTabId, model: m, sessionId})
+        });
+        tabModelOverride = m;
+        modelName = m;
+        updateModelHud();
+      }
       hideReasoningTooltip();
       showToast(`Reasoning model set to ${m}`);
     });
