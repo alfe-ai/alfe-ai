@@ -267,10 +267,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let loadingIndicator = null;
     let executionTimeText = null;
     let timerInterval = null;
+    let fetchController = null;
+    let isProcessing = false;
+    let originalSubmitText = '';
 
     if (chatForm) {
         // Grab the submit & queue buttons
         submitBtn = chatForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            originalSubmitText = submitBtn.textContent;
+        }
         queueBtn = chatForm.querySelector('button[formaction*="queue"]');
 
         // Create spinner container
@@ -329,13 +335,24 @@ document.addEventListener('DOMContentLoaded', () => {
         chatForm.addEventListener('submit', function (evt) {
             evt.preventDefault();
 
+            if (isProcessing) {
+                if (fetchController) fetchController.abort();
+                return;
+            }
+
             const formData = new FormData(chatForm);
 
-            // Disable inputs
+            // Disable inputs except submit button which becomes a stop button
             const chatInput = document.getElementById('chatInput');
-            if (submitBtn) submitBtn.disabled = true;
             if (queueBtn) queueBtn.disabled = true;
             if (chatInput) chatInput.disabled = true;
+            if (submitBtn) {
+                originalSubmitText = submitBtn.textContent;
+                submitBtn.textContent = 'Stop';
+            }
+            isProcessing = true;
+
+            fetchController = new AbortController();
 
             // Initialize stages
             if (loadingIndicator) {
@@ -405,7 +422,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Now proceed to send the chat message
                     return fetch(chatForm.action, {
                         method: 'POST',
-                        body: formData
+                        body: formData,
+                        signal: fetchController.signal
                     });
                 })
                 .then(async (response) => {
@@ -468,12 +486,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // Re-enable
-                    if (submitBtn) submitBtn.disabled = false;
+                    if (submitBtn) {
+                        submitBtn.textContent = originalSubmitText;
+                    }
                     if (queueBtn) queueBtn.disabled = false;
                     if (chatInput) {
                         chatInput.disabled = false;
                         chatInput.value = ""; // clear input
                     }
+                    isProcessing = false;
+                    fetchController = null;
 
                     // Revert favicon to default
                     const fav = document.getElementById("favicon");
@@ -486,8 +508,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 })
                 .catch(err => {
-                    console.error("Fetch error =>", err);
-                    alert("Failed to send message. Check console.");
+                    if (err.name === 'AbortError') {
+                        console.log('Fetch aborted');
+                    } else {
+                        console.error("Fetch error =>", err);
+                        alert("Failed to send message. Check console.");
+                    }
 
                     // Stop timer
                     clearInterval(timerInterval);
@@ -498,9 +524,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // Re-enable
-                    if (submitBtn) submitBtn.disabled = false;
+                    if (submitBtn) {
+                        submitBtn.textContent = originalSubmitText;
+                    }
                     if (queueBtn) queueBtn.disabled = false;
                     if (chatInput) chatInput.disabled = false;
+                    isProcessing = false;
+                    fetchController = null;
 
                     // Revert favicon to default on error
                     const fav = document.getElementById("favicon");
