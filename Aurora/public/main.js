@@ -4181,6 +4181,41 @@ function initReasoningTooltip(){
     await toggleReasoning();
   });
   reasoningTooltip.appendChild(tBtn);
+  const chatHeader = document.createElement('div');
+  chatHeader.className = 'tooltip-section-title';
+  chatHeader.textContent = 'Chat';
+  reasoningTooltip.appendChild(chatHeader);
+  const chatModels = [
+    'deepseek/deepseek-chat-v3-0324',
+    'openai/gpt-4o'
+  ];
+  chatModels.forEach(m => {
+    const b = document.createElement('button');
+    b.textContent = m;
+    b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      await setSetting('ai_model', m);
+      settingsCache.ai_model = m;
+      if(!searchEnabled && !reasoningEnabled && !codexMiniEnabled){
+        await fetch('/api/chat/tabs/model', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({tabId: currentTabId, model: m, sessionId})
+        });
+        tabModelOverride = m;
+        modelName = m;
+        updateModelHud();
+      }
+      hideReasoningTooltip();
+      showToast(`Chat model set to ${m}`);
+    });
+    reasoningTooltip.appendChild(b);
+  });
+
+  const reasoningHeader = document.createElement('div');
+  reasoningHeader.className = 'tooltip-section-title';
+  reasoningHeader.textContent = 'Reasoning';
+  reasoningTooltip.appendChild(reasoningHeader);
   const models = [
     'openai/o4-mini',
     'openrouter/openai/o4-mini-high',

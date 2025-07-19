@@ -1516,6 +1516,10 @@ button:disabled {
   background: #666;
   color: #fff;
 }
+.reasoning-tooltip .tooltip-section-title {
+  font-weight: bold;
+  margin-top: 4px;
+}
 
 /* Minimal markdown highlighting */
 .md-h1,.md-h2,.md-h3,.md-h4,.md-h5,.md-h6{
