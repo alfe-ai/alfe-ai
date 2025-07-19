@@ -4169,8 +4169,8 @@ function updateCodexButton(){
 
 async function toggleSearch(){
   if(!searchEnabled && (reasoningEnabled || codexMiniEnabled)){
-    showToast("Disable Reasoning/Codex mode first");
-    return;
+    if(reasoningEnabled) await toggleReasoning();
+    if(codexMiniEnabled) await toggleCodexMini();
   }
   searchEnabled = !searchEnabled;
   await setSetting("search_enabled", searchEnabled);
@@ -4203,8 +4203,8 @@ async function toggleSearch(){
 
 async function toggleReasoning(){
   if(!reasoningEnabled && (searchEnabled || codexMiniEnabled)){
-    showToast("Disable Search/Codex mode first");
-    return;
+    if(searchEnabled) await toggleSearch();
+    if(codexMiniEnabled) await toggleCodexMini();
   }
   reasoningEnabled = !reasoningEnabled;
   await setSetting("reasoning_enabled", reasoningEnabled);
