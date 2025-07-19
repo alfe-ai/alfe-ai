@@ -169,6 +169,7 @@ let accountInfo = null; // details returned from /api/account
 let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
+let aiResponsesEnabled = true; // allow AI responses
 const reasoningChatModels = [
   'deepseek/deepseek-chat-v3-0324',
   'openai/gpt-4o-mini',
@@ -1251,6 +1252,7 @@ async function loadSettings(){
     "new_tab_project_enabled","new_tab_opens_search","group_tabs_by_project",
     "search_enabled","ai_search_model",
     "reasoning_enabled","ai_reasoning_model","ai_vision_model",
+    "ai_responses_enabled",
     "codex_mini_enabled","mobile_sidebar_toolbar"
   ];
   const map = await getSettings(keys);
@@ -1469,6 +1471,9 @@ async function loadSettings(){
   if(typeof map.reasoning_enabled !== "undefined"){
     reasoningEnabled = map.reasoning_enabled !== false;
   }
+  if(typeof map.ai_responses_enabled !== "undefined"){
+    aiResponsesEnabled = map.ai_responses_enabled !== false;
+  }
   if(typeof map.codex_mini_enabled !== "undefined"){
     codexMiniEnabled = map.codex_mini_enabled !== false;
   }
@@ -1478,6 +1483,7 @@ async function loadSettings(){
   updateSearchButton();
   updateReasoningButton();
   updateCodexButton();
+  updateAiResponsesButton();
   updateMobileThinSidebar();
 }
 async function saveSettings(){
@@ -3498,6 +3504,16 @@ chatSendBtnEl.addEventListener("click", async () => {
 
   seqDiv.appendChild(userDiv);
 
+  if(!aiResponsesEnabled){
+    if(placeholderEl) placeholderEl.style.display = "none";
+    appendChatElement(seqDiv);
+    if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    chatSendBtnEl.disabled = false;
+    markTabProcessing(currentTabId, false);
+    processNextQueueMessage();
+    return;
+  }
+
   // The AI bubble
   const botDiv = document.createElement("div");
   botDiv.className = "chat-bot";
@@ -4219,6 +4235,14 @@ function updateCodexButton(){
   btn.classList.toggle("active", codexMiniEnabled);
 }
 
+function updateAiResponsesButton(){
+  if(!reasoningTooltip) return;
+  const btn = reasoningTooltip.querySelector('button[data-action="toggle-ai"]');
+  if(btn){
+    btn.textContent = aiResponsesEnabled ? 'Disable AI' : 'Enable AI';
+  }
+}
+
 let reasoningTooltip = null;
 let reasoningTooltipTimer = null;
 
@@ -4330,7 +4354,17 @@ function initReasoningTooltip(){
       });
       reasoningTooltip.appendChild(b);
     });
+
+  const disableBtn = document.createElement('button');
+  disableBtn.dataset.action = 'toggle-ai';
+  disableBtn.textContent = aiResponsesEnabled ? 'Disable AI' : 'Enable AI';
+  disableBtn.addEventListener('click', async ev => {
+    ev.stopPropagation();
+    await toggleAiResponses();
+  });
+  reasoningTooltip.appendChild(disableBtn);
   highlightReasoningModel(modelName);
+  updateAiResponsesButton();
   reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
   reasoningTooltip.addEventListener('mouseleave', scheduleHideReasoningTooltip);
   document.body.appendChild(reasoningTooltip);
@@ -4541,6 +4575,12 @@ async function toggleCodexMini(){
   updateCodexButton();
   updateSearchButton();
   updateReasoningButton();
+}
+
+async function toggleAiResponses(){
+  aiResponsesEnabled = !aiResponsesEnabled;
+  await setSetting('ai_responses_enabled', aiResponsesEnabled);
+  updateAiResponsesButton();
 }
 
 async function enableSearchMode(query=""){ 

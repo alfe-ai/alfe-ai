@@ -190,6 +190,11 @@ if (db.getSetting("reasoning_enabled") === undefined) {
   db.setSetting("reasoning_enabled", false);
 }
 
+console.debug("[Server Debug] Checking or setting default 'ai_responses_enabled' in DB...");
+if (db.getSetting("ai_responses_enabled") === undefined) {
+  db.setSetting("ai_responses_enabled", true);
+}
+
 console.debug("[Server Debug] Checking or setting default 'new_tab_opens_search' in DB...");
 if (db.getSetting("new_tab_opens_search") === undefined) {
   db.setSetting("new_tab_opens_search", false);
