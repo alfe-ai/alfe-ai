@@ -2542,8 +2542,8 @@ function renderSidebarTabs(){
       if(!groups.has(key)) groups.set(key, []);
       groups.get(key).push(t);
     });
-    for(const [project, list] of groups.entries()){
-      if(list.length === 0) continue;
+    const renderGroup = (project, list) => {
+      if(list.length === 0) return;
       const collapsed = collapsedProjectGroups[project];
       const header = document.createElement("div");
       header.className = "tab-project-header";
@@ -2592,7 +2592,12 @@ function renderSidebarTabs(){
       });
       list.forEach(tab => renderSidebarTabRow(groupDiv, tab, true));
       container.appendChild(groupDiv);
-    }
+    };
+
+    const noProjectTabs = groups.get("");
+    const otherEntries = Array.from(groups.entries()).filter(([p]) => p !== "");
+    otherEntries.forEach(([project, list]) => renderGroup(project, list));
+    if(noProjectTabs) renderGroup("", noProjectTabs);
     return;
   }
   const order = chatTabOrder[''] || [];
@@ -2727,13 +2732,17 @@ function renderArchivedSidebarTabs(){
       if(!groups.has(key)) groups.set(key, []);
       groups.get(key).push(t);
     });
-    for(const [project, list] of groups.entries()){
+    const renderGroup = (project, list) => {
       const header = document.createElement("div");
       header.className = "tab-project-header";
       header.textContent = project || "(No project)";
       container.appendChild(header);
       list.forEach(tab => addArchivedRow(container, tab));
-    }
+    };
+    const noProject = groups.get("");
+    const entries = Array.from(groups.entries()).filter(([p]) => p !== "");
+    entries.forEach(([project, list]) => renderGroup(project, list));
+    if(noProject) renderGroup("", noProject);
     return;
   }
   tabs.forEach(tab => addArchivedRow(container, tab));
