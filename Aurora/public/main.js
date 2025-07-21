@@ -2248,8 +2248,9 @@ function showProjectAddTooltip(project, e){
   initProjectAddTooltip();
   projectAddTooltipProject = project;
   projectAddTooltip.style.display = 'flex';
-  projectAddTooltip.style.left = (e.pageX + 8) + 'px';
-  projectAddTooltip.style.top = (e.pageY + 8) + 'px';
+  const rect = e.target.getBoundingClientRect();
+  projectAddTooltip.style.left = (rect.right + 8) + 'px';
+  projectAddTooltip.style.top = rect.top + 'px';
   clearTimeout(projectAddTooltipTimer);
 }
 
@@ -2568,7 +2569,6 @@ function renderSidebarTabs(){
       addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
       header.appendChild(addBtn);
       addBtn.addEventListener("mouseenter", e => showProjectAddTooltip(project, e));
-      addBtn.addEventListener("mousemove", e => showProjectAddTooltip(project, e));
       addBtn.addEventListener("mouseleave", scheduleHideProjectAddTooltip);
       header.addEventListener("click", e => {
         e.stopPropagation();
