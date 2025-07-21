@@ -4591,6 +4591,11 @@ async function toggleAiResponses(){
   aiResponsesEnabled = !aiResponsesEnabled;
   await setSetting('ai_responses_enabled', aiResponsesEnabled);
   updateAiResponsesButton();
+  if(!aiResponsesEnabled && searchEnabled){
+    searchEnabled = false;
+    await setSetting('search_enabled', searchEnabled);
+    updateSearchButton();
+  }
 }
 
 async function enableSearchMode(query=""){ 
