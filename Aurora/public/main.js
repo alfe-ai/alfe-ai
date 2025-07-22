@@ -4305,6 +4305,9 @@ function initReasoningTooltip(){
       if(reasoningEnabled){
         await toggleReasoning();
       }
+      if(searchEnabled){
+        await toggleSearch();
+      }
       await setSetting('ai_model', name);
       settingsCache.ai_model = name;
       await fetch('/api/chat/tabs/model', {
