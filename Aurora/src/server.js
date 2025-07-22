@@ -1488,6 +1488,8 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-3.5-turbo-0301": "--"
   };
 
+  // Known model costs are stored per one million tokens so that the
+  // frontend can easily convert to user-facing pricing.
   const knownCosts = {
     "openai/gpt-4o-mini": { input: "$0.15", output: "$0.60" },
     "openai/gpt-4.1": { input: "$2", output: "$8" },

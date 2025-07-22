@@ -3307,7 +3307,10 @@ function getModelCost(modelId, inputTokens, outputTokens) {
   const inRate = parseFloat(String(info.inputCost || '').replace('$', ''));
   const outRate = parseFloat(String(info.outputCost || '').replace('$', ''));
   if (isNaN(inRate) || isNaN(outRate)) return null;
-  const cost = (inputTokens / 1000) * inRate + (outputTokens / 1000) * outRate;
+  // Pricing data is stored per one million tokens. Adjust calculation
+  // accordingly so displayed costs match official rates.
+  const cost = (inputTokens / 1_000_000) * inRate +
+               (outputTokens / 1_000_000) * outRate;
   return cost;
 }
 
