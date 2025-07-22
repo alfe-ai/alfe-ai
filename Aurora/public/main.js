@@ -4545,14 +4545,14 @@ async function renderSearchModels(){
   await ensureAiModels();
   searchModelsContainer.innerHTML = '';
   const models = [
-    { name: 'openrouter/perplexity/sonar' },
+    { name: 'openrouter/perplexity/sonar', display: 'perplexity/sonar' },
     { name: 'openai/gpt-4o-mini-search-preview' },
-    { name: 'openrouter/perplexity/sonar-pro', label: 'pro' },
-    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro' },
-    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro' },
+    { name: 'openrouter/perplexity/sonar-pro', label: 'pro', display: 'perplexity/sonar-pro' },
+    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro', display: 'perplexity/sonar-reasoning' },
+    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro', display: 'perplexity/sonar-reasoning-pro' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
-  models.forEach(({name,label}) => {
+  models.forEach(({name,label,display}) => {
     const fav = isModelFavorite(name);
     if(!searchFavoritesEdit && !fav) return;
     const row = document.createElement('div');
@@ -4574,10 +4574,11 @@ async function renderSearchModels(){
     }
     const b = document.createElement('button');
     b.dataset.model = name;
+    const text = display || name;
     if(label){
-      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
+      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${text}`;
     } else {
-      b.textContent = name;
+      b.textContent = text;
     }
     b.classList.toggle('active', settingsCache.ai_search_model === name);
     b.addEventListener('click', async ev => {
@@ -4598,7 +4599,7 @@ async function renderSearchModels(){
       }
       highlightSearchModel(name);
       hideSearchTooltip();
-      showToast(`Search model set to ${name}`);
+      showToast(`Search model set to ${display || name}`);
     });
     row.appendChild(b);
     searchModelsContainer.appendChild(row);
