@@ -3325,6 +3325,49 @@ function countTokens(encoder, text) {
   return encoder.encode(text || "").length;
 }
 
+async function ensureAiModels(){
+  if(!window.allAiModels){
+    try{
+      const resp = await fetch('/api/ai/models');
+      if(resp.ok){
+        const data = await resp.json();
+        window.allAiModels = data.models || [];
+      } else {
+        window.allAiModels = [];
+      }
+    }catch(e){
+      console.error('Error loading models:', e);
+      window.allAiModels = [];
+    }
+  }
+}
+
+function isModelFavorite(id){
+  if(!window.allAiModels) return false;
+  const info = window.allAiModels.find(m => m.id === id);
+  return info ? !!info.favorite : false;
+}
+
+async function toggleModelFavorite(id, fav){
+  try{
+    const r = await fetch('/api/ai/favorites', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({modelId: id, favorite: fav})
+    });
+    if(r.ok){
+      if(window.allAiModels){
+        const idx = window.allAiModels.findIndex(m=>m.id===id);
+        if(idx>=0) window.allAiModels[idx].favorite = fav;
+      }
+      return true;
+    }
+  }catch(e){
+    console.error('Error toggling favorite:', e);
+  }
+  return false;
+}
+
 const chatInputEl = document.getElementById("chatInput");
 const chatSendBtnEl = document.getElementById("chatSendBtn");
 const waitingElem = document.getElementById("waitingCounter");
@@ -4255,6 +4298,9 @@ function updateAiResponsesButton(){
 
 let reasoningTooltip = null;
 let reasoningTooltipTimer = null;
+let reasoningFavoritesEdit = false;
+let reasoningChatContainer = null;
+let reasoningReasonContainer = null;
 
 function highlightReasoningModel(model){
   if(!reasoningTooltip) return;
@@ -4267,10 +4313,21 @@ function highlightReasoningModel(model){
   updateReasoningButton();
 }
 
-function initReasoningTooltip(){
+async function initReasoningTooltip(){
   if(reasoningTooltip) return;
   reasoningTooltip = document.createElement('div');
   reasoningTooltip.className = 'reasoning-tooltip';
+  const gear = document.createElement('button');
+  gear.className = 'tooltip-gear';
+  gear.innerHTML = '⚙️';
+  gear.addEventListener('click', ev => {
+    ev.stopPropagation();
+    reasoningFavoritesEdit = !reasoningFavoritesEdit;
+    gear.classList.toggle('active', reasoningFavoritesEdit);
+    renderReasoningModels();
+  });
+  reasoningTooltip.appendChild(gear);
+
   const tBtn = document.createElement('button');
   tBtn.textContent = 'Toggle Reasoning';
   tBtn.addEventListener('click', async ev => {
@@ -4284,92 +4341,16 @@ function initReasoningTooltip(){
   chatHeader.className = 'tooltip-section-header';
   reasoningTooltip.appendChild(chatHeader);
 
-  const chatModels = [
-    { name: 'deepseek/deepseek-chat-v3-0324' },
-    { name: 'openai/gpt-4o-mini' },
-    { name: 'openai/gpt-4.1-mini' },
-    { name: 'openai/gpt-4o', label: 'pro' },
-    { name: 'openai/gpt-4.1', label: 'pro' }
-  ];
-  chatModels.forEach(m => {
-    const name = typeof m === 'string' ? m : m.name;
-    const label = typeof m === 'object' && m.label;
-    const b = document.createElement('button');
-    b.dataset.model = name;
-    if(label){
-      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
-    }else{
-      b.textContent = name;
-    }
-    b.classList.toggle('active', modelName === name && !reasoningEnabled);
-    b.addEventListener('click', async ev => {
-      ev.stopPropagation();
-      if(reasoningEnabled){
-        await toggleReasoning();
-      }
-      if(searchEnabled){
-        await toggleSearch();
-      }
-      await setSetting('ai_model', name);
-      settingsCache.ai_model = name;
-      await fetch('/api/chat/tabs/model', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({tabId: currentTabId, model: name, sessionId})
-      });
-      tabModelOverride = name;
-      modelName = name;
-      updateModelHud();
-      highlightReasoningModel(name);
-      hideReasoningTooltip();
-      showToast(`Chat model set to ${name}`);
-    });
-    reasoningTooltip.appendChild(b);
-  });
+  reasoningChatContainer = document.createElement('div');
+  reasoningTooltip.appendChild(reasoningChatContainer);
 
   const reasoningHeader = document.createElement('div');
   reasoningHeader.textContent = 'Reasoning';
   reasoningHeader.className = 'tooltip-section-header';
   reasoningTooltip.appendChild(reasoningHeader);
 
-  const models = [
-    { name: 'deepseek/deepseek-r1-distill-llama-70b' },
-    { name: 'openai/o4-mini', label: 'pro' },
-    { name: 'openai/o4-mini-high', label: 'pro' },
-    { name: 'openai/codex-mini', label: 'pro' },
-    { name: 'openai/o3', label: 'ultimate' }
-  ];
-  models.forEach(({name, label}) => {
-      const b = document.createElement('button');
-      b.dataset.model = name;
-      if(label){
-        b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
-      }else{
-        b.textContent = name;
-      }
-      b.classList.toggle('active', settingsCache.ai_reasoning_model === name);
-      b.addEventListener('click', async ev => {
-        ev.stopPropagation();
-        await setSetting('ai_reasoning_model', name);
-        settingsCache.ai_reasoning_model = name;
-        if(!reasoningEnabled){
-          await toggleReasoning();
-        } else {
-          await fetch("/api/chat/tabs/model", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({tabId: currentTabId, model: name, sessionId})
-          });
-          tabModelOverride = name;
-          modelName = name;
-          updateModelHud();
-        }
-        highlightReasoningModel(name);
-        hideReasoningTooltip();
-        showToast(`Reasoning model set to ${name}`);
-      });
-      reasoningTooltip.appendChild(b);
-    });
+  reasoningReasonContainer = document.createElement('div');
+  reasoningTooltip.appendChild(reasoningReasonContainer);
 
   const disableBtn = document.createElement('button');
   disableBtn.dataset.action = 'toggle-ai';
@@ -4379,6 +4360,9 @@ function initReasoningTooltip(){
     await toggleAiResponses();
   });
   reasoningTooltip.appendChild(disableBtn);
+
+  await ensureAiModels();
+  renderReasoningModels();
   highlightReasoningModel(modelName);
   updateAiResponsesButton();
   reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
@@ -4405,8 +4389,95 @@ function scheduleHideReasoningTooltip(){
   reasoningTooltipTimer = setTimeout(hideReasoningTooltip, 200);
 }
 
+async function renderReasoningModels(){
+  if(!reasoningChatContainer || !reasoningReasonContainer) return;
+  await ensureAiModels();
+  reasoningChatContainer.innerHTML = '';
+  reasoningReasonContainer.innerHTML = '';
+  const chatModels = [
+    { name: 'deepseek/deepseek-chat-v3-0324' },
+    { name: 'openai/gpt-4o-mini' },
+    { name: 'openai/gpt-4.1-mini' },
+    { name: 'openai/gpt-4o', label: 'pro' },
+    { name: 'openai/gpt-4.1', label: 'pro' }
+  ];
+  const reasoningModels = [
+    { name: 'deepseek/deepseek-r1-distill-llama-70b' },
+    { name: 'openai/o4-mini', label: 'pro' },
+    { name: 'openai/o4-mini-high', label: 'pro' },
+    { name: 'openai/codex-mini', label: 'pro' },
+    { name: 'openai/o3', label: 'ultimate' }
+  ];
+
+  function addModel(container, name, label){
+    const fav = isModelFavorite(name);
+    if(!reasoningFavoritesEdit && !fav) return;
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    if(reasoningFavoritesEdit){
+      const star = document.createElement('span');
+      star.dataset.modelid = name;
+      star.className = fav ? 'favorite-star starred' : 'favorite-star unstarred';
+      star.textContent = fav ? '★' : '☆';
+      star.addEventListener('click', async ev => {
+        ev.stopPropagation();
+        const newFav = !fav;
+        if(await toggleModelFavorite(name, newFav)){
+          renderReasoningModels();
+        }
+      });
+      row.appendChild(star);
+    }
+    const b = document.createElement('button');
+    b.dataset.model = name;
+    if(label){
+      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
+    } else {
+      b.textContent = name;
+    }
+    b.classList.toggle('active',
+        (container===reasoningChatContainer ? modelName===name && !reasoningEnabled
+                                            : settingsCache.ai_reasoning_model===name));
+    b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      if(container===reasoningChatContainer){
+        if(reasoningEnabled){ await toggleReasoning(); }
+        if(searchEnabled){ await toggleSearch(); }
+        await setSetting('ai_model', name);
+        settingsCache.ai_model = name;
+      } else {
+        await setSetting('ai_reasoning_model', name);
+        settingsCache.ai_reasoning_model = name;
+        if(!reasoningEnabled){
+          await toggleReasoning();
+        }
+      }
+      await fetch('/api/chat/tabs/model', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({tabId: currentTabId, model: name, sessionId})
+      });
+      tabModelOverride = name;
+      modelName = name;
+      updateModelHud();
+      highlightReasoningModel(name);
+      hideReasoningTooltip();
+      showToast(`${container===reasoningChatContainer?'Chat':'Reasoning'} model set to ${name}`);
+    });
+    row.appendChild(b);
+    container.appendChild(row);
+  }
+
+  chatModels.forEach(m => addModel(reasoningChatContainer, m.name||m, m.label));
+  reasoningModels.forEach(m => addModel(reasoningReasonContainer, m.name, m.label));
+  highlightReasoningModel(modelName);
+}
+
 let searchTooltip = null;
 let searchTooltipTimer = null;
+let searchFavoritesEdit = false;
+let searchModelsContainer = null;
 
 function highlightSearchModel(model){
   if(!searchTooltip) return;
@@ -4416,10 +4487,21 @@ function highlightSearchModel(model){
   });
 }
 
-function initSearchTooltip(){
+async function initSearchTooltip(){
   if(searchTooltip) return;
   searchTooltip = document.createElement('div');
   searchTooltip.className = 'search-tooltip';
+  const gear = document.createElement('button');
+  gear.className = 'tooltip-gear';
+  gear.innerHTML = '⚙️';
+  gear.addEventListener('click', ev => {
+    ev.stopPropagation();
+    searchFavoritesEdit = !searchFavoritesEdit;
+    gear.classList.toggle('active', searchFavoritesEdit);
+    renderSearchModels();
+  });
+  searchTooltip.appendChild(gear);
+
   const tBtn = document.createElement('button');
   tBtn.textContent = 'Toggle Search';
   tBtn.addEventListener('click', async ev => {
@@ -4428,45 +4510,11 @@ function initSearchTooltip(){
   });
   searchTooltip.appendChild(tBtn);
 
-  const models = [
-    { name: 'openrouter/perplexity/sonar' },
-    { name: 'openai/gpt-4o-mini-search-preview' },
-    { name: 'openrouter/perplexity/sonar-pro', label: 'pro' },
-    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro' },
-    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro' },
-    { name: 'openai/gpt-4o-search-preview', label: 'pro' }
-  ];
-  models.forEach(({name, label}) => {
-    const b = document.createElement('button');
-    b.dataset.model = name;
-    if(label){
-      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
-    } else {
-      b.textContent = name;
-    }
-    b.classList.toggle('active', settingsCache.ai_search_model === name);
-    b.addEventListener('click', async ev => {
-      ev.stopPropagation();
-      await setSetting('ai_search_model', name);
-      settingsCache.ai_search_model = name;
-      if(!searchEnabled){
-        await toggleSearch();
-      } else {
-        await fetch('/api/chat/tabs/model', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({tabId: currentTabId, model: name, sessionId})
-        });
-        tabModelOverride = name;
-        modelName = name;
-        updateModelHud();
-      }
-      highlightSearchModel(name);
-      hideSearchTooltip();
-      showToast(`Search model set to ${name}`);
-    });
-    searchTooltip.appendChild(b);
-  });
+  searchModelsContainer = document.createElement('div');
+  searchTooltip.appendChild(searchModelsContainer);
+
+  await ensureAiModels();
+  renderSearchModels();
   highlightSearchModel(settingsCache.ai_search_model);
   searchTooltip.addEventListener('mouseenter', () => clearTimeout(searchTooltipTimer));
   searchTooltip.addEventListener('mouseleave', scheduleHideSearchTooltip);
@@ -4490,6 +4538,72 @@ function hideSearchTooltip(){
 function scheduleHideSearchTooltip(){
   clearTimeout(searchTooltipTimer);
   searchTooltipTimer = setTimeout(hideSearchTooltip, 200);
+}
+
+async function renderSearchModels(){
+  if(!searchModelsContainer) return;
+  await ensureAiModels();
+  searchModelsContainer.innerHTML = '';
+  const models = [
+    { name: 'openrouter/perplexity/sonar' },
+    { name: 'openai/gpt-4o-mini-search-preview' },
+    { name: 'openrouter/perplexity/sonar-pro', label: 'pro' },
+    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro' },
+    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro' },
+    { name: 'openai/gpt-4o-search-preview', label: 'pro' }
+  ];
+  models.forEach(({name,label}) => {
+    const fav = isModelFavorite(name);
+    if(!searchFavoritesEdit && !fav) return;
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    if(searchFavoritesEdit){
+      const star = document.createElement('span');
+      star.dataset.modelid = name;
+      star.className = fav ? 'favorite-star starred' : 'favorite-star unstarred';
+      star.textContent = fav ? '★' : '☆';
+      star.addEventListener('click', async ev => {
+        ev.stopPropagation();
+        const newFav = !fav;
+        if(await toggleModelFavorite(name, newFav)){
+          renderSearchModels();
+        }
+      });
+      row.appendChild(star);
+    }
+    const b = document.createElement('button');
+    b.dataset.model = name;
+    if(label){
+      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
+    } else {
+      b.textContent = name;
+    }
+    b.classList.toggle('active', settingsCache.ai_search_model === name);
+    b.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      await setSetting('ai_search_model', name);
+      settingsCache.ai_search_model = name;
+      if(!searchEnabled){
+        await toggleSearch();
+      } else {
+        await fetch('/api/chat/tabs/model', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({tabId: currentTabId, model: name, sessionId})
+        });
+        tabModelOverride = name;
+        modelName = name;
+        updateModelHud();
+      }
+      highlightSearchModel(name);
+      hideSearchTooltip();
+      showToast(`Search model set to ${name}`);
+    });
+    row.appendChild(b);
+    searchModelsContainer.appendChild(row);
+  });
+  highlightSearchModel(settingsCache.ai_search_model);
 }
 
 async function toggleSearch(){
