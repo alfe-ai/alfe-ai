@@ -4259,7 +4259,8 @@ let reasoningTooltipTimer = null;
 function highlightReasoningModel(model){
   if(!reasoningTooltip) return;
   Array.from(reasoningTooltip.querySelectorAll('button[data-model]')).forEach(b => {
-    b.classList.toggle('active', b.dataset.model === model);
+    const highlight = reasoningEnabled && b.dataset.model === model;
+    b.classList.toggle('active', highlight);
   });
   updateReasoningButton();
 }
@@ -4405,7 +4406,8 @@ let searchTooltipTimer = null;
 function highlightSearchModel(model){
   if(!searchTooltip) return;
   Array.from(searchTooltip.querySelectorAll('button[data-model]')).forEach(b => {
-    b.classList.toggle('active', b.dataset.model === model);
+    const highlight = searchEnabled && b.dataset.model === model;
+    b.classList.toggle('active', highlight);
   });
 }
 
@@ -4517,6 +4519,7 @@ async function toggleSearch(){
   updateSearchButton();
   updateReasoningButton();
   updateCodexButton();
+  highlightSearchModel(modelName);
 }
 
 async function toggleReasoning(){
@@ -4551,6 +4554,7 @@ async function toggleReasoning(){
   updateReasoningButton();
   updateSearchButton();
   updateCodexButton();
+  highlightReasoningModel(modelName);
 }
 
 async function toggleCodexMini(){
