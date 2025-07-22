@@ -4462,6 +4462,9 @@ async function renderReasoningModels(){
                                             : settingsCache.ai_reasoning_model===name));
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
+      if(!aiResponsesEnabled){
+        await toggleAiResponses();
+      }
       if(container===reasoningChatContainer){
         if(reasoningEnabled){ await toggleReasoning(); }
         if(searchEnabled){ await toggleSearch(); }
@@ -4611,6 +4614,9 @@ async function renderSearchModels(){
       ev.stopPropagation();
       await setSetting('ai_search_model', name);
       settingsCache.ai_search_model = name;
+      if(!aiResponsesEnabled){
+        await toggleAiResponses();
+      }
       if(!searchEnabled){
         await toggleSearch();
       } else {
