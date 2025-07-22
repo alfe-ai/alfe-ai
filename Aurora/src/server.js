@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import https from "https";
+import { URL } from "url";
 import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
@@ -288,6 +289,21 @@ function getEncoding(modelName) {
 
 function countTokens(encoder, text) {
   return encoder.encode(text || "").length;
+}
+
+function stripUtmSource(text) {
+  return (text || "").replace(/https?:\/\/[^\s)]+/g, raw => {
+    try {
+      const u = new URL(raw);
+      if (u.searchParams.has('utm_source')) {
+        u.searchParams.delete('utm_source');
+        return u.toString();
+      }
+    } catch {
+      // ignore malformed URLs
+    }
+    return raw;
+  });
 }
 
 async function callOpenAiModel(client, model, opts = {}) {
@@ -1924,8 +1940,9 @@ app.post("/api/chat", async (req, res) => {
         if (chunk.includes("[DONE]")) {
           break;
         }
-        assistantMessage += chunk;
-        res.write(chunk);
+        const cleanChunk = stripUtmSource(chunk);
+        assistantMessage += cleanChunk;
+        res.write(cleanChunk);
       }
       res.end();
       console.debug("[Server Debug] AI streaming finished, total length =>", assistantMessage.length);
@@ -1937,6 +1954,7 @@ app.post("/api/chat", async (req, res) => {
       assistantMessage =
         completion.choices?.[0]?.message?.content ||
         completion.choices?.[0]?.text || "";
+      assistantMessage = stripUtmSource(assistantMessage);
       res.write(assistantMessage);
       res.end();
       console.debug("[Server Debug] AI non-streaming completed, length =>", assistantMessage.length);
