@@ -1596,6 +1596,24 @@ app.get("/api/ai/models", async (req, res) => {
         console.error("[TaskQueue] Error fetching OpenRouter models:", err);
       }
     }
+
+    // Ensure certain known models are always included even if not returned
+    // by the provider APIs so that users can favorite them.
+    const forcedModels = ["openai/o4-mini-high", "openai/codex-mini"];
+    for (const id of forcedModels) {
+      if (!openAIModelData.find((m) => m.id === id) &&
+          !openRouterModelData.find((m) => m.id === id)) {
+        const limit = knownTokenLimits[id] || "N/A";
+        const cInfo = knownCosts[id] ? knownCosts[id] : { input: "N/A", output: "N/A" };
+        openAIModelData.push({
+          id,
+          provider: "openai",
+          tokenLimit: limit,
+          inputCost: cInfo.input,
+          outputCost: cInfo.output,
+        });
+      }
+    }
   } catch (err) {
     console.error("[TaskQueue] /api/ai/models error:", err);
   }

@@ -3361,7 +3361,11 @@ async function toggleModelFavorite(id, fav){
     if(r.ok){
       if(window.allAiModels){
         const idx = window.allAiModels.findIndex(m=>m.id===id);
-        if(idx>=0) window.allAiModels[idx].favorite = fav;
+        if(idx>=0){
+          window.allAiModels[idx].favorite = fav;
+        } else {
+          window.allAiModels.push({id, favorite: fav});
+        }
       }
       return true;
     }
