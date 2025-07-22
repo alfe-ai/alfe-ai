@@ -4510,6 +4510,11 @@ async function initSearchTooltip(){
   });
   searchTooltip.appendChild(tBtn);
 
+  const searchHeader = document.createElement('div');
+  searchHeader.textContent = 'Search';
+  searchHeader.className = 'tooltip-section-header';
+  searchTooltip.appendChild(searchHeader);
+
   searchModelsContainer = document.createElement('div');
   searchTooltip.appendChild(searchModelsContainer);
 
