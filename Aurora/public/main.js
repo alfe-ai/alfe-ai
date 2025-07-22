@@ -4271,7 +4271,7 @@ function updateModelHud(){
 function updateSearchButton(){
   const btn = document.getElementById("searchToggleBtn");
   if(!btn) return;
-  btn.disabled = reasoningEnabled;
+  btn.disabled = false;
   btn.classList.toggle("active", searchEnabled);
 }
 
