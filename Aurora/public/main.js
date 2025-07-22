@@ -195,7 +195,7 @@ const defaultFavicon = "/alfe_favicon_64x64.ico";
 const rotatingFavicon = "/alfe_favicon_64x64.ico";
 let favElement = null;
 
-const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖", search: "🔍" };
+const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖", search: "🔍", self: "📝" };
 let newTabSelectedType = 'chat';
 
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
@@ -3559,7 +3559,17 @@ chatSendBtnEl.addEventListener("click", async () => {
 
   seqDiv.appendChild(userDiv);
 
-  if(!aiResponsesEnabled){
+  const isSelfTab = currentTabType === 'self';
+  if(!aiResponsesEnabled || isSelfTab){
+    if(isSelfTab){
+      try {
+        await fetch('/api/chat', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({message:combinedUserText, tabId: currentTabId, userTime, sessionId})
+        });
+      } catch(e){ console.error('Self chat error', e); }
+    }
     if(placeholderEl) placeholderEl.style.display = "none";
     appendChatElement(seqDiv);
     if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;

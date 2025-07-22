@@ -628,6 +628,7 @@ async function generateInitialGreeting(type, client = null) {
 }
 
 async function createInitialTabMessage(tabId, type, sessionId = '') {
+  if (type === 'self') return;
   const greeting = await generateInitialGreeting(type);
   const pairId = db.createChatPair('', tabId, '', '', sessionId);
   const defaultModel = db.getSetting("ai_model") || 'deepseek/deepseek-chat';
@@ -1760,6 +1761,11 @@ app.post("/api/chat", async (req, res) => {
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
     }
+    if (tabInfo.tab_type === 'self') {
+      db.createChatPair(userMessage, chatTabId, '', '', sessionId);
+      db.logActivity("Self chat", JSON.stringify({ tabId: chatTabId, message: userMessage }));
+      return res.status(200).send("");
+    }
     const userTime = req.body.userTime || new Date().toISOString();
 
     if (!userMessage) {
@@ -2064,7 +2070,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
     if (type === 'search') {
       const searchModel = db.getSetting('ai_search_model') || 'openrouter/perplexity/sonar';
       db.setChatTabModel(tabId, searchModel);
-    } else {
+    } else if (type !== 'self') {
       createInitialTabMessage(tabId, type, sessionId).catch(e =>
         console.error('[Server Debug] Initial message error:', e.message));
     }
