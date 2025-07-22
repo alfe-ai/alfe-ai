@@ -4299,7 +4299,13 @@ function updateAiResponsesButton(){
   if(!reasoningTooltip) return;
   const btn = reasoningTooltip.querySelector('button[data-action="toggle-ai"]');
   if(btn){
-    btn.textContent = aiResponsesEnabled ? 'Disable AI' : 'Enable AI';
+    if(aiResponsesEnabled){
+      btn.textContent = 'Disable AI';
+      btn.classList.remove('active');
+    } else {
+      btn.textContent = 'Disabled';
+      btn.classList.add('active');
+    }
   }
 }
 
@@ -4363,7 +4369,13 @@ async function initReasoningTooltip(){
 
   const disableBtn = document.createElement('button');
   disableBtn.dataset.action = 'toggle-ai';
-  disableBtn.textContent = aiResponsesEnabled ? 'Disable AI' : 'Enable AI';
+  if(aiResponsesEnabled){
+    disableBtn.textContent = 'Disable AI';
+    disableBtn.classList.remove('active');
+  } else {
+    disableBtn.textContent = 'Disabled';
+    disableBtn.classList.add('active');
+  }
   disableBtn.addEventListener('click', async ev => {
     ev.stopPropagation();
     await toggleAiResponses();
