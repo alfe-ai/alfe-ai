@@ -1037,6 +1037,20 @@ body {
   margin-left: 4px;
 }
 
+/* Gear icon inside search/reasoning tooltips */
+.tooltip-gear {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: none;
+  border: none;
+  color: #ddd;
+  cursor: pointer;
+}
+.tooltip-gear.active {
+  color: gold;
+}
+
 /* Star icon style used in AI Favorites modal */
 .favorite-star {
   cursor: pointer;
