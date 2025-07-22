@@ -4281,7 +4281,7 @@ function updateSearchButton(){
 function updateReasoningButton(){
   const btn = document.getElementById("reasoningToggleBtn");
   if(!btn) return;
-  const highlight = reasoningEnabled || reasoningChatModels.includes(modelName);
+  const highlight = aiResponsesEnabled && (reasoningEnabled || reasoningChatModels.includes(modelName));
   btn.classList.toggle("active", highlight);
 }
 
@@ -4309,8 +4309,10 @@ function highlightReasoningModel(model){
   if(!reasoningTooltip) return;
   Array.from(reasoningTooltip.querySelectorAll('button[data-model]')).forEach(b => {
     const isChatModel = reasoningChatModels.includes(b.dataset.model);
-    const highlight = (reasoningEnabled && !isChatModel && b.dataset.model === model) ||
-                      (!reasoningEnabled && isChatModel && b.dataset.model === model);
+    const highlight = aiResponsesEnabled && (
+      (reasoningEnabled && !isChatModel && b.dataset.model === model) ||
+      (!reasoningEnabled && isChatModel && b.dataset.model === model)
+    );
     b.classList.toggle('active', highlight);
   });
   updateReasoningButton();
@@ -4727,6 +4729,11 @@ async function toggleAiResponses(){
     searchEnabled = false;
     await setSetting('search_enabled', searchEnabled);
     updateSearchButton();
+    highlightSearchModel(null);
+  }
+  if(!aiResponsesEnabled){
+    highlightReasoningModel(null);
+    updateReasoningButton();
   }
 }
 
