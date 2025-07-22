@@ -4259,7 +4259,9 @@ let reasoningTooltipTimer = null;
 function highlightReasoningModel(model){
   if(!reasoningTooltip) return;
   Array.from(reasoningTooltip.querySelectorAll('button[data-model]')).forEach(b => {
-    const highlight = reasoningEnabled && b.dataset.model === model;
+    const isChatModel = reasoningChatModels.includes(b.dataset.model);
+    const highlight = (reasoningEnabled && !isChatModel && b.dataset.model === model) ||
+                      (!reasoningEnabled && isChatModel && b.dataset.model === model);
     b.classList.toggle('active', highlight);
   });
   updateReasoningButton();
