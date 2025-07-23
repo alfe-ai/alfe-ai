@@ -3379,6 +3379,21 @@ const chatInputEl = document.getElementById("chatInput");
 const chatSendBtnEl = document.getElementById("chatSendBtn");
 const waitingElem = document.getElementById("waitingCounter");
 const scrollDownBtnEl = document.getElementById("scrollDownBtn");
+const tokenCounterEl = document.getElementById("inputTokenCount");
+
+function updateInputTokenCount(){
+  if(!tokenCounterEl) return;
+  try{
+    const enc = getEncoding(modelName);
+    const count = countTokens(enc, chatInputEl.value);
+    tokenCounterEl.textContent = `${count} token${count===1?'':'s'}`;
+  }catch(e){
+    tokenCounterEl.textContent = '';
+  }
+}
+
+chatInputEl.addEventListener("input", updateInputTokenCount);
+updateInputTokenCount();
 
 setLoopUi(imageLoopEnabled);
 
@@ -3403,6 +3418,7 @@ chatInputEl.addEventListener("keydown", (e) => {
       setTimeout(() => {
         chatInputEl.setSelectionRange(chatInputEl.value.length, chatInputEl.value.length);
       }, 0);
+      updateInputTokenCount();
     }
     e.preventDefault();
   } else if (upArrowHistoryEnabled && e.key === "ArrowDown") {
@@ -3410,9 +3426,11 @@ chatInputEl.addEventListener("keydown", (e) => {
       if (inputHistoryPos >= 0 && inputHistoryPos < inputHistory.length - 1) {
         inputHistoryPos++;
         chatInputEl.value = inputHistory[inputHistoryPos] || "";
+        updateInputTokenCount();
       } else {
         inputHistoryPos = -1;
         chatInputEl.value = "";
+        updateInputTokenCount();
       }
       setTimeout(() => {
         chatInputEl.setSelectionRange(chatInputEl.value.length, chatInputEl.value.length);
@@ -3424,6 +3442,7 @@ chatInputEl.addEventListener("keydown", (e) => {
     if(chatSendBtnEl.disabled && chatQueueEnabled){
       queueMessage(chatInputEl.value.trim());
       chatInputEl.value = "";
+      updateInputTokenCount();
     } else {
       chatSendBtnEl.click();
     }
@@ -3503,6 +3522,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   // If user typed nothing but we have desc subbubbles, we can still show them in a single bubble
   if(!userMessage && descsForThisSend.length>0){
     chatInputEl.value = "";
+    updateInputTokenCount();
   } else if(!userMessage && descsForThisSend.length===0){
     if (favElement) favElement.href = defaultFavicon;
     chatSendBtnEl.disabled = false;
@@ -3512,6 +3532,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   }
 
   chatInputEl.value = "";
+  updateInputTokenCount();
 
   // Create the single chat-sequence
   const seqDiv = document.createElement("div");
