@@ -269,10 +269,14 @@ function parseProviderModel(model) {
   if (!model) return { provider: "Unknown", shortModel: "Unknown" };
   if (model.startsWith("openai/")) {
     return { provider: "openai", shortModel: model.replace(/^openai\//, "") };
+  } else if (model.startsWith("openrouter/perplexity/")) {
+    return { provider: "perplexity", shortModel: model.replace(/^openrouter\/perplexity\//, "") };
   } else if (model.startsWith("openrouter/")) {
     return { provider: "openrouter", shortModel: model.replace(/^openrouter\//, "") };
   } else if (model.startsWith("deepseek/")) {
     return { provider: "openrouter", shortModel: model.replace(/^deepseek\//, "") };
+  } else if (model.startsWith("perplexity/")) {
+    return { provider: "perplexity", shortModel: model.replace(/^perplexity\//, "") };
   }
   return { provider: "Unknown", shortModel: model };
 }
@@ -1916,7 +1920,7 @@ app.post("/api/chat", async (req, res) => {
       return m;
     }
     const modelForOpenAI = stripModelPrefix(model);
-    const usePerplexity = provider === 'openrouter' && modelForOpenAI.startsWith('perplexity/');
+    const usePerplexity = provider === 'perplexity';
 
     console.debug("[Server Debug] Using model =>", model, " (stripped =>", modelForOpenAI, ")");
     const encoder = getEncoding(modelForOpenAI);
