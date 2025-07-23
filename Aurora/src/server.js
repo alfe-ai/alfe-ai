@@ -116,8 +116,8 @@ if (envModel) {
 console.debug("[Server Debug] Checking or setting default 'ai_search_model' in DB...");
 const currentSearchModel = db.getSetting("ai_search_model");
 if (!currentSearchModel) {
-  console.debug("[Server Debug] 'ai_search_model' is missing in DB, setting default to 'openrouter/perplexity/sonar'.");
-  db.setSetting("ai_search_model", "openrouter/perplexity/sonar");
+  console.debug("[Server Debug] 'ai_search_model' is missing in DB, setting default to 'sonar-medium-online'.");
+  db.setSetting("ai_search_model", "sonar-medium-online");
 } else {
   console.debug("[Server Debug] 'ai_search_model' found =>", currentSearchModel);
 }
@@ -134,8 +134,8 @@ if (!currentChatSearchModel) {
 console.debug("[Server Debug] Checking or setting default 'ai_reasoning_model' in DB...");
 const currentReasoningModel = db.getSetting("ai_reasoning_model");
 if (!currentReasoningModel) {
-  console.debug("[Server Debug] 'ai_reasoning_model' is missing in DB, setting default to 'openrouter/perplexity/sonar-reasoning'.");
-  db.setSetting("ai_reasoning_model", "openrouter/perplexity/sonar-reasoning");
+  console.debug("[Server Debug] 'ai_reasoning_model' is missing in DB, setting default to 'sonar-medium-chat'.");
+  db.setSetting("ai_reasoning_model", "sonar-medium-chat");
 } else {
   console.debug("[Server Debug] 'ai_reasoning_model' found =>", currentReasoningModel);
 }
@@ -277,6 +277,11 @@ function parseProviderModel(model) {
     return { provider: "openrouter", shortModel: model.replace(/^deepseek\//, "") };
   } else if (model.startsWith("perplexity/")) {
     return { provider: "perplexity", shortModel: model.replace(/^perplexity\//, "") };
+  } else if (model.startsWith("sonar-") ||
+             model.startsWith("mistral-") ||
+             model.startsWith("llama-") ||
+             model.startsWith("codellama-")) {
+    return { provider: "perplexity", shortModel: model };
   }
   return { provider: "Unknown", shortModel: model };
 }
@@ -2132,7 +2137,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
     const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId);
     res.json({ success: true, id: tabId, uuid });
     if (type === 'search') {
-      const searchModel = db.getSetting('ai_search_model') || 'openrouter/perplexity/sonar';
+      const searchModel = db.getSetting('ai_search_model') || 'sonar-medium-online';
       db.setChatTabModel(tabId, searchModel);
     } else {
       createInitialTabMessage(tabId, type, sessionId).catch(e =>
@@ -3705,7 +3710,7 @@ app.get("/search", (req, res) => {
       sessionId
     );
     const searchModel =
-      db.getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+      db.getSetting("ai_search_model") || "sonar-medium-online";
     db.setChatTabModel(tabId, searchModel);
     const query = q ? `?search=1&q=${encodeURIComponent(q)}` : "?search=1";
     return res.redirect(`/chat/${uuid}${query}`);
@@ -3731,7 +3736,7 @@ app.get("/new", (req, res) => {
     );
     if (openSearch) {
       const searchModel =
-        db.getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+        db.getSetting("ai_search_model") || "sonar-medium-online";
       db.setChatTabModel(tabId, searchModel);
     }
     db.setSetting("last_chat_tab", tabId);

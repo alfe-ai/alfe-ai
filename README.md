@@ -91,3 +91,27 @@ chmod +x perplexity-cli.js
 
 The script outputs the answer and lists cited URLs if available.
 
+## Perplexity API Quick Reference (2025)
+
+The CLI follows Perplexity's official API which mirrors the OpenAI Chat
+Completions format. Set your API key in the `PERPLEXITY_API_KEY` environment
+variable and send requests to `https://api.perplexity.ai/chat/completions`.
+
+```json
+{
+  "model": "sonar-medium-online",
+  "messages": [
+    { "role": "system", "content": "You are a helpful assistant." },
+    { "role": "user", "content": "Who discovered penicillin?" }
+  ],
+  "max_tokens": 512,
+  "temperature": 0.7
+}
+```
+
+Responses include optional `citations` and `search_results` arrays with the
+source URLs used. Common errors are a `400 Bad Request` when the model name is
+wrong and `401`/`403` for missing or invalid API keys. Use plain Sonar model
+names such as `sonar-medium-online` or `sonar-medium-chat` without any provider
+prefix.
+
