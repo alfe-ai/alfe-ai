@@ -72,7 +72,18 @@ return change information.
 
 ## Perplexity CLI
 
-A small command-line script `perplexity-cli.js` lets you query the official Perplexity API and prints any citation URLs from the response.
+A small command-line script `perplexity-cli.js` lets you query the official Perplexity API and prints any citation URLs from the response. A newer interactive version `pplx.js` is also provided.
+
+Supported Perplexity models:
+
+```
+sonar
+sonar-pro
+sonar-reasoning
+sonar-reasoning-pro
+sonar-deep-research
+r1-1776
+```
 
 ### Prerequisites
 
@@ -85,8 +96,8 @@ Set your API key with `PERPLEXITY_API_KEY` or pass `--key` when running.
 ### Usage
 
 ```bash
-chmod +x perplexity-cli.js
-./perplexity-cli.js "What causes aurora borealis?"
+chmod +x pplx.js
+./pplx.js "What causes aurora borealis?"
 ```
 
 The script outputs the answer and lists cited URLs if available.
@@ -99,7 +110,7 @@ variable and send requests to `https://api.perplexity.ai/chat/completions`.
 
 ```json
 {
-  "model": "sonar-medium-online",
+  "model": "sonar-pro",
   "messages": [
     { "role": "system", "content": "You are a helpful assistant." },
     { "role": "user", "content": "Who discovered penicillin?" }
@@ -111,7 +122,7 @@ variable and send requests to `https://api.perplexity.ai/chat/completions`.
 
 Responses include optional `citations` and `search_results` arrays with the
 source URLs used. Common errors are a `400 Bad Request` when the model name is
-wrong and `401`/`403` for missing or invalid API keys. Use plain Sonar model
-names such as `sonar-medium-online` or `sonar-medium-chat` without any provider
-prefix.
+wrong and `401`/`403` for missing or invalid API keys. Use plain model names
+like `sonar`, `sonar-pro`, `sonar-reasoning`, `sonar-reasoning-pro`,
+`sonar-deep-research`, or `r1-1776` without any provider prefix.
 

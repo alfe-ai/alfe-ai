@@ -4574,11 +4574,13 @@ async function renderSearchModels(){
   await ensureAiModels();
   searchModelsContainer.innerHTML = '';
   const models = [
-    { name: 'sonar-medium-online', display: 'sonar-medium-online' },
+    { name: 'sonar', display: 'sonar' },
+    { name: 'sonar-pro', display: 'sonar-pro' },
+    { name: 'sonar-reasoning', display: 'sonar-reasoning' },
+    { name: 'sonar-reasoning-pro', display: 'sonar-reasoning-pro' },
+    { name: 'sonar-deep-research', display: 'sonar-deep-research' },
+    { name: 'r1-1776', display: 'r1-1776' },
     { name: 'openai/gpt-4o-mini-search-preview' },
-    { name: 'sonar-small-online', label: 'pro', display: 'sonar-small-online' },
-    { name: 'sonar-medium-chat', label: 'pro', display: 'sonar-medium-chat' },
-    { name: 'sonar-small-chat', label: 'pro', display: 'sonar-small-chat' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
   models.forEach(({name,label,display}) => {
@@ -4648,7 +4650,7 @@ async function toggleSearch(){
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
     previousModelName = modelName; // remember current model
-    const searchModel = await getSetting("ai_search_model") || "sonar-medium-online";
+    const searchModel = await getSetting("ai_search_model") || "sonar-pro";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -4683,7 +4685,7 @@ async function toggleReasoning(){
   await setSetting("reasoning_enabled", reasoningEnabled);
   if(reasoningEnabled){
     reasoningPreviousModelName = modelName; // remember current model
-    const reasoningModel = await getSetting("ai_reasoning_model") || "sonar-medium-chat";
+    const reasoningModel = await getSetting("ai_reasoning_model") || "sonar-reasoning";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -4763,7 +4765,7 @@ async function enableSearchMode(query=""){
   if(!searchEnabled){
     searchEnabled = true;
     previousModelName = modelName;
-    const searchModel = await getSetting("ai_search_model") || "sonar-medium-online";
+    const searchModel = await getSetting("ai_search_model") || "sonar-pro";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},

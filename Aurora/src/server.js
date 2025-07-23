@@ -116,8 +116,8 @@ if (envModel) {
 console.debug("[Server Debug] Checking or setting default 'ai_search_model' in DB...");
 const currentSearchModel = db.getSetting("ai_search_model");
 if (!currentSearchModel) {
-  console.debug("[Server Debug] 'ai_search_model' is missing in DB, setting default to 'sonar-medium-online'.");
-  db.setSetting("ai_search_model", "sonar-medium-online");
+  console.debug("[Server Debug] 'ai_search_model' is missing in DB, setting default to 'sonar-pro'.");
+  db.setSetting("ai_search_model", "sonar-pro");
 } else {
   console.debug("[Server Debug] 'ai_search_model' found =>", currentSearchModel);
 }
@@ -134,8 +134,8 @@ if (!currentChatSearchModel) {
 console.debug("[Server Debug] Checking or setting default 'ai_reasoning_model' in DB...");
 const currentReasoningModel = db.getSetting("ai_reasoning_model");
 if (!currentReasoningModel) {
-  console.debug("[Server Debug] 'ai_reasoning_model' is missing in DB, setting default to 'sonar-medium-chat'.");
-  db.setSetting("ai_reasoning_model", "sonar-medium-chat");
+  console.debug("[Server Debug] 'ai_reasoning_model' is missing in DB, setting default to 'sonar-reasoning'.");
+  db.setSetting("ai_reasoning_model", "sonar-reasoning");
 } else {
   console.debug("[Server Debug] 'ai_reasoning_model' found =>", currentReasoningModel);
 }
@@ -2137,7 +2137,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
     const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId);
     res.json({ success: true, id: tabId, uuid });
     if (type === 'search') {
-      const searchModel = db.getSetting('ai_search_model') || 'sonar-medium-online';
+      const searchModel = db.getSetting('ai_search_model') || 'sonar-pro';
       db.setChatTabModel(tabId, searchModel);
     } else {
       createInitialTabMessage(tabId, type, sessionId).catch(e =>
@@ -3710,7 +3710,7 @@ app.get("/search", (req, res) => {
       sessionId
     );
     const searchModel =
-      db.getSetting("ai_search_model") || "sonar-medium-online";
+      db.getSetting("ai_search_model") || "sonar-pro";
     db.setChatTabModel(tabId, searchModel);
     const query = q ? `?search=1&q=${encodeURIComponent(q)}` : "?search=1";
     return res.redirect(`/chat/${uuid}${query}`);
@@ -3736,7 +3736,7 @@ app.get("/new", (req, res) => {
     );
     if (openSearch) {
       const searchModel =
-        db.getSetting("ai_search_model") || "sonar-medium-online";
+        db.getSetting("ai_search_model") || "sonar-pro";
       db.setChatTabModel(tabId, searchModel);
     }
     db.setSetting("last_chat_tab", tabId);
