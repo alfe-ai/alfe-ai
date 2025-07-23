@@ -15,13 +15,25 @@ const options = program.opts();
 const query = program.args.join(' ');
 const apiKey = options.key || process.env.PERPLEXITY_API_KEY;
 
+function normalizeModel(model) {
+  if (!model) return 'sonar-medium-online';
+  // Strip deprecated prefixes used by some clients
+  model = model.replace(/^openrouter\/perplexity\//, '');
+  model = model.replace(/^perplexity\//, '');
+  const aliases = {
+    'pplx-7b-online': 'sonar-small-online',
+    'pplx-70b-chat': 'sonar-medium-chat',
+  };
+  return aliases[model] || model;
+}
+
 if (!apiKey) {
   console.error('Error: API key required. Use --key or set PERPLEXITY_API_KEY');
   process.exit(1);
 }
 
 axios.post('https://api.perplexity.ai/chat/completions', {
-  model: options.model,
+  model: normalizeModel(options.model),
   messages: [{ role: 'user', content: query }],
 }, {
   headers: {

@@ -91,3 +91,9 @@ chmod +x perplexity-cli.js
 
 The script outputs the answer and lists cited URLs if available.
 
+The CLI automatically strips any `perplexity/` or
+`openrouter/perplexity/` prefix from the model name and maps
+deprecated `pplx-*` identifiers to their Sonar equivalents. This
+prevents the **HTTP 400** errors that occur when old model strings are
+sent to the Perplexity API.
+
