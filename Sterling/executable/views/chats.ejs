@@ -55,11 +55,16 @@
                           onsubmit="return confirm('Are you sure you want to deactivate this chat?');">
                         <button type="submit">Deactivate</button>
                     </form>
-                    <!-- Archive form -->
+                    <!-- Archive form (default adds to context) -->
                     <form action="/<%= gitRepoNameCLI %>/chat/<%= chat.number %>/archive"
                           method="POST"
                           onsubmit="return confirm('Archive this chat?');">
                         <button type="submit">Archive</button>
+                    </form>
+                    <form action="/<%= gitRepoNameCLI %>/chat/<%= chat.number %>/archive_plain"
+                          method="POST"
+                          onsubmit="return confirm('Archive without context?');">
+                        <button type="submit">Archive Only</button>
                     </form>
                 </div>
             </li>
@@ -86,6 +91,11 @@
                           onsubmit="return confirm('Archive this chat?');">
                         <button type="submit">Archive</button>
                     </form>
+                    <form action="/<%= gitRepoNameCLI %>/chat/<%= chat.number %>/archive_plain"
+                          method="POST"
+                          onsubmit="return confirm('Archive without context?');">
+                        <button type="submit">Archive Only</button>
+                    </form>
                 </div>
             </li>
         <% }); %>
@@ -98,6 +108,27 @@
         <li>No archived chats available.</li>
     <% } else { %>
         <% archivedChats.forEach(function(chat) { %>
+            <li>
+                Chat <%= chat.number %> - Status: <%= chat.status %>
+                <div class="actions">
+                    <button onclick="window.location.href='/<%= gitRepoNameCLI %>/chat/<%= chat.number %>'">
+                        Enter Chat
+                    </button>
+                    <form action="/<%= gitRepoNameCLI %>/chat/<%= chat.number %>/unarchive" method="POST" onsubmit="return confirm('Unarchive this chat?');">
+                        <button type="submit">Unarchive</button>
+                    </form>
+                </div>
+            </li>
+        <% }); %>
+    <% } %>
+</ul>
+
+<h2>Archived-Context Chats:</h2>
+<ul class="chat-list">
+    <% if (archivedContextChats.length === 0) { %>
+        <li>No archived-context chats available.</li>
+    <% } else { %>
+        <% archivedContextChats.forEach(function(chat) { %>
             <li>
                 Chat <%= chat.number %> - Status: <%= chat.status %>
                 <div class="actions">

@@ -385,19 +385,22 @@ function getActiveInactiveChats(jsonObj) {
     const activeChats = [];
     const inactiveChats = [];
     const archivedChats = [];
+    const archivedContextChats = [];
     for (const key of Object.keys(jsonObj)) {
         const chatNumber = parseInt(key, 10);
         if (isNaN(chatNumber)) continue;
         const status = (jsonObj[key].status || "INACTIVE").toUpperCase();
         if (status === "ACTIVE") {
             activeChats.push({ number: chatNumber, status: "ACTIVE" });
+        } else if (status === "ARCHIVED_CONTEXT") {
+            archivedContextChats.push({ number: chatNumber, status: "ARCHIVED_CONTEXT" });
         } else if (status === "ARCHIVED") {
             archivedChats.push({ number: chatNumber, status: "ARCHIVED" });
         } else {
             inactiveChats.push({ number: chatNumber, status: "INACTIVE" });
         }
     }
-    return { activeChats, inactiveChats, archivedChats };
+    return { activeChats, inactiveChats, archivedChats, archivedContextChats };
 }
 
 /**
