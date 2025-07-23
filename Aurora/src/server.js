@@ -1932,10 +1932,9 @@ app.post("/api/chat", async (req, res) => {
 
     let convTokens = 0;
     let truncatedConversation = [];
-    truncatedConversation.push(conversation[0]);
-    const remainder = conversation.slice(1).reverse();
 
-    for (const msg of remainder) {
+    for (let i = conversation.length - 1; i >= 0; i--) {
+      const msg = conversation[i];
       const chunkTokens = countTokens(encoder, msg.content) + 4;
       if ((convTokens + chunkTokens) > 7000) {
         break;
