@@ -103,6 +103,51 @@ function setupPostRoutes(deps) {
         res.redirect(`/${repoName}/chat/${chatNumber}`);
     });
 
+    /* ---------- Chat status management ---------- */
+    app.post("/:repoName/chat/:chatNumber/deactivate", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const dataObj = loadRepoJson(repoName);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+        chatData.status = "INACTIVE";
+        dataObj[chatNumber] = chatData;
+        saveRepoJson(repoName, dataObj);
+        res.redirect(`/${repoName}/chats`);
+    });
+
+    app.post("/:repoName/chat/:chatNumber/activate", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const dataObj = loadRepoJson(repoName);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+        chatData.status = "ACTIVE";
+        dataObj[chatNumber] = chatData;
+        saveRepoJson(repoName, dataObj);
+        res.redirect(`/${repoName}/chats`);
+    });
+
+    app.post("/:repoName/chat/:chatNumber/archive", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const dataObj = loadRepoJson(repoName);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+        chatData.status = "ARCHIVED";
+        dataObj[chatNumber] = chatData;
+        saveRepoJson(repoName, dataObj);
+        res.redirect(`/${repoName}/chats`);
+    });
+
+    app.post("/:repoName/chat/:chatNumber/unarchive", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const dataObj = loadRepoJson(repoName);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+        chatData.status = "ACTIVE";
+        dataObj[chatNumber] = chatData;
+        saveRepoJson(repoName, dataObj);
+        res.redirect(`/${repoName}/chats`);
+    });
+
     /* ---------- /:repoName/chat/:chatNumber ---------- */
     app.post("/:repoName/chat/:chatNumber", upload.array("imageFiles"), async (req, res) => {
         try {
