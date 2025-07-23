@@ -20,6 +20,14 @@ if [ "$persist" != true ]; then
   clear
 fi
 
+# Ensure we have permission to modify files under the Aurora directory. If
+# package-lock.json is not writable, attempt to fix the permissions using sudo.
+PKG_LOCK="Aurora/package-lock.json"
+if [ ! -w "$PKG_LOCK" ]; then
+  echo "package-lock.json is not writable. Attempting to fix with sudo..."
+  sudo chown -R $(whoami):$(whoami) "$(dirname "$PKG_LOCK")" || sudo chmod -R u+w "$(dirname "$PKG_LOCK")"
+fi
+
 sudo git stash
 sudo git pull
 #git log -n 3
