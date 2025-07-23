@@ -6633,33 +6633,27 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       let currentProj = null;
       let currentChat = null;
       const flushChat = () => {
-        if (currentChat && currentProj) {
-          currentProj.appendChild(currentChat);
-          currentChat = null;
-        }
-      };
-      const flushProj = () => {
-        flushChat();
-        if (currentProj) {
-          prDetails.appendChild(currentProj);
-          currentProj = null;
-        }
+        currentChat = null;
       };
 
       prLines.forEach(line => {
         if (!line.trim()) return;
         if (line.startsWith('Project: ')) {
-          flushProj();
+          flushChat();
+          if (currentProj) prDetails.appendChild(currentProj);
           currentProj = document.createElement('details');
           const sum = document.createElement('summary');
           sum.textContent = line;
           currentProj.appendChild(sum);
+          prDetails.appendChild(currentProj);
         } else if (line.startsWith('Chat: ')) {
           flushChat();
           currentChat = document.createElement('details');
           const sum = document.createElement('summary');
           sum.textContent = line;
           currentChat.appendChild(sum);
+          if (currentProj) currentProj.appendChild(currentChat);
+          else prDetails.appendChild(currentChat);
         } else {
           const lineBubble = document.createElement('div');
           lineBubble.className = 'chat-bot';
@@ -6670,7 +6664,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
           else prDetails.appendChild(lineBubble);
         }
       });
-      flushProj();
+      flushChat();
       metaContainer.appendChild(prDetails);
     }
 
