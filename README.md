@@ -91,3 +91,60 @@ chmod +x perplexity-cli.js
 
 The script outputs the answer and lists cited URLs if available.
 
+## Reasoning Streaming
+
+OpenRouter's reasoning models can stream both the assistant's text and a summary
+of the model's internal reasoning. When using the `@openrouter/ai-sdk-provider`
+library, pass a `reasoning` object in `extraBody` and request a summary:
+
+```javascript
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const openrouter = createOpenRouter({ apiKey: 'YOUR-OPENROUTER-API-KEY' });
+
+const model = openrouter('openrouter/o4-mini', {
+  extraBody: {
+    reasoning: {
+      effort: 'medium',
+      summary: 'auto'
+    }
+  }
+});
+
+const result = await streamText({
+  model,
+  messages: [
+    { role: 'user', content: 'Explain how a rainbow forms in the atmosphere.' }
+  ]
+});
+
+console.log('\nAI Output:');
+console.log(result.text);
+
+if (result.raw && result.raw.reasoning && result.raw.reasoning.summary) {
+  console.log('\nAI Reasoning Summary:');
+  for (const summary of result.raw.reasoning.summary) {
+    console.log('- ', summary);
+  }
+} else {
+  console.log('\nNo explicit reasoning summary returned.');
+}
+```
+
+## AI Output Streaming
+
+To stream only the assistant's text without reasoning summaries, you can omit
+the `reasoning` options:
+
+```javascript
+const model = openrouter('openrouter/o4-mini');
+
+const result = await streamText({
+  model,
+  messages: [{ role: 'user', content: 'Tell me a joke.' }]
+});
+
+console.log(result.text);
+```
+
