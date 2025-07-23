@@ -277,7 +277,8 @@ function parseProviderModel(model) {
     return { provider: "openrouter", shortModel: model.replace(/^deepseek\//, "") };
   } else if (model.startsWith("perplexity/")) {
     return { provider: "perplexity", shortModel: model.replace(/^perplexity\//, "") };
-  } else if (model.startsWith("sonar-") ||
+  } else if (model.startsWith("sonar") ||
+             model === "r1-1776" ||
              model.startsWith("mistral-") ||
              model.startsWith("llama-") ||
              model.startsWith("codellama-")) {
