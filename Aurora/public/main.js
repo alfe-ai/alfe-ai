@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateMosaicPanelVisibility();
   loadProjectGroups();
   loadCollapsedProjectGroups();
+  loadCollapsedArchiveGroups();
   loadTasksOnlyTabs();
   loadHideArchivedTabs();
   loadHideDoneTasks();
@@ -132,7 +133,8 @@ let showProjectNameInTabs = false; // append project name to chat tab titles
 let groupTabsByProject = true;   // group chat tabs by project
 let projectGroups = [];           // custom project group headers
 let draggingProjectIndex = null;  // index of project group being dragged
-let collapsedProjectGroups = {};  // project group collapse states
+let collapsedProjectGroups = {};  // chat project group collapse states
+let collapsedArchiveGroups = {};  // archived tab group collapse states
 let chatTabOrder = {};            // per-project tab ordering
 let projectHeaderOrder = [];      // order of project headers
 let draggingTabRow = null;        // element of tab row being dragged
@@ -479,6 +481,14 @@ function loadCollapsedProjectGroups(){
   }
 }
 
+function loadCollapsedArchiveGroups(){
+  try {
+    collapsedArchiveGroups = JSON.parse(localStorage.getItem('collapsedArchiveGroups') || '{}');
+  } catch(e){
+    collapsedArchiveGroups = {};
+  }
+}
+
 function loadTasksOnlyTabs(){
   tasksOnlyTabs = localStorage.getItem('tasksOnlyTabs') === 'true';
 }
@@ -506,6 +516,10 @@ function saveHideDoneTasks(){
 
 function saveCollapsedProjectGroups(){
   localStorage.setItem('collapsedProjectGroups', JSON.stringify(collapsedProjectGroups));
+}
+
+function saveCollapsedArchiveGroups(){
+  localStorage.setItem('collapsedArchiveGroups', JSON.stringify(collapsedArchiveGroups));
 }
 
 function saveProjectGroups(){
@@ -2790,27 +2804,51 @@ function renderArchivedSidebarTabs(){
       groups.get(key).push(t);
     });
     const renderGroup = (project, list) => {
+      if(list.length === 0) return;
+      let collapsed = collapsedArchiveGroups.hasOwnProperty(project) ? collapsedArchiveGroups[project] : true;
+      if(!collapsedArchiveGroups.hasOwnProperty(project)) collapsedArchiveGroups[project] = collapsed;
       const header = document.createElement("div");
       header.className = "tab-project-header";
-      header.textContent = project || "(No project)";
+      const arrow = document.createElement("span");
+      arrow.className = "project-collapse-arrow";
+      arrow.textContent = collapsed ? "\u25B6" : "\u25BC";
+      header.appendChild(arrow);
+      header.appendChild(document.createTextNode(" " + (project || "(No project)")));
+      header.addEventListener("click", () => {
+        collapsedArchiveGroups[project] = !collapsedArchiveGroups[project];
+        saveCollapsedArchiveGroups();
+        renderArchivedSidebarTabs();
+      });
       container.appendChild(header);
-      list.forEach(tab => addArchivedRow(container, tab));
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "project-tab-group";
+      groupDiv.dataset.project = project;
+      if(collapsed) groupDiv.style.display = "none";
+      list.forEach(tab => addArchivedRow(groupDiv, tab, true));
+      container.appendChild(groupDiv);
     };
     const noProject = groups.get("");
     const entries = Array.from(groups.entries()).filter(([p]) => p !== "");
+    entries.sort((a,b)=>{
+      const ia = projectHeaderOrder.indexOf(a[0]);
+      const ib = projectHeaderOrder.indexOf(b[0]);
+      return ia - ib;
+    });
     entries.forEach(([project, list]) => renderGroup(project, list));
     if(noProject) renderGroup("", noProject);
+    saveCollapsedArchiveGroups();
     return;
   }
   tabs.forEach(tab => addArchivedRow(container, tab));
 }
 
-function addArchivedRow(container, tab){
+function addArchivedRow(container, tab, indented=false){
   const wrapper = document.createElement("div");
   wrapper.style.display = "flex";
   wrapper.style.alignItems = "center";
   wrapper.style.gap = "4px";
   wrapper.style.width = "100%";
+  if(indented) wrapper.classList.add("project-indented");
 
   const icon = document.createElement("span");
   icon.className = "tab-icon";

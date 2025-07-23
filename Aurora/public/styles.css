@@ -861,6 +861,15 @@ body {
   display: flex;
   align-items: center;
 }
+#archivedTabsContainer .tab-project-header {
+  margin: 6px 0 2px;
+  font-size: 0.9rem;
+  color: #aaa;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
 #verticalTabsContainer .tab-project-header .drag-handle {
   cursor: move;
   margin-right: 4px;
@@ -869,6 +878,9 @@ body {
   border: 1px dashed #aaa;
 }
 #verticalTabsContainer .project-collapse-arrow {
+  margin-right: 4px;
+}
+#archivedTabsContainer .project-collapse-arrow {
   margin-right: 4px;
 }
 
@@ -956,6 +968,9 @@ body {
   border-color: #aaa;
 }
 #verticalTabsContainer .project-indented {
+  margin-left: 10px;
+}
+#archivedTabsContainer .project-indented {
   margin-left: 10px;
 }
 
