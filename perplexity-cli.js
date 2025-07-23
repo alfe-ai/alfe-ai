@@ -3,17 +3,35 @@ const axios = require('axios');
 const { Command } = require('commander');
 
 const program = new Command();
+const VALID_MODELS = [
+  'sonar',
+  'sonar-pro',
+  'sonar-reasoning',
+  'sonar-reasoning-pro',
+  'sonar-deep-research',
+  'r1-1776'
+];
+
 program
   .name('pquery')
   .description('Perplexity API CLI with citations')
   .argument('<query>', 'Your search query')
-  .option('-m, --model <model>', 'AI model (default: sonar-medium-online)', 'sonar-medium-online')
+  .option(
+    '-m, --model <model>',
+    `AI model (choices: ${VALID_MODELS.join(', ')}, default: sonar-pro)`,
+    'sonar-pro'
+  )
   .option('-k, --key <key>', 'Perplexity API key (or set PERPLEXITY_API_KEY)');
 
 program.parse();
 const options = program.opts();
 const query = program.args.join(' ');
 const apiKey = options.key || process.env.PERPLEXITY_API_KEY;
+
+if (!VALID_MODELS.includes(options.model)) {
+  console.error(`Invalid model. Choose one of: ${VALID_MODELS.join(', ')}`);
+  process.exit(1);
+}
 
 if (!apiKey) {
   console.error('Error: API key required. Use --key or set PERPLEXITY_API_KEY');

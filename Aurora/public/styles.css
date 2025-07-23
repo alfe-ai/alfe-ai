@@ -1591,7 +1591,7 @@ button:disabled {
 .search-tooltip button {
   display: block;
   margin: 2px 0;
-  padding: 2px 4px;
+  padding: 6px 8px;
   background: #474747;
   border: 1px solid #666;
   color: #ddd;
@@ -1618,6 +1618,18 @@ button:disabled {
 }
 .search-tooltip .model-label.ultimate {
   background: #8e44ad;
+}
+
+.search-tooltip .model-card {
+  width: 220px;
+  margin: 4px 0;
+}
+
+.search-tooltip .model-note {
+  font-size: 0.75em;
+  color: #999;
+  margin-left: 1.4em;
+  margin-top: 2px;
 }
 
 /* Minimal markdown highlighting */

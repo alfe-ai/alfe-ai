@@ -4574,16 +4574,20 @@ async function renderSearchModels(){
   await ensureAiModels();
   searchModelsContainer.innerHTML = '';
   const models = [
-    { name: 'sonar-medium-online', display: 'sonar-medium-online' },
+    { name: 'sonar', display: 'sonar', note: 'lightweight, web-grounded' },
+    { name: 'sonar-pro', display: 'sonar-pro', note: 'advanced search model' },
+    { name: 'sonar-reasoning', display: 'sonar-reasoning', note: 'fast, real-time reasoning (search)' },
+    { name: 'sonar-reasoning-pro', display: 'sonar-reasoning-pro', note: 'higher-accuracy CoT reasoning' },
+    { name: 'sonar-deep-research', display: 'sonar-deep-research', note: 'exhaustive long-form research' },
+    { name: 'r1-1776', display: 'r1-1776', note: 'offline conversational (no search)' },
     { name: 'openai/gpt-4o-mini-search-preview' },
-    { name: 'sonar-small-online', label: 'pro', display: 'sonar-small-online' },
-    { name: 'sonar-medium-chat', label: 'pro', display: 'sonar-medium-chat' },
-    { name: 'sonar-small-chat', label: 'pro', display: 'sonar-small-chat' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
-  models.forEach(({name,label,display}) => {
+  models.forEach(({name,label,display,note}) => {
     const fav = isModelFavorite(name);
     if(!searchFavoritesEdit && !fav) return;
+    const card = document.createElement('div');
+    card.className = 'model-card';
     const row = document.createElement('div');
     row.style.display = 'flex';
     row.style.alignItems = 'center';
@@ -4634,7 +4638,14 @@ async function renderSearchModels(){
       showToast(`Search model set to ${display || name}`);
     });
     row.appendChild(b);
-    searchModelsContainer.appendChild(row);
+    card.appendChild(row);
+    if(note){
+      const noteEl = document.createElement('div');
+      noteEl.className = 'model-note';
+      noteEl.textContent = note;
+      card.appendChild(noteEl);
+    }
+    searchModelsContainer.appendChild(card);
   });
   highlightSearchModel(settingsCache.ai_search_model);
 }
@@ -4648,7 +4659,7 @@ async function toggleSearch(){
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
     previousModelName = modelName; // remember current model
-    const searchModel = await getSetting("ai_search_model") || "sonar-medium-online";
+    const searchModel = await getSetting("ai_search_model") || "sonar-pro";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -4683,7 +4694,7 @@ async function toggleReasoning(){
   await setSetting("reasoning_enabled", reasoningEnabled);
   if(reasoningEnabled){
     reasoningPreviousModelName = modelName; // remember current model
-    const reasoningModel = await getSetting("ai_reasoning_model") || "sonar-medium-chat";
+    const reasoningModel = await getSetting("ai_reasoning_model") || "sonar-reasoning";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -4763,7 +4774,7 @@ async function enableSearchMode(query=""){
   if(!searchEnabled){
     searchEnabled = true;
     previousModelName = modelName;
-    const searchModel = await getSetting("ai_search_model") || "sonar-medium-online";
+    const searchModel = await getSetting("ai_search_model") || "sonar-pro";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
