@@ -861,6 +861,13 @@ body {
   display: flex;
   align-items: center;
 }
+#verticalTabsContainer .tab-project-header .drag-handle {
+  cursor: move;
+  margin-right: 4px;
+}
+#verticalTabsContainer .tab-project-header.drag-over {
+  border: 1px dashed #aaa;
+}
 #verticalTabsContainer .project-collapse-arrow {
   margin-right: 4px;
 }
