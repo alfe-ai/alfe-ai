@@ -68,13 +68,14 @@ function setupGetRoutes(deps) {
     app.get("/:repoName/chats", (req, res) => {
         const repoName = req.params.repoName;
         const dataObj = loadRepoJson(repoName);
-        const { activeChats, inactiveChats, archivedChats } = getActiveInactiveChats(dataObj);
+        const { activeChats, inactiveChats, archivedChats, archivedContextChats } = getActiveInactiveChats(dataObj);
 
         res.render("chats", {
             gitRepoNameCLI: repoName,
             activeChats,
             inactiveChats,
             archivedChats,
+            archivedContextChats,
         });
     });
 

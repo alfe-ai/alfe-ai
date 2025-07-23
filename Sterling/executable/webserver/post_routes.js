@@ -127,6 +127,18 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/:repoName/chat/:chatNumber/archive", (req, res) => {
+        // Default archive behavior adds to archived-context
+        const { repoName, chatNumber } = req.params;
+        const dataObj = loadRepoJson(repoName);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+        chatData.status = "ARCHIVED_CONTEXT";
+        dataObj[chatNumber] = chatData;
+        saveRepoJson(repoName, dataObj);
+        res.redirect(`/${repoName}/chats`);
+    });
+
+    app.post("/:repoName/chat/:chatNumber/archive_plain", (req, res) => {
         const { repoName, chatNumber } = req.params;
         const dataObj = loadRepoJson(repoName);
         const chatData = dataObj[chatNumber];
