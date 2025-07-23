@@ -4574,11 +4574,11 @@ async function renderSearchModels(){
   await ensureAiModels();
   searchModelsContainer.innerHTML = '';
   const models = [
-    { name: 'openrouter/perplexity/sonar', display: 'perplexity/sonar' },
+    { name: 'sonar-medium-online', display: 'sonar-medium-online' },
     { name: 'openai/gpt-4o-mini-search-preview' },
-    { name: 'openrouter/perplexity/sonar-pro', label: 'pro', display: 'perplexity/sonar-pro' },
-    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro', display: 'perplexity/sonar-reasoning' },
-    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro', display: 'perplexity/sonar-reasoning-pro' },
+    { name: 'sonar-small-online', label: 'pro', display: 'sonar-small-online' },
+    { name: 'sonar-medium-chat', label: 'pro', display: 'sonar-medium-chat' },
+    { name: 'sonar-small-chat', label: 'pro', display: 'sonar-small-chat' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
   models.forEach(({name,label,display}) => {
@@ -4648,7 +4648,7 @@ async function toggleSearch(){
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
     previousModelName = modelName; // remember current model
-    const searchModel = await getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    const searchModel = await getSetting("ai_search_model") || "sonar-medium-online";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -4683,7 +4683,7 @@ async function toggleReasoning(){
   await setSetting("reasoning_enabled", reasoningEnabled);
   if(reasoningEnabled){
     reasoningPreviousModelName = modelName; // remember current model
-    const reasoningModel = await getSetting("ai_reasoning_model") || "openrouter/perplexity/sonar-reasoning";
+    const reasoningModel = await getSetting("ai_reasoning_model") || "sonar-medium-chat";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -4763,7 +4763,7 @@ async function enableSearchMode(query=""){
   if(!searchEnabled){
     searchEnabled = true;
     previousModelName = modelName;
-    const searchModel = await getSetting("ai_search_model") || "openrouter/perplexity/sonar";
+    const searchModel = await getSetting("ai_search_model") || "sonar-medium-online";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
