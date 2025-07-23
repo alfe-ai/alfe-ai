@@ -6565,7 +6565,11 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
     if (projectContext) {
       const prDetails = document.createElement("details");
       const prSum = document.createElement("summary");
-      prSum.textContent = `Project Context`;
+      if (tokObj && tokObj.projectTokens !== undefined) {
+        prSum.textContent = `Project Context (${tokObj.projectTokens})`;
+      } else {
+        prSum.textContent = `Project Context`;
+      }
       prDetails.appendChild(prSum);
 
       const prLines = projectContext.split(/\r?\n/);
