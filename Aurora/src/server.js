@@ -269,6 +269,8 @@ function parseProviderModel(model) {
   if (!model) return { provider: "Unknown", shortModel: "Unknown" };
   if (model.startsWith("openai/")) {
     return { provider: "openai", shortModel: model.replace(/^openai\//, "") };
+  } else if (model.startsWith("openrouter/perplexity/")) {
+    return { provider: "perplexity", shortModel: model.replace(/^openrouter\/perplexity\//, "") };
   } else if (model.startsWith("openrouter/")) {
     return { provider: "openrouter", shortModel: model.replace(/^openrouter\//, "") };
   } else if (model.startsWith("deepseek/")) {
