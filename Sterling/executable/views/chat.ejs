@@ -179,6 +179,21 @@
                 <button type="submit" class="form-buttons">Deactivate</button>
             </form>
             <% } %>
+            <% if (status !== 'ARCHIVED') { %>
+            <form action="/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/archive"
+                  method="POST"
+                  style="display:inline;"
+                  onsubmit="return confirm('Archive this chat?');">
+                <button type="submit" class="form-buttons">Archive</button>
+            </form>
+            <% } else { %>
+            <form action="/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/unarchive"
+                  method="POST"
+                  style="display:inline;"
+                  onsubmit="return confirm('Unarchive this chat?');">
+                <button type="submit" class="form-buttons">Unarchive</button>
+            </form>
+            <% } %>
             </p>
 
             <p><strong>gitRepoNameCLI:</strong>
