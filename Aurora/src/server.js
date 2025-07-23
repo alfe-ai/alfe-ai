@@ -319,6 +319,24 @@ async function callOpenAiModel(client, model, opts = {}) {
   });
 }
 
+async function callPerplexityModel(model, opts = {}) {
+  const { messages = [], stream = false } = opts;
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  if (!apiKey) throw new Error('Missing PERPLEXITY_API_KEY environment variable');
+  const res = await axios.post('https://api.perplexity.ai/chat/completions', {
+    model,
+    messages,
+    stream
+  }, {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    responseType: stream ? 'stream' : 'json'
+  });
+  return res.data;
+}
+
 function getSessionIdFromRequest(req) {
   const header = req.headers.cookie || "";
   const cookies = {};
@@ -647,7 +665,7 @@ async function createInitialTabMessage(tabId, type, sessionId = '') {
   const greeting = await generateInitialGreeting(type);
   const pairId = db.createChatPair('', tabId, '', '', sessionId);
   const defaultModel = db.getSetting("ai_model") || 'deepseek/deepseek-chat';
-  db.finalizeChatPair(pairId, greeting, defaultModel, new Date().toISOString(), null);
+  db.finalizeChatPair(pairId, greeting, defaultModel, new Date().toISOString(), null, null);
 }
 
 async function removeColorSwatches(filePath) {
@@ -1898,6 +1916,7 @@ app.post("/api/chat", async (req, res) => {
       return m;
     }
     const modelForOpenAI = stripModelPrefix(model);
+    const usePerplexity = provider === 'openrouter' && modelForOpenAI.startsWith('perplexity/');
 
     console.debug("[Server Debug] Using model =>", model, " (stripped =>", modelForOpenAI, ")");
     const encoder = getEncoding(modelForOpenAI);
@@ -1924,7 +1943,18 @@ app.post("/api/chat", async (req, res) => {
     const streamingSetting = db.getSetting("chat_streaming");
     const useStreaming = (streamingSetting === false) ? false : true;
 
-    if (useStreaming) {
+    let citations = [];
+    if (usePerplexity) {
+      const completion = await callPerplexityModel(modelForOpenAI, {
+        messages: truncatedConversation
+      });
+      assistantMessage = completion.choices?.[0]?.message?.content || "";
+      citations = completion.choices?.[0]?.message?.citations || [];
+      assistantMessage = stripUtmSource(assistantMessage);
+      res.write(assistantMessage);
+      res.end();
+      console.debug("[Server Debug] Perplexity completed, length =>", assistantMessage.length);
+    } else if (useStreaming) {
       const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
         stream: true
@@ -1988,7 +2018,7 @@ app.post("/api/chat", async (req, res) => {
       responseTime
     };
 
-    db.finalizeChatPair(chatPairId, assistantMessage, model, new Date().toISOString(), JSON.stringify(tokenInfo));
+    db.finalizeChatPair(chatPairId, assistantMessage, model, new Date().toISOString(), JSON.stringify(tokenInfo), JSON.stringify(citations));
     db.logActivity("AI chat", JSON.stringify({ tabId: chatTabId, response: assistantMessage, tokenInfo }));
   } catch (err) {
     console.error("[Server Debug] /api/chat error:", err);

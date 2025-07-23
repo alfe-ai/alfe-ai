@@ -69,3 +69,25 @@ npm run sqlserver --prefix Aurora
 Send POST requests to `/sql` with a JSON body containing a `sql` string and
 optional `params` array. Select queries return rows while other statements
 return change information.
+
+## Perplexity CLI
+
+A small command-line script `perplexity-cli.js` lets you query the official Perplexity API and prints any citation URLs from the response.
+
+### Prerequisites
+
+```bash
+npm install axios commander
+```
+
+Set your API key with `PERPLEXITY_API_KEY` or pass `--key` when running.
+
+### Usage
+
+```bash
+chmod +x perplexity-cli.js
+./perplexity-cli.js "What causes aurora borealis?"
+```
+
+The script outputs the answer and lists cited URLs if available.
+

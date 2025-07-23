@@ -774,6 +774,23 @@ body {
   margin-top: 10px;
 }
 
+/* Citation card shown below AI reply */
+.chat-citations {
+  background: #2a2a2a;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+.chat-citations ul {
+  list-style: decimal inside;
+  margin: 0;
+  padding-left: 1em;
+}
+.chat-citations a {
+  color: #4da3ff;
+}
+
 /* Model name indicator in bottom-left corner of AI bubble */
 .model-indicator {
   position: absolute;

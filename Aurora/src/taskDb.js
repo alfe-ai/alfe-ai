@@ -198,6 +198,7 @@ export default class TaskDB {
                                               system_context TEXT,
                                               project_context TEXT,
                                               token_info TEXT,
+                                              citations_json TEXT,
                                               image_url TEXT,
                                               image_alt TEXT DEFAULT '',
                                               image_title TEXT DEFAULT '',
@@ -245,6 +246,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_pairs.image_url column");
     } catch(e) {
       //console.debug("[TaskDB Debug] image_url column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN citations_json TEXT DEFAULT '';`);
+      console.debug("[TaskDB Debug] Added chat_pairs.citations_json column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] citations_json column exists, skipping.", e.message);
     }
     try {
       this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN image_alt TEXT DEFAULT '';`);
@@ -778,12 +785,12 @@ export default class TaskDB {
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
-        image_url, image_alt, image_title, session_id
+        citations_json, image_url, image_alt, image_title, session_id
       )
       VALUES (
         @user_text, '', '', @timestamp, NULL,
         @chat_tab_id, @system_context, @project_context, NULL,
-        NULL, '', '', @session_id
+        NULL, NULL, '', '', @session_id
       )
     `).run({
       user_text: userText,
@@ -791,25 +798,28 @@ export default class TaskDB {
       chat_tab_id: chatTabId,
       system_context: systemContext,
       project_context: projectContext,
+      citations_json: null,
       session_id: sessionId
     });
     return lastInsertRowid;
   }
 
-  finalizeChatPair(id, aiText, model, aiTimestamp, tokenInfo=null) {
+  finalizeChatPair(id, aiText, model, aiTimestamp, tokenInfo=null, citationsJson=null) {
     this.db.prepare(`
       UPDATE chat_pairs
       SET ai_text = @ai_text,
           model = @model,
           ai_timestamp = @ai_timestamp,
-          token_info = @token_info
+          token_info = @token_info,
+          citations_json = @citations_json
       WHERE id = @id
     `).run({
       id,
       ai_text: aiText,
       model,
       ai_timestamp: aiTimestamp,
-      token_info: tokenInfo
+      token_info: tokenInfo,
+      citations_json: citationsJson
     });
   }
 
@@ -820,9 +830,9 @@ export default class TaskDB {
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
-        image_url, image_alt, image_title, image_status, session_id, ip_address, image_uuid, publish_portfolio, product_url, ebay_url
-      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', '', NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url, @ebay_url)
-    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, ip_address: ipAddress, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl });
+        citations_json, image_url, image_alt, image_title, image_status, session_id, ip_address, image_uuid, publish_portfolio, product_url, ebay_url
+      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', '', NULL, NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url, @ebay_url)
+    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, ip_address: ipAddress, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl, citations_json: null });
     return lastInsertRowid;
   }
 

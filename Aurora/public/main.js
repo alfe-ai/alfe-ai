@@ -6057,7 +6057,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
         addChatMessage(
             p.id, p.user_text, p.timestamp,
             p.ai_text, p.ai_timestamp,
-            p.model, p.system_context, p.project_context, null, p.token_info,
+            p.model, p.system_context, p.project_context, null, p.token_info, p.citations_json,
             p.image_url, p.image_alt, p.image_title
         );
       }
@@ -6189,6 +6189,28 @@ async function loadChatHistory(tabId = 1, reset=false) {
         addCodeCopyButtons(botBody);
         botDiv.appendChild(botBody);
         addFilesFromCodeBlocks(p.ai_text || "");
+        if(p.citations_json){
+          try {
+            const cites = JSON.parse(p.citations_json);
+            if(Array.isArray(cites) && cites.length>0){
+              const citeDiv = document.createElement('div');
+              citeDiv.className = 'chat-citations';
+              const list = document.createElement('ul');
+              cites.forEach(c => {
+                if(!c || !c.url) return;
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = c.url;
+                a.textContent = c.url;
+                a.target = '_blank';
+                li.appendChild(a);
+                list.appendChild(li);
+              });
+              citeDiv.appendChild(list);
+              botDiv.appendChild(citeDiv);
+            }
+          } catch(e){ console.debug('parse citations failed', e); }
+        }
 
 
         if(p.token_info && showSubbubbleToken){
@@ -6257,7 +6279,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
   }
 }
 
-function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemContext, projectContext, fullHistory, tokenInfo, imageUrl=null, imageAlt='', imageTitle='') {
+function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemContext, projectContext, fullHistory, tokenInfo, citationsJson='', imageUrl=null, imageAlt='', imageTitle='') {
   const chatMessagesEl = document.getElementById("chatMessages");
   const ts = userTs || aiTs || new Date().toISOString();
   const dateStr = isoDate(ts);
@@ -6406,6 +6428,29 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   addCodeCopyButtons(botBody);
   botDiv.appendChild(botBody);
   addFilesFromCodeBlocks(aiText || "");
+
+  if(citationsJson){
+    try {
+      const cites = JSON.parse(citationsJson);
+      if(Array.isArray(cites) && cites.length>0){
+        const citeDiv = document.createElement('div');
+        citeDiv.className = 'chat-citations';
+        const list = document.createElement('ul');
+        cites.forEach(c => {
+          if(!c || !c.url) return;
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = c.url;
+          a.textContent = c.url;
+          a.target = '_blank';
+          li.appendChild(a);
+          list.appendChild(li);
+        });
+        citeDiv.appendChild(list);
+        botDiv.appendChild(citeDiv);
+      }
+    } catch(e) { console.debug('parse citations failed', e); }
+  }
 
   if(tokenInfo && showSubbubbleToken){
     try {
