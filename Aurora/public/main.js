@@ -4396,8 +4396,8 @@ function showReasoningTooltip(e){
   const rect = e.target.getBoundingClientRect();
   reasoningTooltip.style.display = 'flex';
   reasoningTooltip.style.flexDirection = 'column';
-  reasoningTooltip.style.left = rect.left + 'px';
-  reasoningTooltip.style.top = (rect.top - reasoningTooltip.offsetHeight - 4) + 'px';
+  reasoningTooltip.style.left = (rect.left + window.scrollX) + 'px';
+  reasoningTooltip.style.top = (rect.top + window.scrollY - reasoningTooltip.offsetHeight - 4) + 'px';
   clearTimeout(reasoningTooltipTimer);
 }
 
@@ -4555,8 +4555,8 @@ function showSearchTooltip(e){
   const rect = e.target.getBoundingClientRect();
   searchTooltip.style.display = 'flex';
   searchTooltip.style.flexDirection = 'column';
-  searchTooltip.style.left = rect.left + 'px';
-  searchTooltip.style.top = (rect.top - searchTooltip.offsetHeight - 4) + 'px';
+  searchTooltip.style.left = (rect.left + window.scrollX) + 'px';
+  searchTooltip.style.top = (rect.top + window.scrollY - searchTooltip.offsetHeight - 4) + 'px';
   clearTimeout(searchTooltipTimer);
 }
 
