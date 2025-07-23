@@ -3328,6 +3328,27 @@ function countTokens(encoder, text) {
   return encoder.encode(text || "").length;
 }
 
+const encoderCache = {};
+function getCachedEncoder(model) {
+  if (!encoderCache[model]) {
+    encoderCache[model] = getEncoding(model);
+  }
+  return encoderCache[model];
+}
+
+function updateInputTokenCount() {
+  if (!inputTokenCountEl) return;
+  const modelSel = document.getElementById("aiModelSelect");
+  const modelName = modelSel ? modelSel.value : "gpt-4.1-mini";
+  try {
+    const enc = getCachedEncoder(modelName);
+    const cnt = countTokens(enc, chatInputEl.value);
+    inputTokenCountEl.textContent = `${cnt} tokens`;
+  } catch {
+    inputTokenCountEl.textContent = "";
+  }
+}
+
 async function ensureAiModels(){
   if(!window.allAiModels){
     try{
@@ -3379,8 +3400,14 @@ const chatInputEl = document.getElementById("chatInput");
 const chatSendBtnEl = document.getElementById("chatSendBtn");
 const waitingElem = document.getElementById("waitingCounter");
 const scrollDownBtnEl = document.getElementById("scrollDownBtn");
+const inputTokenCountEl = document.getElementById("inputTokenCount");
 
 setLoopUi(imageLoopEnabled);
+
+if (chatInputEl) {
+  chatInputEl.addEventListener("input", updateInputTokenCount);
+  updateInputTokenCount();
+}
 
 // Keep a history of user-entered messages for quick recall
 let inputHistory = [];

@@ -213,6 +213,13 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Token count for chat input */
+#inputTokenCount {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 4px 0 0 4px;
+}
+
 /* Chat message bubble grouping */
 .chat-sequence {
   background: #2c2c2c;
