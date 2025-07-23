@@ -2005,6 +2005,7 @@ app.post("/api/chat", async (req, res) => {
     let responseTime = Math.ceil(diffMs * 0.01) / 100;
 
     const systemTokens = countTokens(encoder, sysContent);
+    const projectTokens = projectContext ? countTokens(encoder, projectContext) : 0;
     let prevAssistantTokens = 0;
     let historyTokens = 0;
     for (const p of priorPairsAll) {
@@ -2020,6 +2021,7 @@ app.post("/api/chat", async (req, res) => {
 
     const tokenInfo = {
       systemTokens,
+      projectTokens,
       historyTokens,
       inputTokens,
       assistantTokens: prevAssistantTokens,
