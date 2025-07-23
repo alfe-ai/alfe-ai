@@ -1869,15 +1869,22 @@ app.post("/api/chat", async (req, res) => {
       const histories = [];
       for (const pr of allProjects) {
         const projectPairs = db.getChatPairsByProject(pr);
-        const history = projectPairs
-          .map(p => {
-            const parts = [];
-            if (p.user_text) parts.push(`User: ${p.user_text}`);
-            if (p.ai_text) parts.push(`Assistant: ${p.ai_text}`);
-            return parts.join('\n');
-          })
-          .join('\n');
-        histories.push(`Project: ${pr}` + (history ? `\n${history}` : ''));
+        const pairsByTab = {};
+        for (const p of projectPairs) {
+          const tab = db.getChatTab(p.chat_tab_id);
+          const tName = (tab && tab.name) ? tab.name : `Chat ${p.chat_tab_id}`;
+          if (!pairsByTab[tName]) pairsByTab[tName] = [];
+          pairsByTab[tName].push(p);
+        }
+        const lines = [`Project: ${pr}`];
+        for (const [chatName, ps] of Object.entries(pairsByTab)) {
+          lines.push(`Chat: ${chatName}`);
+          ps.forEach(cp => {
+            if (cp.user_text) lines.push(`User: ${cp.user_text}`);
+            if (cp.ai_text) lines.push(`Assistant: ${cp.ai_text}`);
+          });
+        }
+        histories.push(lines.join('\n'));
       }
       projectContext = histories.join('\n');
     }

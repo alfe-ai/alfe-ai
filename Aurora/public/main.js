@@ -6573,14 +6573,47 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       prDetails.appendChild(prSum);
 
       const prLines = projectContext.split(/\r?\n/);
+      let currentProj = null;
+      let currentChat = null;
+      const flushChat = () => {
+        if (currentChat && currentProj) {
+          currentProj.appendChild(currentChat);
+          currentChat = null;
+        }
+      };
+      const flushProj = () => {
+        flushChat();
+        if (currentProj) {
+          prDetails.appendChild(currentProj);
+          currentProj = null;
+        }
+      };
+
       prLines.forEach(line => {
         if (!line.trim()) return;
-        const lineBubble = document.createElement("div");
-        lineBubble.className = "chat-bot";
-        lineBubble.style.marginTop = "4px";
-        lineBubble.textContent = line;
-        prDetails.appendChild(lineBubble);
+        if (line.startsWith('Project: ')) {
+          flushProj();
+          currentProj = document.createElement('details');
+          const sum = document.createElement('summary');
+          sum.textContent = line;
+          currentProj.appendChild(sum);
+        } else if (line.startsWith('Chat: ')) {
+          flushChat();
+          currentChat = document.createElement('details');
+          const sum = document.createElement('summary');
+          sum.textContent = line;
+          currentChat.appendChild(sum);
+        } else {
+          const lineBubble = document.createElement('div');
+          lineBubble.className = 'chat-bot';
+          lineBubble.style.marginTop = '4px';
+          lineBubble.textContent = line;
+          if (currentChat) currentChat.appendChild(lineBubble);
+          else if (currentProj) currentProj.appendChild(lineBubble);
+          else prDetails.appendChild(lineBubble);
+        }
       });
+      flushProj();
       metaContainer.appendChild(prDetails);
     }
 
