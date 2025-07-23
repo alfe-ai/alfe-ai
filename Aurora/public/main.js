@@ -4574,16 +4574,16 @@ async function renderSearchModels(){
   await ensureAiModels();
   searchModelsContainer.innerHTML = '';
   const models = [
-    { name: 'sonar', display: 'sonar', note: 'lightweight, web-grounded' },
-    { name: 'sonar-pro', display: 'sonar-pro', note: 'advanced search model' },
-    { name: 'sonar-reasoning', display: 'sonar-reasoning', note: 'fast, real-time reasoning (search)' },
-    { name: 'sonar-reasoning-pro', display: 'sonar-reasoning-pro', note: 'higher-accuracy CoT reasoning' },
-    { name: 'sonar-deep-research', display: 'sonar-deep-research', note: 'exhaustive long-form research' },
-    { name: 'r1-1776', display: 'r1-1776', note: 'offline conversational (no search)' },
+    { name: 'sonar', note: 'lightweight, web-grounded' },
+    { name: 'sonar-pro', note: 'advanced search model' },
+    { name: 'sonar-reasoning', note: 'fast, real-time reasoning (search)' },
+    { name: 'sonar-reasoning-pro', note: 'higher-accuracy CoT reasoning' },
+    { name: 'sonar-deep-research', note: 'exhaustive long-form research' },
+    { name: 'r1-1776', note: 'offline conversational (no search)' },
     { name: 'openai/gpt-4o-mini-search-preview' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
-  models.forEach(({name,label,display,note}) => {
+  models.forEach(({name,label,note}) => {
     const fav = isModelFavorite(name);
     if(!searchFavoritesEdit && !fav) return;
     const card = document.createElement('div');
@@ -4607,12 +4607,15 @@ async function renderSearchModels(){
     }
     const b = document.createElement('button');
     b.dataset.model = name;
-    const text = display || name;
-    if(label){
-      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${text}`;
-    } else {
-      b.textContent = text;
+    let text = name;
+    if(!text.includes('/')) {
+      text = `perplexity/${text}`;
     }
+    let html = label ? `<span class="model-label ${label}">${label}</span> ${text}` : text;
+    if(note){
+      html += `<span class="model-note">${note}</span>`;
+    }
+    b.innerHTML = html;
     b.classList.toggle('active', settingsCache.ai_search_model === name);
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
@@ -4635,16 +4638,11 @@ async function renderSearchModels(){
       }
       highlightSearchModel(name);
       hideSearchTooltip();
-      showToast(`Search model set to ${display || name}`);
+      showToast(`Search model set to ${text}`);
     });
     row.appendChild(b);
     card.appendChild(row);
-    if(note){
-      const noteEl = document.createElement('div');
-      noteEl.className = 'model-note';
-      noteEl.textContent = note;
-      card.appendChild(noteEl);
-    }
+    // Note is now displayed inside the button
     searchModelsContainer.appendChild(card);
   });
   highlightSearchModel(settingsCache.ai_search_model);

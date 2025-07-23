@@ -1631,6 +1631,11 @@ button:disabled {
   margin-left: 1.4em;
   margin-top: 2px;
 }
+.search-tooltip button .model-note {
+  display: block;
+  margin: 2px 0 0;
+  margin-left: 0;
+}
 
 /* Minimal markdown highlighting */
 .md-h1,.md-h2,.md-h3,.md-h4,.md-h5,.md-h6{
