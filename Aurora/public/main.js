@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadHideArchivedTabs();
   loadHideDoneTasks();
   loadChatTabOrder();
+  loadProjectHeaderOrder();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', () => {
     updateChatPanelVisibility();
@@ -133,7 +134,9 @@ let projectGroups = [];           // custom project group headers
 let draggingProjectIndex = null;  // index of project group being dragged
 let collapsedProjectGroups = {};  // project group collapse states
 let chatTabOrder = {};            // per-project tab ordering
+let projectHeaderOrder = [];      // order of project headers
 let draggingTabRow = null;        // element of tab row being dragged
+let draggingProjectHeader = null; // project header currently being dragged
 let projectAddTooltip = null;     // floating toolbar for project add button
 let projectAddTooltipProject = null;
 let projectAddTooltipTimer = null;
@@ -507,6 +510,18 @@ function saveCollapsedProjectGroups(){
 
 function saveProjectGroups(){
   localStorage.setItem('projectGroups', JSON.stringify(projectGroups));
+}
+
+function loadProjectHeaderOrder(){
+  try {
+    projectHeaderOrder = JSON.parse(localStorage.getItem('projectHeaderOrder') || '[]');
+  } catch(e){
+    projectHeaderOrder = [];
+  }
+}
+
+function saveProjectHeaderOrder(){
+  localStorage.setItem('projectHeaderOrder', JSON.stringify(projectHeaderOrder));
 }
 
 function renderProjectGroups(){
@@ -2543,11 +2558,24 @@ function renderSidebarTabs(){
       if(!groups.has(key)) groups.set(key, []);
       groups.get(key).push(t);
     });
+    // ensure order array contains current projects only
+    projectHeaderOrder = projectHeaderOrder.filter(p => groups.has(p));
+    for(const p of groups.keys()){
+      if(!projectHeaderOrder.includes(p)) projectHeaderOrder.push(p);
+    }
     const renderGroup = (project, list) => {
       if(list.length === 0) return;
       const collapsed = collapsedProjectGroups[project];
       const header = document.createElement("div");
       header.className = "tab-project-header";
+      const grab = document.createElement("span");
+      grab.className = "drag-handle";
+      grab.textContent = "⠿";
+      grab.draggable = true;
+      grab.addEventListener("dragstart", () => {
+        draggingProjectHeader = project;
+      });
+      header.appendChild(grab);
       const arrow = document.createElement("span");
       arrow.className = "project-collapse-arrow";
       arrow.textContent = collapsed ? "\u25B6" : "\u25BC"; // ▶ or ▼
@@ -2576,6 +2604,30 @@ function renderSidebarTabs(){
         saveCollapsedProjectGroups();
         renderSidebarTabs();
       });
+      header.addEventListener("dragover", e => {
+        if(draggingProjectHeader && draggingProjectHeader !== project){
+          e.preventDefault();
+          header.classList.add("drag-over");
+        }
+      });
+      header.addEventListener("dragleave", () => header.classList.remove("drag-over"));
+      header.addEventListener("drop", e => {
+        e.preventDefault();
+        header.classList.remove("drag-over");
+        if(draggingProjectHeader && draggingProjectHeader !== project){
+          const from = projectHeaderOrder.indexOf(draggingProjectHeader);
+          const to = projectHeaderOrder.indexOf(project);
+          projectHeaderOrder.splice(from, 1);
+          projectHeaderOrder.splice(to, 0, draggingProjectHeader);
+          saveProjectHeaderOrder();
+          draggingProjectHeader = null;
+          renderSidebarTabs();
+        }
+      });
+      header.addEventListener("dragend", () => {
+        draggingProjectHeader = null;
+        header.classList.remove("drag-over");
+      });
       container.appendChild(header);
       const groupDiv = document.createElement("div");
       groupDiv.className = "project-tab-group";
@@ -2596,6 +2648,11 @@ function renderSidebarTabs(){
 
     const noProjectTabs = groups.get("");
     const otherEntries = Array.from(groups.entries()).filter(([p]) => p !== "");
+    otherEntries.sort((a,b)=>{
+      const ia = projectHeaderOrder.indexOf(a[0]);
+      const ib = projectHeaderOrder.indexOf(b[0]);
+      return ia - ib;
+    });
     otherEntries.forEach(([project, list]) => renderGroup(project, list));
     if(noProjectTabs) renderGroup("", noProjectTabs);
     return;
