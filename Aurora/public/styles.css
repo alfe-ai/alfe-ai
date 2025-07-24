@@ -991,8 +991,18 @@ body {
 #verticalTabsContainer .sidebar-tab-row.sub-drop-bar {
   border-bottom: 2px solid #aaa;
 }
+#verticalTabsContainer .top-drop-bar {
+  border-top: 2px solid #aaa;
+  height: 0;
+  margin-bottom: 2px;
+}
 #archivedTabsContainer .sidebar-tab-row.sub-drop-bar {
   border-bottom: 2px solid #aaa;
+}
+#archivedTabsContainer .top-drop-bar {
+  border-top: 2px solid #aaa;
+  height: 0;
+  margin-bottom: 2px;
 }
 
 #verticalTabsContainer .sidebar-tab-row .drag-handle {
