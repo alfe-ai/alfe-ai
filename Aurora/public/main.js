@@ -4444,17 +4444,11 @@ function updateModelHud(){
 }
 
 function updateSearchButton(){
-  const btn = document.getElementById("searchToggleBtn");
-  if(!btn) return;
-  btn.disabled = false;
-  btn.classList.toggle("active", searchEnabled);
+  // search toggle button removed
 }
 
 function updateReasoningButton(){
-  const btn = document.getElementById("reasoningToggleBtn");
-  if(!btn) return;
-  const highlight = aiResponsesEnabled && (reasoningEnabled || reasoningChatModels.includes(modelName));
-  btn.classList.toggle("active", highlight);
+  // no visual toggle on reasoning button
 }
 
 function updateCodexButton(){
@@ -4506,8 +4500,10 @@ async function initReasoningTooltip(){
   gear.addEventListener('click', ev => {
     ev.stopPropagation();
     reasoningFavoritesEdit = !reasoningFavoritesEdit;
+    searchFavoritesEdit = reasoningFavoritesEdit;
     gear.classList.toggle('active', reasoningFavoritesEdit);
     renderReasoningModels();
+    renderSearchModels();
   });
   reasoningTooltip.appendChild(gear);
 
@@ -4535,6 +4531,22 @@ async function initReasoningTooltip(){
   reasoningReasonContainer = document.createElement('div');
   reasoningTooltip.appendChild(reasoningReasonContainer);
 
+  const searchToggle = document.createElement('button');
+  searchToggle.textContent = 'Toggle Search';
+  searchToggle.addEventListener('click', async ev => {
+    ev.stopPropagation();
+    await toggleSearch();
+  });
+  reasoningTooltip.appendChild(searchToggle);
+
+  const searchHeader = document.createElement('div');
+  searchHeader.textContent = 'Search';
+  searchHeader.className = 'tooltip-section-header';
+  reasoningTooltip.appendChild(searchHeader);
+
+  searchModelsContainer = document.createElement('div');
+  reasoningTooltip.appendChild(searchModelsContainer);
+
   const disableBtn = document.createElement('button');
   disableBtn.dataset.action = 'toggle-ai';
   if(aiResponsesEnabled){
@@ -4552,7 +4564,9 @@ async function initReasoningTooltip(){
 
   await ensureAiModels();
   renderReasoningModels();
+  renderSearchModels();
   highlightReasoningModel(modelName);
+  highlightSearchModel(settingsCache.ai_search_model);
   updateAiResponsesButton();
   reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
   reasoningTooltip.addEventListener('mouseleave', scheduleHideReasoningTooltip);
@@ -4666,76 +4680,17 @@ async function renderReasoningModels(){
   highlightReasoningModel(modelName);
 }
 
-let searchTooltip = null;
-let searchTooltipTimer = null;
 let searchFavoritesEdit = false;
 let searchModelsContainer = null;
 
 function highlightSearchModel(model){
-  if(!searchTooltip) return;
-  Array.from(searchTooltip.querySelectorAll('button[data-model]')).forEach(b => {
+  if(!searchModelsContainer) return;
+  Array.from(searchModelsContainer.querySelectorAll('button[data-model]')).forEach(b => {
     const highlight = searchEnabled && b.dataset.model === model;
     b.classList.toggle('active', highlight);
   });
 }
 
-async function initSearchTooltip(){
-  if(searchTooltip) return;
-  searchTooltip = document.createElement('div');
-  searchTooltip.className = 'search-tooltip';
-  const gear = document.createElement('button');
-  gear.className = 'tooltip-gear';
-  gear.innerHTML = '⚙️';
-  gear.addEventListener('click', ev => {
-    ev.stopPropagation();
-    searchFavoritesEdit = !searchFavoritesEdit;
-    gear.classList.toggle('active', searchFavoritesEdit);
-    renderSearchModels();
-  });
-  searchTooltip.appendChild(gear);
-
-  const tBtn = document.createElement('button');
-  tBtn.textContent = 'Toggle Search';
-  tBtn.addEventListener('click', async ev => {
-    ev.stopPropagation();
-    await toggleSearch();
-  });
-  searchTooltip.appendChild(tBtn);
-
-  const searchHeader = document.createElement('div');
-  searchHeader.textContent = 'Search';
-  searchHeader.className = 'tooltip-section-header';
-  searchTooltip.appendChild(searchHeader);
-
-  searchModelsContainer = document.createElement('div');
-  searchTooltip.appendChild(searchModelsContainer);
-
-  await ensureAiModels();
-  renderSearchModels();
-  highlightSearchModel(settingsCache.ai_search_model);
-  searchTooltip.addEventListener('mouseenter', () => clearTimeout(searchTooltipTimer));
-  searchTooltip.addEventListener('mouseleave', scheduleHideSearchTooltip);
-  document.body.appendChild(searchTooltip);
-}
-
-function showSearchTooltip(e){
-  initSearchTooltip();
-  const rect = e.target.getBoundingClientRect();
-  searchTooltip.style.display = 'flex';
-  searchTooltip.style.flexDirection = 'column';
-  searchTooltip.style.left = (rect.left + window.scrollX) + 'px';
-  searchTooltip.style.top = (rect.top + window.scrollY - searchTooltip.offsetHeight - 4) + 'px';
-  clearTimeout(searchTooltipTimer);
-}
-
-function hideSearchTooltip(){
-  if(searchTooltip) searchTooltip.style.display = 'none';
-}
-
-function scheduleHideSearchTooltip(){
-  clearTimeout(searchTooltipTimer);
-  searchTooltipTimer = setTimeout(hideSearchTooltip, 200);
-}
 
 async function renderSearchModels(){
   if(!searchModelsContainer) return;
@@ -4811,7 +4766,7 @@ async function renderSearchModels(){
         updateModelHud();
       }
       highlightSearchModel(name);
-      hideSearchTooltip();
+      hideReasoningTooltip();
       showToast(`Search model set to ${text}`);
     });
     row.appendChild(b);
@@ -7877,10 +7832,6 @@ registerActionHook("embedMockImages", async ({response}) => {
   scrollChatToBottom();
 });
 
-const searchToggleBtn = document.getElementById("searchToggleBtn");
-searchToggleBtn?.addEventListener("click", toggleSearch);
-searchToggleBtn?.addEventListener("mouseenter", showSearchTooltip);
-searchToggleBtn?.addEventListener("mouseleave", scheduleHideSearchTooltip);
 const reasoningToggleBtn = document.getElementById("reasoningToggleBtn");
 reasoningToggleBtn?.addEventListener("click", toggleReasoning);
 reasoningToggleBtn?.addEventListener("mouseenter", showReasoningTooltip);
@@ -7890,10 +7841,6 @@ document.addEventListener('click', e => {
   if(reasoningTooltip && reasoningTooltip.style.display === 'flex' &&
     !reasoningTooltip.contains(e.target) && e.target.id !== 'reasoningToggleBtn'){
     hideReasoningTooltip();
-  }
-  if(searchTooltip && searchTooltip.style.display === 'flex' &&
-    !searchTooltip.contains(e.target) && e.target.id !== 'searchToggleBtn'){
-    hideSearchTooltip();
   }
 });
 
