@@ -97,9 +97,10 @@ export default class TaskDB {
                                                nexum INTEGER DEFAULT 0,
                                                project_name TEXT DEFAULT '',
                                                repo_ssh_url TEXT DEFAULT '',
-                                               extra_projects TEXT DEFAULT '',
-                                               task_id INTEGER DEFAULT 0,
-                                               model_override TEXT DEFAULT '',
+                                              extra_projects TEXT DEFAULT '',
+                                              task_id INTEGER DEFAULT 0,
+                                              parent_id INTEGER DEFAULT 0,
+                                              model_override TEXT DEFAULT '',
                                                tab_type TEXT DEFAULT 'chat',
                                                send_project_context INTEGER DEFAULT 1,
                                                session_id TEXT DEFAULT '',
@@ -184,6 +185,12 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_tabs.tab_uuid column");
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_tabs.tab_uuid column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec('ALTER TABLE chat_tabs ADD COLUMN parent_id INTEGER DEFAULT 0;');
+      console.debug("[TaskDB Debug] Added chat_tabs.parent_id column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_tabs.parent_id column exists, skipping.", e.message);
     }
 
     this.db.exec(`
@@ -1011,6 +1018,10 @@ export default class TaskDB {
     this.db.prepare(
         "UPDATE chat_tabs SET project_name=?, repo_ssh_url=?, extra_projects=?, task_id=?, tab_type=?, generate_images=?, send_project_context=? WHERE id=?"
     ).run(project, repo, extraProjects, taskId, type, genImages, sendProjectContext ? 1 : 0, tabId);
+  }
+
+  setChatTabParent(tabId, parentId = 0) {
+    this.db.prepare('UPDATE chat_tabs SET parent_id=? WHERE id=?').run(parentId, tabId);
   }
 
   getChatTab(tabId, sessionId = null) {

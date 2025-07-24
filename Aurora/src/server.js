@@ -2289,6 +2289,25 @@ app.post("/api/chat/tabs/model", (req, res) => {
   }
 });
 
+app.post("/api/chat/tabs/parent", (req, res) => {
+  console.debug("[Server Debug] POST /api/chat/tabs/parent =>", req.body);
+  try {
+    const { tabId, parentId = 0, sessionId = '' } = req.body;
+    if (!tabId) {
+      return res.status(400).json({ error: "Missing tabId" });
+    }
+    const tab = db.getChatTab(tabId, sessionId || null);
+    if (!tab) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    db.setChatTabParent(tabId, parentId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[TaskQueue] POST /api/chat/tabs/parent error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/api/chat/subroutines", (req, res) => {
   console.debug("[Server Debug] GET /api/chat/subroutines");
   try {
