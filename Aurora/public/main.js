@@ -4590,8 +4590,8 @@ async function renderReasoningModels(){
   ];
   const reasoningModels = [
     { name: 'deepseek/deepseek-r1-distill-llama-70b' },
-    { name: 'r1-1776' },
-    { name: 'openrouter/perplexity/r1-1776' },
+    { name: 'r1-1776', note: 'offline conversational (no search)' },
+    { name: 'openrouter/perplexity/r1-1776', note: 'openrouter - offline conversational (no search)' },
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
     { name: 'openai/codex-mini', label: 'pro' },
