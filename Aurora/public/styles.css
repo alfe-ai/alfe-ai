@@ -883,6 +883,11 @@ body {
 #archivedTabsContainer .project-collapse-arrow {
   margin-right: 4px;
 }
+#verticalTabsContainer .child-collapse-arrow,
+#archivedTabsContainer .child-collapse-arrow {
+  margin-right: 2px;
+  cursor: pointer;
+}
 
 #verticalTabsContainer .project-gear-btn {
   background: none;
