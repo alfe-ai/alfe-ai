@@ -1519,19 +1519,10 @@ button:disabled {
   cursor: pointer;
 }
 
-/* Reasoning toggle button */
-#reasoningToggleBtn {
-  background: #474747;
-  border: 1px solid #666;
-  color: #ddd;
-  padding: 4px 6px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-right: 0.5rem;
-}
-
-/* Codex toggle button */
-#codexToggleBtn {
+/* Reasoning toggle button, codex toggle, and image upload button */
+#reasoningToggleBtn,
+#codexToggleBtn,
+#chatImageBtn {
   background: #474747;
   border: 1px solid #666;
   color: #ddd;
@@ -1543,15 +1534,6 @@ button:disabled {
 #codexToggleBtn.active {
   background: #0062cc;
   color: #fff;
-}
-#chatImageBtn {
-  background: #474747;
-  border: 1px solid #666;
-  color: #ddd;
-  padding: 4px 6px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-right: 0.5rem;
 }
 
 
