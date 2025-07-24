@@ -4590,6 +4590,8 @@ async function renderReasoningModels(){
   ];
   const reasoningModels = [
     { name: 'deepseek/deepseek-r1-distill-llama-70b' },
+    { name: 'r1-1776' },
+    { name: 'openrouter/perplexity/r1-1776' },
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
     { name: 'openai/codex-mini', label: 'pro' },
@@ -4691,8 +4693,6 @@ async function renderSearchModels(){
     { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro', note: 'openrouter - higher-accuracy CoT reasoning' },
     { name: 'sonar-deep-research', note: 'exhaustive long-form research' },
     { name: 'openrouter/perplexity/sonar-deep-research', label: 'pro', note: 'openrouter - exhaustive long-form research' },
-    { name: 'r1-1776', note: 'offline conversational (no search)' },
-    { name: 'openrouter/perplexity/r1-1776', note: 'openrouter - offline conversational (no search)' },
     { name: 'openai/gpt-4o-mini-search-preview' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
