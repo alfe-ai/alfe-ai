@@ -92,6 +92,7 @@ let columnsOrder = [
 let visibleCols = new Set(columnsOrder.map(c => c.key));
 let allTasks = [];
 let dragSrcRow = null;
+let bottomDropZone = null;
 let modelName = "unknown";
 let tabModelOverride = '';
 let previousModelName = null; // remember model when toggling search
@@ -1540,9 +1541,60 @@ function renderHeader(){
   });
 }
 
+function getVisibleColCount(){
+  return columnsOrder.filter(c=>{
+    if(!showDependenciesColumn && c.key === "dependencies") return false;
+    return visibleCols.has(c.key);
+  }).length;
+}
+
+function showBottomDropZone(){
+  const tbody = $("#tasks tbody");
+  if(bottomDropZone || !tbody) return;
+  bottomDropZone = document.createElement("tr");
+  bottomDropZone.className = "bottom-drop-zone";
+  const td = document.createElement("td");
+  td.colSpan = getVisibleColCount();
+  bottomDropZone.appendChild(td);
+  bottomDropZone.addEventListener("dragover", bottomDragOver);
+  bottomDropZone.addEventListener("dragleave", bottomDragLeave);
+  bottomDropZone.addEventListener("drop", bottomDrop);
+  tbody.appendChild(bottomDropZone);
+}
+
+function hideBottomDropZone(){
+  if(bottomDropZone){
+    bottomDropZone.remove();
+    bottomDropZone = null;
+  }
+}
+
+function bottomDragOver(e){
+  if(!dragSrcRow) return;
+  e.preventDefault();
+  bottomDropZone.classList.add("drag-over");
+}
+
+function bottomDragLeave(){
+  if(bottomDropZone) bottomDropZone.classList.remove("drag-over");
+}
+
+function bottomDrop(e){
+  e.preventDefault();
+  if(dragSrcRow){
+    const tbody = bottomDropZone.parentNode;
+    tbody.removeChild(dragSrcRow);
+    tbody.appendChild(dragSrcRow);
+    saveNewOrderToServer();
+  }
+  dragSrcRow = null;
+  hideBottomDropZone();
+}
+
 function handleDragStart(e){
   dragSrcRow = e.target.closest("tr");
   e.dataTransfer.effectAllowed = "move";
+  showBottomDropZone();
 }
 function handleDragOver(e){
   if(dragSrcRow && e.currentTarget !== dragSrcRow){
@@ -1569,10 +1621,12 @@ function handleDrop(e){
     saveNewOrderToServer();
   }
   dragSrcRow = null;
+  hideBottomDropZone();
 }
 function handleDragEnd(){
   $$(`tr.drag-over`).forEach(r=>r.classList.remove("drag-over"));
   dragSrcRow = null;
+  hideBottomDropZone();
 }
 
 function tabDragStart(e){

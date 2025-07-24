@@ -96,6 +96,19 @@ body {
   cursor: move;
 }
 
+.bottom-drop-zone {
+  height: 6px;
+  background: lightblue;
+}
+
+.bottom-drop-zone td {
+  padding: 0;
+}
+
+.bottom-drop-zone.drag-over {
+  background: deepskyblue;
+}
+
 .arrow {
   margin: 0 2px;
   background: #474747;
