@@ -618,6 +618,7 @@
         currentTabId = data.id;
         renderTabs();
         if(message){
+          // Propagate the user's start dialog message to the new chat tab
           document.getElementById('prompt').value = message;
           await send();
         }
