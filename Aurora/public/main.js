@@ -140,7 +140,7 @@ let collapsedChildTabs = {};      // parent chat tab collapse states
 let chatTabOrder = {};            // per-project tab ordering
 let projectHeaderOrder = [];      // order of project headers
 let draggingTabRow = null;        // element of tab row being dragged
-let subDropTarget = null;         // tab row being hovered for subtask drop
+let subDropTarget = null;         // tab row being hovered to drop as child
 let draggingProjectHeader = null; // project header currently being dragged
 let projectAddTooltip = null;     // floating toolbar for project add button
 let projectAddTooltipProject = null;
@@ -1601,11 +1601,11 @@ function tabDragOver(e){
     e.preventDefault();
     const overHalf = e.offsetY > e.currentTarget.offsetHeight / 2;
     if(overHalf){
-      subDropTarget = e.currentTarget;
+      subDropTarget = null;
       e.currentTarget.classList.add('sub-drop-bar');
       e.currentTarget.classList.remove('drag-over');
     } else {
-      subDropTarget = null;
+      subDropTarget = e.currentTarget;
       e.currentTarget.classList.add('drag-over');
       e.currentTarget.classList.remove('sub-drop-bar');
     }
