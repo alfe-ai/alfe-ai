@@ -4601,6 +4601,12 @@ async function renderSearchModels(){
     { name: 'sonar-reasoning-pro', note: 'higher-accuracy CoT reasoning' },
     { name: 'sonar-deep-research', note: 'exhaustive long-form research' },
     { name: 'r1-1776', note: 'offline conversational (no search)' },
+    { name: 'openrouter/perplexity/sonar' },
+    { name: 'openrouter/perplexity/sonar-pro' },
+    { name: 'openrouter/perplexity/sonar-reasoning' },
+    { name: 'openrouter/perplexity/sonar-reasoning-pro' },
+    { name: 'openrouter/perplexity/sonar-deep-research' },
+    { name: 'openrouter/perplexity/r1-1776' },
     { name: 'openai/gpt-4o-mini-search-preview' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
