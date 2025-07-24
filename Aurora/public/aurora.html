@@ -39,8 +39,8 @@
     <!-- Tree-style menu with sections -->
     <nav class="tree-menu" style="display:none;">
       <ul>
-        <li><button id="navChatTabsBtn" class="tree-button" hidden>Chats</button></li>
-        <li><button id="navTasksBtn" class="tree-button active">Projects and Tasks</button></li>
+        <li><button id="navChatTabsBtn" class="tree-button active">Chats</button></li>
+        <li><button id="navTasksBtn" class="tree-button">Projects and Tasks</button></li>
         <li><button id="navUploaderBtn" class="tree-button">Images</button></li>
         <li><button id="navArchiveTabsBtn" class="tree-button">Archived</button></li>
         <li><button id="navFileTreeBtn" class="tree-button">File Tree</button></li>
@@ -80,7 +80,7 @@
     </nav>
 
     <!-- Tasks view panel -->
-    <div id="sidebarViewTasks">
+    <div id="sidebarViewTasks" style="display:none;">
       <h2 style="font-size:1.2rem; margin-top:0;" hidden>Projects and Tasks</h2>
       <p><a href="/activity" target="_blank" hidden>Activity timeline</a></p>
       <p><a href="/test_projects" target="_blank" hidden>API test page</a></p>
@@ -164,7 +164,7 @@
     </div>
 
     <!-- New Chat Tabs view panel -->
-    <div id="sidebarViewChatTabs" style="display:none;">
+    <div id="sidebarViewChatTabs">
 <!--      <h2>Chat Tabs</h2>-->
       <div id="projectGroupsContainer" style="display:none;flex-direction:column;gap:4px;"></div>
       <div id="verticalTabsContainer" style="display:flex;flex-direction:column;gap:4px;"></div>

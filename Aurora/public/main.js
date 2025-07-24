@@ -6219,7 +6219,7 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   toggleProjectInfoBarVisibility(projectInfoBarVisible && auroraProjectBarVisible);
 
   let lastView = await getSetting("last_sidebar_view");
-  if(!lastView) lastView = "uploader";
+  if(!lastView) lastView = "chatTabs";
   switch(lastView){
     case "tasks": showTasksPanel(); break;
     case "uploader": showUploaderPanel(); break;
