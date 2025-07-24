@@ -705,7 +705,25 @@
       try{
         const r = await fetch('/api/chat/tabs/archive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId, archived})});
         if(r.ok){
+          const wasCurrent = archived && tabId === currentTabId;
           await loadTabs();
+          if(wasCurrent){
+            const idx = tabs.findIndex(t => t.id === tabId);
+            let next = null;
+            if(idx !== -1){
+              for(let i = idx + 1; i < tabs.length; i++){
+                if(!tabs[i].archived){ next = tabs[i]; break; }
+              }
+              if(!next){
+                for(let i = 0; i < idx; i++){
+                  if(!tabs[i].archived){ next = tabs[i]; break; }
+                }
+              }
+            }
+            if(next){
+              currentTabId = next.id;
+            }
+          }
           renderTabs();
           if(currentView === 'archive') {
             await loadArchivedTabs();
@@ -713,6 +731,7 @@
           }
           if(currentView === 'chat') loadHistory();
           if(currentView === 'tasks') loadTasksForCurrentProject();
+          applyTabView();
         }
       }catch(e){console.error(e);}
     }
