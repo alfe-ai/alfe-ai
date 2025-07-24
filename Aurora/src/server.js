@@ -1911,14 +1911,6 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const chatPairId = db.createChatPair(userMessage, chatTabId, systemContext, projectContext, sessionId);
-    res.setHeader("X-Chat-Pair-Id", String(chatPairId));
-    let userAborted = false;
-    req.on('close', () => {
-      if (!res.writableEnded) {
-        userAborted = true;
-        db.finalizeChatPair(chatPairId, '[User Halted]', model || '', new Date().toISOString());
-      }
-    });
     conversation.push({ role: "user", content: finalUserMessage });
     db.logActivity("User chat", JSON.stringify({ tabId: chatTabId, message: userMessage, userTime }));
 
@@ -2061,10 +2053,8 @@ app.post("/api/chat", async (req, res) => {
       responseTime
     };
 
-    if (!userAborted) {
-      db.finalizeChatPair(chatPairId, assistantMessage, model, new Date().toISOString(), JSON.stringify(tokenInfo), JSON.stringify(citations));
-      db.logActivity("AI chat", JSON.stringify({ tabId: chatTabId, response: assistantMessage, tokenInfo }));
-    }
+    db.finalizeChatPair(chatPairId, assistantMessage, model, new Date().toISOString(), JSON.stringify(tokenInfo), JSON.stringify(citations));
+    db.logActivity("AI chat", JSON.stringify({ tabId: chatTabId, response: assistantMessage, tokenInfo }));
   } catch (err) {
     console.error("[Server Debug] /api/chat error:", err);
     if (!res.headersSent) {
