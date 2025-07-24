@@ -2128,13 +2128,20 @@ app.get("/api/chat/tabs", (req, res) => {
   );
   try {
     let tabs;
-    const includeArchived = showArchivedParam === "1" || showArchivedParam === "true";
+    const includeArchived =
+      showArchivedParam === "1" || showArchivedParam === "true";
     if (nexumParam === undefined) {
       tabs = db.listChatTabs(null, includeArchived, sessionId);
     } else {
       const flag = parseInt(nexumParam, 10);
       tabs = db.listChatTabs(flag ? 1 : 0, includeArchived, sessionId);
     }
+    tabs.forEach(t => {
+      if (t.task_id) {
+        const task = db.getTaskById(t.task_id);
+        if (task) t.priority = task.priority;
+      }
+    });
     res.json(tabs);
   } catch (err) {
     console.error("[TaskQueue] GET /api/chat/tabs error:", err);

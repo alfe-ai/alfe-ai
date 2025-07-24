@@ -375,7 +375,8 @@
         const taskIdSpan = document.createElement('span');
         taskIdSpan.className = 'task-id';
         if (t.task_id) {
-          taskIdSpan.textContent = `#${t.task_id}`;
+          const prio = t.priority ? ` ${t.priority}` : '';
+          taskIdSpan.textContent = `#${t.task_id}${prio}`;
         }
 
         item.appendChild(b);
@@ -442,7 +443,8 @@
       const taskIdSpan = document.createElement('span');
       taskIdSpan.className = 'task-id';
       if (t.task_id) {
-        taskIdSpan.textContent = `#${t.task_id}`;
+        const prio = t.priority ? ` ${t.priority}` : '';
+        taskIdSpan.textContent = `#${t.task_id}${prio}`;
       }
       item.appendChild(info);
       item.appendChild(unarch);
