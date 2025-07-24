@@ -511,6 +511,14 @@ body {
   box-shadow: var(--shadow);
 }
 
+.stop-btn {
+  background: #dc3545;
+}
+
+.stop-btn:hover {
+  background: #c82333;
+}
+
 /* Scroll to bottom button: now always visible inline */
 #scrollDownBtn {
   background: #444;
