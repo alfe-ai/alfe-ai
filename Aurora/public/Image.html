@@ -413,7 +413,11 @@
             tr.addEventListener('click', () => window.open(`jobs.html?jobId=${j.id}`, '_blank'));
 
             const tdId = document.createElement('td');
-            tdId.textContent = j.id;
+            const idLink = document.createElement('a');
+            idLink.href = `jobs.html?jobId=${j.id}`;
+            idLink.target = '_blank';
+            idLink.textContent = j.id;
+            tdId.appendChild(idLink);
             const tdStatus = document.createElement('td');
             tdStatus.textContent = j.status;
             const tdPath = document.createElement('td');
