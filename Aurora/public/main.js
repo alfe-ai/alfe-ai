@@ -3605,6 +3605,10 @@ const chatSendBtnEl = document.getElementById("chatSendBtn");
 const waitingElem = document.getElementById("waitingCounter");
 const scrollDownBtnEl = document.getElementById("scrollDownBtn");
 const tokenCounterEl = document.getElementById("inputTokenCount");
+const sendIconHtml = chatSendBtnEl ? chatSendBtnEl.innerHTML : '';
+let sendingInProgress = false;
+let chatAbortController = null;
+let activePairId = null;
 
 function updateInputTokenCount(){
   if(!tokenCounterEl) return;
@@ -3675,6 +3679,13 @@ chatInputEl.addEventListener("keydown", (e) => {
 });
 
 chatSendBtnEl.addEventListener("click", async () => {
+  if(sendingInProgress){
+    if(chatAbortController){
+      chatAbortController.abort();
+      chatSendBtnEl.disabled = true;
+    }
+    return;
+  }
   const chatMessagesEl = document.getElementById("chatMessages");
   const placeholderEl = document.getElementById("chatPlaceholder");
   const userMessage = chatInputEl.value.trim();
@@ -3873,11 +3884,18 @@ chatSendBtnEl.addEventListener("click", async () => {
   }, 500);
 
   try {
+    chatAbortController = new AbortController();
+    sendingInProgress = true;
+    chatSendBtnEl.disabled = false;
+    chatSendBtnEl.textContent = 'Stop';
+
     const resp = await fetch("/api/chat",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message:combinedUserText, tabId: currentTabId, userTime, sessionId})
+      body:JSON.stringify({message:combinedUserText, tabId: currentTabId, userTime, sessionId}),
+      signal: chatAbortController.signal
     });
+    activePairId = resp.headers.get('x-chat-pair-id');
     clearInterval(waitInterval);
     waitingElem.textContent = "";
 
@@ -3920,19 +3938,31 @@ chatSendBtnEl.addEventListener("click", async () => {
     clearInterval(waitInterval);
     clearInterval(ellipsisInterval);
     waitingElem.textContent = "";
-    botTextSpan.textContent = "[Error occurred]";
+    if(e.name === 'AbortError'){
+      botTextSpan.textContent = '[User Halted]';
+      if(activePairId){
+        await fetch(`/api/chat/pair/${activePairId}/ai`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:'[User Halted]'})});
+        await loadChatHistory(currentTabId, true);
+      }
+    } else {
+      botTextSpan.textContent = "[Error occurred]";
+    }
     botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
-  }
+  } finally {
+    if (favElement) favElement.href = defaultFavicon;
 
-  if (favElement) favElement.href = defaultFavicon;
-
-  if(chatAutoScroll){
-    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-    setTimeout(scrollChatToBottom, 0);
+    if(chatAutoScroll){
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+      setTimeout(scrollChatToBottom, 0);
+    }
+    chatSendBtnEl.disabled = false;
+    chatSendBtnEl.innerHTML = sendIconHtml;
+    sendingInProgress = false;
+    chatAbortController = null;
+    activePairId = null;
+    markTabProcessing(currentTabId, false);
+    processNextQueueMessage();
   }
-  chatSendBtnEl.disabled = false;
-  markTabProcessing(currentTabId, false);
-  processNextQueueMessage();
 });
 
 async function openChatSettings(){
