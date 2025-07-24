@@ -320,6 +320,10 @@ function stripUtmSource(text) {
   });
 }
 
+function stripPerplexityCitations(text) {
+  return (text || '').replace(/\s*\[[0-9]+\]/g, '');
+}
+
 async function callOpenAiModel(client, model, opts = {}) {
   const { messages = [], max_tokens, temperature, stream = false } = opts;
 
@@ -1857,6 +1861,7 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const { provider } = parseProviderModel(model || "deepseek/deepseek-chat");
+    const isOpenrouterPerplexity = (model || '').startsWith('openrouter/perplexity/');
     let systemContext = `System Context:\n${savedInstructions}`;
     let projectContext = '';
     if (tabInfo && tabInfo.send_project_context && (tabInfo.project_name || tabInfo.extra_projects)) {
@@ -1972,6 +1977,9 @@ app.post("/api/chat", async (req, res) => {
       assistantMessage = completion.choices?.[0]?.message?.content || "";
       citations = completion.choices?.[0]?.message?.citations || [];
       assistantMessage = stripUtmSource(assistantMessage);
+      if (isOpenrouterPerplexity) {
+        assistantMessage = stripPerplexityCitations(assistantMessage);
+      }
       res.write(assistantMessage);
       res.end();
       console.debug("[Server Debug] Perplexity completed, length =>", assistantMessage.length);
@@ -1991,7 +1999,8 @@ app.post("/api/chat", async (req, res) => {
         if (chunk.includes("[DONE]")) {
           break;
         }
-        const cleanChunk = stripUtmSource(chunk);
+        let cleanChunk = stripUtmSource(chunk);
+        if (isOpenrouterPerplexity) cleanChunk = stripPerplexityCitations(cleanChunk);
         assistantMessage += cleanChunk;
         res.write(cleanChunk);
       }
@@ -2006,6 +2015,9 @@ app.post("/api/chat", async (req, res) => {
         completion.choices?.[0]?.message?.content ||
         completion.choices?.[0]?.text || "";
       assistantMessage = stripUtmSource(assistantMessage);
+      if (isOpenrouterPerplexity) {
+        assistantMessage = stripPerplexityCitations(assistantMessage);
+      }
       res.write(assistantMessage);
       res.end();
       console.debug("[Server Debug] AI non-streaming completed, length =>", assistantMessage.length);
