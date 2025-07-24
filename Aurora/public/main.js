@@ -4439,7 +4439,7 @@ function runImageLoop(){
 function updateModelHud(){
   const hud = document.getElementById("modelHud");
   if(!hud) return;
-  const prefix = searchEnabled ? "\uD83D\uDD0D " : codexMiniEnabled ? "</> " : ""; // magnifying glass when searching or code icon
+  const prefix = codexMiniEnabled ? "</> " : ""; // code icon when codex mini is active
   hud.textContent = `Model: ${prefix}${modelName}`;
 }
 
