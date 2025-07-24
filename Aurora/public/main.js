@@ -2431,11 +2431,35 @@ async function toggleArchiveTab(tabId, archived){
     body: JSON.stringify({ tabId, archived, sessionId })
   });
   if(r.ok){
+    const wasCurrent = archived && tabId === currentTabId;
     await loadTabs();
-    renderTabs();
-    renderSidebarTabs();
-    renderArchivedSidebarTabs();
-    updatePageTitle();
+    if(wasCurrent){
+      const idx = chatTabs.findIndex(t => t.id === tabId);
+      let next = null;
+      if(idx !== -1){
+        for(let i = idx + 1; i < chatTabs.length; i++){
+          if(!chatTabs[i].archived){ next = chatTabs[i]; break; }
+        }
+        if(!next){
+          for(let i = 0; i < idx; i++){
+            if(!chatTabs[i].archived){ next = chatTabs[i]; break; }
+          }
+        }
+      }
+      if(next){
+        await selectTab(next.id);
+      }else{
+        renderTabs();
+        renderSidebarTabs();
+        renderArchivedSidebarTabs();
+        updatePageTitle();
+      }
+    }else{
+      renderTabs();
+      renderSidebarTabs();
+      renderArchivedSidebarTabs();
+      updatePageTitle();
+    }
     if(chatTabs.length > 0 && chatTabs.every(t => t.archived)){
       location.href = '/index.html';
     }
