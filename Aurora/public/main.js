@@ -2460,10 +2460,33 @@ async function toggleArchiveTab(tabId, archived){
       renderArchivedSidebarTabs();
       updatePageTitle();
     }
-    if(chatTabs.length > 0 && chatTabs.every(t => t.archived)){
+  if(chatTabs.length > 0 && chatTabs.every(t => t.archived)){
       location.href = '/index.html';
     }
   }
+}
+
+async function moveTabToProject(tabId, project){
+  const tab = chatTabs.find(t => t.id === tabId);
+  if(!tab) return;
+  const repo = tab.repo_ssh_url || '';
+  const extraProjects = tab.extra_projects || '';
+  const taskId = tab.task_id || 0;
+  const type = tab.tab_type || 'chat';
+  const sendProjectContext = tab.send_project_context !== undefined ? tab.send_project_context : 1;
+  await fetch('/api/chat/tabs/config', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({tabId, project, repo, extraProjects, taskId, type, sendProjectContext, sessionId})
+  });
+  chatTabOrder[tab.project_name || ''] = (chatTabOrder[tab.project_name || ''] || []).filter(id => id !== tabId);
+  chatTabOrder[project] = chatTabOrder[project] || [];
+  chatTabOrder[project].unshift(tabId);
+  saveChatTabOrder();
+  await loadTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
+  removeProjectGroupIfEmpty(tab.project_name || '');
 }
 async function selectTab(tabId){
   currentTabId = tabId;
@@ -2643,13 +2666,14 @@ function renderSidebarTabs(){
         renderSidebarTabs();
       });
       header.addEventListener("dragover", e => {
-        if(draggingProjectHeader && draggingProjectHeader !== project){
+        if((draggingProjectHeader && draggingProjectHeader !== project) ||
+           (draggingTabRow && draggingTabRow.dataset.project !== project)){
           e.preventDefault();
           header.classList.add("drag-over");
         }
       });
       header.addEventListener("dragleave", () => header.classList.remove("drag-over"));
-      header.addEventListener("drop", e => {
+      header.addEventListener("drop", async e => {
         e.preventDefault();
         header.classList.remove("drag-over");
         if(draggingProjectHeader && draggingProjectHeader !== project){
@@ -2660,6 +2684,10 @@ function renderSidebarTabs(){
           saveProjectHeaderOrder();
           draggingProjectHeader = null;
           renderSidebarTabs();
+        } else if(draggingTabRow && draggingTabRow.dataset.project !== project){
+          const tabId = parseInt(draggingTabRow.dataset.tabId, 10);
+          await moveTabToProject(tabId, project);
+          draggingTabRow = null;
         }
       });
       header.addEventListener("dragend", () => {
