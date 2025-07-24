@@ -990,7 +990,17 @@ body {
 
 /* Highlight chat tab title while waiting for AI response */
 .tab-processing {
-  color: blue !important;
+  color: transparent !important;
+  background-image: linear-gradient(90deg, #1e90ff, #9be8ff, #1e90ff);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: tab-wave 2s linear infinite;
+}
+
+@keyframes tab-wave {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 #verticalTabsContainer .task-id,
