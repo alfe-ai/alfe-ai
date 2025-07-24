@@ -138,6 +138,7 @@ let collapsedArchiveGroups = {};  // archived tab group collapse states
 let chatTabOrder = {};            // per-project tab ordering
 let projectHeaderOrder = [];      // order of project headers
 let draggingTabRow = null;        // element of tab row being dragged
+let subDropTarget = null;         // tab row being hovered for subtask drop
 let draggingProjectHeader = null; // project header currently being dragged
 let projectAddTooltip = null;     // floating toolbar for project add button
 let projectAddTooltipProject = null;
@@ -1584,35 +1585,55 @@ function tabDragOver(e){
   if(draggingTabRow && e.currentTarget !== draggingTabRow &&
      e.currentTarget.dataset.project === draggingTabRow.dataset.project){
     e.preventDefault();
-    e.currentTarget.classList.add('drag-over');
+    const overHalf = e.offsetY > e.currentTarget.offsetHeight / 2;
+    if(overHalf){
+      subDropTarget = e.currentTarget;
+      e.currentTarget.classList.add('sub-drop-bar');
+      e.currentTarget.classList.remove('drag-over');
+    } else {
+      subDropTarget = null;
+      e.currentTarget.classList.add('drag-over');
+      e.currentTarget.classList.remove('sub-drop-bar');
+    }
   }
 }
 
 function tabDragLeave(e){
-  e.currentTarget.classList.remove('drag-over');
+  e.currentTarget.classList.remove('drag-over','sub-drop-bar');
+  if(subDropTarget === e.currentTarget) subDropTarget = null;
 }
 
-function tabDrop(e){
+async function tabDrop(e){
   e.preventDefault();
   const target = e.currentTarget;
-  target.classList.remove('drag-over');
+  target.classList.remove('drag-over','sub-drop-bar');
   if(draggingTabRow && target !== draggingTabRow &&
      target.dataset.project === draggingTabRow.dataset.project){
     const parent = target.parentNode;
     const rows = [...parent.children];
-    let from = rows.indexOf(draggingTabRow);
-    let to = rows.indexOf(target);
-    parent.removeChild(draggingTabRow);
-    if(from < to) to--;
-    parent.insertBefore(draggingTabRow, parent.children[to]);
-    updateChatTabOrder(target.dataset.project, parent);
+    const dropAsChild = subDropTarget === target;
+    if(dropAsChild){
+      const childId = parseInt(draggingTabRow.dataset.tabId,10);
+      const parentId = parseInt(target.dataset.tabId,10);
+      await setTabParent(childId, parentId);
+    } else {
+      let from = rows.indexOf(draggingTabRow);
+      let to = rows.indexOf(target);
+      parent.removeChild(draggingTabRow);
+      if(from < to) to--;
+      parent.insertBefore(draggingTabRow, parent.children[to]);
+      updateChatTabOrder(target.dataset.project, parent);
+    }
   }
+  subDropTarget = null;
   draggingTabRow = null;
 }
 
 function tabDragEnd(){
   $$('div.sidebar-tab-row.drag-over').forEach(el=>el.classList.remove('drag-over'));
+  $$('div.sidebar-tab-row.sub-drop-bar').forEach(el=>el.classList.remove('sub-drop-bar'));
   draggingTabRow = null;
+  subDropTarget = null;
 }
 async function saveNewOrderToServer(){
   const ids = $$("#tasks tbody tr").map(r=>+r.dataset.taskId);
@@ -2488,6 +2509,17 @@ async function moveTabToProject(tabId, project){
   renderArchivedSidebarTabs();
   removeProjectGroupIfEmpty(tab.project_name || '');
 }
+
+async function setTabParent(tabId, parentId){
+  await fetch('/api/chat/tabs/parent', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({tabId, parentId, sessionId})
+  });
+  await loadTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
+}
 async function selectTab(tabId){
   currentTabId = tabId;
   await setSetting("last_chat_tab", tabId);
@@ -2708,7 +2740,18 @@ function renderSidebarTabs(){
         if(ib === -1) return -1;
         return ia - ib;
       });
-      list.forEach(tab => renderSidebarTabRow(groupDiv, tab, true));
+      const childMap = new Map();
+      list.forEach(t => {
+        if(t.parent_id){
+          if(!childMap.has(t.parent_id)) childMap.set(t.parent_id, []);
+          childMap.get(t.parent_id).push(t);
+        }
+      });
+      list.forEach(tab => {
+        if(tab.parent_id) return;
+        renderSidebarTabRow(groupDiv, tab, true);
+        (childMap.get(tab.id) || []).forEach(ch => renderSidebarTabRow(groupDiv, ch, true));
+      });
       container.appendChild(groupDiv);
     };
 
@@ -2732,8 +2775,16 @@ function renderSidebarTabs(){
     if(ib === -1) return -1;
     return ia - ib;
   });
+  const childMap = new Map();
+  tabs.forEach(t => {
+    if(t.parent_id){
+      if(!childMap.has(t.parent_id)) childMap.set(t.parent_id, []);
+      childMap.get(t.parent_id).push(t);
+    }
+  });
   let lastDate = null;
   tabs.forEach(tab => {
+    if(tab.parent_id) return;
     const tabDate = isoDate(tab.created_at);
     if(tabDate !== lastDate){
       const header = document.createElement("div");
@@ -2743,6 +2794,7 @@ function renderSidebarTabs(){
       lastDate = tabDate;
     }
     renderSidebarTabRow(container, tab);
+    (childMap.get(tab.id) || []).forEach(ch => renderSidebarTabRow(container, ch, false));
   });
 }
 
@@ -2754,8 +2806,10 @@ function renderSidebarTabRow(container, tab, indented=false){
   wrapper.style.gap = "4px";
   wrapper.style.width = "100%";
   if(indented) wrapper.classList.add("project-indented");
+  if(tab.parent_id) wrapper.classList.add("subtask-indented");
   wrapper.dataset.tabId = tab.id;
   wrapper.dataset.project = tab.project_name || "";
+  wrapper.dataset.parentId = tab.parent_id || 0;
 
   const grab = document.createElement("span");
   grab.className = "drag-handle";
@@ -2876,7 +2930,18 @@ function renderArchivedSidebarTabs(){
       groupDiv.className = "project-tab-group";
       groupDiv.dataset.project = project;
       if(collapsed) groupDiv.style.display = "none";
-      list.forEach(tab => addArchivedRow(groupDiv, tab, true));
+      const childMap = new Map();
+      list.forEach(t => {
+        if(t.parent_id){
+          if(!childMap.has(t.parent_id)) childMap.set(t.parent_id, []);
+          childMap.get(t.parent_id).push(t);
+        }
+      });
+      list.forEach(tab => {
+        if(tab.parent_id) return;
+        addArchivedRow(groupDiv, tab, true);
+        (childMap.get(tab.id) || []).forEach(ch => addArchivedRow(groupDiv, ch, true));
+      });
       container.appendChild(groupDiv);
     };
     const noProject = groups.get("");
@@ -2891,7 +2956,18 @@ function renderArchivedSidebarTabs(){
     saveCollapsedArchiveGroups();
     return;
   }
-  tabs.forEach(tab => addArchivedRow(container, tab));
+  const childMap = new Map();
+  tabs.forEach(t => {
+    if(t.parent_id){
+      if(!childMap.has(t.parent_id)) childMap.set(t.parent_id, []);
+      childMap.get(t.parent_id).push(t);
+    }
+  });
+  tabs.forEach(tab => {
+    if(tab.parent_id) return;
+    addArchivedRow(container, tab);
+    (childMap.get(tab.id) || []).forEach(ch => addArchivedRow(container, ch));
+  });
 }
 
 function addArchivedRow(container, tab, indented=false){
@@ -2901,6 +2977,8 @@ function addArchivedRow(container, tab, indented=false){
   wrapper.style.gap = "4px";
   wrapper.style.width = "100%";
   if(indented) wrapper.classList.add("project-indented");
+  if(tab.parent_id) wrapper.classList.add("subtask-indented");
+  wrapper.dataset.parentId = tab.parent_id || 0;
 
   const icon = document.createElement("span");
   icon.className = "tab-icon";
