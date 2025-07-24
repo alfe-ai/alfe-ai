@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadHideDoneTasks();
   loadChatTabOrder();
   loadProjectHeaderOrder();
+  loadCollapsedChildTabs();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', () => {
     updateChatPanelVisibility();
@@ -135,6 +136,7 @@ let projectGroups = [];           // custom project group headers
 let draggingProjectIndex = null;  // index of project group being dragged
 let collapsedProjectGroups = {};  // chat project group collapse states
 let collapsedArchiveGroups = {};  // archived tab group collapse states
+let collapsedChildTabs = {};      // parent chat tab collapse states
 let chatTabOrder = {};            // per-project tab ordering
 let projectHeaderOrder = [];      // order of project headers
 let draggingTabRow = null;        // element of tab row being dragged
@@ -521,6 +523,18 @@ function saveCollapsedProjectGroups(){
 
 function saveCollapsedArchiveGroups(){
   localStorage.setItem('collapsedArchiveGroups', JSON.stringify(collapsedArchiveGroups));
+}
+
+function loadCollapsedChildTabs(){
+  try {
+    collapsedChildTabs = JSON.parse(localStorage.getItem('collapsedChildTabs') || '{}');
+  } catch(e){
+    collapsedChildTabs = {};
+  }
+}
+
+function saveCollapsedChildTabs(){
+  localStorage.setItem('collapsedChildTabs', JSON.stringify(collapsedChildTabs));
 }
 
 function saveProjectGroups(){
@@ -2020,6 +2034,14 @@ async function loadTabs(){
   const res = await fetch(`/api/chat/tabs?nexum=0&showArchived=1&sessionId=${encodeURIComponent(sessionId)}`);
   chatTabs = await res.json();
   archivedTabs = chatTabs.filter(t => t.archived);
+  const parentIds = new Set(chatTabs.map(t => t.id));
+  const hasChild = new Set(chatTabs.filter(t => t.parent_id).map(t => t.parent_id));
+  for(const id in collapsedChildTabs){
+    if(!parentIds.has(+id) || !hasChild.has(+id)){
+      delete collapsedChildTabs[id];
+    }
+  }
+  saveCollapsedChildTabs();
 }
 
 async function loadSubroutines(){
@@ -2749,8 +2771,11 @@ function renderSidebarTabs(){
       });
       list.forEach(tab => {
         if(tab.parent_id) return;
-        renderSidebarTabRow(groupDiv, tab, true);
-        (childMap.get(tab.id) || []).forEach(ch => renderSidebarTabRow(groupDiv, ch, true));
+        const children = childMap.get(tab.id) || [];
+        renderSidebarTabRow(groupDiv, tab, true, children.length > 0);
+        if(!collapsedChildTabs[tab.id]){
+          children.forEach(ch => renderSidebarTabRow(groupDiv, ch, true, false));
+        }
       });
       container.appendChild(groupDiv);
     };
@@ -2793,12 +2818,15 @@ function renderSidebarTabs(){
       container.appendChild(header);
       lastDate = tabDate;
     }
-    renderSidebarTabRow(container, tab);
-    (childMap.get(tab.id) || []).forEach(ch => renderSidebarTabRow(container, ch, false));
+    const children = childMap.get(tab.id) || [];
+    renderSidebarTabRow(container, tab, false, children.length > 0);
+    if(!collapsedChildTabs[tab.id]){
+      children.forEach(ch => renderSidebarTabRow(container, ch, false, false));
+    }
   });
 }
 
-function renderSidebarTabRow(container, tab, indented=false){
+function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   const wrapper = document.createElement("div");
   wrapper.className = "sidebar-tab-row";
   wrapper.style.display = "flex";
@@ -2817,6 +2845,20 @@ function renderSidebarTabRow(container, tab, indented=false){
   grab.draggable = true;
   grab.addEventListener("dragstart", tabDragStart);
   wrapper.appendChild(grab);
+
+  if(hasChildren){
+    const arrow = document.createElement("span");
+    arrow.className = "child-collapse-arrow";
+    const collapsed = collapsedChildTabs[tab.id];
+    arrow.textContent = collapsed ? "\u25B6" : "\u25BC";
+    arrow.addEventListener("click", e => {
+      e.stopPropagation();
+      collapsedChildTabs[tab.id] = !collapsedChildTabs[tab.id];
+      saveCollapsedChildTabs();
+      renderSidebarTabs();
+    });
+    wrapper.appendChild(arrow);
+  }
 
   const info = document.createElement("div");
   info.style.display = "flex";
@@ -2939,8 +2981,11 @@ function renderArchivedSidebarTabs(){
       });
       list.forEach(tab => {
         if(tab.parent_id) return;
-        addArchivedRow(groupDiv, tab, true);
-        (childMap.get(tab.id) || []).forEach(ch => addArchivedRow(groupDiv, ch, true));
+        const children = childMap.get(tab.id) || [];
+        addArchivedRow(groupDiv, tab, true, children.length > 0);
+        if(!collapsedChildTabs[tab.id]){
+          children.forEach(ch => addArchivedRow(groupDiv, ch, true, false));
+        }
       });
       container.appendChild(groupDiv);
     };
@@ -2965,12 +3010,15 @@ function renderArchivedSidebarTabs(){
   });
   tabs.forEach(tab => {
     if(tab.parent_id) return;
-    addArchivedRow(container, tab);
-    (childMap.get(tab.id) || []).forEach(ch => addArchivedRow(container, ch));
+    const children = childMap.get(tab.id) || [];
+    addArchivedRow(container, tab, false, children.length > 0);
+    if(!collapsedChildTabs[tab.id]){
+      children.forEach(ch => addArchivedRow(container, ch, false, false));
+    }
   });
 }
 
-function addArchivedRow(container, tab, indented=false){
+function addArchivedRow(container, tab, indented=false, hasChildren=false){
   const wrapper = document.createElement("div");
   wrapper.style.display = "flex";
   wrapper.style.alignItems = "center";
@@ -2983,6 +3031,20 @@ function addArchivedRow(container, tab, indented=false){
   const icon = document.createElement("span");
   icon.className = "tab-icon";
   icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
+
+  if(hasChildren){
+    const arrow = document.createElement("span");
+    arrow.className = "child-collapse-arrow";
+    const collapsed = collapsedChildTabs[tab.id];
+    arrow.textContent = collapsed ? "\u25B6" : "\u25BC";
+    arrow.addEventListener("click", e => {
+      e.stopPropagation();
+      collapsedChildTabs[tab.id] = !collapsedChildTabs[tab.id];
+      saveCollapsedChildTabs();
+      renderArchivedSidebarTabs();
+    });
+    wrapper.appendChild(arrow);
+  }
 
   const info = document.createElement("div");
   info.style.display = "flex";
