@@ -2926,6 +2926,32 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   if (tab.task_id) {
     const prio = tab.priority ? ` ${tab.priority}` : "";
     taskIdSpan.textContent = `#${tab.task_id}${prio}`;
+    taskIdSpan.addEventListener("click", e => {
+      e.stopPropagation();
+      const sel = document.createElement("select");
+      ["Low","Medium","High"].forEach(v => {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v;
+        if (v === tab.priority) o.selected = true;
+        sel.appendChild(o);
+      });
+      taskIdSpan.textContent = "";
+      taskIdSpan.appendChild(sel);
+      sel.focus();
+      sel.addEventListener("change", async () => {
+        await fetch("/api/tasks/priority", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: tab.task_id, priority: sel.value })
+        });
+        tab.priority = sel.value;
+        taskIdSpan.textContent = `#${tab.task_id} ${sel.value}`;
+      });
+      sel.addEventListener("blur", () => {
+        taskIdSpan.textContent = `#${tab.task_id}${tab.priority ? ` ${tab.priority}` : ""}`;
+      });
+    });
   }
 
   wrapper.appendChild(info);
@@ -3077,6 +3103,32 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   if (tab.task_id) {
     const prio = tab.priority ? ` ${tab.priority}` : "";
     taskIdSpan.textContent = `#${tab.task_id}${prio}`;
+    taskIdSpan.addEventListener("click", e => {
+      e.stopPropagation();
+      const sel = document.createElement("select");
+      ["Low","Medium","High"].forEach(v => {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v;
+        if (v === tab.priority) o.selected = true;
+        sel.appendChild(o);
+      });
+      taskIdSpan.textContent = "";
+      taskIdSpan.appendChild(sel);
+      sel.focus();
+      sel.addEventListener("change", async () => {
+        await fetch("/api/tasks/priority", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: tab.task_id, priority: sel.value })
+        });
+        tab.priority = sel.value;
+        taskIdSpan.textContent = `#${tab.task_id} ${sel.value}`;
+      });
+      sel.addEventListener("blur", () => {
+        taskIdSpan.textContent = `#${tab.task_id}${tab.priority ? ` ${tab.priority}` : ""}`;
+      });
+    });
   }
 
   wrapper.appendChild(icon);

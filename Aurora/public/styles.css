@@ -1026,6 +1026,7 @@ body {
   color: var(--accent-light);
   font-size: 0.8rem;
   padding-left: 4px;
+  cursor: pointer;
 }
 
 /* Secure uploader file table */
