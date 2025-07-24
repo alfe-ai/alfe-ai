@@ -14,6 +14,10 @@ require('dotenv').config();
 const axios     = require('axios');
 const readline  = require('readline');
 
+function stripCitationBrackets(text){
+  return (text || '').replace(/\s*\[[0-9]+\]/g, '');
+}
+
 const MODELS = [
   { id: 'sonar',                 note: 'lightweight, web-grounded' },
   { id: 'sonar-pro',             note: 'advanced search model' },
@@ -62,7 +66,8 @@ function ask(q) {
     );
 
     const msg = data.choices?.[0]?.message || {};
-    console.log(msg.content || '(no content)\n');
+    const clean = stripCitationBrackets(msg.content);
+    console.log(clean || '(no content)\n');
 
     if (msg.citations?.length) {
       console.log('— citations —');

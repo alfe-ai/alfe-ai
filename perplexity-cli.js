@@ -28,6 +28,10 @@ const options = program.opts();
 const query = program.args.join(' ');
 const apiKey = options.key || process.env.PERPLEXITY_API_KEY;
 
+function stripCitationBrackets(text) {
+  return (text || '').replace(/\s*\[[0-9]+\]/g, '');
+}
+
 if (!VALID_MODELS.includes(options.model)) {
   console.error(`Invalid model. Choose one of: ${VALID_MODELS.join(', ')}`);
   process.exit(1);
@@ -50,7 +54,8 @@ axios.post('https://api.perplexity.ai/chat/completions', {
 .then(response => {
   const result = response.data.choices?.[0]?.message || {};
 
-  console.log(`\n${result.content}\n`);
+  const clean = stripCitationBrackets(result.content);
+  console.log(`\n${clean}\n`);
 
   if (result.citations && result.citations.length > 0) {
     console.log('Citations:');
