@@ -4439,8 +4439,7 @@ function runImageLoop(){
 function updateModelHud(){
   const hud = document.getElementById("modelHud");
   if(!hud) return;
-  const prefix = codexMiniEnabled ? "</> " : ""; // code icon when codex mini is active
-  hud.textContent = `Model: ${prefix}${modelName}`;
+  hud.textContent = `Model: ${modelName}`;
 }
 
 function updateSearchButton(){
