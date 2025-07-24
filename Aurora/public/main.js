@@ -142,6 +142,7 @@ let projectHeaderOrder = [];      // order of project headers
 let draggingTabRow = null;        // element of tab row being dragged
 let subDropTarget = null;         // tab row being hovered to drop as child
 let draggingProjectHeader = null; // project header currently being dragged
+let topDropBar = null;            // drop target above first chat
 let projectAddTooltip = null;     // floating toolbar for project add button
 let projectAddTooltipProject = null;
 let projectAddTooltipTimer = null;
@@ -1594,6 +1595,27 @@ function handleDragEnd(){
 function tabDragStart(e){
   draggingTabRow = e.target.closest('.sidebar-tab-row');
   e.dataTransfer.effectAllowed = 'move';
+  const parent = draggingTabRow?.parentNode;
+  if(parent && !topDropBar){
+    topDropBar = document.createElement('div');
+    topDropBar.className = 'top-drop-bar';
+    parent.insertBefore(topDropBar, parent.firstChild);
+    topDropBar.addEventListener('dragover', ev => {
+      ev.preventDefault();
+      topDropBar.classList.add('drag-over');
+    });
+    const clearBar = () => topDropBar.classList.remove('drag-over');
+    topDropBar.addEventListener('dragleave', clearBar);
+    topDropBar.addEventListener('drop', ev => {
+      ev.preventDefault();
+      clearBar();
+      if(draggingTabRow){
+        parent.insertBefore(draggingTabRow, topDropBar.nextSibling);
+        updateChatTabOrder(draggingTabRow.dataset.project, parent);
+      }
+      tabDragEnd();
+    });
+  }
 }
 
 function tabDragOver(e){
@@ -1640,6 +1662,10 @@ async function tabDrop(e){
       updateChatTabOrder(target.dataset.project, parent);
     }
   }
+  if(topDropBar){
+    topDropBar.remove();
+    topDropBar = null;
+  }
   subDropTarget = null;
   draggingTabRow = null;
 }
@@ -1649,6 +1675,10 @@ function tabDragEnd(){
   $$('div.sidebar-tab-row.sub-drop-bar').forEach(el=>el.classList.remove('sub-drop-bar'));
   draggingTabRow = null;
   subDropTarget = null;
+  if(topDropBar){
+    topDropBar.remove();
+    topDropBar = null;
+  }
 }
 async function saveNewOrderToServer(){
   const ids = $$("#tasks tbody tr").map(r=>+r.dataset.taskId);
