@@ -1635,7 +1635,7 @@ async function tabDrop(e){
       let to = rows.indexOf(target);
       parent.removeChild(draggingTabRow);
       if(from < to) to--;
-      parent.insertBefore(draggingTabRow, parent.children[to]);
+      parent.insertBefore(draggingTabRow, parent.children[to + 1] || null);
       updateChatTabOrder(target.dataset.project, parent);
     }
   }
