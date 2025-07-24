@@ -154,6 +154,7 @@ let imageGenService = 'openai';
 let imageGenModel = 'gptimage1';
 let isImageGenerating = false; // true while an image is being generated
 let lastImagePrompt = null; // avoid repeating generation for same prompt
+let currentChatAbort = null; // AbortController for streaming chat
 let imageUploadEnabled = true; // show image upload button
 let imagePaintTrayEnabled = true; // show image paint tray button
 let activityIframeMenuVisible = false; // show Activity IFrame menu item
@@ -3718,6 +3719,9 @@ async function toggleModelFavorite(id, fav){
 
 const chatInputEl = document.getElementById("chatInput");
 const chatSendBtnEl = document.getElementById("chatSendBtn");
+const sendBtnDefaultHtml = chatSendBtnEl.innerHTML;
+const stopBtnHtml = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-square"><rect x="6" y="6" width="12" height="12"></rect></svg>';
+chatSendBtnEl.dataset.mode = 'send';
 const waitingElem = document.getElementById("waitingCounter");
 const scrollDownBtnEl = document.getElementById("scrollDownBtn");
 const tokenCounterEl = document.getElementById("inputTokenCount");
@@ -3791,6 +3795,13 @@ chatInputEl.addEventListener("keydown", (e) => {
 });
 
 chatSendBtnEl.addEventListener("click", async () => {
+  if(chatSendBtnEl.dataset.mode === 'stop'){
+    if(currentChatAbort){
+      currentChatAbort.abort();
+    }
+    chatSendBtnEl.disabled = true;
+    return;
+  }
   const chatMessagesEl = document.getElementById("chatMessages");
   const placeholderEl = document.getElementById("chatPlaceholder");
   const userMessage = chatInputEl.value.trim();
@@ -3989,10 +4000,18 @@ chatSendBtnEl.addEventListener("click", async () => {
   }, 500);
 
   try {
+    const controller = new AbortController();
+    currentChatAbort = controller;
+    chatSendBtnEl.disabled = false;
+    chatSendBtnEl.dataset.mode = 'stop';
+    chatSendBtnEl.classList.add('stop-btn');
+    chatSendBtnEl.innerHTML = stopBtnHtml;
+
     const resp = await fetch("/api/chat",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message:combinedUserText, tabId: currentTabId, userTime, sessionId})
+      body:JSON.stringify({message:combinedUserText, tabId: currentTabId, userTime, sessionId}),
+      signal: controller.signal
     });
     clearInterval(waitInterval);
     waitingElem.textContent = "";
@@ -4036,7 +4055,19 @@ chatSendBtnEl.addEventListener("click", async () => {
     clearInterval(waitInterval);
     clearInterval(ellipsisInterval);
     waitingElem.textContent = "";
-    botTextSpan.textContent = "[Error occurred]";
+    if(e.name === 'AbortError'){
+      botTextSpan.textContent = "[User Halted]";
+      try {
+        const r = await fetch(`/api/chat/history?tabId=${currentTabId}&limit=1&offset=0&sessionId=${encodeURIComponent(sessionId)}`);
+        const data = await r.json().catch(()=>null);
+        const pid = data?.pairs?.[0]?.id;
+        if(pid){
+          await fetch(`/api/chat/pair/${pid}/ai`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:'[User Halted]'}) });
+        }
+      } catch(err){ console.error('Update halted pair failed', err); }
+    } else {
+      botTextSpan.textContent = "[Error occurred]";
+    }
     botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
   }
 
@@ -4047,6 +4078,10 @@ chatSendBtnEl.addEventListener("click", async () => {
     setTimeout(scrollChatToBottom, 0);
   }
   chatSendBtnEl.disabled = false;
+  chatSendBtnEl.dataset.mode = 'send';
+  chatSendBtnEl.classList.remove('stop-btn');
+  chatSendBtnEl.innerHTML = sendBtnDefaultHtml;
+  currentChatAbort = null;
   markTabProcessing(currentTabId, false);
   processNextQueueMessage();
 });
