@@ -4596,11 +4596,17 @@ async function renderSearchModels(){
   searchModelsContainer.innerHTML = '';
   const models = [
     { name: 'sonar', note: 'lightweight, web-grounded' },
+    { name: 'openrouter/perplexity/sonar', note: 'lightweight, web-grounded' },
     { name: 'sonar-pro', note: 'advanced search model' },
+    { name: 'openrouter/perplexity/sonar-pro', label: 'pro', note: 'advanced search model' },
     { name: 'sonar-reasoning', note: 'fast, real-time reasoning (search)' },
+    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro', note: 'fast, real-time reasoning (search)' },
     { name: 'sonar-reasoning-pro', note: 'higher-accuracy CoT reasoning' },
+    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro', note: 'higher-accuracy CoT reasoning' },
     { name: 'sonar-deep-research', note: 'exhaustive long-form research' },
+    { name: 'openrouter/perplexity/sonar-deep-research', label: 'pro', note: 'exhaustive long-form research' },
     { name: 'r1-1776', note: 'offline conversational (no search)' },
+    { name: 'openrouter/perplexity/r1-1776', note: 'offline conversational (no search)' },
     { name: 'openai/gpt-4o-mini-search-preview' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
