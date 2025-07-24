@@ -4507,13 +4507,6 @@ async function initReasoningTooltip(){
   });
   reasoningTooltip.appendChild(gear);
 
-  const tBtn = document.createElement('button');
-  tBtn.textContent = 'Toggle Reasoning';
-  tBtn.addEventListener('click', async ev => {
-    ev.stopPropagation();
-    await toggleReasoning();
-  });
-  reasoningTooltip.appendChild(tBtn);
 
   const chatHeader = document.createElement('div');
   chatHeader.textContent = 'Chat';
@@ -4530,14 +4523,6 @@ async function initReasoningTooltip(){
 
   reasoningReasonContainer = document.createElement('div');
   reasoningTooltip.appendChild(reasoningReasonContainer);
-
-  const searchToggle = document.createElement('button');
-  searchToggle.textContent = 'Toggle Search';
-  searchToggle.addEventListener('click', async ev => {
-    ev.stopPropagation();
-    await toggleSearch();
-  });
-  reasoningTooltip.appendChild(searchToggle);
 
   const searchHeader = document.createElement('div');
   searchHeader.textContent = 'Search';
