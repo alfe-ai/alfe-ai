@@ -2924,7 +2924,8 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   const taskIdSpan = document.createElement("span");
   taskIdSpan.className = "task-id";
   if (tab.task_id) {
-    taskIdSpan.textContent = `#${tab.task_id}`;
+    const prio = tab.priority ? ` ${tab.priority}` : "";
+    taskIdSpan.textContent = `#${tab.task_id}${prio}`;
   }
 
   wrapper.appendChild(info);
@@ -3074,7 +3075,8 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   const taskIdSpan = document.createElement("span");
   taskIdSpan.className = "task-id";
   if (tab.task_id) {
-    taskIdSpan.textContent = `#${tab.task_id}`;
+    const prio = tab.priority ? ` ${tab.priority}` : "";
+    taskIdSpan.textContent = `#${tab.task_id}${prio}`;
   }
 
   wrapper.appendChild(icon);
