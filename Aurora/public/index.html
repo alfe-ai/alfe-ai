@@ -65,6 +65,7 @@
       </div>
 <!--      <h1>Nexum Chat</h1>-->
       <div id="modelInfo" style="margin-bottom:0.5rem; color:#aaa;"></div>
+      <iframe id="chatgptFrame" style="display:none;width:100%;height:80vh;border:none;"></iframe>
       <div id="chatPanel">
         <div id="suggestions"></div>
         <div id="chat"></div>
@@ -142,6 +143,9 @@
       </label>
       <label style="margin-top:8px;">Codex Chat URL:<br/>
         <input type="text" id="codexChatUrlInput" style="width:100%;" />
+      </label>
+      <label style="margin-top:8px;">ChatGPT URL:<br/>
+        <input type="text" id="chatgptUrlInput" style="width:100%;" />
       </label>
       <button id="codexImportBtn" style="margin-top:8px;">Codex/GitHub Import</button>
       <div style="margin-top:1rem;text-align:right;">
@@ -743,6 +747,8 @@
       document.getElementById('tabProjectInput').value = t.project_name || '';
       document.getElementById('tabRepoInput').value = t.repo_ssh_url || '';
       document.getElementById('tabTypeSelect').value = t.tab_type || 'chat';
+      const chatgptInput = document.getElementById('chatgptUrlInput');
+      if(chatgptInput) chatgptInput.value = t.chatgpt_url || '';
       const modal = document.getElementById('tabConfigModal');
       modal.dataset.tabId = tabId;
       modal.style.display = 'flex';
@@ -801,14 +807,23 @@
       if(newTabBtnEl) newTabBtnEl.style.display = v === 'archive' ? 'none' : '';
 
       const chatEl = document.getElementById('chat');
-      if(chatEl) chatEl.style.display = v === 'tasks' || v === 'archive' ? 'none' : '';
+      const t = tabs.find(tt => tt.id === currentTabId) || {};
+      if(chatEl) chatEl.style.display = (v === 'tasks' || v === 'archive' || (v === 'chat' && t.chatgpt_url)) ? 'none' : '';
       const suggestionsEl = document.getElementById('suggestions');
-      if(suggestionsEl) suggestionsEl.style.display = v === 'tasks' || v === 'archive' ? 'none' : '';
+      if(suggestionsEl) suggestionsEl.style.display = (v === 'tasks' || v === 'archive' || (v === 'chat' && t.chatgpt_url)) ? 'none' : '';
 
       const chatPanel = document.getElementById('chatPanel');
+      const chatgptFrame = document.getElementById('chatgptFrame');
       if(chatPanel){
         chatPanel.classList.toggle('tasks-view', v === 'tasks');
-        chatPanel.style.display = v === 'archive' ? 'none' : '';
+        const t = tabs.find(tt => tt.id === currentTabId) || {};
+        if(v === 'chat' && t.chatgpt_url){
+          chatPanel.style.display = 'none';
+          if(chatgptFrame){ chatgptFrame.style.display='block'; chatgptFrame.src = t.chatgpt_url; }
+        }else{
+          chatPanel.style.display = v === 'archive' ? 'none' : '';
+          if(chatgptFrame) chatgptFrame.style.display='none';
+        }
       }
 
       if(v === 'chat') {
@@ -1107,7 +1122,8 @@
       const project = document.getElementById('tabProjectInput').value;
       const repo = document.getElementById('tabRepoInput').value;
       const type = document.getElementById('tabTypeSelect').value;
-      await fetch('/api/chat/tabs/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId, project, repo, type})});
+      const chatgptUrl = document.getElementById('chatgptUrlInput').value;
+      await fetch('/api/chat/tabs/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId, project, repo, type, chatgptUrl})});
       modal.style.display = 'none';
       await loadTabs();
       renderTabs();
