@@ -200,7 +200,7 @@
   </div>
   <div id="renameTabModal" class="modal" style="display:none;">
     <div class="modal-content">
-      <h3>Rename Chat</h3>
+      <h3>Chat Settings Modal</h3>
       <label>New name:<br/>
         <input type="text" id="renameTabInput" style="width:100%;" />
       </label>
@@ -209,6 +209,9 @@
       </label>
       <label style="margin-top:8px;">Tertiary projects:<br/>
         <input type="text" id="renameExtraProjectsInput" style="width:100%;" placeholder="proj2, proj3" />
+      </label>
+      <label style="margin-top:8px;">ChatGPT URL:<br/>
+        <input type="text" id="renameChatgptUrlInput" style="width:100%;" />
       </label>
       <div class="modal-buttons">
         <button id="renameTabSaveBtn">Save</button>
@@ -684,6 +687,12 @@
     function openRenameTabModal(tabId){
       const t = tabs.find(tt => tt.id === tabId);
       document.getElementById('renameTabInput').value = t ? t.name : '';
+      const cg = document.getElementById('renameChatgptUrlInput');
+      if(cg) cg.value = t && t.chatgpt_url ? t.chatgpt_url : '';
+      const projSel = document.getElementById('renameProjectSelect');
+      if(projSel) projSel.value = t && t.project_name ? t.project_name : '';
+      const extraInp = document.getElementById('renameExtraProjectsInput');
+      if(extraInp) extraInp.value = t && t.extra_projects ? t.extra_projects : '';
       const modal = document.getElementById('renameTabModal');
       modal.dataset.tabId = tabId;
       modal.style.display = 'flex';
@@ -986,7 +995,17 @@
       const tabId = parseInt(modal.dataset.tabId, 10);
       const name = document.getElementById('renameTabInput').value.trim();
       if(name) await renameTab(tabId, name);
+      const cg = document.getElementById('renameChatgptUrlInput');
+      const chatgptUrl = cg ? cg.value.trim() : '';
+      const projSel = document.getElementById('renameProjectSelect');
+      const project = projSel ? projSel.value.trim() : '';
+      const extraInput = document.getElementById('renameExtraProjectsInput');
+      const extraProjects = extraInput ? extraInput.value.trim() : '';
+      const t = tabs.find(tt => tt.id === tabId) || {};
+      await fetch('/api/chat/tabs/config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId, project, repo:t.repo_ssh_url||'', type:t.tab_type||'chat', extraProjects, chatgptUrl})});
       modal.style.display = 'none';
+      await loadTabs();
+      renderTabs();
     });
     document.getElementById('renameTabCancelBtn').addEventListener('click', () => {
       document.getElementById('renameTabModal').style.display = 'none';
