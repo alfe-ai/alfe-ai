@@ -2264,6 +2264,10 @@ async function openRenameTabModal(tabId){
   if(sendCtx){
     sendCtx.checked = t ? t.send_project_context !== 0 : true;
   }
+  const chatgptInp = $("#renameChatgptUrlInput");
+  if(chatgptInp){
+    chatgptInp.value = t && t.chatgpt_url ? t.chatgpt_url : '';
+  }
   const modal = $("#renameTabModal");
   if(!modal){
     renameTab(tabId);
@@ -2387,11 +2391,13 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   let extraProjects = extraInp ? extraInp.value.trim() : '';
   const sendCtx = $("#renameSendProjectContextCheck");
   const sendProjectContext = sendCtx ? sendCtx.checked : true;
+  const chatgptInp = $("#renameChatgptUrlInput");
+  const chatgptUrl = chatgptInp ? chatgptInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
   await fetch('/api/chat/tabs/config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({tabId, project, repo, extraProjects, taskId, type, sendProjectContext, sessionId})
+    body: JSON.stringify({tabId, project, repo, extraProjects, taskId, type, sendProjectContext, chatgptUrl, sessionId})
   });
   await loadTabs();
   renderTabs();
@@ -2429,11 +2435,13 @@ $("#renameTabCreateTaskBtn").addEventListener("click", async () => {
   let extraProjects = extraInp ? extraInp.value.trim() : '';
   const sendCtx = $("#renameSendProjectContextCheck");
   const sendProjectContext = sendCtx ? sendCtx.checked : true;
+  const chatgptInp = $("#renameChatgptUrlInput");
+  const chatgptUrl = chatgptInp ? chatgptInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
   await fetch('/api/chat/tabs/config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({tabId, project, repo, extraProjects, taskId, type, sendProjectContext, sessionId})
+    body: JSON.stringify({tabId, project, repo, extraProjects, taskId, type, sendProjectContext, chatgptUrl, sessionId})
   });
   await loadTabs();
   renderTabs();
