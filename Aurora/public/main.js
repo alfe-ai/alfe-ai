@@ -329,12 +329,12 @@ function applyMarkdownSyntax(text){
   if(!text) return "";
   let html = escapeHtml(text);
   // Headings
-  html = html.replace(/^###### (.*)$/gm, '<span class="md-h6">$&</span>');
-  html = html.replace(/^##### (.*)$/gm, '<span class="md-h5">$&</span>');
-  html = html.replace(/^#### (.*)$/gm,  '<span class="md-h4">$&</span>');
-  html = html.replace(/^### (.*)$/gm,   '<span class="md-h3">$&</span>');
-  html = html.replace(/^## (.*)$/gm,    '<span class="md-h2">$&</span>');
-  html = html.replace(/^# (.*)$/gm,     '<span class="md-h1">$&</span>');
+  html = html.replace(/^######\s+(.*)$/gm, '<span class="md-h6">$1</span>');
+  html = html.replace(/^#####\s+(.*)$/gm, '<span class="md-h5">$1</span>');
+  html = html.replace(/^####\s+(.*)$/gm,  '<span class="md-h4">$1</span>');
+  html = html.replace(/^###\s+(.*)$/gm,   '<span class="md-h3">$1</span>');
+  html = html.replace(/^##\s+(.*)$/gm,    '<span class="md-h2">$1</span>');
+  html = html.replace(/^#\s+(.*)$/gm,     '<span class="md-h1">$1</span>');
   // Bold and italic
   html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">**$1**</span>');
   html = html.replace(/\*([^*]+)\*/g, '<span class="md-italic">*$1*</span>');
