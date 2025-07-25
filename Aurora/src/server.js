@@ -2160,6 +2160,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
     const taskId = req.body.taskId || 0;
     const type = req.body.type || 'chat';
     const sessionId = req.body.sessionId || '';
+    const chatgptUrl = req.body.chatgptUrl || '';
 
     const autoNaming = db.getSetting("chat_tab_auto_naming");
     const projectName = db.getSetting("sterling_project") || "";
@@ -2167,7 +2168,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId);
+    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId, 1, chatgptUrl);
     res.json({ success: true, id: tabId, uuid });
     if (type === 'search') {
       const searchModel = db.getSetting('ai_search_model') || 'sonar-pro';
@@ -2261,7 +2262,7 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
 app.post("/api/chat/tabs/config", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
-    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 1, sessionId = '' } = req.body;
+    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 1, chatgptUrl = '', sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
@@ -2269,7 +2270,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, sendProjectContext ? 1 : 0);
+    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, sendProjectContext ? 1 : 0, chatgptUrl);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
