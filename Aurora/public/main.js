@@ -3416,9 +3416,16 @@ if(contactCloseBtn){
 
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
 if(settingsCloseBtn){
-  settingsCloseBtn.addEventListener("click", () =>
-    hideModal(document.getElementById("settingsModal"))
-  );
+  settingsCloseBtn.addEventListener("click", async () => {
+    if (defaultModelSelectEl) {
+      const val = defaultModelSelectEl.value.trim();
+      await setSetting('ai_model', val);
+      settingsCache.ai_model = val;
+      modelName = val || modelName;
+      updateModelHud();
+    }
+    hideModal(document.getElementById("settingsModal"));
+  });
 }
 
 const enableTotpBtn = document.getElementById('enableTotpBtn');
