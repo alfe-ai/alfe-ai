@@ -4877,7 +4877,10 @@ function initFavoritesTooltip(){
   if(favoritesTooltip) return;
   favoritesTooltip = document.createElement('div');
   favoritesTooltip.className = 'favorites-tooltip';
-  favoritesTooltip.addEventListener('mouseenter', () => clearTimeout(favoritesTooltipTimer));
+  favoritesTooltip.addEventListener('mouseenter', () => {
+    clearTimeout(favoritesTooltipTimer);
+    clearTimeout(reasoningTooltipTimer);
+  });
   favoritesTooltip.addEventListener('mouseleave', scheduleHideFavoritesTooltip);
   document.body.appendChild(favoritesTooltip);
 }
