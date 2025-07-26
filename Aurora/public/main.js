@@ -7441,6 +7441,7 @@ async function openGlobalAiSettings(){
       if(visionSel) visionSel.innerHTML = "";
       if(imageSel) imageSel.innerHTML = "";
       const favs = (data.models || []).filter(m => m.favorite);
+      const showPrices = accountInfo && accountInfo.id === 1;
       if(favs.length === 0){
         reasoningSel.appendChild(new Option("(no favorites)", ""));
         if(visionSel) visionSel.appendChild(new Option("(no favorites)", ""));
@@ -7448,7 +7449,6 @@ async function openGlobalAiSettings(){
           ["gptimage1","dalle2","dalle3"].forEach(m => imageSel.appendChild(new Option(m, m)));
         }
       } else {
-        const showPrices = accountInfo && accountInfo.id === 1;
         favs.forEach(m => {
           const label = showPrices
               ? `${m.id} (limit ${m.tokenLimit}, in ${m.inputCost}, out ${m.outputCost})`
@@ -7460,9 +7460,23 @@ async function openGlobalAiSettings(){
           ["gptimage1","dalle2","dalle3"].forEach(m => imageSel.appendChild(new Option(m, m)));
         }
       }
+
       const curModel = await getSetting("ai_model");
       if(curModel){
         sel.appendChild(new Option(curModel, curModel));
+      }
+      if(favs.length > 0){
+        const favGroup = document.createElement("optgroup");
+        favGroup.label = "favotiess";
+        favs.forEach(m => {
+          const label = showPrices
+              ? `${m.id} (limit ${m.tokenLimit}, in ${m.inputCost}, out ${m.outputCost})`
+              : `${m.id} (limit ${m.tokenLimit})`;
+          favGroup.appendChild(new Option(label, m.id));
+        });
+        sel.appendChild(favGroup);
+      }
+      if(curModel){
         sel.value = curModel;
       }
       sel.disabled = false;
