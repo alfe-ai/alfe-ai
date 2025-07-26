@@ -1640,6 +1640,19 @@ button:disabled {
   margin-left: 0;
 }
 
+/* Tooltip listing manually favorited models */
+.favorites-tooltip {
+  position: absolute;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px;
+  display: none;
+  z-index: 10000;
+  box-shadow: var(--shadow);
+  max-width: 240px;
+}
+
 
 /* Minimal markdown highlighting */
 .md-h1,.md-h2,.md-h3,.md-h4,.md-h5,.md-h6{
