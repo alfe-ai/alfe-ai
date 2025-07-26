@@ -180,13 +180,24 @@ let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
 let aiResponsesEnabled = true; // allow AI responses
-const reasoningChatModels = [
-  'deepseek/deepseek-chat-v3-0324',
-  'openai/gpt-4o-mini',
-  'openai/gpt-4.1-mini',
-  'openai/gpt-4o',
-  'openai/gpt-4.1'
-];
+let reasoningChatModels = [];
+let reasoningMenuConfig = null;
+const DEFAULT_REASONING_MENU_CONFIG = {
+  chatModels: [
+    { name: 'deepseek/deepseek-chat-v3-0324' },
+    { name: 'openai/gpt-4o-mini' },
+    { name: 'openai/gpt-4.1-mini' },
+    { name: 'openai/gpt-4o', label: 'pro' },
+    { name: 'openai/gpt-4.1', label: 'pro' }
+  ],
+  reasoningModels: [
+    { name: 'deepseek/deepseek-r1-distill-llama-70b' },
+    { name: 'openai/o4-mini', label: 'pro' },
+    { name: 'openai/o4-mini-high', label: 'pro' },
+    { name: 'openai/codex-mini', label: 'pro' },
+    { name: 'openai/o3', label: 'ultimate' }
+  ]
+};
 window.agentName = "Alfe";
 
 const designStartPrompts = [
@@ -1087,6 +1098,30 @@ async function getSetting(key){
   const { value } = await r.json();
   settingsCache[key] = value;
   return value;
+}
+
+async function loadReasoningMenuConfig(){
+  if(reasoningMenuConfig) return reasoningMenuConfig;
+  try{
+    const val = await getSetting('reasoning_menu_config');
+    if(val){
+      reasoningMenuConfig = JSON.parse(val);
+    }
+  }catch(e){
+    console.error('Failed loading reasoning menu config', e);
+  }
+  if(!reasoningMenuConfig) reasoningMenuConfig = JSON.parse(JSON.stringify(DEFAULT_REASONING_MENU_CONFIG));
+  reasoningChatModels = reasoningMenuConfig.chatModels.map(m => m.name);
+  return reasoningMenuConfig;
+}
+
+async function saveReasoningMenuConfig(){
+  if(!reasoningMenuConfig) return;
+  try{
+    await setSetting('reasoning_menu_config', JSON.stringify(reasoningMenuConfig));
+  }catch(e){
+    console.error('Failed saving reasoning menu config', e);
+  }
 }
 
 async function toggleTasks(){
@@ -4779,6 +4814,7 @@ function highlightReasoningModel(model){
 
 async function initReasoningTooltip(){
   if(reasoningTooltip) return;
+  await loadReasoningMenuConfig();
   reasoningTooltip = document.createElement('div');
   reasoningTooltip.className = 'reasoning-tooltip';
   const gear = document.createElement('button');
@@ -4867,24 +4903,14 @@ function scheduleHideReasoningTooltip(){
 async function renderReasoningModels(){
   if(!reasoningChatContainer || !reasoningReasonContainer) return;
   await ensureAiModels();
+  await loadReasoningMenuConfig();
   reasoningChatContainer.innerHTML = '';
   reasoningReasonContainer.innerHTML = '';
-  const chatModels = [
-    { name: 'deepseek/deepseek-chat-v3-0324' },
-    { name: 'openai/gpt-4o-mini' },
-    { name: 'openai/gpt-4.1-mini' },
-    { name: 'openai/gpt-4o', label: 'pro' },
-    { name: 'openai/gpt-4.1', label: 'pro' }
-  ];
-  const reasoningModels = [
-    { name: 'deepseek/deepseek-r1-distill-llama-70b' },
-    { name: 'openai/o4-mini', label: 'pro' },
-    { name: 'openai/o4-mini-high', label: 'pro' },
-    { name: 'openai/codex-mini', label: 'pro' },
-    { name: 'openai/o3', label: 'ultimate' }
-  ];
+  const chatModels = reasoningMenuConfig.chatModels;
+  const reasoningModels = reasoningMenuConfig.reasoningModels;
 
-  function addModel(container, name, label){
+  function addModel(container, list, idx){
+    const { name, label } = list[idx];
     const fav = isModelFavorite(name);
     if(!reasoningFavoritesEdit && !fav) return;
     const row = document.createElement('div');
@@ -4903,6 +4929,32 @@ async function renderReasoningModels(){
         }
       });
       row.appendChild(star);
+
+      const up = document.createElement('span');
+      up.className = 'move-btn';
+      up.textContent = '▲';
+      up.addEventListener('click', ev => {
+        ev.stopPropagation();
+        if(idx > 0){
+          [list[idx-1], list[idx]] = [list[idx], list[idx-1]];
+          saveReasoningMenuConfig();
+          renderReasoningModels();
+        }
+      });
+      row.appendChild(up);
+
+      const down = document.createElement('span');
+      down.className = 'move-btn';
+      down.textContent = '▼';
+      down.addEventListener('click', ev => {
+        ev.stopPropagation();
+        if(idx < list.length-1){
+          [list[idx], list[idx+1]] = [list[idx+1], list[idx]];
+          saveReasoningMenuConfig();
+          renderReasoningModels();
+        }
+      });
+      row.appendChild(down);
     }
     const b = document.createElement('button');
     b.dataset.model = name;
@@ -4947,8 +4999,8 @@ async function renderReasoningModels(){
     container.appendChild(row);
   }
 
-  chatModels.forEach(m => addModel(reasoningChatContainer, m.name||m, m.label));
-  reasoningModels.forEach(m => addModel(reasoningReasonContainer, m.name, m.label));
+  chatModels.forEach((m,i) => addModel(reasoningChatContainer, chatModels, i));
+  reasoningModels.forEach((m,i) => addModel(reasoningReasonContainer, reasoningModels, i));
   highlightReasoningModel(modelName);
 }
 
