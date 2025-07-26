@@ -4869,14 +4869,15 @@ async function renderReasoningModels(){
   await ensureAiModels();
   reasoningChatContainer.innerHTML = '';
   reasoningReasonContainer.innerHTML = '';
-  const chatModels = [
+  const cfg = window.REASONING_TOOLTIP_CONFIG || {};
+  const chatModels = cfg.chatModels || [
     { name: 'deepseek/deepseek-chat-v3-0324' },
     { name: 'openai/gpt-4o-mini' },
     { name: 'openai/gpt-4.1-mini' },
     { name: 'openai/gpt-4o', label: 'pro' },
     { name: 'openai/gpt-4.1', label: 'pro' }
   ];
-  const reasoningModels = [
+  const reasoningModels = cfg.reasoningModels || [
     { name: 'deepseek/deepseek-r1-distill-llama-70b' },
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },

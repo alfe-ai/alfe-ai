@@ -126,3 +126,9 @@ wrong and `401`/`403` for missing or invalid API keys. Use plain model names
 like `sonar`, `sonar-pro`, `sonar-reasoning`, `sonar-reasoning-pro`,
 `sonar-deep-research`, or `r1-1776` without any provider prefix.
 
+### Reasoning menu configuration
+
+The order of models shown in the reasoning tooltip can be customized.
+Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
+`chatModels` and `reasoningModels` arrays to suit your preferences.
+
