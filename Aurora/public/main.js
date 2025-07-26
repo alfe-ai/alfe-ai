@@ -7470,10 +7470,8 @@ async function openGlobalAiSettings(){
       if(curModel){
         sel.appendChild(new Option(curModel, curModel));
         sel.value = curModel;
-      } else {
-        sel.appendChild(new Option("(env controlled)", ""));
       }
-      sel.disabled = true;
+      sel.disabled = false;
       if(reasoningModel) reasoningSel.value = reasoningModel;
       if(visionModel && visionSel) visionSel.value = visionModel;
       if(imageModel && imageSel) imageSel.value = imageModel;

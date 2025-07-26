@@ -99,16 +99,11 @@ const db = new TaskDB();
 console.debug("[Server Debug] Checking or setting default 'ai_model' in DB...");
 const envModel = process.env.AI_MODEL;
 let currentModel = db.getSetting("ai_model");
-if (envModel) {
-  console.debug(`[Server Debug] AI_MODEL env var detected => ${envModel}`);
-  if (currentModel !== envModel) {
-    db.setSetting("ai_model", envModel);
-    currentModel = envModel;
-  }
-} else if (!currentModel) {
-  console.debug("[Server Debug] 'ai_model' is missing in DB, setting default to 'deepseek/deepseek-chat'.");
-  db.setSetting("ai_model", "deepseek/deepseek-chat");
-  currentModel = "deepseek/deepseek-chat";
+if (!currentModel) {
+  const defaultModel = envModel || "deepseek/deepseek-chat";
+  console.debug(`[Server Debug] 'ai_model' missing in DB, setting default to '${defaultModel}'.`);
+  db.setSetting("ai_model", defaultModel);
+  currentModel = defaultModel;
 } else {
   console.debug("[Server Debug] 'ai_model' found =>", currentModel);
 }
@@ -1202,11 +1197,7 @@ app.post("/api/settings", (req, res) => {
   console.debug("[Server Debug] POST /api/settings => body:", req.body);
   try {
     const { key, value } = req.body;
-    if (key === "ai_model" && process.env.AI_MODEL) {
-      console.debug("[Server Debug] Ignoring ai_model update because AI_MODEL env var is set.");
-    } else {
-      db.setSetting(key, value);
-    }
+    db.setSetting(key, value);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/settings failed:", err);
@@ -1223,11 +1214,7 @@ app.post("/api/settings/batch", (req, res) => {
     }
     settings.forEach(({ key, value }) => {
       if (typeof key !== "undefined") {
-        if (key === "ai_model" && process.env.AI_MODEL) {
-          console.debug("[Server Debug] Ignoring ai_model update in batch because AI_MODEL env var is set.");
-        } else {
-          db.setSetting(key, value);
-        }
+        db.setSetting(key, value);
       }
     });
     res.json({ success: true });
