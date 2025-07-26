@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadChatTabOrder();
   loadProjectHeaderOrder();
   loadCollapsedChildTabs();
+  await ensureAiModels();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', () => {
     updateChatPanelVisibility();
@@ -4307,10 +4308,7 @@ async function openChatSettings(){
   $("#imageLoopMessageInput").disabled = true;
 
   try {
-    const modelListResp = await fetch("/api/ai/models");
-    if(modelListResp.ok){
-      const modelData = await modelListResp.json();
-      window.allAiModels = modelData.models || [];
+    await ensureAiModels();
 
       const aiModelSelect = $("#aiModelSelect");
 
@@ -4352,7 +4350,6 @@ async function openChatSettings(){
 
       const currentModel = await getSetting("ai_model");
       if(currentModel) aiModelSelect.value = currentModel;
-    }
   } catch(e){
     console.error("Error populating AI service/model lists:", e);
   } finally {
@@ -4398,10 +4395,7 @@ if(betaContinue){
 // React when AI service changes
 $("#aiServiceSelect").addEventListener("change", async ()=>{
   try {
-    const modelListResp = await fetch("/api/ai/models");
-    if(modelListResp.ok){
-      const modelData = modelListResp.json();
-      window.allAiModels = (await modelData).models || [];
+    await ensureAiModels();
 
       const aiModelSelect = $("#aiModelSelect");
 
@@ -4431,7 +4425,6 @@ $("#aiServiceSelect").addEventListener("change", async ()=>{
 
       const currentModel = await getSetting("ai_model");
       if(currentModel) aiModelSelect.value = currentModel;
-    }
   } catch(e){
     console.error("Error populating AI service/model lists:", e);
   }
