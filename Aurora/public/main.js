@@ -760,7 +760,7 @@ function openAccountModal(e){
   showModal(document.getElementById("accountModal"));
 }
 
-function openSettingsModal(e){
+async function openSettingsModal(e){
   if(e) e.preventDefault();
   if(accountInfo){
     const tzEl = document.getElementById('accountTimezone');
@@ -788,6 +788,36 @@ function openSettingsModal(e){
   const newTabSearchCheck = document.getElementById('accountNewTabSearchCheck');
   if(newTabSearchCheck){
     newTabSearchCheck.checked = newTabOpensSearch;
+  }
+  const defaultModelSelect = document.getElementById('defaultModelSelect');
+  if(defaultModelSelect){
+    defaultModelSelect.innerHTML = '<option>Loading...</option>';
+    try{
+      const resp = await fetch('/api/ai/models');
+      if(resp.ok){
+        const data = await resp.json();
+        const favs = (data.models||[]).filter(m => m.favorite);
+        defaultModelSelect.innerHTML = '';
+        if(favs.length===0){
+          defaultModelSelect.appendChild(new Option('(no favorites)',''));
+        } else {
+          favs.forEach(m => defaultModelSelect.appendChild(new Option(m.id,m.id)));
+        }
+      } else {
+        defaultModelSelect.innerHTML = '<option>Error</option>';
+      }
+      const curModel = await getSetting('ai_model');
+      if(curModel){
+        const opts = Array.from(defaultModelSelect.options).map(o=>o.value);
+        if(!opts.includes(curModel)){
+          defaultModelSelect.appendChild(new Option(curModel,curModel));
+        }
+        defaultModelSelect.value = curModel;
+      }
+    }catch(err){
+      console.error('Failed loading models for settings', err);
+      defaultModelSelect.innerHTML = '<option>Error</option>';
+    }
   }
   showModal(document.getElementById("settingsModal"));
 }
@@ -3534,6 +3564,17 @@ if(accountNewTabSearchCheck){
   accountNewTabSearchCheck.addEventListener('change', async () => {
     newTabOpensSearch = accountNewTabSearchCheck.checked;
     await setSetting('new_tab_opens_search', newTabOpensSearch);
+  });
+}
+
+const defaultModelSelectEl = document.getElementById('defaultModelSelect');
+if(defaultModelSelectEl){
+  defaultModelSelectEl.addEventListener('change', async () => {
+    const val = defaultModelSelectEl.value.trim();
+    await setSetting('ai_model', val);
+    settingsCache.ai_model = val;
+    modelName = val || modelName;
+    updateModelHud();
   });
 }
 
