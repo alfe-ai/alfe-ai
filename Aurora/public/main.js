@@ -3793,34 +3793,7 @@ if (scrollDownBtnEl) {
 }
 
 chatInputEl.addEventListener("keydown", (e) => {
-  if (upArrowHistoryEnabled && e.key === "ArrowUp") {
-    if (inputHistory.length > 0) {
-      if (inputHistoryPos === -1) inputHistoryPos = inputHistory.length - 1;
-      else if (inputHistoryPos > 0) inputHistoryPos--;
-      chatInputEl.value = inputHistory[inputHistoryPos] || "";
-      setTimeout(() => {
-        chatInputEl.setSelectionRange(chatInputEl.value.length, chatInputEl.value.length);
-      }, 0);
-      updateInputTokenCount();
-    }
-    e.preventDefault();
-  } else if (upArrowHistoryEnabled && e.key === "ArrowDown") {
-    if (inputHistory.length > 0) {
-      if (inputHistoryPos >= 0 && inputHistoryPos < inputHistory.length - 1) {
-        inputHistoryPos++;
-        chatInputEl.value = inputHistory[inputHistoryPos] || "";
-        updateInputTokenCount();
-      } else {
-        inputHistoryPos = -1;
-        chatInputEl.value = "";
-        updateInputTokenCount();
-      }
-      setTimeout(() => {
-        chatInputEl.setSelectionRange(chatInputEl.value.length, chatInputEl.value.length);
-      }, 0);
-    }
-    e.preventDefault();
-  } else if (enterSubmitsMessage && e.key === "Enter" && !e.shiftKey) {
+  if (enterSubmitsMessage && e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     if(chatSendBtnEl.disabled && chatQueueEnabled){
       queueMessage(chatInputEl.value.trim());
