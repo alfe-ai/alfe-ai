@@ -5173,23 +5173,24 @@ async function toggleAiResponses(){
   }
 }
 
-async function enableSearchMode(query=""){ 
+async function enableSearchMode(query=""){
   if(!searchEnabled){
     searchEnabled = true;
     previousModelName = modelName;
-    const searchModel = await getSetting("ai_search_model") || "sonar-pro";
-    await fetch("/api/chat/tabs/model", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({tabId: currentTabId, model: searchModel, sessionId})
-    });
-    tabModelOverride = searchModel;
-    modelName = searchModel;
-    updateModelHud();
-    updateSearchButton();
-    updateReasoningButton();
-    updateCodexButton();
   }
+  const searchModel = await getSetting("ai_search_model") || "sonar-pro";
+  await fetch("/api/chat/tabs/model", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tabId: currentTabId, model: searchModel, sessionId})
+  });
+  tabModelOverride = searchModel;
+  modelName = searchModel;
+  updateModelHud();
+  updateSearchButton();
+  updateReasoningButton();
+  updateCodexButton();
+  highlightSearchModel(searchModel);
   if(query){
     chatInputEl.value = query;
     chatSendBtnEl.click();
