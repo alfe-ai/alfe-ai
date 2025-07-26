@@ -4938,9 +4938,9 @@ async function renderReasoningModels(){
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
     { name: 'openai/codex-mini', label: 'pro' },
+    { name: 'openrouter/perplexity/r1-1776', label: 'pro', note: 'openrouter - offline conversational (no search)' },
     { name: 'openai/o3', label: 'ultimate' },
     { name: 'r1-1776', note: 'offline conversational (no search)' },
-    { name: 'openrouter/perplexity/r1-1776', note: 'openrouter - offline conversational (no search)' },
     { name: 'perplexity/r1-1776', note: 'offline conversational (no search)' }
   ];
 
