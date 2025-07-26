@@ -797,19 +797,25 @@ async function openSettingsModal(e){
       const resp = await fetch('/api/ai/models');
       if(resp.ok){
         const data = await resp.json();
-        const favs = (data.models||[]).filter(m => m.favorite);
+        const models = data.models || [];
+        const favs = models.filter(m => m.favorite);
+        const nonFavs = models.filter(m => !m.favorite);
         defaultModelSelect.innerHTML = '';
+        nonFavs.forEach(m => defaultModelSelect.appendChild(new Option(m.id, m.id)));
+        const favGroup = document.createElement('optgroup');
+        favGroup.label = 'Favorites';
         if(favs.length===0){
-          defaultModelSelect.appendChild(new Option('(no favorites)',''));
+          favGroup.appendChild(new Option('(none)', ''));
         } else {
-          favs.forEach(m => defaultModelSelect.appendChild(new Option(m.id,m.id)));
+          favs.forEach(m => favGroup.appendChild(new Option(m.id, m.id)));
         }
+        defaultModelSelect.appendChild(favGroup);
       } else {
         defaultModelSelect.innerHTML = '<option>Error</option>';
       }
       const curModel = await getSetting('ai_model');
       if(curModel){
-        const opts = Array.from(defaultModelSelect.options).map(o=>o.value);
+        const opts = Array.from(defaultModelSelect.querySelectorAll('option')).map(o=>o.value);
         if(!opts.includes(curModel)){
           defaultModelSelect.appendChild(new Option(curModel,curModel));
         }
