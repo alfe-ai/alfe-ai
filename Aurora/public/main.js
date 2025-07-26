@@ -4887,7 +4887,8 @@ async function renderReasoningModels(){
     { name: 'openai/codex-mini', label: 'pro' },
     { name: 'openai/o3', label: 'ultimate' },
     { name: 'r1-1776', note: 'offline conversational (no search)' },
-    { name: 'openrouter/perplexity/r1-1776', note: 'openrouter - offline conversational (no search)' }
+    { name: 'openrouter/perplexity/r1-1776', note: 'openrouter - offline conversational (no search)' },
+    { name: 'perplexity/r1-1776', note: 'offline conversational (no search)' }
   ];
 
   function addModel(container, name, label){
