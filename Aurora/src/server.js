@@ -291,13 +291,28 @@ function parseProviderModel(model) {
   return { provider: "Unknown", shortModel: model };
 }
 
+// Cache tokenizers to avoid repeated disk loads
+const encoderCache = {};
+
 function getEncoding(modelName) {
-  console.debug("[Server Debug] Attempting to load tokenizer for model =>", modelName);
+  console.debug(
+    "[Server Debug] Attempting to load tokenizer for model =>",
+    modelName
+  );
+  if (encoderCache[modelName]) return encoderCache[modelName];
   try {
-    return encoding_for_model(modelName);
+    const enc = encoding_for_model(modelName);
+    encoderCache[modelName] = enc;
+    return enc;
   } catch (e) {
-    console.debug("[Server Debug] Tokenizer load failed, falling back to gpt-4.1-mini =>", e.message);
-    return encoding_for_model("gpt-4.1-mini");
+    console.debug(
+      "[Server Debug] Tokenizer load failed, falling back to gpt-4.1-mini =>",
+      e.message
+    );
+    if (!encoderCache["gpt-4.1-mini"]) {
+      encoderCache["gpt-4.1-mini"] = encoding_for_model("gpt-4.1-mini");
+    }
+    return encoderCache["gpt-4.1-mini"];
   }
 }
 
