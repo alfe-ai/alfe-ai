@@ -4901,9 +4901,31 @@ async function renderFavoritesTooltip(){
     return;
   }
   favs.forEach(m => {
-    const div = document.createElement('div');
-    div.textContent = m.id;
-    favoritesTooltip.appendChild(div);
+    const btn = document.createElement('button');
+    btn.dataset.model = m.id;
+    btn.textContent = m.id;
+    btn.addEventListener('click', async ev => {
+      ev.stopPropagation();
+      if(!aiResponsesEnabled){
+        await toggleAiResponses();
+      }
+      if(reasoningEnabled){ await toggleReasoning(); }
+      if(searchEnabled){ await toggleSearch(); }
+      await setSetting('ai_model', m.id);
+      settingsCache.ai_model = m.id;
+      await fetch('/api/chat/tabs/model', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({tabId: currentTabId, model: m.id, sessionId})
+      });
+      tabModelOverride = m.id;
+      modelName = m.id;
+      updateModelHud();
+      highlightReasoningModel(m.id);
+      hideFavoritesTooltip();
+      showToast(`Model set to ${m.id}`);
+    });
+    favoritesTooltip.appendChild(btn);
   });
 }
 
