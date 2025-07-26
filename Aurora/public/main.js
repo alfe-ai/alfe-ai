@@ -4963,10 +4963,15 @@ async function renderReasoningModels(){
     }
     const b = document.createElement('button');
     b.dataset.model = name;
+    const { provider, shortModel } = parseProviderModel(name);
+    let display = name;
+    if (provider === 'openai' || provider === 'deepseek') {
+      display = `<span class="model-provider">${provider}</span> ${shortModel}`;
+    }
     if(label){
-      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${name}`;
+      b.innerHTML = `<span class="model-label ${label}">${label}</span> ${display}`;
     } else {
-      b.textContent = name;
+      b.innerHTML = display;
     }
     b.classList.toggle('active',
         (container===reasoningChatContainer ? modelName===name && !reasoningEnabled
@@ -5063,9 +5068,12 @@ async function renderSearchModels(){
     }
     const b = document.createElement('button');
     b.dataset.model = name;
+    let { provider, shortModel } = parseProviderModel(name);
     let text = name;
     if(!text.includes('/')) {
       text = `perplexity/${text}`;
+    } else if (provider === 'openai' || provider === 'deepseek') {
+      text = `<span class="model-provider">${provider}</span> ${shortModel}`;
     }
     let html = label ? `<span class="model-label ${label}">${label}</span> ${text}` : text;
     if(note){
