@@ -4847,11 +4847,14 @@ async function initReasoningTooltip(){
 
 function showReasoningTooltip(e){
   initReasoningTooltip();
-  const rect = e.target.getBoundingClientRect();
+  const btn = document.getElementById('reasoningToggleBtn');
+  const rect = btn.getBoundingClientRect();
   reasoningTooltip.style.display = 'flex';
   reasoningTooltip.style.flexDirection = 'column';
-  reasoningTooltip.style.left = (rect.left + window.scrollX) + 'px';
-  reasoningTooltip.style.top = (rect.top + window.scrollY - reasoningTooltip.offsetHeight - 4) + 'px';
+  const tooltipWidth = reasoningTooltip.offsetWidth;
+  const tooltipHeight = reasoningTooltip.offsetHeight;
+  reasoningTooltip.style.left = (rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX) + 'px';
+  reasoningTooltip.style.top = (rect.top + window.scrollY - tooltipHeight - 4) + 'px';
   clearTimeout(reasoningTooltipTimer);
 }
 
