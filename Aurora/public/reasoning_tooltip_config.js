@@ -13,6 +13,8 @@ window.REASONING_TOOLTIP_CONFIG = {
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
     { name: 'openai/codex-mini', label: 'pro' },
-    { name: 'openai/o3', label: 'ultimate' }
+    { name: 'openai/o3', label: 'ultimate' },
+    { name: 'openrouter/perplexity/r1-1776', note: 'openrouter - offline conversational (no search)' },
+    { name: 'perplexity/r1-1776', note: 'offline conversational (no search)' }
   ]
 };
