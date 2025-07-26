@@ -223,10 +223,9 @@ function getOpenAiClient() {
   const currentModel = db.getSetting("ai_model") || "";
   const { provider } = parseProviderModel(currentModel);
 
-  if (currentModel.startsWith("openai/o3")) {
-    // Ensure OpenAI's o3 model always uses the OpenAI provider
-    service = "openai";
-  } else if (provider === "openrouter") {
+  // Default to the provider indicated by the model name unless
+  // explicitly overridden by the ai_service setting.
+  if (provider === "openrouter") {
     service = "openrouter";
   }
 
