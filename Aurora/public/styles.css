@@ -1618,6 +1618,10 @@ button:disabled {
   color: #fff;
   text-transform: uppercase;
 }
+.reasoning-tooltip .model-provider {
+  color: #999;
+  margin-right: 4px;
+}
 .reasoning-tooltip .model-label.ultimate {
   background: #8e44ad;
 }
