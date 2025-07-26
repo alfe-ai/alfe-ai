@@ -1656,6 +1656,22 @@ button:disabled {
   box-shadow: var(--shadow);
   max-width: 240px;
 }
+.favorites-tooltip button {
+  display: block;
+  margin: 2px 0;
+  padding: 2px 4px;
+  background: #474747;
+  border: 1px solid #666;
+  color: #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+.favorites-tooltip button:hover {
+  background: #666;
+  color: #fff;
+}
 
 
 /* Minimal markdown highlighting */
