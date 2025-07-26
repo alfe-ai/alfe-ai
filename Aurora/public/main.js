@@ -6273,6 +6273,9 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
         window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
       }
     }
+    if(initialSearchMode){
+      await enableSearchMode(initialSearchQuery);
+    }
   }
 
   try {
@@ -6399,9 +6402,6 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     console.error("Error loading markdown content:", e);
   }
 
-  if(initialSearchMode){
-    await enableSearchMode(initialSearchQuery);
-  }
 })();
 
 function initChatScrollLoading(){
