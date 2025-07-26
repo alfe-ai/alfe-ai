@@ -1540,6 +1540,9 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-4-32k-0314": 32767,
     "openai/gpt-4-vision-preview": 128000,
     "openai/gpt-3.5-turbo-0301": "--"
+    ,"openrouter/perplexity/r1-1776": 128000
+    ,"perplexity/r1-1776": 128000
+    ,"r1-1776": 128000
   };
 
   // Known model costs are stored per one million tokens so that the
@@ -1587,7 +1590,10 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-4-0314": { input: "$30", output: "$60" },
     "openai/gpt-4-32k-0314": { input: "$60", output: "$120" },
     "openai/gpt-4-vision-preview": { input: "--", output: "--" },
-    "openai/gpt-3.5-turbo-0301": { input: "--", output: "--" }
+    "openai/gpt-3.5-turbo-0301": { input: "--", output: "--" },
+    "openrouter/perplexity/r1-1776": { input: "$2", output: "$8" },
+    "perplexity/r1-1776": { input: "$2", output: "$8" },
+    "r1-1776": { input: "$2", output: "$8" }
   };
 
   let openAIModelData = [];
@@ -1653,19 +1659,33 @@ app.get("/api/ai/models", async (req, res) => {
 
     // Ensure certain known models are always included even if not returned
     // by the provider APIs so that users can favorite them.
-    const forcedModels = ["openai/o4-mini-high", "openai/codex-mini"];
+    const forcedModels = [
+      "openai/o4-mini-high",
+      "openai/codex-mini",
+      "openrouter/perplexity/r1-1776",
+      "perplexity/r1-1776",
+      "r1-1776"
+    ];
     for (const id of forcedModels) {
       if (!openAIModelData.find((m) => m.id === id) &&
           !openRouterModelData.find((m) => m.id === id)) {
         const limit = knownTokenLimits[id] || "N/A";
         const cInfo = knownCosts[id] ? knownCosts[id] : { input: "N/A", output: "N/A" };
-        openAIModelData.push({
+        const entry = {
           id,
-          provider: "openai",
+          provider:
+            id.startsWith("openrouter/") ? "openrouter" :
+            (id.startsWith("perplexity/") || id === "r1-1776") ? "perplexity" :
+            "openai",
           tokenLimit: limit,
           inputCost: cInfo.input,
           outputCost: cInfo.output,
-        });
+        };
+        if (entry.provider === "openai") {
+          openAIModelData.push(entry);
+        } else {
+          openRouterModelData.push(entry);
+        }
       }
     }
   } catch (err) {
