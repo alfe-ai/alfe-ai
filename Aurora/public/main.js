@@ -4756,6 +4756,8 @@ let reasoningTooltipTimer = null;
 let reasoningFavoritesEdit = false;
 let reasoningChatContainer = null;
 let reasoningReasonContainer = null;
+let favoritesTooltip = null;
+let favoritesTooltipTimer = null;
 
 function highlightReasoningModel(model){
   if(!reasoningTooltip) return;
@@ -4786,6 +4788,16 @@ async function initReasoningTooltip(){
     renderSearchModels();
   });
   reasoningTooltip.appendChild(gear);
+
+  const favBtn = document.createElement('button');
+  favBtn.textContent = 'Manual Favorites';
+  favBtn.addEventListener('click', ev => {
+    ev.stopPropagation();
+    showFavoritesTooltip();
+  });
+  favBtn.addEventListener('mouseenter', () => clearTimeout(favoritesTooltipTimer));
+  favBtn.addEventListener('mouseleave', scheduleHideFavoritesTooltip);
+  reasoningTooltip.appendChild(favBtn);
 
 
   const chatHeader = document.createElement('div');
@@ -4853,11 +4865,56 @@ function showReasoningTooltip(e){
 
 function hideReasoningTooltip(){
   if(reasoningTooltip) reasoningTooltip.style.display = 'none';
+  hideFavoritesTooltip();
 }
 
 function scheduleHideReasoningTooltip(){
   clearTimeout(reasoningTooltipTimer);
   reasoningTooltipTimer = setTimeout(hideReasoningTooltip, 200);
+}
+
+function initFavoritesTooltip(){
+  if(favoritesTooltip) return;
+  favoritesTooltip = document.createElement('div');
+  favoritesTooltip.className = 'favorites-tooltip';
+  favoritesTooltip.addEventListener('mouseenter', () => clearTimeout(favoritesTooltipTimer));
+  favoritesTooltip.addEventListener('mouseleave', scheduleHideFavoritesTooltip);
+  document.body.appendChild(favoritesTooltip);
+}
+
+async function renderFavoritesTooltip(){
+  if(!favoritesTooltip) return;
+  await ensureAiModels();
+  favoritesTooltip.innerHTML = '';
+  const favs = (window.allAiModels || []).filter(m => m.favorite);
+  if(favs.length === 0){
+    favoritesTooltip.textContent = 'No favorites';
+    return;
+  }
+  favs.forEach(m => {
+    const div = document.createElement('div');
+    div.textContent = m.id;
+    favoritesTooltip.appendChild(div);
+  });
+}
+
+function showFavoritesTooltip(){
+  initFavoritesTooltip();
+  renderFavoritesTooltip();
+  const rect = reasoningTooltip.getBoundingClientRect();
+  favoritesTooltip.style.display = 'flex';
+  favoritesTooltip.style.left = (rect.right + 8 + window.scrollX) + 'px';
+  favoritesTooltip.style.top = rect.top + window.scrollY + 'px';
+  clearTimeout(favoritesTooltipTimer);
+}
+
+function hideFavoritesTooltip(){
+  if(favoritesTooltip) favoritesTooltip.style.display = 'none';
+}
+
+function scheduleHideFavoritesTooltip(){
+  clearTimeout(favoritesTooltipTimer);
+  favoritesTooltipTimer = setTimeout(hideFavoritesTooltip, 200);
 }
 
 async function renderReasoningModels(){
@@ -8110,6 +8167,10 @@ document.addEventListener('click', e => {
   if(reasoningTooltip && reasoningTooltip.style.display === 'flex' &&
     !reasoningTooltip.contains(e.target) && e.target.id !== 'reasoningToggleBtn'){
     hideReasoningTooltip();
+  }
+  if(favoritesTooltip && favoritesTooltip.style.display === 'flex' &&
+    !favoritesTooltip.contains(e.target)){
+    hideFavoritesTooltip();
   }
 });
 
