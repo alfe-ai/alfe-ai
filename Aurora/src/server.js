@@ -4171,6 +4171,9 @@ app.post("/api/ai/favorites", (req, res) => {
     }
 
     db.setSetting("favorite_ai_models", favList);
+    // Invalidate cached AI model list so favorites refresh immediately
+    aiModelsCache = null;
+    aiModelsCacheTs = 0;
     res.json({ success: true, favorites: favList });
   } catch (err) {
     console.error("Error in /api/ai/favorites:", err);
