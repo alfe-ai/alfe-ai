@@ -4982,9 +4982,9 @@ async function renderReasoningModels(){
     { name: 'deepseek/deepseek-chat-v3-0324' },
     { name: 'openai/gpt-4o-mini' },
     { name: 'openai/gpt-4.1-mini' },
-    { name: 'anthropic/claude-3.5-haiku' },
     { name: 'openai/gpt-4o', label: 'pro' },
     { name: 'openai/gpt-4.1', label: 'pro' },
+    { name: 'anthropic/claude-3.5-haiku', label: 'pro' },
     { name: 'anthropic/claude-3.7-sonnet', label: 'pro' },
     { name: 'anthropic/claude-sonnet-4', label: 'ultimate' }
   ];
