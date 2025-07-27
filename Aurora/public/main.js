@@ -4796,7 +4796,7 @@ async function initReasoningTooltip(){
   reasoningTooltip.appendChild(gear);
 
   const favBtn = document.createElement('button');
-  favBtn.textContent = 'Manual Favorites';
+  favBtn.textContent = 'More';
   favBtn.addEventListener('click', ev => {
     ev.stopPropagation();
     showFavoritesTooltip();
@@ -4895,7 +4895,12 @@ async function renderFavoritesTooltip(){
   if(!favoritesTooltip) return;
   await ensureAiModels();
   favoritesTooltip.innerHTML = '';
-  const favs = (window.allAiModels || []).filter(m => m.favorite);
+  const shown = new Set();
+  if(reasoningTooltip){
+    const nodes = reasoningTooltip.querySelectorAll('button[data-model]');
+    nodes.forEach(n => shown.add(n.dataset.model));
+  }
+  const favs = (window.allAiModels || []).filter(m => m.favorite && !shown.has(m.id));
   if(favs.length === 0){
     favoritesTooltip.textContent = 'No favorites';
     return;
