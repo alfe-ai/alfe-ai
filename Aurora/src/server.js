@@ -1559,6 +1559,9 @@ app.get("/api/ai/models", async (req, res) => {
     ,"openrouter/perplexity/r1-1776": 128000
     ,"perplexity/r1-1776": 128000
     ,"r1-1776": 128000
+    ,"openrouter/perplexity/sonar-reasoning": 127000
+    ,"perplexity/sonar-reasoning": 127000
+    ,"sonar-reasoning": 127000
   };
 
   // Known model costs are stored per one million tokens so that the
@@ -1615,7 +1618,10 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-3.5-turbo-0301": { input: "--", output: "--" },
     "openrouter/perplexity/r1-1776": { input: "$2", output: "$8" },
     "perplexity/r1-1776": { input: "$2", output: "$8" },
-    "r1-1776": { input: "$2", output: "$8" }
+    "r1-1776": { input: "$2", output: "$8" },
+    "openrouter/perplexity/sonar-reasoning": { input: "$1", output: "$5" },
+    "perplexity/sonar-reasoning": { input: "$1", output: "$5" },
+    "sonar-reasoning": { input: "$1", output: "$5" }
   };
 
   let openAIModelData = [];
@@ -1691,6 +1697,9 @@ app.get("/api/ai/models", async (req, res) => {
       "openrouter/perplexity/r1-1776",
       "perplexity/r1-1776",
       "r1-1776",
+      "openrouter/perplexity/sonar-reasoning",
+      "perplexity/sonar-reasoning",
+      "sonar-reasoning",
       "anthropic/claude-3.7-sonnet",
       "anthropic/claude-sonnet-4",
       "anthropic/claude-opus-4",
