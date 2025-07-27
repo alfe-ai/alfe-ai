@@ -6380,6 +6380,13 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
       chk.disabled = currentTabType !== 'design';
     }
   }
+  {
+    const currentTab = chatTabs.find(t => t.id === currentTabId);
+    tabModelOverride = currentTab && currentTab.model_override ? currentTab.model_override : '';
+    const globalModel = await getSetting("ai_model");
+    modelName = tabModelOverride || globalModel || "unknown";
+    updateModelHud();
+  }
   renderTabs();
   renderSidebarTabs();
   renderArchivedSidebarTabs();
