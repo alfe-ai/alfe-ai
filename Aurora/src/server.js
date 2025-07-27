@@ -82,6 +82,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import multer from "multer";
+import compression from "compression";
 import { fileURLToPath } from "url";
 import OpenAI from "openai";
 import { encoding_for_model } from "tiktoken";
@@ -196,7 +197,9 @@ if (db.getSetting("new_tab_opens_search") === undefined) {
   db.setSetting("new_tab_opens_search", false);
 }
 
+const isProduction = process.env.NODE_ENV === "production";
 const app = express();
+app.use(compression());
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
 const jobHistoryPath = path.join(__dirname, "../jobsHistory.json");
@@ -3853,15 +3856,23 @@ app.get("/new", (req, res) => {
   }
 });
 
-app.use(
-  express.static(path.join(__dirname, "../public"), {
-    etag: false,
-    maxAge: 0,
-    setHeaders: (res) => {
-      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
-    },
-  })
-);
+const staticOptions = isProduction
+  ? {
+      etag: true,
+      maxAge: "1d",
+      setHeaders: (res) => {
+        res.set("Cache-Control", "public, max-age=86400");
+      },
+    }
+  : {
+      etag: false,
+      maxAge: 0,
+      setHeaders: (res) => {
+        res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      },
+    };
+
+app.use(express.static(path.join(__dirname, "../public"), staticOptions));
 
 app.get("/beta", (req, res) => {
   console.debug("[Server Debug] GET /beta => Redirecting to home page");
