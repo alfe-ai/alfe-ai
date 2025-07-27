@@ -4796,7 +4796,7 @@ async function initReasoningTooltip(){
   reasoningTooltip.appendChild(gear);
 
   const favBtn = document.createElement('button');
-  favBtn.textContent = 'Manual Favorites';
+  favBtn.textContent = 'More';
   favBtn.addEventListener('click', ev => {
     ev.stopPropagation();
     showFavoritesTooltip();
