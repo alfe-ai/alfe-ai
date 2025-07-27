@@ -1643,12 +1643,16 @@ app.get("/api/ai/models", async (req, res) => {
         const rawModels = orResp.data?.data?.map((m) => m.id).sort() || [];
         openRouterModelData = rawModels.map((id) => {
           const combinedId = "openrouter/" + id;
+          const limit = knownTokenLimits[combinedId] || "N/A";
+          const cInfo = knownCosts[combinedId]
+            ? knownCosts[combinedId]
+            : { input: "N/A", output: "N/A" };
           return {
             id: combinedId,
             provider: "openrouter",
-            tokenLimit: "N/A",
-            inputCost: "N/A",
-            outputCost: "N/A"
+            tokenLimit: limit,
+            inputCost: cInfo.input,
+            outputCost: cInfo.output
           };
         });
       } catch (err) {
@@ -1666,25 +1670,30 @@ app.get("/api/ai/models", async (req, res) => {
       "r1-1776"
     ];
     for (const id of forcedModels) {
-      if (!openAIModelData.find((m) => m.id === id) &&
-          !openRouterModelData.find((m) => m.id === id)) {
-        const limit = knownTokenLimits[id] || "N/A";
-        const cInfo = knownCosts[id] ? knownCosts[id] : { input: "N/A", output: "N/A" };
-        const entry = {
-          id,
-          provider:
-            id.startsWith("openrouter/") ? "openrouter" :
-            (id.startsWith("perplexity/") || id === "r1-1776") ? "perplexity" :
-            "openai",
-          tokenLimit: limit,
-          inputCost: cInfo.input,
-          outputCost: cInfo.output,
-        };
-        if (entry.provider === "openai") {
-          openAIModelData.push(entry);
-        } else {
-          openRouterModelData.push(entry);
-        }
+      let entry = openAIModelData.find((m) => m.id === id) ||
+                  openRouterModelData.find((m) => m.id === id);
+      const limit = knownTokenLimits[id] || "N/A";
+      const cInfo = knownCosts[id] ? knownCosts[id] : { input: "N/A", output: "N/A" };
+      if (entry) {
+        if (entry.tokenLimit === "N/A") entry.tokenLimit = limit;
+        if (entry.inputCost === "N/A") entry.inputCost = cInfo.input;
+        if (entry.outputCost === "N/A") entry.outputCost = cInfo.output;
+        continue;
+      }
+      entry = {
+        id,
+        provider:
+          id.startsWith("openrouter/") ? "openrouter" :
+          (id.startsWith("perplexity/") || id === "r1-1776") ? "perplexity" :
+          "openai",
+        tokenLimit: limit,
+        inputCost: cInfo.input,
+        outputCost: cInfo.output,
+      };
+      if (entry.provider === "openai") {
+        openAIModelData.push(entry);
+      } else {
+        openRouterModelData.push(entry);
       }
     }
   } catch (err) {
