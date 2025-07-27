@@ -4934,6 +4934,7 @@ function showFavoritesTooltip(){
   renderFavoritesTooltip();
   const rect = reasoningTooltip.getBoundingClientRect();
   favoritesTooltip.style.display = 'flex';
+  favoritesTooltip.style.flexDirection = 'column';
   favoritesTooltip.style.left = (rect.right + 8 + window.scrollX) + 'px';
   favoritesTooltip.style.top = rect.top + window.scrollY + 'px';
   clearTimeout(favoritesTooltipTimer);
