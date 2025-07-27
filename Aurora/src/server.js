@@ -1973,9 +1973,7 @@ app.post("/api/chat", async (req, res) => {
       }
       projectContext = histories.join('\n');
     }
-    const fullContext = projectContext ?
-      `${systemContext}\n${projectContext}` : systemContext;
-    const sysContent = `${fullContext}\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
+    const sysContent = `${systemContext}\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
 
     const conversation = [{ role: "system", content: sysContent }];
 
@@ -1984,6 +1982,10 @@ app.post("/api/chat", async (req, res) => {
       if (p.ai_text) {
         conversation.push({ role: "assistant", content: p.ai_text });
       }
+    }
+
+    if (projectContext) {
+      conversation.push({ role: "system", content: projectContext });
     }
 
     const chatPairId = db.createChatPair(userMessage, chatTabId, systemContext, projectContext, sessionId);
@@ -2119,7 +2121,7 @@ app.post("/api/chat", async (req, res) => {
     const finalAssistantTokens = countTokens(encoder, assistantMessage);
 
     const total =
-      systemTokens + historyTokens + inputTokens + prevAssistantTokens + finalAssistantTokens;
+      systemTokens + projectTokens + historyTokens + inputTokens + prevAssistantTokens + finalAssistantTokens;
 
     const tokenInfo = {
       systemTokens,
