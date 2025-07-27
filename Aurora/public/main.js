@@ -3765,11 +3765,29 @@ function countTokens(encoder, text) {
 
 async function ensureAiModels(){
   if(!window.allAiModels){
+    try {
+      const cached = localStorage.getItem('aiModelsCache');
+      if(cached){
+        const { ts, models } = JSON.parse(cached);
+        if(ts && Array.isArray(models) && Date.now() - ts < 60 * 60 * 1000){
+          window.allAiModels = models;
+        }
+      }
+    } catch(e){
+      console.debug('Failed to load AI models from cache', e);
+    }
+  }
+  if(!window.allAiModels){
     try{
       const resp = await fetch('/api/ai/models');
       if(resp.ok){
         const data = await resp.json();
         window.allAiModels = data.models || [];
+        try {
+          localStorage.setItem('aiModelsCache', JSON.stringify({ts: Date.now(), models: window.allAiModels}));
+        } catch(e){
+          console.debug('Failed to store AI models cache', e);
+        }
       } else {
         window.allAiModels = [];
       }
