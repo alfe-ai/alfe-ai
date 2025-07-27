@@ -4998,9 +4998,15 @@ async function renderReasoningModels(){
     const b = document.createElement('button');
     b.dataset.model = name;
     const { provider, shortModel } = parseProviderModel(name);
+    let displayProvider = provider;
+    let displayShort = shortModel;
+    if(name.startsWith('openrouter/perplexity/')){
+      displayProvider = 'openrouter/perplexity';
+      displayShort = name.replace(/^openrouter\/perplexity\//, '');
+    }
     let display = name;
-    if (provider === 'openai' || provider === 'deepseek') {
-      display = `<span class="model-provider">${provider}</span> ${shortModel}`;
+    if (displayProvider === 'openai' || displayProvider === 'deepseek' || displayProvider === 'openrouter/perplexity') {
+      display = `<span class="model-provider">${displayProvider}</span> ${displayShort}`;
     }
     if(label){
       b.innerHTML = `<span class="model-label ${label}">${label}</span> ${display}`;
@@ -5103,11 +5109,17 @@ async function renderSearchModels(){
     const b = document.createElement('button');
     b.dataset.model = name;
     let { provider, shortModel } = parseProviderModel(name);
+    let displayProvider = provider;
+    let displayShort = shortModel;
+    if(name.startsWith('openrouter/perplexity/')){
+      displayProvider = 'openrouter/perplexity';
+      displayShort = name.replace(/^openrouter\/perplexity\//, '');
+    }
     let text = name;
     if(!text.includes('/')) {
       text = `perplexity/${text}`;
-    } else if (provider === 'openai' || provider === 'deepseek') {
-      text = `<span class="model-provider">${provider}</span> ${shortModel}`;
+    } else if (displayProvider === 'openai' || displayProvider === 'deepseek' || displayProvider === 'openrouter/perplexity') {
+      text = `<span class="model-provider">${displayProvider}</span> ${displayShort}`;
     }
     let html = label ? `<span class="model-label ${label}">${label}</span> ${text}` : text;
     if(note){
@@ -6655,7 +6667,13 @@ async function loadChatHistory(tabId = 1, reset=false) {
         botHead.className = "bubble-header";
 
         const { provider, shortModel } = parseProviderModel(p.model);
-        const titleAttr = p.image_url ? "" : ` title="${provider} / ${shortModel}"`;
+        let displayProvider = provider;
+        let displayShort = shortModel;
+        if(p.model && p.model.startsWith('openrouter/perplexity/')){
+          displayProvider = 'openrouter/perplexity';
+          displayShort = p.model.replace(/^openrouter\/perplexity\//, '');
+        }
+        const titleAttr = p.image_url ? "" : ` title="${displayProvider} / ${displayShort}"`;
         botHead.innerHTML = `
           <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
           <span style="opacity:0.8;">${p.ai_timestamp ? formatTimestamp(p.ai_timestamp) : "…"}</span>
@@ -6880,7 +6898,13 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
   const { provider, shortModel } = parseProviderModel(model);
-  const titleAttr = imageUrl ? "" : ` title="${provider} / ${shortModel}"`;
+  let displayProvider = provider;
+  let displayShort = shortModel;
+  if(model && model.startsWith('openrouter/perplexity/')){
+    displayProvider = 'openrouter/perplexity';
+    displayShort = model.replace(/^openrouter\/perplexity\//, '');
+  }
+  const titleAttr = imageUrl ? "" : ` title="${displayProvider} / ${displayShort}"`;
   botHead.innerHTML = `
     <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
     <span style="opacity:0.8;">${aiTs ? formatTimestamp(aiTs) : "…"}</span>
