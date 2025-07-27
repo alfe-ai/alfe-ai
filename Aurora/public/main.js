@@ -4961,6 +4961,7 @@ async function renderReasoningModels(){
     { name: 'openai/gpt-4.1-mini' },
     { name: 'openai/gpt-4o', label: 'pro' },
     { name: 'openai/gpt-4.1', label: 'pro' },
+    { name: 'anthropic/claude-3.7-sonnet', label: 'pro' },
     { name: 'anthropic/claude-sonnet-4', label: 'ultimate' }
   ];
   const reasoningModels = cfg.reasoningModels || [

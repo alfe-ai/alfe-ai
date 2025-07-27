@@ -136,6 +136,7 @@ The chat model list now includes **Anthropic Claude Sonnet 4** as an
 `ultimate` tier option. Pricing is $3 per million input tokens,
 $15 per million output tokens, and $4.80 per thousand input images.
 
+**Anthropic Claude 3.7 Sonnet** is available under the `pro` tier. Created Feb 24, 2025 with a 200,000 token context limit, pricing is $3 per million input tokens and $15 per million output tokens.
 **Anthropic Claude Opus 4** is also available under the `ultimate` tier.
 Created May 22, 2025 with a 200,000 token context limit, pricing is
 $15 per million input tokens and $75 per million output tokens.
