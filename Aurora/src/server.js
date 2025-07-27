@@ -2003,6 +2003,7 @@ app.post("/api/chat", async (req, res) => {
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Transfer-Encoding", "chunked");
+    res.setHeader("Cache-Control", "no-cache");
 
     console.debug("[Server Debug] Chat conversation assembled with length =>", conversation.length);
 
@@ -2066,6 +2067,7 @@ app.post("/api/chat", async (req, res) => {
       });
 
       console.debug("[Server Debug] AI streaming started...");
+      res.flushHeaders();
 
       for await (const part of stream) {
         const chunk =
@@ -2079,6 +2081,7 @@ app.post("/api/chat", async (req, res) => {
         if (isOpenrouterPerplexity) cleanChunk = stripPerplexityCitations(cleanChunk);
         assistantMessage += cleanChunk;
         res.write(cleanChunk);
+        if (res.flush) res.flush();
       }
       res.end();
       console.debug("[Server Debug] AI streaming finished, total length =>", assistantMessage.length);
