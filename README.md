@@ -146,3 +146,7 @@ menu as an `ultimate` tier option. Created Feb 24, 2025 with a 200,000 token
 context limit, pricing is $3 per million input tokens and $15 per million
 output tokens.
 
+**perplexity/sonar-reasoning** has been added to the reasoning menu under the
+`pro` tier. Created Jan 29, 2025 with a 127,000 token context limit, pricing
+starts at $1 per million input tokens and $5 per million output tokens.
+
