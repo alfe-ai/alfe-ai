@@ -4965,6 +4965,7 @@ async function renderReasoningModels(){
   ];
   const reasoningModels = cfg.reasoningModels || [
     { name: 'deepseek/deepseek-r1-distill-llama-70b' },
+    { name: 'deepseek/deepseek-r1-0528' },
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
     { name: 'openai/codex-mini', label: 'pro' },

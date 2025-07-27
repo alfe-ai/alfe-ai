@@ -1744,6 +1744,13 @@ app.get("/api/ai/models", async (req, res) => {
       outputCost: "$2.18"
     },
     {
+      id: "deepseek/deepseek-r1-0528",
+      provider: "deepseek",
+      tokenLimit: 163840,
+      inputCost: "$0.272",
+      outputCost: "$0.272"
+    },
+    {
       id: "deepseek/deepseek-r1-distill-llama-70b",
       provider: "deepseek",
       tokenLimit: 131072,
