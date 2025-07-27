@@ -1654,7 +1654,6 @@ button:disabled {
   display: none;
   z-index: 10000;
   box-shadow: var(--shadow);
-  max-width: 240px;
 }
 .favorites-tooltip button {
   display: block;
@@ -1667,6 +1666,7 @@ button:disabled {
   cursor: pointer;
   width: 100%;
   text-align: left;
+  white-space: nowrap;
 }
 .favorites-tooltip button:hover {
   background: #666;
