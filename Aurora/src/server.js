@@ -82,6 +82,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import multer from "multer";
+import compression from "compression";
 import { fileURLToPath } from "url";
 import OpenAI from "openai";
 import { encoding_for_model } from "tiktoken";
@@ -94,6 +95,11 @@ import child_process from "child_process";
 import JobManager from "./jobManager.js";
 import PrintifyJobQueue from "./printifyJobQueue.js";
 import { extractProductUrl, extractPrintifyUrl, extractUpdatedTitle } from "./printifyUtils.js";
+
+// Simple in-memory cache for AI model list
+let aiModelsCache = null;
+let aiModelsCacheTs = 0;
+const AI_MODELS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 const db = new TaskDB();
 console.debug("[Server Debug] Checking or setting default 'ai_model' in DB...");
@@ -197,6 +203,7 @@ if (db.getSetting("new_tab_opens_search") === undefined) {
 }
 
 const app = express();
+app.use(compression());
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
 const jobHistoryPath = path.join(__dirname, "../jobsHistory.json");
@@ -1495,6 +1502,10 @@ app.get("/api/activity", (req, res) => {
 app.get("/api/ai/models", async (req, res) => {
   console.debug("[Server Debug] GET /api/ai/models called.");
 
+  if (aiModelsCache && Date.now() - aiModelsCacheTs < AI_MODELS_CACHE_TTL_MS) {
+    return res.json(aiModelsCache);
+  }
+
   const knownTokenLimits = {
     "openai/gpt-4o-mini": 128000,
     "openai/gpt-4.1": 1047576,
@@ -1870,7 +1881,10 @@ app.get("/api/ai/models", async (req, res) => {
     m.favorite = favorites.includes(m.id);
   }
 
-  res.json({ models: combinedModels });
+  const responseData = { models: combinedModels };
+  aiModelsCache = responseData;
+  aiModelsCacheTs = Date.now();
+  res.json(responseData);
 });
 
 app.post("/api/chat", async (req, res) => {
@@ -3853,12 +3867,13 @@ app.get("/new", (req, res) => {
   }
 });
 
+const staticCacheSeconds = parseInt(process.env.STATIC_CACHE_SECONDS || "900", 10);
 app.use(
   express.static(path.join(__dirname, "../public"), {
     etag: false,
-    maxAge: 0,
+    maxAge: staticCacheSeconds * 1000,
     setHeaders: (res) => {
-      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.set("Cache-Control", `public, max-age=${staticCacheSeconds}`);
     },
   })
 );
