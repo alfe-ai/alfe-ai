@@ -1512,6 +1512,7 @@ app.get("/api/ai/models", async (req, res) => {
     "anthropic/claude-3.7-sonnet": 200000,
     "anthropic/claude-sonnet-4": 200000,
     "anthropic/claude-opus-4": 200000,
+    "anthropic/claude-3.7-sonnet:thinking": 200000,
     "openai/gpt-3.5-turbo": 16385,
     "openai/o3-mini-high": 200000,
     "openai/o1": 200000,
@@ -1568,6 +1569,7 @@ app.get("/api/ai/models", async (req, res) => {
     "anthropic/claude-3.7-sonnet": { input: "$3", output: "$15" },
     "anthropic/claude-sonnet-4": { input: "$3", output: "$15" },
     "anthropic/claude-opus-4": { input: "$15", output: "$75" },
+    "anthropic/claude-3.7-sonnet:thinking": { input: "$3", output: "$15" },
     "openai/gpt-3.5-turbo": { input: "$0.50", output: "$1.50" },
     "openai/o3-mini-high": { input: "$1.10", output: "$4.40" },
     "openai/o1": { input: "$15", output: "$60" },
@@ -1680,7 +1682,8 @@ app.get("/api/ai/models", async (req, res) => {
       "r1-1776",
       "anthropic/claude-3.7-sonnet",
       "anthropic/claude-sonnet-4",
-      "anthropic/claude-opus-4"
+      "anthropic/claude-opus-4",
+      "anthropic/claude-3.7-sonnet:thinking"
     ];
     for (const id of forcedModels) {
       let entry = openAIModelData.find((m) => m.id === id) ||
