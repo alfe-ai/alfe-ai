@@ -6545,6 +6545,9 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     console.error("Error loading markdown content:", e);
   }
 
+  navMenuLoading = false;
+  toggleNavMenuVisibility(navMenuVisible);
+
 })();
 
 function initChatScrollLoading(){
@@ -8288,7 +8291,3 @@ document.addEventListener('click', e => {
 });
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
-setTimeout(() => {
-  navMenuLoading = false;
-  toggleNavMenuVisibility(navMenuVisible);
-}, 2000);
