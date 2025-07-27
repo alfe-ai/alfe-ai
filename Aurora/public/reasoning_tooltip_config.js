@@ -6,7 +6,8 @@ window.REASONING_TOOLTIP_CONFIG = {
     { name: 'openai/gpt-4o-mini' },
     { name: 'openai/gpt-4.1-mini' },
     { name: 'openai/gpt-4o', label: 'pro' },
-    { name: 'openai/gpt-4.1', label: 'pro' }
+    { name: 'openai/gpt-4.1', label: 'pro' },
+    { name: 'anthropic/claude-sonnet-4', label: 'ultimate' }
   ],
   reasoningModels: [
     { name: 'deepseek/deepseek-r1-distill-llama-70b' },

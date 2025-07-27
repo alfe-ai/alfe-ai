@@ -132,3 +132,7 @@ The order of models shown in the reasoning tooltip can be customized.
 Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
 `chatModels` and `reasoningModels` arrays to suit your preferences.
 
+The chat model list now includes **Anthropic Claude Sonnet 4** as an
+`ultimate` tier option. Pricing is $3 per million input tokens,
+$15 per million output tokens, and $4.80 per thousand input images.
+
