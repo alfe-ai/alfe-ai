@@ -4970,6 +4970,7 @@ async function renderReasoningModels(){
     { name: 'openai/codex-mini', label: 'pro' },
     { name: 'openrouter/perplexity/r1-1776', label: 'pro', note: 'openrouter - offline conversational (no search)' },
     { name: 'openai/o3', label: 'ultimate' },
+    { name: 'anthropic/claude-opus-4', label: 'ultimate' },
     { name: 'r1-1776', note: 'offline conversational (no search)' },
     { name: 'perplexity/r1-1776', note: 'offline conversational (no search)' }
   ];
