@@ -1564,6 +1564,9 @@ app.get("/api/ai/models", async (req, res) => {
     ,"openrouter/perplexity/sonar-reasoning": 127000
     ,"perplexity/sonar-reasoning": 127000
     ,"sonar-reasoning": 127000
+    ,"openrouter/perplexity/sonar-reasoning-pro": 128000
+    ,"perplexity/sonar-reasoning-pro": 128000
+    ,"sonar-reasoning-pro": 128000
   };
 
   // Known model costs are stored per one million tokens so that the
@@ -1626,6 +1629,9 @@ app.get("/api/ai/models", async (req, res) => {
     "openrouter/perplexity/sonar-reasoning": { input: "$1", output: "$5" },
     "perplexity/sonar-reasoning": { input: "$1", output: "$5" },
     "sonar-reasoning": { input: "$1", output: "$5" }
+    ,"openrouter/perplexity/sonar-reasoning-pro": { input: "$2", output: "$8" }
+    ,"perplexity/sonar-reasoning-pro": { input: "$2", output: "$8" }
+    ,"sonar-reasoning-pro": { input: "$2", output: "$8" }
   };
 
   let openAIModelData = [];

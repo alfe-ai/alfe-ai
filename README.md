@@ -150,6 +150,10 @@ output tokens.
 `pro` tier. Created Jan 29, 2025 with a 127,000 token context limit, pricing
 starts at $1 per million input tokens and $5 per million output tokens.
 
+**perplexity/sonar-reasoning-pro** has been added to the reasoning menu under the
+`pro` tier. Created Mar 7, 2025 with a 128,000 token context limit, pricing
+starts at $2 per million input tokens and $8 per million output tokens.
+
 **Anthropic Claude 3.5 Haiku** has been added to the chat model menu under the
 `pro` tier. It offers enhanced speed, coding accuracy, and tool use, making it
 ideal for real-time applications like chat interactions and instant coding
