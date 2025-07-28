@@ -5142,13 +5142,13 @@ async function renderSearchModels(){
       displayProvider = 'openrouter/perplexity';
       displayShort = name.replace(/^openrouter\/perplexity\//, '');
     }
-    let text = name;
-    if(!text.includes('/')) {
-      text = `perplexity/${text}`;
-    } else if (displayProvider === 'openai' || displayProvider === 'deepseek' || displayProvider === 'openrouter/perplexity') {
-      text = `<span class="model-provider">${displayProvider}</span> ${displayShort}`;
-    }
-    let html = label ? `<span class="model-label ${label}">${label}</span> ${text}` : text;
+
+    const providerPart = (displayProvider && displayProvider !== 'Unknown')
+      ? `<span class="model-row-provider">${displayProvider}/</span>` : '';
+    const namePart = `<span class="model-row-name">${displayShort}</span>`;
+    let header = `<div class="model-row-header">${providerPart}${namePart}</div>`;
+
+    let html = label ? `<span class="model-label ${label}">${label}</span> ${header}` : header;
     if(note){
       html += `<span class="model-note">${note}</span>`;
     }
