@@ -5146,9 +5146,10 @@ async function renderSearchModels(){
     const providerPart = (displayProvider && displayProvider !== 'Unknown')
       ? `<span class="model-row-provider">${displayProvider}/</span>` : '';
     const namePart = `<span class="model-row-name">${displayShort}</span>`;
-    let header = `<div class="model-row-header">${providerPart}${namePart}</div>`;
+    const labelPart = label ? `<span class="model-label ${label}">${label}</span>` : '';
+    let header = `<div class="model-row-header">${labelPart}${providerPart}${namePart}</div>`;
 
-    let html = label ? `<span class="model-label ${label}">${label}</span> ${header}` : header;
+    let html = header;
     if(note){
       html += `<span class="model-note">${note}</span>`;
     }
