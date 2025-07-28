@@ -1622,6 +1622,14 @@ button:disabled {
   color: #999;
   margin-right: 4px;
 }
+.reasoning-tooltip .model-row-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.reasoning-tooltip .model-row-provider { color: #999; }
+.reasoning-tooltip .model-row-name { color: #fff; font-weight: 500; }
 .reasoning-tooltip .model-label.ultimate {
   background: #8e44ad;
 }
