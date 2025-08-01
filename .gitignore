@@ -11,3 +11,7 @@ node_modules/
  
 mosaic/
 jobsHistory.json
+
+# Ignore package lock files
+package-lock.json
+**/package-lock.json
