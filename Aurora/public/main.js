@@ -4732,7 +4732,7 @@ function toggleImageIdColumn(){
 function toggleDesignTabs(allowed){
   document.querySelectorAll('[data-type="design"]').forEach(el => {
     if(el.tagName === 'BUTTON'){
-      el.style.display = allowed ? '' : 'none';
+      el.style.display = '';
       el.disabled = !allowed;
       el.classList.toggle('disabled', !allowed);
     }
@@ -4744,6 +4744,8 @@ function toggleDesignTabs(allowed){
       if(sel) sel.value = sel.querySelector('option:not([disabled])')?.value || 'chat';
     }
   });
+  const banner = document.getElementById('designProBanner');
+  if(banner) banner.style.display = allowed ? 'none' : 'block';
 }
 function toggleNewTabProjectField(visible){
   const lbl = document.getElementById("newTabProjectLabel");

@@ -1483,6 +1483,14 @@ button:disabled {
   cursor: pointer;
 }
 
+/* Banner shown when a feature requires Pro plan */
+.pro-banner {
+  margin-top: 0.5rem;
+  text-align: center;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
 
 /* Project search input and button */
 #projectSearchInput {

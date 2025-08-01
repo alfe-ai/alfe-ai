@@ -31,6 +31,7 @@
             <div class="icon">🎨</div>
             <div>Design</div>
           </button>
+          <div id="designProBanner" class="pro-banner" style="display:none;">Available on Pro</div>
         </div>
         <label style="margin-top:8px;">Project Name:<br/>
           <input type="text" id="newTabProjectInput" style="width:100%;" />
@@ -176,10 +177,12 @@ async function checkAccountPlan(){
 }
 function toggleDesignButtons(){
   document.querySelectorAll('#newTabTypeButtons .start-type-btn[data-type="design"]').forEach(b => {
-    b.style.display = designAllowed ? '' : 'none';
+    b.style.display = '';
     b.disabled = !designAllowed;
     b.classList.toggle('disabled', !designAllowed);
   });
+  const banner = document.getElementById('designProBanner');
+  if(banner) banner.style.display = designAllowed ? 'none' : 'block';
 }
 
 (async function(){
