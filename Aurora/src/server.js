@@ -1374,7 +1374,8 @@ app.get("/api/account", (req, res) => {
       id: account.id,
       email: account.email,
       totpEnabled: !!account.totp_secret,
-      timezone: account.timezone || ''
+      timezone: account.timezone || '',
+      plan: account.plan || 'Free'
     });
   } catch(err) {
     console.error("[TaskQueue] GET /api/account failed:", err);
@@ -1391,6 +1392,18 @@ app.post("/api/account/timezone", (req, res) => {
     return res.status(400).json({ error: "timezone required" });
   }
   db.setAccountTimezone(account.id, timezone);
+  res.json({ success: true });
+});
+
+app.post("/api/account/plan", (req, res) => {
+  const sessionId = getSessionIdFromRequest(req);
+  const account = sessionId ? db.getAccountBySession(sessionId) : null;
+  if (!account) return res.status(401).json({ error: "not logged in" });
+  const { plan } = req.body || {};
+  if (typeof plan !== 'string') {
+    return res.status(400).json({ error: "plan required" });
+  }
+  db.setAccountPlan(account.id, plan);
   res.json({ success: true });
 });
 
