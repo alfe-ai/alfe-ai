@@ -1555,9 +1555,8 @@ button:disabled {
   cursor: pointer;
 }
 
-/* Reasoning toggle button, codex toggle, and image upload button */
+/* Reasoning toggle button and image upload button */
 #reasoningToggleBtn,
-#codexToggleBtn,
 #chatImageBtn {
   background: #474747;
   border: 1px solid #666;
@@ -1566,10 +1565,6 @@ button:disabled {
   border-radius: 8px;
   cursor: pointer;
   margin-right: 0.5rem;
-}
-#codexToggleBtn.active {
-  background: #0062cc;
-  color: #fff;
 }
 
 
