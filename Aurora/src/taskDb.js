@@ -388,7 +388,8 @@ export default class TaskDB {
         session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
-        timezone TEXT DEFAULT ''
+        timezone TEXT DEFAULT '',
+        plan TEXT DEFAULT 'Free'
       );
     `);
 
@@ -402,6 +403,13 @@ export default class TaskDB {
     try {
       this.db.exec('ALTER TABLE accounts ADD COLUMN timezone TEXT DEFAULT "";');
       console.debug("[TaskDB Debug] Added accounts.timezone column");
+    } catch(e) {
+      // column exists
+    }
+
+    try {
+      this.db.exec("ALTER TABLE accounts ADD COLUMN plan TEXT DEFAULT 'Free';");
+      console.debug("[TaskDB Debug] Added accounts.plan column");
     } catch(e) {
       // column exists
     }
@@ -1195,7 +1203,7 @@ export default class TaskDB {
     const ts = new Date().toISOString();
     const { lastInsertRowid } = this.db
         .prepare(
-            "INSERT INTO chat_subroutines (name, trigger_text, action_text, action_hook, created_at) VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO chat_subroutines (name, trigger_text, action_text, action_hook, created_at) VALUES (?, ?, ?, ?, ?, ?)"
         )
         .run(name, trigger, action, hook, ts);
     return lastInsertRowid;
@@ -1432,14 +1440,14 @@ export default class TaskDB {
     return row ? row.upscaled : null;
   }
 
-  createAccount(email, passwordHash, sessionId = '', timezone = '') {
+  createAccount(email, passwordHash, sessionId = '', timezone = '', plan = 'Free') {
     const ts = new Date().toISOString();
     const { lastInsertRowid } = this.db
         .prepare(
-            `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone)
-             VALUES (?, ?, ?, ?, ?)`
+            `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
+             VALUES (?, ?, ?, ?, ?, ?)`
         )
-        .run(email, passwordHash, sessionId, ts, timezone);
+        .run(email, passwordHash, sessionId, ts, timezone, plan);
     return lastInsertRowid;
   }
 
@@ -1457,6 +1465,10 @@ export default class TaskDB {
 
   setAccountTimezone(id, timezone) {
     this.db.prepare('UPDATE accounts SET timezone=? WHERE id=?').run(timezone, id);
+  }
+
+  setAccountPlan(id, plan) {
+    this.db.prepare('UPDATE accounts SET plan=? WHERE id=?').run(plan, id);
   }
 
   setAccountPassword(id, passwordHash) {
@@ -1491,7 +1503,7 @@ export default class TaskDB {
     const { lastInsertRowid } = this.db
       .prepare(
         `INSERT INTO upwork_jobs (title, link, bid, status, notes)
-         VALUES (?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?)`
       )
       .run(
         job.title,

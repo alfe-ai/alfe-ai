@@ -757,6 +757,8 @@ function openAccountModal(e){
       if(enabledMsg) enabledMsg.style.display = 'none';
       if(enableBtn) enableBtn.style.display = 'inline-block';
     }
+    const planSelect = document.getElementById('accountPlan');
+    if(planSelect) planSelect.value = accountInfo.plan || 'Free';
   }
   showModal(document.getElementById("accountModal"));
 }
@@ -3294,6 +3296,9 @@ if (signupSubmitBtn) {
         showToast("Registered!");
         hideModal(document.getElementById("authModal"));
         updateAccountButton({exists:true, id:data.id, email, totpEnabled: data.totpEnabled});
+        fetch('/api/account')
+          .then(r => r.ok ? r.json() : null)
+          .then(info => { if(info) updateAccountButton(info); });
       } else {
         showToast(data?.error || "Registration failed");
       }
@@ -3359,6 +3364,9 @@ if (loginSubmitBtn) {
         const lbl = document.getElementById('totpLoginLabel');
         if(lbl) lbl.style.display = 'none';
         updateAccountButton({exists:true, id:data.id, email, totpEnabled: data.totpEnabled});
+        fetch('/api/account')
+          .then(r => r.ok ? r.json() : null)
+          .then(info => { if(info) updateAccountButton(info); });
       } else {
         if(data?.error === 'totp required' || data?.error === 'invalid totp') {
           const lbl = document.getElementById('totpLoginLabel');
@@ -3457,6 +3465,25 @@ if(timezoneSaveBtn){
       showToast('Timezone saved');
     } else {
       showToast(data?.error || 'Failed to save timezone');
+    }
+  });
+}
+
+const planSaveBtn = document.getElementById('planSaveBtn');
+if(planSaveBtn){
+  planSaveBtn.addEventListener('click', async () => {
+    const plan = document.getElementById('accountPlan').value;
+    const resp = await fetch('/api/account/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan })
+    });
+    const data = await resp.json().catch(() => null);
+    if(resp.ok && data && data.success){
+      if(accountInfo) accountInfo.plan = plan;
+      showToast('Plan saved');
+    } else {
+      showToast(data?.error || 'Failed to save plan');
     }
   });
 }
