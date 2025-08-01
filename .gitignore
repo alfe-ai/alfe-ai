@@ -11,3 +11,5 @@ node_modules/
  
 mosaic/
 jobsHistory.json
+
+# package lock files are intentionally tracked

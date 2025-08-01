@@ -829,13 +829,6 @@ async function openSettingsModal(e){
   showModal(document.getElementById("settingsModal"));
 }
 
-function openContactModal(e){
-  if(e) e.preventDefault();
-  const email = "alfe" + "@" + "alfe." + "sh";
-  const span = document.getElementById("contactEmail");
-  if(span) span.textContent = email;
-  showModal(document.getElementById("contactModal"));
-}
 
 function updateAccountButton(info){
   const btn = document.getElementById("signupBtn");
@@ -3397,17 +3390,6 @@ if(settingsBtn){
   settingsBtn.addEventListener("click", openSettingsModal);
 }
 
-const contactBtn = document.getElementById("contactBtn");
-if(contactBtn){
-  contactBtn.addEventListener("click", openContactModal);
-}
-
-const contactCloseBtn = document.getElementById("contactCloseBtn");
-if(contactCloseBtn){
-  contactCloseBtn.addEventListener("click", () =>
-    hideModal(document.getElementById("contactModal"))
-  );
-}
 
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
 if(settingsCloseBtn){
