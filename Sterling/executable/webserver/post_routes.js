@@ -31,9 +31,34 @@ function setupPostRoutes(deps) {
 
     /* ---------- /repositories/add ---------- */
     app.post("/repositories/add", (req, res) => {
-        const { repoName, gitRepoURL } = req.body;
-        if (!repoName || !gitRepoURL) {
-            return res.status(400).send("Repository name and URL are required.");
+        const { repoName, gitRepoURL, gitRepoLocalPath } = req.body;
+        if (!repoName) {
+            return res.status(400).send("Repository name is required.");
+        }
+
+        const repoConfig = loadRepoConfig() || {};
+
+        function finalize(localPath) {
+            repoConfig[repoName] = {
+                gitRepoLocalPath: localPath,
+                gitRepoURL: gitRepoURL || "",
+                gitBranch: "main",
+                openAIAccount: "",
+            };
+            saveRepoConfig(repoConfig);
+            res.redirect("/repositories");
+        }
+
+        if (gitRepoLocalPath) {
+            if (!fs.existsSync(gitRepoLocalPath)) {
+                return res.status(400).send("Local repository path does not exist.");
+            }
+            finalize(gitRepoLocalPath);
+            return;
+        }
+
+        if (!gitRepoURL) {
+            return res.status(400).send("Either repository URL or local path is required.");
         }
 
         const homeDir = os.homedir();
@@ -49,15 +74,7 @@ function setupPostRoutes(deps) {
                 console.error("[ERROR] cloneRepository:", err);
                 return res.status(500).send("Failed to clone repository.");
             }
-            const repoConfig = loadRepoConfig() || {};
-            repoConfig[repoName] = {
-                gitRepoLocalPath: localPath,
-                gitRepoURL,
-                gitBranch: "main",
-                openAIAccount: "",
-            };
-            saveRepoConfig(repoConfig);
-            res.redirect("/repositories");
+            finalize(localPath);
         });
     });
 
