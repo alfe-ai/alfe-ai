@@ -4,15 +4,20 @@ const { execSync } = require('child_process');
 
 /**
  * Loads the entire repository configuration from repo_config.json.
- * @returns {Object|null} The configuration object or null if not found/error.
+ * If the file doesn't exist or contains invalid JSON it will be recreated
+ * (the previous file is backed up) and an empty object is returned.
+ *
+ * @returns {Object} The configuration object (empty object if created).
  */
 function loadRepoConfig() {
     const configPath = path.join(__dirname, 'data', 'config', 'repo_config.json');
     console.log(`🔍 Attempting to load repo_config.json from ${configPath}`);
 
     if (!fs.existsSync(configPath)) {
-        console.error("❌ repo_config.json not found.");
-        return null;
+        console.warn("⚠️ repo_config.json not found. Creating new file.");
+        fs.mkdirSync(path.dirname(configPath), { recursive: true });
+        fs.writeFileSync(configPath, "{}", "utf-8");
+        return {};
     }
 
     let configData;
@@ -20,7 +25,15 @@ function loadRepoConfig() {
         configData = fs.readFileSync(configPath, "utf-8");
     } catch (readError) {
         console.error(`❌ Error reading repo_config.json: ${readError.message}`);
-        return null;
+        const backupPath = `${configPath}.bak.${Date.now()}`;
+        try {
+            fs.renameSync(configPath, backupPath);
+            console.warn(`🛟 Backed up unreadable file to ${backupPath}`);
+        } catch (err) {
+            console.error(`❌ Failed to backup repo_config.json: ${err.message}`);
+        }
+        fs.writeFileSync(configPath, "{}", "utf-8");
+        return {};
     }
 
     try {
@@ -29,7 +42,16 @@ function loadRepoConfig() {
         return config;
     } catch (parseError) {
         console.error(`❌ Error parsing repo_config.json: ${parseError.message}`);
-        return null;
+        const backupPath = `${configPath}.bak.${Date.now()}`;
+        try {
+            fs.renameSync(configPath, backupPath);
+            console.warn(`🛟 Backed up invalid file to ${backupPath}`);
+        } catch (err) {
+            console.error(`❌ Failed to backup repo_config.json: ${err.message}`);
+        }
+        fs.writeFileSync(configPath, "{}", "utf-8");
+        console.log("🆕 Created fresh repo_config.json");
+        return {};
     }
 }
 
