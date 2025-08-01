@@ -7,7 +7,6 @@ let chatAutoScroll = false;
 document.addEventListener('DOMContentLoaded', async () => {
   const sessEl = document.getElementById('sessionIdText');
   if (sessEl) sessEl.textContent = sessionId;
-  updateImageLimitInfo();
   document.title = defaultTitle;
 
   // theming disabled; always use default stylesheet
@@ -849,6 +848,7 @@ function updateAccountButton(info){
     }
     togglePortfolioMenu(info.id === 1);
     toggleImageIdColumn();
+    toggleDesignTabs(info.plan === 'Pro' || info.plan === 'Ultimate');
   } else {
     accountInfo = null;
     btn.textContent = "Sign Up / Login";
@@ -858,6 +858,7 @@ function updateAccountButton(info){
     }
     togglePortfolioMenu(false);
     toggleImageIdColumn();
+    toggleDesignTabs(false);
   }
 }
 
@@ -4725,6 +4726,23 @@ function toggleImageIdColumn(){
   if(header) header.style.display = '';
   document.querySelectorAll('#secureFilesList td.id-col').forEach(td => {
     td.style.display = '';
+  });
+}
+
+function toggleDesignTabs(allowed){
+  document.querySelectorAll('[data-type="design"]').forEach(el => {
+    if(el.tagName === 'BUTTON'){
+      el.style.display = allowed ? '' : 'none';
+      el.disabled = !allowed;
+      el.classList.toggle('disabled', !allowed);
+    }
+  });
+  document.querySelectorAll('option[value="design"]').forEach(opt => {
+    opt.disabled = !allowed;
+    if(!allowed && opt.selected){
+      const sel = opt.closest('select');
+      if(sel) sel.value = sel.querySelector('option:not([disabled])')?.value || 'chat';
+    }
   });
 }
 function toggleNewTabProjectField(visible){
