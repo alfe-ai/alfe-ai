@@ -2708,11 +2708,6 @@ function renderTabs(){
     renameBtn.addEventListener("click", e=>{ e.stopPropagation(); openRenameTabModal(tab.id); });
     tabBtn.appendChild(renameBtn);
 
-    const forkBtn = document.createElement("button");
-    forkBtn.textContent = "Fork";
-    forkBtn.style.marginLeft = "4px";
-    forkBtn.addEventListener("click", e=>{ e.stopPropagation(); duplicateTab(tab.id); });
-    tabBtn.appendChild(forkBtn);
 
     const archBtn = document.createElement("button");
     archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
@@ -2982,12 +2977,6 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
     openRenameTabModal(tab.id);
   });
 
-  const forkBtn = document.createElement("button");
-  forkBtn.textContent = "Fork";
-  forkBtn.addEventListener("click", e => {
-    e.stopPropagation();
-    duplicateTab(tab.id);
-  });
 
   const archBtn = document.createElement("button");
   archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
@@ -3032,7 +3021,6 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
 
   wrapper.appendChild(info);
   wrapper.appendChild(renameBtn);
-  wrapper.appendChild(forkBtn);
   wrapper.appendChild(archBtn);
   if (tab.task_id) wrapper.appendChild(taskIdSpan);
   wrapper.addEventListener("dragover", tabDragOver);
