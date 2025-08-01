@@ -163,7 +163,27 @@ document.querySelectorAll('#newTabTypeButtons .start-type-btn').forEach(btn => {
   });
 });
 
+let designAllowed = false;
+async function checkAccountPlan(){
+  try{
+    const r = await fetch('/api/account');
+    if(r.ok){
+      const info = await r.json();
+      designAllowed = info.plan === 'Pro' || info.plan === 'Ultimate';
+    }
+  }catch(e){ console.error(e); }
+  toggleDesignButtons();
+}
+function toggleDesignButtons(){
+  document.querySelectorAll('#newTabTypeButtons .start-type-btn[data-type="design"]').forEach(b => {
+    b.style.display = designAllowed ? '' : 'none';
+    b.disabled = !designAllowed;
+    b.classList.toggle('disabled', !designAllowed);
+  });
+}
+
 (async function(){
+  await checkAccountPlan();
   try{
     const r = await fetch('/api/settings/new_tab_project_enabled');
     if(r.ok){

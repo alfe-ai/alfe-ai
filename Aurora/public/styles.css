@@ -699,31 +699,6 @@ body {
   user-select: text;
 }
 
-/* Display current session image count under the ID */
-#imageLimitInfo.session-limit {
-  position: absolute;
-  top: 32px;
-  left: 60px;
-  font-size: 0.75rem;
-  color: #aaa;
-  z-index: 1000;
-}
-
-#imageLimitCountdown.session-limit {
-  position: absolute;
-  top: 44px;
-  left: 60px;
-  font-size: 0.7rem;
-  color: #aaa;
-  z-index: 1000;
-}
-
-/* Hide counters when sidebar is collapsed */
-.app.sidebar-collapsed #imageLimitInfo,
-.app.sidebar-collapsed #imageLimitCountdown {
-  display: none !important;
-}
-
 /* Button to hide the sidebar */
 #hideSidebarBtn.hide-sidebar-btn {
   position: absolute;
@@ -744,34 +719,6 @@ body {
   display: none !important;
 }
 
-/* When the image generation limit is reached (50/50),
-   highlight the info text in dark red for visibility
-   by applying a new "limit-reached" class via JavaScript.
-   This class is added dynamically when the count hits the limit.
-   The base class `session-limit` keeps default styling.
-   We add the color rule separately so it overrides the default.
-   This ensures normal color is used until the limit is hit.
-
-   Example HTML after update:
-     <span id="imageLimitInfo" class="session-limit limit-reached">Images: 50/50 (IP 50/50)</span>
-
-   The dark red color uses the named color `darkred` for clarity.
-   It roughly corresponds to #8B0000.
-
-   This rule must follow the base styling to take precedence.
-   See main.js for the logic that toggles this class.
-
-   Added per user request to visually indicate when the
-   generation limit has been fully consumed.
-
-   The instructions in AGENTS.md mention nothing about CSS color,
-   so we implement as straightforwardly as possible.
-
-   Additional comments for maintainers: none. */
-
-#imageLimitInfo.session-limit.limit-reached {
-  color: darkred;
-}
 
 /* Token count indicator in bottom-right corner of subbubble */
 .token-indicator {
