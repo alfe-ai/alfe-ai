@@ -8,5 +8,6 @@ fi
 SCREEN_NAME="alfeDEV"
 
 clear
+git pull
 bash -c "npm install"
 node executable/server_webserver.js
