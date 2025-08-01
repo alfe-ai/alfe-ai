@@ -27,6 +27,7 @@
         const browseBtn = document.getElementById('browseBtn');
         const dirPicker = document.getElementById('dirPicker');
         const localPathInput = document.getElementById('gitRepoLocalPath');
+        const repoNameInput = document.getElementById('repoName');
 
         browseBtn.addEventListener('click', () => {
             dirPicker.disabled = false;
@@ -43,7 +44,12 @@
             }
             if (fullPath) {
                 const sep = fullPath.includes('\\') ? /\\[^\\]*$/ : /\/[^/]*$/;
-                localPathInput.value = fullPath.replace(sep, '');
+                const dirPath = fullPath.replace(sep, '');
+                localPathInput.value = dirPath;
+                const folderName = dirPath.split(/[/\\]/).pop();
+                if (folderName) {
+                    repoNameInput.value = folderName;
+                }
             }
             // Disable the file input so directory contents are not uploaded
             dirPicker.disabled = true;
