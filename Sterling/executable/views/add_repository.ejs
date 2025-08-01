@@ -13,10 +13,37 @@
         <input type="text" id="repoName" name="repoName" required><br><br>
 
         <label for="gitRepoURL">SSH Git Repo URL:</label><br>
-        <input type="text" id="gitRepoURL" name="gitRepoURL" required><br><br>
+        <input type="text" id="gitRepoURL" name="gitRepoURL"><br><br>
+
+        <label for="gitRepoLocalPath">Or choose existing repo directory:</label><br>
+        <input type="text" id="gitRepoLocalPath" name="gitRepoLocalPath">
+        <input type="file" id="dirPicker" style="display:none" webkitdirectory directory>
+        <button type="button" id="browseBtn">Browse...</button><br><br>
 
         <button type="submit">Add Repository</button>
     </form>
+
+    <script>
+        const browseBtn = document.getElementById('browseBtn');
+        const dirPicker = document.getElementById('dirPicker');
+        const localPathInput = document.getElementById('gitRepoLocalPath');
+
+        browseBtn.addEventListener('click', () => dirPicker.click());
+        dirPicker.addEventListener('change', (ev) => {
+            const file = ev.target.files && ev.target.files[0];
+            if (!file) return;
+            let fullPath = file.path || '';
+            if (!fullPath && file.webkitRelativePath) {
+                const parts = file.webkitRelativePath.split('/');
+                parts.pop();
+                fullPath = parts.join('/');
+            }
+            if (fullPath) {
+                const sep = fullPath.includes('\\') ? /\\[^\\]*$/ : /\/[^/]*$/;
+                localPathInput.value = fullPath.replace(sep, '');
+            }
+        });
+    </script>
 
     <!-- Link back to Repositories -->
     <footer>
