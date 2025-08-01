@@ -5,6 +5,10 @@
 TaskQueue/.env
 *.env
 printifyQueue.json
+
+# Ignore global node modules and lock files
+node_modules/
+package-lock.json
  
 mosaic/
 jobsHistory.json

@@ -56,7 +56,8 @@ function setupGetRoutes(deps) {
     });
 
     app.get("/repositories/add", (_req, res) => {
-        res.render("add_repository");
+        const serverCWD = process.cwd();
+        res.render("add_repository", { serverCWD });
     });
 
     /* ---------- Repo helper redirects ---------- */
