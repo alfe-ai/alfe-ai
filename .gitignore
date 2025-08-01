@@ -5,6 +5,9 @@
 TaskQueue/.env
 *.env
 printifyQueue.json
+
+# Ignore global node modules
+node_modules/
  
 mosaic/
 jobsHistory.json

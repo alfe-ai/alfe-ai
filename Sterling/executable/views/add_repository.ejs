@@ -7,6 +7,8 @@
 </head>
 <body>
     <h1>Add New Repository</h1>
+    <p>Server working directory: <code><%= serverCWD %></code></p>
+    <p>Please provide an absolute path accessible by the server.</p>
 
     <form action="/repositories/add" method="POST">
         <label for="repoName">Repository Name:</label><br>
