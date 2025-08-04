@@ -1257,6 +1257,13 @@ export default class TaskDB {
     return row ? row.id : null;
   }
 
+  getImageModelForUrl(url) {
+    const row = this.db
+        .prepare("SELECT model FROM chat_pairs WHERE image_url=? ORDER BY id DESC LIMIT 1")
+        .get(url);
+    return row ? row.model : "";
+  }
+
   getImageUuidForUrl(url) {
     const row = this.db
         .prepare("SELECT id, image_uuid FROM chat_pairs WHERE image_url=? ORDER BY id DESC LIMIT 1")

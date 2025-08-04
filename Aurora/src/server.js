@@ -2587,12 +2587,13 @@ app.get("/api/upload/list", (req, res) => {
       const title = db.getImageTitleForUrl(`/uploads/${name}`);
       const id = db.getImageIdForUrl(`/uploads/${name}`);
       const uuid = db.getImageUuidForUrl(`/uploads/${name}`);
+      const model = db.getImageModelForUrl(`/uploads/${name}`);
       const source = db.isGeneratedImage(`/uploads/${name}`) ? 'Generated' : 'Uploaded';
       const status = db.getImageStatusForUrl(`/uploads/${name}`) || (source === 'Generated' ? 'Generated' : 'Uploaded');
       const portfolio = db.getImagePortfolioForUrl(`/uploads/${name}`) ? 1 : 0;
       const productUrl = db.getProductUrlForImage(`/uploads/${name}`);
       const ebayUrl = db.getEbayUrlForImage(`/uploads/${name}`);
-      files.push({ id, uuid, name, size, mtime, title, source, status, portfolio, hidden, productUrl, ebayUrl });
+      files.push({ id, uuid, name, size, mtime, title, source, status, portfolio, hidden, productUrl, ebayUrl, model });
     }
 
     // Sort by database id (highest first)

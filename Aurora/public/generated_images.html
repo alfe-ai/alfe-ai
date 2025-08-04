@@ -34,6 +34,21 @@
   <div id="grid" class="grid"></div>
   <script src="/session.js"></script>
   <script>
+    const imageModelCosts = {
+      "openai/gpt-image-1": 0.04,
+      "openai/dall-e-2": 0.016,
+      "openai/dall-e-3": 0.08,
+      "stable-diffusion": 0
+    };
+
+    function getImageCost(modelId){
+      if(!modelId) return null;
+      const key = modelId.toLowerCase();
+      return Object.prototype.hasOwnProperty.call(imageModelCosts, key)
+        ? imageModelCosts[key]
+        : null;
+    }
+
     async function loadImages(){
       try {
         const resp = await fetch('/api/upload/list?sessionId=' + encodeURIComponent(sessionId));
@@ -51,6 +66,17 @@
           img.alt = f.title || f.name;
           link.appendChild(img);
           wrapper.appendChild(link);
+
+          if(f.model){
+            const cost = getImageCost(f.model);
+            const meta = document.createElement('div');
+            meta.style.fontSize = '0.9rem';
+            meta.style.marginTop = '4px';
+            meta.textContent = cost !== null
+              ? `${f.model} | $${cost.toFixed(4)}`
+              : f.model;
+            wrapper.appendChild(meta);
+          }
 
           const dl = document.createElement('button');
           dl.className = 'download-chat-btn pair-download-btn';
