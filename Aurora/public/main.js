@@ -3733,6 +3733,21 @@ function parseProviderModel(model) {
   return { provider: "Unknown", shortModel: model };
 }
 
+const imageModelCosts = {
+  "openai/gpt-image-1": 0.04,
+  "openai/dall-e-2": 0.016,
+  "openai/dall-e-3": 0.08,
+  "stable-diffusion": 0
+};
+
+function getImageModelCost(modelId){
+  if(!modelId) return null;
+  const key = modelId.toLowerCase();
+  return Object.prototype.hasOwnProperty.call(imageModelCosts, key)
+    ? imageModelCosts[key]
+    : null;
+}
+
 function getModelCost(modelId, inputTokens, outputTokens) {
   if (!window.allAiModels) return null;
   const info = window.allAiModels.find(m => m.id === modelId);
@@ -7090,6 +7105,14 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       const modelLabel = document.createElement("div");
       modelLabel.textContent = `${model}`;
       metaContainer.appendChild(modelLabel);
+      if(imageUrl){
+        const imgCost = getImageModelCost(model);
+        if(imgCost !== null){
+          const costLabel = document.createElement("div");
+          costLabel.textContent = `Cost: $${imgCost.toFixed(4)}`;
+          metaContainer.appendChild(costLabel);
+        }
+      }
     }
 
     let tokObj = null;
