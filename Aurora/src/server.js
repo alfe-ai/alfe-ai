@@ -341,7 +341,13 @@ function stripPerplexityCitations(text) {
 }
 
 async function callOpenAiModel(client, model, opts = {}) {
-  const { messages = [], max_tokens, temperature, stream = false } = opts;
+  const {
+    messages = [],
+    max_tokens,
+    temperature,
+    stream = false,
+    n
+  } = opts;
 
   // All chat-style models—including codex-mini-latest and openrouter/openai/codex-mini—use the chat endpoint
   return client.chat.completions.create({
@@ -349,7 +355,8 @@ async function callOpenAiModel(client, model, opts = {}) {
     messages,
     max_tokens,
     temperature,
-    stream
+    stream,
+    n
   });
 }
 
@@ -1927,6 +1934,7 @@ app.post("/api/chat", async (req, res) => {
     const userMessage = req.body.message || "";
     const chatTabId = req.body.tabId || 1;
     const sessionId = req.body.sessionId || "";
+    let responseCount = Math.min(parseInt(req.body.count, 10) || 1, 4);
     const tabInfo = db.getChatTab(chatTabId, sessionId || null);
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
@@ -2069,10 +2077,12 @@ app.post("/api/chat", async (req, res) => {
     let requestStartTime = Date.now();
 
     const streamingSetting = db.getSetting("chat_streaming");
-    const useStreaming = (streamingSetting === false) ? false : true;
+    let useStreaming = (streamingSetting === false) ? false : true;
+    if (responseCount > 1) useStreaming = false;
 
     let citations = [];
     if (usePerplexity) {
+      responseCount = 1; // Perplexity does not support multiple responses
       const completion = await callPerplexityModel(modelForOpenAI, {
         messages: truncatedConversation
       });
@@ -2113,15 +2123,15 @@ app.post("/api/chat", async (req, res) => {
 
     } else {
       const completion = await callOpenAiModel(openaiClient, modelForOpenAI, {
-        messages: truncatedConversation
+        messages: truncatedConversation,
+        n: responseCount
       });
-      assistantMessage =
-        completion.choices?.[0]?.message?.content ||
-        completion.choices?.[0]?.text || "";
-      assistantMessage = stripUtmSource(assistantMessage);
-      if (isOpenrouterPerplexity) {
-        assistantMessage = stripPerplexityCitations(assistantMessage);
-      }
+      const parts = completion.choices?.map(c => c.message?.content || c.text || "") || [];
+      assistantMessage = parts.map(p => {
+        let clean = stripUtmSource(p);
+        if (isOpenrouterPerplexity) clean = stripPerplexityCitations(clean);
+        return clean;
+      }).join("\n\n---\n\n");
       res.write(assistantMessage);
       res.end();
       console.debug("[Server Debug] AI non-streaming completed, length =>", assistantMessage.length);

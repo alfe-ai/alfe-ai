@@ -78,6 +78,12 @@
               <button id="renderBtn" style="display:none;">Render</button>
             </div>
           </div>
+          <select id="chatCountSelect" title="Number of AI responses">
+            <option value="1">1x</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+          </select>
           <button id="sendBtn"><span id="sendBtnText">Chat</span></button>
         </div>
       </div>
@@ -864,7 +870,8 @@
       document.getElementById('chat').appendChild(aiEl);
       document.getElementById('chat').scrollTop=document.getElementById('chat').scrollHeight;
       try{
-        const resp=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,tabId:currentTabId,sessionId})});
+        const count=parseInt(document.getElementById('chatCountSelect').value)||1;
+        const resp=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,tabId:currentTabId,sessionId,count})});
         if(!resp.ok||!resp.body){aiEl.textContent='[error]';return;}
         const reader=resp.body.getReader();
         const dec=new TextDecoder();
