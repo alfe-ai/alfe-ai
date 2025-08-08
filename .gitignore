@@ -12,4 +12,7 @@ node_modules/
 mosaic/
 jobsHistory.json
 
+PrintifyPriceUpdater/.patchfiles_ignore/
+
+
 # package lock files are intentionally tracked
