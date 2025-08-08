@@ -4,8 +4,10 @@ This script updates pricing for all variants of a Printify product.
 
 ## Usage
 
+1. Copy `sample.env` to `.env` and fill in your Printify credentials.
+2. Run the script:
+
 ```bash
-PRINTIFY_SHOP_ID=your_shop_id PRINTIFY_API_TOKEN=your_api_token \
 node update-pricing-by-size.js <product_id>
 ```
 
