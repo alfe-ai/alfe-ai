@@ -121,10 +121,9 @@ async function updatePricing() {
       };
     });
 
-    // Optional: log a quick summary for verification
-    const preview = updatedVariants.slice(0, 5).map(u => u);
+    // Log all updated variants for verification
     console.log('Found size option:', { index: sizeOptionIndex, name: sizeOption.name, type: sizeOption.type });
-    console.log(`Updating ${updatedVariants.length} enabled variants (first 5 shown):`, preview);
+    console.log(`Updating ${updatedVariants.length} enabled variants:`, updatedVariants);
 
     await axios.put(
       `${API_BASE}/shops/${SHOP_ID}/products/${productId}.json`,
