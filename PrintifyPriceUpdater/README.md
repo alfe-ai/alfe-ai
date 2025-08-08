@@ -1,6 +1,6 @@
 # Printify Price Updater
 
-This script updates pricing for all variants of a Printify product.
+This script updates pricing for the enabled variants of a Printify product.
 
 ## Usage
 
@@ -11,7 +11,8 @@ This script updates pricing for all variants of a Printify product.
 node update-pricing-by-size.js <product_id>
 ```
 
-Prices are applied per size:
+Prices are applied per size. Disabled variants are ignored to avoid
+exceeding Printify's 100-variant limit:
 
 | Size | Price (USD) |
 | --- | --- |
