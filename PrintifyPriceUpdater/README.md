@@ -9,6 +9,8 @@ This script updates pricing for the enabled variants of a Printify product.
 
 ```bash
 node update-pricing-by-size.js <product_id>
+# or
+./run.sh <product_id>
 ```
 
 Prices are applied per size. Disabled variants are ignored to avoid
