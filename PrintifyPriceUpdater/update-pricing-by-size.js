@@ -49,6 +49,12 @@ function normalizeSizeLabel(label) {
   return t;
 }
 
+function sizeFromTitle(title) {
+  if (!title) return undefined;
+  const parts = String(title).split('/').map(p => p.trim());
+  return normalizeSizeLabel(parts[parts.length - 1]);
+}
+
 async function updatePricing() {
   try {
     const { data: product } = await axios.get(
@@ -56,52 +62,13 @@ async function updatePricing() {
       { headers: { Authorization: `Bearer ${API_TOKEN}` } }
     );
 
-    if (!product.options || !Array.isArray(product.options) || product.options.length === 0) {
-      throw new Error('Product has no options; cannot locate size option');
-    }
-
-    // Prefer type === 'size', fallback to name contains 'size'
-    const sizeOptionIndex = product.options.findIndex(opt => {
-      const typeMatch = (opt.type && String(opt.type).toLowerCase() === 'size');
-      const nameMatch = (opt.name && String(opt.name).toLowerCase().includes('size'));
-      return typeMatch || nameMatch;
-    });
-
-    if (sizeOptionIndex === -1) {
-      console.error('Product options:', product.options.map(o => ({ name: o.name, type: o.type })));
-      throw new Error('Unable to find size option on product');
-    }
-
-    const sizeOption = product.options[sizeOptionIndex];
-
-    // Values can be strings or objects with title
-    function getValueLabel(valuesArray, indexOneBased) {
-      const idx = Number(indexOneBased) - 1;
-      const v = valuesArray?.[idx];
-      if (v == null) return undefined;
-      if (typeof v === 'string') return v;
-      if (typeof v === 'object') {
-        return v.title || v.name || v.value || v.id || '';
-      }
-      return String(v);
-    }
-
-    // Build updated variants for currently enabled options only.
-    // The Printify API counts any variant included in the payload as
-    // enabled. Some catalogs expose dozens of color/size combos that
-    // are disabled in the product, but the API still returns them.
-    // Filtering avoids accidentally enabling more than 100 variants
-    // and triggering validation errors.
     const updatedVariants = product.variants
-      .filter(v => v.is_enabled) // only update enabled variants
+      .filter(v => v.is_enabled)
       .map(v => {
-        const variantSizeIdxOneBased = v.options?.[sizeOptionIndex];
-        const rawLabel = getValueLabel(sizeOption.values, variantSizeIdxOneBased);
-        const sizeLabel = normalizeSizeLabel(rawLabel);
+        const sizeLabel = sizeFromTitle(v.title);
 
         let price = PRICE_TABLE[sizeLabel];
         if (price == null) {
-          // Some Gildan 5000 catalogs include sizes like "Small", "Medium", etc.
           const alt = {
             SMALL: 'S',
             MEDIUM: 'M',
@@ -118,14 +85,12 @@ async function updatePricing() {
         return {
           id: v.id,
           title: v.title,
-          price: price != null ? cents(price) : v.price // leave unchanged if not in table
+          price: price != null ? cents(price) : v.price
         };
       });
 
     const payloadVariants = updatedVariants.map(({ id, price }) => ({ id, price }));
 
-    // Log all updated variants for verification
-    console.log('Found size option:', { index: sizeOptionIndex, name: sizeOption.name, type: sizeOption.type });
     console.log(`Updating ${payloadVariants.length} enabled variants:`, updatedVariants);
 
     await axios.put(
@@ -140,6 +105,17 @@ async function updatePricing() {
     );
 
     console.log('Successfully updated prices for product', productId);
+
+    const { data: updatedProduct } = await axios.get(
+      `${API_BASE}/shops/${SHOP_ID}/products/${productId}.json`,
+      { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+    );
+
+    const updatedIds = new Set(payloadVariants.map(v => v.id));
+    const refreshed = updatedProduct.variants
+      .filter(v => updatedIds.has(v.id))
+      .map(v => ({ id: v.id, title: v.title, price: v.price }));
+    console.log('Updated variant data:', refreshed);
   } catch (err) {
     const msg = err.response?.data || err.message;
     console.error('Failed to update pricing:', msg);
