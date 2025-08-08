@@ -29,6 +29,26 @@ const PRICE_TABLE = {
   '5XL': 27.38
 };
 
+function cents(usd) {
+  return Math.round(Number(usd) * 100);
+}
+
+function normalizeSizeLabel(label) {
+  if (!label) return label;
+  // Normalize common variants like "XXL" -> "2XL"
+  const t = String(label).trim().toUpperCase();
+  if (t === 'XS') return 'XS'; // not in table but keep mapping behavior
+  if (t === 'S') return 'S';
+  if (t === 'M') return 'M';
+  if (t === 'L') return 'L';
+  if (t === 'XL') return 'XL';
+  if (t === 'XXL' || t === '2XL') return '2XL';
+  if (t === 'XXXL' || t === '3XL') return '3XL';
+  if (t === 'XXXXL' || t === '4XL') return '4XL';
+  if (t === 'XXXXXL' || t === '5XL') return '5XL';
+  return t;
+}
+
 async function updatePricing() {
   try {
     const { data: product } = await axios.get(
@@ -36,22 +56,68 @@ async function updatePricing() {
       { headers: { Authorization: `Bearer ${API_TOKEN}` } }
     );
 
-    const sizeOptionIndex = product.options.findIndex(
-      opt => opt.name && opt.name.toLowerCase() === 'size'
-    );
+    if (!product.options || !Array.isArray(product.options) || product.options.length === 0) {
+      throw new Error('Product has no options; cannot locate size option');
+    }
+
+    // Prefer type === 'size', fallback to name contains 'size'
+    const sizeOptionIndex = product.options.findIndex(opt => {
+      const typeMatch = (opt.type && String(opt.type).toLowerCase() === 'size');
+      const nameMatch = (opt.name && String(opt.name).toLowerCase().includes('size'));
+      return typeMatch || nameMatch;
+    });
+
     if (sizeOptionIndex === -1) {
+      console.error('Product options:', product.options.map(o => ({ name: o.name, type: o.type })));
       throw new Error('Unable to find size option on product');
     }
 
+    const sizeOption = product.options[sizeOptionIndex];
+
+    // Values can be strings or objects with title
+    function getValueLabel(valuesArray, indexOneBased) {
+      const idx = Number(indexOneBased) - 1;
+      const v = valuesArray?.[idx];
+      if (v == null) return undefined;
+      if (typeof v === 'string') return v;
+      if (typeof v === 'object') {
+        return v.title || v.name || v.value || v.id || '';
+      }
+      return String(v);
+    }
+
+    // Build updated variants
     const updatedVariants = product.variants.map(v => {
-      const sizeIdx = v.options[sizeOptionIndex] - 1;
-      const size = product.options[sizeOptionIndex].values[sizeIdx];
-      const price = PRICE_TABLE[size];
+      const variantSizeIdxOneBased = v.options?.[sizeOptionIndex];
+      const rawLabel = getValueLabel(sizeOption.values, variantSizeIdxOneBased);
+      const sizeLabel = normalizeSizeLabel(rawLabel);
+
+      let price = PRICE_TABLE[sizeLabel];
+      if (price == null) {
+        // Some Gildan 5000 catalogs include sizes like "Small", "Medium", etc.
+        const alt = {
+          SMALL: 'S',
+          MEDIUM: 'M',
+          LARGE: 'L',
+          'X-LARGE': 'XL',
+          '2X-LARGE': '2XL',
+          '3X-LARGE': '3XL',
+          '4X-LARGE': '4XL',
+          '5X-LARGE': '5XL'
+        }[String(sizeLabel).toUpperCase()];
+        if (alt) price = PRICE_TABLE[alt];
+      }
+
       return {
         id: v.id,
-        price: price ? Math.round(price * 100) : v.price
+        price: price != null ? cents(price) : v.price // leave unchanged if not in table
       };
     });
+
+    // Optional: log a quick summary for verification
+    const preview = updatedVariants.slice(0, 5).map(u => u);
+    console.log('Found size option:', { index: sizeOptionIndex, name: sizeOption.name, type: sizeOption.type });
+    console.log('Preview variant price updates (first 5):', preview);
 
     await axios.put(
       `${API_BASE}/shops/${SHOP_ID}/products/${productId}.json`,
@@ -73,3 +139,4 @@ async function updatePricing() {
 }
 
 updatePricing();
+
