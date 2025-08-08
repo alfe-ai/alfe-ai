@@ -6,5 +6,5 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-clear && gp && node update-pricing-by-size.js "$1"
+clear && git pull && node update-pricing-by-size.js "$1"
 
