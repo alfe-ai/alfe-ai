@@ -95,39 +95,42 @@ async function updatePricing() {
     const updatedVariants = product.variants
       .filter(v => v.is_enabled) // only update enabled variants
       .map(v => {
-      const variantSizeIdxOneBased = v.options?.[sizeOptionIndex];
-      const rawLabel = getValueLabel(sizeOption.values, variantSizeIdxOneBased);
-      const sizeLabel = normalizeSizeLabel(rawLabel);
+        const variantSizeIdxOneBased = v.options?.[sizeOptionIndex];
+        const rawLabel = getValueLabel(sizeOption.values, variantSizeIdxOneBased);
+        const sizeLabel = normalizeSizeLabel(rawLabel);
 
-      let price = PRICE_TABLE[sizeLabel];
-      if (price == null) {
-        // Some Gildan 5000 catalogs include sizes like "Small", "Medium", etc.
-        const alt = {
-          SMALL: 'S',
-          MEDIUM: 'M',
-          LARGE: 'L',
-          'X-LARGE': 'XL',
-          '2X-LARGE': '2XL',
-          '3X-LARGE': '3XL',
-          '4X-LARGE': '4XL',
-          '5X-LARGE': '5XL'
-        }[String(sizeLabel).toUpperCase()];
-        if (alt) price = PRICE_TABLE[alt];
-      }
+        let price = PRICE_TABLE[sizeLabel];
+        if (price == null) {
+          // Some Gildan 5000 catalogs include sizes like "Small", "Medium", etc.
+          const alt = {
+            SMALL: 'S',
+            MEDIUM: 'M',
+            LARGE: 'L',
+            'X-LARGE': 'XL',
+            '2X-LARGE': '2XL',
+            '3X-LARGE': '3XL',
+            '4X-LARGE': '4XL',
+            '5X-LARGE': '5XL'
+          }[String(sizeLabel).toUpperCase()];
+          if (alt) price = PRICE_TABLE[alt];
+        }
 
-      return {
-        id: v.id,
-        price: price != null ? cents(price) : v.price // leave unchanged if not in table
-      };
-    });
+        return {
+          id: v.id,
+          title: v.title,
+          price: price != null ? cents(price) : v.price // leave unchanged if not in table
+        };
+      });
+
+    const payloadVariants = updatedVariants.map(({ id, price }) => ({ id, price }));
 
     // Log all updated variants for verification
     console.log('Found size option:', { index: sizeOptionIndex, name: sizeOption.name, type: sizeOption.type });
-    console.log(`Updating ${updatedVariants.length} enabled variants:`, updatedVariants);
+    console.log(`Updating ${payloadVariants.length} enabled variants:`, updatedVariants);
 
     await axios.put(
       `${API_BASE}/shops/${SHOP_ID}/products/${productId}.json`,
-      { variants: updatedVariants },
+      { variants: payloadVariants },
       {
         headers: {
           Authorization: `Bearer ${API_TOKEN}`,
