@@ -8,7 +8,14 @@
 
   <div class="product-info">
     <h1>{{ product.title }}</h1>
-    <div class="product-price">{{ product.price | money }}</div>
+    <div class="product-price{% if product.compare_at_price > product.price %} price--on-sale{% endif %}">
+      {% if product.compare_at_price > product.price %}
+        <span class="price-item price-item--regular">{{ product.compare_at_price | money }}</span>
+        <span class="price-item price-item--sale">{{ product.price | money }}</span>
+      {% else %}
+        {{ product.price | money }}
+      {% endif %}
+    </div>
 
       {% form 'product', product %}
         {% if product.variants.size > 1 %}
@@ -53,6 +60,11 @@
               var colorSelect = document.getElementById('color-select');
               var sizeSelect = document.getElementById('size-select');
               var imageElem = document.querySelector('.product-media img');
+              var priceElem = document.querySelector('.product-price');
+              var moneyFormatter = new Intl.NumberFormat(undefined, {style:'currency', currency:'{{ shop.currency }}'});
+              function formatMoney(cents) {
+                return moneyFormatter.format(cents / 100);
+              }
 
               function updateVariant() {
                 var selectedColor = colorSelect ? colorSelect.value : null;
@@ -73,6 +85,18 @@
                     var src = matched.featured_image.src.split('?')[0] + '?width=600';
                     imageElem.src = src;
                     imageElem.alt = matched.featured_image.alt || imageElem.alt;
+                  }
+                  if (priceElem) {
+                    if (matched.compare_at_price > matched.price) {
+                      priceElem.classList.add('price--on-sale');
+                      priceElem.innerHTML = '<span class="price-item price-item--regular">' +
+                        formatMoney(matched.compare_at_price) + '</span>' +
+                        '<span class="price-item price-item--sale">' +
+                        formatMoney(matched.price) + '</span>';
+                    } else {
+                      priceElem.classList.remove('price--on-sale');
+                      priceElem.textContent = formatMoney(matched.price);
+                    }
                   }
                 }
               }

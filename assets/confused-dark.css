@@ -97,7 +97,11 @@ a:hover {color: #7dffd1;}
   padding: 0 .9rem 1rem;
   margin-top: auto;                 /* align to card bottom */
 }
-.price--on-sale .price-item--regular {opacity:.5;}
+.price-item {margin-right:.5rem;}
+.price--on-sale .price-item--regular {
+  opacity:.5;
+  text-decoration: line-through;
+}
 /* hide the black “divider bars” if those are theme elements */
 hr,
 .divider,
