@@ -123,5 +123,38 @@ async function updatePricing() {
   }
 }
 
-updatePricing();
+async function publishProduct() {
+  try {
+    await axios.post(
+      `${API_BASE}/shops/${SHOP_ID}/products/${productId}/publish.json`,
+      {
+        title: true,
+        description: true,
+        images: true,
+        variants: true,
+        tags: true,
+        key_features: true,
+        shipping_template: false
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    console.log('Published product', productId, 'to store');
+  } catch (err) {
+    const msg = err.response?.data || err.message;
+    console.error('Failed to publish product:', msg);
+    process.exit(1);
+  }
+}
+
+async function main() {
+  await updatePricing();
+  await publishProduct();
+}
+
+main();
 
