@@ -86,8 +86,15 @@ async function updatePricing() {
       return String(v);
     }
 
-    // Build updated variants
-    const updatedVariants = product.variants.map(v => {
+    // Build updated variants for currently enabled options only.
+    // The Printify API counts any variant included in the payload as
+    // enabled. Some catalogs expose dozens of color/size combos that
+    // are disabled in the product, but the API still returns them.
+    // Filtering avoids accidentally enabling more than 100 variants
+    // and triggering validation errors.
+    const updatedVariants = product.variants
+      .filter(v => v.is_enabled) // only update enabled variants
+      .map(v => {
       const variantSizeIdxOneBased = v.options?.[sizeOptionIndex];
       const rawLabel = getValueLabel(sizeOption.values, variantSizeIdxOneBased);
       const sizeLabel = normalizeSizeLabel(rawLabel);
@@ -117,7 +124,7 @@ async function updatePricing() {
     // Optional: log a quick summary for verification
     const preview = updatedVariants.slice(0, 5).map(u => u);
     console.log('Found size option:', { index: sizeOptionIndex, name: sizeOption.name, type: sizeOption.type });
-    console.log('Preview variant price updates (first 5):', preview);
+    console.log(`Updating ${updatedVariants.length} enabled variants (first 5 shown):`, preview);
 
     await axios.put(
       `${API_BASE}/shops/${SHOP_ID}/products/${productId}.json`,
