@@ -134,7 +134,7 @@ async function publishProduct() {
         variants: true,
         tags: true,
         key_features: true,
-        shipping_template: true
+        shipping_template: false
       },
       {
         headers: {
