@@ -4521,11 +4521,11 @@ app.get('/api/amazon/skus', async (req, res) => {
     const sp = new SellingPartner(spOptions);
     console.debug('[Server Debug] Using marketplaceIds =>', [marketplaceId]);
     const result = await sp.callAPI({
-      operation: 'listCatalogItems',
+      operation: 'searchCatalogItems',
       endpoint: 'catalogItems',
       query: {
-        MarketplaceId: marketplaceId,
-        SellerId: sellerId
+        marketplaceIds: [marketplaceId],
+        sellerId: sellerId
       }
     });
     const skus = Array.isArray(result?.Items)
