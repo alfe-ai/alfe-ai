@@ -3885,6 +3885,14 @@ if (scrollDownBtnEl) {
 chatInputEl.addEventListener("keydown", (e) => {
   if (enterSubmitsMessage && e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
+    if(chatSendBtnEl.dataset.mode !== 'send'){
+      if(chatQueueEnabled){
+        queueMessage(chatInputEl.value.trim());
+        chatInputEl.value = "";
+        updateInputTokenCount();
+      }
+      return;
+    }
     if(chatSendBtnEl.disabled && chatQueueEnabled){
       queueMessage(chatInputEl.value.trim());
       chatInputEl.value = "";
