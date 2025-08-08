@@ -1,10 +1,10 @@
 # Printify Price Updater
 
 This script updates pricing for the enabled variants of a Printify product.
-Sizes are inferred from each variant's title (e.g. `"Black / M"`), so
-it works even if the size option metadata is missing. After updating, the
-script retrieves the product again and prints the variant JSON with the new
-prices for verification.
+Sizes are inferred from each variant's title (e.g. `"Black / M"`), so it works
+even if the size option metadata is missing. After updating, the script
+retrieves the product again, prints the variant JSON with the new prices for
+verification, and publishes the product to the connected store (e.g. eBay).
 
 ## Usage
 
