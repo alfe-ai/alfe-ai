@@ -4,6 +4,7 @@
 .patchfiles_ignore/*
 TaskQueue/.env
 *.env
+!PrintifyPriceUpdater/sample.env
 printifyQueue.json
 
 # Ignore global node modules
