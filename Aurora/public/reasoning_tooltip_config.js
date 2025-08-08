@@ -7,6 +7,10 @@ window.REASONING_TOOLTIP_CONFIG = {
     { name: 'openai/gpt-4.1-mini' },
     { name: 'openai/gpt-4o', label: 'pro' },
     { name: 'openai/gpt-4.1', label: 'pro' },
+    { name: 'openai/gpt-5-nano' },
+    { name: 'openai/gpt-5-mini' },
+    { name: 'openai/gpt-5-chat', label: 'pro' },
+    { name: 'openai/gpt-5', label: 'pro' },
     { name: 'anthropic/claude-3.5-haiku', label: 'pro' },
     { name: 'anthropic/claude-3.7-sonnet', label: 'pro' },
     { name: 'anthropic/claude-sonnet-4', label: 'ultimate' }

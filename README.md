@@ -160,3 +160,20 @@ ideal for real-time applications like chat interactions and instant coding
 suggestions. Created Nov 4, 2024 with a 200,000 token context limit, pricing is
 $0.80 per million input tokens and $4 per million output tokens.
 
+**OpenAI GPT-5 Chat** has been added under the `pro` tier for advanced, natural,
+multimodal, and context-aware conversations. It supports a 400,000 token context
+with pricing at $1.25 per million input tokens and $10 per million output tokens.
+
+**OpenAI GPT-5** is now available under the `pro` tier, offering major
+improvements in reasoning, code quality, and user experience. It also supports a
+400,000 token context and is priced at $1.25 per million input tokens and $10 per
+million output tokens.
+
+**OpenAI GPT-5 Mini** provides lighter-weight reasoning with reduced latency and
+cost. Available under the `pro` tier, it offers a 400,000 token context and
+costs $0.25 per million input tokens and $2 per million output tokens.
+
+**OpenAI GPT-5 Nano** is optimized for ultra-low latency environments. Under the
+`pro` tier, it features a 400,000 token context and pricing of $0.05 per million
+input tokens and $0.40 per million output tokens.
+

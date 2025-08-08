@@ -185,7 +185,11 @@ const reasoningChatModels = [
   'openai/gpt-4o-mini',
   'openai/gpt-4.1-mini',
   'openai/gpt-4o',
-  'openai/gpt-4.1'
+  'openai/gpt-4.1',
+  'openai/gpt-5-nano',
+  'openai/gpt-5-mini',
+  'openai/gpt-5-chat',
+  'openai/gpt-5'
 ];
 window.agentName = "Alfe";
 
