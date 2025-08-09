@@ -48,3 +48,13 @@ node sku-tracker.js add <sku>
 
 The title for each SKU is fetched from the Printify API and saved alongside the SKU.
 Entries are persisted in `skus.db` inside this directory.
+
+### Web UI
+
+Run the tracker without any arguments to start a small web server with a simple interface for adding and listing SKUs:
+
+```bash
+node sku-tracker.js
+```
+
+Then visit [http://localhost:3000](http://localhost:3000) in your browser.

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>SKU Tracker</title>
+</head>
+<body>
+  <h1>SKU Tracker</h1>
+  <input id="sku-input" placeholder="Enter SKU" />
+  <button id="add-btn">Add</button>
+  <ul id="sku-list"></ul>
+  <script>
+    async function loadSkus() {
+      const res = await fetch('/api/skus');
+      const skus = await res.json();
+      const list = document.getElementById('sku-list');
+      list.innerHTML = '';
+      skus.forEach(s => {
+        const li = document.createElement('li');
+        li.textContent = `${s.id}: ${s.sku} - ${s.title}`;
+        list.appendChild(li);
+      });
+    }
+    document.getElementById('add-btn').addEventListener('click', async () => {
+      const sku = document.getElementById('sku-input').value.trim();
+      if (!sku) return;
+      await fetch('/api/skus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku })
+      });
+      document.getElementById('sku-input').value = '';
+      loadSkus();
+    });
+    loadSkus();
+  </script>
+</body>
+</html>
