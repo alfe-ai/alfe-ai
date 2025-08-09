@@ -59,4 +59,4 @@ Run the tracker without any arguments to start a small web server with a simple 
 node sku-tracker.js
 ```
 
-Then visit [http://localhost:3000](http://localhost:3000) in your browser.
+Then visit [http://localhost:3101](http://localhost:3101) in your browser.
