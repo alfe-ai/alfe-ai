@@ -43,7 +43,7 @@
             const resp = await fetch('/api/ebay/set-shipping-policy', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ listingId: s.ebayId })
+              body: JSON.stringify({ sku: s.sku })
             });
             if (resp.ok) {
               alert('Shipping policy updated');

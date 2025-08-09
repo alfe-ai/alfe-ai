@@ -101,9 +101,19 @@ function setEbayId(id, ebayId) {
   return { id: Number(id), ebayId };
 }
 
-async function setShippingPolicy(listingId) {
+async function setShippingPolicy(sku) {
+  if (!sku) {
+    throw new Error('SKU is required');
+  }
+  initDb();
+  const escapedSku = sku.replace(/'/g, "''");
+  const listingId = execSync(
+    `sqlite3 ${dbPath} "SELECT ebay_id FROM skus WHERE sku='${escapedSku}'"`
+  )
+    .toString()
+    .trim();
   if (!listingId) {
-    throw new Error('Listing ID is required');
+    throw new Error(`No eBay ID found for SKU ${sku}`);
   }
   const shippingPolicyId = process.env.EBAY_SHIPPING_POLICY_ID;
   if (!shippingPolicyId) {
@@ -131,12 +141,13 @@ async function setShippingPolicy(listingId) {
   } catch (err) {
     console.error('ProgramaticPuppet request failed', {
       url,
+      sku,
       listingId,
       shippingPolicyId,
       error: err,
     });
     throw new Error(
-      `ProgramaticPuppet request failed for listing ${listingId}: ${err.message}`
+      `ProgramaticPuppet request failed for SKU ${sku}: ${err.message}`
     );
   }
 }
@@ -184,12 +195,12 @@ function startServer() {
   });
 
   app.post('/api/ebay/set-shipping-policy', async (req, res) => {
-    const { listingId } = req.body || {};
-    if (!listingId) {
+    const { sku } = req.body || {};
+    if (!sku) {
       return res.status(400).send('Missing parameters');
     }
     try {
-      const result = await setShippingPolicy(listingId);
+      const result = await setShippingPolicy(sku);
       res.json(result);
     } catch (err) {
       console.error('Error setting shipping policy', err);
