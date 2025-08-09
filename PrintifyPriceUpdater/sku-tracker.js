@@ -2,6 +2,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const express = require('express');
+const https = require('https');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const dbPath = path.join(__dirname, 'skus.db');
 
@@ -109,11 +110,15 @@ async function setShippingPolicy(listingId) {
   const base = process.env.PROGRAMATIC_PUPPET_API_BASE || 'https://localhost:3005';
   const url = `${base}/ebay/set-shipping-policy`;
   try {
-    const res = await fetch(url, {
+    const options = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ listingId, shippingPolicyId }),
-    });
+    };
+    if (base.startsWith('https://localhost')) {
+      options.agent = new https.Agent({ rejectUnauthorized: false });
+    }
+    const res = await fetch(url, options);
     if (!res.ok) {
       const text = await res.text();
       throw new Error(
