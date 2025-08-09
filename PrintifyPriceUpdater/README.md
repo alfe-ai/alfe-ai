@@ -46,4 +46,5 @@ Add a new SKU:
 node sku-tracker.js add <sku>
 ```
 
-SKUs are persisted in `skus.db` inside this directory.
+The title for each SKU is fetched from the Printify API and saved alongside the SKU.
+Entries are persisted in `skus.db` inside this directory.
