@@ -17,7 +17,23 @@
       list.innerHTML = '';
       skus.forEach(s => {
         const li = document.createElement('li');
-        li.textContent = `${s.id}: ${s.sku} - ${s.title}`;
+        li.appendChild(document.createTextNode(`${s.id}: ${s.sku} - ${s.title}`));
+        if (s.ebayId) {
+          li.appendChild(document.createTextNode(` - eBay ID: ${s.ebayId}`));
+        }
+        const btn = document.createElement('button');
+        btn.textContent = s.ebayId ? 'Update eBay ID' : 'Add eBay ID';
+        btn.addEventListener('click', async () => {
+          const ebayId = prompt('Enter eBay listing ID', s.ebayId || '');
+          if (!ebayId) return;
+          await fetch(`/api/skus/${s.id}/ebay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ebayId })
+          });
+          loadSkus();
+        });
+        li.appendChild(btn);
         list.appendChild(li);
       });
     }
