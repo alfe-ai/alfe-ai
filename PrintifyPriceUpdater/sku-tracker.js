@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const { execSync } = require('child_process');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const dbPath = path.join(__dirname, 'skus.db');
 
 async function fetchTitle(sku) {
