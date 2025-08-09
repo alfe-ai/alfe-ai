@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const { execSync } = require('child_process');
 const path = require('path');
+const express = require('express');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const dbPath = path.join(__dirname, 'skus.db');
 
@@ -33,43 +34,82 @@ function initDb() {
   }
 }
 
-function listSkus() {
+function getSkus() {
   initDb();
   try {
     const output = execSync(
-      `sqlite3 ${dbPath} "SELECT id || ': ' || sku || ' - ' || COALESCE(title, '') FROM skus ORDER BY id"`
+      `sqlite3 ${dbPath} "SELECT id, sku, COALESCE(title, '') FROM skus ORDER BY id"`
     )
       .toString()
       .trim();
-    if (output) {
-      console.log(output);
+    if (!output) return [];
+    return output.split('\n').map((line) => {
+      const [id, sku, title] = line.split('|');
+      return { id: Number(id), sku, title };
+    });
+  } catch (err) {
+    throw new Error('Error listing SKUs: ' + err.message);
+  }
+}
+
+function listSkus() {
+  try {
+    const skus = getSkus();
+    if (skus.length) {
+      skus.forEach((s) => console.log(`${s.id}: ${s.sku} - ${s.title}`));
     } else {
       console.log('No SKUs found.');
     }
   } catch (err) {
-    console.error('Error listing SKUs:', err.message);
+    console.error(err.message);
   }
 }
 
 async function addSku(sku) {
   initDb();
   if (!sku) {
-    console.error('Please provide a SKU to add.');
-    process.exit(1);
+    throw new Error('Please provide a SKU to add.');
   }
   const escapedSku = sku.replace(/'/g, "''");
-  try {
-    const title = await fetchTitle(sku);
-    const escapedTitle = title ? title.replace(/'/g, "''") : '';
-    execSync(
-      `sqlite3 ${dbPath} "INSERT INTO skus (sku, title) VALUES ('${escapedSku}', '${escapedTitle}')"`
-    );
-    console.log(`Added SKU ${sku} (${title}).`);
-  } catch (err) {
-    const msg = err.stderr ? err.stderr.toString().trim() : err.message;
-    console.error('Failed to add SKU:', msg);
-    process.exit(1);
-  }
+  const title = await fetchTitle(sku);
+  const escapedTitle = title ? title.replace(/'/g, "''") : '';
+  execSync(
+    `sqlite3 ${dbPath} "INSERT INTO skus (sku, title) VALUES ('${escapedSku}', '${escapedTitle}')"`
+  );
+  return { sku, title };
+}
+
+function startServer() {
+  const app = express();
+  const port = process.env.PORT || 3000;
+
+  app.use(express.json());
+  app.use(express.static(path.join(__dirname, 'public')));
+
+  app.get('/api/skus', (req, res) => {
+    try {
+      res.json(getSkus());
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/skus', async (req, res) => {
+    const { sku } = req.body || {};
+    if (!sku) {
+      return res.status(400).json({ error: 'SKU required' });
+    }
+    try {
+      const result = await addSku(sku);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.listen(port, () => {
+    console.log(`Server listening on http://localhost:${port}`);
+  });
 }
 
 const [, , command, value] = process.argv;
@@ -80,7 +120,16 @@ const [, , command, value] = process.argv;
       listSkus();
       break;
     case 'add':
-      await addSku(value);
+      try {
+        const { sku, title } = await addSku(value);
+        console.log(`Added SKU ${sku} (${title}).`);
+      } catch (err) {
+        console.error('Failed to add SKU:', err.message);
+        process.exit(1);
+      }
+      break;
+    case undefined:
+      startServer();
       break;
     default:
       console.log('Usage: node sku-tracker.js [list | add <sku>]');
