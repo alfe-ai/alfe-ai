@@ -3,6 +3,8 @@ const { execSync } = require('child_process');
 const path = require('path');
 const express = require('express');
 const https = require('https');
+// Allow requests to proceed even when using self-signed certificates
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const dbPath = path.join(__dirname, 'skus.db');
 
