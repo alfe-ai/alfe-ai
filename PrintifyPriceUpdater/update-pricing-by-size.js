@@ -29,6 +29,30 @@ const PRICE_TABLE = {
   '5XL': 27.38
 };
 
+const DESCRIPTION = `Unisex Heavy Cotton Tee
+
+Made with medium fabric (5.3 oz/yd² (180 g/m²)) consisting of 100% cotton for year-round comfort that is sustainable and highly durable.
+The classic fit of this shirt ensures a comfy, relaxed wear.
+The tear-away label means a scratch-free experience with no irritation or discomfort whatsoever.
+
+Size Table
+
+Size S: Width: 18.00 in, Length: 28.00 in, Sleeve length: 15.10 in, Size tolerance: 1.50 in
+
+Size M: Width: 20.00 in, Length: 29.00 in, Sleeve length: 16.50 in, Size tolerance: 1.50 in
+
+Size L: Width: 22.00 in, Length: 30.00 in, Sleeve length: 18.00 in, Size tolerance: 1.50 in
+
+Size XL: Width: 24.00 in, Length: 31.00 in, Sleeve length: 19.50 in, Size tolerance: 1.50 in
+
+Size 2XL: Width: 26.00 in, Length: 32.00 in, Sleeve length: 21.00 in, Size tolerance: 1.50 in
+
+Size 3XL: Width: 28.00 in, Length: 33.00 in, Sleeve length: 22.40 in, Size tolerance: 1.50 in
+
+Size 4XL: Width: 30.00 in, Length: 34.00 in, Sleeve length: 23.70 in, Size tolerance: 1.50 in
+
+Size 5XL: Width: 32.00 in, Length: 35.00 in, Sleeve length: 25.00 in, Size tolerance: 1.50 in`;
+
 function cents(usd) {
   return Math.round(Number(usd) * 100);
 }
@@ -97,7 +121,7 @@ async function updatePricing() {
 
     await axios.put(
       `${API_BASE}/shops/${SHOP_ID}/products/${productId}.json`,
-      { variants: payloadVariants },
+      { variants: payloadVariants, description: DESCRIPTION },
       {
         headers: {
           Authorization: `Bearer ${API_TOKEN}`,
@@ -106,7 +130,7 @@ async function updatePricing() {
       }
     );
 
-    console.log('Successfully updated prices for product', productId);
+    console.log('Successfully updated prices and description for product', productId);
 
     const { data: updatedProduct } = await axios.get(
       `${API_BASE}/shops/${SHOP_ID}/products/${productId}.json`,
@@ -118,9 +142,10 @@ async function updatePricing() {
       .filter(v => updatedIds.has(v.id))
       .map(v => ({ title: v.title, id: v.id, price: v.price }));
     console.log('Updated variant data:', refreshed);
+    console.log('Updated description:', updatedProduct.description);
   } catch (err) {
     const msg = err.response?.data || err.message;
-    console.error('Failed to update pricing:', msg);
+    console.error('Failed to update product:', msg);
     process.exit(1);
   }
 }
