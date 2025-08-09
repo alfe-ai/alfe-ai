@@ -30,7 +30,7 @@ exceeding Printify's 100-variant limit:
 
 ## SKU Tracker
 
-Use the included CLI to maintain a list of Printify SKUs in a local SQLite database.
+Use the included CLI to maintain a list of Printify SKUs in a local SQLite database. The tracker reads your Printify credentials from a `.env` file in this directory, so ensure `PRINTIFY_SHOP_ID` and `PRINTIFY_API_TOKEN` are set before adding SKUs.
 
 ### Commands
 
