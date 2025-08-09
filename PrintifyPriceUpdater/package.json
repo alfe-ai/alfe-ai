@@ -1,0 +1,14 @@
+{
+  "name": "printify-sku-tracker",
+  "version": "1.0.0",
+  "description": "CLI for tracking Printify SKUs using a SQLite database.",
+  "main": "sku-tracker.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node sku-tracker.js",
+    "test": "node sku-tracker.js list"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

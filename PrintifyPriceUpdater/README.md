@@ -26,3 +26,23 @@ exceeding Printify's 100-variant limit:
 | 3XL | 26.01 |
 | 4XL, 5XL | 27.38 |
 
+
+## SKU Tracker
+
+Use the included CLI to maintain a list of Printify SKUs in a local SQLite database.
+
+### Commands
+
+List stored SKUs:
+
+```bash
+node sku-tracker.js list
+```
+
+Add a new SKU:
+
+```bash
+node sku-tracker.js add <sku>
+```
+
+SKUs are persisted in `skus.db` inside this directory.

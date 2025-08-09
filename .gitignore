@@ -17,3 +17,5 @@ PrintifyPriceUpdater/.patchfiles_ignore/
 
 
 # package lock files are intentionally tracked
+
+PrintifyPriceUpdater/skus.db
