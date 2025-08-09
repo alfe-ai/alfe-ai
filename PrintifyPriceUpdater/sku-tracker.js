@@ -107,16 +107,31 @@ async function setShippingPolicy(listingId) {
     throw new Error('EBAY_SHIPPING_POLICY_ID not set');
   }
   const base = process.env.PROGRAMATIC_PUPPET_API_BASE || 'https://localhost:3005';
-  const res = await fetch(`${base}/ebay/set-shipping-policy`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ listingId, shippingPolicyId }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `ProgramaticPuppet responded with ${res.status}`);
+  const url = `${base}/ebay/set-shipping-policy`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listingId, shippingPolicyId }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        text || `ProgramaticPuppet responded with ${res.status}`
+      );
+    }
+    return res.json();
+  } catch (err) {
+    console.error('ProgramaticPuppet request failed', {
+      url,
+      listingId,
+      shippingPolicyId,
+      error: err,
+    });
+    throw new Error(
+      `ProgramaticPuppet request failed for listing ${listingId}: ${err.message}`
+    );
   }
-  return res.json();
 }
 
 function startServer() {
@@ -170,7 +185,8 @@ function startServer() {
       const result = await setShippingPolicy(listingId);
       res.json(result);
     } catch (err) {
-      res.status(500).send(err.message);
+      console.error('Error setting shipping policy', err);
+      res.status(500).send(err.stack || err.message);
     }
   });
 
