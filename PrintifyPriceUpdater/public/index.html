@@ -39,16 +39,22 @@
         shipBtn.disabled = !s.ebayId;
         shipBtn.addEventListener('click', async () => {
           if (!s.ebayId) return alert('Set eBay ID first');
-          const resp = await fetch('/api/ebay/set-shipping-policy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ listingId: s.ebayId })
-          });
-          if (resp.ok) {
-            alert('Shipping policy updated');
-          } else {
-            const msg = await resp.text();
-            alert('Failed to update policy: ' + msg);
+          try {
+            const resp = await fetch('/api/ebay/set-shipping-policy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ listingId: s.ebayId })
+            });
+            if (resp.ok) {
+              alert('Shipping policy updated');
+            } else {
+              const msg = await resp.text();
+              console.error('Shipping policy update failed', resp.status, msg);
+              alert('Failed to update policy: ' + msg);
+            }
+          } catch (err) {
+            console.error('Shipping policy request failed', err);
+            alert('Failed to update policy: ' + err.message);
           }
         });
         li.appendChild(shipBtn);
