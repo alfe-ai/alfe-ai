@@ -32,20 +32,23 @@ function initDb() {
   if (!columns.includes('|title|')) {
     execSync(`sqlite3 ${dbPath} "ALTER TABLE skus ADD COLUMN title TEXT"`);
   }
+  if (!columns.includes('|ebay_id|')) {
+    execSync(`sqlite3 ${dbPath} "ALTER TABLE skus ADD COLUMN ebay_id TEXT"`);
+  }
 }
 
 function getSkus() {
   initDb();
   try {
     const output = execSync(
-      `sqlite3 ${dbPath} "SELECT id, sku, COALESCE(title, '') FROM skus ORDER BY id"`
+      `sqlite3 ${dbPath} "SELECT id, sku, COALESCE(title, ''), COALESCE(ebay_id, '') FROM skus ORDER BY id"`
     )
       .toString()
       .trim();
     if (!output) return [];
     return output.split('\n').map((line) => {
-      const [id, sku, title] = line.split('|');
-      return { id: Number(id), sku, title };
+      const [id, sku, title, ebayId] = line.split('|');
+      return { id: Number(id), sku, title, ebayId };
     });
   } catch (err) {
     throw new Error('Error listing SKUs: ' + err.message);
@@ -56,7 +59,11 @@ function listSkus() {
   try {
     const skus = getSkus();
     if (skus.length) {
-      skus.forEach((s) => console.log(`${s.id}: ${s.sku} - ${s.title}`));
+      skus.forEach((s) =>
+        console.log(
+          `${s.id}: ${s.sku} - ${s.title}` + (s.ebayId ? ` - eBay ID: ${s.ebayId}` : '')
+        )
+      );
     } else {
       console.log('No SKUs found.');
     }
@@ -77,6 +84,18 @@ async function addSku(sku) {
     `sqlite3 ${dbPath} "INSERT INTO skus (sku, title) VALUES ('${escapedSku}', '${escapedTitle}')"`
   );
   return { sku, title };
+}
+
+function setEbayId(id, ebayId) {
+  initDb();
+  if (!id || !ebayId) {
+    throw new Error('ID and eBay ID are required');
+  }
+  const escaped = ebayId.replace(/'/g, "''");
+  execSync(
+    `sqlite3 ${dbPath} "UPDATE skus SET ebay_id='${escaped}' WHERE id=${Number(id)}"`
+  );
+  return { id: Number(id), ebayId };
 }
 
 function startServer() {
@@ -101,6 +120,20 @@ function startServer() {
     }
     try {
       const result = await addSku(sku);
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/skus/:id/ebay', (req, res) => {
+    const { id } = req.params;
+    const { ebayId } = req.body || {};
+    if (!ebayId) {
+      return res.status(400).json({ error: 'eBay ID required' });
+    }
+    try {
+      const result = setEbayId(id, ebayId);
       res.json(result);
     } catch (err) {
       res.status(400).json({ error: err.message });
