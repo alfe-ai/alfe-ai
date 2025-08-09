@@ -34,6 +34,24 @@
           loadSkus();
         });
         li.appendChild(btn);
+        const shipBtn = document.createElement('button');
+        shipBtn.textContent = 'Set Shipping Policy';
+        shipBtn.disabled = !s.ebayId;
+        shipBtn.addEventListener('click', async () => {
+          if (!s.ebayId) return alert('Set eBay ID first');
+          const resp = await fetch('/api/ebay/set-shipping-policy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listingId: s.ebayId })
+          });
+          if (resp.ok) {
+            alert('Shipping policy updated');
+          } else {
+            const msg = await resp.text();
+            alert('Failed to update policy: ' + msg);
+          }
+        });
+        li.appendChild(shipBtn);
         list.appendChild(li);
       });
     }

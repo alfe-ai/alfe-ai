@@ -98,6 +98,27 @@ function setEbayId(id, ebayId) {
   return { id: Number(id), ebayId };
 }
 
+async function setShippingPolicy(listingId) {
+  if (!listingId) {
+    throw new Error('Listing ID is required');
+  }
+  const shippingPolicyId = process.env.EBAY_SHIPPING_POLICY_ID;
+  if (!shippingPolicyId) {
+    throw new Error('EBAY_SHIPPING_POLICY_ID not set');
+  }
+  const base = process.env.PROGRAMATIC_PUPPET_API_BASE || 'https://localhost:3005';
+  const res = await fetch(`${base}/ebay/set-shipping-policy`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ listingId, shippingPolicyId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `ProgramaticPuppet responded with ${res.status}`);
+  }
+  return res.json();
+}
+
 function startServer() {
   const app = express();
   const port = process.env.PORT || 3000;
@@ -137,6 +158,19 @@ function startServer() {
       res.json(result);
     } catch (err) {
       res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/ebay/set-shipping-policy', async (req, res) => {
+    const { listingId } = req.body || {};
+    if (!listingId) {
+      return res.status(400).send('Missing parameters');
+    }
+    try {
+      const result = await setShippingPolicy(listingId);
+      res.json(result);
+    } catch (err) {
+      res.status(500).send(err.message);
     }
   });
 
