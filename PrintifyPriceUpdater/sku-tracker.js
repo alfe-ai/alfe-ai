@@ -125,7 +125,7 @@ async function setShippingPolicy(sku) {
     const options = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listingId, shippingPolicyId }),
+      body: JSON.stringify({ sku, listingId, shippingPolicyId }),
     };
     if (base.startsWith('https://localhost')) {
       options.agent = new https.Agent({ rejectUnauthorized: false });
