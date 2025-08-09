@@ -62,6 +62,8 @@ async function updatePricing() {
       { headers: { Authorization: `Bearer ${API_TOKEN}` } }
     );
 
+    console.log('Product title:', product.title);
+
     const updatedVariants = product.variants
       .filter(v => v.is_enabled)
       .map(v => {
@@ -83,8 +85,8 @@ async function updatePricing() {
         }
 
         return {
-          id: v.id,
           title: v.title,
+          id: v.id,
           price: price != null ? cents(price) : v.price
         };
       });
@@ -114,7 +116,7 @@ async function updatePricing() {
     const updatedIds = new Set(payloadVariants.map(v => v.id));
     const refreshed = updatedProduct.variants
       .filter(v => updatedIds.has(v.id))
-      .map(v => ({ id: v.id, title: v.title, price: v.price }));
+      .map(v => ({ title: v.title, id: v.id, price: v.price }));
     console.log('Updated variant data:', refreshed);
   } catch (err) {
     const msg = err.response?.data || err.message;
