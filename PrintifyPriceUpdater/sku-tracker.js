@@ -29,7 +29,7 @@ async function fetchTitle(sku) {
 
 function initDb() {
   execSync(
-    `sqlite3 ${dbPath} "CREATE TABLE IF NOT EXISTS skus (id INTEGER PRIMARY KEY AUTOINCREMENT, sku TEXT UNIQUE NOT NULL, title TEXT)"`
+    `sqlite3 ${dbPath} "CREATE TABLE IF NOT EXISTS skus (id INTEGER PRIMARY KEY AUTOINCREMENT, sku TEXT UNIQUE NOT NULL, title TEXT, ebay_id TEXT, status TEXT DEFAULT 'Init')"`
   );
   const columns = execSync(`sqlite3 ${dbPath} "PRAGMA table_info(skus);"`).toString();
   if (!columns.includes('|title|')) {
@@ -38,20 +38,23 @@ function initDb() {
   if (!columns.includes('|ebay_id|')) {
     execSync(`sqlite3 ${dbPath} "ALTER TABLE skus ADD COLUMN ebay_id TEXT"`);
   }
+  if (!columns.includes('|status|')) {
+    execSync(`sqlite3 ${dbPath} "ALTER TABLE skus ADD COLUMN status TEXT DEFAULT 'Init'"`);
+  }
 }
 
 function getSkus() {
   initDb();
   try {
     const output = execSync(
-      `sqlite3 ${dbPath} "SELECT id, sku, COALESCE(title, ''), COALESCE(ebay_id, '') FROM skus ORDER BY id"`
+      `sqlite3 ${dbPath} "SELECT id, sku, COALESCE(title, ''), COALESCE(ebay_id, ''), COALESCE(status, 'Init') FROM skus ORDER BY id"`
     )
       .toString()
       .trim();
     if (!output) return [];
     return output.split('\n').map((line) => {
-      const [id, sku, title, ebayId] = line.split('|');
-      return { id: Number(id), sku, title, ebayId };
+      const [id, sku, title, ebayId, status] = line.split('|');
+      return { id: Number(id), sku, title, ebayId, status };
     });
   } catch (err) {
     throw new Error('Error listing SKUs: ' + err.message);
@@ -64,7 +67,7 @@ function listSkus() {
     if (skus.length) {
       skus.forEach((s) =>
         console.log(
-          `${s.id}: ${s.sku} - ${s.title}` + (s.ebayId ? ` - eBay ID: ${s.ebayId}` : '')
+          `${s.id}: ${s.sku} - ${s.title}` + (s.ebayId ? ` - eBay ID: ${s.ebayId}` : '') + ` - Status: ${s.status || 'Init'}`
         )
       );
     } else {
@@ -84,9 +87,9 @@ async function addSku(sku) {
   const title = await fetchTitle(sku);
   const escapedTitle = title ? title.replace(/'/g, "''") : '';
   execSync(
-    `sqlite3 ${dbPath} "INSERT INTO skus (sku, title) VALUES ('${escapedSku}', '${escapedTitle}')"`
+    `sqlite3 ${dbPath} "INSERT INTO skus (sku, title, status) VALUES ('${escapedSku}', '${escapedTitle}', 'Init')"`
   );
-  return { sku, title };
+  return { sku, title, status: 'Init' };
 }
 
 function setEbayId(id, ebayId) {
@@ -101,19 +104,9 @@ function setEbayId(id, ebayId) {
   return { id: Number(id), ebayId };
 }
 
-async function setShippingPolicy(sku) {
-  if (!sku) {
-    throw new Error('SKU is required');
-  }
-  initDb();
-  const escapedSku = sku.replace(/'/g, "''");
-  const listingId = execSync(
-    `sqlite3 ${dbPath} "SELECT ebay_id FROM skus WHERE sku='${escapedSku}'"`
-  )
-    .toString()
-    .trim();
+async function setShippingPolicy(listingId) {
   if (!listingId) {
-    throw new Error(`No eBay ID found for SKU ${sku}`);
+    throw new Error('Listing ID is required');
   }
   const shippingPolicyId = process.env.EBAY_SHIPPING_POLICY_ID;
   if (!shippingPolicyId) {
@@ -125,7 +118,7 @@ async function setShippingPolicy(sku) {
     const options = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sku, listingId, shippingPolicyId }),
+      body: JSON.stringify({ listingId, shippingPolicyId }),
     };
     if (base.startsWith('https://localhost')) {
       options.agent = new https.Agent({ rejectUnauthorized: false });
@@ -141,15 +134,39 @@ async function setShippingPolicy(sku) {
   } catch (err) {
     console.error('ProgramaticPuppet request failed', {
       url,
-      sku,
       listingId,
       shippingPolicyId,
       error: err,
     });
     throw new Error(
-      `ProgramaticPuppet request failed for SKU ${sku}: ${err.message}`
+      `ProgramaticPuppet request failed for listing ${listingId}: ${err.message}`
     );
   }
+}
+
+function updateStatus(id, status) {
+  initDb();
+  const escaped = status.replace(/'/g, "''");
+  execSync(
+    `sqlite3 ${dbPath} "UPDATE skus SET status='${escaped}' WHERE id=${Number(id)}"`
+  );
+  return { id: Number(id), status };
+}
+
+function runPriceUpdate(id) {
+  initDb();
+  const sku = execSync(
+    `sqlite3 ${dbPath} "SELECT sku FROM skus WHERE id=${Number(id)}"`
+  )
+    .toString()
+    .trim();
+  if (!sku) {
+    throw new Error(`No SKU found for id ${id}`);
+  }
+  execSync(`node ${path.join(__dirname, 'update-pricing-by-size.js')} ${sku}`, {
+    stdio: 'inherit',
+  });
+  updateStatus(id, 'Price Updated');
 }
 
 function startServer() {
@@ -194,13 +211,26 @@ function startServer() {
     }
   });
 
-  app.post('/api/ebay/set-shipping-policy', async (req, res) => {
-    const { sku } = req.body || {};
-    if (!sku) {
+  app.post('/api/skus/:id/price-update', async (req, res) => {
+    const { id } = req.params;
+    try {
+      await runPriceUpdate(id);
+      res.json({ id: Number(id), status: 'Price Updated' });
+    } catch (err) {
+      console.error('Error updating price', err);
+      res.status(500).send(err.message);
+    }
+  });
+
+  app.post('/api/skus/:id/shipping-policy', async (req, res) => {
+    const { id } = req.params;
+    const { listingId } = req.body || {};
+    if (!listingId) {
       return res.status(400).send('Missing parameters');
     }
     try {
-      const result = await setShippingPolicy(sku);
+      const result = await setShippingPolicy(listingId);
+      updateStatus(id, 'Shipping Policy Updated');
       res.json(result);
     } catch (err) {
       console.error('Error setting shipping policy', err);

@@ -8,19 +8,30 @@
   <h1>SKU Tracker</h1>
   <input id="sku-input" placeholder="Enter SKU" />
   <button id="add-btn">Add</button>
-  <ul id="sku-list"></ul>
+  <table id="sku-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>SKU</th>
+        <th>Title</th>
+        <th>eBay ID</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <script>
     async function loadSkus() {
       const res = await fetch('/api/skus');
       const skus = await res.json();
-      const list = document.getElementById('sku-list');
-      list.innerHTML = '';
+      const tbody = document.querySelector('#sku-table tbody');
+      tbody.innerHTML = '';
       skus.forEach(s => {
-        const li = document.createElement('li');
-        li.appendChild(document.createTextNode(`${s.id}: ${s.sku} - ${s.title}`));
-        if (s.ebayId) {
-          li.appendChild(document.createTextNode(` - eBay ID: ${s.ebayId}`));
-        }
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${s.id}</td><td>${s.sku}</td><td>${s.title}</td><td>${s.ebayId || ''}</td><td>${s.status || 'Init'}</td>`;
+        const actions = document.createElement('td');
+
         const btn = document.createElement('button');
         btn.textContent = s.ebayId ? 'Update eBay ID' : 'Add eBay ID';
         btn.addEventListener('click', async () => {
@@ -33,20 +44,40 @@
           });
           loadSkus();
         });
-        li.appendChild(btn);
+        actions.appendChild(btn);
+
+        const priceBtn = document.createElement('button');
+        priceBtn.textContent = 'Price Update';
+        priceBtn.addEventListener('click', async () => {
+          try {
+            const resp = await fetch(`/api/skus/${s.id}/price-update`, { method: 'POST' });
+            if (resp.ok) {
+              alert('Price updated');
+              loadSkus();
+            } else {
+              const msg = await resp.text();
+              alert('Failed to update price: ' + msg);
+            }
+          } catch (err) {
+            alert('Failed to update price: ' + err.message);
+          }
+        });
+        actions.appendChild(priceBtn);
+
         const shipBtn = document.createElement('button');
         shipBtn.textContent = 'Set Shipping Policy';
         shipBtn.disabled = !s.ebayId;
         shipBtn.addEventListener('click', async () => {
           if (!s.ebayId) return alert('Set eBay ID first');
           try {
-            const resp = await fetch('/api/ebay/set-shipping-policy', {
+            const resp = await fetch(`/api/skus/${s.id}/shipping-policy`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sku: s.sku })
+              body: JSON.stringify({ listingId: s.ebayId })
             });
             if (resp.ok) {
               alert('Shipping policy updated');
+              loadSkus();
             } else {
               const msg = await resp.text();
               console.error('Shipping policy update failed', resp.status, msg);
@@ -57,8 +88,10 @@
             alert('Failed to update policy: ' + err.message);
           }
         });
-        li.appendChild(shipBtn);
-        list.appendChild(li);
+        actions.appendChild(shipBtn);
+
+        tr.appendChild(actions);
+        tbody.appendChild(tr);
       });
     }
     document.getElementById('add-btn').addEventListener('click', async () => {
