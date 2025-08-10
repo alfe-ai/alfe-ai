@@ -5,6 +5,7 @@ const axios = require('axios');
 const API_BASE = 'https://api.printify.com/v1';
 const SHOP_ID = process.env.PRINTIFY_SHOP_ID;
 const API_TOKEN = process.env.PRINTIFY_API_TOKEN;
+const SHOULD_PUBLISH = (process.env.PRINTIFY_PUBLISH || '').toLowerCase() === 'true';
 
 if (!SHOP_ID || !API_TOKEN) {
   console.error('Please set PRINTIFY_SHOP_ID and PRINTIFY_API_TOKEN environment variables.');
@@ -180,7 +181,11 @@ async function publishProduct() {
 
 async function main() {
   await updatePricing();
-  await publishProduct();
+  if (SHOULD_PUBLISH) {
+    await publishProduct();
+  } else {
+    console.log('Skipping publish step; set PRINTIFY_PUBLISH=true to enable publishing.');
+  }
 }
 
 main();
