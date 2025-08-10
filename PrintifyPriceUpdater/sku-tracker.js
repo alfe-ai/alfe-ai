@@ -38,20 +38,23 @@ function initDb() {
   if (!columns.includes('|ebay_id|')) {
     execSync(`sqlite3 ${dbPath} "ALTER TABLE skus ADD COLUMN ebay_id TEXT"`);
   }
+  if (!columns.includes('|status|')) {
+    execSync(`sqlite3 ${dbPath} "ALTER TABLE skus ADD COLUMN status TEXT DEFAULT 'Init'"`);
+  }
 }
 
 function getSkus() {
   initDb();
   try {
     const output = execSync(
-      `sqlite3 ${dbPath} "SELECT id, sku, COALESCE(title, ''), COALESCE(ebay_id, '') FROM skus ORDER BY id"`
+      `sqlite3 ${dbPath} "SELECT id, sku, COALESCE(title, ''), COALESCE(ebay_id, ''), COALESCE(status, 'Init') FROM skus ORDER BY id"`
     )
       .toString()
       .trim();
     if (!output) return [];
     return output.split('\n').map((line) => {
-      const [id, sku, title, ebayId] = line.split('|');
-      return { id: Number(id), sku, title, ebayId };
+      const [id, sku, title, ebayId, status] = line.split('|');
+      return { id: Number(id), sku, title, ebayId, status };
     });
   } catch (err) {
     throw new Error('Error listing SKUs: ' + err.message);
@@ -84,7 +87,7 @@ async function addSku(sku) {
   const title = await fetchTitle(sku);
   const escapedTitle = title ? title.replace(/'/g, "''") : '';
   execSync(
-    `sqlite3 ${dbPath} "INSERT INTO skus (sku, title) VALUES ('${escapedSku}', '${escapedTitle}')"`
+    `sqlite3 ${dbPath} "INSERT INTO skus (sku, title, status) VALUES ('${escapedSku}', '${escapedTitle}', 'Init')"`
   );
   return { sku, title };
 }
@@ -99,6 +102,31 @@ function setEbayId(id, ebayId) {
     `sqlite3 ${dbPath} "UPDATE skus SET ebay_id='${escaped}' WHERE id=${Number(id)}"`
   );
   return { id: Number(id), ebayId };
+}
+
+function updateStatus(id, status) {
+  initDb();
+  if (!id || !status) {
+    throw new Error('ID and status are required');
+  }
+  const escaped = status.replace(/'/g, "''");
+  execSync(
+    `sqlite3 ${dbPath} "UPDATE skus SET status='${escaped}' WHERE id=${Number(id)}"`
+  );
+  return { id: Number(id), status };
+}
+
+function getSkuById(id) {
+  initDb();
+  try {
+    return execSync(
+      `sqlite3 ${dbPath} "SELECT sku FROM skus WHERE id=${Number(id)}"`
+    )
+      .toString()
+      .trim();
+  } catch (err) {
+    throw new Error('Error retrieving SKU: ' + err.message);
+  }
 }
 
 async function setShippingPolicy(listingId) {
@@ -180,6 +208,40 @@ function startServer() {
       res.json(result);
     } catch (err) {
       res.status(400).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/skus/:id/price-update', (req, res) => {
+    const { id } = req.params;
+    let sku;
+    try {
+      sku = getSkuById(id);
+      if (!sku) {
+        return res.status(404).json({ error: 'SKU not found' });
+      }
+      execSync(`node ${path.join(__dirname, 'update-pricing-by-size.js')} ${sku}`, {
+        stdio: 'ignore',
+      });
+      updateStatus(id, 'Price Updated');
+      res.json({ id: Number(id) });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/skus/:id/shipping-policy', async (req, res) => {
+    const { id } = req.params;
+    const { listingId } = req.body || {};
+    if (!listingId) {
+      return res.status(400).send('Missing parameters');
+    }
+    try {
+      const result = await setShippingPolicy(listingId);
+      updateStatus(id, 'Shipping Policy Updated');
+      res.json(result);
+    } catch (err) {
+      console.error('Error setting shipping policy', err);
+      res.status(500).send(err.stack || err.message);
     }
   });
 
