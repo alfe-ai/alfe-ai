@@ -4,12 +4,16 @@ This script updates pricing for the enabled variants of a Printify product and
 sets a detailed product description. Sizes are inferred from each variant's
 title (e.g. `"Black / M"`), so it works even if the size option metadata is
 missing. After updating, the script retrieves the product again, prints the
-variant JSON with the new prices for verification, and publishes the product to
-the connected store (e.g. eBay).
+variant JSON with the new prices for verification. Publishing to the connected
+store (e.g. eBay) is optional and controlled by the `PRINTIFY_PUBLISH`
+environment variable. If `PRINTIFY_PUBLISH` is set to `true`, the script will
+publish after updating. By default, publishing is skipped.
 
 ## Usage
 
-1. Copy `sample.env` to `.env` and fill in your Printify credentials.
+1. Copy `sample.env` to `.env` and fill in your Printify credentials. Set
+   `PRINTIFY_PUBLISH=true` if you want the script to publish the product after
+   updating; omit or set to `false` to skip publishing.
 2. Run the script:
 
 ```bash
