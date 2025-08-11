@@ -238,6 +238,16 @@ function startServer() {
     }
   });
 
+  app.post('/api/skus/:id/done', (req, res) => {
+    const { id } = req.params;
+    try {
+      const result = updateStatus(id, 'Done');
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   app.listen(port, () => {
     console.log(`Server listening on http://localhost:${port}`);
   });
