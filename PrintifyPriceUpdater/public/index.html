@@ -90,6 +90,14 @@
         });
         actions.appendChild(shipBtn);
 
+        const doneBtn = document.createElement('button');
+        doneBtn.textContent = 'Done';
+        doneBtn.addEventListener('click', async () => {
+          await fetch(`/api/skus/${s.id}/done`, { method: 'POST' });
+          loadSkus();
+        });
+        actions.appendChild(doneBtn);
+
         tr.appendChild(actions);
         tbody.appendChild(tr);
       });

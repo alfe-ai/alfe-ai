@@ -64,3 +64,4 @@ node sku-tracker.js
 ```
 
 Then visit [http://localhost:3101](http://localhost:3101) in your browser.
+Each SKU row includes buttons to update eBay ID, run a price update, set the shipping policy, or mark the entry as **Done**.
