@@ -27,6 +27,29 @@ async function fetchTitle(sku) {
   return data.title;
 }
 
+async function fetchEbayListingId(sku) {
+  const token = process.env.EBAY_API_TOKEN;
+  if (!token) {
+    return '';
+  }
+  const res = await fetch(
+    `https://api.ebay.com/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`,
+    {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    }
+  );
+  if (!res.ok) {
+    console.warn(`eBay API request failed for SKU ${sku} with status ${res.status}`);
+    return '';
+  }
+  const data = await res.json();
+  const offers = data.offers;
+  if (Array.isArray(offers) && offers.length > 0) {
+    return offers[0].listingId || offers[0].ebayItemId || '';
+  }
+  return '';
+}
+
 function initDb() {
   execSync(
     `sqlite3 ${dbPath} "CREATE TABLE IF NOT EXISTS skus (id INTEGER PRIMARY KEY AUTOINCREMENT, sku TEXT UNIQUE NOT NULL, title TEXT, ebay_id TEXT, status TEXT DEFAULT 'Init')"`
@@ -85,11 +108,13 @@ async function addSku(sku) {
   }
   const escapedSku = sku.replace(/'/g, "''");
   const title = await fetchTitle(sku);
+  const ebayId = await fetchEbayListingId(sku);
   const escapedTitle = title ? title.replace(/'/g, "''") : '';
+  const escapedEbayId = ebayId ? ebayId.replace(/'/g, "''") : '';
   execSync(
-    `sqlite3 ${dbPath} "INSERT INTO skus (sku, title, status) VALUES ('${escapedSku}', '${escapedTitle}', 'Init')"`
+    `sqlite3 ${dbPath} "INSERT INTO skus (sku, title, ebay_id, status) VALUES ('${escapedSku}', '${escapedTitle}', '${escapedEbayId}', 'Init')"`
   );
-  return { sku, title, status: 'Init' };
+  return { sku, title, ebayId, status: 'Init' };
 }
 
 function setEbayId(id, ebayId) {
@@ -262,8 +287,10 @@ const [, , command, value] = process.argv;
       break;
     case 'add':
       try {
-        const { sku, title } = await addSku(value);
-        console.log(`Added SKU ${sku} (${title}).`);
+        const { sku, title, ebayId } = await addSku(value);
+        console.log(
+          `Added SKU ${sku} (${title})${ebayId ? ` with eBay ID ${ebayId}` : ''}.`
+        );
       } catch (err) {
         console.error('Failed to add SKU:', err.message);
         process.exit(1);
