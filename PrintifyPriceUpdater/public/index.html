@@ -35,8 +35,17 @@
         const btn = document.createElement('button');
         btn.textContent = s.ebayId ? 'Refresh eBay ID' : 'Fetch eBay ID';
         btn.addEventListener('click', async () => {
-          await fetch(`/api/skus/${s.id}/ebay`, { method: 'POST' });
-          loadSkus();
+          try {
+            const resp = await fetch(`/api/skus/${s.id}/ebay`, { method: 'POST' });
+            if (resp.ok) {
+              loadSkus();
+            } else {
+              const msg = await resp.text();
+              alert('Failed to fetch eBay ID: ' + msg);
+            }
+          } catch (err) {
+            alert('Failed to fetch eBay ID: ' + err.message);
+          }
         });
         actions.appendChild(btn);
 
