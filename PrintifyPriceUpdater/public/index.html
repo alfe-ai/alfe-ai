@@ -98,6 +98,15 @@
         });
         actions.appendChild(doneBtn);
 
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', async () => {
+          if (!confirm('Delete this SKU?')) return;
+          await fetch(`/api/skus/${s.id}`, { method: 'DELETE' });
+          loadSkus();
+        });
+        actions.appendChild(delBtn);
+
         tr.appendChild(actions);
         tbody.appendChild(tr);
       });
