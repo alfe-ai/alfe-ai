@@ -30,7 +30,7 @@ async function fetchTitle(sku) {
 async function fetchEbayListingId(sku) {
   const token = process.env.EBAY_API_TOKEN;
   if (!token) {
-    return '';
+    throw new Error('EBAY_API_TOKEN must be set');
   }
   const res = await fetch(
     `https://api.ebay.com/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`,
@@ -39,15 +39,14 @@ async function fetchEbayListingId(sku) {
     }
   );
   if (!res.ok) {
-    console.warn(`eBay API request failed for SKU ${sku} with status ${res.status}`);
-    return '';
+    throw new Error(`eBay API request failed for SKU ${sku} with status ${res.status}`);
   }
   const data = await res.json();
   const offers = data.offers;
   if (Array.isArray(offers) && offers.length > 0) {
     return offers[0].listingId || offers[0].ebayItemId || '';
   }
-  return '';
+  throw new Error(`No eBay listing found for SKU ${sku}`);
 }
 
 function initDb() {
@@ -108,7 +107,12 @@ async function addSku(sku) {
   }
   const escapedSku = sku.replace(/'/g, "''");
   const title = await fetchTitle(sku);
-  const ebayId = await fetchEbayListingId(sku);
+  let ebayId = '';
+  try {
+    ebayId = await fetchEbayListingId(sku);
+  } catch (err) {
+    console.warn(`Skipping eBay ID lookup for ${sku}: ${err.message}`);
+  }
   const escapedTitle = title ? title.replace(/'/g, "''") : '';
   const escapedEbayId = ebayId ? ebayId.replace(/'/g, "''") : '';
   execSync(
@@ -213,15 +217,11 @@ async function refreshEbayId(id) {
     throw new Error(`No SKU found for id ${id}`);
   }
   const ebayId = await fetchEbayListingId(sku);
-  if (ebayId) {
-    const escaped = ebayId.replace(/'/g, "''");
-    execSync(
-      `sqlite3 ${dbPath} "UPDATE skus SET ebay_id='${escaped}' WHERE id=${Number(
-        id
-      )}"`
-    );
-  }
-  return { id: Number(id), ebayId: ebayId || '' };
+  const escaped = ebayId.replace(/'/g, "''");
+  execSync(
+    `sqlite3 ${dbPath} "UPDATE skus SET ebay_id='${escaped}' WHERE id=${Number(id)}"`
+  );
+  return { id: Number(id), ebayId };
 }
 
 function startServer() {
