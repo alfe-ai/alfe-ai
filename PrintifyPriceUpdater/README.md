@@ -13,7 +13,8 @@ publish after updating. By default, publishing is skipped.
 
 1. Copy `sample.env` to `.env` and fill in your Printify credentials. Set
    `PRINTIFY_PUBLISH=true` if you want the script to publish the product after
-   updating; omit or set to `false` to skip publishing.
+   updating; omit or set to `false` to skip publishing. Include `EBAY_API_TOKEN`
+   to allow the SKU tracker to query eBay for existing listings.
 2. Run the script:
 
 ```bash
@@ -34,7 +35,7 @@ exceeding Printify's 100-variant limit:
 
 ## SKU Tracker
 
-Use the included CLI to maintain a list of Printify SKUs in a local SQLite database. The tracker reads your Printify credentials from a `.env` file in this directory, so ensure `PRINTIFY_SHOP_ID` and `PRINTIFY_API_TOKEN` are set before adding SKUs.
+Use the included CLI to maintain a list of Printify SKUs in a local SQLite database. The tracker reads your Printify credentials from a `.env` file in this directory, so ensure `PRINTIFY_SHOP_ID` and `PRINTIFY_API_TOKEN` are set before adding SKUs. If `EBAY_API_TOKEN` is provided, the tracker will attempt to look up the eBay listing ID for the SKU automatically.
 
 ### Commands
 
@@ -50,10 +51,7 @@ Add a new SKU:
 node sku-tracker.js add <sku>
 ```
 
-The title for each SKU is fetched from the Printify API and saved alongside the SKU.
-Entries are persisted in `skus.db` inside this directory.
-
-Each SKU can also store an associated eBay listing ID, which may be managed from the web interface.
+The title for each SKU is fetched from the Printify API and saved alongside the SKU. When an eBay API token is available, the tracker also queries the eBay Inventory API to capture the listing ID automatically. Entries are persisted in `skus.db` inside this directory. Each SKU can still store an associated eBay listing ID, which may be managed from the web interface if needed.
 
 ### Web UI
 
