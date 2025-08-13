@@ -33,15 +33,9 @@
         const actions = document.createElement('td');
 
         const btn = document.createElement('button');
-        btn.textContent = s.ebayId ? 'Update eBay ID' : 'Add eBay ID';
+        btn.textContent = s.ebayId ? 'Refresh eBay ID' : 'Fetch eBay ID';
         btn.addEventListener('click', async () => {
-          const ebayId = prompt('Enter eBay listing ID', s.ebayId || '');
-          if (!ebayId) return;
-          await fetch(`/api/skus/${s.id}/ebay`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ebayId })
-          });
+          await fetch(`/api/skus/${s.id}/ebay`, { method: 'POST' });
           loadSkus();
         });
         actions.appendChild(btn);

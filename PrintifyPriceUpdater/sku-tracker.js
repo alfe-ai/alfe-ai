@@ -202,6 +202,28 @@ function deleteSku(id) {
   return { id: Number(id) };
 }
 
+async function refreshEbayId(id) {
+  initDb();
+  const sku = execSync(
+    `sqlite3 ${dbPath} "SELECT sku FROM skus WHERE id=${Number(id)}"`
+  )
+    .toString()
+    .trim();
+  if (!sku) {
+    throw new Error(`No SKU found for id ${id}`);
+  }
+  const ebayId = await fetchEbayListingId(sku);
+  if (ebayId) {
+    const escaped = ebayId.replace(/'/g, "''");
+    execSync(
+      `sqlite3 ${dbPath} "UPDATE skus SET ebay_id='${escaped}' WHERE id=${Number(
+        id
+      )}"`
+    );
+  }
+  return { id: Number(id), ebayId: ebayId || '' };
+}
+
 function startServer() {
   const app = express();
   const port = process.env.PORT || 3101;
@@ -230,14 +252,13 @@ function startServer() {
     }
   });
 
-  app.post('/api/skus/:id/ebay', (req, res) => {
+  app.post('/api/skus/:id/ebay', async (req, res) => {
     const { id } = req.params;
     const { ebayId } = req.body || {};
-    if (!ebayId) {
-      return res.status(400).json({ error: 'eBay ID required' });
-    }
     try {
-      const result = setEbayId(id, ebayId);
+      const result = ebayId
+        ? setEbayId(id, ebayId)
+        : await refreshEbayId(id);
       res.json(result);
     } catch (err) {
       res.status(400).json({ error: err.message });
