@@ -2299,7 +2299,7 @@ async function openRenameTabModal(tabId){
   }
   const sendCtx = $("#renameSendProjectContextCheck");
   if(sendCtx){
-    sendCtx.checked = false;
+    sendCtx.checked = t && t.send_project_context ? true : false;
     sendCtx.disabled = true;
   }
   const chatgptInp = $("#renameChatgptUrlInput");
@@ -2427,7 +2427,7 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   let taskId = taskSel ? parseInt(taskSel.value,10) || 0 : 0;
   const extraInp = $("#renameExtraProjectsInput");
   let extraProjects = extraInp ? extraInp.value.trim() : '';
-  const sendProjectContext = 0;
+  const sendProjectContext = tab.send_project_context ? 1 : 0;
   const chatgptInp = $("#renameChatgptUrlInput");
   const chatgptUrl = chatgptInp ? chatgptInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
@@ -2470,7 +2470,7 @@ $("#renameTabCreateTaskBtn").addEventListener("click", async () => {
   } catch(e) { console.error(e); }
   const extraInp = $("#renameExtraProjectsInput");
   let extraProjects = extraInp ? extraInp.value.trim() : '';
-  const sendProjectContext = 0;
+  const sendProjectContext = tab.send_project_context ? 1 : 0;
   const chatgptInp = $("#renameChatgptUrlInput");
   const chatgptUrl = chatgptInp ? chatgptInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
@@ -2591,7 +2591,7 @@ async function moveTabToProject(tabId, project){
   const extraProjects = tab.extra_projects || '';
   const taskId = tab.task_id || 0;
   const type = tab.tab_type || 'chat';
-  const sendProjectContext = 0;
+  const sendProjectContext = tab.send_project_context ? 1 : 0;
   await fetch('/api/chat/tabs/config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},

@@ -1973,7 +1973,41 @@ app.post("/api/chat", async (req, res) => {
     const isOpenrouterPerplexity = (model || '').startsWith('openrouter/perplexity/');
     let systemContext = `System Context:\n${savedInstructions}`;
     let projectContext = '';
-    const fullContext = systemContext;
+    if (tabInfo && tabInfo.send_project_context && (tabInfo.project_name || tabInfo.extra_projects)) {
+      const allProjects = [];
+      if (tabInfo.project_name && tabInfo.project_name.trim()) {
+        allProjects.push(tabInfo.project_name.trim());
+      }
+      if (tabInfo.extra_projects) {
+        tabInfo.extra_projects.split(',').forEach(p => {
+          p = p.trim();
+          if (p && !allProjects.includes(p)) allProjects.push(p);
+        });
+      }
+      const histories = [];
+      for (const pr of allProjects) {
+        const projectPairs = db.getChatPairsByProject(pr);
+        const pairsByTab = {};
+        for (const p of projectPairs) {
+          const tab = db.getChatTab(p.chat_tab_id);
+          const tName = (tab && tab.name) ? tab.name : `Chat ${p.chat_tab_id}`;
+          if (!pairsByTab[tName]) pairsByTab[tName] = [];
+          pairsByTab[tName].push(p);
+        }
+        const lines = [`Project: ${pr}`];
+        for (const [chatName, ps] of Object.entries(pairsByTab)) {
+          lines.push(`Chat: ${chatName}`);
+          ps.forEach(cp => {
+            if (cp.user_text) lines.push(`User: ${cp.user_text}`);
+            if (cp.ai_text) lines.push(`Assistant: ${cp.ai_text}`);
+          });
+        }
+        histories.push(lines.join('\n'));
+      }
+      projectContext = histories.join('\n');
+    }
+    const fullContext = projectContext ?
+      `${systemContext}\n${projectContext}` : systemContext;
     const sysContent = `${fullContext}\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
 
     const conversation = [{ role: "system", content: sysContent }];
@@ -2340,7 +2374,7 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
 app.post("/api/chat/tabs/config", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
-    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', chatgptUrl = '', sessionId = '' } = req.body;
+    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 0, chatgptUrl = '', sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
@@ -2348,7 +2382,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, 0, chatgptUrl);
+    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, sendProjectContext ? 1 : 0, chatgptUrl);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
