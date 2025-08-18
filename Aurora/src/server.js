@@ -2280,7 +2280,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId, 1, chatgptUrl);
+    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId, 0, chatgptUrl);
     res.json({ success: true, id: tabId, uuid });
     if (type === 'search') {
       const searchModel = db.getSetting('ai_search_model') || 'sonar-pro';
@@ -2374,7 +2374,7 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
 app.post("/api/chat/tabs/config", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
-    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 1, chatgptUrl = '', sessionId = '' } = req.body;
+    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 0, chatgptUrl = '', sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
@@ -3800,6 +3800,7 @@ app.get("/", (req, res) => {
         "",
         "",
         '',
+        0,
         "chat",
         sessionId
       );
@@ -3819,6 +3820,7 @@ app.get("/", (req, res) => {
           "",
           "",
           '',
+          0,
           "chat",
           sessionId
         );

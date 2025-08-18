@@ -901,7 +901,7 @@ export default class TaskDB {
         .get(id);
   }
 
-  createChatTab(name, nexum = 0, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sessionId = '', sendProjectContext = 1, chatgptUrl = '') {
+  createChatTab(name, nexum = 0, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sessionId = '', sendProjectContext = 0, chatgptUrl = '') {
     const ts = new Date().toISOString();
     const genImages = type === 'design' ? 1 : 0;
     if (project) this.ensureProjectMeta(project);
@@ -1017,7 +1017,7 @@ export default class TaskDB {
     return row ? !!row.generate_images : true;
   }
 
-  setChatTabSendProjectContext(tabId, enabled = 1) {
+  setChatTabSendProjectContext(tabId, enabled = 0) {
     this.db.prepare("UPDATE chat_tabs SET send_project_context=? WHERE id=?")
         .run(enabled ? 1 : 0, tabId);
   }
@@ -1026,10 +1026,10 @@ export default class TaskDB {
     const row = this.db
         .prepare("SELECT send_project_context FROM chat_tabs WHERE id=?")
         .get(tabId);
-    return row ? !!row.send_project_context : true;
+    return row ? !!row.send_project_context : false;
   }
 
-  setChatTabConfig(tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 1, chatgptUrl = '') {
+  setChatTabConfig(tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 0, chatgptUrl = '') {
     const genImages = type === 'design' ? 1 : 0;
     this.db.prepare(
         "UPDATE chat_tabs SET project_name=?, repo_ssh_url=?, extra_projects=?, task_id=?, tab_type=?, generate_images=?, send_project_context=?, chatgpt_url=? WHERE id=?"
