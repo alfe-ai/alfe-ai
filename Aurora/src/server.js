@@ -155,7 +155,7 @@ console.debug("[Server Debug] theme_color =>", themeColor, "mode =>", themeMode)
 
 console.debug("[Server Debug] Checking or setting default 'image_gen_service' in DB...");
 if (!db.getSetting("image_gen_service")) {
-  db.setSetting("image_gen_service", "openai");
+  db.setSetting("image_gen_service", "openrouter");
 }
 
 console.debug("[Server Debug] Checking or setting default 'show_session_id' in DB...");
@@ -2351,7 +2351,7 @@ app.post("/api/image/generate", async (req, res) => {
       }
     }
 
-    const service = (provider || db.getSetting("image_gen_service") || "openai").toLowerCase();
+    const service = (provider || db.getSetting("image_gen_service") || "openrouter").toLowerCase();
 
     const allowedSizes = ["1024x1024", "1024x1792", "1792x1024"];
     const imgSize = allowedSizes.includes(size) ? size : "1024x1024";
