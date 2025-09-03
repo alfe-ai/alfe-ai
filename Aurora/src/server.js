@@ -1958,8 +1958,12 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
       desc = "(Could not generate description.)";
     }
 
-    db.logActivity("Image upload", JSON.stringify({ file: req.file.filename, desc }));
-    res.json({ success: true, desc, filename: req.file.filename });
+    const imageTitle = await deriveImageTitle(desc);
+    db.logActivity(
+      "Image upload",
+      JSON.stringify({ file: req.file.filename, desc, title: imageTitle })
+    );
+    res.json({ success: true, desc, filename: req.file.filename, title: imageTitle });
   } catch(e){
     console.error("Error in /api/chat/image:", e);
     res.status(500).json({ error: "Internal server error" });
