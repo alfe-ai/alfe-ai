@@ -27,6 +27,9 @@ Set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` to the SSL key and certificate files
 to enable HTTPS across the included servers. If the files are missing the
 services fall back to HTTP.
 
+`HTTP_PORT` controls the port used for the HTTP redirect server (default: `80`).
+Forward port `80` to this value if running without root privileges.
+
 You can quickly obtain free certificates from Let's Encrypt by running the
 `setup_certbot.sh` script. It installs Certbot and generates the key and
 certificate files for the domain you specify.
@@ -47,3 +50,12 @@ sudo ./forward_port_443.sh 3000
 Replace `3000` with your chosen `AURORA_PORT`. After adding the rule, start the
 server normally and clients can connect using `https://your-domain/` on port
 `443` while the Node.js process continues to run on the higher port.
+
+To redirect plain HTTP traffic to HTTPS without running as root, forward port `80`
+to your chosen `HTTP_PORT`:
+
+```bash
+sudo ./forward_port_80.sh 8080
+```
+
+Then set `HTTP_PORT=8080` when running the server.

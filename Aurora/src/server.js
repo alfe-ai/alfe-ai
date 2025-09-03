@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 import https from "https";
+import http from "http";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
 import TaskDBLocal from "./taskDb.js";
@@ -2897,6 +2898,7 @@ const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||
   3000;
+const HTTP_PORT = process.env.HTTP_PORT || 80;
 const keyPath = process.env.HTTPS_KEY_PATH;
 const certPath = process.env.HTTPS_CERT_PATH;
 
@@ -2911,6 +2913,14 @@ if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
   };
   https.createServer(options, app).listen(PORT, () => {
     console.log(`[TaskQueue] HTTPS server running on port ${PORT}`);
+  });
+
+  http.createServer((req, res) => {
+    const host = req.headers.host ? req.headers.host.split(":")[0] : "";
+    res.writeHead(301, { Location: `https://${host}${req.url}` });
+    res.end();
+  }).listen(HTTP_PORT, () => {
+    console.log(`[TaskQueue] HTTP redirect server running on port ${HTTP_PORT}`);
   });
 } else {
   app.listen(PORT, () => {
