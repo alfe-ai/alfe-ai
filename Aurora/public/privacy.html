@@ -54,7 +54,7 @@ We do not use your content to train our models unless you have explicitly opted 
 
 We do not sell or rent personal data. We may share information only:
 
-With third-party data processors—defined as service providers who process data on our behalf—under strict confidentiality and security obligations. This currently includes OpenRouter and OpenAI for AI data processing. We do not yet maintain a separate Subprocessor Disclosure Page, but you can request a full list of subprocessors by contacting legal@alfe.sh.
+With third-party data processors—defined as service providers who process data on our behalf—under strict confidentiality and security obligations. This currently includes OpenRouter and OpenAI for AI data processing. We do not yet maintain a separate Subprocessor Disclosure Page, but you can request a full list of subprocessors by contacting <span class="legal-email"></span>.
 
 To comply with legal obligations or enforce our terms
 
@@ -76,7 +76,7 @@ Restrict or object to processing
 
 Port your data elsewhere
 
-To exercise these rights, contact legal@alfe.sh.
+To exercise these rights, contact <span class="legal-email"></span>.
 
 6. Security
 
@@ -104,9 +104,17 @@ Alfe AI
 733 Struck Street #45745
 Madison, WI 53744
 United States
-Email: legal@alfe.sh
+Email: <span class="legal-email"></span>
 
 Thank you for trusting Alfe AI to respect your privacy.
   </pre>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const addr = 'legal' + '@' + 'alfe.sh';
+      document.querySelectorAll('.legal-email').forEach(function (el) {
+        el.innerHTML = '<a href="mailto:' + addr + '">' + addr + '</a>';
+      });
+    });
+  </script>
 </body>
 </html>

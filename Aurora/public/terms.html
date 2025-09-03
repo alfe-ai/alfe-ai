@@ -82,7 +82,7 @@ Alfe AI may remove, restrict, or report content that violates these policies.
 
 Users may be suspended or permanently banned for repeated or egregious violations.
 
-Appeals may be submitted by contacting legal@alfe.sh.
+Appeals may be submitted by contacting <span class="legal-email"></span>.
 
 AI Disclaimer: AI outputs are automatically generated and may be inaccurate. Users are solely responsible for reviewing and validating content prior to reliance or publication.
 
@@ -126,12 +126,20 @@ These Terms are governed by the laws of the USA without regard to conflict-of-la
 
 16. Contact
 
-Questions? Email to: legal@alfe.sh or write to:
+Questions? Email to: <span class="legal-email"></span> or write to:
 
 Alfe AI
 733 Struck Street #45745
 Madison, WI 53744
 United States
   </pre>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const addr = 'legal' + '@' + 'alfe.sh';
+      document.querySelectorAll('.legal-email').forEach(function (el) {
+        el.innerHTML = '<a href="mailto:' + addr + '">' + addr + '</a>';
+      });
+    });
+  </script>
 </body>
 </html>
