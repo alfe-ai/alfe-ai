@@ -196,12 +196,12 @@
     <div class="modal-content">
       <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-bottom:1rem;">
         <h2 style="margin:0; font-size:1.75rem; color:var(--text-color); text-align:center;">Alfe AI</h2>
-        <canvas
-          id="startDialogGifCanvas"
-          data-gif-src="/demo.gif"
-          aria-label="Alfe AI demo"
+        <img
+          id="startDialogGif"
+          src="/demo.gif"
+          alt="Alfe AI demo"
           style="max-width:960px; width:100%; height:auto; cursor:pointer;"
-        ></canvas>
+        />
       </div>
       <h3>Get Started</h3>
       <div>
@@ -271,77 +271,6 @@
     </div>
   </div>
   <script src="/session.js"></script>
-  <script src="https://unpkg.com/gifuct-js@3.0.1/dist/gifuct-js.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script>
-    window.addEventListener('load', async () => {
-      const canvas = document.getElementById('startDialogGifCanvas');
-      if(!canvas || !window.gifuct) return;
-
-      const ctx = canvas.getContext('2d');
-      const gifSrc = canvas.dataset.gifSrc || '/demo.gif';
-
-      try {
-        const response = await fetch(gifSrc);
-        if(!response.ok) throw new Error('Failed to load GIF');
-
-        const buffer = await response.arrayBuffer();
-        const gif = window.gifuct.parseGIF(buffer);
-        const frames = window.gifuct.decompressFrames(gif, true);
-        if(!frames.length) return;
-
-        canvas.width = frames[0].dims.width;
-        canvas.height = frames[0].dims.height;
-        if('aspectRatio' in canvas.style){
-          canvas.style.aspectRatio = `${canvas.width} / ${canvas.height}`;
-        }
-
-        const frameDurations = frames.map(frame => {
-          const delay = typeof frame.delay === 'number' ? frame.delay : 10;
-          return Math.max(delay, 1) * 10;
-        });
-
-        let startFrameIndex = 0;
-        let accumulated = 0;
-        for(let i = 0; i < frameDurations.length; i++){
-          accumulated += frameDurations[i];
-          if(accumulated >= 2000){
-            startFrameIndex = i;
-            break;
-          }
-        }
-
-        const drawFrame = (frame) => {
-          const dims = frame.dims;
-          if(!frame.imageData){
-            frame.imageData = ctx.createImageData(dims.width, dims.height);
-          }
-          frame.imageData.data.set(frame.patch);
-          ctx.putImageData(frame.imageData, dims.left, dims.top);
-        };
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for(let i = 0; i < startFrameIndex; i++){
-          drawFrame(frames[i]);
-        }
-
-        let frameIndex = startFrameIndex;
-        const tick = () => {
-          const frame = frames[frameIndex];
-          drawFrame(frame);
-          const delay = frameDurations[frameIndex];
-          frameIndex += 1;
-          if(frameIndex >= frames.length){
-            frameIndex = startFrameIndex;
-          }
-          setTimeout(tick, delay);
-        };
-
-        tick();
-      } catch(err) {
-        console.error('Unable to render GIF starting at 2s:', err);
-      }
-    });
-  </script>
   <script>
 
     let tabs = [];
