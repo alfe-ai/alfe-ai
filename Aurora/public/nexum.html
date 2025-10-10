@@ -208,7 +208,11 @@
         <div id="startTypeButtons">
           <button data-type="chat" class="start-type-btn">
             <div class="icon">💬</div>
-            <div>Chat / Search</div>
+            <div>Chat</div>
+          </button>
+          <button data-type="search" class="start-type-btn disabled" disabled>
+            <div class="icon">🔍</div>
+            <div>Search</div>
           </button>
           <button data-type="code" class="start-type-btn disabled" disabled>
             <div class="icon">💻</div>
@@ -1059,8 +1063,8 @@
     function applyFeatureFlags(){
       const chatBtn = document.getElementById('viewTabChat');
       if(chatBtn) chatBtn.style.display = '';
-      const disableTypes = ['code','design','task'];
-      ['code','design','task'].forEach(t => {
+      const disableTypes = ['search','code','design','task'];
+      ['search','code','design','task'].forEach(t => {
         const disabled = disableTypes.includes(t);
         const btn = document.querySelector(`#startTypeButtons .start-type-btn[data-type="${t}"]`);
         if(btn){
