@@ -192,7 +192,7 @@
     </div>
     <div class="modal-content">
       <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-        <img id="startDialogGif" src="/demo.gif" alt="Alfe AI demo" style="max-width:240px; width:60%; height:auto;" />
+        <img id="startDialogGif" src="/demo.gif" alt="Alfe AI demo" style="max-width:480px; width:100%; height:auto;" />
       </div>
       <h3>Get Started</h3>
       <div>
@@ -292,43 +292,10 @@
     let currentColor = 'purple';
     let currentMode = 'dark';
 
-    const splashPhrases = [
-      "AI Software Engineer",
-      "AI Developer",
-      "AI Project Manager",
-      "AI Scrum Master",
-      "AI QA Tester",
-      "AI UX Designer",
-      "AI Data Scientist",
-      "AI DevOps Engineer",
-      "AI Security Analyst",
-      "AI Picasso",
-      "AI Van Gogh",
-      "AI Monet",
-      "AI CTO",
-      "AI Solutions Architect",
-      "Beta Rollout"
-    ];
-    let splashIdx = 0;
     let splashTimer = null;
 
-    function spawnSplashWord(){
-      const container = document.getElementById('splashAnim');
-      if(!container) return;
-      const span = document.createElement('span');
-      span.className = 'splash-word';
-      span.textContent = splashPhrases[splashIdx % splashPhrases.length];
-      splashIdx++;
-      // Ensure scrolling text appears below the "Your" label
-      // "Your" is positioned at 70% vertically, so start a bit lower
-      span.style.top = (75 + Math.random()*20) + 'vh';
-      container.appendChild(span);
-      span.addEventListener('animationend', () => span.remove());
-      splashTimer = setTimeout(spawnSplashWord, 700);
-    }
-
     function startSplash(){
-      if(splashTimer === null) spawnSplashWord();
+      // Scrolling text disabled.
     }
 
     function stopSplash(){
