@@ -157,13 +157,13 @@
             <div class="icon">💬</div>
             <div>Chat</div>
           </button>
-          <button data-type="code" class="start-type-btn">
+          <button data-type="code" class="start-type-btn disabled" disabled>
             <div class="icon">💻</div>
-            <div>Code</div>
+            <div>Code<br/><small style="font-size:0.8rem;">Coming Soon</small></div>
           </button>
-          <button data-type="design" class="start-type-btn">
+          <button data-type="design" class="start-type-btn disabled" disabled>
             <div class="icon">🎨</div>
-            <div>Design</div>
+            <div>Design<br/><small style="font-size:0.8rem;">Coming Soon</small></div>
           </button>
         </div>
         <label style="margin-top:8px;">Message:<br/>
@@ -200,17 +200,17 @@
             <div class="icon">💬</div>
             <div>Chat</div>
           </button>
-          <button data-type="code" class="start-type-btn">
+          <button data-type="code" class="start-type-btn disabled" disabled>
             <div class="icon">💻</div>
-            <div>Code</div>
+            <div>Code<br/><small style="font-size:0.8rem;">Coming Soon</small></div>
           </button>
-          <button data-type="design" class="start-type-btn">
+          <button data-type="design" class="start-type-btn disabled" disabled>
             <div class="icon">🎨</div>
-            <div>Design</div>
+            <div>Design<br/><small style="font-size:0.8rem;">Coming Soon</small></div>
           </button>
-          <button data-type="task" class="start-type-btn">
+          <button data-type="task" class="start-type-btn disabled" disabled>
             <div class="icon">📋</div>
-            <div>Project</div>
+            <div>Project<br/><small style="font-size:0.8rem;">Coming Soon</small></div>
           </button>
         </div>
         <div id="startRepoSection" style="margin-top:8px; display:none;">
@@ -267,7 +267,6 @@
     let showFeedbackButton = true;
     let startInAurora = true;
     // Feature flag to enable advanced start options (Code, Design, Project)
-    const enableStartAdvanced = false;
     const splashOnlyMode = true;
     // Maintain a history of user-entered prompts
     const inputHistory = [];
@@ -945,6 +944,7 @@
     });
     document.querySelectorAll('#newTabTypeButtons .start-type-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if(btn.disabled) return;
         newTabSelectedType = btn.dataset.type;
         document.querySelectorAll('#newTabTypeButtons .start-type-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
@@ -964,8 +964,7 @@
     function applyFeatureFlags(){
       const chatBtn = document.getElementById('viewTabChat');
       if(chatBtn) chatBtn.style.display = '';
-      const advanced = enableStartAdvanced;
-      const disableTypes = advanced ? [] : ['code','task'];
+      const disableTypes = ['code','design','task'];
       ['code','design','task'].forEach(t => {
         const disabled = disableTypes.includes(t);
         const btn = document.querySelector(`#startTypeButtons .start-type-btn[data-type="${t}"]`);
