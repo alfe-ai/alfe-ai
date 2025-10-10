@@ -1136,7 +1136,11 @@
         renderSuggestions(false, 'suggestions', 'prompt'); // show/hide after history loads
         applyTabView();
       }
-      init();
+      if(!splashOnlyMode){
+        init();
+      } else {
+        startSplash();
+      }
 
       document.getElementById('sidebarToggle').addEventListener('click', () => {
         const sb = document.getElementById('sidebar');
