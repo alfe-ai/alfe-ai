@@ -363,6 +363,8 @@ button:hover {
   color: var(--text-color);
   box-shadow: 0 0 8px rgba(0,0,0,0.7);
   border-radius: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Start dialog type buttons */
