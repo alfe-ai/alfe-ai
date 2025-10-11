@@ -57,51 +57,35 @@
     #startDialog {
       overflow-y: auto;
       overflow-x: hidden;
-      padding-block: clamp(1rem, 4vh, 2rem);
-      padding-inline: clamp(1rem, 6vw, 2.5rem);
-      padding-top: max(env(safe-area-inset-top), clamp(1rem, 4vh, 2rem));
-      padding-bottom: max(env(safe-area-inset-bottom), clamp(1rem, 4vh, 2rem));
+      padding-block: clamp(0.65rem, 3vh, 1.5rem);
+      padding-inline: clamp(0.75rem, 5vw, 2rem);
+      padding-top: max(env(safe-area-inset-top), clamp(0.65rem, 3vh, 1.5rem));
+      padding-bottom: max(env(safe-area-inset-bottom), clamp(0.65rem, 3vh, 1.5rem));
       box-sizing: border-box;
     }
 
     #startDialog .modal-content {
       width: min(600px, 100%);
       margin-inline: auto;
-      margin-block: clamp(1rem, 6vh, 2.5rem);
-      padding: clamp(0.9rem, 4.5vw, 1.5rem);
+      margin-block: clamp(0.6rem, 4vh, 1.75rem);
+      padding: clamp(0.7rem, 3.5vw, 1.2rem);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      gap: clamp(0.5rem, 2vh, 1.1rem);
+      gap: clamp(0.35rem, 1.5vh, 0.85rem);
     }
 
     #startDialog .modal-content > * {
       width: 100%;
     }
 
-    #startDialog .modal-heading-line {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: clamp(0.5rem, 2.5vw, 1rem);
+    #startDialog .modal-title {
       width: 100%;
       color: var(--text-color);
       font-size: clamp(1.35rem, 6vw, 1.75rem);
-      line-height: 1.2;
-      margin-top: -0.35rem;
-      margin-bottom: clamp(0.4rem, 1.8vh, 0.65rem);
-    }
-
-    #startDialog .modal-heading-line::before,
-    #startDialog .modal-heading-line::after {
-      content: "";
-      flex: 1;
-      border-top: 1px solid var(--border);
-      opacity: 0.7;
-    }
-
-    #startDialog .modal-heading-line span {
-      padding-inline: clamp(0.5rem, 2vw, 1rem);
+      line-height: 1.15;
+      text-align: center;
+      margin: -0.35rem 0 clamp(0.3rem, 1.2vh, 0.45rem);
     }
 
     #startDialog .splash-media p {
@@ -109,29 +93,29 @@
     }
 
     #startDialog .modal-content h3 {
-      margin: clamp(0.25rem, 1.8vh, 0.5rem) 0 clamp(0.35rem, 2vh, 0.55rem);
+      margin: clamp(0.2rem, 1.2vh, 0.4rem) 0 clamp(0.25rem, 1.5vh, 0.45rem);
       text-align: center;
     }
 
     #startDialog #startTypeButtons {
-      gap: clamp(0.4rem, 2vw, 0.6rem);
+      gap: clamp(0.3rem, 1.2vw, 0.45rem);
     }
 
     #startDialog #startTypeButtons .start-type-btn {
-      height: clamp(52px, 18vw, 64px);
-      padding-block: clamp(0.3rem, 2vw, 0.55rem);
-      font-size: clamp(0.95rem, 3.5vw, 1.05rem);
+      height: clamp(48px, 16vw, 60px);
+      padding-block: clamp(0.25rem, 1.6vw, 0.45rem);
+      font-size: clamp(0.93rem, 3.2vw, 1.02rem);
     }
 
     #startDialog #startTypeButtons .start-type-btn .icon {
-      font-size: clamp(1.15rem, 4.5vw, 1.35rem);
-      margin-bottom: 2px;
+      font-size: clamp(1.1rem, 4vw, 1.3rem);
+      margin-bottom: 1px;
     }
 
     #startSocialLinks {
-      line-height: 1.4;
+      line-height: 1.3;
       word-break: break-word;
-      padding-inline: clamp(0.5rem, 4vw, 1rem);
+      padding-inline: clamp(0.4rem, 3vw, 0.85rem);
     }
 
     @media (max-height: 640px) {
@@ -214,11 +198,11 @@
         <h4>Nexum Feature Flags</h4>
         <!-- Chat and task tabs are now always visible -->
         <label style="display:block;"><input type="checkbox" id="flagShowDependencies"> Show "Depends On" Column</label>
-        <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagShowArchived"> Show Archived Chats</label>
-        <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagShowFeedback"> Show Feedback Button</label>
-        <label style="display:block;margin-top:0.25rem;"><input type="checkbox" id="flagAuroraStart"> Use Aurora for New Chat</label>
+        <label style="display:block;margin-top:0.2rem;"><input type="checkbox" id="flagShowArchived"> Show Archived Chats</label>
+        <label style="display:block;margin-top:0.2rem;"><input type="checkbox" id="flagShowFeedback"> Show Feedback Button</label>
+        <label style="display:block;margin-top:0.2rem;"><input type="checkbox" id="flagAuroraStart"> Use Aurora for New Chat</label>
       </div>
-      <div style="margin-top:0.5rem;">
+      <div style="margin-top:0.4rem;">
         <label>Color:
           <select id="themeColorSelect">
             <option value="purple">Purple</option>
@@ -237,7 +221,7 @@
           </select>
         </label>
       </div>
-      <button id="closeSettingsBtn" style="margin-top:1rem;">Close</button>
+      <button id="closeSettingsBtn" style="margin-top:0.75rem;">Close</button>
     </div>
   </div>
   <div id="feedbackModal" style="display:none;" class="modal">
@@ -251,7 +235,7 @@
         </select>
       </label>
       <textarea id="feedbackText" rows="4" style="width:100%;"></textarea>
-      <div style="margin-top:1rem;text-align:right;">
+      <div style="margin-top:0.75rem;text-align:right;">
         <button id="feedbackSubmitBtn">Submit</button>
         <button id="feedbackCancelBtn">Close</button>
       </div>
@@ -263,10 +247,10 @@
       <label>Project Name:<br/>
         <input type="text" id="tabProjectInput" style="width:100%;" />
       </label>
-      <label style="margin-top:8px;">Git Repo SSH URL:<br/>
+      <label style="margin-top:6px;">Git Repo SSH URL:<br/>
         <input type="text" id="tabRepoInput" style="width:100%;" />
       </label>
-      <label style="margin-top:8px;">Tab Type:<br/>
+      <label style="margin-top:6px;">Tab Type:<br/>
         <select id="tabTypeSelect" style="width:100%;">
           <option value="chat">Chat</option>
           <option value="code">Code</option>
@@ -274,11 +258,11 @@
           <option value="task">Project</option>
         </select>
       </label>
-      <label style="margin-top:8px;">Codex Chat URL:<br/>
+      <label style="margin-top:6px;">Codex Chat URL:<br/>
         <input type="text" id="codexChatUrlInput" style="width:100%;" />
       </label>
-      <button id="codexImportBtn" style="margin-top:8px;">Codex/GitHub Import</button>
-      <div style="margin-top:1rem;text-align:right;">
+      <button id="codexImportBtn" style="margin-top:6px;">Codex/GitHub Import</button>
+      <div style="margin-top:0.75rem;text-align:right;">
         <button id="tabConfigSaveBtn">Save</button>
         <button id="tabConfigCancelBtn">Cancel</button>
       </div>
@@ -302,19 +286,19 @@
             <div>Design</div>
           </button>
         </div>
-        <label style="margin-top:8px;">Message:<br/>
+        <label style="margin-top:6px;">Message:<br/>
           <textarea id="newTabChatInput" rows="3" style="width:100%;" placeholder="Start chatting..."></textarea>
         </label>
-        <div id="newTabRepoSection" style="margin-top:8px; display:none;">
+        <div id="newTabRepoSection" style="margin-top:6px; display:none;">
           <label>Git Repo SSH URL:<br/>
             <input type="text" id="newTabRepoInput" style="width:100%;" />
           </label>
-          <div style="font-size:0.9rem; margin-top:4px;">
+          <div style="font-size:0.9rem; margin-top:3px;">
             note: We will update to do setup with GitHub connector/other external connectors/self host git/ AND THE URL SPECIFICATION FOR MANUAL REMOTE WILL ALSO BE AN OPTION AT THIS STEP, BUT AT THIS POINT, IT IS THE ONLY OPTION
           </div>
         </div>
       </div>
-      <div style="margin-top:1rem;text-align:right;">
+      <div style="margin-top:0.75rem;text-align:right;">
         <button id="newTabCreateBtn">Create</button>
         <button id="newTabCancelBtn">Close</button>
       </div>
@@ -326,16 +310,14 @@
       <div id="splashTitle">Nexum</div>
     </div>
     <div class="modal-content">
-      <div class="modal-heading-line">
-        <span>Alfe AI</span>
-      </div>
-      <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.6rem; margin-bottom:0.65rem;">
+      <h2 class="modal-title">Alfe AI</h2>
+      <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.45rem; margin-bottom:0.45rem;">
         <p style="margin:0; font-size:1.05rem; color:var(--text-color); opacity:0.8; text-align:center;">Privacy-first Intelligence</p>
         <img
           id="startDialogGif"
           src="/demo2.gif"
           alt="Alfe AI demo"
-          style="max-width:960px; width:100%; height:auto; max-height:clamp(180px, 45vh, 360px); object-fit:contain; cursor:pointer;"
+          style="max-width:960px; width:100%; height:auto; max-height:clamp(240px, 70vh, 520px); object-fit:contain; cursor:pointer;"
         />
       </div>
       <h3>Get Started</h3>
@@ -362,16 +344,16 @@
             <div>Project</div>
           </button>
         </div>
-        <div id="startRepoSection" style="margin-top:8px; display:none;">
+        <div id="startRepoSection" style="margin-top:6px; display:none;">
           <label>Git Repo SSH URL:<br/>
             <input type="text" id="startRepoInput" style="width:100%;" />
           </label>
-          <div style="font-size:0.9rem; margin-top:4px;">
+          <div style="font-size:0.9rem; margin-top:3px;">
             note: We will update to do setup with GitHub connector/other external connectors/self host git/ AND THE URL SPECIFICATION FOR MANUAL REMOTE WILL ALSO BE AN OPTION AT THIS STEP, BUT AT THIS POINT, IT IS THE ONLY OPTION
           </div>
         </div>
       </div>
-      <div id="storeBadges" style="margin-top:0.65rem; display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+      <div id="storeBadges" style="margin-top:0.4rem; display:flex; justify-content:center; gap:0.6rem; flex-wrap:wrap;">
         <a
           class="store-badge disabled"
           href="https://play.google.com/store/apps"
@@ -401,7 +383,7 @@
           />
         </a>
       </div>
-      <div id="startSocialLinks" style="margin-top:0.35rem; text-align:center;">
+      <div id="startSocialLinks" style="margin-top:0.3rem; text-align:center;">
         <a href="/about.html" target="_blank">About</a> |
         <a href="https://github.com/alfe-ai/alfe-ai-2.0_beta">GitHub</a> |
         <a href="https://bsky.app/profile/alfeai.bsky.social">Bluesky</a><!-- | -->
@@ -415,19 +397,19 @@
     </div>
   </div>
   <div id="aboutOverlay" style="display:none;" class="modal">
-    <div style="padding:1rem; width:100%; height:100%; overflow:auto; display:flex; flex-direction:column;">
+    <div style="padding:0.8rem; width:100%; height:100%; overflow:auto; display:flex; flex-direction:column;">
       <div style="display:flex; align-items:center;">
         <img src="/alfe_favicon_64x64.ico" style="width:32px;height:32px;" alt="Alfe AI icon"/>
         <span id="backToApp" style="margin-left:8px; cursor:pointer;">&larr; Back to App</span>
       </div>
-      <div style="margin-top:1rem; font-size:0.9rem; line-height:1.4;">
+      <div style="margin-top:0.75rem; font-size:0.9rem; line-height:1.35;">
         <p><strong>About Alfe AI</strong></p>
         <p>Alfe AI is an open source platform that combines AI-assisted image design, software development, and task management.</p>
         <p>All source code is available on <a href="https://github.com/alfe-ai/alfe-ai-Aurelix" target="_blank">GitHub</a> for self-hosting or customization. Alfe AI has a privacy-first philosophy, and your data is only used for purposes required by the application. Data is not sold or used for advertising.</p>
         <p>Alfe AI is Developed by <a href="https://lochner.tech" target="_blank">Lochner Tech</a>.</p>
         <p><strong>Our Story</strong></p>
         <p>We started in 2022 with a task management prototype called Aurora. The idea matured into Nexum, and by May 2025 we're focusing on integrating AI tools to streamline developer workflows.</p>
-        <p id="sessionIdDisplay" style="margin-top:0.5rem; display:none;">Session ID: <span id="sessionIdText"></span></p>
+        <p id="sessionIdDisplay" style="margin-top:0.35rem; display:none;">Session ID: <span id="sessionIdText"></span></p>
       </div>
     </div>
   </div>
