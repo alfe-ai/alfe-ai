@@ -57,6 +57,42 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+
+    #startDialog {
+      overflow-y: auto;
+      padding: clamp(1rem, 4vh, 2rem) clamp(1rem, 6vw, 2.5rem);
+      box-sizing: border-box;
+    }
+
+    #startDialog .modal-content {
+      width: min(600px, 100%);
+      margin-inline: auto;
+      margin-block: clamp(1rem, 6vh, 2.5rem);
+    }
+
+    #startDialog .splash-media h2 {
+      font-size: clamp(1.35rem, 6vw, 1.75rem);
+    }
+
+    #startDialog .splash-media p {
+      font-size: clamp(1rem, 4.5vw, 1.1rem);
+    }
+
+    #startSocialLinks {
+      line-height: 1.4;
+      word-break: break-word;
+      padding-inline: clamp(0.5rem, 4vw, 1rem);
+    }
+
+    @media (max-height: 640px) {
+      #startDialog {
+        align-items: flex-start;
+      }
+
+      #startDialog .modal-content {
+        margin-block: clamp(1rem, 8vh, 2.5rem);
+      }
+    }
   </style>
 </head>
 <body>
