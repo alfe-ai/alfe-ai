@@ -29,6 +29,34 @@
     #startDialog .modal-content {
       width: min(600px, 90vw);
     }
+
+    #storeBadges .store-badge {
+      position: relative;
+      display: inline-flex;
+      opacity: 0.9;
+    }
+
+    #storeBadges .store-badge.disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    #storeBadges .store-badge.disabled::after {
+      content: 'Soon';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-20deg);
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      pointer-events: none;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
   </style>
 </head>
 <body>
@@ -235,6 +263,36 @@
             note: We will update to do setup with GitHub connector/other external connectors/self host git/ AND THE URL SPECIFICATION FOR MANUAL REMOTE WILL ALSO BE AN OPTION AT THIS STEP, BUT AT THIS POINT, IT IS THE ONLY OPTION
           </div>
         </div>
+      </div>
+      <div id="storeBadges" style="margin-top:1rem; display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+        <a
+          class="store-badge disabled"
+          href="https://play.google.com/store/apps"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Get it on Google Play"
+          style="display:inline-flex;"
+        >
+          <img
+            src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+            alt="Get it on Google Play"
+            style="height:56px; width:auto;"
+          />
+        </a>
+        <a
+          class="store-badge disabled"
+          href="https://www.apple.com/app-store/"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Download on the App Store"
+          style="display:inline-flex;"
+        >
+          <img
+            src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store/US-UK/Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917.svg"
+            alt="Download on the App Store"
+            style="height:56px; width:auto;"
+          />
+        </a>
       </div>
       <div id="startSocialLinks" style="margin-top:0.5rem; text-align:center;">
         <a href="/about.html" target="_blank">About</a> |
