@@ -68,23 +68,64 @@
       width: min(600px, 100%);
       margin-inline: auto;
       margin-block: clamp(1rem, 6vh, 2.5rem);
-      padding: clamp(1rem, 5vw, 1.75rem);
+      padding: clamp(0.9rem, 4.5vw, 1.5rem);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      gap: clamp(0.75rem, 3vh, 1.5rem);
+      gap: clamp(0.5rem, 2vh, 1.1rem);
     }
 
     #startDialog .modal-content > * {
       width: 100%;
     }
 
-    #startDialog .splash-media h2 {
+    #startDialog .modal-heading-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(0.5rem, 2.5vw, 1rem);
+      width: 100%;
+      color: var(--text-color);
       font-size: clamp(1.35rem, 6vw, 1.75rem);
+      line-height: 1.2;
+      margin-top: -0.35rem;
+      margin-bottom: clamp(0.4rem, 1.8vh, 0.65rem);
+    }
+
+    #startDialog .modal-heading-line::before,
+    #startDialog .modal-heading-line::after {
+      content: "";
+      flex: 1;
+      border-top: 1px solid var(--border);
+      opacity: 0.7;
+    }
+
+    #startDialog .modal-heading-line span {
+      padding-inline: clamp(0.5rem, 2vw, 1rem);
     }
 
     #startDialog .splash-media p {
       font-size: clamp(1rem, 4.5vw, 1.1rem);
+    }
+
+    #startDialog .modal-content h3 {
+      margin: clamp(0.25rem, 1.8vh, 0.5rem) 0 clamp(0.35rem, 2vh, 0.55rem);
+      text-align: center;
+    }
+
+    #startDialog #startTypeButtons {
+      gap: clamp(0.4rem, 2vw, 0.6rem);
+    }
+
+    #startDialog #startTypeButtons .start-type-btn {
+      height: clamp(52px, 18vw, 64px);
+      padding-block: clamp(0.3rem, 2vw, 0.55rem);
+      font-size: clamp(0.95rem, 3.5vw, 1.05rem);
+    }
+
+    #startDialog #startTypeButtons .start-type-btn .icon {
+      font-size: clamp(1.15rem, 4.5vw, 1.35rem);
+      margin-bottom: 2px;
     }
 
     #startSocialLinks {
@@ -285,9 +326,11 @@
       <div id="splashTitle">Nexum</div>
     </div>
     <div class="modal-content">
-      <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-        <h2 style="margin:0; font-size:1.75rem; color:var(--text-color); text-align:center;">Alfe AI</h2>
-        <p style="margin:0; font-size:1.1rem; color:var(--text-color); opacity:0.8; text-align:center;">Privacy-first Intelligence</p>
+      <div class="modal-heading-line">
+        <span>Alfe AI</span>
+      </div>
+      <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.6rem; margin-bottom:0.65rem;">
+        <p style="margin:0; font-size:1.05rem; color:var(--text-color); opacity:0.8; text-align:center;">Privacy-first Intelligence</p>
         <img
           id="startDialogGif"
           src="/demo2.gif"
@@ -328,7 +371,7 @@
           </div>
         </div>
       </div>
-      <div id="storeBadges" style="margin-top:1rem; display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+      <div id="storeBadges" style="margin-top:0.65rem; display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
         <a
           class="store-badge disabled"
           href="https://play.google.com/store/apps"
@@ -358,7 +401,7 @@
           />
         </a>
       </div>
-      <div id="startSocialLinks" style="margin-top:0.5rem; text-align:center;">
+      <div id="startSocialLinks" style="margin-top:0.35rem; text-align:center;">
         <a href="/about.html" target="_blank">About</a> |
         <a href="https://github.com/alfe-ai/alfe-ai-2.0_beta">GitHub</a> |
         <a href="https://bsky.app/profile/alfeai.bsky.social">Bluesky</a><!-- | -->
