@@ -29,6 +29,34 @@
     #startDialog .modal-content {
       width: min(600px, 90vw);
     }
+
+    #storeBadges .store-badge {
+      position: relative;
+      display: inline-flex;
+      opacity: 0.9;
+    }
+
+    #storeBadges .store-badge.disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    #storeBadges .store-badge.disabled::after {
+      content: 'Soon';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-20deg);
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      pointer-events: none;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
   </style>
 </head>
 <body>
@@ -238,6 +266,7 @@
       </div>
       <div id="storeBadges" style="margin-top:1rem; display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
         <a
+          class="store-badge disabled"
           href="https://play.google.com/store/apps"
           target="_blank"
           rel="noopener noreferrer"
@@ -251,6 +280,7 @@
           />
         </a>
         <a
+          class="store-badge disabled"
           href="https://www.apple.com/app-store/"
           target="_blank"
           rel="noopener noreferrer"
