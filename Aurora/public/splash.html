@@ -70,8 +70,13 @@
       margin-block: clamp(1rem, 6vh, 2.5rem);
       padding: clamp(1rem, 5vw, 1.75rem);
       box-sizing: border-box;
-      max-height: calc(100vh - clamp(2.5rem, 14vh, 5rem));
-      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.75rem, 3vh, 1.5rem);
+    }
+
+    #startDialog .modal-content > * {
+      width: 100%;
     }
 
     #startDialog .splash-media h2 {
@@ -95,7 +100,6 @@
 
       #startDialog .modal-content {
         margin-block: clamp(0.5rem, 6vh, 1.5rem);
-        max-height: calc(100vh - clamp(1.5rem, 10vh, 3rem));
       }
     }
 
@@ -288,7 +292,7 @@
           id="startDialogGif"
           src="/demo2.gif"
           alt="Alfe AI demo"
-          style="max-width:960px; width:100%; height:auto; cursor:pointer;"
+          style="max-width:960px; width:100%; height:auto; max-height:clamp(180px, 45vh, 360px); object-fit:contain; cursor:pointer;"
         />
       </div>
       <h3>Get Started</h3>
