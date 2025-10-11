@@ -26,10 +26,6 @@
       display: none !important;
     }
 
-    #startDialog .modal-content {
-      width: min(600px, 90vw);
-    }
-
     #storeBadges .store-badge {
       position: relative;
       display: inline-flex;
@@ -60,7 +56,11 @@
 
     #startDialog {
       overflow-y: auto;
-      padding: clamp(1rem, 4vh, 2rem) clamp(1rem, 6vw, 2.5rem);
+      overflow-x: hidden;
+      padding-block: clamp(1rem, 4vh, 2rem);
+      padding-inline: clamp(1rem, 6vw, 2.5rem);
+      padding-top: max(env(safe-area-inset-top), clamp(1rem, 4vh, 2rem));
+      padding-bottom: max(env(safe-area-inset-bottom), clamp(1rem, 4vh, 2rem));
       box-sizing: border-box;
     }
 
@@ -68,6 +68,10 @@
       width: min(600px, 100%);
       margin-inline: auto;
       margin-block: clamp(1rem, 6vh, 2.5rem);
+      padding: clamp(1rem, 5vw, 1.75rem);
+      box-sizing: border-box;
+      max-height: calc(100vh - clamp(2.5rem, 14vh, 5rem));
+      overflow-y: auto;
     }
 
     #startDialog .splash-media h2 {
@@ -90,7 +94,26 @@
       }
 
       #startDialog .modal-content {
-        margin-block: clamp(1rem, 8vh, 2.5rem);
+        margin-block: clamp(0.5rem, 6vh, 1.5rem);
+        max-height: calc(100vh - clamp(1.5rem, 10vh, 3rem));
+      }
+    }
+
+    @media (max-width: 480px) {
+      #startDialog .modal-content {
+        padding: clamp(0.85rem, 6vw, 1.5rem);
+      }
+
+      #startDialog .splash-media h2 {
+        font-size: clamp(1.2rem, 7vw, 1.6rem);
+      }
+
+      #startDialog .splash-media p {
+        font-size: clamp(0.95rem, 5.5vw, 1.05rem);
+      }
+
+      #startSocialLinks {
+        font-size: clamp(0.85rem, 4vw, 0.95rem);
       }
     }
   </style>
