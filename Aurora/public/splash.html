@@ -26,6 +26,39 @@
       display: none !important;
     }
 
+    .about-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #7a5dff, #4cc3ff);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+    }
+
+    #sidebarToggle.sidebar-toggle-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-color);
+      font-size: 1.15rem;
+      cursor: pointer;
+    }
+
+    #sidebarToggle.sidebar-toggle-icon:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     #storeBadges .store-badge {
       position: relative;
       display: inline-flex;
@@ -40,7 +73,7 @@
     #storeBadges .store-badge.disabled::after {
       content: 'Soon';
       position: absolute;
-      top: 50%;
+      top: 42%;
       left: 50%;
       transform: translate(-50%, -50%) rotate(-20deg);
       background: var(--accent);
@@ -101,15 +134,58 @@
       gap: clamp(0.3rem, 1.2vw, 0.45rem);
     }
 
-    #startDialog #startTypeButtons .start-type-btn {
-      height: clamp(48px, 16vw, 60px);
+    #startDialog #startTypeButtons .start-type-btn,
+    #newTabModal #newTabTypeButtons .start-type-btn {
+      min-height: clamp(48px, 16vw, 60px);
       padding-block: clamp(0.25rem, 1.6vw, 0.45rem);
       font-size: clamp(0.93rem, 3.2vw, 1.02rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 4px;
+      height: auto;
     }
 
-    #startDialog #startTypeButtons .start-type-btn .icon {
+    #startDialog #startTypeButtons .start-type-btn .icon,
+    #newTabModal #newTabTypeButtons .start-type-btn .icon {
       font-size: clamp(1.1rem, 4vw, 1.3rem);
       margin-bottom: 1px;
+    }
+
+    #startDialog #startTypeButtons .start-type-btn.disabled,
+    #newTabModal #newTabTypeButtons .start-type-btn.disabled {
+      pointer-events: none;
+      opacity: 0.65;
+    }
+
+    #startDialog #startTypeButtons .start-type-btn.disabled .self-hosting-cta,
+    #newTabModal #newTabTypeButtons .start-type-btn.disabled .self-hosting-cta {
+      pointer-events: auto;
+    }
+
+    .self-hosting-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: clamp(0.65rem, 2.4vw, 0.75rem);
+      font-weight: 600;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      text-decoration: none;
+      text-align: center;
+      white-space: nowrap;
+      line-height: 1.2;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      max-width: 100%;
+    }
+
+    .self-hosting-cta:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.85);
+      outline-offset: 2px;
     }
 
     #startSocialLinks {
@@ -149,7 +225,7 @@
 </head>
 <body>
   <div class="app">
-    <img id="sidebarToggle" class="sidebar-toggle-icon" src="/alfe_favicon_64x64.ico" alt="Toggle sidebar" title="Toggle sidebar"/>
+    <button id="sidebarToggle" class="sidebar-toggle-icon" type="button" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
     <span id="logoText" style="position:absolute; top:12px; left:60px; font-size:1.4rem; color:var(--text-color);">Alfe AI</span>
     <a id="aboutLink" style="position:absolute; top:18px; left:130px; font-size:0.8rem; color:var(--text-color); cursor:pointer;">About</a>
     <aside id="sidebar">
@@ -277,14 +353,30 @@
             <div class="icon">💬</div>
             <div>Chat</div>
           </button>
-          <button data-type="code" class="start-type-btn disabled" disabled>
+          <div data-type="code" class="start-type-btn disabled" data-disabled="true" role="button" aria-disabled="true" tabindex="-1">
             <div class="icon">💻</div>
             <div>Code</div>
-          </button>
-          <button data-type="design" class="start-type-btn disabled" disabled>
+            <a
+              class="self-hosting-cta"
+              href="https://github.com/alfe-ai/Sterling_MIT"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Self-Host Now
+            </a>
+          </div>
+          <div data-type="design" class="start-type-btn disabled" data-disabled="true" role="button" aria-disabled="true" tabindex="-1">
             <div class="icon">🎨</div>
             <div>Design</div>
-          </button>
+            <a
+              class="self-hosting-cta"
+              href="https://github.com/alfe-ai/alfe-ai-2.0_beta"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Self-Host Now
+            </a>
+          </div>
         </div>
         <label style="margin-top:6px;">Message:<br/>
           <textarea id="newTabChatInput" rows="3" style="width:100%;" placeholder="Start chatting..."></textarea>
@@ -312,7 +404,12 @@
     <div class="modal-content">
       <h2 class="modal-title">Alfe AI</h2>
       <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.45rem; margin-bottom:0.45rem;">
-        <p style="margin:0; font-size:1.05rem; color:var(--text-color); opacity:0.8; text-align:center;">Privacy-first Intelligence</p>
+        <p
+          id="privacyTagline"
+          style="margin:0; font-size:1.05rem; color:var(--text-color); opacity:0.8; text-align:center;"
+        >
+          Secure, Open-source AI Workspace
+        </p>
         <img
           id="startDialogGif"
           src="/demo2.gif"
@@ -327,18 +424,42 @@
             <div class="icon">💬</div>
             <div>Chat</div>
           </button>
-          <button data-type="search" class="start-type-btn disabled" disabled>
+          <div data-type="search" class="start-type-btn disabled" data-disabled="true" role="button" aria-disabled="true" tabindex="-1">
             <div class="icon">🌐</div>
             <div>Search</div>
-          </button>
-          <button data-type="design" class="start-type-btn disabled" disabled>
+            <a
+              class="self-hosting-cta"
+              href="https://github.com/alfe-ai/alfe-ai-2.0_beta"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Self-Host Now
+            </a>
+          </div>
+          <div data-type="design" class="start-type-btn disabled" data-disabled="true" role="button" aria-disabled="true" tabindex="-1">
             <div class="icon">🎨</div>
             <div>Design</div>
-          </button>
-          <button data-type="code" class="start-type-btn disabled" disabled>
+            <a
+              class="self-hosting-cta"
+              href="https://github.com/alfe-ai/alfe-ai-2.0_beta"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Self-Host Now
+            </a>
+          </div>
+          <div data-type="code" class="start-type-btn disabled" data-disabled="true" role="button" aria-disabled="true" tabindex="-1">
             <div class="icon">💻</div>
             <div>Code</div>
-          </button>
+            <a
+              class="self-hosting-cta"
+              href="https://github.com/alfe-ai/Sterling_MIT"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Self-Host Now
+            </a>
+          </div>
           <button data-type="task" class="start-type-btn disabled" disabled>
             <div class="icon">📋</div>
             <div>Project</div>
@@ -377,9 +498,9 @@
           style="display:inline-flex;"
         >
           <img
-            src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store/US-UK/Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917.svg"
+            src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
             alt="Download on the App Store"
-            style="height:56px; width:auto;"
+            style="height:37px; width:auto; position: relative; top: 9px;"
           />
         </a>
       </div>
@@ -399,7 +520,7 @@
   <div id="aboutOverlay" style="display:none;" class="modal">
     <div style="padding:0.8rem; width:100%; height:100%; overflow:auto; display:flex; flex-direction:column;">
       <div style="display:flex; align-items:center;">
-        <img src="/alfe_favicon_64x64.ico" style="width:32px;height:32px;" alt="Alfe AI icon"/>
+        <div class="about-logo" aria-hidden="true">AA</div>
         <span id="backToApp" style="margin-left:8px; cursor:pointer;">&larr; Back to App</span>
       </div>
       <div style="margin-top:0.75rem; font-size:0.9rem; line-height:1.35;">
@@ -429,6 +550,8 @@
     let startInAurora = true;
     // Feature flag to enable advanced start options (Code, Design, Project)
     const splashOnlyMode = true;
+    const auroraRedirectUrl = 'https://mvp2.alfe.sh/aurora.html';
+    const auroraRedirectCookie = 'splashAutoRedirect';
     // Maintain a history of user-entered prompts
     const inputHistory = [];
     let inputHistoryPos = -1;
@@ -462,6 +585,31 @@
         clearTimeout(splashTimer);
         splashTimer = null;
       }
+    }
+
+    function setCookie(name, value, days = 365){
+      const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+    }
+
+    function getCookie(name){
+      const prefix = `${encodeURIComponent(name)}=`;
+      const parts = document.cookie.split(';');
+      for(const part of parts){
+        const trimmed = part.trim();
+        if(trimmed.startsWith(prefix)){
+          return decodeURIComponent(trimmed.slice(prefix.length));
+        }
+      }
+      return undefined;
+    }
+
+    function rememberAuroraRedirectPreference(){
+      setCookie(auroraRedirectCookie, '1');
+    }
+
+    function shouldAutoRedirectToAurora(){
+      return getCookie(auroraRedirectCookie) === '1';
     }
 
     function enforceSplashOnlyMode(){
@@ -1072,6 +1220,11 @@
       }
     }
     document.addEventListener('DOMContentLoaded', () => {
+      if(shouldAutoRedirectToAurora()){
+        window.location.replace(auroraRedirectUrl);
+        return;
+      }
+
       enforceSplashOnlyMode();
       // Display the generated session ID in the About overlay
       const sessEl = document.getElementById('sessionIdText');
@@ -1088,10 +1241,8 @@
       const startDialogGif = document.getElementById('startDialogGif');
       if(startDialogGif){
         startDialogGif.addEventListener('click', () => {
-          const chatBtn = document.querySelector('#startTypeButtons .start-type-btn[data-type="chat"]');
-          if(chatBtn && !chatBtn.disabled){
-            chatBtn.click();
-          }
+          rememberAuroraRedirectPreference();
+          window.location.href = auroraRedirectUrl;
         });
       }
 
@@ -1115,7 +1266,7 @@
     });
     document.querySelectorAll('#newTabTypeButtons .start-type-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        if(btn.disabled) return;
+        if(btn.disabled || btn.dataset.disabled === 'true') return;
         newTabSelectedType = btn.dataset.type;
         document.querySelectorAll('#newTabTypeButtons .start-type-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
@@ -1124,8 +1275,18 @@
     });
     document.querySelectorAll('#startTypeButtons .start-type-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        if(btn.disabled) return;
+        if(btn.disabled || btn.dataset.disabled === 'true') return;
+        if(btn.dataset.type === 'chat'){
+          rememberAuroraRedirectPreference();
+          window.location.href = auroraRedirectUrl;
+          return;
+        }
         createStartTab(btn.dataset.type);
+      });
+    });
+    document.querySelectorAll('.self-hosting-cta').forEach(link => {
+      link.addEventListener('click', e => {
+        e.stopPropagation();
       });
     });
     document.getElementById('viewTabChat').addEventListener('click', () => updateView('chat'));
@@ -1141,12 +1302,34 @@
         const btn = document.querySelector(`#startTypeButtons .start-type-btn[data-type="${t}"]`);
         if(btn){
           btn.classList.toggle('disabled', disabled);
-          btn.disabled = disabled;
+          btn.dataset.disabled = disabled ? 'true' : 'false';
+          if(btn.tagName === 'BUTTON'){
+            btn.disabled = disabled;
+          } else {
+            if(disabled){
+              btn.setAttribute('aria-disabled', 'true');
+              btn.setAttribute('tabindex', '-1');
+            } else {
+              btn.removeAttribute('aria-disabled');
+              btn.setAttribute('tabindex', '0');
+            }
+          }
         }
         const newBtn = document.querySelector(`#newTabTypeButtons .start-type-btn[data-type="${t}"]`);
         if(newBtn){
           newBtn.classList.toggle('disabled', disabled);
-          newBtn.disabled = disabled;
+          newBtn.dataset.disabled = disabled ? 'true' : 'false';
+          if(newBtn.tagName === 'BUTTON'){
+            newBtn.disabled = disabled;
+          } else {
+            if(disabled){
+              newBtn.setAttribute('aria-disabled', 'true');
+              newBtn.setAttribute('tabindex', '-1');
+            } else {
+              newBtn.removeAttribute('aria-disabled');
+              newBtn.setAttribute('tabindex', '0');
+            }
+          }
         }
       });
       showDependencies = localStorage.getItem('flagShowDependencies') === 'true';
