@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alfe AI - AI Image Design and Software Development Platform</title>
   <link id="themeStylesheet" rel="stylesheet" href="/nexum.css" />
+  <link id="favicon" rel="icon" type="image/x-icon" href="/alfe_favicon_64x64.ico" />
   <style>
     .app {
       display: none !important;
@@ -20,33 +21,15 @@
       display: none !important;
     }
 
-    .splash-visual {
-      width: 100%;
+    #startDialogGif {
       max-width: 960px;
-      height: clamp(240px, 70vh, 520px);
+      width: 100%;
+      height: auto;
+      max-height: clamp(240px, 70vh, 520px);
       border-radius: 18px;
-      background: radial-gradient(circle at 20% 20%, rgba(137, 101, 255, 0.35), transparent 60%),
-                  radial-gradient(circle at 80% 10%, rgba(255, 162, 235, 0.35), transparent 55%),
-                  radial-gradient(circle at 50% 80%, rgba(90, 198, 255, 0.25), transparent 60%),
-                  linear-gradient(145deg, rgba(38, 35, 72, 0.9), rgba(21, 24, 42, 0.85));
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(6px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: clamp(1rem, 5vw, 2.5rem);
-      box-sizing: border-box;
-      color: rgba(255, 255, 255, 0.92);
-      text-align: center;
-      font-size: clamp(1.05rem, 4vw, 1.35rem);
-      font-weight: 500;
-      letter-spacing: 0.02em;
-    }
-
-    .splash-visual span {
-      font-size: clamp(1.15rem, 5vw, 1.45rem);
-      opacity: 0.85;
+      object-fit: contain;
+      cursor: pointer;
     }
 
     .about-logo {
@@ -369,10 +352,12 @@
       <h2 class="modal-title">Alfe AI</h2>
       <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.45rem; margin-bottom:0.45rem;">
         <p style="margin:0; font-size:1.05rem; color:var(--text-color); opacity:0.8; text-align:center;">Privacy-first Intelligence</p>
-        <div id="startDialogVisual" class="splash-visual">
-          <strong>Preview coming soon.</strong>
-          <span>Experience the Aurora and Nexum platforms re-imagined for your workflow.</span>
-        </div>
+        <img
+          id="startDialogGif"
+          src="/demo2.gif"
+          alt="Alfe AI demo"
+          loading="lazy"
+        />
       </div>
       <h3>Get Started</h3>
       <div>
@@ -1139,9 +1124,9 @@
         })
         .catch(() => {});
 
-      const startDialogVisual = document.getElementById('startDialogVisual');
-      if(startDialogVisual){
-        startDialogVisual.addEventListener('click', () => {
+      const startDialogGif = document.getElementById('startDialogGif');
+      if(startDialogGif){
+        startDialogGif.addEventListener('click', () => {
           const chatBtn = document.querySelector('#startTypeButtons .start-type-btn[data-type="chat"]');
           if(chatBtn && !chatBtn.disabled){
             chatBtn.click();

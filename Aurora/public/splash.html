@@ -5,12 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Alfe AI - AI Image Design and Software Development Platform</title>
   <link id="themeStylesheet" rel="stylesheet" href="/nexum.css" />
-  <link
-          id="favicon"
-          rel="icon"
-          type="image/x-icon"
-          href="/alfe_favicon_64x64.ico"
-  />
+  <link id="favicon" rel="icon" type="image/x-icon" href="/alfe_favicon_64x64.ico" />
   <style>
     .app {
       display: none !important;
@@ -24,6 +19,50 @@
     #viewTabsBar,
     #cookieBanner {
       display: none !important;
+    }
+
+    #startDialogGif {
+      max-width: 960px;
+      width: 100%;
+      height: auto;
+      max-height: clamp(240px, 70vh, 520px);
+      border-radius: 18px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      object-fit: contain;
+      cursor: pointer;
+    }
+
+    .about-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #7a5dff, #4cc3ff);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+    }
+
+    #sidebarToggle.sidebar-toggle-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-color);
+      font-size: 1.15rem;
+      cursor: pointer;
+    }
+
+    #sidebarToggle.sidebar-toggle-icon:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     #storeBadges .store-badge {
@@ -149,7 +188,7 @@
 </head>
 <body>
   <div class="app">
-    <img id="sidebarToggle" class="sidebar-toggle-icon" src="/alfe_favicon_64x64.ico" alt="Toggle sidebar" title="Toggle sidebar"/>
+    <button id="sidebarToggle" class="sidebar-toggle-icon" type="button" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
     <span id="logoText" style="position:absolute; top:12px; left:60px; font-size:1.4rem; color:var(--text-color);">Alfe AI</span>
     <a id="aboutLink" style="position:absolute; top:18px; left:130px; font-size:0.8rem; color:var(--text-color); cursor:pointer;">About</a>
     <aside id="sidebar">
@@ -317,7 +356,7 @@
           id="startDialogGif"
           src="/demo2.gif"
           alt="Alfe AI demo"
-          style="max-width:960px; width:100%; height:auto; max-height:clamp(240px, 70vh, 520px); object-fit:contain; cursor:pointer;"
+          loading="lazy"
         />
       </div>
       <h3>Get Started</h3>
@@ -399,7 +438,7 @@
   <div id="aboutOverlay" style="display:none;" class="modal">
     <div style="padding:0.8rem; width:100%; height:100%; overflow:auto; display:flex; flex-direction:column;">
       <div style="display:flex; align-items:center;">
-        <img src="/alfe_favicon_64x64.ico" style="width:32px;height:32px;" alt="Alfe AI icon"/>
+        <div class="about-logo" aria-hidden="true">AA</div>
         <span id="backToApp" style="margin-left:8px; cursor:pointer;">&larr; Back to App</span>
       </div>
       <div style="margin-top:0.75rem; font-size:0.9rem; line-height:1.35;">
