@@ -1,9 +1,50 @@
 // sessionId is defined in session.js and available globally
 // sessionId is provided globally by session.js
 const defaultTitle = "Alfe - AI Project Management, Image Design, and Software Development Platform";
-// Disable automatic scrolling of the chat by default. Manual scrolling
-// (e.g. via the scroll down button) can still force scrolling.
-let chatAutoScroll = false;
+// Enable automatic scrolling of the chat by default so new messages stay in view.
+// Manual scrolling (e.g. via the scroll down button) can still force scrolling.
+let chatAutoScroll = true;
+const isEmbedded = (() => {
+  try {
+    return window.self !== window.top;
+  } catch (err) {
+    return true;
+  }
+})();
+
+let sidebarForcedHidden = false;
+
+function ensureSidebarHiddenForEmbed(){
+  if(sidebarForcedHidden) return;
+  sidebarForcedHidden = true;
+  const appEl = document.querySelector('.app');
+  if(appEl){
+    appEl.classList.add('embed-sidebar-hidden');
+    appEl.classList.remove('sidebar-collapsed');
+  }
+  const sidebarEl = document.querySelector('.sidebar');
+  if(sidebarEl){
+    sidebarEl.style.display = 'none';
+    sidebarEl.setAttribute('aria-hidden', 'true');
+  }
+  const dividerEl = document.getElementById('divider');
+  if(dividerEl) dividerEl.style.display = 'none';
+  const thinSidebar = document.getElementById('thinSidebar');
+  if(thinSidebar) thinSidebar.style.display = 'none';
+  const collapsedLogo = document.getElementById('collapsedSidebarLogo');
+  if(collapsedLogo) collapsedLogo.style.display = 'none';
+  const expandArrow = document.getElementById('expandSidebarArrow');
+  if(expandArrow) expandArrow.style.display = 'none';
+  const expandBtn = document.getElementById('expandSidebarBtn');
+  if(expandBtn) expandBtn.style.display = 'none';
+  const toggleIcon = document.getElementById('sidebarToggleIcon');
+  if(toggleIcon) toggleIcon.style.display = 'none';
+  const hideBtn = document.getElementById('hideSidebarBtn');
+  if(hideBtn) hideBtn.style.display = 'none';
+  const closeIcon = document.getElementById('closeSidebarIcon');
+  if(closeIcon) closeIcon.style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const sessEl = document.getElementById('sessionIdText');
   if (sessEl) sessEl.textContent = sessionId;
@@ -47,6 +88,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       .then(r => r.ok ? r.json() : null)
       .then(data => updateAccountButton(data))
       .catch(err => console.error('Failed to fetch account', err));
+  }
+
+  if(isEmbedded){
+    sidebarVisible = false;
+    ensureSidebarHiddenForEmbed();
   }
 
   updateChatPanelVisibility();
@@ -104,19 +150,75 @@ let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
 let mosaicPanelVisible = false;
 let mosaicEditingFile = null;
-let sidebarVisible = window.innerWidth > 700;
+let sidebarVisible = isEmbedded ? false : window.innerWidth > 700;
 let chatTabs = [];
 let archivedTabs = [];
-let currentTabId = 1;
+let currentTabId = null;
 let initialTabUuid = null;
 let currentTabType = 'chat';
 const mosaicAllowedTypes = ['PM AGI', 'task'];
-let chatHideMetadata = false;
+let chatHideMetadata = true;
 let chatTabAutoNaming = false;
 let showSubbubbleToken = false;
 let sterlingChatUrlVisible = true;
 let projectInfoBarVisible = true; // visibility of the project/Sterling bar
-let auroraProjectBarVisible = true; // new flag to show/hide Aurora project controls
+let suppressArchiveRedirect = false;
+
+const alfeGreetingMessages = (() => {
+  const openers = [
+    "Hello! I'm Alfe, your AI assistant.",
+    "Hi there! Alfe here, ready to collaborate.",
+    "Greetings! You're chatting with Alfe.",
+    "Welcome! Alfe is online and ready to help.",
+    "Hey! It's Alfe, your project partner.",
+    "Good to see you! Alfe reporting for duty.",
+    "Hello again! Alfe is tuned in.",
+    "Hi! Alfe at your service.",
+    "Hey there! Alfe is ready when you are.",
+    "Welcome back! Alfe is here to assist."
+  ];
+  const closers = [
+    "What can I help you build today?",
+    "How can I support your project right now?",
+    "Ready when you are—what's next?",
+    "What would you like to explore first?",
+    "How can I make your workflow easier?",
+    "What challenge should we tackle together?",
+    "How may I assist you today?",
+    "Let me know what you need.",
+    "What should we focus on?",
+    "How can I help you today?"
+  ];
+  const messages = [];
+  openers.forEach(opener => {
+    closers.forEach(closer => {
+      messages.push(`${opener} ${closer}`);
+    });
+  });
+  return messages;
+})();
+
+function getRandomAlfeGreeting(){
+  if(!alfeGreetingMessages.length){
+    return "Hello, I'm Alfe. How can I help you today?";
+  }
+  const idx = Math.floor(Math.random() * alfeGreetingMessages.length);
+  return alfeGreetingMessages[idx];
+}
+
+function updateArchiveChatButton(){
+  const btn = document.getElementById("archiveChatBtn");
+  if(!btn) return;
+  const current = chatTabs.find(t => t.id === currentTabId);
+  const canArchive = !!current && !current.archived;
+  btn.disabled = !canArchive;
+  btn.setAttribute("aria-disabled", canArchive ? "false" : "true");
+  btn.title = canArchive ? "Archive current chat" : "No active chat to archive";
+}
+
+const FORCE_HIDE_PROJECT_BAR = true; // temporarily keep the Aurora project controls hidden
+
+let auroraProjectBarVisible = false; // new flag to show/hide Aurora project controls
 let chatStreaming = true; // new toggle for streaming
 let enterSubmitsMessage = true; // new toggle for Enter key submit
 let chatQueueEnabled = false; // queue additional messages
@@ -140,12 +242,12 @@ let collapsedChildTabs = {};      // parent chat tab collapse states
 let chatTabOrder = {};            // per-project tab ordering
 let projectHeaderOrder = [];      // order of project headers
 let draggingTabRow = null;        // element of tab row being dragged
-let subDropTarget = null;         // tab row being hovered to drop as child
 let draggingProjectHeader = null; // project header currently being dragged
 let topDropBar = null;            // drop target above first chat
 let projectAddTooltip = null;     // floating toolbar for project add button
 let projectAddTooltipProject = null;
 let projectAddTooltipTimer = null;
+let projectAddTooltipEnabled = false; // temporarily hide the project add tooltip/search button
 let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
@@ -156,7 +258,8 @@ let imageGenModel = 'gptimage1';
 let isImageGenerating = false; // true while an image is being generated
 let lastImagePrompt = null; // avoid repeating generation for same prompt
 let currentChatAbort = null; // AbortController for streaming chat
-let imageUploadEnabled = true; // show image upload button
+let imageUploadEnabled = false; // show image upload button (temporarily disabled)
+const pasteImageUploadsEnabled = false; // allow Ctrl+V image uploads (temporarily disabled)
 let imagePaintTrayEnabled = true; // show image paint tray button
 let activityIframeMenuVisible = false; // show Activity IFrame menu item
 let nexumChatMenuVisible = false;     // show Nexum Chat menu item
@@ -170,7 +273,6 @@ let chatTabsMenuVisible = true;     // show Chats button
 let showSessionId = false;          // display session ID hash
 let upArrowHistoryEnabled = true;    // use Arrow Up/Down for input history
 let newTabProjectNameEnabled = true; // show Project name field in New Tab dialog
-let newTabOpensSearch = false;       // /new creates search tab
 let chatSubroutines = [];
 let actionHooks = [];
 let editingSubroutineId = null;
@@ -180,8 +282,11 @@ let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
 let aiResponsesEnabled = true; // allow AI responses
+
+let tabOptionsMenu = null;
+let tabOptionsMenuTarget = null;
 const reasoningChatModels = [
-  'deepseek/deepseek-chat-v3-0324',
+  'openrouter/deepseek/deepseek-chat-v3-0324',
   'openai/gpt-4o-mini',
   'openai/gpt-4.1-mini',
   'openai/gpt-4o',
@@ -205,8 +310,8 @@ let modelTabs = [];
 let currentModelTabId = null;
 let modelTabsBarVisible = false;
 
-const defaultFavicon = "/alfe_favicon_64x64.ico";
-const rotatingFavicon = "/alfe_favicon_64x64.ico";
+const defaultFavicon = "/alfe_favicon_chat_mountain_rect_purple_WHITEBG.ico";
+const rotatingFavicon = "/alfe_favicon_chat_mountain_rect_purple_WHITEBG.ico";
 let favElement = null;
 
 const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖", search: "🔍" };
@@ -509,6 +614,10 @@ function saveTasksOnlyTabs(){
 function loadHideArchivedTabs(){
   const val = localStorage.getItem('hideArchivedTabs');
   hideArchivedTabs = val === null ? true : val === 'true';
+  if(!hideArchivedTabs){
+    hideArchivedTabs = true;
+    saveHideArchivedTabs();
+  }
 }
 
 function saveHideArchivedTabs(){
@@ -684,6 +793,103 @@ function addFilesFromCodeBlocks(text){
   });
 }
 
+function getDisplayModelName(model){
+  if(!model) return '';
+  let displayName = String(model).trim();
+  if(!displayName) return '';
+  const prefixes = ['openrouter/', 'deepseek/'];
+  for(const prefix of prefixes){
+    if(displayName.startsWith(prefix)){
+      displayName = displayName.slice(prefix.length);
+    }
+  }
+  return displayName;
+}
+
+function appendModelInfoIcon(container, model){
+  if(!container || !model) return;
+  const trimmedModel = String(model).trim();
+  if(!trimmedModel || trimmedModel.startsWith('prefab/')) return;
+  const header = container.querySelector('.bubble-header') || container;
+  const displayModel = getDisplayModelName(trimmedModel);
+  const existingIcons = Array.from(container.querySelectorAll('.chat-model-info'));
+  for(const existing of existingIcons){
+    if(existing.parentElement !== header){
+      existing.remove();
+    }
+  }
+  let icon = header.querySelector('.chat-model-info');
+  if(!icon){
+    icon = document.createElement('div');
+    icon.className = 'chat-model-info';
+    header.appendChild(icon);
+  }
+  if(!icon.querySelector('.chat-model-info-symbol')){
+    icon.textContent = '';
+    const glyph = document.createElement('span');
+    glyph.className = 'chat-model-info-symbol';
+    glyph.textContent = 'i';
+    icon.appendChild(glyph);
+  }
+  icon.setAttribute('role', 'img');
+  icon.setAttribute('tabindex', '0');
+  icon.setAttribute('aria-label', `AI model: ${displayModel || trimmedModel}`);
+  icon.setAttribute('data-tooltip', displayModel || trimmedModel);
+  icon.removeAttribute('title');
+  icon.dataset.fullModel = trimmedModel;
+  container.classList.add('has-model-info');
+}
+
+function appendModelLabel(container, model, displayName, tokenInfo){
+  if(!container || !model) return;
+  const trimmedModel = String(model).trim();
+  if(!trimmedModel || trimmedModel.startsWith('prefab/')) return;
+
+  let parsedTokenInfo = null;
+  if(tokenInfo){
+    try {
+      parsedTokenInfo = typeof tokenInfo === 'string' ? JSON.parse(tokenInfo) : tokenInfo;
+    } catch(e){
+      parsedTokenInfo = null;
+    }
+  }
+
+  let responseSeconds = null;
+  if(parsedTokenInfo && typeof parsedTokenInfo.responseTime === 'number'){
+    const seconds = parsedTokenInfo.responseTime * 10;
+    if(Number.isFinite(seconds)){
+      responseSeconds = seconds;
+    }
+  }
+
+  const baseDisplay = (displayName && String(displayName).trim()) || trimmedModel;
+  const labelText = getDisplayModelName(baseDisplay) || getDisplayModelName(trimmedModel) || trimmedModel;
+
+  const tooltipParts = [];
+  if(labelText){
+    tooltipParts.push(labelText);
+  }
+  if(responseSeconds !== null){
+    tooltipParts.push(`${responseSeconds.toFixed(2)}s`);
+  }
+  const tooltipText = tooltipParts.join(' • ') || trimmedModel;
+
+  const icon = container.querySelector('.chat-model-info');
+  if(icon){
+    icon.setAttribute('data-tooltip', tooltipText);
+    icon.setAttribute('aria-label', `AI model: ${tooltipText}`);
+    icon.removeAttribute('title');
+    icon.dataset.fullModel = trimmedModel;
+  }
+
+  const existingLabel = container.querySelector('.chat-model-label');
+  if(existingLabel){
+    existingLabel.remove();
+  }
+
+  container.classList.add('has-model-info');
+}
+
 function isMobileViewport(){
   return window.innerWidth <= 700;
 }
@@ -771,65 +977,23 @@ async function openSettingsModal(e){
   if(accountInfo){
     const tzEl = document.getElementById('accountTimezone');
     if(tzEl) tzEl.value = accountInfo.timezone || '';
-    const loopSection = document.getElementById('imageLoopSection');
-    const loopCheck = document.getElementById('accountImageLoopCheck');
-    if(loopSection && loopCheck){
-      const allowed = accountInfo.id === 1;
-      loopSection.style.display = allowed ? 'block' : 'none';
-      loopCheck.checked = imageLoopEnabled;
-    }
   }
   const autoScrollCheck = document.getElementById('accountAutoScrollCheck');
   if(autoScrollCheck){
     autoScrollCheck.checked = chatAutoScroll;
   }
-  const metaCheck = document.getElementById('accountShowMetadataCheck');
-  if(metaCheck){
-    metaCheck.checked = !chatHideMetadata;
-  }
   const mobileCheck = document.getElementById('mobileThinSidebarCheck');
   if(mobileCheck){
     mobileCheck.checked = mobileSidebarToolbar;
   }
-  const newTabSearchCheck = document.getElementById('accountNewTabSearchCheck');
-  if(newTabSearchCheck){
-    newTabSearchCheck.checked = newTabOpensSearch;
-  }
   const defaultModelSelect = document.getElementById('defaultModelSelect');
   if(defaultModelSelect){
-    defaultModelSelect.innerHTML = '<option>Loading...</option>';
-    try{
-      const resp = await fetch('/api/ai/models');
-      if(resp.ok){
-        const data = await resp.json();
-        const models = data.models || [];
-        const favs = models.filter(m => m.favorite);
-        const nonFavs = models.filter(m => !m.favorite);
-        defaultModelSelect.innerHTML = '';
-        nonFavs.forEach(m => defaultModelSelect.appendChild(new Option(m.id, m.id)));
-        const favGroup = document.createElement('optgroup');
-        favGroup.label = 'Favorites';
-        if(favs.length===0){
-          favGroup.appendChild(new Option('(none)', ''));
-        } else {
-          favs.forEach(m => favGroup.appendChild(new Option(m.id, m.id)));
-        }
-        defaultModelSelect.appendChild(favGroup);
-      } else {
-        defaultModelSelect.innerHTML = '<option>Error</option>';
-      }
-      const curModel = await getSetting('ai_model');
-      if(curModel){
-        const opts = Array.from(defaultModelSelect.querySelectorAll('option')).map(o=>o.value);
-        if(!opts.includes(curModel)){
-          defaultModelSelect.appendChild(new Option(curModel,curModel));
-        }
-        defaultModelSelect.value = curModel;
-      }
-    }catch(err){
-      console.error('Failed loading models for settings', err);
-      defaultModelSelect.innerHTML = '<option>Error</option>';
-    }
+    const currentModel = settingsCache.ai_model || modelName || '';
+    const label = currentModel || 'Managed automatically';
+    defaultModelSelect.innerHTML = '';
+    const opt = new Option(label, currentModel, true, true);
+    defaultModelSelect.appendChild(opt);
+    defaultModelSelect.disabled = true;
   }
   showModal(document.getElementById("settingsModal"));
 }
@@ -838,6 +1002,12 @@ async function openSettingsModal(e){
 function updateAccountButton(info){
   const btn = document.getElementById("signupBtn");
   const favBtn = document.getElementById("aiFavoritesBtn");
+  if(btn){
+    btn.style.display = "none";
+  }
+  if(favBtn){
+    favBtn.style.display = "none";
+  }
   if(!btn) return;
   btn.removeEventListener("click", openSignupModal);
   btn.removeEventListener("click", openAccountModal);
@@ -846,20 +1016,13 @@ function updateAccountButton(info){
     accountInfo = info;
     btn.textContent = "Account";
     btn.addEventListener("click", openAccountModal);
-    btn.style.display = "inline-block";
-    if(favBtn){
-      favBtn.style.display = info.id === 1 ? "inline-block" : "none";
-    }
     togglePortfolioMenu(info.id === 1);
     toggleImageIdColumn();
     toggleDesignTabs(info.plan === 'Pro' || info.plan === 'Ultimate');
   } else {
     accountInfo = null;
     btn.textContent = "Sign Up / Login";
-  btn.addEventListener("click", openSignupModal);
-    if(favBtn){
-      favBtn.style.display = "none";
-    }
+    btn.addEventListener("click", openSignupModal);
     togglePortfolioMenu(false);
     toggleImageIdColumn();
     toggleDesignTabs(false);
@@ -970,6 +1133,78 @@ function appendChatElement(el){
   } else {
     chatMessagesEl.appendChild(el);
   }
+}
+
+function renderInitialGreeting(message=null){
+  const chatMessagesEl = document.getElementById("chatMessages");
+  if(!chatMessagesEl) return;
+
+  if(chatMessagesEl.querySelector('.initial-greeting')) return;
+
+  const placeholderEl = document.getElementById("chatPlaceholder");
+  if(placeholderEl) placeholderEl.remove();
+
+  const isoNow = new Date().toISOString();
+  const dateStr = isoDate(isoNow);
+  if(lastChatDate !== dateStr){
+    const dateDiv = document.createElement("div");
+    dateDiv.className = "chat-date-header";
+    dateDiv.textContent = dateStr;
+    appendChatElement(dateDiv);
+    lastChatDate = dateStr;
+  }
+
+  const seqDiv = document.createElement("div");
+  seqDiv.className = "chat-sequence initial-greeting";
+
+  const botDiv = document.createElement("div");
+  botDiv.className = "chat-bot";
+
+  const botHead = document.createElement("div");
+  botHead.className = "bubble-header";
+  botHead.innerHTML = `
+    <div class="name-oval name-oval-ai">${window.agentName || 'Alfe'}</div>
+    <span style="opacity:0.8;">${formatTimestamp(isoNow)}</span>
+  `;
+  botDiv.appendChild(botHead);
+
+  const botBody = document.createElement("div");
+  const greetingText = message || getRandomAlfeGreeting();
+  botBody.innerHTML = formatCodeBlocks(greetingText);
+  botDiv.appendChild(botBody);
+
+  seqDiv.appendChild(botDiv);
+
+  appendChatElement(seqDiv);
+  scrollChatToBottom(true);
+
+  return greetingText;
+}
+
+function persistPrefabGreeting(tabId, text){
+  if(prefabGreetingPendingTabs.has(tabId)) return;
+  const trimmed = (text || '').trim();
+  if(!trimmed) return;
+  prefabGreetingPendingTabs.add(tabId);
+  (async () => {
+    try {
+      const resp = await fetch('/api/chat/pairs/prefab', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tabId, text: trimmed, kind: 'greeting', sessionId })
+      });
+      if(resp.ok){
+        setTimeout(() => loadChatHistory(tabId, true), 100);
+      } else {
+        const errText = await resp.text().catch(() => '');
+        console.error('Failed to persist prefab greeting', errText);
+      }
+    } catch(err){
+      console.error('Failed to persist prefab greeting:', err);
+    } finally {
+      prefabGreetingPendingTabs.delete(tabId);
+    }
+  })();
 }
 
 function queueMessage(text){
@@ -1133,6 +1368,96 @@ function updateMosaicPanelVisibility(){
   if(settingsLbl) settingsLbl.style.display = canUseMosaic() ? '' : 'none';
 }
 
+function closeTabOptionsMenu(){
+  if(!tabOptionsMenu) return;
+  tabOptionsMenu.remove();
+  tabOptionsMenu = null;
+  tabOptionsMenuTarget = null;
+  document.removeEventListener('click', handleTabOptionsOutsideClick, true);
+  document.removeEventListener('keydown', handleTabOptionsKeydown, true);
+  window.removeEventListener('resize', handleTabOptionsResize);
+}
+
+function handleTabOptionsOutsideClick(evt){
+  if(!tabOptionsMenu) return;
+  if(tabOptionsMenu.contains(evt.target) || evt.target === tabOptionsMenuTarget){
+    return;
+  }
+  closeTabOptionsMenu();
+}
+
+function handleTabOptionsKeydown(evt){
+  if(evt.key === 'Escape'){ closeTabOptionsMenu(); }
+}
+
+function handleTabOptionsResize(){
+  closeTabOptionsMenu();
+}
+
+function openTabOptionsMenu(tab, anchor){
+  closeTabOptionsMenu();
+  tabOptionsMenuTarget = anchor;
+  tabOptionsMenu = document.createElement('div');
+  tabOptionsMenu.className = 'tab-options-menu';
+
+  const makeItem = (label, action) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-options-item';
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      closeTabOptionsMenu();
+      action();
+    });
+    tabOptionsMenu.appendChild(btn);
+  };
+
+  makeItem('Rename', () => renameTab(tab.id));
+  makeItem(tab.archived ? 'Unarchive' : 'Archive', () => toggleArchiveTab(tab.id, tab.archived ? 0 : 1));
+
+  document.body.appendChild(tabOptionsMenu);
+
+  const rect = anchor.getBoundingClientRect();
+  let left = rect.left + window.scrollX;
+  const top = rect.bottom + window.scrollY;
+  tabOptionsMenu.style.top = `${top}px`;
+  tabOptionsMenu.style.left = `${left}px`;
+
+  const viewportRight = window.scrollX + window.innerWidth;
+  const menuRight = left + tabOptionsMenu.offsetWidth;
+  if(menuRight > viewportRight){
+    left = Math.max(window.scrollX + 8, viewportRight - tabOptionsMenu.offsetWidth - 8);
+    tabOptionsMenu.style.left = `${left}px`;
+  }
+
+  requestAnimationFrame(() => {
+    if(tabOptionsMenu) tabOptionsMenu.classList.add('visible');
+  });
+
+  document.addEventListener('click', handleTabOptionsOutsideClick, true);
+  document.addEventListener('keydown', handleTabOptionsKeydown, true);
+  window.addEventListener('resize', handleTabOptionsResize);
+}
+
+function toggleTabOptionsMenu(tab, anchor){
+  if(tabOptionsMenu && tabOptionsMenuTarget === anchor){
+    closeTabOptionsMenu();
+  }else{
+    openTabOptionsMenu(tab, anchor);
+  }
+}
+
+function createTabOptionsButton(tab){
+  const btn = document.createElement('button');
+  btn.innerHTML = '&#9881;';
+  btn.className = 'tab-options-trigger';
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleTabOptionsMenu(tab, btn);
+  });
+  return btn;
+}
+
 async function toggleMosaicPanel(){
   if(!canUseMosaic()) return;
   mosaicPanelVisible = !mosaicPanelVisible;
@@ -1144,6 +1469,7 @@ async function toggleMosaicPanel(){
 }
 
 async function toggleSidebar(){
+  if(isEmbedded) return;
   sidebarVisible = !sidebarVisible;
   const sidebarEl = $(".sidebar");
   const dividerEl = $("#divider");
@@ -1332,7 +1658,7 @@ async function loadSettings(){
     "ai_models_menu_visible","tasks_menu_visible","jobs_menu_visible",
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
-    "new_tab_project_enabled","new_tab_opens_search","group_tabs_by_project",
+    "new_tab_project_enabled","group_tabs_by_project",
     "search_enabled","ai_search_model",
     "reasoning_enabled","ai_reasoning_model","ai_vision_model",
     "ai_responses_enabled",
@@ -1373,38 +1699,55 @@ async function loadSettings(){
   }
   $("#chatSubroutinesPanel").style.display = subroutinePanelVisible ? "" : "none";
 
-  if(typeof map.sidebar_visible !== "undefined"){
+  if(typeof map.sidebar_visible !== "undefined" && !isEmbedded){
     sidebarVisible = !!map.sidebar_visible;
   }
-  if(isMobileViewport()){
+  if(isEmbedded){
+    sidebarVisible = false;
+  } else if(isMobileViewport()){
     sidebarVisible = false;
   }
-  $(".sidebar").classList.toggle("collapsed", !sidebarVisible);
-  $("#divider").style.display = sidebarVisible ? "" : "none";
-  const toggleSidebarBtn = $("#toggleSidebarBtn");
-  if(toggleSidebarBtn){
-    toggleSidebarBtn.textContent = sidebarVisible ? "Hide sidebar" : "Show sidebar";
+
+  if(isEmbedded){
+    ensureSidebarHiddenForEmbed();
+  } else {
+    const sidebarEl = $(".sidebar");
+    if(sidebarEl){
+      sidebarEl.classList.toggle("collapsed", !sidebarVisible);
+    }
+    const dividerEl = $("#divider");
+    if(dividerEl){
+      dividerEl.style.display = sidebarVisible ? "" : "none";
+    }
+    const toggleSidebarBtn = $("#toggleSidebarBtn");
+    if(toggleSidebarBtn){
+      toggleSidebarBtn.textContent = sidebarVisible ? "Hide sidebar" : "Show sidebar";
+    }
+    const expandSidebarBtn = document.getElementById("expandSidebarBtn");
+    if(expandSidebarBtn){
+      expandSidebarBtn.style.display = "none";
+    }
+    const collapsedLogoInit = document.getElementById("collapsedSidebarLogo");
+    if(collapsedLogoInit){
+      collapsedLogoInit.style.display = sidebarVisible ? "none" : "block";
+    }
+    const collapsedArrowInit = document.getElementById("expandSidebarArrow");
+    if(collapsedArrowInit){
+      collapsedArrowInit.style.display = sidebarVisible ? "none" : "block";
+    }
   }
-  document.getElementById("expandSidebarBtn").style.display = "none";
-  const collapsedLogoInit = document.getElementById("collapsedSidebarLogo");
-  if(collapsedLogoInit){
-    collapsedLogoInit.style.display = sidebarVisible ? "none" : "block";
-  }
-  const collapsedArrowInit = document.getElementById("expandSidebarArrow");
-  if(collapsedArrowInit){
-    collapsedArrowInit.style.display = sidebarVisible ? "none" : "block";
-  }
+
   updateChatPanelVisibility();
   const initTopBtns = document.getElementById("topRightButtons");
   if(initTopBtns){
-    if(isMobileViewport()){
+    if(isMobileViewport() && !isEmbedded){
       initTopBtns.style.display = sidebarVisible ? "none" : "flex";
     } else {
       initTopBtns.style.display = "flex";
     }
   }
   const appEl = document.querySelector(".app");
-  if(appEl){
+  if(appEl && !isEmbedded){
     appEl.classList.toggle("sidebar-collapsed", !sidebarVisible);
   }
 
@@ -1412,9 +1755,10 @@ async function loadSettings(){
     enterSubmitsMessage = map.enter_submits_message !== false;
   }
 
-  if(typeof map.sidebar_width !== "undefined"){ 
-    const maxW = window.innerWidth - 100;
-    const width = Math.min(map.sidebar_width, maxW);
+  if(typeof map.sidebar_width !== "undefined"){
+    const minW = 150;
+    const maxW = Math.max(minW, window.innerWidth - 100);
+    const width = Math.max(minW, Math.min(map.sidebar_width, maxW));
     $(".sidebar").style.width = width + "px";
   }
 
@@ -1437,6 +1781,9 @@ async function loadSettings(){
   }
   if(typeof map.aurora_project_bar_visible !== "undefined"){
     auroraProjectBarVisible = map.aurora_project_bar_visible !== false;
+  }
+  if(FORCE_HIDE_PROJECT_BAR){
+    auroraProjectBarVisible = false;
   }
   toggleProjectInfoBarVisibility(projectInfoBarVisible && auroraProjectBarVisible);
 
@@ -1544,9 +1891,6 @@ async function loadSettings(){
   if(typeof map.new_tab_project_enabled !== "undefined"){
     newTabProjectNameEnabled = map.new_tab_project_enabled !== false;
   }
-  if(typeof map.new_tab_opens_search !== "undefined"){
-    newTabOpensSearch = !!map.new_tab_opens_search;
-  }
   toggleNewTabProjectField(newTabProjectNameEnabled);
   if(typeof map.search_enabled !== "undefined"){
     searchEnabled = map.search_enabled !== false;
@@ -1643,12 +1987,18 @@ function tabDragStart(e){
     });
     const clearBar = () => topDropBar.classList.remove('drag-over');
     topDropBar.addEventListener('dragleave', clearBar);
-    topDropBar.addEventListener('drop', ev => {
+    topDropBar.addEventListener('drop', async ev => {
       ev.preventDefault();
       clearBar();
       if(draggingTabRow){
         parent.insertBefore(draggingTabRow, topDropBar.nextSibling);
         updateChatTabOrder(draggingTabRow.dataset.project, parent);
+        const draggedTabId = parseInt(draggingTabRow.dataset.tabId, 10);
+        if(draggedTabId && draggingTabRow.dataset.parentId !== '0'){
+          await setTabParent(draggedTabId, 0);
+          draggingTabRow.dataset.parentId = '0';
+          draggingTabRow.classList.remove('subtask-indented');
+        }
       }
       tabDragEnd();
     });
@@ -1659,22 +2009,12 @@ function tabDragOver(e){
   if(draggingTabRow && e.currentTarget !== draggingTabRow &&
      e.currentTarget.dataset.project === draggingTabRow.dataset.project){
     e.preventDefault();
-    const overHalf = e.offsetY > e.currentTarget.offsetHeight / 2;
-    if(overHalf){
-      subDropTarget = null;
-      e.currentTarget.classList.add('sub-drop-bar');
-      e.currentTarget.classList.remove('drag-over');
-    } else {
-      subDropTarget = e.currentTarget;
-      e.currentTarget.classList.add('drag-over');
-      e.currentTarget.classList.remove('sub-drop-bar');
-    }
+    e.currentTarget.classList.add('drag-over');
   }
 }
 
 function tabDragLeave(e){
   e.currentTarget.classList.remove('drag-over','sub-drop-bar');
-  if(subDropTarget === e.currentTarget) subDropTarget = null;
 }
 
 async function tabDrop(e){
@@ -1684,26 +2024,22 @@ async function tabDrop(e){
   if(draggingTabRow && target !== draggingTabRow &&
      target.dataset.project === draggingTabRow.dataset.project){
     const parent = target.parentNode;
-    const rows = [...parent.children];
-    const dropAsChild = subDropTarget === target;
-    if(dropAsChild){
-      const childId = parseInt(draggingTabRow.dataset.tabId,10);
-      const parentId = parseInt(target.dataset.tabId,10);
-      await setTabParent(childId, parentId);
-    } else {
-      let from = rows.indexOf(draggingTabRow);
-      let to = rows.indexOf(target);
-      parent.removeChild(draggingTabRow);
-      if(from < to) to--;
-      parent.insertBefore(draggingTabRow, parent.children[to + 1] || null);
-      updateChatTabOrder(target.dataset.project, parent);
+    const dropBefore = e.offsetY < target.offsetHeight / 2;
+    parent.removeChild(draggingTabRow);
+    const insertBeforeNode = dropBefore ? target : target.nextElementSibling;
+    parent.insertBefore(draggingTabRow, insertBeforeNode);
+    updateChatTabOrder(target.dataset.project, parent);
+    const draggedTabId = parseInt(draggingTabRow.dataset.tabId, 10);
+    if(draggedTabId && draggingTabRow.dataset.parentId !== '0'){
+      await setTabParent(draggedTabId, 0);
+      draggingTabRow.dataset.parentId = '0';
+      draggingTabRow.classList.remove('subtask-indented');
     }
   }
   if(topDropBar){
     topDropBar.remove();
     topDropBar = null;
   }
-  subDropTarget = null;
   draggingTabRow = null;
 }
 
@@ -1711,7 +2047,6 @@ function tabDragEnd(){
   $$('div.sidebar-tab-row.drag-over').forEach(el=>el.classList.remove('drag-over'));
   $$('div.sidebar-tab-row.sub-drop-bar').forEach(el=>el.classList.remove('sub-drop-bar'));
   draggingTabRow = null;
-  subDropTarget = null;
   if(topDropBar){
     topDropBar.remove();
     topDropBar = null;
@@ -2209,6 +2544,43 @@ function openNewTabModal(){
   newTabSelectedType = 'chat';
   showModal($("#newTabModal"));
 }
+async function createChatTabWithoutModal(){
+  newTabSelectedType = 'chat';
+  await addNewTab();
+}
+
+async function archiveCurrentChat(){
+  const btn = document.getElementById("archiveChatBtn");
+  const current = chatTabs.find(t => t.id === currentTabId);
+  if(!current || current.archived){
+    updateArchiveChatButton();
+    return;
+  }
+  if(btn) btn.disabled = true;
+  let archived = false;
+  try {
+    suppressArchiveRedirect = true;
+    archived = await toggleArchiveTab(current.id, true);
+    suppressArchiveRedirect = false;
+    if(!archived){
+      if(typeof showToast === "function"){
+        showToast("Failed to archive chat");
+      }
+      return;
+    }
+    await createChatTabWithoutModal();
+  } catch (err) {
+    console.error("Error while archiving current chat", err);
+    if(typeof showToast === "function"){
+      showToast(archived ? "Chat archived, but a new chat could not be created" : "Failed to archive chat");
+    }
+  } finally {
+    suppressArchiveRedirect = false;
+    if(btn) btn.disabled = false;
+    updateArchiveChatButton();
+  }
+}
+
 async function addNewTab(){
   const tabType = newTabSelectedType;
   const reloadNeeded = chatTabs.length === 0; // check if no tabs existed prior
@@ -2231,6 +2603,34 @@ async function addNewTab(){
     if(reloadNeeded){
       window.location.reload();
     }
+  }
+}
+
+async function autoCreateInitialChatTab(){
+  try {
+    const response = await fetch("/api/chat/tabs/new", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "", nexum: 0, project: "", type: "chat", sessionId })
+    });
+    if(!response.ok){
+      console.error("Failed to auto-create initial chat tab", response.status);
+      return false;
+    }
+    const data = await response.json();
+    await loadTabs();
+    await selectTab(data.id);
+    const tab = chatTabs.find(t => t.id === data.id);
+    if(tab && tab.tab_uuid){
+      const newPath = `/chat/${tab.tab_uuid}`;
+      if(window.location.pathname !== newPath){
+        window.location.replace(newPath);
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error("Error auto-creating initial chat tab", err);
+    return false;
   }
 }
 async function renameTab(tabId, newName){
@@ -2299,12 +2699,32 @@ async function openRenameTabModal(tabId){
   }
   const sendCtx = $("#renameSendProjectContextCheck");
   if(sendCtx){
-    sendCtx.checked = t && t.send_project_context ? true : false;
-    sendCtx.disabled = true;
+    sendCtx.checked = t ? t.send_project_context !== 0 : false;
   }
   const chatgptInp = $("#renameChatgptUrlInput");
   if(chatgptInp){
     chatgptInp.value = t && t.chatgpt_url ? t.chatgpt_url : '';
+  }
+  const timestamps = $("#renameTabTimestamps");
+  if(timestamps){
+    if(t){
+      const createdText = t.created_at ? isoDateTime(t.created_at) : "Unknown";
+      let text = `Created ${createdText}`;
+      if(t.archived_at){
+        text += ` \u2022 Archived ${isoDateTime(t.archived_at)}`;
+      }
+      timestamps.textContent = text;
+      timestamps.style.display = "block";
+    } else {
+      timestamps.textContent = "";
+      timestamps.style.display = "none";
+    }
+  }
+  const archiveBtn = $("#renameTabArchiveBtn");
+  if(archiveBtn){
+    const isArchived = !!(t && t.archived);
+    archiveBtn.textContent = isArchived ? "Unarchive" : "Archive";
+    archiveBtn.dataset.archived = isArchived ? "1" : "0";
   }
   const modal = $("#renameTabModal");
   if(!modal){
@@ -2370,6 +2790,7 @@ async function quickAddTabToProject(project, type = "chat"){
 }
 
 function initProjectAddTooltip(){
+  if(!projectAddTooltipEnabled) return;
   if(projectAddTooltip) return;
   projectAddTooltip = document.createElement('div');
   projectAddTooltip.className = 'project-toolbar-tooltip';
@@ -2390,6 +2811,7 @@ function initProjectAddTooltip(){
 }
 
 function showProjectAddTooltip(project, e){
+  if(!projectAddTooltipEnabled) return;
   initProjectAddTooltip();
   projectAddTooltipProject = project;
   projectAddTooltip.style.display = 'flex';
@@ -2427,7 +2849,8 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   let taskId = taskSel ? parseInt(taskSel.value,10) || 0 : 0;
   const extraInp = $("#renameExtraProjectsInput");
   let extraProjects = extraInp ? extraInp.value.trim() : '';
-  const sendProjectContext = tab.send_project_context ? 1 : 0;
+  const sendCtx = $("#renameSendProjectContextCheck");
+  const sendProjectContext = sendCtx ? sendCtx.checked : false;
   const chatgptInp = $("#renameChatgptUrlInput");
   const chatgptUrl = chatgptInp ? chatgptInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
@@ -2440,6 +2863,21 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
   renderTabs();
   renderSidebarTabs();
   renderArchivedSidebarTabs();
+  hideModal(modal);
+});
+$("#renameTabArchiveBtn")?.addEventListener("click", async () => {
+  const modal = $("#renameTabModal");
+  const tabId = parseInt(modal.dataset.tabId, 10);
+  if(Number.isNaN(tabId)) return;
+  const btn = $("#renameTabArchiveBtn");
+  if(!btn) return;
+  const archived = btn.dataset.archived === "1";
+  btn.disabled = true;
+  try {
+    await toggleArchiveTab(tabId, !archived);
+  } finally {
+    btn.disabled = false;
+  }
   hideModal(modal);
 });
 $("#renameTabCreateTaskBtn").addEventListener("click", async () => {
@@ -2470,7 +2908,8 @@ $("#renameTabCreateTaskBtn").addEventListener("click", async () => {
   } catch(e) { console.error(e); }
   const extraInp = $("#renameExtraProjectsInput");
   let extraProjects = extraInp ? extraInp.value.trim() : '';
-  const sendProjectContext = tab.send_project_context ? 1 : 0;
+  const sendCtx = $("#renameSendProjectContextCheck");
+  const sendProjectContext = sendCtx ? sendCtx.checked : false;
   const chatgptInp = $("#renameChatgptUrlInput");
   const chatgptUrl = chatgptInp ? chatgptInp.value.trim() : '';
   const repo = tab.repo_ssh_url || '';
@@ -2524,7 +2963,7 @@ async function deleteTab(tabId){
       const firstActive = chatTabs.find(t => !t.archived);
       currentTabId = firstActive ? firstActive.id : chatTabs[0].id;
     } else {
-      currentTabId=1;
+      currentTabId = null;
     }
     renderTabs();
     renderSidebarTabs();
@@ -2548,40 +2987,45 @@ async function toggleArchiveTab(tabId, archived){
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tabId, archived, sessionId })
   });
-  if(r.ok){
-    const wasCurrent = archived && tabId === currentTabId;
-    await loadTabs();
-    if(wasCurrent){
-      const idx = chatTabs.findIndex(t => t.id === tabId);
-      let next = null;
-      if(idx !== -1){
-        for(let i = idx + 1; i < chatTabs.length; i++){
+  if(!r.ok){
+    return false;
+  }
+  const wasCurrent = archived && tabId === currentTabId;
+  await loadTabs();
+  if(wasCurrent){
+    const idx = chatTabs.findIndex(t => t.id === tabId);
+    let next = null;
+    if(idx !== -1){
+      for(let i = idx + 1; i < chatTabs.length; i++){
+        if(!chatTabs[i].archived){ next = chatTabs[i]; break; }
+      }
+      if(!next){
+        for(let i = 0; i < idx; i++){
           if(!chatTabs[i].archived){ next = chatTabs[i]; break; }
         }
-        if(!next){
-          for(let i = 0; i < idx; i++){
-            if(!chatTabs[i].archived){ next = chatTabs[i]; break; }
-          }
-        }
       }
-      if(next){
-        await selectTab(next.id);
-      }else{
-        renderTabs();
-        renderSidebarTabs();
-        renderArchivedSidebarTabs();
-        updatePageTitle();
-      }
+    }
+    if(next){
+      await selectTab(next.id);
     }else{
       renderTabs();
       renderSidebarTabs();
       renderArchivedSidebarTabs();
       updatePageTitle();
     }
+  }else{
+    renderTabs();
+    renderSidebarTabs();
+    renderArchivedSidebarTabs();
+    updatePageTitle();
+  }
   if(chatTabs.length > 0 && chatTabs.every(t => t.archived)){
-      location.href = '/index.html';
+    if(!suppressArchiveRedirect){
+      location.href = 'https://alfe.sh';
     }
   }
+  updateArchiveChatButton();
+  return true;
 }
 
 async function moveTabToProject(tabId, project){
@@ -2591,7 +3035,7 @@ async function moveTabToProject(tabId, project){
   const extraProjects = tab.extra_projects || '';
   const taskId = tab.task_id || 0;
   const type = tab.tab_type || 'chat';
-  const sendProjectContext = tab.send_project_context ? 1 : 0;
+  const sendProjectContext = tab.send_project_context !== undefined ? !!tab.send_project_context : false;
   await fetch('/api/chat/tabs/config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -2662,6 +3106,7 @@ async function selectTab(tabId){
   updateMosaicPanelVisibility();
 }
 function renderTabs(){
+  closeTabOptionsMenu();
   const tc = $("#tabsContainer");
   if(!tc) return;
   tc.innerHTML="";
@@ -2695,25 +3140,10 @@ function renderTabs(){
     nameSpan.addEventListener("click", ()=>selectTab(tab.id));
     tabBtn.appendChild(nameSpan);
 
-    const dateSpan = document.createElement("span");
-    dateSpan.textContent = isoDateTime(tab.created_at);
-    dateSpan.className = "tab-date";
-    dateSpan.style.marginLeft = "4px";
-    tabBtn.appendChild(dateSpan);
+    const optionsBtn = createTabOptionsButton(tab);
+    optionsBtn.style.marginLeft = "4px";
+    tabBtn.appendChild(optionsBtn);
 
-    const renameBtn = document.createElement("button");
-    renameBtn.innerHTML = "&#9881;";
-    renameBtn.style.marginLeft = "4px";
-    renameBtn.addEventListener("click", e=>{ e.stopPropagation(); openRenameTabModal(tab.id); });
-    tabBtn.appendChild(renameBtn);
-
-
-    const archBtn = document.createElement("button");
-    archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
-    archBtn.title = tab.archived ? "Unarchive" : "Archive";
-    archBtn.style.marginLeft = "4px";
-    archBtn.addEventListener("click", e=>{ e.stopPropagation(); toggleArchiveTab(tab.id, !tab.archived); });
-    tabBtn.appendChild(archBtn);
 
     tabBtn.addEventListener("contextmenu", e=>{
       e.preventDefault();
@@ -2723,10 +3153,12 @@ function renderTabs(){
     });
     tc.appendChild(tabBtn);
   });
+  updateArchiveChatButton();
 }
 
 // New function to render vertical chat tabs in sidebar
 function renderSidebarTabs(){
+  closeTabOptionsMenu();
   const container = document.getElementById("verticalTabsContainer");
   container.innerHTML="";
   const showArchive = showArchivedTabs && !hideArchivedTabs;
@@ -2750,24 +3182,29 @@ function renderSidebarTabs(){
     }
     const renderGroup = (project, list) => {
       if(list.length === 0) return;
-      const collapsed = collapsedProjectGroups[project];
+      const isDefaultProject = !project;
+      const collapsed = isDefaultProject ? false : collapsedProjectGroups[project];
       const header = document.createElement("div");
       header.className = "tab-project-header";
-      const grab = document.createElement("span");
-      grab.className = "drag-handle";
-      grab.textContent = "⠿";
-      grab.draggable = true;
-      grab.addEventListener("dragstart", () => {
-        draggingProjectHeader = project;
-      });
-      header.appendChild(grab);
-      const arrow = document.createElement("span");
-      arrow.className = "project-collapse-arrow";
-      arrow.textContent = collapsed ? "\u25B6" : "\u25BC"; // ▶ or ▼
+      if(!isDefaultProject){
+        const grab = document.createElement("span");
+        grab.className = "drag-handle";
+        grab.textContent = "⠿";
+        grab.draggable = true;
+        grab.addEventListener("dragstart", () => {
+          draggingProjectHeader = project;
+        });
+        header.appendChild(grab);
+      }
+      if(!isDefaultProject){
+        const arrow = document.createElement("span");
+        arrow.className = "project-collapse-arrow";
+        arrow.textContent = collapsed ? "\u25B6" : "\u25BC"; // ▶ or ▼
+        header.appendChild(arrow);
+      }
       const label = document.createElement("span");
-      label.textContent = " " + (project || "(No project)");
+      label.textContent = " " + (project || "Chats");
       label.style.flexGrow = "0";
-      header.appendChild(arrow);
       header.appendChild(label);
       if(project){
         const gear = document.createElement("button");
@@ -2783,14 +3220,16 @@ function renderSidebarTabs(){
       header.appendChild(addBtn);
       addBtn.addEventListener("mouseenter", e => showProjectAddTooltip(project, e));
       addBtn.addEventListener("mouseleave", scheduleHideProjectAddTooltip);
-      header.addEventListener("click", e => {
-        e.stopPropagation();
-        collapsedProjectGroups[project] = !collapsedProjectGroups[project];
-        saveCollapsedProjectGroups();
-        renderSidebarTabs();
-      });
+      if(!isDefaultProject){
+        header.addEventListener("click", e => {
+          e.stopPropagation();
+          collapsedProjectGroups[project] = !collapsedProjectGroups[project];
+          saveCollapsedProjectGroups();
+          renderSidebarTabs();
+        });
+      }
       header.addEventListener("dragover", e => {
-        if((draggingProjectHeader && draggingProjectHeader !== project) ||
+        if((!isDefaultProject && draggingProjectHeader && draggingProjectHeader !== project) ||
            (draggingTabRow && draggingTabRow.dataset.project !== project)){
           e.preventDefault();
           header.classList.add("drag-over");
@@ -2800,7 +3239,7 @@ function renderSidebarTabs(){
       header.addEventListener("drop", async e => {
         e.preventDefault();
         header.classList.remove("drag-over");
-        if(draggingProjectHeader && draggingProjectHeader !== project){
+        if(!isDefaultProject && draggingProjectHeader && draggingProjectHeader !== project){
           const from = projectHeaderOrder.indexOf(draggingProjectHeader);
           const to = projectHeaderOrder.indexOf(project);
           projectHeaderOrder.splice(from, 1);
@@ -2932,9 +3371,10 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
 
   const info = document.createElement("div");
   info.style.display = "flex";
-  info.style.justifyContent = "space-between";
+  info.style.justifyContent = "flex-start";
   info.style.alignItems = "center";
   info.style.flexGrow = "1";
+  info.style.gap = "6px";
 
   const b = document.createElement("button");
   b.dataset.tabId = tab.id;
@@ -2962,28 +3402,10 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
     }
   });
 
-  const dateSpan = document.createElement("span");
-  dateSpan.textContent = isoDateTime(tab.created_at);
-  dateSpan.className = "tab-date";
-
   info.appendChild(b);
-  info.appendChild(dateSpan);
 
-  const renameBtn = document.createElement("button");
-  renameBtn.innerHTML = "&#9881;";
-  renameBtn.addEventListener("click", e => {
-    e.stopPropagation();
-    openRenameTabModal(tab.id);
-  });
+  const optionsBtn = createTabOptionsButton(tab);
 
-
-  const archBtn = document.createElement("button");
-  archBtn.innerHTML = tab.archived ? "Unarchive" : "&#128452;";
-  archBtn.title = tab.archived ? "Unarchive" : "Archive";
-  archBtn.addEventListener("click", e => {
-    e.stopPropagation();
-    toggleArchiveTab(tab.id, !tab.archived);
-  });
 
   const taskIdSpan = document.createElement("span");
   taskIdSpan.className = "task-id";
@@ -3019,8 +3441,7 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   }
 
   wrapper.appendChild(info);
-  wrapper.appendChild(renameBtn);
-  wrapper.appendChild(archBtn);
+  wrapper.appendChild(optionsBtn);
   if (tab.task_id) wrapper.appendChild(taskIdSpan);
   wrapper.addEventListener("dragover", tabDragOver);
   wrapper.addEventListener("dragleave", tabDragLeave);
@@ -3030,10 +3451,18 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
 }
 
 function renderArchivedSidebarTabs(){
+  closeTabOptionsMenu();
   const container = document.getElementById("archivedTabsContainer");
   if(!container) return;
   container.innerHTML = "";
   const tabs = archivedTabs;
+  if(!tabs || tabs.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "sidebar-subtext archived-empty-state";
+    empty.textContent = "There are no archived chats yet.";
+    container.appendChild(empty);
+    return;
+  }
   if(groupTabsByProject){
     const groups = new Map();
     tabs.forEach(t => {
@@ -3043,25 +3472,16 @@ function renderArchivedSidebarTabs(){
     });
     const renderGroup = (project, list) => {
       if(list.length === 0) return;
-      let collapsed = collapsedArchiveGroups.hasOwnProperty(project) ? collapsedArchiveGroups[project] : true;
-      if(!collapsedArchiveGroups.hasOwnProperty(project)) collapsedArchiveGroups[project] = collapsed;
+      collapsedArchiveGroups[project] = false;
       const header = document.createElement("div");
       header.className = "tab-project-header";
-      const arrow = document.createElement("span");
-      arrow.className = "project-collapse-arrow";
-      arrow.textContent = collapsed ? "\u25B6" : "\u25BC";
-      header.appendChild(arrow);
-      header.appendChild(document.createTextNode(" " + (project || "(No project)")));
-      header.addEventListener("click", () => {
-        collapsedArchiveGroups[project] = !collapsedArchiveGroups[project];
-        saveCollapsedArchiveGroups();
-        renderArchivedSidebarTabs();
-      });
+      header.appendChild(document.createTextNode(project || "Chats"));
       container.appendChild(header);
       const groupDiv = document.createElement("div");
       groupDiv.className = "project-tab-group";
       groupDiv.dataset.project = project;
-      if(collapsed) groupDiv.style.display = "none";
+      groupDiv.style.display = "flex";
+      groupDiv.style.flexDirection = "column";
       const childMap = new Map();
       list.forEach(t => {
         if(t.parent_id){
@@ -3146,19 +3566,26 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   label.textContent = truncateTabTitle(fullName);
   label.title = fullName;
 
-  const dateSpan = document.createElement("span");
-  dateSpan.className = "tab-date";
-  dateSpan.textContent = `Created ${isoDateTime(tab.created_at)} \u2022 Archived ${isoDateTime(tab.archived_at)}`;
-
   info.appendChild(label);
-  info.appendChild(dateSpan);
 
   const unarchBtn = document.createElement("button");
   unarchBtn.textContent = "Unarchive";
-  unarchBtn.addEventListener("click", async () => {
+  unarchBtn.className = "archive-action-btn";
+  unarchBtn.title = "Restore this chat";
+  unarchBtn.addEventListener("click", async e => {
+    e.stopPropagation();
     await toggleArchiveTab(tab.id, false);
     await loadTabs();
     renderArchivedSidebarTabs();
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "Delete";
+  deleteBtn.className = "archive-action-btn archive-delete-btn";
+  deleteBtn.title = "Delete this chat permanently";
+  deleteBtn.addEventListener("click", async e => {
+    e.stopPropagation();
+    await deleteTab(tab.id);
   });
 
   const taskIdSpan = document.createElement("span");
@@ -3197,11 +3624,12 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   wrapper.appendChild(icon);
   wrapper.appendChild(info);
   wrapper.appendChild(unarchBtn);
+  wrapper.appendChild(deleteBtn);
   if (tab.task_id) wrapper.appendChild(taskIdSpan);
   container.appendChild(wrapper);
 }
 
-document.getElementById("newSideTabBtn").addEventListener("click", openNewTabModal);
+document.getElementById("newSideTabBtn").addEventListener("click", createChatTabWithoutModal);
 document.getElementById("newProjectGroupBtn")?.addEventListener("click", addProjectGroup);
 const tasksOnlyTabsCheck = document.getElementById("tasksOnlyTabsCheck");
 if(tasksOnlyTabsCheck){
@@ -3220,7 +3648,7 @@ if(hideArchivedTabsCheck){
   });
 }
 const newTabBtnEl = document.getElementById("newTabBtn");
-if (newTabBtnEl) newTabBtnEl.addEventListener("click", openNewTabModal);
+if (newTabBtnEl) newTabBtnEl.addEventListener("click", createChatTabWithoutModal);
 $$('#newTabTypeButtons .start-type-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
     newTabSelectedType = btn.dataset.type;
@@ -3402,11 +3830,18 @@ if(settingsBtn){
   settingsBtn.addEventListener("click", openSettingsModal);
 }
 
+const archiveChatBtn = document.getElementById("archiveChatBtn");
+if(archiveChatBtn){
+  archiveChatBtn.addEventListener("click", archiveCurrentChat);
+  updateArchiveChatButton();
+}
+
 
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
 if(settingsCloseBtn){
   settingsCloseBtn.addEventListener("click", async () => {
-    if (defaultModelSelectEl) {
+    const defaultModelSelectEl = document.getElementById("defaultModelSelect");
+    if (defaultModelSelectEl && !defaultModelSelectEl.disabled) {
       const val = defaultModelSelectEl.value.trim();
       await setSetting('ai_model', val);
       settingsCache.ai_model = val;
@@ -3534,18 +3969,6 @@ if(changePasswordBtn){
   });
 }
 
-const accountImageLoopCheck = document.getElementById('accountImageLoopCheck');
-if(accountImageLoopCheck){
-  accountImageLoopCheck.addEventListener('change', () => {
-    imageLoopEnabled = accountImageLoopCheck.checked && accountInfo && accountInfo.id === 1;
-    setLoopUi(imageLoopEnabled);
-    if(imageLoopEnabled){
-      setTimeout(runImageLoop, 0);
-    }
-    accountImageLoopCheck.checked = imageLoopEnabled;
-  });
-}
-
 const accountAutoScrollCheck = document.getElementById('accountAutoScrollCheck');
 if(accountAutoScrollCheck){
   accountAutoScrollCheck.addEventListener('change', async () => {
@@ -3557,39 +3980,12 @@ if(accountAutoScrollCheck){
   });
 }
 
-const accountShowMetadataCheck = document.getElementById('accountShowMetadataCheck');
-if(accountShowMetadataCheck){
-  accountShowMetadataCheck.addEventListener('change', async () => {
-    chatHideMetadata = !accountShowMetadataCheck.checked;
-    await setSetting('chat_hide_metadata', chatHideMetadata);
-  });
-}
-
 const mobileThinSidebarCheck = document.getElementById('mobileThinSidebarCheck');
 if(mobileThinSidebarCheck){
   mobileThinSidebarCheck.addEventListener('change', async () => {
     mobileSidebarToolbar = mobileThinSidebarCheck.checked;
     updateMobileThinSidebar();
     await setSetting('mobile_sidebar_toolbar', mobileSidebarToolbar);
-  });
-}
-
-const accountNewTabSearchCheck = document.getElementById('accountNewTabSearchCheck');
-if(accountNewTabSearchCheck){
-  accountNewTabSearchCheck.addEventListener('change', async () => {
-    newTabOpensSearch = accountNewTabSearchCheck.checked;
-    await setSetting('new_tab_opens_search', newTabOpensSearch);
-  });
-}
-
-const defaultModelSelectEl = document.getElementById('defaultModelSelect');
-if(defaultModelSelectEl){
-  defaultModelSelectEl.addEventListener('change', async () => {
-    const val = defaultModelSelectEl.value.trim();
-    await setSetting('ai_model', val);
-    settingsCache.ai_model = val;
-    modelName = val || modelName;
-    updateModelHud();
   });
 }
 
@@ -3734,6 +4130,19 @@ function parseProviderModel(model) {
     return { provider: "stable-diffusion", shortModel: model.replace(/^stable-diffusion\//,'') };
   }
   return { provider: "Unknown", shortModel: model };
+}
+
+function formatProviderDisplay(provider) {
+  if(!provider || provider === 'Unknown') {
+    return { label: '', separator: '' };
+  }
+  if(provider === 'openrouter') {
+    return { label: 'openrouter', separator: ' ' };
+  }
+  if(provider.startsWith('openrouter/')) {
+    return { label: provider.replace(/^openrouter\//, ''), separator: '/' };
+  }
+  return { label: provider, separator: '/' };
 }
 
 const imageModelCosts = {
@@ -4060,8 +4469,10 @@ chatSendBtnEl.addEventListener("click", async () => {
 
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
+  const { shortModel: pendingShortModel } = parseProviderModel(modelName);
+  const pendingTitle = pendingShortModel || modelName;
   botHead.innerHTML = `
-    <div class="name-oval name-oval-ai" title="${modelName}">${window.agentName}</div>
+    <div class="name-oval name-oval-ai" title="${pendingTitle}">${window.agentName}</div>
     <span style="opacity:0.8;">…</span>
   `;
   botDiv.appendChild(botHead);
@@ -4107,14 +4518,14 @@ chatSendBtnEl.addEventListener("click", async () => {
     if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
   }, 500);
 
-  try {
-    const controller = new AbortController();
-    currentChatAbort = controller;
-    chatSendBtnEl.disabled = false;
-    chatSendBtnEl.dataset.mode = 'stop';
-    chatSendBtnEl.classList.add('stop-btn');
-    chatSendBtnEl.innerHTML = stopBtnHtml;
+  const controller = new AbortController();
+  currentChatAbort = controller;
+  chatSendBtnEl.disabled = false;
+  chatSendBtnEl.dataset.mode = 'stop';
+  chatSendBtnEl.classList.add('stop-btn');
+  chatSendBtnEl.innerHTML = stopBtnHtml;
 
+  try {
     const resp = await fetch("/api/chat",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -4125,40 +4536,26 @@ chatSendBtnEl.addEventListener("click", async () => {
     waitingElem.textContent = "";
 
     if(!resp.ok){
-      clearInterval(ellipsisInterval);
-      botTextSpan.textContent = "[Error contacting AI]";
-      botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
-    } else {
-      const reader = resp.body.getReader();
-      while(true){
-        const { value, done } = await reader.read();
-        if(done) break;
-        partialText += new TextDecoder().decode(value);
-      }
-      // Update once more without the loader after streaming finishes
-      botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(partialText));
-      addCodeCopyButtons(botBody);
-      addFilesFromCodeBlocks(partialText);
-      if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-      clearInterval(ellipsisInterval);
-      botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
+      throw new Error(`HTTP ${resp.status}`);
     }
-
-    // Code previously auto-created a task for every chat pair.
-    // This behavior has been disabled to avoid cluttering the task list.
-
-    await loadChatHistory(currentTabId, true);
-    await loadTabs();
-    renderTabs();
-    renderSidebarTabs();
-    renderArchivedSidebarTabs();
-    updatePageTitle();
-    actionHooks.forEach(h => {
-      if(typeof h.fn === "function"){
-        try { h.fn({type:"afterSend", message: combinedUserText, response: partialText}); }
-        catch(err){ console.error("Action hook error:", err); }
-      }
-      });
+    const reader = resp.body && typeof resp.body.getReader === 'function'
+      ? resp.body.getReader()
+      : null;
+    if(!reader){
+      throw new Error('Readable stream missing from response.');
+    }
+    while(true){
+      const { value, done } = await reader.read();
+      if(done) break;
+      partialText += new TextDecoder().decode(value);
+    }
+    // Update once more without the loader after streaming finishes
+    botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(partialText));
+    addCodeCopyButtons(botBody);
+    addFilesFromCodeBlocks(partialText);
+    if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    clearInterval(ellipsisInterval);
+    botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
   } catch(e) {
     clearInterval(waitInterval);
     clearInterval(ellipsisInterval);
@@ -4174,9 +4571,31 @@ chatSendBtnEl.addEventListener("click", async () => {
         }
       } catch(err){ console.error('Update halted pair failed', err); }
     } else {
-      botTextSpan.textContent = "[Error occurred]";
+      botTextSpan.textContent = "[Error contacting AI]";
     }
     botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
+  }
+
+  // Code previously auto-created a task for every chat pair.
+  // This behavior remains disabled to avoid cluttering the task list.
+
+  try {
+    await loadChatHistory(currentTabId, true);
+    await loadTabs();
+  } catch(err){
+    console.error('Refresh after chat send failed', err);
+  }
+  renderTabs();
+  renderSidebarTabs();
+  renderArchivedSidebarTabs();
+  updatePageTitle();
+  if(partialText){
+    actionHooks.forEach(h => {
+      if(typeof h.fn === "function"){
+        try { h.fn({type:"afterSend", message: combinedUserText, response: partialText}); }
+        catch(err){ console.error("Action hook error:", err); }
+      }
+    });
   }
 
   if (favElement) favElement.href = defaultFavicon;
@@ -4202,10 +4621,10 @@ async function openChatSettings(){
     if(typeof value !== "undefined"){
       chatHideMetadata = !!value;
     } else {
-      chatHideMetadata = false;
+      chatHideMetadata = true;
     }
   } else {
-    chatHideMetadata = false;
+    chatHideMetadata = true;
     await setSetting("chat_hide_metadata", chatHideMetadata);
   }
 
@@ -4334,7 +4753,17 @@ async function openChatSettings(){
   if(subbubbleTokenCheckEl) subbubbleTokenCheckEl.checked = showSubbubbleToken;
   $("#sterlingUrlCheck").checked = sterlingChatUrlVisible;
   $("#showProjectInfoCheck").checked = projectInfoBarVisible;
-  $("#showAuroraProjectBarCheck").checked = auroraProjectBarVisible;
+  const auroraProjectBarCheckEl = $("#showAuroraProjectBarCheck");
+  if(auroraProjectBarCheckEl){
+    auroraProjectBarCheckEl.checked = !FORCE_HIDE_PROJECT_BAR && auroraProjectBarVisible;
+    auroraProjectBarCheckEl.disabled = FORCE_HIDE_PROJECT_BAR;
+    if(FORCE_HIDE_PROJECT_BAR){
+      const label = auroraProjectBarCheckEl.closest("label");
+      if(label){
+        label.style.display = "none";
+      }
+    }
+  }
   $("#showMarkdownTasksCheck").checked = markdownPanelVisible;
   $("#showDependenciesColumnCheck").checked = showDependenciesColumn;
   $("#showSubroutinePanelCheck").checked = subroutinePanelVisible;
@@ -4485,7 +4914,7 @@ async function chatSettingsSaveFlow() {
   showSubbubbleToken = subbubbleTokenEl ? subbubbleTokenEl.checked : false;
   sterlingChatUrlVisible = $("#sterlingUrlCheck").checked;
   projectInfoBarVisible = $("#showProjectInfoCheck").checked;
-  auroraProjectBarVisible = $("#showAuroraProjectBarCheck").checked;
+  auroraProjectBarVisible = FORCE_HIDE_PROJECT_BAR ? false : $("#showAuroraProjectBarCheck").checked;
   chatStreaming = $("#chatStreamingCheck").checked;
   markdownPanelVisible = $("#showMarkdownTasksCheck").checked;
   showDependenciesColumn = $("#showDependenciesColumnCheck").checked;
@@ -4545,7 +4974,7 @@ async function chatSettingsSaveFlow() {
     console.debug("[Client Debug] /api/model data =>", updatedModelData);
     modelName = updatedModelData.model || "unknown";
     const { provider: autoProvider } = parseProviderModel(modelName);
-    console.log("[OBTAINED PROVIDER] => (global model removed in UI, fallback only)");
+    console.log("[OBTAINED PROVIDER] => (global model removed in UI)");
     console.log("[OBTAINED PROVIDER] =>", autoProvider);
     updateModelHud();
   }
@@ -4582,19 +5011,20 @@ $("#chatSettingsCancelBtn").addEventListener("click", () => {
 function toggleSterlingUrlVisibility(visible) {
   const el = document.getElementById("sterlingUrlLabel");
   if(!el) return;
-  el.style.display = visible ? "inline" : "none";
+  const shouldShow = visible && !FORCE_HIDE_PROJECT_BAR && auroraProjectBarVisible;
+  el.style.display = shouldShow ? "inline" : "none";
 }
 
 function toggleProjectInfoBarVisibility(visible){
-  visible = visible && auroraProjectBarVisible;
+  const shouldShow = !FORCE_HIDE_PROJECT_BAR && visible && auroraProjectBarVisible;
   const ids = ["projectBar", "projectInfo", "projectSearchInput", "projectSearchBtn",
                "setProjectBtn", "createSterlingChatBtn", "changeSterlingBranchBtn"];
   ids.forEach(id => {
     const el = document.getElementById(id);
-    if(el) el.style.display = visible ? "" : "none";
+    if(el) el.style.display = shouldShow ? "" : "none";
   });
   const urlEl = document.getElementById("sterlingUrlLabel");
-  if(urlEl) urlEl.style.display = visible && sterlingChatUrlVisible ? "inline" : "none";
+  if(urlEl) urlEl.style.display = shouldShow && sterlingChatUrlVisible ? "inline" : "none";
 }
 
 function toggleNavMenuVisibility(visible) {
@@ -4637,6 +5067,11 @@ function updateMobileThinSidebar(){
   const thin = document.getElementById("thinSidebar");
   const logo = document.getElementById("collapsedSidebarLogo");
   if(!thin || !logo) return;
+  if(isEmbedded){
+    thin.style.display = "none";
+    logo.style.display = "none";
+    return;
+  }
   if(isMobileViewport()){
     if(mobileSidebarToolbar){
       thin.style.display = "";
@@ -4658,10 +5093,12 @@ function setLoopUi(active){
   if(chatSendBtnEl) chatSendBtnEl.style.display = active ? 'none' : '';
 }
 
-function toggleImageUploadButton(visible){
+function toggleImageUploadButton(_visible){
   const btn = document.getElementById("chatImageBtn");
   if(!btn) return;
-  btn.style.display = visible ? "" : "none";
+  // Keep the chat image upload button hidden regardless of configuration.
+  btn.hidden = true;
+  btn.style.display = "none";
 }
 
 function toggleImagePaintTrayButton(_visible){
@@ -4787,7 +5224,9 @@ function runImageLoop(){
 function updateModelHud(){
   const hud = document.getElementById("modelHud");
   if(!hud) return;
-  hud.textContent = `Model: ${modelName}`;
+  const { shortModel } = parseProviderModel(modelName);
+  const displayName = shortModel || modelName;
+  hud.textContent = `Model: ${displayName}`;
 }
 
 function updateSearchButton(){
@@ -5022,7 +5461,7 @@ async function renderReasoningModels(){
   reasoningReasonContainer.innerHTML = '';
   const cfg = window.REASONING_TOOLTIP_CONFIG || {};
   const chatModels = cfg.chatModels || [
-    { name: 'deepseek/deepseek-chat-v3-0324' },
+    { name: 'openrouter/deepseek/deepseek-chat-v3-0324' },
     { name: 'openai/gpt-4o-mini' },
     { name: 'openai/gpt-4.1-mini' },
     { name: 'openai/gpt-4o', label: 'pro' },
@@ -5074,10 +5513,15 @@ async function renderReasoningModels(){
       displayProvider = 'openrouter/perplexity';
       displayShort = name.replace(/^openrouter\/perplexity\//, '');
     }
-    let display = name;
-    if (displayProvider === 'openai' || displayProvider === 'deepseek' || displayProvider === 'openrouter/perplexity') {
-      display = `<span class="model-provider">${displayProvider}</span> ${displayShort}`;
-    }
+    const { label: providerLabel, separator } = formatProviderDisplay(displayProvider);
+    const providerSuffixHtml = separator === ' ' ? '&nbsp;' : separator;
+    const providerSuffixText = separator;
+    const providerHtml = providerLabel
+      ? `<span class="model-provider">${providerLabel}${providerSuffixHtml}</span>`
+      : '';
+    const providerText = providerLabel ? `${providerLabel}${providerSuffixText}` : '';
+    const display = providerHtml ? `${providerHtml}${displayShort}` : displayShort;
+    const plainDisplay = `${providerText}${displayShort}`;
     if(label){
       b.innerHTML = `<span class="model-label ${label}">${label}</span> ${display}`;
     } else {
@@ -5113,7 +5557,7 @@ async function renderReasoningModels(){
       updateModelHud();
       highlightReasoningModel(name);
       hideReasoningTooltip();
-      showToast(`${container===reasoningChatContainer?'Chat':'Reasoning'} model set to ${name}`);
+      showToast(`${container===reasoningChatContainer?'Chat':'Reasoning'} model set to ${plainDisplay}`);
     });
     row.appendChild(b);
     container.appendChild(row);
@@ -5186,8 +5630,13 @@ async function renderSearchModels(){
       displayShort = name.replace(/^openrouter\/perplexity\//, '');
     }
 
-    const providerPart = (displayProvider && displayProvider !== 'Unknown')
-      ? `<span class="model-row-provider">${displayProvider}/</span>` : '';
+    const { label: providerLabel, separator } = formatProviderDisplay(displayProvider);
+    const providerSuffixHtml = separator === ' ' ? '&nbsp;' : separator;
+    const providerSuffixText = separator;
+    const providerPart = providerLabel
+      ? `<span class="model-row-provider">${providerLabel}${providerSuffixHtml}</span>`
+      : '';
+    const providerText = providerLabel ? `${providerLabel}${providerSuffixText}` : '';
     const namePart = `<span class="model-row-name">${displayShort}</span>`;
     const labelPart = label ? `<span class="model-label ${label}">${label}</span>` : '';
     let header = `<div class="model-row-header">${labelPart}${providerPart}${namePart}</div>`;
@@ -5198,6 +5647,7 @@ async function renderSearchModels(){
     }
     b.innerHTML = html;
     b.classList.toggle('active', settingsCache.ai_search_model === name);
+    const plainDisplay = `${providerText}${displayShort}`;
     b.addEventListener('click', async ev => {
       ev.stopPropagation();
       await setSetting('ai_search_model', name);
@@ -5219,7 +5669,7 @@ async function renderSearchModels(){
       }
       highlightSearchModel(name);
       hideReasoningTooltip();
-      showToast(`Search model set to ${text}`);
+      showToast(`Search model set to ${plainDisplay}`);
     });
     row.appendChild(b);
     card.appendChild(row);
@@ -5247,7 +5697,7 @@ async function toggleSearch(){
     tabModelOverride = searchModel;
     modelName = searchModel;
   } else {
-    const restoreModel = previousModelName || await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
+    const restoreModel = previousModelName || await getSetting("ai_model") || "openrouter/deepseek/deepseek-chat-v3-0324";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5282,7 +5732,7 @@ async function toggleReasoning(){
     tabModelOverride = reasoningModel;
     modelName = reasoningModel;
   } else {
-    const restoreModel = reasoningPreviousModelName || await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
+    const restoreModel = reasoningPreviousModelName || await getSetting("ai_model") || "openrouter/deepseek/deepseek-chat-v3-0324";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5317,7 +5767,7 @@ async function toggleCodexMini(){
     tabModelOverride = codexModel;
     modelName = codexModel;
   } else {
-    const restoreModel = codexPreviousModelName || await getSetting("ai_model") || "deepseek/deepseek-chat-0324";
+    const restoreModel = codexPreviousModelName || await getSetting("ai_model") || "openrouter/deepseek/deepseek-chat-v3-0324";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5394,12 +5844,10 @@ async function enableSearchMode(query=""){
     const dx = e.clientX - startX;
     const newWidth = startWidth + dx;
     const minWidth = 150;
-    const maxWidth = window.innerWidth - 100;
-    if(newWidth >= minWidth) {
-      const clamped = Math.min(newWidth, maxWidth);
-      $(".sidebar").style.width = clamped + "px";
-      finalWidth = clamped;
-    }
+    const maxWidth = Math.max(minWidth, window.innerWidth - 100);
+    const clamped = Math.max(minWidth, Math.min(newWidth, maxWidth));
+    $(".sidebar").style.width = clamped + "px";
+    finalWidth = clamped;
   });
 
   document.addEventListener("mouseup", () => {
@@ -6379,9 +6827,6 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   const placeholderEl = document.getElementById("chatPlaceholder");
   if(placeholderEl) placeholderEl.style.display = "";
   await loadSettings();
-  if(window.location.pathname === '/new' && newTabOpensSearch && !initialSearchMode){
-    await enableSearchMode('');
-  }
   if(initialSearchMode){
     searchEnabled = true;
     updateSearchButton();
@@ -6405,7 +6850,7 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     modelName = "unknown";
   }
 
-  console.log("[OBTAINED PROVIDER] => (global model removed in UI, fallback only)");
+  console.log("[OBTAINED PROVIDER] => (global model removed in UI)");
   const { provider: autoProvider } = parseProviderModel(modelName);
   console.log("[OBTAINED PROVIDER] =>", autoProvider);
   updateModelHud();
@@ -6414,7 +6859,11 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   await loadSubroutines();
   renderSubroutines();
 
+  let autoCreatedInitialChat = false;
   if(chatTabs.length === 0){
+    autoCreatedInitialChat = await autoCreateInitialChatTab();
+  }
+  if(chatTabs.length === 0 && !autoCreatedInitialChat){
     openNewTabModal();
   }
   const lastChatTab = await getSetting("last_chat_tab");
@@ -6489,16 +6938,16 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
       if(typeof j.value !== "undefined"){
         chatHideMetadata = !!j.value;
       } else {
-        chatHideMetadata = false;
+        chatHideMetadata = true;
         await setSetting("chat_hide_metadata", chatHideMetadata);
       }
     } else {
-      chatHideMetadata = false;
+      chatHideMetadata = true;
       await setSetting("chat_hide_metadata", chatHideMetadata);
     }
   } catch(e) {
     console.error("Error loading chat_hide_metadata:", e);
-    chatHideMetadata = false;
+    chatHideMetadata = true;
     await setSetting("chat_hide_metadata", chatHideMetadata);
   }
 
@@ -6615,8 +7064,9 @@ let chatHistoryOffset = 0;
 let chatHasMore = true;
 let chatHistoryLoading = false; // prevent duplicate history loads
 let lastChatDate = null;
+const prefabGreetingPendingTabs = new Set();
 
-async function loadChatHistory(tabId = 1, reset=false) {
+async function loadChatHistory(tabId = currentTabId, reset=false) {
   if(chatHistoryLoading) return;
   chatHistoryLoading = true;
   const chatMessagesEl = document.getElementById("chatMessages");
@@ -6634,6 +7084,16 @@ async function loadChatHistory(tabId = 1, reset=false) {
     lastChatDate = null;
   }
   const placeholderEl = document.getElementById("chatPlaceholder");
+  if(!tabId){
+    if(reset && placeholderEl){
+      placeholderEl.innerHTML = "Select or create a chat to get started.";
+      placeholderEl.style.display = "";
+    }
+    chatHasMore = false;
+    chatHistoryLoading = false;
+    window.location.href = "https://alfe.sh";
+    return;
+  }
   if(reset && placeholderEl) placeholderEl.style.display = "";
   let pairs = [];
   try {
@@ -6654,16 +7114,21 @@ async function loadChatHistory(tabId = 1, reset=false) {
     console.debug(`[ChatHistory Debug] new offset=${chatHistoryOffset}, chatHasMore=${chatHasMore}`);
 
     if(reset){
-      for (const p of pairs) {
-        addChatMessage(
-            p.id, p.user_text, p.timestamp,
-            p.ai_text, p.ai_timestamp,
-            p.model, p.system_context, p.project_context, null, p.token_info, p.citations_json,
-            p.image_url, p.image_alt, p.image_title
-        );
+      if(pairs.length === 0){
+        const greetingText = renderInitialGreeting();
+        if(greetingText) persistPrefabGreeting(tabId, greetingText);
+      } else {
+        for (const p of pairs) {
+          addChatMessage(
+              p.id, p.user_text, p.timestamp,
+              p.ai_text, p.ai_timestamp,
+              p.model, p.system_context, p.project_context, null, p.token_info, p.citations_json,
+              p.image_url, p.image_alt, p.image_title
+          );
+        }
+        if(placeholderEl) placeholderEl.style.display = "none";
+        scrollChatToBottom();
       }
-      if(pairs.length>0 && placeholderEl) placeholderEl.style.display = "none";
-      scrollChatToBottom();
     } else {
       const scrollPos = chatMessagesEl.scrollHeight;
       const fragment = document.createDocumentFragment();
@@ -6754,7 +7219,9 @@ async function loadChatHistory(tabId = 1, reset=false) {
           displayProvider = 'openrouter/perplexity';
           displayShort = p.model.replace(/^openrouter\/perplexity\//, '');
         }
-        const titleAttr = p.image_url ? "" : ` title="${displayProvider} / ${displayShort}"`;
+        const { label: providerLabel } = formatProviderDisplay(displayProvider);
+        const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
+        const titleAttr = p.image_url ? "" : ` title="${providerTitle}"`;
         botHead.innerHTML = `
           <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
           <span style="opacity:0.8;">${p.ai_timestamp ? formatTimestamp(p.ai_timestamp) : "…"}</span>
@@ -6796,6 +7263,8 @@ async function loadChatHistory(tabId = 1, reset=false) {
         addCodeCopyButtons(botBody);
         botDiv.appendChild(botBody);
         addFilesFromCodeBlocks(p.ai_text || "");
+        appendModelInfoIcon(botDiv, p.model);
+        appendModelLabel(botDiv, p.model, displayShort, p.token_info);
         if(p.citations_json){
           try {
             const cites = JSON.parse(p.citations_json);
@@ -6833,23 +7302,7 @@ async function loadChatHistory(tabId = 1, reset=false) {
           }
         }
 
-        if(p.model){
-          // Show model name and response time at bottom-left of AI bubble
-          const modelDiv = document.createElement("div");
-          modelDiv.className = "model-indicator";
-          let displayText = `${shortModel}`;
-          if(p.token_info){
-            try {
-              const tInfo = JSON.parse(p.token_info);
-              if(tInfo && typeof tInfo.responseTime !== 'undefined'){
-                const respTime = (tInfo.responseTime * 10).toFixed(2);
-                displayText += ` (${respTime}s)`;
-              }
-            } catch(e){}
-          }
-          modelDiv.textContent = displayText;
-          botDiv.appendChild(modelDiv);
-        }
+        // Model labels previously shown under the AI bubble were removed per UX request.
 
         seqDiv.appendChild(botDiv);
         const pairDel = document.createElement("button");
@@ -6985,7 +7438,9 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
     displayProvider = 'openrouter/perplexity';
     displayShort = model.replace(/^openrouter\/perplexity\//, '');
   }
-  const titleAttr = imageUrl ? "" : ` title="${displayProvider} / ${displayShort}"`;
+  const { label: providerLabel } = formatProviderDisplay(displayProvider);
+  const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
+  const titleAttr = imageUrl ? "" : ` title="${providerTitle}"`;
   botHead.innerHTML = `
     <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
     <span style="opacity:0.8;">${aiTs ? formatTimestamp(aiTs) : "…"}</span>
@@ -7042,6 +7497,9 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   botDiv.appendChild(botBody);
   addFilesFromCodeBlocks(aiText || "");
 
+  appendModelInfoIcon(botDiv, model);
+  appendModelLabel(botDiv, model, displayShort, tokenInfo);
+
   if(citationsJson){
     try {
       const cites = JSON.parse(citationsJson);
@@ -7076,24 +7534,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
     } catch(e){
       console.debug("[Server Debug] Could not parse token_info for pair =>", pairId, e.message);
     }
-  }
-
-  if(model){
-    // Show model name and response time at bottom-left of AI bubble
-    const modelDiv = document.createElement("div");
-    modelDiv.className = "model-indicator";
-    let displayText = `${shortModel}`;
-    if(tokenInfo){
-      try {
-        const tInfo = JSON.parse(tokenInfo);
-        if(tInfo && typeof tInfo.responseTime !== 'undefined'){
-          const respTime = (tInfo.responseTime * 10).toFixed(2);
-          displayText += ` (${respTime}s)`;
-        }
-      } catch(e){}
-    }
-    modelDiv.textContent = displayText;
-    botDiv.appendChild(modelDiv);
   }
 
   seqDiv.appendChild(botDiv);
@@ -8105,9 +8545,9 @@ document.getElementById("imageUploadInput").addEventListener("change", async (ev
   ev.target.value="";
 });
 
-// Allow pasting images directly into the chat input
+// Allow pasting images directly into the chat input (currently disabled)
 chatInputEl.addEventListener("paste", (ev) => {
-  if(!imageUploadEnabled) return;
+  if(!pasteImageUploadsEnabled || !imageUploadEnabled) return;
   const items = ev.clipboardData && ev.clipboardData.items;
   if(!items) return;
   let found = false;
@@ -8328,9 +8768,13 @@ registerActionHook("embedMockImages", async ({response}) => {
 });
 
 const reasoningToggleBtn = document.getElementById("reasoningToggleBtn");
-reasoningToggleBtn?.addEventListener("click", toggleReasoning);
-reasoningToggleBtn?.addEventListener("mouseenter", showReasoningTooltip);
-reasoningToggleBtn?.addEventListener("mouseleave", scheduleHideReasoningTooltip);
+if(reasoningToggleBtn){
+  reasoningToggleBtn.hidden = true;
+  reasoningToggleBtn.style.display = "none";
+  reasoningToggleBtn.addEventListener("click", toggleReasoning);
+  reasoningToggleBtn.addEventListener("mouseenter", showReasoningTooltip);
+  reasoningToggleBtn.addEventListener("mouseleave", scheduleHideReasoningTooltip);
+}
 document.getElementById("codexToggleBtn")?.addEventListener("click", toggleCodexMini);
 document.addEventListener('click', e => {
   if(reasoningTooltip && reasoningTooltip.style.display === 'flex' &&

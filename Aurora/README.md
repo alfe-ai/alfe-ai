@@ -15,7 +15,7 @@ npm start
 | Name             | Purpose                                               |
 | ---------------- | ----------------------------------------------------- |
 | `OPENAI_API_KEY` | OpenAI API key for AI features ([get here](https://platform.openai.com/api-keys)) |
-| `AI_MODEL`   | (Optional) Default AI model used if the database has no value (default: deepseek/deepseek-chat) |
+| `AI_MODEL`   | (Optional) Default AI model used if the database has no value (default: openrouter/deepseek/deepseek-chat-v3-0324) |
 | `STABILITY_API_KEY` | (Optional) API key for the Stability AI upscaler |
 | `PRINTIFY_SCRIPT_PATH` | (Optional) Path to the Printify submission script. Defaults to the included run.sh |
 | `PRINTIFY_PRICE_SCRIPT_PATH` | (Optional) Path to the Printify price update script. Defaults to `/home/admin/Puppets/PrintifyPricePuppet/run.sh` |

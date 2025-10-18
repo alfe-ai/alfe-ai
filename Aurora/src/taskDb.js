@@ -1017,7 +1017,7 @@ export default class TaskDB {
     return row ? !!row.generate_images : true;
   }
 
-  setChatTabSendProjectContext(tabId, enabled = 0) {
+  setChatTabSendProjectContext(tabId, enabled = 1) {
     this.db.prepare("UPDATE chat_tabs SET send_project_context=? WHERE id=?")
         .run(enabled ? 1 : 0, tabId);
   }

@@ -28,9 +28,14 @@ async function fetchTitle(sku) {
 }
 
 async function fetchEbayListingId(sku) {
-  const token = process.env.EBAY_API_TOKEN;
+  let token = process.env.EBAY_API_TOKEN;
   if (!token) {
-    throw new Error('EBAY_API_TOKEN must be set');
+    try {
+      const { getCachedEbayToken } = await import('../ProgramaticPuppet/tokenCache.js');
+      token = getCachedEbayToken();
+    } catch (err) {
+      throw new Error('EBAY_API_TOKEN must be set or retrievable: ' + err.message);
+    }
   }
   const res = await fetch(
     `https://api.ebay.com/sell/inventory/v1/offer?sku=${encodeURIComponent(sku)}`,

@@ -1,7 +1,7 @@
 {
   "name": "alfe-sh-redirect",
   "version": "1.0.0",
-  "description": "HTTPS redirect from alfe.sh:3001 to https://mvp2.alfe.sh",
+  "description": "HTTPS redirect from alfe.sh:3001 to https://app.alfe.sh",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

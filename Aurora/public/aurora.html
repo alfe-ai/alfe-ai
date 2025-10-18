@@ -10,10 +10,10 @@
           id="favicon"
           rel="icon"
           type="image/x-icon"
-          href="/alfe_favicon_64x64.ico"
+          href="/alfe_favicon_chat_mountain_rect_purple_WHITEBG.ico"
   />
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#2d2d2d" />
+  <meta name="theme-color" content="#0b1723" />
 </head>
 <body>
 
@@ -22,7 +22,7 @@
     <img id="sidebarToggleIcon" class="sidebar-toggle-icon" src="/alfe_favicon_64x64.ico" alt="Toggle sidebar" title="Toggle sidebar"/>
     <span id="sidebarBrandText" class="sidebar-brand-text">Alfe AI</span>
     <span id="closeSidebarIcon" class="close-sidebar-icon">&laquo;</span>
-        <div id="versionInfo" class="version-info" style="margin-bottom: 5px;"><span id="versionSpan">beta-...</span> <a href="/about.html" target="_blank" style="color: cyan">about</a> <a href="https://dev.alfe.sh/search?q=" target="_blank" style="color: cyan; margin-left:4px;">search</a></div>
+        <div id="versionInfo" class="version-info" style="margin-bottom: 5px;"><span id="versionSpan">beta-3.0.0</span> <a href="/about.html" target="_blank" style="color: var(--accent)">about</a></div>
     <span id="sessionIdText" class="session-id"></span>
     <button id="hideSidebarBtn" class="hide-sidebar-btn">Hide Sidebar</button>
     <div id="navSpinner" style="text-align:center; margin-top:1rem;"><span class="loading-spinner"></span></div>
@@ -38,8 +38,8 @@
     <nav class="tree-menu" style="display:none;">
       <ul>
         <li><button id="navChatTabsBtn" class="tree-button active">Chats</button></li>
-        <li><button id="navTasksBtn" class="tree-button">Projects and Tasks</button></li>
-        <li><button id="navUploaderBtn" class="tree-button">Images</button></li>
+        <li hidden><button id="navTasksBtn" class="tree-button">Projects and Tasks</button></li>
+        <li hidden><button id="navUploaderBtn" class="tree-button">Images</button></li>
         <li><button id="navArchiveTabsBtn" class="tree-button">Archived</button></li>
         <li><button id="navFileTreeBtn" class="tree-button">File Tree</button></li>
         <li><button id="navAiModelsBtn" class="tree-button" data-url="/ai_models">AI Models</button></li>
@@ -53,8 +53,8 @@
     <!-- Icon-only menu for collapsed sidebar -->
     <nav class="icon-menu" style="display:none;">
       <button id="navChatTabsIcon" class="icon-btn" title="Chats">💬</button>
-      <button id="navTasksIcon" class="icon-btn" title="Projects and Tasks">✅</button>
-      <button id="navUploaderIcon" class="icon-btn" title="Images">🖼️</button>
+      <button id="navTasksIcon" class="icon-btn" title="Projects and Tasks" hidden>✅</button>
+      <button id="navUploaderIcon" class="icon-btn" title="Images" hidden>🖼️</button>
       <button id="navArchiveTabsIcon" class="icon-btn" title="Archived">&#128452;</button>
       <button id="navFileTreeIcon" class="icon-btn" title="File Tree">📁</button>
       <button id="navAiModelsIcon" class="icon-btn" title="AI Models">🤖</button>
@@ -154,9 +154,9 @@
 <!--      <h2>Chat Tabs</h2>-->
       <div id="projectGroupsContainer" style="display:none;flex-direction:column;gap:4px;"></div>
       <div id="verticalTabsContainer" style="display:flex;flex-direction:column;gap:4px;"></div>
-      <label style="display:block;"><input type="checkbox" id="tasksOnlyTabsCheck"/> Tasks only</label>
-      <label style="display:block;"><input type="checkbox" id="hideArchivedTabsCheck"/> Hide archived</label>
-      <button id="newProjectGroupBtn">➕ Project Group</button>
+      <label class="temporarily-hidden-control" hidden><input type="checkbox" id="tasksOnlyTabsCheck"/> Tasks only</label>
+      <label class="temporarily-hidden-control" hidden><input type="checkbox" id="hideArchivedTabsCheck"/> Hide archived</label>
+      <button id="newProjectGroupBtn" hidden>➕ Project</button>
       <button id="newSideTabBtn">➕ Tab</button>
       <button id="toggleTopChatTabsBtn" style="display:none;">Hide/Show top chat tabs bar</button>
     </div>
@@ -203,10 +203,10 @@
       <a id="githubBtn" href="https://github.com/alfe-ai" target="_blank" class="top-btn" style="display:none;">GitHub</a>
       <a id="blueskyBtn" href="https://bsky.app/profile/alfeai.bsky.social" target="_blank" class="top-btn" title="AlfeAI on Bluesky" style="display:none;">🦋</a>
       <button id="chatSettingsBtn" class="top-btn" title="Chat Settings" style="display:none;">⚙️</button>
-      <button id="globalAiSettingsBtn" class="top-btn" title="Global AI Settings">🤖</button>
+      <button id="globalAiSettingsBtn" class="top-btn" title="Global AI Settings" style="display:none;">🤖</button>
       <button id="aiFavoritesBtn" class="top-btn" title="AI Favorites" style="color: gold; display:none;">⭐</button>
       <button id="settingsBtn" class="top-btn" title="Settings">⚙️</button>
-      <button id="signupBtn" class="top-btn">Sign Up / Login</button>
+      <button id="signupBtn" class="top-btn" style="display:none;">Sign Up / Login</button>
 <!--    <a id="changelogBtn" href="/changelog.html" class="top-btn" target="_blank">Changelog</a>-->
     </div>
 
@@ -216,9 +216,12 @@
   <img id="collapsedSidebarLogo" src="/alfe_favicon_64x64.ico" title="Expand sidebar" alt="Alfe AI logo" style="height:32px; position:absolute; top:8px; left:8px; cursor:pointer; display:none; z-index:1000;"/>
   <span id="expandSidebarArrow" title="Expand sidebar" style="position:absolute; top:20px; left:48px; font-size:1.4rem; cursor:pointer; display:none; z-index:1000;">&raquo;</span>
   <div id="thinSidebar" class="thin-sidebar">
-    <button id="thinIconChats" class="thin-icon" title="Chats">💬</button>
-    <button id="thinIconImages" class="thin-icon" title="Images">🖼️</button>
-    <button id="thinIconArchived" class="thin-icon" title="Archived">&#128452;</button>
+    <button id="thinIconChats" class="thin-icon" title="Chats" aria-label="Open chats">
+      💬
+    </button>
+    <button id="thinIconArchived" class="thin-icon" title="Archived" aria-label="Open archived chats">
+      <img src="/icons/archive.svg" alt="Archive" />
+    </button>
   </div>
 
   <main class="chat-panel">
@@ -227,16 +230,6 @@
       <button id="viewTabTasks" class="view-tab" hidden>☑️ Tasks</button>
       <button id="viewTabArchive" class="view-tab" hidden>Archive</button>
     </div>
-    <div id="projectBar" style="display:none; margin-bottom:8px;">
-      <span id="projectInfo" style="font-size:0.9rem; color:#aaa; margin-right:8px;"></span>
-      <input id="projectSearchInput" type="text" placeholder="Search project chats..." style="margin-right:4px;"/>
-      <button id="projectSearchBtn">Search</button>
-      <button id="setProjectBtn" style="display:none;">Set Project</button>
-      <button id="createSterlingChatBtn" style="display:none;">Create Sterling Chat</button>
-      <button id="changeSterlingBranchBtn" style="margin-left:6px;">Change Sterling Branch</button>
-      <span id="sterlingUrlLabel" style="margin-left:1rem; color:#0f0;"></span>
-    </div>
-
     <!-- New Empty Task List Panel Above Chat UI -->
     <div id="taskListPanel" style="display:none;border:1px dashed #666; padding:8px; margin:8px 0;">
       <h2 style="margin:0;font-size:1.1rem;">Task List</h2>
@@ -271,39 +264,36 @@
     </div>
 
       <div id="chatPanel" style="position: relative;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <div id="modelHud" style="font-size:0.9rem; color:#aaa; margin-bottom:4px;"></div>
+        <div id="chatMessages">
+          <div id="chatPlaceholder" style="text-align:center;margin:1rem 0;">
+            <span class="loading-spinner"></span>
+          </div>
+          <div id="imageGenerationIndicator" style="display:none; color:#0ff; margin:8px 0;">Generating image<span class="loading-spinner"></span></div>
+          <div id="startSuggestions" style="display:none;"></div>
         </div>
-      <div id="chatMessages">
-        <div id="chatPlaceholder" style="text-align:center;margin:1rem 0;">
-          <span class="loading-spinner"></span>
+
+        <div id="waitingCounter"></div>
+        <div id="chatQueueContainer" class="chat-queue-container"></div>
+        <div class="chat-input-container">
+          <!-- Hidden file input for image uploading -->
+          <input type="file" id="imageUploadInput" accept="image/*" style="display:none" multiple />
+          <button id="chatImageBtn" class="send-btn" title="Upload Image" style="display:none;" hidden>📤</button>
+          <button id="reasoningToggleBtn" class="send-btn reasoning-toggle-btn" title="Reasoning" style="display:none;" hidden>🤖</button>
+
+          <textarea id="chatInput" placeholder="Type your message..." autocomplete="off"></textarea>
+          <button id="chatSendBtn" class="send-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+          <button id="chatGenImageBtn" class="send-btn" title="" hidden></button>
         </div>
-        <div id="imageGenerationIndicator" style="display:none; color:#0ff; margin:8px 0;">Generating image<span class="loading-spinner"></span></div>
-        <div id="startSuggestions" style="display:none;"></div>
+        <div id="inputTokenCount" class="token-counter">0 tokens</div>
+        <div id="imagePreviewArea" style="margin:8px 0;"></div>
+        <div id="imageProcessingIndicator" style="display:none; color:#f0f; margin:8px 0;">Processing image, please wait...</div>
       </div>
-
-      <div id="waitingCounter"></div>
-      <div id="chatQueueContainer" class="chat-queue-container"></div>
-      <div class="chat-input-container">
-        <!-- Hidden file input for image uploading -->
-        <input type="file" id="imageUploadInput" accept="image/*" style="display:none" multiple />
-        <button id="chatImageBtn" class="send-btn" title="Upload Image" style="display:none;">📤</button>
-        <button id="reasoningToggleBtn" class="send-btn reasoning-toggle-btn" title="Reasoning">🤖</button>
-
-        <textarea id="chatInput" placeholder="Type your message..." autocomplete="off"></textarea>
-        <button id="chatSendBtn" class="send-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
-            <line x1="22" y1="2" x2="11" y2="13"></line>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-          </svg>
-        </button>
-        <button id="chatGenImageBtn" class="send-btn" title="" hidden></button>
-      </div>
-      <div id="inputTokenCount" class="token-counter">0 tokens</div>
-      <div id="imagePreviewArea" style="margin:8px 0;"></div>
-      <div id="imageProcessingIndicator" style="display:none; color:#f0f; margin:8px 0;">Processing image, please wait...</div>
-    </div>
   </main>
 </div>
 
@@ -439,12 +429,13 @@
     <label style="display:block;margin-top:8px;">Assign to task:<br/>
       <select id="renameTaskSelect" style="width:100%;"></select>
     </label>
-    <label style="display:block;margin-top:8px;"><input type="checkbox" id="renameSendProjectContextCheck" disabled/> Send project context</label>
+    <label style="display:block;margin-top:8px;"><input type="checkbox" id="renameSendProjectContextCheck"/> Send project context</label>
     <label style="display:block;margin-top:8px;">ChatGPT URL:<br/>
       <input type="text" id="renameChatgptUrlInput" style="width:100%;" />
     </label>
     <div class="modal-buttons">
       <button id="renameTabCreateTaskBtn">Create Task</button>
+      <button id="renameTabArchiveBtn">Archive</button>
       <button id="renameTabSaveBtn">Save</button>
       <button id="renameTabCancelBtn">Cancel</button>
     </div>
@@ -590,15 +581,15 @@
       <label>AI Search Model:
         <select id="globalAiSearchModelSelect">
           <option value="sonar">sonar</option>
-          <option value="openrouter/perplexity/sonar">openrouter/perplexity/sonar</option>
+          <option value="openrouter/perplexity/sonar">perplexity/sonar</option>
           <option value="sonar-pro">sonar-pro</option>
-          <option value="openrouter/perplexity/sonar-pro">openrouter/perplexity/sonar-pro</option>
+          <option value="openrouter/perplexity/sonar-pro">perplexity/sonar-pro</option>
           <option value="sonar-reasoning">sonar-reasoning</option>
-          <option value="openrouter/perplexity/sonar-reasoning">openrouter/perplexity/sonar-reasoning</option>
+          <option value="openrouter/perplexity/sonar-reasoning">perplexity/sonar-reasoning</option>
           <option value="sonar-reasoning-pro">sonar-reasoning-pro</option>
-          <option value="openrouter/perplexity/sonar-reasoning-pro">openrouter/perplexity/sonar-reasoning-pro</option>
+          <option value="openrouter/perplexity/sonar-reasoning-pro">perplexity/sonar-reasoning-pro</option>
           <option value="sonar-deep-research">sonar-deep-research</option>
-          <option value="openrouter/perplexity/sonar-deep-research">openrouter/perplexity/sonar-deep-research</option>
+          <option value="openrouter/perplexity/sonar-deep-research">perplexity/sonar-deep-research</option>
           <option value="openai/gpt-4o-mini-search-preview">openai/gpt-4o-mini-search-preview</option>
           <option value="openai/gpt-4o-search-preview">openai/gpt-4o-search-preview</option>
        </select>
@@ -874,25 +865,19 @@
       </label>
       <button id="timezoneSaveBtn" style="margin-top:8px;">Save</button>
     </div>
-    <div id="imageLoopSection" style="margin-top:10px; display:none;">
-      <label><input type="checkbox" id="accountImageLoopCheck"/> Enable image loop</label>
-    </div>
     <div id="autoScrollSection" style="margin-top:10px;">
-      <label><input type="checkbox" id="accountAutoScrollCheck"/> Keep chat pinned to bottom</label>
-    </div>
-    <div id="chatMetadataSection" style="margin-top:10px;">
-      <label><input type="checkbox" id="accountShowMetadataCheck"/> Show chat pair metadata</label>
+      <label><input type="checkbox" id="accountAutoScrollCheck" checked/> Keep chat pinned to bottom</label>
     </div>
     <div id="mobileThinSidebarSection" style="margin-top:10px;">
       <label><input type="checkbox" id="mobileThinSidebarCheck" checked/> Show sidebar toolbar on mobile</label>
     </div>
-    <div id="newTabSearchSection" style="margin-top:10px;">
-      <label><input type="checkbox" id="accountNewTabSearchCheck"/> Open /new in Search mode</label>
-    </div>
     <div id="defaultModelSection" style="margin-top:10px;">
-      <label>Default Model for New Chats:
-        <select id="defaultModelSelect"></select>
+      <label class="disabled-setting">Default Model for New Chats:
+        <select id="defaultModelSelect" disabled>
+          <option value="">Managed by your administrator</option>
+        </select>
       </label>
+      <p class="disabled-setting-note">This setting is locked. Contact your administrator for changes.</p>
     </div>
     <div class="modal-buttons">
       <button id="settingsCloseBtn">Close</button>

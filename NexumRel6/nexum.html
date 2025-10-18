@@ -11,21 +11,6 @@
           type="image/x-icon"
           href="/alfe_favicon_64x64.ico"
   />
-  <style>
-    .app {
-      display: none !important;
-    }
-    #startDialog {
-      display: flex !important;
-    }
-    #logoText,
-    #aboutLink,
-    #sidebarToggle,
-    #viewTabsBar,
-    #cookieBanner {
-      display: none !important;
-    }
-  </style>
 </head>
 <body>
   <div class="app">
@@ -186,10 +171,11 @@
   </div>
   <div id="startDialog" class="modal" style="display:none;">
     <a href="/about.html" target="_blank" style="position:absolute; top:8px; left:8px; font-size:0.8rem; color:var(--text-color);">About</a>
+    <div id="splashAnim">
+      <div id="splashTitle">Alfe AI</div>
+      <div id="splashYour">Alfe is your</div>
+    </div>
     <div class="modal-content">
-      <div class="splash-media" style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-        <img id="startDialogGif" src="/demo.gif" alt="Alfe AI demo" style="max-width:240px; width:60%; height:auto;" />
-      </div>
       <h3>Get Started</h3>
       <div>
         <div id="startTypeButtons">
@@ -265,7 +251,6 @@
     let startInAurora = true;
     // Feature flag to enable advanced start options (Code, Design, Project)
     const enableStartAdvanced = false;
-    const splashOnlyMode = true;
     // Maintain a history of user-entered prompts
     const inputHistory = [];
     let inputHistoryPos = -1;
@@ -332,25 +317,6 @@
         clearTimeout(splashTimer);
         splashTimer = null;
       }
-    }
-
-    function enforceSplashOnlyMode(){
-      if(!splashOnlyMode) return;
-      const app = document.querySelector('.app');
-      if(app) app.style.display = 'none';
-      const dlg = document.getElementById('startDialog');
-      if(dlg){
-        dlg.style.display = 'flex';
-        startSplash();
-      }
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      if(sidebarToggle) sidebarToggle.style.display = 'none';
-      const logoText = document.getElementById('logoText');
-      if(logoText) logoText.style.display = 'none';
-      const aboutLink = document.getElementById('aboutLink');
-      if(aboutLink) aboutLink.style.display = 'none';
-      const topBar = document.getElementById('viewTabsBar');
-      if(topBar) topBar.style.display = 'none';
     }
 
     async function loadTheme(){
@@ -467,10 +433,6 @@
   }
 
   function checkNoTabsDialog(){
-    if(splashOnlyMode){
-      enforceSplashOnlyMode();
-      return;
-    }
     const dlg = document.getElementById('startDialog');
     if(!dlg) return;
     const noTabs = tabs.length === 0;
@@ -717,10 +679,8 @@
       const r = await fetch('/api/chat/tabs/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(r.ok){
         const data = await r.json();
-        if(!splashOnlyMode){
-          document.getElementById('startDialog').style.display = 'none';
-          stopSplash();
-        }
+        document.getElementById('startDialog').style.display = 'none';
+        stopSplash();
         if(startInAurora){
           await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'last_chat_tab', value:data.id})});
           location.href = '/aurora.html';
@@ -942,7 +902,6 @@
       }
     }
     document.addEventListener('DOMContentLoaded', () => {
-      enforceSplashOnlyMode();
       // Display the generated session ID in the About overlay
       const sessEl = document.getElementById('sessionIdText');
       if(sessEl) sessEl.textContent = sessionId;

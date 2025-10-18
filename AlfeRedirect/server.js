@@ -9,7 +9,7 @@ const certPath = process.env.HTTPS_CERT_PATH;
 const app = express();
 
 app.use((req, res) => {
-  res.redirect('https://mvp2.alfe.sh');
+  res.redirect('https://app.alfe.sh');
 });
 
 if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
