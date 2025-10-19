@@ -11,7 +11,7 @@ import TaskDBAws from "./taskDbAws.js";
 
 const useRds = process.env.AWS_DB_URL || process.env.AWS_DB_HOST;
 const TaskDB = useRds ? TaskDBAws : TaskDBLocal;
-import { pbkdf2Sync, randomBytes } from "crypto";
+import { pbkdf2Sync, randomBytes, randomUUID } from "crypto";
 import speakeasy from "speakeasy";
 
 dotenv.config();
@@ -413,6 +413,47 @@ async function callPerplexityModel(model, opts = {}) {
     responseType: stream ? 'stream' : 'json'
   });
   return res.data;
+}
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+function normalizeHostname(req) {
+  const header = req.hostname || req.get("host") || "";
+  return header.split(":")[0].toLowerCase();
+}
+
+function buildSessionCookie(sessionId, hostname) {
+  const expires = new Date(Date.now() + ONE_YEAR_MS);
+  const parts = [
+    `sessionId=${encodeURIComponent(sessionId)}`,
+    "Path=/",
+    `Expires=${expires.toUTCString()}`,
+    `Max-Age=${Math.floor(ONE_YEAR_MS / 1000)}`,
+  ];
+
+  if (hostname === "alfe.sh" || hostname.endsWith(".alfe.sh")) {
+    parts.push("Domain=.alfe.sh");
+  }
+
+  return parts.join("; ");
+}
+
+function ensureSessionIdCookie(req, res) {
+  let sessionId = getSessionIdFromRequest(req);
+  let created = false;
+
+  if (!sessionId) {
+    sessionId = randomUUID();
+    created = true;
+    const hostname = normalizeHostname(req);
+    const cookie = buildSessionCookie(sessionId, hostname);
+    res.append("Set-Cookie", cookie);
+    console.debug(
+      `[Server Debug] ensureSessionIdCookie => Issued new session ${sessionId.slice(0, 8)}… for host ${hostname || "(unknown)"}`
+    );
+  }
+
+  return { sessionId, created };
 }
 
 function getSessionIdFromRequest(req) {
@@ -3886,11 +3927,7 @@ app.get("/search", (req, res) => {
 
 app.get("/new", (req, res) => {
   try {
-    const sessionId = getSessionIdFromRequest(req);
-    if (!sessionId) {
-      console.debug("[Server Debug] GET /new => Missing session, redirecting to alfe.sh");
-      return res.redirect("https://alfe.sh");
-    }
+    const { sessionId, created } = ensureSessionIdCookie(req, res);
 
     let name = "Untitled";
     const autoNaming = db.getSetting("chat_tab_auto_naming");
@@ -3913,6 +3950,15 @@ app.get("/new", (req, res) => {
     );
 
     db.setSetting("last_chat_tab", tabId);
+    if (created) {
+      console.debug(
+        `[Server Debug] GET /new => Created chat tab ${tabId} (${uuid}) for new session ${sessionId.slice(0, 8)}…`
+      );
+    } else {
+      console.debug(
+        `[Server Debug] GET /new => Created chat tab ${tabId} (${uuid}) for existing session ${sessionId.slice(0, 8)}…`
+      );
+    }
     console.debug(`[Server Debug] GET /new => Redirecting to /chat/${uuid}`);
     res.redirect(`/chat/${uuid}`);
   } catch (err) {
