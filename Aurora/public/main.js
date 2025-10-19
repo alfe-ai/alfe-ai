@@ -7156,7 +7156,6 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
             const userLabel = "You";
             userHead.innerHTML = `
               <div class="name-oval name-oval-user">${userLabel}</div>
-              <span style="opacity:0.8;">${formatTimestamp(p.timestamp)}</span>
             `;
             const uDel = document.createElement("button");
             uDel.className = "delete-chat-btn bubble-delete-btn";
@@ -7224,7 +7223,6 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         const titleAttr = p.image_url ? "" : ` title="${providerTitle}"`;
         botHead.innerHTML = `
           <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
-          <span style="opacity:0.8;">${p.ai_timestamp ? formatTimestamp(p.ai_timestamp) : "…"}</span>
         `;
         const aDel = document.createElement("button");
         aDel.className = "delete-chat-btn bubble-delete-btn";
