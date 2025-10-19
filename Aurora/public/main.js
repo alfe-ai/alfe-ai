@@ -7360,10 +7360,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       const userHead = document.createElement("div");
       userHead.className = "bubble-header";
       const userLabel = "You";
-      userHead.innerHTML = `
-        <div class="name-oval name-oval-user">${userLabel}</div>
-        <span style="opacity:0.8;">${formatTimestamp(userTs)}</span>
-      `;
+      userHead.innerHTML = `<div class="name-oval name-oval-user">${userLabel}</div>`;
       const userDelBtn = document.createElement("button");
       userDelBtn.className = "delete-chat-btn bubble-delete-btn";
       userDelBtn.textContent = "🗑";
@@ -7439,10 +7436,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   const { label: providerLabel } = formatProviderDisplay(displayProvider);
   const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
   const titleAttr = imageUrl ? "" : ` title="${providerTitle}"`;
-  botHead.innerHTML = `
-    <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
-    <span style="opacity:0.8;">${aiTs ? formatTimestamp(aiTs) : "…"}</span>
-  `;
+  botHead.innerHTML = `<div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>`;
   const aiDelBtn = document.createElement("button");
   aiDelBtn.className = "delete-chat-btn bubble-delete-btn";
   aiDelBtn.textContent = "🗑";
