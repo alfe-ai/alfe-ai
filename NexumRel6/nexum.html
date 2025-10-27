@@ -12,22 +12,22 @@
           href="/alfe_favicon_64x64.ico"
   />
   <style>
-    .app {
+    body.splash-only .app {
       display: none !important;
     }
-    #startDialog {
+    body.splash-only #startDialog {
       display: flex !important;
     }
-    #logoText,
-    #aboutLink,
-    #sidebarToggle,
-    #viewTabsBar,
-    #cookieBanner {
+    body.splash-only #logoText,
+    body.splash-only #aboutLink,
+    body.splash-only #sidebarToggle,
+    body.splash-only #viewTabsBar,
+    body.splash-only #cookieBanner {
       display: none !important;
     }
   </style>
 </head>
-<body>
+<body class="splash-only">
   <div class="app">
     <img id="sidebarToggle" class="sidebar-toggle-icon" src="/alfe_favicon_64x64.ico" alt="Toggle sidebar" title="Toggle sidebar"/>
     <span id="logoText" style="position:absolute; top:12px; left:60px; font-size:1.4rem; color:var(--text-color);">Alfe AI</span>
@@ -265,7 +265,7 @@
     let startInAurora = true;
     // Feature flag to enable advanced start options (Code, Design, Project)
     const enableStartAdvanced = false;
-    const splashOnlyMode = true;
+    let splashOnlyMode = true;
     // Maintain a history of user-entered prompts
     const inputHistory = [];
     let inputHistoryPos = -1;
@@ -335,22 +335,21 @@
     }
 
     function enforceSplashOnlyMode(){
-      if(!splashOnlyMode) return;
-      const app = document.querySelector('.app');
-      if(app) app.style.display = 'none';
+      const body = document.body;
       const dlg = document.getElementById('startDialog');
-      if(dlg){
-        dlg.style.display = 'flex';
-        startSplash();
+      if(splashOnlyMode){
+        if(body) body.classList.add('splash-only');
+        if(dlg){
+          dlg.style.display = 'flex';
+          startSplash();
+        }
+      } else {
+        if(body) body.classList.remove('splash-only');
+        stopSplash();
+        if(dlg && tabs.length > 0){
+          dlg.style.display = 'none';
+        }
       }
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      if(sidebarToggle) sidebarToggle.style.display = 'none';
-      const logoText = document.getElementById('logoText');
-      if(logoText) logoText.style.display = 'none';
-      const aboutLink = document.getElementById('aboutLink');
-      if(aboutLink) aboutLink.style.display = 'none';
-      const topBar = document.getElementById('viewTabsBar');
-      if(topBar) topBar.style.display = 'none';
     }
 
     async function loadTheme(){
@@ -717,10 +716,10 @@
       const r = await fetch('/api/chat/tabs/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       if(r.ok){
         const data = await r.json();
-        if(!splashOnlyMode){
-          document.getElementById('startDialog').style.display = 'none';
-          stopSplash();
-        }
+        splashOnlyMode = false;
+        enforceSplashOnlyMode();
+        const startDlg = document.getElementById('startDialog');
+        if(startDlg) startDlg.style.display = 'none';
         if(startInAurora){
           await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:'last_chat_tab', value:data.id})});
           location.href = '/aurora.html';
@@ -1122,12 +1121,14 @@
         await loadTabs();
         await loadArchivedTabs();
         if(tabs.length>0){
+          splashOnlyMode = false;
           if(!Number.isNaN(startTab) && tabs.some(t=>t.id===startTab)){
             currentTabId = startTab;
           }else{
             currentTabId = tabs[0].id;
           }
         }
+        enforceSplashOnlyMode();
         renderTabs();
         renderSuggestions(false, 'suggestions', 'prompt'); // show/hide after history loads
         applyTabView();
