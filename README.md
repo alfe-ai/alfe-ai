@@ -70,110 +70,14 @@ Send POST requests to `/sql` with a JSON body containing a `sql` string and
 optional `params` array. Select queries return rows while other statements
 return change information.
 
-## Perplexity CLI
-
-A small command-line script `perplexity-cli.js` lets you query the official Perplexity API and prints any citation URLs from the response. A newer interactive version `pplx.js` is also provided.
-
-Supported Perplexity models:
-
-```
-sonar
-sonar-pro
-sonar-reasoning
-sonar-reasoning-pro
-sonar-deep-research
-r1-1776
-```
-
 ### Prerequisites
 
 ```bash
 npm install axios commander
 ```
 
-Set your API key with `PERPLEXITY_API_KEY` or pass `--key` when running.
-
-### Usage
-
-```bash
-chmod +x pplx.js
-./pplx.js "What causes aurora borealis?"
-```
-
-The script outputs the answer and lists cited URLs if available.
-
-## Perplexity API Quick Reference (2025)
-
-The CLI follows Perplexity's official API which mirrors the OpenAI Chat
-Completions format. Set your API key in the `PERPLEXITY_API_KEY` environment
-variable and send requests to `https://api.perplexity.ai/chat/completions`.
-
-```json
-{
-  "model": "sonar-pro",
-  "messages": [
-    { "role": "system", "content": "You are a helpful assistant." },
-    { "role": "user", "content": "Who discovered penicillin?" }
-  ],
-  "max_tokens": 512,
-  "temperature": 0.7
-}
-```
-
-Responses include optional `citations` and `search_results` arrays with the
-source URLs used. Common errors are a `400 Bad Request` when the model name is
-wrong and `401`/`403` for missing or invalid API keys. Use plain model names
-like `sonar`, `sonar-pro`, `sonar-reasoning`, `sonar-reasoning-pro`,
-`sonar-deep-research`, or `r1-1776` without any provider prefix.
-
 ### Reasoning menu configuration
 
 The order of models shown in the reasoning tooltip can be customized.
 Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
 `chatModels` and `reasoningModels` arrays to suit your preferences.
-
-The chat model list now includes **Anthropic Claude Sonnet 4** as an
-`ultimate` tier option. Pricing is $3 per million input tokens,
-$15 per million output tokens, and $4.80 per thousand input images.
-
-**Anthropic Claude 3.7 Sonnet** is available under the `pro` tier. Created Feb 24, 2025 with a 200,000 token context limit, pricing is $3 per million input tokens and $15 per million output tokens.
-**Anthropic Claude Opus 4** is also available under the `ultimate` tier.
-Created May 22, 2025 with a 200,000 token context limit, pricing is
-$15 per million input tokens and $75 per million output tokens.
-
-**Anthropic Claude 3.7 Sonnet (thinking)** has been added to the reasoning
-menu as an `ultimate` tier option. Created Feb 24, 2025 with a 200,000 token
-context limit, pricing is $3 per million input tokens and $15 per million
-output tokens.
-
-**perplexity/sonar-reasoning** has been added to the reasoning menu under the
-`pro` tier. Created Jan 29, 2025 with a 127,000 token context limit, pricing
-starts at $1 per million input tokens and $5 per million output tokens.
-
-**perplexity/sonar-reasoning-pro** has been added to the reasoning menu under the
-`pro` tier. Created Mar 7, 2025 with a 128,000 token context limit, pricing
-starts at $2 per million input tokens and $8 per million output tokens.
-
-**Anthropic Claude 3.5 Haiku** has been added to the chat model menu under the
-`pro` tier. It offers enhanced speed, coding accuracy, and tool use, making it
-ideal for real-time applications like chat interactions and instant coding
-suggestions. Created Nov 4, 2024 with a 200,000 token context limit, pricing is
-$0.80 per million input tokens and $4 per million output tokens.
-
-**OpenAI GPT-5 Chat** has been added under the `pro` tier for advanced, natural,
-multimodal, and context-aware conversations. It supports a 400,000 token context
-with pricing at $1.25 per million input tokens and $10 per million output tokens.
-
-**OpenAI GPT-5** is now available under the `pro` tier, offering major
-improvements in reasoning, code quality, and user experience. It also supports a
-400,000 token context and is priced at $1.25 per million input tokens and $10 per
-million output tokens.
-
-**OpenAI GPT-5 Mini** provides lighter-weight reasoning with reduced latency and
-cost. Available under the `pro` tier, it offers a 400,000 token context and
-costs $0.25 per million input tokens and $2 per million output tokens.
-
-**OpenAI GPT-5 Nano** is optimized for ultra-low latency environments. Under the
-`pro` tier, it features a 400,000 token context and pricing of $0.05 per million
-input tokens and $0.40 per million output tokens.
-
