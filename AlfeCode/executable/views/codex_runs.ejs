@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sterling · Agent Runs</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 48px 32px 64px;
+            background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.18), transparent 55%),
+                radial-gradient(circle at 15% 120%, rgba(14, 165, 233, 0.16), transparent 55%),
+                linear-gradient(135deg, #050713, #0f172a);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0; /* left-align page to remove empty space */
+            padding-left: 32px; /* keep page padding */
+        }
+        /* Ensure runs table stretches to full available width without left gap */
+        .runs-table {
+            margin-left: 0;
+        }
+
+        header.page-header {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 2.2rem;
+            margin: 0;
+            color: #f8fafc;
+            letter-spacing: 0.02em;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            color: #cbd5f5;
+        }
+
+        .filters span {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 0.9rem;
+        }
+
+        table.runs-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 24px 48px rgba(2, 6, 23, 0.45);
+        }
+
+        table.runs-table thead {
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        table.runs-table th,
+        table.runs-table td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        }
+
+        table.runs-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.runs-table th {
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+
+        table.runs-table td {
+            font-size: 0.95rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            background: rgba(148, 163, 184, 0.15);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #cbd5f5;
+        }
+
+        .tag.success {
+            background: rgba(34, 197, 94, 0.16);
+            border-color: rgba(34, 197, 94, 0.35);
+            color: #bbf7d0;
+        }
+
+        .tag.running {
+            background: rgba(129, 140, 248, 0.2);
+            border-color: rgba(129, 140, 248, 0.35);
+            color: #c7d2fe;
+        }
+
+        /* Status tags */
+        .tag.status-developed {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.25);
+            color: #bfdbfe;
+        }
+
+        .tag.status-merged {
+            background: rgba(124, 58, 237, 0.12);
+            border-color: rgba(124, 58, 237, 0.28);
+            color: #e9d5ff;
+        }
+
+        .tag.error {
+            background: rgba(239, 68, 68, 0.16);
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #fecaca;
+        }
+
+        table.runs-table tr.is-running {
+            background: rgba(30, 41, 59, 0.65);
+        }
+
+        .run-id-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        a.run-open-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(15, 23, 42, 0.55);
+            color: #cbd5f5;
+            text-decoration: none;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        a.run-open-link:hover,
+        a.run-open-link:focus-visible {
+            background: rgba(30, 41, 59, 0.85);
+            border-color: rgba(148, 163, 184, 0.35);
+            color: #e2e8f0;
+            outline: none;
+        }
+
+        .run-open-link__icon {
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+
+        .details-cell details {
+            background: rgba(30, 41, 59, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #cbd5f5;
+        }
+
+        .details-cell details summary {
+            cursor: pointer;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .details-cell pre {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(2, 6, 23, 0.65);
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .status-message {
+            margin-bottom: 18px;
+            color: #94a3b8;
+        }
+
+        code.run-id {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 3px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            font-size: 0.85rem;
+            color: #cbd5f5;
+        }
+
+        @media (max-width: 900px) {
+            table.runs-table thead {
+                display: none;
+            }
+            table.runs-table,
+            table.runs-table tbody,
+            table.runs-table tr,
+            table.runs-table td {
+                display: block;
+                width: 100%;
+            }
+            table.runs-table tr {
+                border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+                margin-bottom: 18px;
+            }
+            table.runs-table td {
+                padding: 10px 12px;
+            }
+            table.runs-table td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.75rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: #94a3b8;
+                margin-bottom: 6px;
+            }
+        }
+            /* Hide numeric "#" column */
+        table.runs-table th:first-child,
+        table.runs-table td:first-child { display: none; }
+        
+    </style>
+</head>
+<body>
+<%- include('partials/session_banner') %>
+<div class="page">
+    <% const resolvedRepoDirectory = typeof repoDirectory === 'string' ? repoDirectory.trim() : ''; %>
+    <% const normalisedRepoPath = resolvedRepoDirectory.replace(/\\+/g, '/'); %>
+    <% const repoSegments = normalisedRepoPath ? normalisedRepoPath.split('/').filter(Boolean) : []; %>
+    <% const runsPageTitle = repoSegments.length ? repoSegments[repoSegments.length - 1] : 'Runs'; %>
+
+    <div class="filters" id="runsFilters"></div>
+    <div class="status-message" id="runsStatus"></div>
+
+    <table class="runs-table" aria-describedby="runsStatus">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Run ID</th>
+                <th scope="col">Started</th>
+                <th scope="col">Duration</th>
+                                <th scope="col">Branch</th>
+                <th scope="col">Model</th>
+                <th scope="col">Exit</th>
+                <th scope="col">Status</th>
+                <th scope="col">Message</th>
+                <th scope="col">Prompt</th>
+                <th scope="col">Details</th>
+            </tr>
+        </thead>
+        <tbody id="runsTableBody">
+            <tr class="empty-state">
+                <td colspan="12">No runs recorded yet.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    (function() {
+        const repoDirectory = (<%- JSON.stringify(repoDirectory || "") %> || "").trim();
+        const runId = (<%- JSON.stringify(runId || "") %> || "").trim();
+        const sessionId = (<%- JSON.stringify(sessionId || "") %> || "").trim();
+        const filtersEl = document.getElementById('runsFilters');
+        const statusEl = document.getElementById('runsStatus');
+        const tableBody = document.getElementById('runsTableBody');
+
+        const params = new URLSearchParams();
+        if (repoDirectory) {
+            params.set('repo_directory', repoDirectory);
+            const tag = document.createElement('span');
+            tag.textContent = `Repo directory: ${repoDirectory}`;
+            filtersEl.appendChild(tag);
+        }
+        if (runId) {
+            params.set('run_id', runId);
+            const tag = document.createElement('span');
+            tag.textContent = `Run ID: ${runId}`;
+            filtersEl.appendChild(tag);
+        }
+        if (sessionId) {
+            params.set('sessionId', sessionId);
+            const tagSession = document.createElement('span');
+            tagSession.textContent = `Session: ${sessionId}`;
+            filtersEl.appendChild(tagSession);
+        }
+        if (!filtersEl.children.length) {
+
+        }
+
+        const formatDateTime = (isoString) => {
+            if (!isoString) return '—';
+            const dt = new Date(isoString);
+            if (Number.isNaN(dt.getTime())) return isoString;
+            return dt.toLocaleString(undefined, {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit', second: '2-digit'
+            });
+        };
+
+        const getBranchId = (run) => {
+            if (!run || typeof run !== 'object') {
+                return '';
+            }
+
+            const candidates = [
+                run.branchId,
+                run.gitBranchId,
+                run.branch_id,
+            ];
+
+            for (const value of candidates) {
+                if (value !== null && value !== undefined && String(value).trim()) {
+                    return String(value).trim();
+                }
+            }
+
+            const branch = run.branch;
+            if (branch && typeof branch === 'object') {
+                const nestedCandidates = [branch.id, branch.branchId, branch.branch_id];
+                for (const value of nestedCandidates) {
+                    if (value !== null && value !== undefined && String(value).trim()) {
+                        return String(value).trim();
+                    }
+                }
+            }
+
+            return '';
+        };
+
+        const formatDuration = (startIso, endIso) => {
+            if (!startIso) return '—';
+            const start = new Date(startIso);
+            if (Number.isNaN(start.getTime())) return startIso;
+            const end = endIso ? new Date(endIso) : new Date();
+            if (Number.isNaN(end.getTime())) return '—';
+            const ms = end - start;
+            if (!Number.isFinite(ms) || ms < 0) return '—';
+            const seconds = Math.floor(ms / 1000) % 60;
+            const minutes = Math.floor(ms / 60000) % 60;
+            const hours = Math.floor(ms / 3600000);
+            const parts = [];
+            if (hours) parts.push(`${hours}h`);
+            if (minutes) parts.push(`${minutes}m`);
+            parts.push(`${seconds}s`);
+            const output = parts.join(' ');
+            if (!endIso) {
+                return `${output} · running`;
+            }
+            return output;
+        };
+
+        const normaliseStatusText = (value) => {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            if (typeof value === 'string') {
+                return value.trim();
+            }
+            if (typeof value === 'object') {
+                if (typeof value.message === 'string' && value.message.trim()) {
+                    return value.message.trim();
+                }
+                try {
+                    return JSON.stringify(value);
+                } catch (_err) {
+                    return String(value);
+                }
+            }
+            return String(value).trim();
+        };
+
+        const getLatestStatus = (run) => {
+            if (!run) return '';
+            // Prefer an explicit finalMessage when present
+            if (typeof run.finalMessage === 'string' && run.finalMessage.trim()) {
+                return run.finalMessage.trim();
+            }
+            const history = Array.isArray(run.statusHistory) ? run.statusHistory : [];
+            if (!history.length) {
+                return '';
+            }
+            const last = history[history.length - 1] || '';
+            return normaliseStatusText(last);
+        };
+
+        const MERGE_SUCCESS_PATTERNS = [
+            /git_merge_parent\.sh exited with code 0/i,
+            /branch merged/i,
+            /merge completed successfully/i,
+            /merge succeeded/i,
+            /merged successfully/i,
+        ];
+
+        const hasSuccessfulMerge = (run, latestStatusText) => {
+            if (!run) {
+                return false;
+            }
+
+            const numericExitCodes = [
+                run?.gitMergeExitCode,
+                run?.git_merge_parent_exit_code,
+                run?.gitMergeExit,
+            ]
+                .map((value) => {
+                    const numeric = Number(value);
+                    return Number.isFinite(numeric) ? numeric : null;
+                })
+                .filter((value) => value !== null);
+
+            if (numericExitCodes.some((code) => code === 0)) {
+                return true;
+            }
+
+            const textCandidates = [
+                latestStatusText,
+                run?.finalMessage,
+                run?.gitMergeStdout,
+                run?.gitMergeStderr,
+            ];
+
+            const history = Array.isArray(run?.statusHistory) ? run.statusHistory : [];
+            history.forEach((entry) => {
+                textCandidates.push(entry);
+            });
+
+            return textCandidates.some((candidate) => {
+                const text = normaliseStatusText(candidate);
+                if (!text) {
+                    return false;
+                }
+                return MERGE_SUCCESS_PATTERNS.some((pattern) => pattern.test(text));
+            });
+        };
+
+        const buildRunnerUrl = (run) => {
+            if (!run || !run.id) {
+                return null;
+            }
+            try {
+                const base = new URL('/environment', window.location.origin);
+                const projectDirForUrl = (run.projectDir || run.effectiveProjectDir || repoDirectory || '').toString().trim();
+                if (projectDirForUrl) {
+                    base.searchParams.set('repo_directory', projectDirForUrl);
+                } else if (repoDirectory) {
+                    base.searchParams.set('repo_directory', repoDirectory);
+                }
+                base.hash = `run=${encodeURIComponent(run.id)}`;
+                return {
+                    href: base.href,
+                    relative: base.pathname + base.search + base.hash,
+                };
+            } catch (error) {
+                console.warn('Failed to build runner link', error);
+                return null;
+            }
+        };
+
+        const buildDetailsContent = (run) => {
+            const fragments = [];
+            if (run.agentInstructions) {
+                fragments.push(`<h4>Agent instructions</h4><pre>${escapeHtml(run.agentInstructions)}</pre>`);
+            }
+            if (run.userPrompt && run.userPrompt !== run.effectivePrompt) {
+                fragments.push(`<h4>User prompt</h4><pre>${escapeHtml(run.userPrompt)}</pre>`);
+            } else if (run.userPrompt) {
+                fragments.push(`<h4>Prompt</h4><pre>${escapeHtml(run.userPrompt)}</pre>`);
+            }
+            if (run.effectivePrompt && run.effectivePrompt !== run.userPrompt) {
+                fragments.push(`<h4>Effective prompt</h4><pre>${escapeHtml(run.effectivePrompt)}</pre>`);
+            }
+            if (run.statusHistory && run.statusHistory.length) {
+                const list = run.statusHistory.map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+                fragments.push(`<h4>Status history</h4><ul>${list}</ul>`);
+            }
+            if (run.metaMessages && run.metaMessages.length) {
+                const list = run.metaMessages.map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+                fragments.push(`<h4>Meta messages</h4><ul>${list}</ul>`);
+            }
+            if (run.error) {
+                fragments.push(`<div class="tag error">${escapeHtml(run.error)}</div>`);
+            }
+            if (run.stdout) {
+                const truncatedNote = run.stdoutTruncated ? '<div class="tag">Output truncated</div>' : '';
+                fragments.push(`<h4>Stdout</h4>${truncatedNote}<pre>${escapeHtml(run.stdout)}</pre>`);
+            }
+            if (run.stderr) {
+                const truncatedNote = run.stderrTruncated ? '<div class="tag">Stderr truncated</div>' : '';
+                fragments.push(`<h4>Stderr</h4>${truncatedNote}<pre>${escapeHtml(run.stderr)}</pre>`);
+            }
+
+            if (run.gitMergeStdout) {
+                fragments.push(`<h4>Merge stdout</h4><pre>${escapeHtml(run.gitMergeStdout)}</pre>`);
+            }
+            if (run.gitMergeStderr) {
+                fragments.push(`<h4>Merge stderr</h4><pre>${escapeHtml(run.gitMergeStderr)}</pre>`);
+            }
+            if (!fragments.length) {
+                fragments.push('<p>No additional details recorded.</p>');
+            }
+            return fragments.join('');
+        };
+
+        const escapeHtml = (value) => {
+            return (value ?? '').toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        };
+
+        const updateTable = (runs, options = {}) => {
+            const { filterMessage = '', statusMessage = '' } = options;
+            tableBody.innerHTML = '';
+            if (!runs.length) {
+                const row = document.createElement('tr');
+                row.className = 'empty-state';
+                const cell = document.createElement('td');
+                cell.colSpan = 12;
+                cell.textContent = 'No runs recorded yet.';
+                row.appendChild(cell);
+                tableBody.appendChild(row);
+                const emptyMessage = filterMessage || statusMessage || 'No runs available for the selected filters.';
+                statusEl.textContent = emptyMessage;
+                return;
+            }
+
+            runs.forEach((run) => {
+                const row = document.createElement('tr');
+                const isRunning = !run.finishedAt;
+                if (isRunning) {
+                    row.classList.add('is-running');
+                }
+
+                const branchId = getBranchId(run);
+                const runIdValue = run?.id ? String(run.id).trim() : '';
+                const displayBranchId = branchId || '—';
+                const displayRunId = runIdValue || '—';
+
+                // Numeric id column shows the associated branch id
+                const numCell = document.createElement('td');
+                numCell.setAttribute('data-label', '#');
+                numCell.textContent = branchId ? `${displayBranchId}` : displayBranchId;
+                if (branchId) {
+                    numCell.title = `Branch ID: ${branchId}`;
+                }
+                row.appendChild(numCell);
+
+                const idCell = document.createElement('td');
+                idCell.setAttribute('data-label', 'Run ID');
+                const linkInfo = buildRunnerUrl(run);
+                const tooltipParts = [];
+                if (branchId) {
+                    tooltipParts.push(`Branch ID: ${branchId}`);
+                }
+                if (runIdValue) {
+                    tooltipParts.push(`Run ID: ${runIdValue}`);
+                }
+                const tooltip = tooltipParts.join('\n');
+                const idWrapper = document.createElement('div');
+                idWrapper.className = 'run-id-wrapper';
+
+                // Only show a compact link icon for the run (hide the full hash to save space)
+                if (linkInfo) {
+                    const link = document.createElement('a');
+                    link.className = 'run-open-link';
+                    link.href = linkInfo.href;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.setAttribute('aria-label', runIdValue
+                        ? `Open run ${runIdValue} in a new tab`
+                        : 'Open run details in a new tab');
+                    // keep full run id in the tooltip for easy access
+                    link.title = tooltip || linkInfo.href;
+
+                    const icon = document.createElement('span');
+                    icon.className = 'run-open-link__icon';
+                    icon.setAttribute('aria-hidden', 'true');
+                    icon.textContent = '↗';
+                    link.appendChild(icon);
+
+                    idWrapper.appendChild(link);
+                } else {
+                    // fallback: show placeholder when no link is available
+                    const placeholder = document.createElement('span');
+                    placeholder.className = 'run-id';
+                    placeholder.textContent = displayRunId || '—';
+                    if (tooltip) placeholder.title = tooltip;
+                    idWrapper.appendChild(placeholder);
+                }
+
+                idCell.appendChild(idWrapper);
+                row.appendChild(idCell);
+
+                const startedCell = document.createElement('td');
+                startedCell.setAttribute('data-label', 'Started');
+                startedCell.textContent = formatDateTime(run.startedAt);
+                row.appendChild(startedCell);
+
+                const durationCell = document.createElement('td');
+                durationCell.setAttribute('data-label', 'Duration');
+                durationCell.textContent = formatDuration(run.startedAt, run.finishedAt);
+                row.appendChild(durationCell);
+
+                const dirCell = document.createElement('td');
+                                const projectDirDisplay = run.projectDir || run.effectiveProjectDir || '—';
+                dirCell.textContent = projectDirDisplay;
+                if (projectDirDisplay && projectDirDisplay !== '—') {
+                    dirCell.title = projectDirDisplay;
+                }
+                row.appendChild(dirCell);
+
+                const branchCell = document.createElement('td');
+                branchCell.setAttribute('data-label', 'Branch');
+                const branchText = ((run.gitBranch || run.branchName || run.branch || '') ?? '').toString().trim();
+                if (branchText) {
+                    branchCell.textContent = branchText;
+                    branchCell.title = branchText;
+                } else {
+                    branchCell.textContent = '—';
+                }
+                row.appendChild(branchCell);
+
+                const modelCell = document.createElement('td');
+                modelCell.setAttribute('data-label', 'Model');
+                modelCell.textContent = run.model || '—';
+                row.appendChild(modelCell);
+
+                const exitCell = document.createElement('td');
+                exitCell.setAttribute('data-label', 'Exit');
+                if (isRunning) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag running';
+                    tag.textContent = 'Running';
+                    exitCell.appendChild(tag);
+                } else if (run.exitCode === 0) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag success';
+                    tag.textContent = '0';
+                    exitCell.appendChild(tag);
+                } else if (run.exitCode !== null && run.exitCode !== undefined) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag error';
+                    tag.textContent = run.exitCode;
+                    exitCell.appendChild(tag);
+                } else {
+                    exitCell.textContent = '—';
+                }
+                row.appendChild(exitCell);
+
+                const messageCell = document.createElement('td');
+                messageCell.setAttribute('data-label', 'Message');
+
+                // Status column
+                const statusCell = document.createElement('td');
+                statusCell.setAttribute('data-label', 'Status');
+                const latestStatusText = getLatestStatus(run) || '';
+                const mergeSucceeded = hasSuccessfulMerge(run, latestStatusText);
+                if (isRunning) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag running';
+                    tag.textContent = 'Running';
+                    statusCell.appendChild(tag);
+                } else if (mergeSucceeded) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag status-merged';
+                    tag.textContent = 'Merged';
+                    statusCell.appendChild(tag);
+                } else if (Number(run.gitFpushExitCode) === 0 || /developed|dev|implemented/i.test(latestStatusText)) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag status-developed';
+                    tag.textContent = 'Developed';
+                    statusCell.appendChild(tag);
+                } else if (latestStatusText) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag';
+                    tag.textContent = latestStatusText;
+                    statusCell.appendChild(tag);
+                } else {
+                    statusCell.textContent = '—';
+                }
+                row.appendChild(statusCell);
+
+                const latestStatus = latestStatusText;
+                if (isRunning) {
+                    messageCell.textContent = run.error || latestStatus || 'Agent running…';
+                } else {
+                    messageCell.textContent = run.finalMessage || run.error || latestStatus || '—';
+                }
+                row.appendChild(messageCell);
+                const promptCell = document.createElement('td');
+                promptCell.setAttribute('data-label', 'Prompt');
+                const firstLine = (run.userPrompt || '').toString().split(/\r?\n/)[0] || '—';
+                promptCell.textContent = firstLine;
+                row.appendChild(promptCell);
+
+                const detailsCell = document.createElement('td');
+                detailsCell.className = 'details-cell';
+                detailsCell.setAttribute('data-label', 'Details');
+                const details = document.createElement('details');
+                const summary = document.createElement('summary');
+                summary.textContent = 'View';
+                details.appendChild(summary);
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = buildDetailsContent(run);
+                details.appendChild(wrapper);
+                detailsCell.appendChild(details);
+                row.appendChild(detailsCell);
+
+                tableBody.appendChild(row);
+            });
+
+            const runningCount = runs.filter((run) => !run.finishedAt).length;
+            const baseStatus = runningCount
+                ? `${runs.length} run${runs.length === 1 ? '' : 's'} loaded (${runningCount} in progress).`
+                : `${runs.length} run${runs.length === 1 ? '' : 's'} loaded.`;
+            if (filterMessage) {
+                statusEl.textContent = `${filterMessage} ${baseStatus}`.trim();
+            } else if (statusMessage) {
+                statusEl.textContent = statusMessage;
+            } else {
+                statusEl.textContent = baseStatus;
+            }
+        };
+
+        const queryString = params.toString();
+const url = `/agent/runs/data${queryString ? `?${queryString}` : ''}`;
+
+async function loadRunsOnce() {
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) {
+            throw new Error(`Request failed with status ${resp.status}`);
+        }
+        const payload = await resp.json();
+        const runs = Array.isArray(payload?.runs) ? payload.runs : [];
+        const repoFilterMeta = payload && typeof payload === 'object' ? payload.repoFilter : null;
+        let filterMessage = '';
+        if (repoFilterMeta && typeof repoFilterMeta === 'object' && repoFilterMeta.applied) {
+            const displayDir = repoFilterMeta.normalized || repoFilterMeta.raw || repoDirectory || '';
+            const directoryLabel = displayDir ? `"${displayDir}"` : 'the requested project directory';
+            if (!repoFilterMeta.matched && runs.length === 0) {
+                filterMessage = `No runs recorded yet for ${directoryLabel}.`;
+            } else if (!repoFilterMeta.matched && repoFilterMeta.recoveredWithAllRuns && runs.length) {
+                filterMessage = `No runs matched ${directoryLabel}. Showing all runs for this session.`;
+            } else if (repoFilterMeta.usedFallback && repoFilterMeta.matched && displayDir) {
+                filterMessage = `Matched runs for ${directoryLabel} using flexible comparison.`;
+            }
+        }
+        // preserve scroll position to avoid jarring UI updates
+        const previousScrollTop = tableBody.scrollTop || 0;
+        updateTable(runs, { filterMessage });
+        try { tableBody.scrollTop = previousScrollTop; } catch (_) { /* ignore */ }
+    } catch (error) {
+        console.error('Failed to load runs', error);
+        statusEl.textContent = 'Failed to load runs. Please try again later.';
+        tableBody.innerHTML = '';
+        const row = document.createElement('tr');
+        row.className = 'empty-state';
+        const cell = document.createElement('td');
+        cell.colSpan = 12;
+        cell.textContent = 'Runs could not be loaded.';
+        row.appendChild(cell);
+        tableBody.appendChild(row);
+    }
+}
+
+// Initial load and poll every 3 seconds for seamless updates
+loadRunsOnce();
+setInterval(loadRunsOnce, 3000);
+})();
+</script>
+</body>
+</html>

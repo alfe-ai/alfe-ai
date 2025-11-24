@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Diff: <%= gitRepoNameCLI %></title>
+    <link id="favicon" rel="icon" href="/alfe_favicon.ico">
+    <link rel="alternate icon" href="/alfe_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/CSS/chat.css">
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+        integrity="sha512-vn4F1J5gNgIF+h1M6hzqPl6c8m6b4H0XNVtEGu90BpAEYIYR6eF0g7th+jGlcAhyVnIpURqOF+gLXTsl9fXxbw=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+    >
+    <style>
+        :root {
+            color-scheme: dark;
+            --diff-background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 55%),
+                radial-gradient(circle at top right, rgba(192, 132, 252, 0.16), transparent 60%),
+                #0f172a;
+            --diff-panel: rgba(15, 23, 42, 0.82);
+            --diff-panel-accent: rgba(30, 41, 59, 0.9);
+            --diff-border: rgba(148, 163, 184, 0.25);
+            --diff-border-soft: rgba(148, 163, 184, 0.15);
+            --diff-text-strong: #e2e8f0;
+            --diff-text-subtle: #94a3b8;
+            --diff-add-bg: rgba(34, 197, 94, 0.18);
+            --diff-remove-bg: rgba(239, 68, 68, 0.22);
+            --diff-context-bg: rgba(15, 23, 42, 0.55);
+            --diff-meta-bg: rgba(245, 158, 11, 0.18);
+            --diff-meta-color: #facc15;
+            --diff-switch-track: rgba(59, 130, 246, 0.18);
+            --diff-switch-handle: #3b82f6;
+            --diff-switch-handle-shadow: rgba(59, 130, 246, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--diff-background);
+            color: var(--diff-text-strong);
+            font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        #page,
+        #content {
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        #content {
+            padding: 24px 28px 48px;
+        }
+
+        .session-banner,
+        #sidebar {
+            display: none;
+        }
+
+        .diff-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 8px 0 18px;
+        }
+
+        .diff-revisions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.9rem;
+            color: var(--diff-text-subtle);
+        }
+
+        .diff-revisions .rev {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--diff-border-soft);
+            border-radius: 10px;
+            padding: 6px 12px;
+            color: var(--diff-text-strong);
+            font-weight: 600;
+            min-width: 220px;
+        }
+
+        .diff-revisions .rev-sub {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.78rem;
+            font-weight: 400;
+            color: var(--diff-text-subtle);
+        }
+
+        .diff-mode-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid var(--diff-border-soft);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+        }
+
+        .diff-mode-switch__label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--diff-text-subtle);
+        }
+
+        .diff-mode-switch__toggle {
+            position: relative;
+            width: 52px;
+            height: 26px;
+            border-radius: 999px;
+            background: var(--diff-switch-track);
+            border: 1px solid var(--diff-border-soft);
+            display: inline-flex;
+            align-items: center;
+            padding: 2px;
+            cursor: pointer;
+        }
+
+        .diff-mode-switch__toggle input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .diff-mode-switch__slider {
+            position: relative;
+            display: block;
+            width: 100%;
+            height: 100%;
+            border-radius: 999px;
+            transition: background 0.2s ease;
+        }
+
+        .diff-mode-switch__slider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--diff-switch-handle);
+            box-shadow: 0 4px 14px var(--diff-switch-handle-shadow);
+            transform: translate(0, -50%);
+            transition: transform 0.25s ease;
+        }
+
+        .diff-mode-switch__toggle input:checked + .diff-mode-switch__slider::before {
+            transform: translate(22px, -50%);
+        }
+
+        .diff-layout {
+            display: flex;
+            gap: 20px;
+        }
+
+        .diff-main {
+            flex: 1;
+            overflow-y: auto;
+            max-height: calc(100vh - 180px);
+            padding-right: 4px;
+        }
+
+        .diff-container {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .diff-file {
+            border: 1px solid var(--diff-border);
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--diff-panel);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.38);
+            scroll-margin-top: 18px;
+            backdrop-filter: blur(16px);
+        }
+
+        .diff-file__header {
+            background: var(--diff-panel-accent);
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--diff-border-soft);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.92rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .diff-file__path-secondary {
+            color: var(--diff-text-subtle);
+            font-size: 0.82rem;
+        }
+
+        .diff-hunk {
+            border-bottom: 1px solid var(--diff-border-soft);
+        }
+
+        .diff-hunk:last-of-type {
+            border-bottom: none;
+        }
+
+        .diff-hunk__header {
+            padding: 10px 18px;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.82rem;
+            color: var(--diff-text-subtle);
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid var(--diff-border-soft);
+        }
+
+        .diff-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.82rem;
+            line-height: 1.35;
+        }
+
+        .diff-table td {
+            padding: 0;
+            vertical-align: top;
+        }
+
+        .diff-table td.line-number {
+            width: 58px;
+            text-align: right;
+            color: var(--diff-text-subtle);
+            background: rgba(15, 23, 42, 0.5);
+            border-right: 1px solid var(--diff-border-soft);
+            padding: 4px 8px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .diff-table td.line-indicator {
+            width: 34px;
+            text-align: center;
+            color: var(--diff-text-subtle);
+            border-right: 1px solid var(--diff-border-soft);
+            background: rgba(15, 23, 42, 0.55);
+            font-weight: 600;
+            padding: 4px 6px;
+        }
+
+        .diff-table td.code {
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .diff-table td.code pre {
+            margin: 0;
+            padding: 4px 12px;
+            background: transparent;
+            line-height: 1.4;
+        }
+
+        .diff-table td.code code {
+            display: block;
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            line-height: 1.4;
+        }
+
+        .diff-table td.code code.hljs {
+            padding: 0 !important;
+        }
+
+        .diff-table tr.context td.code {
+            background: var(--diff-context-bg);
+        }
+
+        .diff-table tr.add td.code,
+        .diff-table tr.add td.code-right,
+        .diff-table tr.add td.code-left,
+        .diff-table tr.add td.line-indicator {
+            background: var(--diff-add-bg);
+        }
+
+        .diff-table tr.remove td.code,
+        .diff-table tr.remove td.code-left,
+        .diff-table tr.remove td.code-right,
+        .diff-table tr.remove td.line-indicator {
+            background: var(--diff-remove-bg);
+        }
+
+        .diff-table tr.modify td.code-left {
+            background: var(--diff-remove-bg);
+        }
+
+        .diff-table tr.modify td.code-right {
+            background: var(--diff-add-bg);
+        }
+
+        .diff-table tr.meta td {
+            background: var(--diff-meta-bg);
+            color: var(--diff-meta-color);
+            font-style: italic;
+            padding: 6px 16px;
+        }
+
+        .diff-table--stacked {
+            display: none;
+        }
+
+        .diff-container[data-mode="stacked"] .diff-table--stacked {
+            display: table;
+        }
+
+        .diff-container[data-mode="stacked"] .diff-table--split {
+            display: none;
+        }
+
+        .diff-binary-message {
+            padding: 16px 18px;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            background: rgba(245, 158, 11, 0.14);
+            color: var(--diff-meta-color);
+        }
+
+        details.raw-diff {
+            background: rgba(15, 23, 42, 0.68);
+            border: 1px solid var(--diff-border-soft);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-top: 20px;
+        }
+
+        details.raw-diff summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        details.raw-diff pre {
+            background: rgba(15, 23, 42, 0.75);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--diff-border-soft);
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            margin-top: 12px;
+            max-height: 400px;
+            overflow: auto;
+        }
+
+        .diff-file-list {
+            width: 260px;
+            flex-shrink: 0;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid var(--diff-border);
+            border-radius: 16px;
+            padding: 16px;
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35);
+            backdrop-filter: blur(12px);
+        }
+
+        .diff-file-list h4 {
+            margin: 0 0 12px 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .diff-file-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .diff-file-list a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 0.84rem;
+            display: block;
+            padding: 7px 10px;
+            border-radius: 8px;
+            transition: background 0.18s ease, transform 0.18s ease;
+        }
+
+        .diff-file-list a:hover,
+        .diff-file-list a:focus {
+            background: rgba(59, 130, 246, 0.22);
+            outline: none;
+            transform: translateX(2px);
+        }
+
+        .diff-file-list a.active {
+            background: rgba(59, 130, 246, 0.32);
+            color: #f8fafc;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+        }
+
+        .alert {
+            margin: 12px 0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(249, 115, 22, 0.18);
+            border: 1px solid rgba(249, 115, 22, 0.35);
+            color: #fed7aa;
+        }
+
+        @media (max-width: 1200px) {
+            .diff-layout {
+                flex-direction: column;
+            }
+
+            .diff-main,
+            .diff-file-list {
+                max-height: none;
+                width: 100%;
+            }
+
+            .diff-file-list {
+                order: -1;
+            }
+        }
+    </style>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"
+        integrity="sha512-7WMZTSdKCbFf8gDQQpGK1+S5wFw9yA3iZHqCUIvZ64CYHjeXUADkSUgkGUt51JcjfVcqI2O21tUJltvob/ncZg=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+        defer
+    ></script>
+</head>
+<body>
+<%- include('partials/session_banner') %>
+<%
+    const extensionLanguageMap = {
+        js: "language-javascript",
+        jsx: "language-javascript",
+        mjs: "language-javascript",
+        cjs: "language-javascript",
+        ts: "language-typescript",
+        tsx: "language-typescript",
+        mts: "language-typescript",
+        cts: "language-typescript",
+        json: "language-json",
+        jsonc: "language-json",
+        py: "language-python",
+        rb: "language-ruby",
+        java: "language-java",
+        kt: "language-kotlin",
+        kts: "language-kotlin",
+        scala: "language-scala",
+        cs: "language-csharp",
+        cpp: "language-cpp",
+        cc: "language-cpp",
+        cxx: "language-cpp",
+        c: "language-c",
+        h: "language-c",
+        hpp: "language-cpp",
+        hh: "language-cpp",
+        hxx: "language-cpp",
+        m: "language-objectivec",
+        mm: "language-objectivec",
+        rs: "language-rust",
+        go: "language-go",
+        php: "language-php",
+        swift: "language-swift",
+        sql: "language-sql",
+        plsql: "language-sql",
+        sh: "language-bash",
+        bash: "language-bash",
+        zsh: "language-bash",
+        fish: "language-bash",
+        md: "language-markdown",
+        markdown: "language-markdown",
+        yaml: "language-yaml",
+        yml: "language-yaml",
+        toml: "language-toml",
+        ini: "language-ini",
+        cfg: "language-ini",
+        env: "language-ini",
+        html: "language-xml",
+        xml: "language-xml",
+        svg: "language-xml",
+        css: "language-css",
+        scss: "language-scss",
+        less: "language-less",
+        sass: "language-scss",
+        vue: "language-javascript",
+        svelte: "language-javascript",
+        pl: "language-perl",
+        ps1: "language-powershell",
+        psd1: "language-powershell",
+        proto: "language-protobuf",
+        dockerfile: "language-dockerfile",
+        gradle: "language-groovy",
+        groovy: "language-groovy",
+        makefile: "language-makefile",
+        mk: "language-makefile",
+        cmake: "language-cmake"
+    };
+
+    const determineLanguageClass = (filePath) => {
+        if (!filePath) {
+            return "language-plaintext";
+        }
+        const name = filePath.split("/").pop();
+        if (!name) {
+            return "language-plaintext";
+        }
+        const lowerName = name.toLowerCase();
+        if (extensionLanguageMap[lowerName]) {
+            return extensionLanguageMap[lowerName];
+        }
+        if (!name.includes(".")) {
+            return "language-plaintext";
+        }
+        const parts = name.split(".");
+        for (let i = 1; i < parts.length; i++) {
+            const ext = parts.slice(i).join(".");
+            if (extensionLanguageMap[ext]) {
+                return extensionLanguageMap[ext];
+            }
+        }
+        const direct = extensionLanguageMap[parts.pop()];
+        return direct || "language-plaintext";
+    };
+%>
+
+<div id="content">
+    <div class="diff-toolbar">
+        <% if (structuredDiff && structuredDiff.length) { %>
+            <div class="diff-mode-switch" role="group" aria-label="Diff view mode">
+                <span class="diff-mode-switch__label" aria-hidden="true">Split</span>
+                <label class="diff-mode-switch__toggle">
+                    <input type="checkbox" id="diff-mode-toggle" aria-label="Toggle stacked diff view">
+                    <span class="diff-mode-switch__slider"></span>
+                </label>
+                <span class="diff-mode-switch__label" aria-hidden="true">Stacked</span>
+            </div>
+        <% } %>
+
+        <% if (baseRev || compRev) { %>
+            <div class="diff-revisions">
+                <span class="rev">Base: <%= baseRev || '—' %>
+                    <% if (typeof baseMeta !== 'undefined' && baseMeta && (baseMeta.message || baseMeta.authorName)) { %>
+                        <span class="rev-sub"><%= baseMeta.message %> — <%= baseMeta.authorName %></span>
+                    <% } %>
+                </span>
+                <span class="rev">Compare: <%= compRev || '—' %>
+                    <% if (typeof compMeta !== 'undefined' && compMeta && (compMeta.message || compMeta.authorName)) { %>
+                        <span class="rev-sub"><%= compMeta.message %> — <%= compMeta.authorName %></span>
+                    <% } %>
+                </span>
+            </div>
+        <% } %>
+    </div>
+
+    <% if (errorMessage) { %>
+        <div class="alert"><%= errorMessage %></div>
+    <% } %>
+
+    <form action="<%= diffFormAction %>" method="get" class="diff-revision-form" aria-hidden="true">
+        <% if (!repoLinksEnabled && projectDir) { %>
+            <input type="hidden" name="projectDir" value="<%= projectDir %>">
+        <% } %>
+        <input type="hidden" name="baseRev" value="<%= baseRev %>">
+        <input type="hidden" name="compRev" value="<%= compRev %>">
+    </form>
+
+    <% if (diffOutput) { %>
+        <% if (structuredDiff && structuredDiff.length) { %>
+            <div class="diff-layout">
+                <div class="diff-main" id="diff-main">
+                    <div class="diff-container" id="diff-container" data-mode="split">
+                        <% structuredDiff.forEach((file, fileIndex) => { %>
+                            <div class="diff-file" id="diff-file-<%= fileIndex %>" data-file-index="<%= fileIndex %>">
+                                <div class="diff-file__header">
+                                    <span><%= file.newPath || file.oldPath || 'Untracked file' %></span>
+                                    <% if (file.oldPath && file.newPath && file.oldPath !== file.newPath) { %>
+                                        <span class="diff-file__path-secondary">Renamed from <%= file.oldPath %></span>
+                                    <% } %>
+                                </div>
+                                <% if (file.isBinary) { %>
+                                    <div class="diff-binary-message"><%= file.binaryMessage %></div>
+                                <% } else { %>
+                                    <% file.hunks.forEach(hunk => { %>
+                                    <div class="diff-hunk">
+                                        <div class="diff-hunk__header"><%= hunk.header %></div>
+                                        <table class="diff-table diff-table--split">
+                                            <tbody>
+                                            <% hunk.rows.forEach(row => { %>
+                                                <% if (row.type === 'meta') { %>
+                                                    <tr class="meta">
+                                                        <td class="line-number"></td>
+                                                        <td class="code meta" colspan="3"><pre><code class="diff-code"><%= row.metaContent %></code></pre></td>
+                                                    </tr>
+                                                <% } else { %>
+                                                    <tr class="<%= row.type %>">
+                                                        <td class="line-number"><%= row.leftNumber === '' ? '' : row.leftNumber %></td>
+                                                        <td class="code code-left">
+                                                            <pre><code class="diff-code <%= determineLanguageClass(file.newPath || file.oldPath || '') %>"><%= row.leftContent %></code></pre>
+                                                        </td>
+                                                        <td class="line-number"><%= row.rightNumber === '' ? '' : row.rightNumber %></td>
+                                                        <td class="code code-right">
+                                                            <pre><code class="diff-code <%= determineLanguageClass(file.newPath || file.oldPath || '') %>"><%= row.rightContent %></code></pre>
+                                                        </td>
+                                                    </tr>
+                                                <% } %>
+                                            <% }); %>
+                                            </tbody>
+                                        </table>
+                                        <table class="diff-table diff-table--stacked">
+                                            <tbody>
+                                            <% hunk.rows.forEach(row => { %>
+                                                <% if (row.type === 'meta') { %>
+                                                    <tr class="meta">
+                                                        <td class="line-number"></td>
+                                                        <td class="line-indicator"></td>
+                                                        <td class="code meta"><pre><code class="diff-code"><%= row.metaContent %></code></pre></td>
+                                                    </tr>
+                                                <% } else if (row.type === 'modify') { %>
+                                                    <tr class="remove">
+                                                        <td class="line-number"><%= row.leftNumber === '' ? '' : row.leftNumber %></td>
+                                                        <td class="line-indicator">-</td>
+                                                        <td class="code">
+                                                            <pre><code class="diff-code <%= determineLanguageClass(file.newPath || file.oldPath || '') %>"><%= row.leftContent %></code></pre>
+                                                        </td>
+                                                    </tr>
+                                                    <tr class="add">
+                                                        <td class="line-number"><%= row.rightNumber === '' ? '' : row.rightNumber %></td>
+                                                        <td class="line-indicator">+</td>
+                                                        <td class="code">
+                                                            <pre><code class="diff-code <%= determineLanguageClass(file.newPath || file.oldPath || '') %>"><%= row.rightContent %></code></pre>
+                                                        </td>
+                                                    </tr>
+                                                <% } else if (row.type === 'remove') { %>
+                                                    <tr class="remove">
+                                                        <td class="line-number"><%= row.leftNumber === '' ? '' : row.leftNumber %></td>
+                                                        <td class="line-indicator">-</td>
+                                                        <td class="code">
+                                                            <pre><code class="diff-code <%= determineLanguageClass(file.newPath || file.oldPath || '') %>"><%= row.leftContent %></code></pre>
+                                                        </td>
+                                                    </tr>
+                                                <% } else if (row.type === 'add') { %>
+                                                    <tr class="add">
+                                                        <td class="line-number"><%= row.rightNumber === '' ? '' : row.rightNumber %></td>
+                                                        <td class="line-indicator">+</td>
+                                                        <td class="code">
+                                                            <pre><code class="diff-code <%= determineLanguageClass(file.newPath || file.oldPath || '') %>"><%= row.rightContent %></code></pre>
+                                                        </td>
+                                                    </tr>
+                                                <% } else { %>
+                                                    <tr class="context">
+                                                        <td class="line-number"><%= row.leftNumber === '' ? (row.rightNumber === '' ? '' : row.rightNumber) : row.leftNumber %></td>
+                                                        <td class="line-indicator"></td>
+                                                        <td class="code">
+                                                            <pre><code class="diff-code <%= determineLanguageClass(file.newPath || file.oldPath || '') %>"><%= row.leftContent || row.rightContent %></code></pre>
+                                                        </td>
+                                                    </tr>
+                                                <% } %>
+                                            <% }); %>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <% }); %>
+                                <% } %>
+                            </div>
+                        <% }); %>
+                    </div>
+                    <details class="raw-diff">
+                        <summary>Show raw git diff output</summary>
+                        <pre><code class="diff-code language-diff"><%= diffOutput %></code></pre>
+                    </details>
+                </div>
+                <aside class="diff-file-list">
+                    <h4>Files</h4>
+                    <ul>
+                        <% structuredDiff.forEach((file, fileIndex) => { %>
+                            <li>
+                                <a href="#diff-file-<%= fileIndex %>" data-target="diff-file-<%= fileIndex %>">
+                                    <%= file.newPath || file.oldPath || 'Untracked file' %>
+                                </a>
+                            </li>
+                        <% }); %>
+                    </ul>
+                </aside>
+            </div>
+        <% } else { %>
+            <p style="margin-top: 15px;">No structured changes detected.</p>
+            <details class="raw-diff">
+                <summary>Show raw git diff output</summary>
+                <pre><code class="diff-code language-diff"><%= diffOutput %></code></pre>
+            </details>
+        <% } %>
+    <% } else if (!errorMessage) { %>
+        <p style="margin-top: 15px;">Enter revisions to view a diff.</p>
+    <% } %>
+
+    <% if (structuredDiff && structuredDiff.length) { %>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const diffMain = document.getElementById("diff-main");
+            const container = document.getElementById("diff-container");
+            const toggle = document.getElementById("diff-mode-toggle");
+            const links = document.querySelectorAll(".diff-file-list a[data-target]");
+
+            if (toggle && container) {
+                toggle.addEventListener("change", () => {
+                    const mode = toggle.checked ? "stacked" : "split";
+                    container.setAttribute("data-mode", mode);
+                });
+            }
+
+            if (diffMain && links.length) {
+                const setActiveLink = (targetId) => {
+                    links.forEach(link => {
+                        const isActive = link.getAttribute("data-target") === targetId;
+                        link.classList.toggle("active", isActive);
+                    });
+                };
+
+                setActiveLink(links[0].getAttribute("data-target"));
+
+                links.forEach(link => {
+                    link.addEventListener("click", event => {
+                        event.preventDefault();
+                        const targetId = link.getAttribute("data-target");
+                        const target = document.getElementById(targetId);
+                        if (!target) {
+                            return;
+                        }
+
+                        const diffMainRect = diffMain.getBoundingClientRect();
+                        const targetRect = target.getBoundingClientRect();
+                        const scrollTop = diffMain.scrollTop + (targetRect.top - diffMainRect.top);
+                        diffMain.scrollTo({ top: scrollTop, behavior: "smooth" });
+                        setActiveLink(targetId);
+                    });
+                });
+
+                diffMain.addEventListener("scroll", () => {
+                    const files = Array.from(diffMain.querySelectorAll(".diff-file"));
+                    const diffMainRect = diffMain.getBoundingClientRect();
+                    const visible = files.find(file => {
+                        const rect = file.getBoundingClientRect();
+                        const offset = rect.top - diffMainRect.top;
+                        return offset >= -40;
+                    });
+                    if (visible) {
+                        setActiveLink(visible.id);
+                    }
+                });
+            }
+
+            if (window.hljs) {
+                window.hljs.configure({ ignoreUnescapedHTML: true });
+                document.querySelectorAll("code.diff-code").forEach(block => {
+                    if (!Array.from(block.classList).some(cls => cls.startsWith("language-"))) {
+                        block.classList.add("language-plaintext");
+                    }
+                    window.hljs.highlightElement(block);
+                });
+            }
+        });
+    </script>
+    <% } %>
+</div>
+</body>
+</html>

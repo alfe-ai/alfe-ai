@@ -2,6 +2,7 @@
 // Reorder chatModels or reasoningModels arrays to change the order shown
 window.REASONING_TOOLTIP_CONFIG = {
   chatModels: [
+    { name: 'openai/gpt-oss-20b' },
     { name: 'openrouter/deepseek/deepseek-chat-v3-0324' },
     { name: 'openai/gpt-4o-mini' },
     { name: 'openai/gpt-4.1-mini' },
@@ -21,11 +22,9 @@ window.REASONING_TOOLTIP_CONFIG = {
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
     { name: 'openai/codex-mini', label: 'pro' },
-    { name: 'openrouter/perplexity/r1-1776', label: 'pro', note: 'openrouter - offline conversational (no search)' },
     { name: 'openai/o3', label: 'ultimate' },
     { name: 'anthropic/claude-3.7-sonnet:thinking', label: 'ultimate' },
     { name: 'anthropic/claude-opus-4', label: 'ultimate' },
-    { name: 'r1-1776', note: 'offline conversational (no search)' },
-    { name: 'perplexity/r1-1776', note: 'offline conversational (no search)' }
+    { name: 'anthropic/claude-3.7-sonnet', label: 'pro' }
   ]
 };

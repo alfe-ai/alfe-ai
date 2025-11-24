@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sterling · Repositories</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            color-scheme: dark;
+            --nexum-bg-outer: #050713;
+            --nexum-bg-inner: #111528;
+            --nexum-panel: rgba(15, 20, 38, 0.85);
+            --nexum-card: rgba(22, 28, 52, 0.92);
+            --nexum-border: rgba(124, 144, 196, 0.22);
+            --nexum-text: #e2e8f0;
+            --nexum-muted: #94a3b8;
+            --nexum-accent: #7c3aed;
+            --nexum-accent-soft: rgba(124, 58, 237, 0.28);
+            --nexum-accent-bright: #8b5cf6;
+            --nexum-table-alt: rgba(31, 41, 71, 0.55);
+            --nexum-hover: rgba(124, 58, 237, 0.24);
+            --shadow-strong: 0 32px 68px rgba(3, 7, 18, 0.65);
+            --shadow-soft: 0 24px 48px rgba(7, 11, 25, 0.4);
+        }
+        body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 48px 24px; background: linear-gradient(135deg, var(--nexum-bg-outer), var(--nexum-bg-inner)); color: var(--nexum-text); min-height:100vh; }
+        .page { max-width: 1100px; margin: 0 auto; }
+        header { padding: 20px; border-radius: 16px; background: linear-gradient(145deg, rgba(17,24,39,0.8), rgba(17,24,39,0.6)); border:1px solid var(--nexum-border); box-shadow: var(--shadow-soft); margin-bottom:24px; }
+        header h1 { margin:0; font-size:1.8rem; }
+        header p { margin:6px 0 0; color:var(--nexum-muted); }
+        ul.repo-list { list-style:none; padding:0; margin:20px 0; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:14px; }
+        li.repo { padding:14px; border-radius:12px; background: linear-gradient(135deg, rgba(17,24,39,0.92), rgba(15,23,42,0.78)); border:1px solid var(--nexum-border); box-shadow: var(--shadow-soft); }
+        a.repo-link { color:var(--nexum-accent-bright); font-weight:600; text-decoration:none; }
+        a.repo-link:hover { color:#fff; text-decoration:underline; }
+        .repo-meta { margin-top:8px; color:var(--nexum-muted); font-size:0.95rem; }
+        footer { margin-top:28px; color:var(--nexum-muted); }
+        .actions { margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; }
+        .button { display:inline-block; padding:10px 14px; border-radius:999px; background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: #ffffff; border: none; text-decoration:none; font-weight:600; }
+        .button.secondary { background: rgba(17,24,39,0.65); border:1px solid var(--nexum-border); color:var(--nexum-text); }
+        .button.secondary:hover { background: rgba(17,24,39,0.85); color:#fff; }
+    </style>
+</head>
+<body>
+    <%- include('partials/session_banner') %>
+    <div class="page">
+        <header>
+            <div class="actions">
+                <a class="button" href="/repositories/add" target="_blank" rel="noopener noreferrer">Add New Repository</a>
+                <a class="button secondary" href="/sterling/storage" target="_blank" rel="noopener noreferrer">Manage Storage</a>
+            </div>
+        </header>
+
+        <ul class="repo-list">
+            <% repos.forEach(function(repo) { %>
+                <li class="repo">
+                    <div>
+                        <a class="repo-link" href="/environment?repo_directory=<%= encodeURIComponent(repo.gitRepoLocalPath) %>&repo_name=<%= encodeURIComponent(repo.name) %>" target="_blank" rel="noopener noreferrer"><%= repo.name %></a>
+                    </div>
+                </li>
+            <% }); %>
+        </ul>
+
+        <footer>
+            <div
+                class="how-it-works"
+                style="
+                    margin-top: 18px;
+                    padding: 18px;
+                    border-radius: 12px;
+                    background: linear-gradient(135deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.78));
+                    border: 1px solid var(--nexum-border);
+                    color: var(--nexum-muted);
+                "
+            >
+                <h3
+                    style="
+                        margin: 0 0 8px 0;
+                        color: var(--nexum-text);
+                    "
+                >
+                    How it works
+                </h3>
+                <p
+                    style="
+                        margin: 0 0 10px 0;
+                        font-size: 0.95rem;
+                        line-height: 1.5;
+                        color: var(--nexum-muted);
+                    "
+                >
+                    Alfe AI's code module works with the following steps:
+                </p>
+                <ol
+                    style="
+                        margin: 0 0 10px 1.2rem;
+                        padding: 0;
+                        font-size: 0.95rem;
+                        line-height: 1.5;
+                        color: var(--nexum-muted);
+                    "
+                >
+                    <li style="margin-bottom: 6px;">Creating a temporary copy of your git repository on our server.</li>
+                    <li style="margin-bottom: 6px;">Establishing a new branch named `<code>alfe/&lt;branch number&gt;</code>` for the run.</li>
+                    <li style="margin-bottom: 6px;">Executing the AI coding agent with your prompt to implement the requested updates.</li>
+                    <li style="margin-bottom: 6px;">Committing the modifications and pushing the branch to your git remote.</li>
+                </ol>
+                <p
+                    style="
+                        margin: 0;
+                        font-size: 0.95rem;
+                        line-height: 1.5;
+                        color: var(--nexum-muted);
+                    "
+                >
+                    After this is complete, you can view the diff of the changes and have the option to merge the changes into the
+                    parent branch on the remote.
+                </p>
+            </div>
+        </footer>
+        <script>
+            (function(){
+                function parseBooleanFlag(value){
+                    if (Array.isArray(value)) return parseBooleanFlag(value[value.length-1]);
+                    if (typeof value === 'boolean') return value;
+                    if (typeof value === 'number') return value===1;
+                    if (typeof value === 'string'){
+                        var n=value.trim().toLowerCase();
+                        if(!n) return false;
+                        return ['1','true','yes','y','on'].includes(n);
+                    }
+                    return false;
+                }
+                var params = new URLSearchParams(window.location.search);
+                var iframeParam = params.get('iframe');
+                var isIframeMode = (iframeParam===null) ? false : parseBooleanFlag(iframeParam);
+                if(isIframeMode){
+                    var el=document.querySelector('.how-it-works');
+                    if(el) el.style.display='none';
+                }
+            })();
+        </script>
+    </div>
+    <%- include('partials/cookie_banner') %>
+</body>
+</html>

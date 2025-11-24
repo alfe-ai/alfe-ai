@@ -1,6 +1,7 @@
 // sessionId is defined in session.js and available globally
 // sessionId is provided globally by session.js
 const defaultTitle = "Alfe - AI Project Management, Image Design, and Software Development Platform";
+const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";
 // Enable automatic scrolling of the chat by default so new messages stay in view.
 // Manual scrolling (e.g. via the scroll down button) can still force scrolling.
 let chatAutoScroll = true;
@@ -13,6 +14,187 @@ const isEmbedded = (() => {
 })();
 
 let sidebarForcedHidden = false;
+
+const THEME_STORAGE_KEY = 'auroraTheme';
+const THEME_OPTIONS = {
+  dark: '/styles.css',
+  light: '/styles-light.css'
+};
+
+let usageLimitCache = null;
+
+const detectedTimezone = (() => {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof tz === 'string' ? tz : '';
+  } catch (err) {
+    console.warn('Unable to detect browser timezone', err);
+    return '';
+  }
+})();
+
+const TIMEZONE_OPTIONS = (() => {
+  if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
+    try {
+      return Intl.supportedValuesOf('timeZone');
+    } catch (err) {
+      console.warn('Intl.supportedValuesOf failed for timeZone', err);
+    }
+  }
+  return [
+    'Africa/Abidjan', 'Africa/Accra', 'Africa/Addis_Ababa', 'Africa/Algiers', 'Africa/Cairo',
+    'Africa/Casablanca', 'Africa/Johannesburg', 'Africa/Lagos', 'Africa/Nairobi', 'Africa/Tripoli',
+    'America/Anchorage', 'America/Argentina/Buenos_Aires', 'America/Bogota', 'America/Caracas',
+    'America/Chicago', 'America/Denver', 'America/Guatemala', 'America/Halifax', 'America/Hermosillo',
+    'America/La_Paz', 'America/Lima', 'America/Los_Angeles', 'America/Mexico_City', 'America/New_York',
+    'America/Phoenix', 'America/Puerto_Rico', 'America/Santiago', 'America/Sao_Paulo', 'America/St_Johns',
+    'America/Tijuana', 'America/Toronto', 'America/Vancouver', 'America/Whitehorse', 'America/Winnipeg',
+    'Asia/Almaty', 'Asia/Amman', 'Asia/Baghdad', 'Asia/Baku', 'Asia/Bangkok', 'Asia/Beirut', 'Asia/Colombo',
+    'Asia/Dhaka', 'Asia/Dubai', 'Asia/Ho_Chi_Minh', 'Asia/Hong_Kong', 'Asia/Jakarta', 'Asia/Jerusalem',
+    'Asia/Kabul', 'Asia/Karachi', 'Asia/Kathmandu', 'Asia/Kolkata', 'Asia/Kuala_Lumpur', 'Asia/Kuwait',
+    'Asia/Manila', 'Asia/Qatar', 'Asia/Riyadh', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Taipei',
+    'Asia/Tehran', 'Asia/Tokyo', 'Asia/Ulaanbaatar', 'Asia/Vladivostok', 'Asia/Yangon', 'Asia/Yekaterinburg',
+    'Atlantic/Azores', 'Atlantic/Bermuda', 'Atlantic/Canary', 'Atlantic/Cape_Verde', 'Australia/Adelaide',
+    'Australia/Brisbane', 'Australia/Darwin', 'Australia/Hobart', 'Australia/Melbourne', 'Australia/Perth',
+    'Australia/Sydney', 'Europe/Amsterdam', 'Europe/Athens', 'Europe/Belgrade', 'Europe/Berlin', 'Europe/Brussels',
+    'Europe/Bucharest', 'Europe/Budapest', 'Europe/Copenhagen', 'Europe/Dublin', 'Europe/Helsinki',
+    'Europe/Istanbul', 'Europe/Kiev', 'Europe/Lisbon', 'Europe/London', 'Europe/Madrid', 'Europe/Minsk',
+    'Europe/Moscow', 'Europe/Oslo', 'Europe/Paris', 'Europe/Prague', 'Europe/Rome', 'Europe/Stockholm',
+    'Europe/Vienna', 'Europe/Vilnius', 'Europe/Warsaw', 'Europe/Zurich', 'Indian/Maldives', 'Indian/Mauritius',
+    'Pacific/Auckland', 'Pacific/Chatham', 'Pacific/Fiji', 'Pacific/Guam', 'Pacific/Honolulu', 'Pacific/Majuro',
+    'Pacific/Midway', 'Pacific/Noumea', 'Pacific/Pago_Pago', 'Pacific/Port_Moresby', 'Pacific/Tahiti', 'UTC'
+  ];
+})();
+
+const SORTED_TIMEZONE_OPTIONS = Array.isArray(TIMEZONE_OPTIONS)
+  ? [...TIMEZONE_OPTIONS].sort((a, b) => a.localeCompare(b))
+  : [];
+
+const storeLinks = window.AURORA_APP_LINKS || {};
+const printifyQueueConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const cfg = flags.printifyQueue || {};
+  const enabledValue = cfg.enabled;
+  const enabled =
+    enabledValue === true ||
+    enabledValue === 'true' ||
+    enabledValue === 1 ||
+    enabledValue === '1';
+  return { enabled };
+})();
+const DEFAULT_CODE_REDIRECT_TARGET = 'https://code.alfe.sh';
+const codeRedirectConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const cfg = flags.codeRedirect || {};
+  const target =
+    typeof cfg.target === 'string' && cfg.target.trim()
+      ? cfg.target.trim()
+      : DEFAULT_CODE_REDIRECT_TARGET;
+  const enabledValue = cfg.enabled;
+  const enabled =
+    enabledValue === true ||
+    enabledValue === 'true' ||
+    enabledValue === 1 ||
+    enabledValue === '1';
+  return {
+    enabled,
+    target,
+  };
+})();
+
+function getStoredTheme(){
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if(saved && Object.prototype.hasOwnProperty.call(THEME_OPTIONS, saved)){
+      return saved;
+    }
+  } catch (err) {
+    console.warn('Unable to read stored theme', err);
+  }
+  return 'dark';
+}
+
+function updateThemeDependentAssets(theme){
+  const codeIconSrc = theme === 'light' ? '/icons/code-dark.svg' : '/icons/code.svg';
+  document.querySelectorAll('img[data-icon="code"]').forEach(img => {
+    if(img && img.getAttribute('src') !== codeIconSrc){
+      img.setAttribute('src', codeIconSrc);
+    }
+  });
+}
+
+function applyTheme(theme){
+  const name = Object.prototype.hasOwnProperty.call(THEME_OPTIONS, theme) ? theme : 'dark';
+  const linkEl = document.getElementById('themeStylesheet');
+  if(linkEl && linkEl.getAttribute('href') !== THEME_OPTIONS[name]){
+    linkEl.setAttribute('href', THEME_OPTIONS[name]);
+  }
+  document.body.dataset.theme = name;
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if(metaTheme){
+    metaTheme.setAttribute('content', name === 'light' ? '#e2e8f0' : '#0b1723');
+  }
+  updateThemeDependentAssets(name);
+  try {
+    renderTabs();
+    renderSidebarTabs();
+  } catch (err) {
+    console.warn('Unable to refresh tab theming after theme change', err);
+  }
+}
+
+function setTheme(theme){
+  const name = Object.prototype.hasOwnProperty.call(THEME_OPTIONS, theme) ? theme : 'dark';
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, name);
+  } catch (err) {
+    console.warn('Unable to persist theme preference', err);
+  }
+  applyTheme(name);
+}
+
+function initializeTheme(){
+  const theme = getStoredTheme();
+  applyTheme(theme);
+}
+
+function isPrintifyQueueEnabled(){
+  return !!printifyQueueConfig.enabled;
+}
+
+function populateTimezoneSelect(){
+  const tzSelect = document.getElementById('accountTimezone');
+  if(!tzSelect) return;
+  const previousValue = tzSelect.value;
+  tzSelect.innerHTML = '';
+  const placeholderOption = document.createElement('option');
+  placeholderOption.value = '';
+  placeholderOption.textContent = 'Select a timezone';
+  tzSelect.appendChild(placeholderOption);
+  SORTED_TIMEZONE_OPTIONS.forEach(zone => {
+    const opt = document.createElement('option');
+    opt.value = zone;
+    opt.textContent = zone;
+    tzSelect.appendChild(opt);
+  });
+  if(previousValue && !SORTED_TIMEZONE_OPTIONS.includes(previousValue)){
+    const opt = document.createElement('option');
+    opt.value = previousValue;
+    opt.textContent = previousValue;
+    tzSelect.appendChild(opt);
+  }
+  tzSelect.value = previousValue || '';
+}
+
+function ensureTimezoneOption(selectEl, tz){
+  if(!selectEl || !tz) return;
+  const exists = Array.from(selectEl.options).some(opt => opt.value === tz);
+  if(exists) return;
+  const opt = document.createElement('option');
+  opt.value = tz;
+  opt.textContent = tz;
+  selectEl.appendChild(opt);
+}
 
 function ensureSidebarHiddenForEmbed(){
   if(sidebarForcedHidden) return;
@@ -50,49 +232,124 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (sessEl) sessEl.textContent = sessionId;
   document.title = defaultTitle;
 
-  // theming disabled; always use default stylesheet
+  initializeTheme();
+  populateTimezoneSelect();
+  updateUsageLimitInfo();
 
-  fetch('/api/version')
-    .then(r => r.ok ? r.json() : null)
-    .then(data => {
-      const vSpan = document.getElementById('versionSpan');
-      if (!vSpan) return;
-      if (data && data.version) {
-        vSpan.textContent = data.version;
-        vSpan.addEventListener('click', () => {
-          fetch('/api/git-sha')
-            .then(r => r.ok ? r.json() : null)
-            .then(d => {
-              if (d && d.sha) {
-                const msg = d.timestamp
-                  ? `Git SHA: ${d.sha} (${d.timestamp})`
-                  : `Git SHA: ${d.sha}`;
-                showToast(msg, 3000);
-              }
-            })
-            .catch(err => console.error('Failed to fetch git sha', err));
-        });
-      } else {
-        vSpan.style.display = 'none';
-      }
-    })
-    .catch(err => {
-      const vSpan = document.getElementById('versionSpan');
-      if (vSpan) vSpan.style.display = 'none';
-      console.error('Failed to fetch version', err);
+  // Unhide Printify Queue buttons if enabled via aurora flags
+  try {
+    if (isPrintifyQueueEnabled()) {
+      document.querySelectorAll('#printifyQueueButton').forEach(btn => { btn.style.display = ''; });
+    }
+  } catch (err) { console.warn('Failed to apply Printify Queue visibility flags', err); }
+
+  const googlePlayBadge = document.getElementById('googlePlayBadge');
+  if(googlePlayBadge){
+    const androidHref = storeLinks.android || googlePlayBadge.dataset.defaultHref || googlePlayBadge.getAttribute('href');
+    if(androidHref){
+      googlePlayBadge.setAttribute('href', androidHref);
+    }
+  }
+
+  const appStoreBadge = document.getElementById('appStoreBadge');
+  if(appStoreBadge){
+    const iosHref = storeLinks.ios || appStoreBadge.dataset.defaultHref || appStoreBadge.getAttribute('href');
+    if(iosHref){
+      appStoreBadge.setAttribute('href', iosHref);
+    }
+  }
+
+  const themeSelect = document.getElementById('themeSelect');
+  if(themeSelect){
+    themeSelect.value = getStoredTheme();
+    themeSelect?.addEventListener('change', (event) => {
+      setTheme(event.target.value);
     });
+  }
+
+  document.querySelectorAll('.version-info, #versionSpan').forEach((node) => {
+    if (node && typeof node.remove === 'function') {
+      node.remove();
+    }
+  });
 
   const signupEl = document.getElementById('signupBtn');
   if (signupEl) {
     fetch('/api/account')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => updateAccountButton(data))
-      .catch(err => console.error('Failed to fetch account', err));
+      .then(r => (r.ok ? r.json() : null))
+      .then((data) => {
+        const enabled =
+          data && typeof data.accountsEnabled !== 'undefined'
+            ? !!data.accountsEnabled
+            : false;
+        setAccountsFeatureVisibility(enabled);
+        updateAccountButton(enabled ? data : null);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch account', err);
+        setAccountsFeatureVisibility(false);
+        updateAccountButton(null);
+      });
+  } else {
+    setAccountsFeatureVisibility(false);
   }
 
   if(isEmbedded){
     sidebarVisible = false;
     ensureSidebarHiddenForEmbed();
+  }
+
+  if(isEmbedded){
+    sidebarVisible = false;
+    ensureSidebarHiddenForEmbed();
+  }
+
+  // Make the chat title clickable to rename the current chat.
+  // Clicking the title opens the rename modal for the active tab.
+  try {
+    const chatTitleEl = document.getElementById('chatTitleText');
+    const chatProjectEl = document.getElementById('chatTitleProject');
+    const openTitleModal = (evt) => {
+      if(!currentTabId) return;
+      // Don't open the rename/chat settings modal for fixed-title tabs like Image Design or Code.
+      const current = chatTabs.find(t => t.id === currentTabId);
+      if(tabHasFixedTitle(current)) {
+        // For fixed-title tabs, do nothing on title click — title is fixed.
+        return;
+      }
+      openEditTabNameModal(currentTabId);
+    };
+    if(chatTitleEl){
+      chatTitleEl.style.cursor = 'pointer';
+      chatTitleEl.title = 'Edit chat name';
+      chatTitleEl.tabIndex = 0;
+      chatTitleEl?.addEventListener('click', openTitleModal);
+      chatTitleEl?.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ' ) openTitleModal(e); });
+    }
+    if(chatProjectEl){
+      chatProjectEl.style.cursor = 'pointer';
+      chatProjectEl.title = 'Edit chat name';
+      chatProjectEl.tabIndex = 0;
+      chatProjectEl?.addEventListener('click', openTitleModal);
+      chatProjectEl?.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ' ) openTitleModal(e); });
+    }
+    const chatFavoriteBtn = document.getElementById('chatFavoriteBtn');
+    if(chatFavoriteBtn){
+      chatFavoriteBtn?.addEventListener('click', async () => {
+        if(!currentTabId) return;
+        const current = chatTabs.find(t => t.id === currentTabId);
+        if(!current) return;
+        if(!tabSupportsFavorites(current)) return;
+        chatFavoriteBtn.disabled = true;
+        try {
+          await toggleFavoriteTab(current.id, !current.favorite);
+        } finally {
+          chatFavoriteBtn.disabled = false;
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to attach chat title click handler', err);
   }
 
   updateChatPanelVisibility();
@@ -103,6 +360,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadProjectGroups();
   loadCollapsedProjectGroups();
   loadCollapsedArchiveGroups();
+  loadFavoritesCollapsed();
+  loadArchivedCollapsed();
   loadTasksOnlyTabs();
   loadHideArchivedTabs();
   loadHideDoneTasks();
@@ -112,7 +371,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   await ensureAiModels();
   // Project groups will be rendered within the sidebar tabs
   window.addEventListener('resize', () => {
-    updateChatPanelVisibility();
+    if(isEmbedded){
+    sidebarVisible = false;
+    ensureSidebarHiddenForEmbed();
+  }  updateChatPanelVisibility();
     updateMobileThinSidebar();
   });
   const tasksOnlyChk = document.getElementById("tasksOnlyTabsCheck");
@@ -128,7 +390,7 @@ let columnsOrder = [
   { key: "priority",     label: "Prio"       },
   { key: "status",       label: "Status"     },
   { key: "number",       label: "#"          },
-  { key: "codex_url",   label: "Codex"     },
+  { key: "codex_url",   label: "Agent"     },
   { key: "title",        label: "Title"      },
   { key: "chat_sha",    label: "Chat"       },
   { key: "dependencies", label: "Depends On" },
@@ -142,9 +404,10 @@ let dragSrcRow = null;
 let modelName = "unknown";
 let tabModelOverride = '';
 let previousModelName = null; // remember model when toggling search
+let previousTabType = null; // remember tab type when toggling search
 let reasoningPreviousModelName = null; // remember model when toggling reasoning
-let codexPreviousModelName = null; // remember model when toggling Codex
-let codexMiniEnabled = false; // toggle Codex Mini mode
+let codexPreviousModelName = null; // remember model when toggling Agent
+let codexMiniEnabled = false; // toggle Agent Mini mode
 let tasksVisible = true;
 let markdownPanelVisible = false;
 let subroutinePanelVisible = false;
@@ -163,6 +426,11 @@ let showSubbubbleToken = false;
 let sterlingChatUrlVisible = true;
 let projectInfoBarVisible = true; // visibility of the project/Sterling bar
 let suppressArchiveRedirect = false;
+
+const DESIGN_CHAT_ALIAS = '/chat/design';
+let designTabInfo = null;
+let designTabFetchPromise = null;
+let initialPathAlias = null;
 
 const alfeGreetingMessages = (() => {
   const openers = [
@@ -224,8 +492,9 @@ let enterSubmitsMessage = true; // new toggle for Enter key submit
 let chatQueueEnabled = false; // queue additional messages
 let messageQueue = [];
 let navMenuVisible = true; // visibility of the top navigation menu
-let navMenuLoading = true;  // hide nav menu while showing spinner on load
+let navMenuLoading = false; // show nav menu immediately  // hide nav menu while showing spinner on load
 let showArchivedTabs = false;
+let archivedCollapsed = false;   // collapse state for archived group
 let tasksOnlyTabs = false; // filter chat tabs with tasks only
 let hideArchivedTabs = true; // filter out archived chat tabs
 let hideDoneTasks = false; // hide tasks with status 'Done'
@@ -252,6 +521,7 @@ let printifyPage = 1; // current Printify product page
 let showDependenciesColumn = false;
 let tabGenerateImages = false; // per-tab auto image toggle (design tabs only)
 let imageLoopEnabled = false; // automatic image generation loop mode
+let favoritesCollapsed = false;   // collapse state for favorites group
 let imageLoopMessage = "Next image";
 let imageGenService = 'openai';
 let imageGenModel = 'gptimage1';
@@ -278,6 +548,7 @@ let actionHooks = [];
 let editingSubroutineId = null;
 let editingMessageInfo = null; // {pairId, type, callback}
 let accountInfo = null; // details returned from /api/account
+let accountsEnabled = false;
 let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
@@ -286,7 +557,7 @@ let aiResponsesEnabled = true; // allow AI responses
 let tabOptionsMenu = null;
 let tabOptionsMenuTarget = null;
 const reasoningChatModels = [
-  'openrouter/deepseek/deepseek-chat-v3-0324',
+  'openrouter/openai/gpt-5-mini',
   'openai/gpt-4o-mini',
   'openai/gpt-4.1-mini',
   'openai/gpt-4o',
@@ -314,8 +585,10 @@ const defaultFavicon = "/alfe_favicon_chat_mountain_rect_purple_WHITEBG.ico";
 const rotatingFavicon = "/alfe_favicon_chat_mountain_rect_purple_WHITEBG.ico";
 let favElement = null;
 
-const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖", search: "🔍" };
+const tabTypeIcons = { chat: "💬", design: "🎨", task: "📋", pm_agi: "🤖", search: "💬", code: "💻" };
 let newTabSelectedType = 'chat';
+
+const CODE_CHAT_GREETING = 'Start a new task or ask a question';
 
 const $  = (sel, ctx=document) => ctx.querySelector(sel);
 const $$ = (sel, ctx=document) => [...ctx.querySelectorAll(sel)];
@@ -324,8 +597,36 @@ function mosaicKey(tabId){
   return `mosaic_panel_visible_tab_${tabId}`;
 }
 
+function resolveTabPath(tab){
+  if(!tab) return null;
+  if(tab.tab_type === 'code'){
+    return '/code';
+  }
+  if(tab.path_alias && tab.path_alias.trim()){
+    return tab.path_alias.trim();
+  }
+  if(tab.tab_uuid){
+    return `/chat/${tab.tab_uuid}`;
+  }
+  return null;
+}
+
 function getTabUuidFromLocation(){
-  const m = window.location.pathname.match(/\/chat\/([^/]+)/);
+  const path = window.location.pathname;
+  if(path === DESIGN_CHAT_ALIAS){
+    initialPathAlias = DESIGN_CHAT_ALIAS;
+    return null;
+  }
+  if(path === '/code'){
+    initialPathAlias = '/code';
+    return null;
+  }
+  const codeMatch = path.match(/^\/code\/([^/]+)/);
+  if(codeMatch){
+    initialPathAlias = '/code';
+    return codeMatch[1];
+  }
+  const m = path.match(/\/chat\/([^/]+)/);
   if(m) return m[1];
   const params = new URLSearchParams(window.location.search);
   return params.get('tab');
@@ -345,14 +646,111 @@ let pendingImageDescs = [];
 
 function updatePageTitle(){
   const active = chatTabs.find(t => t.id === currentTabId);
-  if(active && active.name){
-    if(active.task_id){
-      document.title = `Alfe - #${active.task_id} ${active.name}`;
+  updateChatTitleDisplay(active);
+  const fixedTitle = getFixedTabTitle(active);
+  const tabTitle = fixedTitle || (active && active.name);
+  if(tabTitle){
+    if(active && active.task_id){
+      document.title = `Alfe - #${active.task_id} ${tabTitle}`;
     } else {
-      document.title = `Alfe - ${active.name}`;
+      document.title = `Alfe - ${tabTitle}`;
     }
   } else {
     document.title = defaultTitle;
+  }
+}
+
+function tabHasFixedTitle(tab){
+  return !!getFixedTabTitle(tab);
+}
+
+function getFixedTabTitle(tab){
+  if(!tab) return null;
+  if(isDesignTab(tab)){
+    return 'Image Design';
+  }
+  if(isCodeTab(tab)){
+    return 'Code';
+  }
+  return null;
+}
+
+function isDesignTab(tab){
+  if(!tab) return false;
+  const type = (tab.tab_type || '').trim().toLowerCase();
+  const pathAlias = (tab.path_alias || '').trim().toLowerCase();
+  const designAlias = DESIGN_CHAT_ALIAS.trim().toLowerCase();
+  return type === 'design' || pathAlias === designAlias || pathAlias === '/chat/design';
+}
+
+function isCodeTab(tab){
+  if(!tab) return false;
+  const type = (tab.tab_type || '').trim().toLowerCase();
+  return type === 'code';
+}
+
+function tabSupportsFavorites(tab){
+  if(!tab) return false;
+  if(isDesignTab(tab) || isCodeTab(tab)) return false;
+  const type = (tab.tab_type || 'chat').trim().toLowerCase();
+  return type === 'chat';
+}
+
+function updateChatTitleDisplay(active){
+  const titleEl = document.getElementById("chatTitleText");
+  const projectEl = document.getElementById("chatTitleProject");
+  const favoriteBtn = document.getElementById("chatFavoriteBtn");
+
+  if(favoriteBtn){
+    const shouldHideFavorite = !tabSupportsFavorites(active);
+    if(shouldHideFavorite){
+      favoriteBtn.hidden = true;
+      favoriteBtn.disabled = true;
+      favoriteBtn.style.display = 'none';
+      favoriteBtn.setAttribute('aria-hidden', 'true');
+      favoriteBtn.textContent = '☆';
+      favoriteBtn.setAttribute('aria-pressed', 'false');
+      favoriteBtn.title = 'Add to favorites';
+      favoriteBtn.setAttribute('aria-label', 'Add to favorites');
+    } else {
+      const isFavorite = !!active.favorite;
+      const favLabel = isFavorite ? 'Remove from favorites' : 'Add to favorites';
+      favoriteBtn.hidden = false;
+      favoriteBtn.disabled = false;
+      favoriteBtn.style.display = '';
+      favoriteBtn.removeAttribute('aria-hidden');
+      favoriteBtn.textContent = isFavorite ? '★' : '☆';
+      favoriteBtn.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+      favoriteBtn.title = favLabel;
+      favoriteBtn.setAttribute('aria-label', favLabel);
+    }
+  }
+
+  if(!titleEl) return;
+
+  const fixedTitle = getFixedTabTitle(active);
+  if(fixedTitle){
+    titleEl.textContent = fixedTitle;
+    // Remove pointer affordance since title is not editable for fixed-title tabs
+    titleEl.style.cursor = 'default';
+    titleEl.title = '';
+  } else {
+    const name = active && active.name ? active.name : "Chat";
+    titleEl.textContent = name;
+    // restore pointer affordance for editable chats
+    titleEl.style.cursor = 'pointer';
+    titleEl.title = 'Edit chat name';
+  }
+
+  if(projectEl){
+    const project = active && active.project_name ? active.project_name.trim() : "";
+    if(project){
+      projectEl.textContent = project;
+      projectEl.hidden = false;
+    } else {
+      projectEl.textContent = "";
+      projectEl.hidden = true;
+    }
   }
 }
 
@@ -444,9 +842,12 @@ function applyMarkdownSyntax(text){
   html = html.replace(/^###\s+(.*)$/gm,   '<span class="md-h3">$1</span>');
   html = html.replace(/^##\s+(.*)$/gm,    '<span class="md-h2">$1</span>');
   html = html.replace(/^#\s+(.*)$/gm,     '<span class="md-h1">$1</span>');
-  // Bold and italic
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">**$1**</span>');
-  html = html.replace(/\*([^*]+)\*/g, '<span class="md-italic">*$1*</span>');
+  // Remove markdown bold markers while leaving the text unstyled
+  html = html.replace(/\*\*([^*]+)\*\*/g, '$1');
+  html = html.replace(/__([^_]+)__/g, '$1');
+  // Italic (single * or _ that are not part of bold markers)
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<span class="md-italic">$1</span>');
+  html = html.replace(/(?<!_)_([^_\n]+)_(?!_)/g, '<span class="md-italic">$1</span>');
   // Inline code
   html = html.replace(/`([^`]+)`/g, '<span class="md-inline-code">`$1`</span>');
   // Links
@@ -492,7 +893,7 @@ function addCodeCopyButtons(root){
     btn.className = 'code-copy-btn';
     btn.innerHTML = '\u2398';
     btn.title = 'Copy code';
-    btn.addEventListener('click', () => {
+    btn?.addEventListener('click', () => {
       navigator.clipboard.writeText(pre.innerText);
       showToast('Copied to clipboard');
     });
@@ -534,7 +935,7 @@ function addFileToMosaic(file){
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
   editBtn.className = "mosaic-edit-btn";
-  editBtn.addEventListener("click", e => {
+  editBtn?.addEventListener("click", e => {
     e.preventDefault();
     openMosaicEditModal(file);
   });
@@ -601,6 +1002,24 @@ function loadCollapsedArchiveGroups(){
   } catch(e){
     collapsedArchiveGroups = {};
   }
+}
+
+function loadFavoritesCollapsed(){
+  const val = localStorage.getItem('favoritesCollapsed');
+  favoritesCollapsed = val === '1';
+}
+
+function saveFavoritesCollapsed(){
+  localStorage.setItem('favoritesCollapsed', favoritesCollapsed ? '1' : '0');
+}
+
+function loadArchivedCollapsed(){
+  const val = localStorage.getItem('archivedCollapsed');
+  archivedCollapsed = val === '1';
+}
+
+function saveArchivedCollapsed(){
+  localStorage.setItem('archivedCollapsed', archivedCollapsed ? '1' : '0');
 }
 
 function loadTasksOnlyTabs(){
@@ -683,17 +1102,17 @@ function renderProjectGroups(){
     btn.textContent = name;
     btn.draggable = true;
     btn.dataset.index = idx;
-    btn.addEventListener('dragstart', e => {
+    btn?.addEventListener('dragstart', e => {
       draggingProjectIndex = idx;
       e.dataTransfer.effectAllowed = 'move';
     });
-    btn.addEventListener('dragover', e => {
+    btn?.addEventListener('dragover', e => {
       if(draggingProjectIndex === null || draggingProjectIndex === idx) return;
       e.preventDefault();
       btn.classList.add('drag-over');
     });
-    btn.addEventListener('dragleave', () => btn.classList.remove('drag-over'));
-    btn.addEventListener('drop', e => {
+    btn?.addEventListener('dragleave', () => btn.classList.remove('drag-over'));
+    btn?.addEventListener('drop', e => {
       e.preventDefault();
       btn.classList.remove('drag-over');
       if(draggingProjectIndex === null || draggingProjectIndex === idx) return;
@@ -703,7 +1122,7 @@ function renderProjectGroups(){
       saveProjectGroups();
       renderSidebarTabs();
     });
-    btn.addEventListener('dragend', () => {
+    btn?.addEventListener('dragend', () => {
       draggingProjectIndex = null;
       btn.classList.remove('drag-over');
     });
@@ -803,8 +1222,13 @@ function getDisplayModelName(model){
       displayName = displayName.slice(prefix.length);
     }
   }
+  // Also strip common provider prefixes like `openai/` so UI doesn't show provider prefix
+  if(displayName.startsWith('openai/')){
+    displayName = displayName.slice('openai/'.length);
+  }
   return displayName;
 }
+
 
 function appendModelInfoIcon(container, model){
   if(!container || !model) return;
@@ -828,7 +1252,11 @@ function appendModelInfoIcon(container, model){
     icon.textContent = '';
     const glyph = document.createElement('span');
     glyph.className = 'chat-model-info-symbol';
-    glyph.textContent = 'i';
+    // Show a search glyph for search-preview/search models, otherwise a generic info glyph
+    const _m = String(trimmedModel || '').toLowerCase();
+    const isSearchModel = _m.includes('search') || _m.includes('search-preview') || _m.includes('perplexity');
+    glyph.textContent = isSearchModel ? '🔍' : 'i';
+    if(isSearchModel) glyph.classList.add('chat-model-info-search');
     icon.appendChild(glyph);
   }
   icon.setAttribute('role', 'img');
@@ -897,6 +1325,12 @@ function isMobileViewport(){
 function updateChatPanelVisibility(){
   const chatPanel = document.querySelector(".chat-panel");
   if(!chatPanel) return;
+  const path = (window && window.location && window.location.pathname) ? window.location.pathname : '';
+  // Always hide the chat panel on code pages
+  if(path === '/code' || path.startsWith('/code/')){
+    chatPanel.style.display = 'none';
+    return;
+  }
   if(isMobileViewport() && sidebarVisible){
     chatPanel.style.display = "none";
   } else {
@@ -904,9 +1338,116 @@ function updateChatPanelVisibility(){
   }
 }
 
-function showModal(m){ m.style.display = "flex"; }
-function hideModal(m){ m.style.display = "none"; }
-$$(".modal").forEach(m => m.addEventListener("click", e => { if(e.target===m) hideModal(m); }));
+function showModal(m){
+  if(!m) return;
+  m.style.display = "flex";
+  if(m.hasAttribute("aria-hidden")){
+    m.setAttribute("aria-hidden", "false");
+  }
+}
+function hideModal(m){
+  if(!m) return;
+  m.style.display = "none";
+  if(m.hasAttribute("aria-hidden")){
+    m.setAttribute("aria-hidden", "true");
+  }
+}
+
+function setAccountsFeatureVisibility(enabled){
+  const normalized = !!enabled;
+  accountsEnabled = normalized;
+  const signupBtn = document.getElementById("signupBtn");
+  if(signupBtn){
+    signupBtn.style.display = normalized ? "" : "none";
+  }
+  if(!normalized){
+    hideModal(document.getElementById("authModal"));
+    hideModal(document.getElementById("accountModal"));
+  }
+  if(document.body){
+    document.body.classList.toggle("accounts-enabled", normalized);
+    document.body.classList.toggle("accounts-disabled", !normalized);
+  }
+}
+
+async function showConfirmDialog(options = {}){
+  const {
+    title = "Confirm Action",
+    message = "Are you sure?",
+    confirmText = "OK",
+    cancelText = "Cancel",
+    danger = false
+  } = options;
+
+  const modal = document.getElementById("confirmModal");
+  const titleEl = document.getElementById("confirmModalTitle");
+  const messageEl = document.getElementById("confirmModalMessage");
+  const confirmBtn = document.getElementById("confirmModalConfirmBtn");
+  const cancelBtn = document.getElementById("confirmModalCancelBtn");
+  const closeBtn = document.getElementById("confirmModalCloseBtn");
+
+  if(!modal || !messageEl || !confirmBtn || !cancelBtn){
+    return window.confirm(message);
+  }
+
+  if(titleEl) titleEl.textContent = title;
+  messageEl.textContent = message;
+  confirmBtn.textContent = confirmText;
+  cancelBtn.textContent = cancelText;
+
+  confirmBtn.classList.remove("primary", "danger");
+  if(danger){
+    confirmBtn.classList.add("danger");
+  } else {
+    confirmBtn.classList.add("primary");
+  }
+
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      confirmBtn.removeEventListener("click", onConfirm);
+      cancelBtn.removeEventListener("click", onCancel);
+      if(closeBtn) closeBtn.removeEventListener("click", onCancel);
+      modal.removeEventListener("click", onOverlayClick);
+      document.removeEventListener("keydown", onKeyDown);
+      hideModal(modal);
+    };
+
+    const resolveWith = (value) => {
+      cleanup();
+      resolve(value);
+    };
+
+    const onConfirm = () => resolveWith(true);
+    const onCancel = () => resolveWith(false);
+    const onOverlayClick = (evt) => {
+      if(evt.target === modal){
+        evt.stopPropagation();
+        resolveWith(false);
+      }
+    };
+    const onKeyDown = (evt) => {
+      if(evt.key === "Escape"){
+        evt.preventDefault();
+        resolveWith(false);
+      } else if(evt.key === "Enter" && document.activeElement === confirmBtn){
+        evt.preventDefault();
+        resolveWith(true);
+      }
+    };
+
+    confirmBtn?.addEventListener("click", onConfirm, { once: true });
+    cancelBtn?.addEventListener("click", onCancel, { once: true });
+    if(closeBtn) closeBtn?.addEventListener("click", onCancel, { once: true });
+    modal?.addEventListener("click", onOverlayClick);
+    document.addEventListener("keydown", onKeyDown);
+
+    showModal(modal);
+    confirmBtn.focus();
+  });
+}
+$$(".modal").forEach(m => m?.addEventListener("click", e => {
+  if(e.target === m) hideModal(m);
+}));
 
 function showPageLoader(){
   const loader = document.getElementById("pageLoader");
@@ -919,6 +1460,9 @@ function hidePageLoader(){
 }
 
 function showSignupForm(){
+  if(!accountsEnabled){
+    return;
+  }
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
   if(login) login.style.display = 'none';
@@ -930,6 +1474,9 @@ function showSignupForm(){
 }
 
 function showLoginForm(){
+  if(!accountsEnabled){
+    return;
+  }
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
   if(signup) signup.style.display = 'none';
@@ -942,18 +1489,27 @@ function showLoginForm(){
 
 function openSignupModal(e){
   if(e) e.preventDefault();
+  if(!ensureAccountsEnabled()){
+    return;
+  }
   showSignupForm();
   showModal(document.getElementById("authModal"));
 }
 
 function openLoginModal(e){
   if(e) e.preventDefault();
+  if(!ensureAccountsEnabled()){
+    return;
+  }
   showLoginForm();
   showModal(document.getElementById("authModal"));
 }
 
 function openAccountModal(e){
   if(e) e.preventDefault();
+  if(!ensureAccountsEnabled()){
+    return;
+  }
   if(accountInfo){
     const emailEl = document.getElementById("accountEmail");
     if(emailEl) emailEl.textContent = accountInfo.email;
@@ -966,17 +1522,19 @@ function openAccountModal(e){
       if(enabledMsg) enabledMsg.style.display = 'none';
       if(enableBtn) enableBtn.style.display = 'inline-block';
     }
-    const planSelect = document.getElementById('accountPlan');
-    if(planSelect) planSelect.value = accountInfo.plan || 'Free';
+    const planText = document.getElementById('accountPlanText');
+    if(planText) planText.innerHTML = 'Subscription Plan: <strong>Free</strong>';
   }
   showModal(document.getElementById("accountModal"));
 }
 
 async function openSettingsModal(e){
   if(e) e.preventDefault();
-  if(accountInfo){
-    const tzEl = document.getElementById('accountTimezone');
-    if(tzEl) tzEl.value = accountInfo.timezone || '';
+  const tzEl = document.getElementById('accountTimezone');
+  const tzValue = (accountInfo?.timezone && accountInfo.timezone.trim()) || detectedTimezone || '';
+  if(tzEl){
+    ensureTimezoneOption(tzEl, tzValue);
+    tzEl.value = tzValue || '';
   }
   const autoScrollCheck = document.getElementById('accountAutoScrollCheck');
   if(autoScrollCheck){
@@ -986,14 +1544,17 @@ async function openSettingsModal(e){
   if(mobileCheck){
     mobileCheck.checked = mobileSidebarToolbar;
   }
-  const defaultModelSelect = document.getElementById('defaultModelSelect');
-  if(defaultModelSelect){
-    const currentModel = settingsCache.ai_model || modelName || '';
-    const label = currentModel || 'Managed automatically';
-    defaultModelSelect.innerHTML = '';
-    const opt = new Option(label, currentModel, true, true);
-    defaultModelSelect.appendChild(opt);
-    defaultModelSelect.disabled = true;
+  const sessionIdEl = document.getElementById('settingsSessionIdText');
+  if(sessionIdEl){
+    sessionIdEl.textContent = sessionId || '';
+  }
+  const themeSelect = document.getElementById('themeSelect');
+  if(themeSelect){
+    themeSelect.value = document.body.dataset.theme || getStoredTheme();
+  }
+  renderUsageCountersInSettings();
+  if(!usageLimitCache){
+    updateUsageLimitInfo();
   }
   showModal(document.getElementById("settingsModal"));
 }
@@ -1002,27 +1563,36 @@ async function openSettingsModal(e){
 function updateAccountButton(info){
   const btn = document.getElementById("signupBtn");
   const favBtn = document.getElementById("aiFavoritesBtn");
-  if(btn){
-    btn.style.display = "none";
-  }
   if(favBtn){
     favBtn.style.display = "none";
   }
   if(!btn) return;
+  if(info && typeof info.accountsEnabled !== 'undefined'){
+    setAccountsFeatureVisibility(info.accountsEnabled);
+  }
+  if(!accountsEnabled){
+    btn.style.display = "none";
+    accountInfo = null;
+    togglePortfolioMenu(false);
+    toggleImageIdColumn();
+    toggleDesignTabs(false);
+    return;
+  }
+  btn.style.display = "";
   btn.removeEventListener("click", openSignupModal);
   btn.removeEventListener("click", openAccountModal);
   btn.removeEventListener("click", openLoginModal);
   if(info && info.exists){
     accountInfo = info;
     btn.textContent = "Account";
-    btn.addEventListener("click", openAccountModal);
+    btn?.addEventListener("click", openAccountModal);
     togglePortfolioMenu(info.id === 1);
     toggleImageIdColumn();
     toggleDesignTabs(info.plan === 'Pro' || info.plan === 'Ultimate');
   } else {
     accountInfo = null;
     btn.textContent = "Sign Up / Login";
-    btn.addEventListener("click", openSignupModal);
+    btn?.addEventListener("click", openSignupModal);
     togglePortfolioMenu(false);
     toggleImageIdColumn();
     toggleDesignTabs(false);
@@ -1038,6 +1608,16 @@ function showToast(msg, duration=1500){
   setTimeout(() => el.classList.remove("show"), duration);
 }
 
+function ensureAccountsEnabled(showMessage = true){
+  if(accountsEnabled){
+    return true;
+  }
+  if(showMessage){
+    showToast("Accounts are currently unavailable.");
+  }
+  return false;
+}
+
 function renderDesignSuggestions(show = true){
   const container = document.getElementById('startSuggestions');
   if(!container) return;
@@ -1047,7 +1627,7 @@ function renderDesignSuggestions(show = true){
   designStartPrompts.forEach(text => {
     const b = document.createElement('button');
     b.textContent = text;
-    b.addEventListener('click', () => {
+    b?.addEventListener('click', () => {
       chatInputEl.value = text;
       chatSendBtnEl.click();
     });
@@ -1056,6 +1636,9 @@ function renderDesignSuggestions(show = true){
 }
 
 async function logout(){
+  if(!ensureAccountsEnabled()){
+    return;
+  }
   try {
     await fetch("/api/logout", { method: "POST" });
   } catch(err){
@@ -1080,11 +1663,11 @@ function startLimitCountdown(targetTime){
       clearInterval(limitCountdownTimer);
       limitCountdownTimer = null;
       el.textContent = '';
-      updateImageLimitInfo();
+      updateUsageLimitInfo();
     } else {
       const m = String(Math.floor(diff/60000)).padStart(2,'0');
       const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
-      el.textContent = ``; // Next slot in ${m}:${s}
+      el.textContent = `Next slot in ${m}:${s}`;
     }
   }
   if(limitCountdownTimer) clearInterval(limitCountdownTimer);
@@ -1108,6 +1691,18 @@ function showImageGenerationIndicator(){
     indicator.innerHTML = "Generating image<span class=\"loading-spinner\"></span>";
     if(chatMessagesEl) chatMessagesEl.appendChild(indicator);
   }
+  if(chatSendBtnEl){
+    if(typeof chatSendBtnEl.dataset.imageGenPrevDisabled === "undefined"){
+      chatSendBtnEl.dataset.imageGenPrevDisabled = chatSendBtnEl.disabled ? "1" : "0";
+    }
+    chatSendBtnEl.disabled = true;
+  }
+  if(chatRepeatBtnEl){
+    if(typeof chatRepeatBtnEl.dataset.imageGenPrevDisabled === "undefined"){
+      chatRepeatBtnEl.dataset.imageGenPrevDisabled = chatRepeatBtnEl.disabled ? "1" : "0";
+    }
+    chatRepeatBtnEl.disabled = true;
+  }
   indicator.style.display = "";
   if(chatAutoScroll){
     indicator.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -1117,6 +1712,20 @@ function showImageGenerationIndicator(){
 function hideImageGenerationIndicator(){
   const indicator = document.getElementById("imageGenerationIndicator");
   if(indicator) indicator.style.display = "none";
+  if(chatSendBtnEl && typeof chatSendBtnEl.dataset.imageGenPrevDisabled !== "undefined"){
+    if(chatSendBtnEl.dataset.imageGenPrevDisabled === "0"){
+      chatSendBtnEl.disabled = false;
+    }
+    delete chatSendBtnEl.dataset.imageGenPrevDisabled;
+  }
+  if(chatRepeatBtnEl && typeof chatRepeatBtnEl.dataset.imageGenPrevDisabled !== "undefined"){
+    const wasEnabled = chatRepeatBtnEl.dataset.imageGenPrevDisabled === "0";
+    delete chatRepeatBtnEl.dataset.imageGenPrevDisabled;
+    if(wasEnabled){
+      chatRepeatBtnEl.disabled = false;
+    }
+  }
+  updateRepeatButtonVisibility();
 }
 
 function appendChatElement(el){
@@ -1232,27 +1841,63 @@ function processNextQueueMessage(){
   setTimeout(() => chatSendBtnEl.click(), 0);
 }
 
-async function updateImageLimitInfo(files){
+function formatUsageCount(count, limit){
+  const safeCount = typeof count === 'number' ? count : 0;
+  if(limit === null || typeof limit === 'undefined'){
+    return `${safeCount}/∞`;
+  }
+  return `${safeCount}/${limit}`;
+}
+
+function usageLimitReached(count, limit){
+  if(limit === null || typeof limit === 'undefined') return false;
+  if(typeof limit !== 'number') return false;
+  if(typeof count !== 'number') return false;
+  return count >= limit;
+}
+
+function renderUsageCountersInSettings(){
+  const imageSessionEl = document.getElementById('settingsImageSessionCounter');
+  const imageIpEl = document.getElementById('settingsImageIpCounter');
+  const searchSessionEl = document.getElementById('settingsSearchSessionCounter');
+  const searchIpEl = document.getElementById('settingsSearchIpCounter');
+  if(!imageSessionEl || !imageIpEl || !searchSessionEl || !searchIpEl) return;
+
+  if(!usageLimitCache){
+    imageSessionEl.textContent = '…';
+    imageIpEl.textContent = '…';
+    searchSessionEl.textContent = '…';
+    searchIpEl.textContent = '…';
+    return;
+  }
+
+  imageSessionEl.textContent = formatUsageCount(usageLimitCache.sessionCount, usageLimitCache.sessionLimit);
+  imageIpEl.textContent = formatUsageCount(usageLimitCache.ipCount, usageLimitCache.ipLimit);
+  searchSessionEl.textContent = formatUsageCount(usageLimitCache.searchSessionCount, usageLimitCache.searchSessionLimit);
+  searchIpEl.textContent = formatUsageCount(usageLimitCache.searchIpCount, usageLimitCache.searchIpLimit);
+}
+
+async function updateUsageLimitInfo(){
   try {
     const resp = await fetch(`/api/image/counts?sessionId=${encodeURIComponent(sessionId)}`);
+    if(!resp.ok){
+      throw new Error(`HTTP ${resp.status}`);
+    }
     const data = await resp.json();
+    usageLimitCache = data;
     const el = document.getElementById('imageLimitInfo');
     if(el){
-
-      let maxSessCount = data.sessionCount;
-      if (data.ipCount > maxSessCount) {
-        maxSessCount = data.ipCount;
-      }
-
-      let maxLimit = data.sessionLimit;
-      if (data.ipLimit > maxLimit) {
-        maxSessCount = data.ipLimit;
-      }
-
-      el.textContent = `Images: ${maxSessCount}/${maxLimit}`;
-      if(data.sessionCount >= data.sessionLimit || data.ipCount >= data.ipLimit){
+      const imageSessionText = formatUsageCount(data.sessionCount, data.sessionLimit);
+      const imageIpText = formatUsageCount(data.ipCount, data.ipLimit);
+      const searchSessionText = formatUsageCount(data.searchSessionCount, data.searchSessionLimit);
+      const searchIpText = formatUsageCount(data.searchIpCount, data.searchIpLimit);
+      el.textContent = `Images S:${imageSessionText} · IP:${imageIpText} | Searches S:${searchSessionText} · IP:${searchIpText}`;
+      const imageLimitHit = usageLimitReached(data.sessionCount, data.sessionLimit) || usageLimitReached(data.ipCount, data.ipLimit);
+      const searchLimitHit = usageLimitReached(data.searchSessionCount, data.searchSessionLimit)
+        || usageLimitReached(data.searchIpCount, data.searchIpLimit);
+      if(imageLimitHit || searchLimitHit){
         el.classList.add('limit-reached');
-        if(data.nextReduction){
+        if(data.nextReduction && imageLimitHit){
           startLimitCountdown(new Date(data.nextReduction).getTime());
         }
       } else {
@@ -1260,9 +1905,66 @@ async function updateImageLimitInfo(files){
         stopLimitCountdown();
       }
     }
+    renderUsageCountersInSettings();
+    return data;
   } catch(e){
-    console.error('Failed to update image limit info:', e);
+    console.error('Failed to update usage limit info:', e);
+    return usageLimitCache;
   }
+}
+
+function buildUsageSummary(kind){
+  if(!usageLimitCache) return '';
+  const imageSession = formatUsageCount(usageLimitCache.sessionCount, usageLimitCache.sessionLimit);
+  const imageIp = formatUsageCount(usageLimitCache.ipCount, usageLimitCache.ipLimit);
+  const searchSession = formatUsageCount(usageLimitCache.searchSessionCount, usageLimitCache.searchSessionLimit);
+  const searchIp = formatUsageCount(usageLimitCache.searchIpCount, usageLimitCache.searchIpLimit);
+  if(kind === 'image'){
+    return `Image session: ${imageSession} • IP: ${imageIp}`;
+  }
+  if(kind === 'search'){
+    return `Search session: ${searchSession} • IP: ${searchIp}`;
+  }
+  return `Images → session: ${imageSession} • IP: ${imageIp} | Searches → session: ${searchSession} • IP: ${searchIp}`;
+}
+
+function showUsageLimitModal(kind = 'usage', message = 'Usage limit reached. Please try again later.'){
+  const modal = document.getElementById('usageLimitModal');
+  const titleEl = document.getElementById('usageLimitModalTitle');
+  const messageEl = document.getElementById('usageLimitModalMessage');
+  const summaryEl = document.getElementById('usageLimitModalSummary');
+  const iconEl = document.getElementById('usageLimitModalIcon');
+  const ctaEl = document.getElementById('usageLimitModalCta');
+  if(!modal || !titleEl || !messageEl) return;
+
+  let title = 'Usage limit reached';
+  let icon = '⚠️';
+  let resolvedMessage = message;
+  if(kind === 'image'){
+    title = 'Image limit reached';
+    icon = '🖼️';
+    if(!message || message === 'Usage limit reached. Please try again later.'){
+      resolvedMessage = 'Image generation limit reached for this session.';
+    }
+  } else if(kind === 'search'){
+    title = 'Search limit reached';
+    icon = '🔍';
+  } else {
+    icon = '🚦';
+  }
+
+  titleEl.textContent = title;
+  if(iconEl) iconEl.textContent = icon;
+  messageEl.textContent = resolvedMessage;
+  if(summaryEl){
+    summaryEl.textContent = usageLimitCache ? buildUsageSummary(kind) : '';
+  }
+  if(ctaEl){
+    ctaEl.style.display = '';
+  }
+
+  showModal(modal);
+  updateUsageLimitInfo();
 }
 
 function stopLimitCountdown(){
@@ -1291,20 +1993,28 @@ function renderActionHooks(){
 }
 
 async function setSetting(key, value){
-  await fetch("/api/settings", {
+  const response = await fetch("/api/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key, value })
   });
+  if(response.ok){
+    settingsCache[key] = value;
+  }
 }
 
 async function setSettings(map){
   const settings = Object.entries(map).map(([key, value]) => ({ key, value }));
-  await fetch("/api/settings/batch", {
+  const response = await fetch("/api/settings/batch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ settings })
   });
+  if(response.ok){
+    for(const [key, value] of Object.entries(map)){
+      settingsCache[key] = value;
+    }
+  }
 }
 
 const settingsCache = {};
@@ -1405,7 +2115,7 @@ function openTabOptionsMenu(tab, anchor){
     btn.type = 'button';
     btn.className = 'tab-options-item';
     btn.textContent = label;
-    btn.addEventListener('click', () => {
+    btn?.addEventListener('click', () => {
       closeTabOptionsMenu();
       action();
     });
@@ -1413,6 +2123,9 @@ function openTabOptionsMenu(tab, anchor){
   };
 
   makeItem('Rename', () => renameTab(tab.id));
+  if(tabSupportsFavorites(tab)){
+    makeItem(tab.favorite ? 'Remove Favorite' : 'Add to Favorites', () => toggleFavoriteTab(tab.id, !tab.favorite));
+  }
   makeItem(tab.archived ? 'Unarchive' : 'Archive', () => toggleArchiveTab(tab.id, tab.archived ? 0 : 1));
 
   document.body.appendChild(tabOptionsMenu);
@@ -1451,7 +2164,7 @@ function createTabOptionsButton(tab){
   const btn = document.createElement('button');
   btn.innerHTML = '&#9881;';
   btn.className = 'tab-options-trigger';
-  btn.addEventListener('click', e => {
+  btn?.addEventListener('click', e => {
     e.stopPropagation();
     toggleTabOptionsMenu(tab, btn);
   });
@@ -1501,7 +2214,10 @@ async function toggleSidebar(){
     collapsedArrow.style.display = sidebarVisible ? "none" : "block";
   }
 
-  updateChatPanelVisibility();
+  if(isEmbedded){
+    sidebarVisible = false;
+    ensureSidebarHiddenForEmbed();
+  }  updateChatPanelVisibility();
 
   // Shift top chat tabs bar when sidebar is collapsed so it doesn't
   // overlap the logo icon in the top left.
@@ -1737,7 +2453,10 @@ async function loadSettings(){
     }
   }
 
-  updateChatPanelVisibility();
+  if(isEmbedded){
+    sidebarVisible = false;
+    ensureSidebarHiddenForEmbed();
+  }  updateChatPanelVisibility();
   const initTopBtns = document.getElementById("topRightButtons");
   if(initTopBtns){
     if(isMobileViewport() && !isEmbedded){
@@ -1981,13 +2700,13 @@ function tabDragStart(e){
     topDropBar = document.createElement('div');
     topDropBar.className = 'top-drop-bar';
     parent.insertBefore(topDropBar, parent.firstChild);
-    topDropBar.addEventListener('dragover', ev => {
+    topDropBar?.addEventListener('dragover', ev => {
       ev.preventDefault();
       topDropBar.classList.add('drag-over');
     });
     const clearBar = () => topDropBar.classList.remove('drag-over');
-    topDropBar.addEventListener('dragleave', clearBar);
-    topDropBar.addEventListener('drop', async ev => {
+    topDropBar?.addEventListener('dragleave', clearBar);
+    topDropBar?.addEventListener('drop', async ev => {
       ev.preventDefault();
       clearBar();
       if(draggingTabRow){
@@ -2138,7 +2857,7 @@ function renderBody(){
           tr.appendChild(td);
         });
         ["dragover","dragleave","drop","dragend"].forEach(evt=>{
-          tr.addEventListener(evt, {
+          tr?.addEventListener(evt, {
             "dragover":handleDragOver,
             "dragleave":handleDragLeave,
             "drop":handleDrop,
@@ -2242,11 +2961,11 @@ $("#tasks").addEventListener("click", async e=>{
     cell.textContent="";
     cell.appendChild(newEl);
     newEl.focus();
-    newEl.addEventListener("change", async ()=>{
+    newEl?.addEventListener("change", async ()=>{
       await saveCb(newEl.value);
       await loadTasks();
     });
-    newEl.addEventListener("blur", ()=>loadTasks());
+    newEl?.addEventListener("blur", ()=>loadTasks());
   }
 
   if(cell.classList.contains("priority-cell")){
@@ -2433,9 +3152,64 @@ $("#createTaskBtn").addEventListener("click", async ()=>{
 });
 $("#cancelTaskBtn").addEventListener("click",()=>hideModal($("#newTaskModal")));
 
+async function ensureDesignTabForSession(){
+  if(designTabInfo){
+    return designTabInfo;
+  }
+  if(designTabFetchPromise){
+    return designTabFetchPromise;
+  }
+  const url = `/api/chat/design_tab?sessionId=${encodeURIComponent(sessionId)}`;
+  designTabFetchPromise = (async () => {
+    try {
+      const res = await fetch(url);
+      if(!res.ok){
+        console.error(`[DesignTab] Failed to ensure design chat: ${res.status}`);
+        return null;
+      }
+      const data = await res.json();
+      const info = {
+        id: data.id,
+        uuid: data.uuid,
+        pathAlias: data.pathAlias || DESIGN_CHAT_ALIAS
+      };
+      designTabInfo = info;
+      return info;
+    } catch (err) {
+      console.error('[DesignTab] Error ensuring design chat', err);
+      return null;
+    } finally {
+      designTabFetchPromise = null;
+    }
+  })();
+  return designTabFetchPromise;
+}
+
+async function focusDesignChat(){
+  const info = await ensureDesignTabForSession();
+  if(!info) return;
+  let tab = chatTabs.find(t => t.id === info.id || t.tab_uuid === info.uuid);
+  if(!tab){
+    await loadTabs();
+    tab = chatTabs.find(t => t.id === info.id || t.tab_uuid === info.uuid);
+  }
+  if(!tab) return;
+  if(currentTabId !== tab.id){
+    await selectTab(tab.id);
+  } else {
+    const path = resolveTabPath(tab);
+    if(path && window.location.pathname !== path){
+      window.history.replaceState({}, '', path);
+    }
+  }
+}
+
 async function loadTabs(){
   const res = await fetch(`/api/chat/tabs?nexum=0&showArchived=1&sessionId=${encodeURIComponent(sessionId)}`);
-  chatTabs = await res.json();
+  chatTabs = (await res.json()).map(tab => ({
+    ...tab,
+    favorite: !!tab.favorite
+  }));
   archivedTabs = chatTabs.filter(t => t.archived);
   const parentIds = new Set(chatTabs.map(t => t.id));
   const hasChild = new Set(chatTabs.filter(t => t.parent_id).map(t => t.parent_id));
@@ -2445,6 +3219,16 @@ async function loadTabs(){
     }
   }
   saveCollapsedChildTabs();
+  const aliasTab = chatTabs.find(t => (t.path_alias || '') === DESIGN_CHAT_ALIAS);
+  if(aliasTab){
+    designTabInfo = {
+      id: aliasTab.id,
+      uuid: aliasTab.tab_uuid,
+      pathAlias: aliasTab.path_alias || DESIGN_CHAT_ALIAS
+    };
+  } else {
+    designTabInfo = null;
+  }
 }
 
 async function loadSubroutines(){
@@ -2522,12 +3306,12 @@ function renderSubroutines(){
     div.style.display = "flex";
     div.style.alignItems = "center";
     div.style.justifyContent = "center";
-    div.addEventListener("dblclick", () => editSubroutine(sub));
+    div?.addEventListener("dblclick", () => editSubroutine(sub));
 
     const editBtn = document.createElement("button");
     editBtn.textContent = "Edit";
     editBtn.className = "edit-btn";
-    editBtn.addEventListener("click", e => {
+    editBtn?.addEventListener("click", e => {
       e.stopPropagation();
       editSubroutine(sub);
     });
@@ -2568,7 +3352,6 @@ async function archiveCurrentChat(){
       }
       return;
     }
-    await createChatTabWithoutModal();
   } catch (err) {
     console.error("Error while archiving current chat", err);
     if(typeof showToast === "function"){
@@ -2621,9 +3404,9 @@ async function autoCreateInitialChatTab(){
     await loadTabs();
     await selectTab(data.id);
     const tab = chatTabs.find(t => t.id === data.id);
-    if(tab && tab.tab_uuid){
-      const newPath = `/chat/${tab.tab_uuid}`;
-      if(window.location.pathname !== newPath){
+    if(tab){
+      const newPath = resolveTabPath(tab);
+      if(newPath && window.location.pathname !== newPath){
         window.location.replace(newPath);
       }
     }
@@ -2651,10 +3434,25 @@ async function renameTab(tabId, newName){
     renderArchivedSidebarTabs();
     updatePageTitle();
     const ct = chatTabs.find(t => t.id === currentTabId);
-    if(ct && ct.tab_uuid && window.location.pathname !== '/new'){
-      window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
+    const path = resolveTabPath(ct);
+    if(path && window.location.pathname !== path && window.location.pathname !== '/new'){
+      window.history.replaceState({}, '', path);
     }
   }
+}
+
+async function openEditTabNameModal(tabId){
+  const tab = chatTabs.find(tt => tt.id === tabId);
+  const input = $("#editTabNameInput");
+  const modal = $("#editTabNameModal");
+  if(!input || !modal){
+    renameTab(tabId);
+    return;
+  }
+  input.value = tab ? tab.name || "" : "";
+  modal.dataset.tabId = tabId;
+  showModal(modal);
+  setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
 async function openRenameTabModal(tabId){
@@ -2797,7 +3595,7 @@ function initProjectAddTooltip(){
   const btn = document.createElement('button');
   btn.innerHTML = '&#128269;';
   btn.className = 'project-search-btn config-btn';
-  btn.addEventListener('click', e => {
+  btn?.addEventListener('click', e => {
     e.stopPropagation();
     if(projectAddTooltipProject!==null){
       quickAddTabToProject(projectAddTooltipProject, 'search');
@@ -2805,8 +3603,8 @@ function initProjectAddTooltip(){
     }
   });
   projectAddTooltip.appendChild(btn);
-  projectAddTooltip.addEventListener('mouseenter', () => clearTimeout(projectAddTooltipTimer));
-  projectAddTooltip.addEventListener('mouseleave', scheduleHideProjectAddTooltip);
+  projectAddTooltip?.addEventListener('mouseenter', () => clearTimeout(projectAddTooltipTimer));
+  projectAddTooltip?.addEventListener('mouseleave', scheduleHideProjectAddTooltip);
   document.body.appendChild(projectAddTooltip);
 }
 
@@ -2830,6 +3628,28 @@ function scheduleHideProjectAddTooltip(){
   clearTimeout(projectAddTooltipTimer);
   projectAddTooltipTimer = setTimeout(hideProjectAddTooltip, 200);
 }
+
+$("#editTabNameSaveBtn")?.addEventListener("click", async () => {
+  const modal = $("#editTabNameModal");
+  if(!modal) return;
+  const tabId = parseInt(modal.dataset.tabId, 10);
+  if(Number.isNaN(tabId)) return;
+  const input = $("#editTabNameInput");
+  if(!input) return;
+  const name = input.value.trim();
+  if(!name){
+    showToast('Please enter a tab name.');
+    input.focus();
+    return;
+  }
+  await renameTab(tabId, name);
+  hideModal(modal);
+});
+$("#editTabNameCancelBtn")?.addEventListener("click", () => hideModal($("#editTabNameModal")));
+$("#editTabNameInput")?.addEventListener("keydown", evt => {
+  if(evt.key === "Enter") $("#editTabNameSaveBtn")?.click();
+  else if(evt.key === "Escape") $("#editTabNameCancelBtn")?.click();
+});
 
 $("#renameTabSaveBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
@@ -2948,8 +3768,9 @@ async function duplicateTab(tabId){
     renderArchivedSidebarTabs();
     await loadChatHistory(currentTabId, true);
     const ct = chatTabs.find(t => t.id === currentTabId);
-    if(ct && ct.tab_uuid && window.location.pathname !== '/new'){
-      window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
+    const path = resolveTabPath(ct);
+    if(path && window.location.pathname !== path && window.location.pathname !== '/new'){
+      window.history.replaceState({}, '', path);
     }
     updatePageTitle();
   }
@@ -2970,8 +3791,9 @@ async function deleteTab(tabId){
     renderArchivedSidebarTabs();
     await loadChatHistory(currentTabId, true);
     const ct = chatTabs.find(t => t.id === currentTabId);
-    if(ct && ct.tab_uuid && window.location.pathname !== '/new'){
-      window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
+    const path = resolveTabPath(ct);
+    if(path && window.location.pathname !== path && window.location.pathname !== '/new'){
+      window.history.replaceState({}, '', path);
     }
     await loadTabs();
     renderTabs();
@@ -2992,16 +3814,21 @@ async function toggleArchiveTab(tabId, archived){
   }
   const wasCurrent = archived && tabId === currentTabId;
   await loadTabs();
+  const isActiveChatTab = tab => {
+    if(!tab || tab.archived) return false;
+    const type = (tab.tab_type || 'chat').toString().trim().toLowerCase();
+    return type === 'chat';
+  };
   if(wasCurrent){
     const idx = chatTabs.findIndex(t => t.id === tabId);
     let next = null;
     if(idx !== -1){
       for(let i = idx + 1; i < chatTabs.length; i++){
-        if(!chatTabs[i].archived){ next = chatTabs[i]; break; }
+        if(isActiveChatTab(chatTabs[i])){ next = chatTabs[i]; break; }
       }
       if(!next){
         for(let i = 0; i < idx; i++){
-          if(!chatTabs[i].archived){ next = chatTabs[i]; break; }
+          if(isActiveChatTab(chatTabs[i])){ next = chatTabs[i]; break; }
         }
       }
     }
@@ -3019,6 +3846,12 @@ async function toggleArchiveTab(tabId, archived){
     renderArchivedSidebarTabs();
     updatePageTitle();
   }
+  if(archived){
+    const hasActiveChat = chatTabs.some(isActiveChatTab);
+    if(!hasActiveChat){
+      await createChatTabWithoutModal();
+    }
+  }
   if(chatTabs.length > 0 && chatTabs.every(t => t.archived)){
     if(!suppressArchiveRedirect){
       location.href = 'https://alfe.sh';
@@ -3026,6 +3859,34 @@ async function toggleArchiveTab(tabId, archived){
   }
   updateArchiveChatButton();
   return true;
+}
+
+async function toggleFavoriteTab(tabId, favorite){
+  const targetTab = chatTabs.find(t => t.id === tabId);
+  if(targetTab && !tabSupportsFavorites(targetTab)){
+    return false;
+  }
+  try {
+    const r = await fetch('/api/chat/tabs/favorite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tabId, favorite, sessionId })
+    });
+    if(!r.ok){
+      console.error('Failed to toggle favorite', r.status);
+      return false;
+    }
+    await loadTabs();
+    renderTabs();
+    renderSidebarTabs();
+    renderArchivedSidebarTabs();
+    const activeTab = chatTabs.find(t => t.id === currentTabId);
+    updateChatTitleDisplay(activeTab);
+    return true;
+  } catch(err){
+    console.error('Failed to toggle favorite', err);
+    return false;
+  }
 }
 
 async function moveTabToProject(tabId, project){
@@ -3062,12 +3923,40 @@ async function setTabParent(tabId, parentId){
   renderArchivedSidebarTabs();
 }
 async function selectTab(tabId){
-  currentTabId = tabId;
-  await setSetting("last_chat_tab", tabId);
-  const t = chatTabs.find(t => t.id === tabId);
-  currentTabType = t ? t.tab_type || 'chat' : 'chat';
-  loadChatHistory(tabId, true);
-  tabModelOverride = t && t.model_override ? t.model_override : '';
+  const numericTabId = typeof tabId === "string" ? parseInt(tabId, 10) : tabId;
+  if(Number.isNaN(numericTabId)){
+    console.warn("[Tabs] selectTab called with invalid tabId", tabId);
+    return;
+  }
+  let targetTab = chatTabs.find(t => t.id === numericTabId);
+  if(!targetTab){
+    try {
+      await loadTabs();
+    } catch(err){
+      console.error("[Tabs] Failed to refresh tabs before selecting", err);
+    }
+    targetTab = chatTabs.find(t => t.id === numericTabId);
+  }
+  if(!targetTab){
+    console.warn("[Tabs] Unable to locate tab", tabId);
+    return;
+  }
+
+  currentTabId = targetTab.id;
+  await setSetting("last_chat_tab", targetTab.id);
+  currentTabType = targetTab.tab_type || 'chat';
+  setCodeNavActiveState(currentTabType === 'code');
+  const chatPanelEl = document.getElementById('chatPanel') || document.querySelector('.chat-panel');
+  if(currentTabType === 'code'){
+    if(sidebarViewCodeTasks && sidebarViewCodeTasks.style.display === 'none'){
+      showCodeTasksPanel();
+    }
+    if(chatPanelEl) chatPanelEl.style.display = 'none';
+  } else {
+    if(chatPanelEl) chatPanelEl.style.display = '';
+    loadChatHistory(targetTab.id, true);
+  }
+  tabModelOverride = targetTab && targetTab.model_override ? targetTab.model_override : '';
   {
     const globalModel = await getSetting("ai_model");
     modelName = tabModelOverride || globalModel || "unknown";
@@ -3079,6 +3968,7 @@ async function selectTab(tabId){
     chk.checked = tabGenerateImages;
     chk.disabled = currentTabType !== 'design';
   }
+  updateRepeatButtonVisibility();
   renderTabs();
   renderSidebarTabs();
   renderArchivedSidebarTabs();
@@ -3090,13 +3980,13 @@ async function selectTab(tabId){
     setTimeout(runImageLoop, 0);
   }
   updatePageTitle();
-  if(t && t.tab_uuid){
-    const newPath = `/chat/${t.tab_uuid}`;
-    if(window.location.pathname !== newPath && window.location.pathname !== '/new'){
+  {
+    const newPath = resolveTabPath(targetTab);
+    if(newPath && window.location.pathname !== newPath && window.location.pathname !== '/new'){
       window.history.replaceState({}, '', newPath);
     }
   }
-  const saved = await getSetting(mosaicKey(tabId));
+  const saved = await getSetting(mosaicKey(targetTab.id));
   if(typeof saved !== "undefined"){
     mosaicPanelVisible = !!saved;
   } else {
@@ -3110,50 +4000,247 @@ function renderTabs(){
   const tc = $("#tabsContainer");
   if(!tc) return;
   tc.innerHTML="";
+  const theme = document.body?.dataset?.theme;
+  const isLightTheme = theme === 'light';
   chatTabs.filter(t => showArchivedTabs || !t.archived).forEach(tab => {
     const tabBtn = document.createElement("div");
     tabBtn.dataset.tabId = tab.id;
     tabBtn.style.display="flex";
     tabBtn.style.alignItems="center";
+    tabBtn.style.gap = "4px";
     tabBtn.style.cursor="pointer";
 
-    if (tab.id === currentTabId) {
-      tabBtn.style.backgroundColor = "#555";
-      tabBtn.style.border = "2px solid #aaa";
-      tabBtn.style.color = "#fff";
+    if(isLightTheme){
+      if(tab.id === currentTabId){
+        tabBtn.style.backgroundColor = "var(--accent-light)";
+        tabBtn.style.border = "1px solid var(--accent)";
+        tabBtn.style.color = "var(--accent-strong)";
+      } else {
+        tabBtn.style.backgroundColor = "var(--surface)";
+        tabBtn.style.border = "1px solid var(--surface-border)";
+        tabBtn.style.color = "var(--text-color)";
+      }
     } else {
-      tabBtn.style.backgroundColor = "#333";
-      tabBtn.style.border = "1px solid #444";
-      tabBtn.style.color = "#ddd";
+      if (tab.id === currentTabId) {
+        tabBtn.style.backgroundColor = "#555";
+        tabBtn.style.border = "2px solid #aaa";
+        tabBtn.style.color = "#fff";
+      } else {
+        tabBtn.style.backgroundColor = "#333";
+        tabBtn.style.border = "1px solid #444";
+        tabBtn.style.color = "#ddd";
+      }
     }
 
     tabBtn.style.padding="4px 6px";
     const iconSpan = document.createElement("span");
     iconSpan.className = "tab-icon";
     iconSpan.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
+    const iconColor = isLightTheme
+      ? (tab.id === currentTabId ? "var(--accent-strong)" : "var(--text-color)")
+      : (tab.id === currentTabId ? "#fff" : "#ddd");
+    iconSpan.style.color = iconColor;
     tabBtn.appendChild(iconSpan);
     const nameSpan = document.createElement("span");
     const fullName = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
     nameSpan.textContent = truncateTabTitle(fullName);
     nameSpan.title = fullName;
     nameSpan.style.flexGrow = "1";
-    nameSpan.addEventListener("click", ()=>selectTab(tab.id));
+    nameSpan.style.color = isLightTheme
+      ? (tab.id === currentTabId ? "var(--accent-strong)" : "var(--text-color)")
+      : (tab.id === currentTabId ? "#fff" : "#ddd");
+    nameSpan?.addEventListener("click", ()=>selectTab(tab.id));
     tabBtn.appendChild(nameSpan);
 
     const optionsBtn = createTabOptionsButton(tab);
     optionsBtn.style.marginLeft = "4px";
+    optionsBtn.style.color = isLightTheme
+      ? (tab.id === currentTabId ? "var(--accent-strong)" : "var(--text-color)")
+      : (tab.id === currentTabId ? "#fff" : "#ddd");
     tabBtn.appendChild(optionsBtn);
 
 
-    tabBtn.addEventListener("contextmenu", e=>{
+    tabBtn?.addEventListener("contextmenu", e=>{
       e.preventDefault();
-      if(tab.tab_uuid){
-        window.open(`/chat/${tab.tab_uuid}`, "_blank");
-      }
+    const resolvedPath = resolveTabPath(tab);
+    if(resolvedPath){
+      window.open(resolvedPath, "_blank");
+    }
     });
     tc.appendChild(tabBtn);
   });
   updateArchiveChatButton();
+}
+
+function renderFavoritesGroup(container, favorites, indented = true){
+  if(!container) return;
+  const header = document.createElement('div');
+  header.className = 'tab-project-header favorites-header';
+  header.setAttribute('role', 'button');
+  header.setAttribute('tabindex', '0');
+
+  const titleRow = document.createElement('div');
+  titleRow.className = 'favorites-header-title-row';
+  const arrow = document.createElement('span');
+  arrow.className = 'project-collapse-arrow';
+  arrow.textContent = favoritesCollapsed ? '\u25B6' : '\u25BC';
+  // Archived toggle button above Favorites
+  const archivedRow = document.createElement('div');
+  archivedRow.className = 'favorites-header-archived-row';
+  const archivedToggle = document.createElement('button');
+  archivedToggle.className = 'favorites-archived-toggle';
+  archivedToggle.type = 'button';
+  archivedToggle.textContent = 'Archived';
+  archivedToggle.setAttribute('aria-pressed', showArchivedTabs ? 'true' : 'false');
+  archivedToggle.classList.toggle('active', showArchivedTabs);
+  archivedToggle.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    showArchivedTabs = !showArchivedTabs;
+    archivedToggle.setAttribute('aria-pressed', showArchivedTabs ? 'true' : 'false');
+    archivedToggle.classList.toggle('active', showArchivedTabs);
+    if(showArchivedTabs){
+      archivedCollapsed = false;
+      saveArchivedCollapsed();
+    }
+    try{ await setSetting('show_archived_tabs', showArchivedTabs); }catch(_e){}
+    renderSidebarTabs();
+  });
+  archivedRow.appendChild(archivedToggle);
+  header.appendChild(archivedRow);
+
+  titleRow.appendChild(arrow);
+  const label = document.createElement('span');
+  label.textContent = ' Favorites';
+  titleRow.appendChild(label);
+  header.appendChild(titleRow);
+  const toggleCollapsed = () => {
+    favoritesCollapsed = !favoritesCollapsed;
+    saveFavoritesCollapsed();
+    renderSidebarTabs();
+  };
+  header?.addEventListener('click', toggleCollapsed);
+  header?.addEventListener('keydown', ev => {
+    if(ev.key === 'Enter' || ev.key === ' '){
+      ev.preventDefault();
+      toggleCollapsed();
+    }
+  });
+  container.appendChild(header);
+
+  const groupDiv = document.createElement('div');
+  groupDiv.className = 'project-tab-group favorites-group';
+  groupDiv.dataset.project = '__favorites__';
+  if(favoritesCollapsed) groupDiv.style.display = 'none';
+
+  if(!favorites.length){
+    const empty = document.createElement('div');
+    empty.className = 'sidebar-subtext favorites-empty';
+    empty.textContent = 'No favorite chats yet.';
+    groupDiv.appendChild(empty);
+  } else {
+    const favoriteIds = new Set(favorites.map(t => t.id));
+    const childMap = new Map();
+    favorites.forEach(tab => {
+      if(tab.parent_id && favoriteIds.has(tab.parent_id)){
+        if(!childMap.has(tab.parent_id)) childMap.set(tab.parent_id, []);
+        childMap.get(tab.parent_id).push(tab);
+      }
+    });
+    favorites.forEach(tab => {
+      const parentIsFavorite = tab.parent_id && favoriteIds.has(tab.parent_id);
+      if(parentIsFavorite) return;
+      const children = childMap.get(tab.id) || [];
+      renderSidebarTabRow(groupDiv, tab, indented, children.length > 0);
+      if(!collapsedChildTabs[tab.id]){
+        children.forEach(child => renderSidebarTabRow(groupDiv, child, indented, false));
+      }
+    });
+  }
+
+  container.appendChild(groupDiv);
+}
+
+function renderArchivedGroup(container, archivedTabs){
+  if(!container || !showArchivedTabs) return;
+
+  const header = document.createElement('div');
+  header.className = 'tab-project-header archived-header';
+  header.setAttribute('role', 'button');
+  header.setAttribute('tabindex', '0');
+
+  const arrow = document.createElement('span');
+  arrow.className = 'project-collapse-arrow';
+  arrow.textContent = archivedCollapsed ? '\u25B6' : '\u25BC';
+  header.appendChild(arrow);
+
+  const label = document.createElement('span');
+  label.textContent = ' Archived';
+  header.appendChild(label);
+
+  const toggleCollapsed = () => {
+    archivedCollapsed = !archivedCollapsed;
+    saveArchivedCollapsed();
+    renderSidebarTabs();
+  };
+  header?.addEventListener('click', toggleCollapsed);
+  header?.addEventListener('keydown', ev => {
+    if(ev.key === 'Enter' || ev.key === ' '){
+      ev.preventDefault();
+      toggleCollapsed();
+    }
+  });
+
+  container.appendChild(header);
+
+  const groupDiv = document.createElement('div');
+  groupDiv.className = 'project-tab-group archived-group';
+  groupDiv.dataset.project = '__archived__';
+  if(archivedCollapsed) groupDiv.style.display = 'none';
+
+  if(!archivedTabs.length){
+    const empty = document.createElement('div');
+    empty.className = 'sidebar-subtext archived-empty';
+    empty.textContent = 'No archived chats.';
+    groupDiv.appendChild(empty);
+  } else {
+    const getSortValue = (tab) => {
+      const timestamps = [tab.updated_at, tab.last_message_at, tab.created_at];
+      for(const ts of timestamps){
+        if(!ts) continue;
+        const date = new Date(ts);
+        if(!Number.isNaN(date.getTime())) return date.getTime();
+      }
+      return 0;
+    };
+
+    const sorted = [...archivedTabs];
+    sorted.sort((a,b) => getSortValue(b) - getSortValue(a));
+    const archivedIds = new Set(sorted.map(t => t.id));
+    const childMap = new Map();
+    sorted.forEach(tab => {
+      if(tab.parent_id && archivedIds.has(tab.parent_id)){
+        if(!childMap.has(tab.parent_id)) childMap.set(tab.parent_id, []);
+        childMap.get(tab.parent_id).push(tab);
+      }
+    });
+    childMap.forEach(list => list.sort((a,b) => getSortValue(b) - getSortValue(a)));
+
+    const renderTabWithChildren = (tab) => {
+      const children = childMap.get(tab.id) || [];
+      renderSidebarTabRow(groupDiv, tab, true, children.length > 0);
+      if(children.length && !collapsedChildTabs[tab.id]){
+        children.forEach(child => renderTabWithChildren(child));
+      }
+    };
+
+    sorted.forEach(tab => {
+      const parentIsArchived = tab.parent_id && archivedIds.has(tab.parent_id);
+      if(parentIsArchived) return;
+      renderTabWithChildren(tab);
+    });
+  }
+
+  container.appendChild(groupDiv);
 }
 
 // New function to render vertical chat tabs in sidebar
@@ -3161,9 +4248,14 @@ function renderSidebarTabs(){
   closeTabOptionsMenu();
   const container = document.getElementById("verticalTabsContainer");
   container.innerHTML="";
-  const showArchive = showArchivedTabs && !hideArchivedTabs;
-  const tabs = chatTabs.filter(t => (showArchive || !t.archived) && (!tasksOnlyTabs || t.task_id));
+  const visibleTabs = chatTabs.filter(t => (!tasksOnlyTabs || t.task_id) && (t.show_in_sidebar !== 0));
+  const archivedTabs = showArchivedTabs ? visibleTabs.filter(t => t.archived) : [];
+  const filteredTabs = visibleTabs.filter(t => !t.archived);
+  const favoriteTabs = filteredTabs.filter(t => t.favorite && tabSupportsFavorites(t));
+  const tabs = filteredTabs.filter(t => !t.favorite || !tabSupportsFavorites(t));
   if(groupTabsByProject){
+    renderFavoritesGroup(container, favoriteTabs, true);
+    renderArchivedGroup(container, archivedTabs);
     const groups = new Map();
     // Include user-defined project groups first so they appear even if empty
     projectGroups.forEach(name => {
@@ -3175,13 +4267,14 @@ function renderSidebarTabs(){
       if(!groups.has(key)) groups.set(key, []);
       groups.get(key).push(t);
     });
+    if(!groups.has("")) groups.set("", []);
     // ensure order array contains current projects only
     projectHeaderOrder = projectHeaderOrder.filter(p => groups.has(p));
     for(const p of groups.keys()){
       if(!projectHeaderOrder.includes(p)) projectHeaderOrder.push(p);
     }
-    const renderGroup = (project, list) => {
-      if(list.length === 0) return;
+    const renderGroup = (project, list, { alwaysShow = false } = {}) => {
+      if(list.length === 0 && !alwaysShow) return;
       const isDefaultProject = !project;
       const collapsed = isDefaultProject ? false : collapsedProjectGroups[project];
       const header = document.createElement("div");
@@ -3191,7 +4284,7 @@ function renderSidebarTabs(){
         grab.className = "drag-handle";
         grab.textContent = "⠿";
         grab.draggable = true;
-        grab.addEventListener("dragstart", () => {
+        grab?.addEventListener("dragstart", () => {
           draggingProjectHeader = project;
         });
         header.appendChild(grab);
@@ -3210,33 +4303,33 @@ function renderSidebarTabs(){
         const gear = document.createElement("button");
         gear.innerHTML = "&#9881;";
         gear.className = "project-gear-btn config-btn";
-        gear.addEventListener("click", e => { e.stopPropagation(); openProjectSettingsModal(project); });
+        gear?.addEventListener("click", e => { e.stopPropagation(); openProjectSettingsModal(project); });
         header.appendChild(gear);
       }
       const addBtn = document.createElement("button");
       addBtn.textContent = "+";
       addBtn.className = "project-add-btn config-btn";
-      addBtn.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
+      addBtn?.addEventListener("click", e => { e.stopPropagation(); quickAddTabToProject(project); });
       header.appendChild(addBtn);
-      addBtn.addEventListener("mouseenter", e => showProjectAddTooltip(project, e));
-      addBtn.addEventListener("mouseleave", scheduleHideProjectAddTooltip);
+      addBtn?.addEventListener("mouseenter", e => showProjectAddTooltip(project, e));
+      addBtn?.addEventListener("mouseleave", scheduleHideProjectAddTooltip);
       if(!isDefaultProject){
-        header.addEventListener("click", e => {
+        header?.addEventListener("click", e => {
           e.stopPropagation();
           collapsedProjectGroups[project] = !collapsedProjectGroups[project];
           saveCollapsedProjectGroups();
           renderSidebarTabs();
         });
       }
-      header.addEventListener("dragover", e => {
+      header?.addEventListener("dragover", e => {
         if((!isDefaultProject && draggingProjectHeader && draggingProjectHeader !== project) ||
            (draggingTabRow && draggingTabRow.dataset.project !== project)){
           e.preventDefault();
           header.classList.add("drag-over");
         }
       });
-      header.addEventListener("dragleave", () => header.classList.remove("drag-over"));
-      header.addEventListener("drop", async e => {
+      header?.addEventListener("dragleave", () => header.classList.remove("drag-over"));
+      header?.addEventListener("drop", async e => {
         e.preventDefault();
         header.classList.remove("drag-over");
         if(!isDefaultProject && draggingProjectHeader && draggingProjectHeader !== project){
@@ -3253,7 +4346,7 @@ function renderSidebarTabs(){
           draggingTabRow = null;
         }
       });
-      header.addEventListener("dragend", () => {
+      header?.addEventListener("dragend", () => {
         draggingProjectHeader = null;
         header.classList.remove("drag-over");
       });
@@ -3286,6 +4379,12 @@ function renderSidebarTabs(){
           children.forEach(ch => renderSidebarTabRow(groupDiv, ch, true, false));
         }
       });
+      if(!list.length){
+        const empty = document.createElement("div");
+        empty.className = "sidebar-subtext empty-group-placeholder";
+        empty.textContent = project ? "No chats in this project yet." : "No chats yet.";
+        groupDiv.appendChild(empty);
+      }
       container.appendChild(groupDiv);
     };
 
@@ -3297,7 +4396,7 @@ function renderSidebarTabs(){
       return ia - ib;
     });
     otherEntries.forEach(([project, list]) => renderGroup(project, list));
-    if(noProjectTabs) renderGroup("", noProjectTabs);
+    renderGroup("", noProjectTabs || [], { alwaysShow: true });
     return;
   }
   const order = chatTabOrder[''] || [];
@@ -3310,6 +4409,8 @@ function renderSidebarTabs(){
     return ia - ib;
   });
   const childMap = new Map();
+  renderFavoritesGroup(container, favoriteTabs, false);
+  renderArchivedGroup(container, archivedTabs);
   tabs.forEach(t => {
     if(t.parent_id){
       if(!childMap.has(t.parent_id)) childMap.set(t.parent_id, []);
@@ -3352,7 +4453,7 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   grab.className = "drag-handle";
   grab.textContent = "⠿";
   grab.draggable = true;
-  grab.addEventListener("dragstart", tabDragStart);
+  grab?.addEventListener("dragstart", tabDragStart);
   wrapper.appendChild(grab);
 
   if(hasChildren){
@@ -3360,7 +4461,7 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
     arrow.className = "child-collapse-arrow";
     const collapsed = collapsedChildTabs[tab.id];
     arrow.textContent = collapsed ? "\u25B6" : "\u25BC";
-    arrow.addEventListener("click", e => {
+    arrow?.addEventListener("click", e => {
       e.stopPropagation();
       collapsedChildTabs[tab.id] = !collapsedChildTabs[tab.id];
       saveCollapsedChildTabs();
@@ -3378,10 +4479,13 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
 
   const b = document.createElement("button");
   b.dataset.tabId = tab.id;
-  const icon = document.createElement("span");
-  icon.className = "tab-icon";
-  icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
-  b.appendChild(icon);
+  const showTabIcon = tab.tab_type && tab.tab_type !== "chat" && tab.tab_type !== "search";
+  if(showTabIcon){
+    const icon = document.createElement("span");
+    icon.className = "tab-icon";
+    icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
+    b.appendChild(icon);
+  }
   const fullName = tab.name + (showProjectNameInTabs && tab.project_name ? ` (${tab.project_name})` : "");
   b.appendChild(document.createTextNode(truncateTabTitle(fullName)));
   b.title = fullName;
@@ -3389,16 +4493,17 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
     b.classList.add("active");
   }
   b.style.flexGrow = "1";
-  b.addEventListener("click", () => {
+  b?.addEventListener("click", () => {
     selectTab(tab.id);
     if(isMobileViewport() && sidebarVisible){
       toggleSidebar();
     }
   });
-  b.addEventListener("contextmenu", e => {
+  b?.addEventListener("contextmenu", e => {
     e.preventDefault();
-    if(tab.tab_uuid){
-      window.open(`/chat/${tab.tab_uuid}`, "_blank");
+    const resolvedPath = resolveTabPath(tab);
+    if(resolvedPath){
+      window.open(resolvedPath, "_blank");
     }
   });
 
@@ -3412,7 +4517,7 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   if (tab.task_id) {
     const prio = tab.priority ? ` ${tab.priority}` : "";
     taskIdSpan.textContent = `#${tab.task_id}${prio}`;
-    taskIdSpan.addEventListener("click", e => {
+    taskIdSpan?.addEventListener("click", e => {
       e.stopPropagation();
       const sel = document.createElement("select");
       ["Low","Medium","High"].forEach(v => {
@@ -3425,7 +4530,7 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
       taskIdSpan.textContent = "";
       taskIdSpan.appendChild(sel);
       sel.focus();
-      sel.addEventListener("change", async () => {
+      sel?.addEventListener("change", async () => {
         await fetch("/api/tasks/priority", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3434,7 +4539,7 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
         tab.priority = sel.value;
         taskIdSpan.textContent = `#${tab.task_id} ${sel.value}`;
       });
-      sel.addEventListener("blur", () => {
+      sel?.addEventListener("blur", () => {
         taskIdSpan.textContent = `#${tab.task_id}${tab.priority ? ` ${tab.priority}` : ""}`;
       });
     });
@@ -3443,10 +4548,10 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   wrapper.appendChild(info);
   wrapper.appendChild(optionsBtn);
   if (tab.task_id) wrapper.appendChild(taskIdSpan);
-  wrapper.addEventListener("dragover", tabDragOver);
-  wrapper.addEventListener("dragleave", tabDragLeave);
-  wrapper.addEventListener("drop", tabDrop);
-  wrapper.addEventListener("dragend", tabDragEnd);
+  wrapper?.addEventListener("dragover", tabDragOver);
+  wrapper?.addEventListener("dragleave", tabDragLeave);
+  wrapper?.addEventListener("drop", tabDrop);
+  wrapper?.addEventListener("dragend", tabDragEnd);
   container.appendChild(wrapper);
 }
 
@@ -3538,22 +4643,26 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   if(tab.parent_id) wrapper.classList.add("subtask-indented");
   wrapper.dataset.parentId = tab.parent_id || 0;
 
-  const icon = document.createElement("span");
-  icon.className = "tab-icon";
-  icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
-
   if(hasChildren){
     const arrow = document.createElement("span");
     arrow.className = "child-collapse-arrow";
     const collapsed = collapsedChildTabs[tab.id];
     arrow.textContent = collapsed ? "\u25B6" : "\u25BC";
-    arrow.addEventListener("click", e => {
+    arrow?.addEventListener("click", e => {
       e.stopPropagation();
       collapsedChildTabs[tab.id] = !collapsedChildTabs[tab.id];
       saveCollapsedChildTabs();
       renderArchivedSidebarTabs();
     });
     wrapper.appendChild(arrow);
+  }
+
+  const showTabIcon = tab.tab_type && tab.tab_type !== "chat" && tab.tab_type !== "search";
+  if(showTabIcon){
+    const icon = document.createElement("span");
+    icon.className = "tab-icon";
+    icon.textContent = tabTypeIcons[tab.tab_type] || tabTypeIcons.chat;
+    wrapper.appendChild(icon);
   }
 
   const info = document.createElement("div");
@@ -3572,7 +4681,7 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   unarchBtn.textContent = "Unarchive";
   unarchBtn.className = "archive-action-btn";
   unarchBtn.title = "Restore this chat";
-  unarchBtn.addEventListener("click", async e => {
+  unarchBtn?.addEventListener("click", async e => {
     e.stopPropagation();
     await toggleArchiveTab(tab.id, false);
     await loadTabs();
@@ -3583,7 +4692,7 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   deleteBtn.textContent = "Delete";
   deleteBtn.className = "archive-action-btn archive-delete-btn";
   deleteBtn.title = "Delete this chat permanently";
-  deleteBtn.addEventListener("click", async e => {
+  deleteBtn?.addEventListener("click", async e => {
     e.stopPropagation();
     await deleteTab(tab.id);
   });
@@ -3593,7 +4702,7 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   if (tab.task_id) {
     const prio = tab.priority ? ` ${tab.priority}` : "";
     taskIdSpan.textContent = `#${tab.task_id}${prio}`;
-    taskIdSpan.addEventListener("click", e => {
+    taskIdSpan?.addEventListener("click", e => {
       e.stopPropagation();
       const sel = document.createElement("select");
       ["Low","Medium","High"].forEach(v => {
@@ -3606,7 +4715,7 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
       taskIdSpan.textContent = "";
       taskIdSpan.appendChild(sel);
       sel.focus();
-      sel.addEventListener("change", async () => {
+      sel?.addEventListener("change", async () => {
         await fetch("/api/tasks/priority", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3615,13 +4724,12 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
         tab.priority = sel.value;
         taskIdSpan.textContent = `#${tab.task_id} ${sel.value}`;
       });
-      sel.addEventListener("blur", () => {
+      sel?.addEventListener("blur", () => {
         taskIdSpan.textContent = `#${tab.task_id}${tab.priority ? ` ${tab.priority}` : ""}`;
       });
     });
   }
 
-  wrapper.appendChild(icon);
   wrapper.appendChild(info);
   wrapper.appendChild(unarchBtn);
   wrapper.appendChild(deleteBtn);
@@ -3633,7 +4741,7 @@ document.getElementById("newSideTabBtn").addEventListener("click", createChatTab
 document.getElementById("newProjectGroupBtn")?.addEventListener("click", addProjectGroup);
 const tasksOnlyTabsCheck = document.getElementById("tasksOnlyTabsCheck");
 if(tasksOnlyTabsCheck){
-  tasksOnlyTabsCheck.addEventListener("change", () => {
+  tasksOnlyTabsCheck?.addEventListener("change", () => {
     tasksOnlyTabs = tasksOnlyTabsCheck.checked;
     saveTasksOnlyTabs();
     renderSidebarTabs();
@@ -3641,23 +4749,23 @@ if(tasksOnlyTabsCheck){
 }
 const hideArchivedTabsCheck = document.getElementById("hideArchivedTabsCheck");
 if(hideArchivedTabsCheck){
-  hideArchivedTabsCheck.addEventListener("change", () => {
+  hideArchivedTabsCheck?.addEventListener("change", () => {
     hideArchivedTabs = hideArchivedTabsCheck.checked;
     saveHideArchivedTabs();
     renderSidebarTabs();
   });
 }
 const newTabBtnEl = document.getElementById("newTabBtn");
-if (newTabBtnEl) newTabBtnEl.addEventListener("click", createChatTabWithoutModal);
+if (newTabBtnEl) newTabBtnEl?.addEventListener("click", createChatTabWithoutModal);
 $$('#newTabTypeButtons .start-type-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
+  btn?.addEventListener('click', async () => {
     newTabSelectedType = btn.dataset.type;
     await addNewTab();
   });
 });
 const addModelModalAddBtn = document.getElementById("addModelModalAddBtn");
 if(addModelModalAddBtn){
-  addModelModalAddBtn.addEventListener("click", async () => {
+  addModelModalAddBtn?.addEventListener("click", async () => {
     const sel = document.getElementById("favoriteModelSelect");
     const modelId = sel ? sel.value : "";
     if(modelId){
@@ -3668,7 +4776,7 @@ if(addModelModalAddBtn){
 }
 const addModelModalCancelBtn = document.getElementById("addModelModalCancelBtn");
 if(addModelModalCancelBtn){
-  addModelModalCancelBtn.addEventListener("click", () => {
+  addModelModalCancelBtn?.addEventListener("click", () => {
     hideModal(document.getElementById("addModelModal"));
   });
 }
@@ -3687,25 +4795,33 @@ document.getElementById("subroutineCancelBtn").addEventListener("click", () => {
 // Subscribe button opens subscription plans modal (if present)
 const subscribeBtn = document.getElementById("subscribeBtn");
 if (subscribeBtn) {
-  subscribeBtn.addEventListener("click", e => {
+  subscribeBtn?.addEventListener("click", e => {
     e.preventDefault();
     showModal(document.getElementById("subscribeModal"));
   });
 }
 const subscribeCloseBtn = document.getElementById("subscribeCloseBtn");
 if (subscribeCloseBtn) {
-  subscribeCloseBtn.addEventListener("click", () =>
+  subscribeCloseBtn?.addEventListener("click", () =>
     hideModal(document.getElementById("subscribeModal"))
   );
 }
 
+const usageLimitModalCloseBtn = document.getElementById("usageLimitModalCloseBtn");
+if(usageLimitModalCloseBtn){
+  usageLimitModalCloseBtn?.addEventListener("click", () => hideModal(document.getElementById("usageLimitModal")));
+}
+
 const signupBtn = document.getElementById("signupBtn");
 if (signupBtn) {
-  signupBtn.addEventListener("click", openSignupModal);
+  signupBtn?.addEventListener("click", openSignupModal);
 }
 const signupSubmitBtn = document.getElementById("signupSubmitBtn");
 if (signupSubmitBtn) {
-  signupSubmitBtn.addEventListener("click", async () => {
+  signupSubmitBtn?.addEventListener("click", async () => {
+    if(!ensureAccountsEnabled()){
+      return;
+    }
     const email = document.getElementById("signupEmail").value.trim();
     const password = document.getElementById("signupPassword").value;
     const confirm = document.getElementById("signupConfirm")?.value;
@@ -3727,7 +4843,7 @@ if (signupSubmitBtn) {
       if(resp.ok && data && data.success){
         showToast("Registered!");
         hideModal(document.getElementById("authModal"));
-        updateAccountButton({exists:true, id:data.id, email, totpEnabled: data.totpEnabled});
+        updateAccountButton({accountsEnabled: true, exists:true, id:data.id, email, totpEnabled: data.totpEnabled});
         fetch('/api/account')
           .then(r => r.ok ? r.json() : null)
           .then(info => { if(info) updateAccountButton(info); });
@@ -3743,34 +4859,37 @@ if (signupSubmitBtn) {
 
 const loginCancelBtn = document.getElementById("loginCancelBtn");
 if (loginCancelBtn) {
-  loginCancelBtn.addEventListener("click", () =>
+  loginCancelBtn?.addEventListener("click", () =>
     hideModal(document.getElementById("authModal"))
   );
 }
 
 const showSignupBtn = document.getElementById("showSignupBtn");
 if (showSignupBtn) {
-  showSignupBtn.addEventListener("click", showSignupForm);
+  showSignupBtn?.addEventListener("click", showSignupForm);
 }
 
 const showLoginBtn = document.getElementById("showLoginBtn");
 if (showLoginBtn) {
-  showLoginBtn.addEventListener("click", showLoginForm);
+  showLoginBtn?.addEventListener("click", showLoginForm);
 }
 
 const loginTabBtn = document.getElementById("loginTab");
 if (loginTabBtn) {
-  loginTabBtn.addEventListener("click", showLoginForm);
+  loginTabBtn?.addEventListener("click", showLoginForm);
 }
 
 const signupTabBtn = document.getElementById("signupTab");
 if (signupTabBtn) {
-  signupTabBtn.addEventListener("click", showSignupForm);
+  signupTabBtn?.addEventListener("click", showSignupForm);
 }
 
 const loginSubmitBtn = document.getElementById("loginSubmitBtn");
 if (loginSubmitBtn) {
-  loginSubmitBtn.addEventListener("click", async () => {
+  loginSubmitBtn?.addEventListener("click", async () => {
+    if(!ensureAccountsEnabled()){
+      return;
+    }
     const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
     const token = document.getElementById("loginTotp")?.value.trim();
@@ -3795,7 +4914,7 @@ if (loginSubmitBtn) {
         hideModal(document.getElementById("authModal"));
         const lbl = document.getElementById('totpLoginLabel');
         if(lbl) lbl.style.display = 'none';
-        updateAccountButton({exists:true, id:data.id, email, totpEnabled: data.totpEnabled});
+        updateAccountButton({accountsEnabled: true, exists:true, id:data.id, email, totpEnabled: data.totpEnabled});
         fetch('/api/account')
           .then(r => r.ok ? r.json() : null)
           .then(info => { if(info) updateAccountButton(info); });
@@ -3815,46 +4934,63 @@ if (loginSubmitBtn) {
 
 const accountCloseBtn = document.getElementById("accountCloseBtn");
 if(accountCloseBtn){
-  accountCloseBtn.addEventListener("click", () =>
+  accountCloseBtn?.addEventListener("click", () =>
     hideModal(document.getElementById("accountModal"))
   );
 }
 
 const accountLogoutBtn = document.getElementById("accountLogoutBtn");
 if(accountLogoutBtn){
-  accountLogoutBtn.addEventListener("click", logout);
+  accountLogoutBtn?.addEventListener("click", logout);
 }
 
 const settingsBtn = document.getElementById("settingsBtn");
 if(settingsBtn){
-  settingsBtn.addEventListener("click", openSettingsModal);
+  settingsBtn?.addEventListener("click", openSettingsModal);
 }
 
 const archiveChatBtn = document.getElementById("archiveChatBtn");
 if(archiveChatBtn){
-  archiveChatBtn.addEventListener("click", archiveCurrentChat);
+  archiveChatBtn?.addEventListener("click", archiveCurrentChat);
   updateArchiveChatButton();
 }
 
 
-const settingsCloseBtn = document.getElementById("settingsCloseBtn");
-if(settingsCloseBtn){
-  settingsCloseBtn.addEventListener("click", async () => {
-    const defaultModelSelectEl = document.getElementById("defaultModelSelect");
-    if (defaultModelSelectEl && !defaultModelSelectEl.disabled) {
-      const val = defaultModelSelectEl.value.trim();
-      await setSetting('ai_model', val);
-      settingsCache.ai_model = val;
-      modelName = val || modelName;
-      updateModelHud();
+const settingsSaveBtn = document.getElementById("settingsSaveBtn");
+if(settingsSaveBtn){
+  settingsSaveBtn?.addEventListener("click", async () => {
+    if(!ensureAccountsEnabled()){
+      return;
     }
-    hideModal(document.getElementById("settingsModal"));
+    const tzSelect = document.getElementById('accountTimezone');
+    const tz = (tzSelect?.value || '').trim();
+    try {
+      const resp = await fetch('/api/account/timezone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: tz })
+      });
+      const data = await resp.json().catch(() => null);
+      if(resp.ok && data && data.success){
+        if(accountInfo) accountInfo.timezone = tz;
+        showToast('Settings saved');
+        hideModal(document.getElementById('settingsModal'));
+      } else {
+        showToast(data?.error || 'Failed to save settings');
+      }
+    } catch (err) {
+      console.error('Failed to save settings', err);
+      showToast('Failed to save settings');
+    }
   });
 }
 
 const enableTotpBtn = document.getElementById('enableTotpBtn');
 if(enableTotpBtn){
-  enableTotpBtn.addEventListener('click', async () => {
+  enableTotpBtn?.addEventListener('click', async () => {
+    if(!ensureAccountsEnabled()){
+      return;
+    }
     const resp = await fetch('/api/totp/generate');
     const data = await resp.json().catch(() => null);
     if(resp.ok && data){
@@ -3869,7 +5005,10 @@ if(enableTotpBtn){
 
 const totpVerifyBtn = document.getElementById('totpVerifyBtn');
 if(totpVerifyBtn){
-  totpVerifyBtn.addEventListener('click', async () => {
+  totpVerifyBtn?.addEventListener('click', async () => {
+    if(!ensureAccountsEnabled()){
+      return;
+    }
     const secret = document.getElementById('totpSecret').textContent.trim();
     const token = document.getElementById('totpToken').value.trim();
     const resp = await fetch('/api/totp/enable', {
@@ -3889,48 +5028,12 @@ if(totpVerifyBtn){
   });
 }
 
-const timezoneSaveBtn = document.getElementById('timezoneSaveBtn');
-if(timezoneSaveBtn){
-  timezoneSaveBtn.addEventListener('click', async () => {
-    const tz = document.getElementById('accountTimezone').value.trim();
-    const resp = await fetch('/api/account/timezone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timezone: tz })
-    });
-    const data = await resp.json().catch(() => null);
-    if(resp.ok && data && data.success){
-      if(accountInfo) accountInfo.timezone = tz;
-      showToast('Timezone saved');
-    } else {
-      showToast(data?.error || 'Failed to save timezone');
-    }
-  });
-}
 
-const planSaveBtn = document.getElementById('planSaveBtn');
-if(planSaveBtn){
-  planSaveBtn.addEventListener('click', async () => {
-    const plan = document.getElementById('accountPlan').value;
-    const resp = await fetch('/api/account/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan })
-    });
-    const data = await resp.json().catch(() => null);
-    if(resp.ok && data && data.success){
-      if(accountInfo) accountInfo.plan = plan;
-      showToast('Plan saved');
-    } else {
-      showToast(data?.error || 'Failed to save plan');
-    }
-  });
-}
 
 const showChangePasswordBtn = document.getElementById('showChangePasswordBtn');
 const passwordForm = document.getElementById('passwordForm');
 if(showChangePasswordBtn && passwordForm){
-  showChangePasswordBtn.addEventListener('click', () => {
+  showChangePasswordBtn?.addEventListener('click', () => {
     passwordForm.style.display = 'block';
     showChangePasswordBtn.style.display = 'none';
   });
@@ -3938,7 +5041,10 @@ if(showChangePasswordBtn && passwordForm){
 
 const changePasswordBtn = document.getElementById('changePasswordBtn');
 if(changePasswordBtn){
-  changePasswordBtn.addEventListener('click', async () => {
+  changePasswordBtn?.addEventListener('click', async () => {
+    if(!ensureAccountsEnabled()){
+      return;
+    }
     const current = document.getElementById('currentPassword').value;
     const pw = document.getElementById('newPassword').value;
     const confirm = document.getElementById('confirmPassword').value;
@@ -3971,7 +5077,7 @@ if(changePasswordBtn){
 
 const accountAutoScrollCheck = document.getElementById('accountAutoScrollCheck');
 if(accountAutoScrollCheck){
-  accountAutoScrollCheck.addEventListener('change', async () => {
+  accountAutoScrollCheck?.addEventListener('change', async () => {
     chatAutoScroll = accountAutoScrollCheck.checked;
     if(chatAutoScroll){
       setTimeout(scrollChatToBottom, 0);
@@ -3982,7 +5088,7 @@ if(accountAutoScrollCheck){
 
 const mobileThinSidebarCheck = document.getElementById('mobileThinSidebarCheck');
 if(mobileThinSidebarCheck){
-  mobileThinSidebarCheck.addEventListener('change', async () => {
+  mobileThinSidebarCheck?.addEventListener('change', async () => {
     mobileSidebarToolbar = mobileThinSidebarCheck.checked;
     updateMobileThinSidebar();
     await setSetting('mobile_sidebar_toolbar', mobileSidebarToolbar);
@@ -3996,7 +5102,7 @@ document.getElementById("viewTabArchive")?.addEventListener("click", () => updat
 // New: Button to toggle top chat tabs bar
 const toggleTopChatTabsBtn = document.getElementById("toggleTopChatTabsBtn");
 if(toggleTopChatTabsBtn){
-  toggleTopChatTabsBtn.addEventListener("click", async () => {
+  toggleTopChatTabsBtn?.addEventListener("click", async () => {
     topChatTabsBarVisible = !topChatTabsBarVisible;
     const chk = document.getElementById("showTopChatTabsCheck");
     if(chk) chk.checked = topChatTabsBarVisible;
@@ -4126,6 +5232,8 @@ function parseProviderModel(model) {
     return { provider: "openrouter", shortModel: model.replace(/^openrouter\//,'') };
   } else if(model.startsWith("deepseek/")) {
     return { provider: "openrouter", shortModel: model.replace(/^deepseek\//,'') };
+  } else if(model.startsWith("anthropic/")) {
+    return { provider: "anthropic", shortModel: model.replace(/^anthropic\//,'') };
   } else if(model.startsWith("stable-diffusion/")) {
     return { provider: "stable-diffusion", shortModel: model.replace(/^stable-diffusion\//,'') };
   }
@@ -4255,12 +5363,52 @@ async function toggleModelFavorite(id, fav){
 
 const chatInputEl = document.getElementById("chatInput");
 const chatSendBtnEl = document.getElementById("chatSendBtn");
+const chatRepeatBtnEl = document.getElementById("chatRepeatBtn");
 const sendBtnDefaultHtml = chatSendBtnEl.innerHTML;
 const stopBtnHtml = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-square"><rect x="6" y="6" width="12" height="12"></rect></svg>';
 chatSendBtnEl.dataset.mode = 'send';
 const waitingElem = document.getElementById("waitingCounter");
 const scrollDownBtnEl = document.getElementById("scrollDownBtn");
 const tokenCounterEl = document.getElementById("inputTokenCount");
+
+const designLastMessagesByTab = new Map();
+
+function getDesignLastMessage(tabId){
+  if(!tabId) return "";
+  return designLastMessagesByTab.get(tabId) || "";
+}
+
+function setDesignLastMessage(tabId, message){
+  if(!tabId) return;
+  if(message){
+    designLastMessagesByTab.set(tabId, message);
+  } else {
+    designLastMessagesByTab.delete(tabId);
+  }
+}
+
+function updateRepeatButtonVisibility(){
+  if(!chatRepeatBtnEl) return;
+  const isDesign = currentTabType === 'design';
+  chatRepeatBtnEl.hidden = !isDesign;
+  chatRepeatBtnEl.style.display = isDesign ? '' : 'none';
+  const lastMessage = isDesign ? getDesignLastMessage(currentTabId) : "";
+  const canRepeat = isDesign && !!lastMessage && chatSendBtnEl.dataset.mode === 'send' && !chatSendBtnEl.disabled;
+  chatRepeatBtnEl.disabled = !canRepeat;
+}
+
+if(chatRepeatBtnEl){
+  chatRepeatBtnEl?.addEventListener("click", () => {
+    if(currentTabType !== 'design') return;
+    const lastMessage = getDesignLastMessage(currentTabId);
+    if(!lastMessage) return;
+    if(chatSendBtnEl.dataset.mode !== 'send') return;
+    if(chatSendBtnEl.disabled) return;
+    chatInputEl.value = lastMessage;
+    updateInputTokenCount();
+    chatSendBtnEl.click();
+  });
+}
 
 function updateInputTokenCount(){
   if(!tokenCounterEl) return;
@@ -4273,8 +5421,9 @@ function updateInputTokenCount(){
   }
 }
 
-chatInputEl.addEventListener("input", updateInputTokenCount);
+chatInputEl?.addEventListener("input", updateInputTokenCount);
 updateInputTokenCount();
+updateRepeatButtonVisibility();
 
 setLoopUi(imageLoopEnabled);
 
@@ -4283,14 +5432,14 @@ let inputHistory = [];
 let inputHistoryPos = -1;
 
 if (scrollDownBtnEl) {
-  scrollDownBtnEl.addEventListener("click", () => {
+  scrollDownBtnEl?.addEventListener("click", () => {
     const chatMessagesEl = document.getElementById("chatMessages");
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
     setTimeout(() => scrollChatToBottom(true), 0);
   });
 }
 
-chatInputEl.addEventListener("keydown", (e) => {
+chatInputEl?.addEventListener("keydown", (e) => {
   if (enterSubmitsMessage && e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     if(chatSendBtnEl.dataset.mode !== 'send'){
@@ -4311,12 +5460,13 @@ chatInputEl.addEventListener("keydown", (e) => {
   }
 });
 
-chatSendBtnEl.addEventListener("click", async () => {
+chatSendBtnEl?.addEventListener("click", async () => {
   if(chatSendBtnEl.dataset.mode === 'stop'){
     if(currentChatAbort){
       currentChatAbort.abort();
     }
     chatSendBtnEl.disabled = true;
+    updateRepeatButtonVisibility();
     return;
   }
   const chatMessagesEl = document.getElementById("chatMessages");
@@ -4329,7 +5479,11 @@ chatSendBtnEl.addEventListener("click", async () => {
   if(userMessage){
     inputHistory.push(userMessage);
     inputHistoryPos = -1;
+    if(currentTabType === 'design'){
+      setDesignLastMessage(currentTabId, userMessage);
+    }
   }
+  updateRepeatButtonVisibility();
 
   if (favElement) favElement.href = rotatingFavicon;
 
@@ -4397,6 +5551,7 @@ chatSendBtnEl.addEventListener("click", async () => {
     chatSendBtnEl.disabled = false;
     markTabProcessing(currentTabId, false);
     processNextQueueMessage();
+    updateRepeatButtonVisibility();
     return;
   }
 
@@ -4524,7 +5679,10 @@ chatSendBtnEl.addEventListener("click", async () => {
   chatSendBtnEl.dataset.mode = 'stop';
   chatSendBtnEl.classList.add('stop-btn');
   chatSendBtnEl.innerHTML = stopBtnHtml;
+  updateRepeatButtonVisibility();
 
+  let usageLimitType = null;
+  let usageLimitMessage = '';
   try {
     const resp = await fetch("/api/chat",{
       method:"POST",
@@ -4536,7 +5694,24 @@ chatSendBtnEl.addEventListener("click", async () => {
     waitingElem.textContent = "";
 
     if(!resp.ok){
-      throw new Error(`HTTP ${resp.status}`);
+      const rawErrorText = await resp.text().catch(() => "");
+      let parsedError = null;
+      if(rawErrorText){
+        try {
+          parsedError = JSON.parse(rawErrorText);
+        } catch(parseErr) {
+          parsedError = null;
+        }
+      }
+      const message = parsedError?.error || rawErrorText || `Request failed (${resp.status})`;
+      const type = parsedError?.type || (resp.status === 429 ? 'search' : null);
+      usageLimitMessage = message;
+      const isSearchModel = (typeof modelName === 'string' && (modelName === DEFAULT_SEARCH_MODEL || modelName.includes('search-preview')));
+      if (type === 'search' || (resp.status === 429 && isSearchModel)) {
+        usageLimitType = 'search';
+        showUsageLimitModal('search', message);
+      }
+      throw Object.assign(new Error(message), { usageLimitType, usageLimitMessage: message });
     }
     const reader = resp.body && typeof resp.body.getReader === 'function'
       ? resp.body.getReader()
@@ -4556,6 +5731,9 @@ chatSendBtnEl.addEventListener("click", async () => {
     if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
     clearInterval(ellipsisInterval);
     botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
+    // Refresh usage counters so search/session counts update immediately
+    // (ensures UI shows latest counts without requiring a full page reload)
+    try { updateUsageLimitInfo(); } catch (err) { console.warn('Failed to refresh usage counters', err); }
   } catch(e) {
     clearInterval(waitInterval);
     clearInterval(ellipsisInterval);
@@ -4570,6 +5748,8 @@ chatSendBtnEl.addEventListener("click", async () => {
           await fetch(`/api/chat/pair/${pid}/ai`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:'[User Halted]'}) });
         }
       } catch(err){ console.error('Update halted pair failed', err); }
+    } else if(e.usageLimitMessage || usageLimitMessage){
+      botTextSpan.textContent = e.usageLimitMessage || usageLimitMessage;
     } else {
       botTextSpan.textContent = "[Error contacting AI]";
     }
@@ -4611,6 +5791,7 @@ chatSendBtnEl.addEventListener("click", async () => {
   currentChatAbort = null;
   markTabProcessing(currentTabId, false);
   processNextQueueMessage();
+  updateRepeatButtonVisibility();
 });
 
 async function openChatSettings(){
@@ -4820,7 +6001,7 @@ async function openChatSettings(){
 
       const providerSel = $("#aiModelProviderSelect");
       if (providerSel) {
-        providerSel.addEventListener("change", () => {
+        providerSel?.addEventListener("change", () => {
           updateAiModelSelect();
         });
       }
@@ -4849,19 +6030,19 @@ const betaContinue = document.getElementById("chatSettingsBetaContinueBtn");
 const betaCancel = document.getElementById("chatSettingsBetaCancelBtn");
 
 if(betaCheck && betaContinue){
-  betaCheck.addEventListener("change", e => {
+  betaCheck?.addEventListener("change", e => {
     betaContinue.disabled = !e.target.checked;
   });
 }
 
 if(betaCancel){
-  betaCancel.addEventListener("click", () => {
+  betaCancel?.addEventListener("click", () => {
     hideModal($("#chatSettingsBetaModal"));
   });
 }
 
 if(betaContinue){
-  betaContinue.addEventListener("click", async () => {
+  betaContinue?.addEventListener("click", async () => {
     if(!betaCheck.checked) return;
     localStorage.setItem("chatSettingsBetaAck", "true");
     hideModal($("#chatSettingsBetaModal"));
@@ -5230,7 +6411,51 @@ function updateModelHud(){
 }
 
 function updateSearchButton(){
-  // search toggle button removed
+  const btn = document.getElementById("searchToggleBtn");
+  if(!btn) return;
+  btn.classList.toggle("active", searchEnabled);
+  btn.setAttribute("aria-pressed", searchEnabled ? "true" : "false");
+  btn.title = searchEnabled ? "Disable search mode" : "Enable search mode";
+  btn.setAttribute("aria-label", searchEnabled ? "Disable search mode" : "Enable search mode");
+}
+
+async function updateCurrentTabType(newType){
+  if(!currentTabId) return;
+  const tab = chatTabs.find(t => t.id === currentTabId);
+  if(!tab) return;
+  const normalizedType = (newType || 'chat').trim() || 'chat';
+  const changed = (tab.tab_type || 'chat') !== normalizedType;
+  if(changed){
+    try {
+      await fetch('/api/chat/tabs/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tabId: currentTabId,
+          project: tab.project_name || '',
+          repo: tab.repo_ssh_url || '',
+          extraProjects: tab.extra_projects || '',
+          taskId: tab.task_id || 0,
+          type: normalizedType,
+          sendProjectContext: tab.send_project_context ? 1 : 0,
+          chatgptUrl: tab.chatgpt_url || '',
+          sessionId
+        })
+      });
+    } catch (err) {
+      console.error('Failed to update tab type', err);
+      return;
+    }
+  }
+  tab.tab_type = normalizedType;
+  tab.generate_images = normalizedType === 'design' ? 1 : 0;
+  currentTabType = normalizedType;
+  tabGenerateImages = normalizedType === 'design';
+  if(changed){
+    renderTabs();
+    renderSidebarTabs();
+    renderArchivedSidebarTabs();
+  }
 }
 
 function updateReasoningButton(){
@@ -5285,7 +6510,7 @@ async function initReasoningTooltip(){
   const gear = document.createElement('button');
   gear.className = 'tooltip-gear';
   gear.innerHTML = '⚙️';
-  gear.addEventListener('click', ev => {
+  gear?.addEventListener('click', ev => {
     ev.stopPropagation();
     reasoningFavoritesEdit = !reasoningFavoritesEdit;
     searchFavoritesEdit = reasoningFavoritesEdit;
@@ -5297,12 +6522,12 @@ async function initReasoningTooltip(){
 
   const favBtn = document.createElement('button');
   favBtn.textContent = 'More';
-  favBtn.addEventListener('click', ev => {
+  favBtn?.addEventListener('click', ev => {
     ev.stopPropagation();
     showFavoritesTooltip();
   });
-  favBtn.addEventListener('mouseenter', () => clearTimeout(favoritesTooltipTimer));
-  favBtn.addEventListener('mouseleave', scheduleHideFavoritesTooltip);
+  favBtn?.addEventListener('mouseenter', () => clearTimeout(favoritesTooltipTimer));
+  favBtn?.addEventListener('mouseleave', scheduleHideFavoritesTooltip);
   reasoningTooltip.appendChild(favBtn);
 
 
@@ -5339,7 +6564,7 @@ async function initReasoningTooltip(){
     disableBtn.textContent = 'Disabled';
     disableBtn.classList.add('active');
   }
-  disableBtn.addEventListener('click', async ev => {
+  disableBtn?.addEventListener('click', async ev => {
     ev.stopPropagation();
     await toggleAiResponses();
   });
@@ -5351,8 +6576,8 @@ async function initReasoningTooltip(){
   highlightReasoningModel(modelName);
   highlightSearchModel(settingsCache.ai_search_model);
   updateAiResponsesButton();
-  reasoningTooltip.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
-  reasoningTooltip.addEventListener('mouseleave', scheduleHideReasoningTooltip);
+  reasoningTooltip?.addEventListener('mouseenter', () => clearTimeout(reasoningTooltipTimer));
+  reasoningTooltip?.addEventListener('mouseleave', scheduleHideReasoningTooltip);
   document.body.appendChild(reasoningTooltip);
 }
 
@@ -5383,11 +6608,11 @@ function initFavoritesTooltip(){
   if(favoritesTooltip) return;
   favoritesTooltip = document.createElement('div');
   favoritesTooltip.className = 'favorites-tooltip';
-  favoritesTooltip.addEventListener('mouseenter', () => {
+  favoritesTooltip?.addEventListener('mouseenter', () => {
     clearTimeout(favoritesTooltipTimer);
     clearTimeout(reasoningTooltipTimer);
   });
-  favoritesTooltip.addEventListener('mouseleave', scheduleHideFavoritesTooltip);
+  favoritesTooltip?.addEventListener('mouseleave', scheduleHideFavoritesTooltip);
   document.body.appendChild(favoritesTooltip);
 }
 
@@ -5409,7 +6634,7 @@ async function renderFavoritesTooltip(){
     const btn = document.createElement('button');
     btn.dataset.model = m.id;
     btn.textContent = m.id;
-    btn.addEventListener('click', async ev => {
+    btn?.addEventListener('click', async ev => {
       ev.stopPropagation();
       if(!aiResponsesEnabled){
         await toggleAiResponses();
@@ -5461,7 +6686,7 @@ async function renderReasoningModels(){
   reasoningReasonContainer.innerHTML = '';
   const cfg = window.REASONING_TOOLTIP_CONFIG || {};
   const chatModels = cfg.chatModels || [
-    { name: 'openrouter/deepseek/deepseek-chat-v3-0324' },
+    { name: 'openrouter/openai/gpt-5-mini' },
     { name: 'openai/gpt-4o-mini' },
     { name: 'openai/gpt-4.1-mini' },
     { name: 'openai/gpt-4o', label: 'pro' },
@@ -5476,12 +6701,10 @@ async function renderReasoningModels(){
     { name: 'openai/o4-mini', label: 'pro' },
     { name: 'openai/o4-mini-high', label: 'pro' },
     { name: 'openai/codex-mini', label: 'pro' },
-    { name: 'openrouter/perplexity/r1-1776', label: 'pro', note: 'openrouter - offline conversational (no search)' },
     { name: 'openai/o3', label: 'ultimate' },
     { name: 'anthropic/claude-3.7-sonnet:thinking', label: 'ultimate' },
     { name: 'anthropic/claude-opus-4', label: 'ultimate' },
-    { name: 'r1-1776', note: 'offline conversational (no search)' },
-    { name: 'perplexity/r1-1776', note: 'offline conversational (no search)' }
+    { name: 'anthropic/claude-3.7-sonnet', label: 'pro' }
   ];
 
   function addModel(container, name, label){
@@ -5495,7 +6718,7 @@ async function renderReasoningModels(){
       star.dataset.modelid = name;
       star.className = fav ? 'favorite-star starred' : 'favorite-star unstarred';
       star.textContent = fav ? '★' : '☆';
-      star.addEventListener('click', async ev => {
+      star?.addEventListener('click', async ev => {
         ev.stopPropagation();
         const newFav = !fav;
         if(await toggleModelFavorite(name, newFav)){
@@ -5507,21 +6730,15 @@ async function renderReasoningModels(){
     const b = document.createElement('button');
     b.dataset.model = name;
     const { provider, shortModel } = parseProviderModel(name);
-    let displayProvider = provider;
-    let displayShort = shortModel;
-    if(name.startsWith('openrouter/perplexity/')){
-      displayProvider = 'openrouter/perplexity';
-      displayShort = name.replace(/^openrouter\/perplexity\//, '');
-    }
-    const { label: providerLabel, separator } = formatProviderDisplay(displayProvider);
+    const { label: providerLabel, separator } = formatProviderDisplay(provider);
     const providerSuffixHtml = separator === ' ' ? '&nbsp;' : separator;
     const providerSuffixText = separator;
     const providerHtml = providerLabel
       ? `<span class="model-provider">${providerLabel}${providerSuffixHtml}</span>`
       : '';
     const providerText = providerLabel ? `${providerLabel}${providerSuffixText}` : '';
-    const display = providerHtml ? `${providerHtml}${displayShort}` : displayShort;
-    const plainDisplay = `${providerText}${displayShort}`;
+    const display = providerHtml ? `${providerHtml}${shortModel}` : shortModel;
+    const plainDisplay = `${providerText}${shortModel}`;
     if(label){
       b.innerHTML = `<span class="model-label ${label}">${label}</span> ${display}`;
     } else {
@@ -5530,7 +6747,7 @@ async function renderReasoningModels(){
     b.classList.toggle('active',
         (container===reasoningChatContainer ? modelName===name && !reasoningEnabled
                                             : settingsCache.ai_reasoning_model===name));
-    b.addEventListener('click', async ev => {
+    b?.addEventListener('click', async ev => {
       ev.stopPropagation();
       if(!aiResponsesEnabled){
         await toggleAiResponses();
@@ -5585,16 +6802,6 @@ async function renderSearchModels(){
   await ensureAiModels();
   searchModelsContainer.innerHTML = '';
   const models = [
-    { name: 'sonar', note: 'lightweight, web-grounded' },
-    { name: 'openrouter/perplexity/sonar', note: 'openrouter - lightweight, web-grounded' },
-    { name: 'sonar-pro', note: 'advanced search model' },
-    { name: 'openrouter/perplexity/sonar-pro', label: 'pro', note: 'openrouter - advanced search model' },
-    { name: 'sonar-reasoning', note: 'fast, real-time reasoning (search)' },
-    { name: 'openrouter/perplexity/sonar-reasoning', label: 'pro', note: 'openrouter - fast, real-time reasoning (search)' },
-    { name: 'sonar-reasoning-pro', note: 'higher-accuracy CoT reasoning' },
-    { name: 'openrouter/perplexity/sonar-reasoning-pro', label: 'pro', note: 'openrouter - higher-accuracy CoT reasoning' },
-    { name: 'sonar-deep-research', note: 'exhaustive long-form research' },
-    { name: 'openrouter/perplexity/sonar-deep-research', label: 'pro', note: 'openrouter - exhaustive long-form research' },
     { name: 'openai/gpt-4o-mini-search-preview' },
     { name: 'openai/gpt-4o-search-preview', label: 'pro' }
   ];
@@ -5611,7 +6818,7 @@ async function renderSearchModels(){
       star.dataset.modelid = name;
       star.className = fav ? 'favorite-star starred' : 'favorite-star unstarred';
       star.textContent = fav ? '★' : '☆';
-      star.addEventListener('click', async ev => {
+      star?.addEventListener('click', async ev => {
         ev.stopPropagation();
         const newFav = !fav;
         if(await toggleModelFavorite(name, newFav)){
@@ -5622,22 +6829,15 @@ async function renderSearchModels(){
     }
     const b = document.createElement('button');
     b.dataset.model = name;
-    let { provider, shortModel } = parseProviderModel(name);
-    let displayProvider = provider;
-    let displayShort = shortModel;
-    if(name.startsWith('openrouter/perplexity/')){
-      displayProvider = 'openrouter/perplexity';
-      displayShort = name.replace(/^openrouter\/perplexity\//, '');
-    }
-
-    const { label: providerLabel, separator } = formatProviderDisplay(displayProvider);
+    const { provider, shortModel } = parseProviderModel(name);
+    const { label: providerLabel, separator } = formatProviderDisplay(provider);
     const providerSuffixHtml = separator === ' ' ? '&nbsp;' : separator;
     const providerSuffixText = separator;
     const providerPart = providerLabel
       ? `<span class="model-row-provider">${providerLabel}${providerSuffixHtml}</span>`
       : '';
     const providerText = providerLabel ? `${providerLabel}${providerSuffixText}` : '';
-    const namePart = `<span class="model-row-name">${displayShort}</span>`;
+    const namePart = `<span class="model-row-name">${shortModel}</span>`;
     const labelPart = label ? `<span class="model-label ${label}">${label}</span>` : '';
     let header = `<div class="model-row-header">${labelPart}${providerPart}${namePart}</div>`;
 
@@ -5647,8 +6847,8 @@ async function renderSearchModels(){
     }
     b.innerHTML = html;
     b.classList.toggle('active', settingsCache.ai_search_model === name);
-    const plainDisplay = `${providerText}${displayShort}`;
-    b.addEventListener('click', async ev => {
+    const plainDisplay = `${providerText}${shortModel}`;
+    b?.addEventListener('click', async ev => {
       ev.stopPropagation();
       await setSetting('ai_search_model', name);
       settingsCache.ai_search_model = name;
@@ -5680,15 +6880,22 @@ async function renderSearchModels(){
 }
 
 async function toggleSearch(){
+  const tab = chatTabs.find(t => t.id === currentTabId);
+  const tabTypeBeforeToggle = tab ? tab.tab_type || 'chat' : 'chat';
   if(!searchEnabled && (reasoningEnabled || codexMiniEnabled)){
     if(reasoningEnabled) await toggleReasoning();
     if(codexMiniEnabled) await toggleCodexMini();
   }
+  const wasEnabled = searchEnabled;
   searchEnabled = !searchEnabled;
   await setSetting("search_enabled", searchEnabled);
   if(searchEnabled){
     previousModelName = modelName; // remember current model
-    const searchModel = await getSetting("ai_search_model") || "sonar-pro";
+    if(!wasEnabled){
+      previousTabType = tabTypeBeforeToggle;
+    }
+    await updateCurrentTabType('search');
+    const searchModel = await getSetting("ai_search_model") || DEFAULT_SEARCH_MODEL;
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5697,7 +6904,7 @@ async function toggleSearch(){
     tabModelOverride = searchModel;
     modelName = searchModel;
   } else {
-    const restoreModel = previousModelName || await getSetting("ai_model") || "openrouter/deepseek/deepseek-chat-v3-0324";
+    const restoreModel = previousModelName || await getSetting("ai_model") || "openrouter/openai/gpt-5-mini";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5706,6 +6913,12 @@ async function toggleSearch(){
     tabModelOverride = restoreModel;
     modelName = restoreModel;
     previousModelName = null;
+    let restoreType = previousTabType || tabTypeBeforeToggle || 'chat';
+    if(restoreType === 'search') {
+      restoreType = 'chat';
+    }
+    await updateCurrentTabType(restoreType);
+    previousTabType = null;
   }
   updateModelHud();
   updateSearchButton();
@@ -5723,7 +6936,7 @@ async function toggleReasoning(){
   await setSetting("reasoning_enabled", reasoningEnabled);
   if(reasoningEnabled){
     reasoningPreviousModelName = modelName; // remember current model
-    const reasoningModel = await getSetting("ai_reasoning_model") || "sonar-reasoning";
+    const reasoningModel = await getSetting("ai_reasoning_model") || "openai/o4-mini";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5732,7 +6945,7 @@ async function toggleReasoning(){
     tabModelOverride = reasoningModel;
     modelName = reasoningModel;
   } else {
-    const restoreModel = reasoningPreviousModelName || await getSetting("ai_model") || "openrouter/deepseek/deepseek-chat-v3-0324";
+    const restoreModel = reasoningPreviousModelName || await getSetting("ai_model") || "openrouter/openai/gpt-5-mini";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5767,7 +6980,7 @@ async function toggleCodexMini(){
     tabModelOverride = codexModel;
     modelName = codexModel;
   } else {
-    const restoreModel = codexPreviousModelName || await getSetting("ai_model") || "openrouter/deepseek/deepseek-chat-v3-0324";
+    const restoreModel = codexPreviousModelName || await getSetting("ai_model") || "openrouter/openai/gpt-5-mini";
     await fetch("/api/chat/tabs/model", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -5800,11 +7013,16 @@ async function toggleAiResponses(){
 }
 
 async function enableSearchMode(query=""){
+  const tab = chatTabs.find(t => t.id === currentTabId);
+  const tabTypeBeforeToggle = tab ? tab.tab_type || 'chat' : 'chat';
   if(!searchEnabled){
     searchEnabled = true;
     previousModelName = modelName;
+    previousTabType = tabTypeBeforeToggle;
+    await setSetting('search_enabled', searchEnabled);
   }
-  const searchModel = await getSetting("ai_search_model") || "sonar-pro";
+  await updateCurrentTabType('search');
+  const searchModel = await getSetting("ai_search_model") || DEFAULT_SEARCH_MODEL;
   await fetch("/api/chat/tabs/model", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
@@ -5830,7 +7048,7 @@ async function enableSearchMode(query=""){
   let startWidth = 0;
   let finalWidth = 0;
 
-  divider.addEventListener("mousedown", e => {
+  divider?.addEventListener("mousedown", e => {
     e.preventDefault();
     isDragging = true;
     startX = e.clientX;
@@ -5897,6 +7115,17 @@ function renderFileList(){
     thumbImg.src = `/uploads/${encodeURIComponent(f.name)}`;
     thumbImg.alt = f.title || f.name;
     thumbImg.className = "table-thumb";
+    const imageModalTitle = getImageModalTitle(f);
+    thumbImg.setAttribute("role", "button");
+    thumbImg.setAttribute("tabindex", "0");
+    thumbImg.setAttribute("aria-label", `Preview ${imageModalTitle}`);
+    thumbImg?.addEventListener("click", () => openImagePreviewModal(f));
+    thumbImg?.addEventListener("keydown", evt => {
+      if(evt.key === "Enter" || evt.key === " "){
+        evt.preventDefault();
+        openImagePreviewModal(f);
+      }
+    });
     tdThumb.appendChild(thumbImg);
     const tdName = document.createElement("td");
     tdName.className = "name-col";
@@ -5905,82 +7134,34 @@ function renderFileList(){
     link.target = "_blank";
     link.textContent = f.name;
     tdName.appendChild(link);
-    const tdTitle = document.createElement("td");
-    tdTitle.textContent = f.title || "";
-    const tdSource = document.createElement("td");
-    tdSource.textContent = f.source || "";
     const tdStatus = document.createElement("td");
     tdStatus.textContent = f.status || "";
     tdStatus.className = "img-status-cell";
-    const tdProductUrl = document.createElement("td");
-    if(f.productUrl){
-      const link = document.createElement("a");
-      link.href = f.productUrl;
-      link.textContent = f.productUrl;
-      link.target = "_blank";
-      tdProductUrl.appendChild(link);
-    } else {
-      tdProductUrl.textContent = "";
-    }
-    const tdEbayUrl = document.createElement("td");
-    if(f.ebayUrl){
-      const link = document.createElement("a");
-      link.href = f.ebayUrl;
-      link.textContent = f.ebayUrl;
-      link.target = "_blank";
-      tdEbayUrl.appendChild(link);
-    } else {
-      tdEbayUrl.textContent = "";
-    }
-   const tdPortfolio = document.createElement("td");
-   const portCheck = document.createElement("input");
-   portCheck.type = "checkbox";
-   portCheck.checked = !!f.portfolio;
-   portCheck.addEventListener("change", async () => {
-     await fetch('/api/upload/portfolio', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({ name: f.name, portfolio: portCheck.checked })
-     });
-   });
-   tdPortfolio.appendChild(portCheck);
-    const tdHidden = document.createElement("td");
-    const hidCheck = document.createElement("input");
-    hidCheck.type = "checkbox";
-    hidCheck.checked = !!f.hidden;
-    hidCheck.addEventListener("change", async () => {
-      await fetch('/api/upload/hidden', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: f.name, hidden: hidCheck.checked })
-      });
-    });
-    tdHidden.appendChild(hidCheck);
-    const tdSize = document.createElement("td");
-    tdSize.textContent = Math.round(f.size / 1024) + " KB";
-    const tdMtime = document.createElement("td");
-    tdMtime.textContent = new Date(f.mtime).toLocaleString();
     const tdAction = document.createElement("td");
+    tdAction.className = "table-action-cell";
     const openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "table-open-btn";
     openBtn.textContent = "Open";
-      openBtn.addEventListener("click", () => {
-        window.open(`/Image.html?file=${encodeURIComponent(f.name)}`,
-                    "_blank");
-      });
+    openBtn?.addEventListener("click", () => {
+      if(isPrintifyQueueEnabled()){
+        window.open(
+          `/Image.html?file=${encodeURIComponent(f.name)}`,
+          "_blank"
+        );
+      } else {
+        openImagePreviewModal(f);
+      }
+    });
     tdAction.appendChild(openBtn);
 
-    const cropBtn = document.createElement("button");
-    cropBtn.textContent = "Crop";
-    cropBtn.addEventListener("click", () => {
-      window.open(`/crop.html?file=${encodeURIComponent(f.name)}`, "_blank");
-    });
-    tdAction.appendChild(cropBtn);
-
     const dlBtn = document.createElement("button");
-    dlBtn.className = "download-chat-btn table-download-btn";
-    dlBtn.textContent = "⤓";
+    dlBtn.type = "button";
+    dlBtn.className = "download-chat-btn table-download-btn table-action-btn";
+    dlBtn.innerHTML = "⤓ Download";
     dlBtn.title = "Download this image";
-    dlBtn.addEventListener("click", () => {
+    dlBtn.setAttribute("aria-label", "Download this image");
+    dlBtn?.addEventListener("click", () => {
       const a = document.createElement("a");
       a.href = `/uploads/${encodeURIComponent(f.name)}`;
       a.download = f.name;
@@ -5989,61 +7170,74 @@ function renderFileList(){
       document.body.removeChild(a);
     });
     tdAction.appendChild(dlBtn);
-    const urlBtn = document.createElement("button");
-    urlBtn.textContent = "Set URL";
-    urlBtn.addEventListener("click", async () => {
-      const current = f.productUrl || "";
-      const url = prompt("Enter Printify Product URL:", current);
-      if(!url) return;
-      try{
-        await fetch('/api/upload/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: f.name, productUrl: url })
-        });
-        await loadFileList();
-      }catch(err){
-        console.error('Failed to set Printify URL =>', err);
-        alert('Failed to set Printify URL');
-      }
-    });
-    tdAction.appendChild(urlBtn);
-    const ebayBtn = document.createElement("button");
-    ebayBtn.textContent = "Set eBay";
-    ebayBtn.addEventListener("click", async () => {
-      const current = f.ebayUrl || "";
-      const url = prompt("Enter eBay Listing URL:", current);
-      if(!url) return;
-      try{
-        await fetch('/api/upload/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: f.name, ebayUrl: url })
-        });
-        await loadFileList();
-      }catch(err){
-        console.error('Failed to set eBay URL =>', err);
-        alert('Failed to set eBay URL');
-      }
-    });
-    tdAction.appendChild(ebayBtn);
     tr.appendChild(tdIndex);
     tr.appendChild(tdId);
     tr.appendChild(tdThumb);
     tr.appendChild(tdName);
-    tr.appendChild(tdTitle);
-    tr.appendChild(tdSource);
     tr.appendChild(tdStatus);
-    tr.appendChild(tdProductUrl);
-    tr.appendChild(tdEbayUrl);
-    tr.appendChild(tdPortfolio);
-    tr.appendChild(tdHidden);
-    tr.appendChild(tdSize);
-    tr.appendChild(tdMtime);
     tr.appendChild(tdAction);
     tbody.appendChild(tr);
   });
   updateHeaderArrows();
+}
+
+function getImageModalTitle(file){
+  if(!file) return "Image Preview";
+  if(file.id !== null && file.id !== undefined){
+    return `img-${file.id}`;
+  }
+  if(file.title && String(file.title).trim()){
+    return String(file.title).trim();
+  }
+  if(file.name && String(file.name).trim()){
+    return String(file.name).trim();
+  }
+  return "Image Preview";
+}
+
+function openImagePreviewModal(file){
+  const modal = $("#imagePreviewModal");
+  if(!modal) return;
+  const titleEl = $("#imagePreviewModalTitle", modal);
+  const imgEl = $("#imagePreviewModalImg", modal);
+  const modalTitle = getImageModalTitle(file);
+  if(titleEl){
+    titleEl.textContent = modalTitle;
+  }
+  if(imgEl){
+    if(file && file.name){
+      imgEl.src = `/uploads/${encodeURIComponent(file.name)}`;
+    } else {
+      imgEl.removeAttribute("src");
+    }
+    imgEl.alt = (file && (file.title || file.name)) || modalTitle;
+  }
+  showModal(modal);
+}
+
+function closeImagePreviewModal(){
+  const modal = $("#imagePreviewModal");
+  if(!modal) return;
+  const imgEl = $("#imagePreviewModalImg", modal);
+  if(imgEl){
+    imgEl.removeAttribute("src");
+    imgEl.alt = "";
+  }
+  hideModal(modal);
+}
+
+const imagePreviewModalCloseBtn = $("#imagePreviewModalClose");
+if(imagePreviewModalCloseBtn){
+  imagePreviewModalCloseBtn?.addEventListener("click", closeImagePreviewModal);
+}
+
+const imagePreviewModalEl = $("#imagePreviewModal");
+if(imagePreviewModalEl){
+  imagePreviewModalEl?.addEventListener("click", event => {
+    if(event.target === imagePreviewModalEl){
+      closeImagePreviewModal();
+    }
+  });
 }
 
 function updateHeaderArrows(){
@@ -6063,7 +7257,7 @@ function setupFileSorting(){
     const col = th.dataset.col;
     if(!col) return;
     th.style.cursor = "pointer";
-    th.addEventListener("click", () => {
+    th?.addEventListener("click", () => {
       if(fileSortColumn === col){
         fileSortAsc = !fileSortAsc;
       } else {
@@ -6100,7 +7294,7 @@ async function loadNextFilePage(){
     if(data.length < fileListLimit) fileListEnd = true;
     sortFileData();
     renderFileList();
-    updateImageLimitInfo(fileListData);
+    updateUsageLimitInfo();
   } catch(e) {
     console.error("Error fetching file list:", e);
   }
@@ -6142,44 +7336,14 @@ $("#secureUploadForm").addEventListener("submit", async e => {
     alert("Upload error. Check console.");
   }
 });
-
-document.addEventListener("click", async ev => {
+// Disable editing image status by clicking the status cell.
+// Previously clicking `.img-status-cell` replaced the cell with a <select>
+// allowing inline status changes. That behaviour is removed so statuses are
+// read-only from the images table. Keep the listener but no-op when the
+// target is an img-status-cell to avoid interfering with other click handlers.
+document.addEventListener("click", ev => {
   if(!ev.target.classList.contains("img-status-cell")) return;
-  const cell = ev.target;
-  const row = cell.closest("tr");
-  const fileName = row.dataset.fileName;
-  const current = cell.textContent.trim();
-  const sel = document.createElement("select");
-  [
-    "Generated",
-    "Upscaled",
-    "Background Removed",
-    "Border Added",
-    "Printify Step",
-    "Printify API Updates",
-    "Ebay Shipping Updated",
-    "Done"
-  ].forEach(v => {
-    const o = document.createElement("option");
-    o.value = v;
-    o.textContent = v;
-    if(v === current) o.selected = true;
-    sel.appendChild(o);
-  });
-  cell.textContent = "";
-  cell.appendChild(sel);
-  sel.focus();
-  sel.addEventListener("change", async () => {
-    await fetch("/api/upload/status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: fileName, status: sel.value })
-    });
-    await loadFileList();
-  });
-  sel.addEventListener("blur", async () => {
-    await loadFileList();
-  });
+  // Intentionally do nothing to prevent inline status editing.
 });
 
 document.addEventListener("click", async (ev) => {
@@ -6191,10 +7355,10 @@ document.addEventListener("click", async (ev) => {
     cell.textContent = "";
     cell.appendChild(newEl);
     newEl.focus();
-    newEl.addEventListener("change", async ()=>{
+    newEl?.addEventListener("change", async ()=>{
       await saveCb(newEl.value);
     });
-    newEl.addEventListener("blur", ()=>{
+    newEl?.addEventListener("blur", ()=>{
       renderProjectsTable();
     });
   }
@@ -6266,7 +7430,7 @@ async function renderProjectsTable(){
   });
 
   $$(".projArchBtn", tblBody).forEach(btn => {
-    btn.addEventListener("click", async () => {
+    btn?.addEventListener("click", async () => {
       const proj = btn.dataset.proj;
       const arch = btn.dataset.arch === "1";
       await fetch('/api/projects/archive', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({project: proj, archived: !arch})});
@@ -6344,9 +7508,17 @@ const sidebarViewUploader = document.getElementById("sidebarViewUploader");
 const sidebarViewChatTabs = document.getElementById("sidebarViewChatTabs");
 const sidebarViewActivityIframe = document.getElementById("sidebarViewActivityIframe");
 const sidebarViewArchiveTabs = document.getElementById("sidebarViewArchiveTabs");
+const sidebarViewCodeTasks = document.getElementById("sidebarViewCodeTasks");
 const sidebarViewPrintifyProducts = document.getElementById("sidebarViewPrintifyProducts");
+const sidebarViewProjectView = document.getElementById("sidebarViewProjectView");
 const fileTreeContainer = document.getElementById("fileTreeContainer");
 const fileCabinetContainer = document.getElementById("fileCabinetContainer");
+
+function hideProjectViewPanel(){
+  if(sidebarViewProjectView){
+    sidebarViewProjectView.style.display = "none";
+  }
+}
 
 function showTasksPanel(){
   sidebarViewTasks.style.display = "";
@@ -6355,31 +7527,38 @@ function showTasksPanel(){
   sidebarViewChatTabs.style.display = "none";
   sidebarViewArchiveTabs.style.display = "none";
   sidebarViewActivityIframe.style.display = "none";
+  hideProjectViewPanel();
+  sidebarViewCodeTasks.style.display = "none";
   sidebarViewPrintifyProducts.style.display = "none";
-  $("#navTasksBtn").classList.add("active");
-  $("#navUploaderBtn").classList.remove("active");
-  $("#navFileTreeBtn").classList.remove("active");
-  $("#navChatTabsBtn").classList.remove("active");
-  $("#navArchiveTabsBtn").classList.remove("active");
-  $("#navActivityIframeBtn").classList.remove("active");
+  setTreeNavActive("#navTasksBtn");
   setSetting("last_sidebar_view", "tasks");
+  setActiveCollapsedIcon(btnTasksIcon || null);
+  setActiveThinIcon(null);
 }
 
-function showUploaderPanel(){
+async function showUploaderPanel(){
   sidebarViewTasks.style.display = "none";
   sidebarViewUploader.style.display = "";
   sidebarViewFileTree.style.display = "none";
   sidebarViewChatTabs.style.display = "none";
   sidebarViewArchiveTabs.style.display = "none";
   sidebarViewActivityIframe.style.display = "none";
-  $("#navTasksBtn").classList.remove("active");
+  hideProjectViewPanel();
+  sidebarViewCodeTasks.style.display = "none";
+  // ensure the tree nav buttons reflect the active state
   sidebarViewPrintifyProducts.style.display = "none";
-  $("#navUploaderBtn").classList.add("active");
-  $("#navFileTreeBtn").classList.remove("active");
-  $("#navChatTabsBtn").classList.remove("active");
-  $("#navArchiveTabsBtn").classList.remove("active");
-  $("#navActivityIframeBtn").classList.remove("active");
+  setTreeNavActive("#navUploaderBtn");
+  // Ensure uploader nav elements are explicitly marked active (fix highlighting)
+  if (btnUploader) btnUploader.classList.add("active");
+  if (btnUploaderIcon) btnUploaderIcon.classList.add("active");
+  setActiveCollapsedIcon(btnUploaderIcon || null);
+  setActiveThinIcon(thinImagesIcon || null);
   setSetting("last_sidebar_view", "uploader");
+  try {
+    await focusDesignChat();
+  } catch (err) {
+    console.error("[ImagesNav] Failed to focus design chat", err);
+  }
 }
 
 function showFileTreePanel(){
@@ -6390,16 +7569,14 @@ function showFileTreePanel(){
   sidebarViewChatTabs.style.display = "none";
   sidebarViewArchiveTabs.style.display = "none";
   sidebarViewActivityIframe.style.display = "none";
+  hideProjectViewPanel();
+  sidebarViewCodeTasks.style.display = "none";
   sidebarViewPrintifyProducts.style.display = "none";
-  $("#navTasksBtn").classList.remove("active");
-  $("#navUploaderBtn").classList.remove("active");
-  $("#navFileTreeBtn").classList.add("active");
-  $("#navFileCabinetBtn").classList.remove("active");
-  $("#navChatTabsBtn").classList.remove("active");
-  $("#navArchiveTabsBtn").classList.remove("active");
-  $("#navActivityIframeBtn").classList.remove("active");
+  setTreeNavActive("#navFileTreeBtn");
   setSetting("last_sidebar_view", "fileTree");
   loadFileTree();
+  setActiveCollapsedIcon(btnFileTreeIcon || null);
+  setActiveThinIcon(null);
 }
 
 function showFileCabinetPanel(){
@@ -6410,34 +7587,47 @@ function showFileCabinetPanel(){
   sidebarViewChatTabs.style.display = "none";
   sidebarViewArchiveTabs.style.display = "none";
   sidebarViewActivityIframe.style.display = "none";
+  hideProjectViewPanel();
+  sidebarViewCodeTasks.style.display = "none";
   sidebarViewPrintifyProducts.style.display = "none";
-  $("#navTasksBtn").classList.remove("active");
-  $("#navUploaderBtn").classList.remove("active");
-  $("#navFileTreeBtn").classList.remove("active");
-  $("#navFileCabinetBtn").classList.add("active");
-  $("#navChatTabsBtn").classList.remove("active");
-  $("#navArchiveTabsBtn").classList.remove("active");
-  $("#navActivityIframeBtn").classList.remove("active");
+  setTreeNavActive("#navFileCabinetBtn");
   setSetting("last_sidebar_view", "fileCabinet");
   loadFileCabinet();
+  setActiveCollapsedIcon(btnFileCabinetIcon || null);
+  setActiveThinIcon(thinCabinetIcon || null);
 }
 
-function showChatTabsPanel(){
+async function focusPreferredSidebarChatTab(){
+  const container = document.getElementById("verticalTabsContainer");
+  if(!container) return;
+  const buttons = Array.from(container.querySelectorAll(".sidebar-tab-row button"));
+  const visibleButtons = buttons.filter(btn => btn.offsetParent !== null);
+  if(visibleButtons.length === 0) return;
+
+  const targetButton = visibleButtons[0];
+  if(!targetButton) return;
+
+  const tabId = parseInt(targetButton.dataset.tabId || "", 10);
+  if(!Number.isInteger(tabId)) return;
+  await selectTab(tabId);
+}
+
+async function showChatTabsPanel(){
   sidebarViewTasks.style.display = "none";
   sidebarViewUploader.style.display = "none";
   sidebarViewFileTree.style.display = "none";
   sidebarViewChatTabs.style.display = "";
   sidebarViewActivityIframe.style.display = "none";
   sidebarViewArchiveTabs.style.display = "none";
-  $("#navTasksBtn").classList.remove("active");
-  $("#navUploaderBtn").classList.remove("active");
+  hideProjectViewPanel();
+  sidebarViewCodeTasks.style.display = "none";
   sidebarViewPrintifyProducts.style.display = "none";
-  $("#navFileTreeBtn").classList.remove("active");
-  $("#navChatTabsBtn").classList.add("active");
-  $("#navArchiveTabsBtn").classList.remove("active");
-  $("#navActivityIframeBtn").classList.remove("active");
+  setTreeNavActive("#navChatTabsBtn");
   setSetting("last_sidebar_view", "chatTabs");
   renderSidebarTabs();
+  await focusPreferredSidebarChatTab();
+  setActiveCollapsedIcon(btnChatTabsIcon || null);
+  setActiveThinIcon(thinChatIcon || null);
 }
 
 function showArchiveTabsPanel(){
@@ -6447,15 +7637,14 @@ function showArchiveTabsPanel(){
   sidebarViewChatTabs.style.display = "none";
   sidebarViewActivityIframe.style.display = "none";
   sidebarViewArchiveTabs.style.display = "";
+  hideProjectViewPanel();
+  sidebarViewCodeTasks.style.display = "none";
   sidebarViewPrintifyProducts.style.display = "none";
-  $("#navTasksBtn").classList.remove("active");
-  $("#navUploaderBtn").classList.remove("active");
-  $("#navFileTreeBtn").classList.remove("active");
-  $("#navChatTabsBtn").classList.remove("active");
-  $("#navArchiveTabsBtn").classList.add("active");
-  $("#navActivityIframeBtn").classList.remove("active");
+  setTreeNavActive("#navArchiveTabsBtn");
   setSetting("last_sidebar_view", "archiveTabs");
   loadTabs().then(renderArchivedSidebarTabs);
+  setActiveCollapsedIcon(btnArchiveTabsIcon || null);
+  setActiveThinIcon(thinArchiveIcon || null);
 }
 
 function showActivityIframePanel(){
@@ -6465,15 +7654,15 @@ function showActivityIframePanel(){
   sidebarViewChatTabs.style.display = "none";
   sidebarViewArchiveTabs.style.display = "none";
   sidebarViewActivityIframe.style.display = "";
+  hideProjectViewPanel();
+  sidebarViewCodeTasks.style.display = "none";
   sidebarViewPrintifyProducts.style.display = "none";
-  $("#navTasksBtn").classList.remove("active");
-  $("#navUploaderBtn").classList.remove("active");
-  $("#navFileTreeBtn").classList.remove("active");
-  $("#navChatTabsBtn").classList.remove("active");
-  $("#navArchiveTabsBtn").classList.remove("active");
-  $("#navActivityIframeBtn").classList.add("active");
+  setTreeNavActive("#navActivityIframeBtn");
   setSetting("last_sidebar_view", "activity");
+  setActiveCollapsedIcon(btnActivityIframeIcon || null);
+  setActiveThinIcon(null);
 }
+
 
 function showPrintifyProductsPanel(){
   sidebarViewTasks.style.display = "none";
@@ -6482,17 +7671,36 @@ function showPrintifyProductsPanel(){
   sidebarViewChatTabs.style.display = "none";
   sidebarViewArchiveTabs.style.display = "none";
   sidebarViewActivityIframe.style.display = "none";
+  hideProjectViewPanel();
   sidebarViewPrintifyProducts.style.display = "";
-  $("#navTasksBtn").classList.remove("active");
-  $("#navUploaderBtn").classList.remove("active");
-  $("#navFileTreeBtn").classList.remove("active");
-  $("#navChatTabsBtn").classList.remove("active");
-  $("#navArchiveTabsBtn").classList.remove("active");
-  $("#navActivityIframeBtn").classList.remove("active");
-  $("#navPrintifyProductsBtn").classList.add("active");
+  sidebarViewCodeTasks.style.display = "none";
+  setTreeNavActive("#navPrintifyProductsBtn");
   setSetting("last_sidebar_view", "printify");
   printifyPage = 1;
   loadPrintifyProducts();
+  setActiveCollapsedIcon(btnPrintifyProductsIcon || null);
+  setActiveThinIcon(thinPrintifyIcon || null);
+}
+
+function showCodeTasksPanel(){
+  sidebarViewTasks.style.display = "none";
+  sidebarViewUploader.style.display = "none";
+  sidebarViewFileTree.style.display = "none";
+  sidebarViewFileCabinet.style.display = "none";
+  sidebarViewChatTabs.style.display = "none";
+  sidebarViewArchiveTabs.style.display = "none";
+  sidebarViewActivityIframe.style.display = "none";
+  sidebarViewProjectView.style.display = "none";
+  sidebarViewPrintifyProducts.style.display = "none";
+  sidebarViewCodeTasks.style.display = "";
+  setTreeNavActive("#navCodeTasksBtn");
+  setSetting("last_sidebar_view", "codeTasks");
+  setActiveCollapsedIcon(btnCodeTasksIcon || null);
+  setActiveThinIcon(null);
+  const input = document.getElementById("codeTaskInput");
+  if(input){
+    setTimeout(() => { input.focus(); }, 50);
+  }
 }
 
 /**
@@ -6516,7 +7724,7 @@ function createTreeNode(node, repoName, chatNumber) {
     ul.style.display = "none";
     li.appendChild(ul);
 
-    expander.addEventListener("click", () => {
+    expander?.addEventListener("click", () => {
       if(ul.style.display === "none"){
         ul.style.display = "";
         expander.textContent = "[-] ";
@@ -6543,7 +7751,7 @@ function createTreeNode(node, repoName, chatNumber) {
     label.textContent = " " + node.name;
     li.appendChild(label);
 
-    cb.addEventListener("change", async () => {
+    cb?.addEventListener("change", async () => {
       console.debug(`[FileTree Debug] Checkbox changed for: ${node.path}, new checked state: ${cb.checked}`);
       try {
         console.debug(`[FileTree Debug] Sending POST to toggle attachment for file: ${node.path}`);
@@ -6655,9 +7863,13 @@ function updatePrintifyPageDisplay(){
 }
 
 const btnTasks = document.getElementById("navTasksBtn");
+const btnProjectViewIcon = null;
+
 const btnUploader = document.getElementById("navUploaderBtn");
 const btnChatTabs = document.getElementById("navChatTabsBtn");
 const btnArchiveTabs = document.getElementById("navArchiveTabsBtn");
+const btnCodeTasks = document.getElementById("navCodeTasksBtn");
+const btnPrintifyQueue = document.getElementById("printifyQueueButton");
 const btnActivityIframe = document.getElementById("navActivityIframeBtn");
 const btnAiModels = document.getElementById("navAiModelsBtn");
 const btnImageGenerator = document.getElementById("navImageGeneratorBtn");
@@ -6672,13 +7884,18 @@ const btnFileCabinet = document.getElementById("navFileCabinetBtn");
 const refreshPrintifyProductsBtn = document.getElementById("refreshPrintifyProductsBtn");
 const prevPrintifyPageBtn = document.getElementById("prevPrintifyPageBtn");
 const nextPrintifyPageBtn = document.getElementById("nextPrintifyPageBtn");
+const printifyQueueModal = document.getElementById("printifyQueueModal");
+const printifyQueueModalCloseBtn = document.getElementById("printifyQueueModalCloseBtn");
+const printifyQueueIframe = document.getElementById("printifyQueueIframe");
 const btnNexumChat = document.getElementById("navNexumChatBtn");
 const btnNexumTabs = document.getElementById("navNexumTabsBtn");
+
 // Icon buttons for collapsed sidebar
 const btnTasksIcon = document.getElementById("navTasksIcon");
 const btnUploaderIcon = document.getElementById("navUploaderIcon");
 const btnChatTabsIcon = document.getElementById("navChatTabsIcon");
 const btnArchiveTabsIcon = document.getElementById("navArchiveTabsIcon");
+const btnCodeTasksIcon = document.getElementById("navCodeTasksIcon");
 const btnFileTreeIcon = document.getElementById("navFileTreeIcon");
 const btnFileCabinetIcon = document.getElementById("navFileCabinetIcon");
 const btnAiModelsIcon = document.getElementById("navAiModelsIcon");
@@ -6698,12 +7915,169 @@ const thinArchiveIcon = document.getElementById("thinIconArchived");
 const thinCabinetIcon = document.getElementById("thinIconCabinet");
 const thinPrintifyIcon = document.getElementById("thinIconPrintify");
 
-btnTasks.addEventListener("click", showTasksPanel);
-btnUploader.addEventListener("click", showUploaderPanel);
-navFileTreeBtn.addEventListener("click", showFileTreePanel);
-btnChatTabs.addEventListener("click", showChatTabsPanel);
-btnArchiveTabs.addEventListener("click", showArchiveTabsPanel);
-btnActivityIframe.addEventListener("click", showActivityIframePanel);
+let creatingCodeChat = false;
+
+const collapsedSidebarIcons = [
+  btnChatTabsIcon,
+  btnUploaderIcon,
+  btnArchiveTabsIcon,
+  btnCodeTasksIcon,
+  btnFileTreeIcon,
+  btnFileCabinetIcon,
+  btnActivityIframeIcon,
+  btnPrintifyProductsIcon,
+  btnTasksIcon
+].filter(Boolean);
+
+const thinSidebarIcons = [
+  thinChatIcon,
+  thinImagesIcon,
+  thinArchiveIcon,
+  thinCabinetIcon,
+  thinPrintifyIcon
+].filter(Boolean);
+
+function setActiveCollapsedIcon(activeBtn){
+  collapsedSidebarIcons.forEach(btn => {
+    btn.classList.toggle("active", btn === activeBtn);
+  });
+}
+
+function setActiveThinIcon(activeBtn){
+  thinSidebarIcons.forEach(btn => {
+    btn.classList.toggle("active", btn === activeBtn);
+  });
+}
+
+const treeNavSelectors = [
+  "#navChatTabsBtn",
+  "#navCodeTasksBtn",
+  "#navUploaderBtn",
+  "#navArchiveTabsBtn",
+  "#navFileTreeBtn",
+  "#navFileCabinetBtn",
+  "#navActivityIframeBtn",
+  "#navPrintifyProductsBtn",
+  "#navTasksBtn"
+];
+
+function setTreeNavActive(targetSelector){
+  treeNavSelectors.forEach(sel => {
+    const el = $(sel);
+    if(!el) return;
+    el.classList.toggle("active", sel === targetSelector);
+  });
+}
+
+function setCodeNavActiveState(isActive){
+  if(btnCodeTasks){
+    btnCodeTasks.classList.toggle("active", isActive);
+  }
+  if(btnCodeTasksIcon){
+    btnCodeTasksIcon.classList.toggle("active", isActive);
+  }
+  if(isActive){
+    btnChatTabs?.classList.remove("active");
+    btnChatTabsIcon?.classList.remove("active");
+  }
+}
+
+async function createCodeChatAndSelect(){
+  const resp = await fetch("/api/chat/tabs/new", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "", nexum: 0, project: "", type: "code", sessionId, showInSidebar: 0 })
+  });
+  if(!resp.ok){
+    const errText = await resp.text().catch(() => "Failed to create code chat");
+    throw new Error(errText || "Failed to create code chat");
+  }
+  const data = await resp.json();
+  await loadTabs();
+  let newTab = chatTabs.find(t => t.id === data.id);
+  if(!newTab && data && data.uuid){
+    newTab = chatTabs.find(t => t.tab_uuid === data.uuid);
+  }
+  if(newTab){
+    await selectTab(newTab.id);
+    setCodeNavActiveState(true);
+  }
+  return data;
+}
+
+function findExistingCodeChatTab(){
+  return chatTabs.find(t => t.tab_type === 'code' && !t.archived);
+}
+
+async function focusExistingCodeChat(){
+  let codeTab = findExistingCodeChatTab();
+  if(!codeTab){
+    await loadTabs();
+    codeTab = findExistingCodeChatTab();
+  }
+  if(!codeTab){
+    return false;
+  }
+  await selectTab(codeTab.id);
+  return true;
+}
+
+async function handleCodeNavClick(fromIcon = false){
+  try {
+    // Direct the Code button to the GitHub repo for AlfeCode
+    const target = 'https://code.alfe.sh';
+    window.open(target, '_blank', 'noopener,noreferrer');
+  } catch (err) {
+    console.error('[CodeNav] Failed to open code repo', err);
+  }
+  return;
+}
+
+function isPrintifyQueueModalVisible(){
+  return printifyQueueModal?.style.display === "flex";
+}
+
+function openPrintifyQueueModal(url){
+  if(!printifyQueueModal || !printifyQueueIframe){
+    window.open(url, "_blank");
+    return;
+  }
+  printifyQueueIframe.src = url;
+  showModal(printifyQueueModal);
+}
+
+function closePrintifyQueueModal(){
+  if(printifyQueueIframe){
+    printifyQueueIframe.src = "";
+  }
+  hideModal(printifyQueueModal);
+}
+
+btnTasks?.addEventListener("click", showTasksPanel);
+btnUploader?.addEventListener("click", () => { void showUploaderPanel(); });
+navFileTreeBtn?.addEventListener("click", showFileTreePanel);
+btnChatTabs?.addEventListener("click", () => { void showChatTabsPanel(); });
+btnArchiveTabs?.addEventListener("click", showArchiveTabsPanel);
+btnCodeTasks?.addEventListener("click", () => { void handleCodeNavClick(false); });
+btnPrintifyQueue?.addEventListener("click", () => {
+  const url = btnPrintifyQueue.dataset.url || "/pipeline_queue.html";
+  openPrintifyQueueModal(url);
+});
+btnActivityIframe?.addEventListener("click", showActivityIframePanel);
+
+
+
+printifyQueueModalCloseBtn?.addEventListener("click", closePrintifyQueueModal);
+printifyQueueModal?.addEventListener("click", event => {
+  if(event.target === printifyQueueModal){
+    closePrintifyQueueModal();
+  }
+});
+document.addEventListener("keydown", event => {
+  if(event.key === "Escape" && isPrintifyQueueModalVisible()){
+    closePrintifyQueueModal();
+  }
+});
 btnAiModels?.addEventListener("click", () => { window.location.href = btnAiModels.dataset.url; });
 btnImageGenerator?.addEventListener("click", () => { window.location.href = btnImageGenerator.dataset.url; });
 btnPortfolio?.addEventListener("click", () => {
@@ -6746,16 +8120,21 @@ nextPrintifyPageBtn?.addEventListener("click", () => {
 
 // Icon button actions (expand sidebar then open panel or link)
 async function openPanelWithSidebar(fn){
-  if(!sidebarVisible) await toggleSidebar();
-  fn();
+  try {
+    if(!sidebarVisible) await toggleSidebar();
+    await fn();
+  } catch (err) {
+    console.error("[Sidebar] Failed to open panel", err);
+  }
 }
-btnTasksIcon?.addEventListener("click", () => openPanelWithSidebar(showTasksPanel));
-btnUploaderIcon?.addEventListener("click", () => openPanelWithSidebar(showUploaderPanel));
-btnChatTabsIcon?.addEventListener("click", () => openPanelWithSidebar(showChatTabsPanel));
-btnArchiveTabsIcon?.addEventListener("click", () => openPanelWithSidebar(showArchiveTabsPanel));
-btnFileTreeIcon?.addEventListener("click", () => openPanelWithSidebar(showFileTreePanel));
-btnFileCabinetIcon?.addEventListener("click", () => openPanelWithSidebar(showFileCabinetPanel));
-btnActivityIframeIcon?.addEventListener("click", () => openPanelWithSidebar(showActivityIframePanel));
+btnTasksIcon?.addEventListener("click", () => { void openPanelWithSidebar(showTasksPanel); });
+btnUploaderIcon?.addEventListener("click", () => { void openPanelWithSidebar(showUploaderPanel); });
+btnChatTabsIcon?.addEventListener("click", () => { void openPanelWithSidebar(showChatTabsPanel); });
+btnArchiveTabsIcon?.addEventListener("click", () => { void openPanelWithSidebar(showArchiveTabsPanel); });
+btnCodeTasksIcon?.addEventListener("click", () => { void handleCodeNavClick(true); });
+btnFileTreeIcon?.addEventListener("click", () => { void openPanelWithSidebar(showFileTreePanel); });
+btnFileCabinetIcon?.addEventListener("click", () => { void openPanelWithSidebar(showFileCabinetPanel); });
+btnActivityIframeIcon?.addEventListener("click", () => { void openPanelWithSidebar(showActivityIframePanel); });
 btnAiModelsIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); window.location.href = btnAiModels.dataset.url; });
 btnImageGeneratorIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); window.location.href = btnImageGenerator.dataset.url; });
 btnPortfolioIcon?.addEventListener("click", () => {
@@ -6770,57 +8149,716 @@ btnNodesIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSideba
 btnPrintifyProductsIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); showPrintifyProductsPanel(); });
 btnNexumChatIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); window.location.href = btnNexumChat.dataset.url; });
 btnNexumTabsIcon?.addEventListener("click", () => { if(!sidebarVisible) toggleSidebar(); window.location.href = btnNexumTabs.dataset.url; });
+
+const codeProjectSelector = document.getElementById("codeProjectSelector");
+const addCodeProjectButton = document.getElementById("addCodeProjectButton");
+const addCodeProjectModal = document.getElementById("addCodeProjectModal");
+const addCodeProjectForm = document.getElementById("addCodeProjectForm");
+const addCodeProjectNameInput = document.getElementById("addCodeProjectNameInput");
+const addCodeProjectRepoInput = document.getElementById("addCodeProjectRepoInput");
+const addCodeProjectCancelBtn = document.getElementById("addCodeProjectCancelBtn");
+const addCodeProjectError = document.getElementById("addCodeProjectError");
+const tryDemoRepoBtn = document.getElementById("tryDemoRepoBtn");
+const addCodeProjectSubmitBtn = document.getElementById("addCodeProjectSubmitBtn");
+
+const codeTaskForm = document.getElementById("codeTaskForm");
+const codeTaskInput = document.getElementById("codeTaskInput");
+const codeTasksContainer = document.getElementById("codeTasksContainer");
+const codeEnvironmentButton = document.getElementById("codeEnvironmentButton");
+const sterlingLinkModal = document.getElementById("sterlingLinkModal");
+const sterlingLinkModalCloseBtn = document.getElementById("sterlingLinkModalCloseBtn");
+const sterlingLinkProjectNameEl = document.getElementById("sterlingLinkProjectName");
+const sterlingLinkRepoInput = document.getElementById("sterlingLinkRepoInput");
+const sterlingLinkCreateRepoBtn = document.getElementById("sterlingLinkCreateRepoBtn");
+const sterlingLinkEditButton = document.getElementById("sterlingLinkEditButton");
+const sterlingLinkDeleteBtn = document.getElementById("sterlingLinkDeleteBtn");
+
+function updateSterlingModalProjectName(){
+  const project = getSelectedCodeProject();
+  if(sterlingLinkProjectNameEl){
+    sterlingLinkProjectNameEl.textContent = project?.name || "Sterling Link";
+  }
+  if(sterlingLinkRepoInput){
+    sterlingLinkRepoInput.value = project?.repoUrl || "";
+  }
+}
+
+function clearAddCodeProjectError(){
+  if(addCodeProjectError){
+    addCodeProjectError.textContent = "";
+  }
+}
+
+function openAddCodeProjectModal(){
+  if(!addCodeProjectModal || !addCodeProjectForm || !addCodeProjectNameInput){
+    return false;
+  }
+  addCodeProjectForm.reset();
+  clearAddCodeProjectError();
+  addCodeProjectNameInput.value = "New Project";
+  if(addCodeProjectRepoInput){
+    addCodeProjectRepoInput.value = "";
+  }
+  showModal(addCodeProjectModal);
+  if(addCodeProjectSubmitBtn) addCodeProjectSubmitBtn.disabled = true;
+  requestAnimationFrame(() => {
+    addCodeProjectNameInput.focus();
+    addCodeProjectNameInput.select();
+  });
+  return true;
+}
+
+function closeAddCodeProjectModal(){
+  if(addCodeProjectModal){
+    hideModal(addCodeProjectModal);
+  }
+  if(addCodeProjectForm){
+    addCodeProjectForm.reset();
+  }
+  clearAddCodeProjectError();
+}
+
+function setAddCodeProjectError(message){
+  if(addCodeProjectError){
+    addCodeProjectError.textContent = message;
+  }
+}
+
+if(codeEnvironmentButton && sterlingLinkModal){
+  codeEnvironmentButton?.addEventListener("click", () => {
+    updateSterlingModalProjectName();
+    showModal(sterlingLinkModal);
+  });
+}
+
+if(sterlingLinkModalCloseBtn && sterlingLinkModal){
+  sterlingLinkModalCloseBtn?.addEventListener("click", () => {
+    hideModal(sterlingLinkModal);
+  });
+}
+
+function handleSterlingRepoInputCommit(ev){
+  if(!sterlingLinkRepoInput) return;
+  const target = ev.target;
+  if(!(target instanceof HTMLInputElement)) return;
+  const project = getSelectedCodeProject();
+  if(!project) return;
+  const trimmed = target.value.trim();
+  if(project.repoUrl === trimmed){
+    target.value = trimmed;
+    return;
+  }
+  project.repoUrl = trimmed;
+  target.value = trimmed;
+  saveCodeProjects();
+}
+
+if(sterlingLinkRepoInput){
+  sterlingLinkRepoInput?.addEventListener("change", handleSterlingRepoInputCommit);
+  sterlingLinkRepoInput?.addEventListener("blur", handleSterlingRepoInputCommit);
+}
+
+if(sterlingLinkCreateRepoBtn){
+  sterlingLinkCreateRepoBtn?.addEventListener("click", () => {
+    window.open("https://github.com/new", "_blank", "noopener,noreferrer");
+  });
+}
+
+
+if(sterlingLinkDeleteBtn){
+  sterlingLinkDeleteBtn?.addEventListener("click", () => {
+    const project = getSelectedCodeProject();
+    if(!project) return;
+    const confirmMsg = `Delete project "${project.name}" and all its tasks? This cannot be undone.`;
+    if(!window.confirm(confirmMsg)) return;
+    // Remove project
+    codeProjects = codeProjects.filter(p => p.id !== project.id);
+    // Remove tasks for project
+    codeTasks = codeTasks.filter(t => t.projectId !== project.id);
+    saveCodeTasks();
+    saveCodeProjects();
+    selectedCodeProjectId = null;
+    ensureSelectedCodeProject();
+    renderCodeProjectOptions();
+    renderCodeTasks();
+    hideModal(sterlingLinkModal);
+  });
+}
+if(sterlingLinkEditButton){
+  sterlingLinkEditButton?.addEventListener("click", () => {
+    const project = getSelectedCodeProject();
+    if(!project) return;
+    const result = window.prompt("Project name", project.name);
+    if(result === null) return;
+    const trimmed = result.trim();
+    if(!trimmed || trimmed === project.name) return;
+    if(isCodeProjectNameTaken(trimmed, project.id)){
+      window.alert("A project with that name already exists.");
+      return;
+    }
+    project.name = trimmed;
+    saveCodeProjects();
+    renderCodeProjectOptions();
+    renderCodeTasks();
+    updateSterlingModalProjectName();
+  });
+}
+
+const CODE_PROJECTS_STORAGE_KEY = "aurora.sidebar.codeProjects";
+const CODE_SELECTED_PROJECT_KEY = "aurora.sidebar.selectedCodeProject";
+const CODE_TASKS_STORAGE_KEY = "aurora.sidebar.codeTasks";
+
+const loadedCodeProjects = loadStoredCodeProjects();
+let codeProjects = loadedCodeProjects ? loadedCodeProjects.projects : [];
+if(codeProjects.length === 0){
+  codeProjects = getDefaultCodeProjects();
+  saveCodeProjects();
+} else if(loadedCodeProjects && loadedCodeProjects.mutated){
+  saveCodeProjects();
+}
+
+let selectedCodeProjectId = loadStoredSelectedCodeProjectId(codeProjects);
+if(!selectedCodeProjectId && codeProjects.length > 0){
+  selectedCodeProjectId = codeProjects[0].id;
+  saveSelectedCodeProjectId();
+}
+
+const loadedCodeTasksResult = loadStoredCodeTasks(codeProjects, selectedCodeProjectId);
+let codeTasks = loadedCodeTasksResult ? loadedCodeTasksResult.tasks : null;
+if(!codeTasks || codeTasks.length === 0){
+  const projectId = ensureSelectedCodeProject();
+  codeTasks = getDefaultCodeTasks().map(task => ({ ...task, projectId }));
+  saveCodeTasks();
+} else if(loadedCodeTasksResult && loadedCodeTasksResult.mutated){
+  saveCodeTasks();
+}
+
+let draggingCodeTaskRow = null;
+
+renderCodeProjectOptions();
+updateSterlingModalProjectName();
+renderCodeTasks();
+
+addCodeProjectButton?.addEventListener("click", handleAddCodeProject);
+addCodeProjectCancelBtn?.addEventListener("click", closeAddCodeProjectModal);
+tryDemoRepoBtn?.addEventListener("click", ev => { ev.preventDefault(); /* placeholder demo button - no action */ });
+addCodeProjectForm?.addEventListener("submit", handleAddCodeProjectSubmit);
+addCodeProjectNameInput?.addEventListener("input", clearAddCodeProjectError);
+addCodeProjectRepoInput?.addEventListener("input", ev => { clearAddCodeProjectError(); if(addCodeProjectSubmitBtn){ addCodeProjectSubmitBtn.disabled = !(addCodeProjectRepoInput.value && addCodeProjectRepoInput.value.trim()); } });
+codeProjectSelector?.addEventListener("change", handleCodeProjectChange);
+
+codeTaskForm?.addEventListener("submit", ev => {
+  ev.preventDefault();
+  const value = (codeTaskInput?.value || "").trim();
+  if(!value) return;
+  addCodeTask(value);
+  if(codeTaskInput){
+    codeTaskInput.value = "";
+    codeTaskInput.focus();
+  }
+});
+
+codeTasksContainer?.addEventListener("dragover", ev => {
+  if(!draggingCodeTaskRow) return;
+  if(ev.currentTarget !== codeTasksContainer) return;
+  ev.preventDefault();
+  if(ev.dataTransfer) ev.dataTransfer.dropEffect = "move";
+});
+
+codeTasksContainer?.addEventListener("drop", ev => {
+  if(!draggingCodeTaskRow) return;
+  if(ev.currentTarget !== codeTasksContainer) return;
+  ev.preventDefault();
+  moveDraggedTaskToEnd();
+});
+
+function loadStoredCodeTasks(projects, fallbackProjectId){
+  if(typeof window === "undefined" || !window.localStorage) return null;
+  try {
+    const raw = window.localStorage.getItem(CODE_TASKS_STORAGE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed)) return null;
+    const projectIds = new Set(projects.map(project => project.id));
+    const tasks = [];
+    let mutated = false;
+    parsed.forEach(item => {
+      if(!item || typeof item !== "object"){
+        mutated = true;
+        return;
+      }
+      const name = typeof item.name === "string" ? item.name.trim() : "";
+      if(!name){
+        mutated = true;
+        return;
+      }
+      const id = typeof item.id === "string" && item.id ? item.id : generateCodeTaskId();
+      if(id !== item.id) mutated = true;
+      let projectId = typeof item.projectId === "string" && projectIds.has(item.projectId)
+        ? item.projectId
+        : fallbackProjectId;
+      if(!projectId){
+        mutated = true;
+        return;
+      }
+      if(projectId !== item.projectId) mutated = true;
+      tasks.push({ id, name, projectId });
+    });
+    return { tasks, mutated };
+  } catch (err) {
+    console.warn("[CodeTasks] Failed to load stored tasks", err);
+    return null;
+  }
+}
+
+function loadStoredCodeProjects(){
+  if(typeof window === "undefined" || !window.localStorage) return null;
+  try {
+    const raw = window.localStorage.getItem(CODE_PROJECTS_STORAGE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed)) return null;
+    const projects = [];
+    let mutated = false;
+    parsed.forEach(item => {
+      if(!item || typeof item !== "object"){
+        mutated = true;
+        return;
+      }
+      const name = typeof item.name === "string" ? item.name.trim() : "";
+      if(!name){
+        mutated = true;
+        return;
+      }
+      const id = typeof item.id === "string" && item.id ? item.id : generateCodeProjectId();
+      if(id !== item.id) mutated = true;
+      const hasRepoUrl = typeof item.repoUrl === "string";
+      const rawRepoUrl = hasRepoUrl ? item.repoUrl : "";
+      const repoUrl = rawRepoUrl.trim();
+      if(!hasRepoUrl) mutated = true;
+      if(repoUrl !== rawRepoUrl) mutated = true;
+      projects.push({ id, name, repoUrl });
+    });
+    return { projects, mutated };
+  } catch (err) {
+    console.warn("[CodeProjects] Failed to load stored projects", err);
+    return null;
+  }
+}
+
+function saveCodeProjects(){
+  if(typeof window === "undefined" || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(CODE_PROJECTS_STORAGE_KEY, JSON.stringify(codeProjects));
+  } catch (err) {
+    console.warn("[CodeProjects] Failed to persist projects", err);
+  }
+}
+
+function getDefaultCodeProjects(){
+  return [
+    { id: generateCodeProjectId(), name: "New Project", repoUrl: "" }
+  ];
+}
+
+function loadStoredSelectedCodeProjectId(projects){
+  const fallbackId = projects[0]?.id || null;
+  if(typeof window === "undefined" || !window.localStorage) return fallbackId;
+  try {
+    const stored = window.localStorage.getItem(CODE_SELECTED_PROJECT_KEY);
+    if(stored && projects.some(project => project.id === stored)){
+      return stored;
+    }
+  } catch (err) {
+    console.warn("[CodeProjects] Failed to load selected project", err);
+  }
+  return fallbackId;
+}
+
+function saveSelectedCodeProjectId(){
+  if(typeof window === "undefined" || !window.localStorage) return;
+  try {
+    if(selectedCodeProjectId){
+      window.localStorage.setItem(CODE_SELECTED_PROJECT_KEY, selectedCodeProjectId);
+    } else {
+      window.localStorage.removeItem(CODE_SELECTED_PROJECT_KEY);
+    }
+  } catch (err) {
+    console.warn("[CodeProjects] Failed to persist selected project", err);
+  }
+}
+
+function ensureSelectedCodeProject(){
+  if(codeProjects.length === 0){
+    codeProjects = getDefaultCodeProjects();
+    saveCodeProjects();
+  }
+  if(!selectedCodeProjectId || !codeProjects.some(project => project.id === selectedCodeProjectId)){
+    selectedCodeProjectId = codeProjects[0]?.id || null;
+    saveSelectedCodeProjectId();
+  }
+  return selectedCodeProjectId;
+}
+
+function handleAddCodeProject(){
+  if(openAddCodeProjectModal()){
+    return;
+  }
+  const result = window.prompt("Project name", "New Project");
+  if(result === null) return;
+  const trimmed = result.trim();
+  if(!trimmed) return;
+  if(isCodeProjectNameTaken(trimmed)){
+    window.alert("A project with that name already exists.");
+    return;
+  }
+  createCodeProjectEntry(trimmed, "");
+}
+
+function handleCodeProjectChange(){
+  if(!codeProjectSelector) return;
+  const newId = codeProjectSelector.value;
+  if(!newId) return;
+  if(!codeProjects.some(project => project.id === newId)) return;
+  selectedCodeProjectId = newId;
+  saveSelectedCodeProjectId();
+  renderCodeTasks();
+  updateSterlingModalProjectName();
+}
+
+function renderCodeProjectOptions(){
+  if(!codeProjectSelector) return;
+  codeProjectSelector.innerHTML = "";
+  ensureSelectedCodeProject();
+  codeProjects.forEach(project => {
+    const option = document.createElement("option");
+    option.value = project.id;
+    option.textContent = project.name;
+    codeProjectSelector.appendChild(option);
+  });
+  if(selectedCodeProjectId){
+    codeProjectSelector.value = selectedCodeProjectId;
+  }
+}
+
+function getSelectedCodeProject(){
+  return codeProjects.find(project => project.id === selectedCodeProjectId) || null;
+}
+
+function getTasksForProject(projectId){
+  if(!projectId) return [];
+  return codeTasks.filter(task => task.projectId === projectId);
+}
+
+function setTasksForProject(projectId, tasks){
+  const replacements = [...tasks];
+  codeTasks = codeTasks.map(task => {
+    if(task.projectId === projectId){
+      return replacements.shift() || task;
+    }
+    return task;
+  });
+}
+
+function saveCodeTasks(){
+  if(typeof window === "undefined" || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(CODE_TASKS_STORAGE_KEY, JSON.stringify(codeTasks));
+  } catch (err) {
+    console.warn("[CodeTasks] Failed to persist tasks", err);
+  }
+}
+
+function getDefaultCodeTasks(){
+  return [
+    { id: generateCodeTaskId(), name: "Refine sidebar navigation icons" },
+    { id: generateCodeTaskId(), name: "Review pull request automation flow" },
+    { id: generateCodeTaskId(), name: "Update unit tests for chat module" }
+  ];
+}
+
+function generateCodeProjectId(){
+  if(typeof crypto !== "undefined" && crypto.randomUUID){
+    return crypto.randomUUID();
+  }
+  return `code-project-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function isCodeProjectNameTaken(name, excludeId = null){
+  const normalized = typeof name === "string" ? name.trim().toLowerCase() : "";
+  if(!normalized) return false;
+  return codeProjects.some(project => {
+    if(excludeId && project.id === excludeId) return false;
+    return project.name.trim().toLowerCase() === normalized;
+  });
+}
+
+function createCodeProjectEntry(name, repoUrl){
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+  if(!trimmedName) return null;
+  const trimmedRepoUrl = typeof repoUrl === "string" ? repoUrl.trim() : "";
+  const newProject = { id: generateCodeProjectId(), name: trimmedName, repoUrl: trimmedRepoUrl };
+  codeProjects.push(newProject);
+  saveCodeProjects();
+  selectedCodeProjectId = newProject.id;
+  saveSelectedCodeProjectId();
+  renderCodeProjectOptions();
+  updateSterlingModalProjectName();
+  renderCodeTasks();
+  if(codeTaskInput){
+    codeTaskInput.focus();
+  }
+  return newProject;
+}
+
+function handleAddCodeProjectSubmit(ev){
+  ev.preventDefault();
+  if(!addCodeProjectNameInput) return;
+  const name = (addCodeProjectNameInput.value || "").trim();
+  const repoUrl = addCodeProjectRepoInput ? addCodeProjectRepoInput.value.trim() : "";
+  clearAddCodeProjectError();
+  if(!name){
+    setAddCodeProjectError("Project name is required.");
+    addCodeProjectNameInput.focus();
+    return;
+  }
+  if(isCodeProjectNameTaken(name)){
+    setAddCodeProjectError("A project with that name already exists.");
+    addCodeProjectNameInput.focus();
+    addCodeProjectNameInput.select();
+    return;
+  }
+  if(!repoUrl){
+    setAddCodeProjectError("Git repository URL is required.");
+    if(addCodeProjectRepoInput){ addCodeProjectRepoInput.focus(); addCodeProjectRepoInput.select(); }
+    return;
+  }
+  createCodeProjectEntry(name, repoUrl);
+  closeAddCodeProjectModal();
+}
+
+function generateCodeTaskId(){
+  if(typeof crypto !== "undefined" && crypto.randomUUID){
+    return crypto.randomUUID();
+  }
+  return `code-task-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function addCodeTask(name){
+  const trimmed = name.trim();
+  if(!trimmed) return;
+  const projectId = ensureSelectedCodeProject();
+  codeTasks.push({ id: generateCodeTaskId(), name: trimmed, projectId });
+  saveCodeTasks();
+  renderCodeTasks();
+}
+
+function deleteCodeTask(id){
+  const idx = codeTasks.findIndex(task => task.id === id);
+  if(idx === -1) return;
+  codeTasks.splice(idx, 1);
+  saveCodeTasks();
+  renderCodeTasks();
+}
+
+function renameCodeTask(id){
+  const task = codeTasks.find(t => t.id === id);
+  if(!task) return;
+  const result = window.prompt("Edit code task", task.name);
+  if(result === null) return;
+  const trimmed = result.trim();
+  if(!trimmed) return;
+  if(trimmed === task.name) return;
+  task.name = trimmed;
+  saveCodeTasks();
+  renderCodeTasks();
+}
+
+function renderCodeTasks(){
+  if(!codeTasksContainer) return;
+  codeTaskDragEnd();
+  codeTasksContainer.innerHTML = "";
+  const projectId = ensureSelectedCodeProject();
+  const tasksForProject = getTasksForProject(projectId);
+  if(tasksForProject.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "code-task-empty";
+    const project = getSelectedCodeProject();
+    empty.textContent = project ? `No code tasks for ${project.name} yet.` : "No code tasks yet.";
+    codeTasksContainer.appendChild(empty);
+    return;
+  }
+  tasksForProject.forEach(task => {
+    const row = document.createElement("div");
+    row.className = "sidebar-tab-row code-task-row";
+    row.dataset.taskId = task.id;
+    row.dataset.projectId = task.projectId;
+    row?.addEventListener("dragover", codeTaskDragOver);
+    row?.addEventListener("dragleave", codeTaskDragLeave);
+    row?.addEventListener("drop", codeTaskDrop);
+
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "⠿";
+    handle.draggable = true;
+    handle?.addEventListener("dragstart", codeTaskDragStart);
+    handle?.addEventListener("dragend", codeTaskDragEnd);
+    row.appendChild(handle);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "code-task-button";
+    button.title = task.name;
+    button?.addEventListener("click", () => renameCodeTask(task.id));
+
+    const icon = document.createElement("span");
+    icon.className = "code-task-icon";
+    icon.textContent = "</>";
+    button.appendChild(icon);
+
+    const text = document.createElement("span");
+    text.className = "code-task-text";
+    text.textContent = task.name;
+    button.appendChild(text);
+
+    row.appendChild(button);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "code-task-delete-btn";
+    deleteBtn.setAttribute("aria-label", "Delete code task");
+    deleteBtn.innerHTML = "&times;";
+    deleteBtn?.addEventListener("click", () => deleteCodeTask(task.id));
+    row.appendChild(deleteBtn);
+
+    codeTasksContainer.appendChild(row);
+  });
+}
+
+function codeTaskDragStart(ev){
+  const row = ev.target.closest(".code-task-row");
+  if(!row) return;
+  draggingCodeTaskRow = row;
+  row.classList.add("dragging");
+  if(ev.dataTransfer){
+    ev.dataTransfer.effectAllowed = "move";
+    ev.dataTransfer.setData("text/plain", row.dataset.taskId || "");
+  }
+}
+
+function codeTaskDragOver(ev){
+  if(!draggingCodeTaskRow) return;
+  const target = ev.currentTarget;
+  if(target === draggingCodeTaskRow) return;
+  ev.preventDefault();
+  target.classList.add("drag-over");
+}
+
+function codeTaskDragLeave(ev){
+  ev.currentTarget.classList.remove("drag-over");
+}
+
+function codeTaskDrop(ev){
+  if(!draggingCodeTaskRow) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const target = ev.currentTarget;
+  target.classList.remove("drag-over");
+  if(target === draggingCodeTaskRow) return;
+  const draggedId = draggingCodeTaskRow.dataset.taskId;
+  const targetId = target.dataset.taskId;
+  const projectId = draggingCodeTaskRow.dataset.projectId || ensureSelectedCodeProject();
+  if(!draggedId || !targetId || !projectId) return;
+  const tasksForProject = getTasksForProject(projectId);
+  const draggedIndex = tasksForProject.findIndex(task => task.id === draggedId);
+  const targetIndex = tasksForProject.findIndex(task => task.id === targetId);
+  if(draggedIndex === -1 || targetIndex === -1) return;
+  const [draggedTask] = tasksForProject.splice(draggedIndex, 1);
+  let insertIndex = targetIndex;
+  if(draggedIndex < targetIndex) insertIndex -= 1;
+  const dropAfter = ev.offsetY >= target.offsetHeight / 2;
+  if(dropAfter) insertIndex += 1;
+  if(insertIndex < 0) insertIndex = 0;
+  if(insertIndex > tasksForProject.length) insertIndex = tasksForProject.length;
+  tasksForProject.splice(insertIndex, 0, draggedTask);
+  setTasksForProject(projectId, tasksForProject);
+  saveCodeTasks();
+  renderCodeTasks();
+}
+
+function moveDraggedTaskToEnd(){
+  if(!draggingCodeTaskRow) return;
+  const draggedId = draggingCodeTaskRow.dataset.taskId;
+  const projectId = draggingCodeTaskRow.dataset.projectId || ensureSelectedCodeProject();
+  if(!draggedId || !projectId) return;
+  const tasksForProject = getTasksForProject(projectId);
+  const draggedIndex = tasksForProject.findIndex(task => task.id === draggedId);
+  if(draggedIndex === -1) return;
+  const [draggedTask] = tasksForProject.splice(draggedIndex, 1);
+  tasksForProject.push(draggedTask);
+  setTasksForProject(projectId, tasksForProject);
+  saveCodeTasks();
+  renderCodeTasks();
+}
+
+function codeTaskDragEnd(){
+  document.querySelectorAll("#codeTasksContainer .code-task-row.drag-over").forEach(el => el.classList.remove("drag-over"));
+  if(draggingCodeTaskRow){
+    draggingCodeTaskRow.classList.remove("dragging");
+    draggingCodeTaskRow = null;
+  }
+}
 // Thin sidebar icon actions
 thinChatIcon?.addEventListener("click", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showChatTabsPanel);
+  void openPanelWithSidebar(showChatTabsPanel);
 });
 thinImagesIcon?.addEventListener("click", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showUploaderPanel);
+  void openPanelWithSidebar(showUploaderPanel);
 });
 thinArchiveIcon?.addEventListener("click", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showArchiveTabsPanel);
+  void openPanelWithSidebar(showArchiveTabsPanel);
 });
 thinCabinetIcon?.addEventListener("click", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showFileCabinetPanel);
+  void openPanelWithSidebar(showFileCabinetPanel);
 });
 thinPrintifyIcon?.addEventListener("click", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showPrintifyProductsPanel);
+  void openPanelWithSidebar(showPrintifyProductsPanel);
 });
 // Ensure taps on mobile trigger the same actions
 thinChatIcon?.addEventListener("touchstart", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showChatTabsPanel);
+  void openPanelWithSidebar(showChatTabsPanel);
 });
 thinImagesIcon?.addEventListener("touchstart", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showUploaderPanel);
+  void openPanelWithSidebar(showUploaderPanel);
 });
 thinArchiveIcon?.addEventListener("touchstart", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showArchiveTabsPanel);
+  void openPanelWithSidebar(showArchiveTabsPanel);
 });
 thinCabinetIcon?.addEventListener("touchstart", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showFileCabinetPanel);
+  void openPanelWithSidebar(showFileCabinetPanel);
 });
 thinPrintifyIcon?.addEventListener("touchstart", ev => {
   ev.preventDefault();
   ev.stopPropagation();
-  openPanelWithSidebar(showPrintifyProductsPanel);
+  void openPanelWithSidebar(showPrintifyProductsPanel);
 });
 
 (async function init(){
@@ -6855,6 +8893,13 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   console.log("[OBTAINED PROVIDER] =>", autoProvider);
   updateModelHud();
 
+  if(initialPathAlias === DESIGN_CHAT_ALIAS){
+    const info = await ensureDesignTabForSession();
+    if(info && info.uuid){
+      initialTabUuid = info.uuid;
+    }
+  }
+
   await loadTabs();
   await loadSubroutines();
   renderSubroutines();
@@ -6882,6 +8927,12 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     const firstActive = chatTabs.find(t => !t.archived);
     currentTabId = firstActive ? firstActive.id : chatTabs[0].id;
   }
+  if(initialPathAlias === '/code'){
+    const codeTab = chatTabs.find(t => t.tab_type === 'code' && !t.archived);
+    if(codeTab){
+      currentTabId = codeTab.id;
+    }
+  }
   {
     const firstTab = chatTabs.find(t => t.id === currentTabId);
     currentTabType = firstTab ? firstTab.tab_type || 'chat' : 'chat';
@@ -6890,6 +8941,17 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
     if(chk){
       chk.checked = tabGenerateImages;
       chk.disabled = currentTabType !== 'design';
+    }
+    updateRepeatButtonVisibility();
+  }
+  setCodeNavActiveState(currentTabType === 'code');
+  // If the user navigated directly to `/code` (via URL) we should hide the
+  // chat panel on initial load so the right-hand chat column remains blank.
+  if(initialPathAlias === '/code'){
+    showCodeTasksPanel();
+    const chatPanelEl = document.getElementById('chatPanel') || document.querySelector('.chat-panel');
+    if(chatPanelEl){
+      chatPanelEl.style.display = 'none';
     }
   }
   {
@@ -6905,9 +8967,13 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   if(chatTabs.length>0){
     await loadChatHistory(currentTabId, true);
     const ct = chatTabs.find(t => t.id === currentTabId);
-    if(ct && ct.tab_uuid){
-      if(window.location.pathname.startsWith('/chat/') && window.location.pathname !== '/new'){
-        window.history.replaceState({}, '', `/chat/${ct.tab_uuid}`);
+    const path = resolveTabPath(ct);
+    if(path){
+      const currentPath = window.location.pathname;
+      const isChatPath = currentPath.startsWith('/chat/');
+      const isCodePath = currentPath.startsWith('/code');
+      if((isChatPath || isCodePath) && currentPath !== '/new' && currentPath !== path){
+        window.history.replaceState({}, '', path);
       }
     }
     if(initialSearchMode){
@@ -6958,7 +9024,7 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   setupFileSorting();
   const uploaderContainer = document.getElementById("sidebarViewUploader");
   if(uploaderContainer){
-    uploaderContainer.addEventListener("scroll", async () => {
+    uploaderContainer?.addEventListener("scroll", async () => {
       if(uploaderContainer.scrollTop + uploaderContainer.clientHeight >= uploaderContainer.scrollHeight - 20){
         await loadNextFilePage();
       }
@@ -7010,14 +9076,15 @@ thinPrintifyIcon?.addEventListener("touchstart", ev => {
   if(!lastView) lastView = "chatTabs";
   switch(lastView){
     case "tasks": showTasksPanel(); break;
-    case "uploader": showUploaderPanel(); break;
+    case "uploader": await showUploaderPanel(); break;
     case "fileTree": showFileTreePanel(); break;
     case "fileCabinet": showFileCabinetPanel(); break;
-    case "chatTabs": showChatTabsPanel(); break;
+    case "chatTabs": void showChatTabsPanel(); break;
     case "archiveTabs": showArchiveTabsPanel(); break;
     case "activity": showActivityIframePanel(); break;
     case "printify": showPrintifyProductsPanel(); break;
-    default: showUploaderPanel(); break;
+    case "codeTasks": showCodeTasksPanel(); break;
+    default: await showUploaderPanel(); break;
   }
 
   updateView('chat');
@@ -7048,7 +9115,7 @@ function initChatScrollLoading(){
   const chatMessagesEl = document.getElementById("chatMessages");
   if(!chatMessagesEl) return;
 
-  chatMessagesEl.addEventListener("scroll", async ()=>{
+  chatMessagesEl?.addEventListener("scroll", async ()=>{
     if(chatMessagesEl.scrollTop < 50 && !chatHistoryLoading){
       console.debug(`[ChatHistory Debug] scrollTop=${chatMessagesEl.scrollTop}, chatHasMore=${chatHasMore}, offset=${chatHistoryOffset}`);
       if(chatHasMore){
@@ -7101,7 +9168,35 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
     const resp = await fetch(`/api/chat/history?tabId=${tabId}&limit=10&offset=${chatHistoryOffset}&sessionId=${encodeURIComponent(sessionId)}`);
     console.debug(`[ChatHistory Debug] Response status: ${resp.status}`);
     if(!resp.ok){
-      console.error("Error loading chat history from server");
+      const status = resp.status;
+      console.error(`Error loading chat history from server (status ${status})`);
+      chatHasMore = false;
+      if(reset && placeholderEl){
+        let heading = 'We couldn\'t open this chat.';
+        let detail = 'Try refreshing the page or choose another chat from the sidebar.';
+        if(status === 403){
+          detail = 'This chat belongs to a different browser session. Open one of your chats or start a new conversation.';
+        } else if(status === 404){
+          detail = 'This chat was not found. It may have been deleted or never existed.';
+        }
+        placeholderEl.innerHTML = `
+          <div class="chat-error-state">
+            <strong>${heading}</strong>
+            <p>${detail}</p>
+            <button type="button" class="chat-error-action" id="chatErrorNewTabBtn">Start a new task or ask a question</button>
+            <p><a href="/">Return to the task dashboard</a></p>
+          </div>`;
+        placeholderEl.style.display = '';
+        setTimeout(() => {
+          const newTabBtn = document.getElementById('chatErrorNewTabBtn');
+          if(newTabBtn){
+            newTabBtn?.addEventListener('click', ev => {
+              ev.preventDefault();
+              openNewTabModal();
+            }, { once: true });
+          }
+        });
+      }
       return;
     }
     const data = await resp.json();
@@ -7115,7 +9210,9 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
 
     if(reset){
       if(pairs.length === 0){
-        const greetingText = renderInitialGreeting();
+        const tabInfo = chatTabs.find(t => t.id === tabId);
+        const greetingMessage = tabInfo && tabInfo.tab_type === 'code' ? CODE_CHAT_GREETING : null;
+        const greetingText = renderInitialGreeting(greetingMessage);
         if(greetingText) persistPrefabGreeting(tabId, greetingText);
       } else {
         for (const p of pairs) {
@@ -7161,7 +9258,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
             uDel.className = "delete-chat-btn bubble-delete-btn";
             uDel.textContent = "🗑";
             uDel.title = "Delete user message";
-            uDel.addEventListener("click", async () => {
+            uDel?.addEventListener("click", async () => {
               if(!confirm("Delete this user message?")) return;
               const r = await fetch(`/api/chat/pair/${p.id}/user`, { method:"DELETE" });
               if(r.ok) userDiv.remove();
@@ -7170,7 +9267,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
             uCopy.className = "bubble-copy-btn";
             uCopy.textContent = "\u2398"; // copy icon
             uCopy.title = "Copy message";
-            uCopy.addEventListener("click", () => {
+            uCopy?.addEventListener("click", () => {
               navigator.clipboard.writeText(stripPlaceholderImageLines(p.user_text) || "");
               showToast("Copied to clipboard");
             });
@@ -7212,13 +9309,8 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         botHead.className = "bubble-header";
 
         const { provider, shortModel } = parseProviderModel(p.model);
-        let displayProvider = provider;
-        let displayShort = shortModel;
-        if(p.model && p.model.startsWith('openrouter/perplexity/')){
-          displayProvider = 'openrouter/perplexity';
-          displayShort = p.model.replace(/^openrouter\/perplexity\//, '');
-        }
-        const { label: providerLabel } = formatProviderDisplay(displayProvider);
+        const displayShort = shortModel;
+        const { label: providerLabel } = formatProviderDisplay(provider);
         const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
         const titleAttr = p.image_url ? "" : ` title="${providerTitle}"`;
         botHead.innerHTML = `
@@ -7228,7 +9320,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         aDel.className = "delete-chat-btn bubble-delete-btn";
         aDel.textContent = "🗑";
         aDel.title = "Delete AI reply";
-        aDel.addEventListener("click", async () => {
+        aDel?.addEventListener("click", async () => {
           if(!confirm("Delete this AI reply?")) return;
           const r = await fetch(`/api/chat/pair/${p.id}/ai`, { method:"DELETE" });
           if(r.ok) botDiv.remove();
@@ -7237,7 +9329,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         aCopy.className = "bubble-copy-btn";
         aCopy.textContent = "\u2398";
         aCopy.title = "Copy message";
-        aCopy.addEventListener("click", () => {
+        aCopy?.addEventListener("click", () => {
           navigator.clipboard.writeText(stripPlaceholderImageLines(p.ai_text) || "");
           showToast("Copied to clipboard");
         });
@@ -7252,7 +9344,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
           if(p.image_title) img.title = p.image_title;
           img.style.maxWidth = "min(100%, 400px)";
           img.style.height = "auto";
-          img.addEventListener('load', () => setTimeout(scrollChatToBottom, 1000));
+          img?.addEventListener('load', () => setTimeout(scrollChatToBottom, 1000));
           botDiv.appendChild(img);
         }
 
@@ -7307,8 +9399,15 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         pairDel.className = "delete-chat-btn pair-delete-btn";
         pairDel.textContent = "🗑";
         pairDel.title = "Delete this chat pair";
-        pairDel.addEventListener("click", async () => {
-          if(!confirm("Are you sure you want to delete this pair?")) return;
+        pairDel?.addEventListener("click", async () => {
+          const confirmed = await showConfirmDialog({
+            title: "Delete chat pair",
+            message: "Are you sure you want to delete this pair?",
+            confirmText: "Delete",
+            cancelText: "Cancel",
+            danger: true
+          });
+          if(!confirmed) return;
           const r = await fetch(`/api/chat/pair/${p.id}`, { method:"DELETE" });
           if(r.ok) seqDiv.remove();
         });
@@ -7365,7 +9464,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       userDelBtn.className = "delete-chat-btn bubble-delete-btn";
       userDelBtn.textContent = "🗑";
       userDelBtn.title = "Delete user message";
-      userDelBtn.addEventListener("click", async () => {
+      userDelBtn?.addEventListener("click", async () => {
         if (!confirm("Delete this user message?")) return;
         const resp = await fetch(`/api/chat/pair/${pairId}/user`, { method: "DELETE" });
         if (resp.ok) {
@@ -7378,7 +9477,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       userCopyBtn.className = "bubble-copy-btn";
       userCopyBtn.textContent = "\u2398";
       userCopyBtn.title = "Copy message";
-      userCopyBtn.addEventListener("click", () => {
+      userCopyBtn?.addEventListener("click", () => {
         navigator.clipboard.writeText(stripPlaceholderImageLines(userText) || "");
         showToast("Copied to clipboard");
       });
@@ -7386,7 +9485,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       userEditBtn.className = "bubble-edit-btn";
       userEditBtn.textContent = "✎";
       userEditBtn.title = "Edit user message";
-      userEditBtn.addEventListener("click", () => {
+      userEditBtn?.addEventListener("click", () => {
         openEditMessageModal(pairId, "user", userText, newText => {
           userText = newText;
           userBody.textContent = newText;
@@ -7427,13 +9526,8 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
   const { provider, shortModel } = parseProviderModel(model);
-  let displayProvider = provider;
-  let displayShort = shortModel;
-  if(model && model.startsWith('openrouter/perplexity/')){
-    displayProvider = 'openrouter/perplexity';
-    displayShort = model.replace(/^openrouter\/perplexity\//, '');
-  }
-  const { label: providerLabel } = formatProviderDisplay(displayProvider);
+  const displayShort = shortModel;
+  const { label: providerLabel } = formatProviderDisplay(provider);
   const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
   const titleAttr = imageUrl ? "" : ` title="${providerTitle}"`;
   botHead.innerHTML = `<div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>`;
@@ -7441,7 +9535,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   aiDelBtn.className = "delete-chat-btn bubble-delete-btn";
   aiDelBtn.textContent = "🗑";
   aiDelBtn.title = "Delete AI reply";
-  aiDelBtn.addEventListener("click", async () => {
+  aiDelBtn?.addEventListener("click", async () => {
     if (!confirm("Delete this AI reply?")) return;
     const resp = await fetch(`/api/chat/pair/${pairId}/ai`, { method: "DELETE" });
     if (resp.ok) {
@@ -7454,7 +9548,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   aiCopyBtn.className = "bubble-copy-btn";
   aiCopyBtn.textContent = "\u2398";
   aiCopyBtn.title = "Copy message";
-  aiCopyBtn.addEventListener("click", () => {
+  aiCopyBtn?.addEventListener("click", () => {
     navigator.clipboard.writeText(stripPlaceholderImageLines(aiText) || "");
     showToast("Copied to clipboard");
   });
@@ -7462,7 +9556,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   aiEditBtn.className = "bubble-edit-btn";
   aiEditBtn.textContent = "✎";
   aiEditBtn.title = "Edit AI reply";
-  aiEditBtn.addEventListener("click", () => {
+  aiEditBtn?.addEventListener("click", () => {
     openEditMessageModal(pairId, "ai", aiText, newText => {
       aiText = newText;
       botBody.textContent = stripPlaceholderImageLines(newText);
@@ -7689,8 +9783,15 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   pairDelBtn.className = "delete-chat-btn pair-delete-btn";
   pairDelBtn.textContent = "🗑";
   pairDelBtn.title = "Delete this chat pair";
-  pairDelBtn.addEventListener("click", async () => {
-    if (!confirm("Are you sure you want to delete this pair?")) return;
+  pairDelBtn?.addEventListener("click", async () => {
+    const confirmed = await showConfirmDialog({
+      title: "Delete chat pair",
+      message: "Are you sure you want to delete this pair?",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      danger: true
+    });
+    if (!confirmed) return;
     const resp = await fetch(`/api/chat/pair/${pairId}`, { method: "DELETE" });
     if (resp.ok) {
       seqDiv.remove();
@@ -7728,7 +9829,7 @@ async function initModelTabs() {
   }
   const newModelTabBtn = document.getElementById("newModelTabBtn");
   if(newModelTabBtn){
-    newModelTabBtn.addEventListener("click", openAddModelModal);
+    newModelTabBtn?.addEventListener("click", openAddModelModal);
   }
 }
 
@@ -7767,7 +9868,7 @@ function renderModelTabs(){
       serviceSelect.appendChild(opt);
     });
     serviceSelect.value = tab.service || "openai";
-    serviceSelect.addEventListener("change", async (evt)=>{
+    serviceSelect?.addEventListener("change", async (evt)=>{
       tab.service = evt.target.value;
       await saveModelTabs();
     });
@@ -7777,17 +9878,17 @@ function renderModelTabs(){
     delBtn.textContent = "🗑";
     delBtn.className = "model-delete-btn";
     delBtn.title = "Delete";
-    delBtn.addEventListener("click", e => { e.stopPropagation(); deleteModelTab(tab.id); });
+    delBtn?.addEventListener("click", e => { e.stopPropagation(); deleteModelTab(tab.id); });
     b.appendChild(delBtn);
 
     // Click => select this tab
-    b.addEventListener("click", (ev)=>{
+    b?.addEventListener("click", (ev)=>{
       if(ev.target===serviceSelect) return;
       selectModelTab(tab.id);
     });
 
     // Right-click => rename or delete
-    b.addEventListener("contextmenu", e=>{
+    b?.addEventListener("contextmenu", e=>{
       e.preventDefault();
       const choice=prompt("Type 'rename', 'fork', or 'delete':","");
       if(choice==="rename") renameModelTab(tab.id);
@@ -7907,7 +10008,7 @@ async function saveModelTabs(){
 
 const toggleModelTabsBtn = document.getElementById("toggleModelTabsBtn");
 if(toggleModelTabsBtn){
-  toggleModelTabsBtn.addEventListener("click", async () => {
+  toggleModelTabsBtn?.addEventListener("click", async () => {
     const cont = document.getElementById("modelTabsContainer");
     const newBtn = document.getElementById("newModelTabBtn");
     const toggleBtn = document.getElementById("toggleModelTabsBtn");
@@ -7932,7 +10033,7 @@ if(toggleModelTabsBtn){
 // ----------------------------------------------------------------------
 {
   const btn = document.getElementById("changeSterlingBranchBtn");
-  if(btn) btn.addEventListener("click", () => {
+  if(btn) btn?.addEventListener("click", () => {
     showModal($("#changeBranchModal"));
   });
 }
@@ -7940,14 +10041,14 @@ if(toggleModelTabsBtn){
 // Cancel button for branch
 {
   const cancelBtn = document.getElementById("sterlingBranchCancelBtn");
-  if(cancelBtn) cancelBtn.addEventListener("click", () => {
+  if(cancelBtn) cancelBtn?.addEventListener("click", () => {
     hideModal($("#changeBranchModal"));
   });
 }
 
 // Save button for branch
 const saveBtnSterling = document.getElementById("sterlingBranchSaveBtn");
-if(saveBtnSterling) saveBtnSterling.addEventListener("click", async () => {
+if(saveBtnSterling) saveBtnSterling?.addEventListener("click", async () => {
   const createNew = $("#createSterlingNewBranchCheck").checked;
   const branchName = $("#sterlingBranchNameInput").value.trim();
   const msgElem = $("#sterlingBranchMsg");
@@ -7987,11 +10088,11 @@ if(saveBtnSterling) saveBtnSterling.addEventListener("click", async () => {
 // ----------------------------------------------------------------------
 {
   const btn = document.getElementById("projectSearchBtn");
-  if(btn) btn.addEventListener("click", projectSearch);
+  if(btn) btn?.addEventListener("click", projectSearch);
   const inp = document.getElementById("projectSearchInput");
-  if(inp) inp.addEventListener("keydown", e => { if(e.key === "Enter") projectSearch(); });
+  if(inp) inp?.addEventListener("keydown", e => { if(e.key === "Enter") projectSearch(); });
   const closeBtn = document.getElementById("searchResultsCloseBtn");
-  if(closeBtn) closeBtn.addEventListener("click", () => {
+  if(closeBtn) closeBtn?.addEventListener("click", () => {
     hideModal(document.getElementById("searchResultsModal"));
   });
 }
@@ -8264,7 +10365,7 @@ async function openAiFavoritesModal(){
           star.dataset.modelid = m.id;
           star.className = m.favorite ? "favorite-star starred" : "favorite-star unstarred";
           star.textContent = m.favorite ? "★" : "☆";
-          star.addEventListener("click", async () => {
+          star?.addEventListener("click", async () => {
             const newFav = !star.classList.contains("starred");
             try {
               const r = await fetch("/api/ai/favorites", {
@@ -8538,7 +10639,7 @@ document.getElementById("imageUploadInput").addEventListener("change", async (ev
 });
 
 // Allow pasting images directly into the chat input (currently disabled)
-chatInputEl.addEventListener("paste", (ev) => {
+chatInputEl?.addEventListener("paste", (ev) => {
   if(!pasteImageUploadsEnabled || !imageUploadEnabled) return;
   const items = ev.clipboardData && ev.clipboardData.items;
   if(!items) return;
@@ -8576,7 +10677,7 @@ function updateImagePreviewList(){
     const rmBtn = document.createElement("button");
     rmBtn.textContent = "Remove";
     rmBtn.style.marginLeft="8px";
-    rmBtn.addEventListener("click", () => {
+    rmBtn?.addEventListener("click", () => {
       pendingImages.splice(idx,1);
       updateImagePreviewList();
     });
@@ -8607,7 +10708,7 @@ function addImageChatBubble(url, altText="", title=""){
   imgCopyBtn.className = "bubble-copy-btn";
   imgCopyBtn.textContent = "\u2398";
   imgCopyBtn.title = "Copy alt text";
-  imgCopyBtn.addEventListener("click", () => {
+  imgCopyBtn?.addEventListener("click", () => {
     navigator.clipboard.writeText(stripPlaceholderImageLines(altText) || "");
     showToast("Copied to clipboard");
   });
@@ -8620,7 +10721,7 @@ function addImageChatBubble(url, altText="", title=""){
   if(title) img.title = title;
   img.style.maxWidth = "min(100%, 400px)";
   img.style.height = "auto";
-  img.addEventListener('load', () => setTimeout(scrollChatToBottom, 1000));
+  img?.addEventListener('load', () => setTimeout(scrollChatToBottom, 1000));
   botDiv.appendChild(img);
 
   seqDiv.appendChild(botDiv);
@@ -8668,6 +10769,10 @@ registerActionHook("generateImage", async ({response}) => {
     if(chatSendBtnEl) chatSendBtnEl.disabled = true;
     showImageGenerationIndicator();
     const payload = { prompt, tabId: currentTabId, provider: imageGenService, model: imageGenModel, sessionId };
+    if(currentTabType === 'design'){
+      payload.provider = 'openai';
+      payload.model = 'gptimage1';
+    }
     console.log('[Hook generateImage] sending request to /api/image/generate', payload);
     let r;
     try {
@@ -8681,8 +10786,15 @@ registerActionHook("generateImage", async ({response}) => {
       hideImageGenerationIndicator();
       isImageGenerating = false;
       lastImagePrompt = null;
-      if(chatSendBtnEl) chatSendBtnEl.disabled = false;
+      if(chatSendBtnEl){
+        chatSendBtnEl.disabled = false;
+        updateRepeatButtonVisibility();
+      }
       processNextQueueMessage();
+      if(typeof showToast === "function"){
+        const msg = fetchErr?.message ? `Image generation failed: ${fetchErr.message}` : "Image generation failed";
+        showToast(msg, 4000);
+      }
       return;
     }
     console.log('[Hook generateImage] response status', r.status);
@@ -8694,12 +10806,18 @@ registerActionHook("generateImage", async ({response}) => {
     hideImageGenerationIndicator();
     isImageGenerating = false;
     lastImagePrompt = null;
-    if(chatSendBtnEl) chatSendBtnEl.disabled = false;
+    if(chatSendBtnEl){
+      chatSendBtnEl.disabled = false;
+      updateRepeatButtonVisibility();
+    }
     processNextQueueMessage();
-    const data = await r.json();
+    const data = await r.json().catch(jsonErr => {
+      console.error('[Hook generateImage] failed to parse JSON:', jsonErr);
+      return {};
+    });
     if(r.ok && data.url){
       await loadChatHistory(currentTabId, true);
-      updateImageLimitInfo();
+      updateUsageLimitInfo();
       if(sidebarViewUploader && sidebarViewUploader.style.display !== "none"){
         await loadFileList();
       }
@@ -8707,15 +10825,30 @@ registerActionHook("generateImage", async ({response}) => {
         setTimeout(runImageLoop, 0);
       }
     } else {
-      console.error('[Hook generateImage] API error:', data.error);
+      const errorMessage = data?.error || "Image generation failed";
+      console.error('[Hook generateImage] API error:', errorMessage);
+      if(r.status === 429 || data?.type === 'image_session_limit' || data?.type === 'image_ip_limit' || /limit/i.test(errorMessage)){
+        showUsageLimitModal('image', errorMessage);
+        updateUsageLimitInfo();
+      }
+      if(typeof showToast === "function"){
+        showToast(errorMessage, 4000);
+      }
     }
   } catch(err){
     hideImageGenerationIndicator();
     isImageGenerating = false;
     lastImagePrompt = null;
-    if(chatSendBtnEl) chatSendBtnEl.disabled = false;
+    if(chatSendBtnEl){
+      chatSendBtnEl.disabled = false;
+      updateRepeatButtonVisibility();
+    }
     processNextQueueMessage();
     console.error('[Hook generateImage] failed:', err);
+    if(typeof showToast === "function"){
+      const msg = err?.message ? `Image generation failed: ${err.message}` : "Image generation failed";
+      showToast(msg, 4000);
+    }
   }
 });
 
@@ -8740,16 +10873,21 @@ registerActionHook("embedMockImages", async ({response}) => {
     if(processedPlaceholders.has(placeholder)) continue;
     processedPlaceholders.add(placeholder);
     try {
+      const payload = { prompt: alt, tabId: currentTabId, provider: imageGenService, model: imageGenModel, sessionId };
+      if(currentTabType === 'design'){
+        payload.provider = 'openai';
+        payload.model = 'gptimage1';
+      }
       const r = await fetch('/api/image/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: alt, tabId: currentTabId, provider: imageGenService, model: imageGenModel, sessionId })
+        body: JSON.stringify(payload)
       });
       const data = await r.json();
       if(r.ok && data.url){
         const imgTag = `<img src="${data.url}" alt="${alt}" style="max-width:100%;height:auto;">`;
         html = html.replace(placeholder, imgTag);
-        updateImageLimitInfo();
+        updateUsageLimitInfo();
       }
     } catch(err){
       console.error('[Hook embedMockImages] failed:', err);
@@ -8759,13 +10897,26 @@ registerActionHook("embedMockImages", async ({response}) => {
   scrollChatToBottom();
 });
 
+const searchToggleBtn = document.getElementById("searchToggleBtn");
+if(searchToggleBtn){
+  updateSearchButton();
+  searchToggleBtn?.addEventListener("click", async () => {
+    searchToggleBtn.disabled = true;
+    try {
+      await toggleSearch();
+    } finally {
+      searchToggleBtn.disabled = false;
+    }
+  });
+}
+
 const reasoningToggleBtn = document.getElementById("reasoningToggleBtn");
 if(reasoningToggleBtn){
   reasoningToggleBtn.hidden = true;
   reasoningToggleBtn.style.display = "none";
-  reasoningToggleBtn.addEventListener("click", toggleReasoning);
-  reasoningToggleBtn.addEventListener("mouseenter", showReasoningTooltip);
-  reasoningToggleBtn.addEventListener("mouseleave", scheduleHideReasoningTooltip);
+  reasoningToggleBtn?.addEventListener("click", toggleReasoning);
+  reasoningToggleBtn?.addEventListener("mouseenter", showReasoningTooltip);
+  reasoningToggleBtn?.addEventListener("mouseleave", scheduleHideReasoningTooltip);
 }
 document.getElementById("codexToggleBtn")?.addEventListener("click", toggleCodexMini);
 document.addEventListener('click', e => {
@@ -8780,3 +10931,29 @@ document.addEventListener('click', e => {
 });
 
 console.log("[Server Debug] main.js fully loaded. End of script.");
+
+
+// Allow pasting into password fields - added by agent
+(function(){
+  const ids = ['signupPassword','signupConfirm','loginPassword','currentPassword','newPassword','confirmPassword'];
+  function allow(e){
+    // stop propagation to prevent other handlers from blocking the event
+    try{ e.stopPropagation(); }catch(err){}
+    return true;
+  }
+  function attach(){
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if(el){
+        el.addEventListener('paste', allow, true);
+        el.addEventListener('copy', allow, true);
+        el.addEventListener('cut', allow, true);
+      }
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
+})();

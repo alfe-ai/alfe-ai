@@ -3,7 +3,9 @@ import https from 'https';
 
 export default class JobQueueApi {
   constructor({ baseURL } = {}) {
-    this.baseURL = baseURL || 'http://localhost:3000';
+    const envPort = process.env.AURORA_PORT || process.env.PORT;
+const defaultBase = envPort ? `http://localhost:${envPort}` : 'http://localhost:3000';
+this.baseURL = baseURL || defaultBase;
     this.axios = axios.create({
       baseURL: this.baseURL,
       httpsAgent: this.baseURL.startsWith('https://')

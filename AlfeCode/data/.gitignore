@@ -1,0 +1,5 @@
+*.json
+!openrouter_transactions.json
+!config/repo_config.json
+!sessions/default/config/repo_config.json
+!sessions/default/codex_runs.json

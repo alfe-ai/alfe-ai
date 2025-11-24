@@ -1,0 +1,543 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# run_codex.sh — run Agent CLI non-interactive & suppress dconf warnings
+# Resolves Agent from a fixed install dir, but lets you run it *in* another project dir.
+#
+# Usage:
+#   ./run_codex.sh [--project-dir DIR | -C DIR] "task description"
+#
+# Env overrides:
+#   CODEX_DIR   : where Agent is installed (default below)
+#   PROJECT_DIR : directory to run the CLI in (same as --project-dir)
+#   CODEX_MODEL : default model to use (fallback: openrouter/openai/gpt-5-mini)
+
+CODEX_DIR_DEFAULT='/git/codex'
+CODEX_DIR="${CODEX_DIR:-$CODEX_DIR_DEFAULT}"
+PROJECT_DIR="${PROJECT_DIR:-}"
+CODEX_MODEL_DEFAULT='openrouter/openai/gpt-5-mini'
+MODEL="${MODEL:-${CODEX_MODEL:-$CODEX_MODEL_DEFAULT}}"
+CODEX_SNAPSHOT_MARKER='::CODEX_RUNNER_PROJECT_DIR::'
+CODEX_API_KEY_VARS=("OPENAI_API_KEY" "OPENROUTER_API_KEY")
+REQUESTED_PROVIDER=""
+DETECTED_API_KEY_VAR=""
+CODEX_SHOW_META="${CODEX_SHOW_META:-0}"
+OPENROUTER_HTTP_REFERER_OVERRIDE=""
+OPENROUTER_TITLE_OVERRIDE=""
+
+escape_config_value() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//"/\\"}"
+  printf '%s' "$value"
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STERLING_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+GLOBAL_TASK_COUNTER_CLI="${GLOBAL_TASK_COUNTER_CLI:-${STERLING_ROOT}/executable/globalTaskCounter.js}"
+
+meta_line_text() {
+  printf '[meta] %s' "$1"
+}
+
+should_show_meta() {
+  case "${CODEX_SHOW_META,,}" in
+    1|true|yes|on) return 0 ;;
+  esac
+  return 1
+}
+
+log_meta() {
+  if should_show_meta; then
+    printf '%s\n' "$(meta_line_text "$1")" >&2
+  fi
+}
+
+log_meta "Agent runner context: user=$(id -un 2>/dev/null || whoami) (uid=$(id -u 2>/dev/null || echo "?") gid=$(id -g 2>/dev/null || echo "?")) pwd=$(pwd)"
+
+META_OPENROUTER_UNSET_MSG='OPENAI_API_KEY unset for this run to ensure OpenRouter provider usage.'
+OPENROUTER_UNSET_NOTICE="$(meta_line_text "$META_OPENROUTER_UNSET_MSG")"
+
+usage() {
+  cat <<USAGE
+Usage: ./run_codex.sh [--project-dir DIR | -C DIR] [--model MODEL] [--openrouter-referer URL] [--openrouter-title TITLE] "<task-description>"
+
+This wrapper resolves the Agent binary from:
+  npm exec --prefix "\$CODEX_DIR" codex …
+
+Default CODEX_DIR: $CODEX_DIR_DEFAULT
+Override with: export CODEX_DIR=/path/to/codex
+
+Use --project-dir (or -C) to run Agent *from* a different project directory
+without changing your current shell's cwd.
+
+Use --model (or set CODEX_MODEL/MODEL env vars) to pick a specific OpenAI model.
+Use --openrouter-referer/--openrouter-title to override the HTTP headers used when contacting OpenRouter.
+Default: openrouter/openai/gpt-5-mini.
+
+If no task is provided, an interactive Agent session is started.
+
+This script now always loads OPENAI_API_KEY or OPENROUTER_API_KEY from the nearest .env (project dir → cwd → script dir).
+--model MODEL  : OpenAI/OpenRouter model ID to pass to Agent (ex: openrouter/openai/gpt-5-mini, openai/gpt-4o-mini).
+USAGE
+}
+
+load_env_file() {
+  local dir="$1"
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$dir/.env" ]]; then
+      echo "$dir/.env"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+
+infer_codex_provider() {
+  local model="$1"
+  if [[ "$model" == openrouter/* ]]; then
+    echo "openrouter"
+  else
+    echo "openai"
+  fi
+}
+
+resolve_codex_api_key_var() {
+  local search_order=("${CODEX_API_KEY_VARS[@]}")
+  if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+    search_order=("OPENROUTER_API_KEY")
+  fi
+
+  local var_name
+  for var_name in "${search_order[@]}"; do
+    if [[ -n "${!var_name:-}" ]]; then
+      DETECTED_API_KEY_VAR="$var_name"
+      return 0
+    fi
+  done
+
+  DETECTED_API_KEY_VAR=""
+  return 1
+}
+
+ensure_codex_api_key() {
+  local failure_message="$1"
+
+  if resolve_codex_api_key_var; then
+    log_meta "Using ${DETECTED_API_KEY_VAR} from existing environment."
+    return 0
+  fi
+
+  local env_path=""
+  local search_dirs=()
+
+  if [[ -n "${PROJECT_DIR:-}" ]]; then
+    local project_dir_abs
+    if project_dir_abs="$(cd "$PROJECT_DIR" 2>/dev/null && pwd)"; then
+      search_dirs+=("$project_dir_abs")
+    fi
+  fi
+
+  search_dirs+=("$(pwd)" "$SCRIPT_DIR")
+
+  local dir
+  for dir in "${search_dirs[@]}"; do
+    if env_path="$(load_env_file "$dir")"; then
+      set -a
+      # shellcheck disable=SC1090
+      source "$env_path"
+      set +a
+      if resolve_codex_api_key_var; then
+        log_meta "Loaded ${DETECTED_API_KEY_VAR} from $env_path"
+        return 0
+      fi
+    fi
+  done
+
+  if [[ -n "$failure_message" ]]; then
+    echo "$failure_message" >&2
+  fi
+  return 1
+}
+
+# Basic validations
+if [[ ! -d "$CODEX_DIR" ]]; then
+  echo "Error: CODEX_DIR does not exist: $CODEX_DIR" >&2
+  exit 1
+fi
+
+API_KEY_MODE=true
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --api-key-mode)
+      log_meta "--api-key-mode flag detected; API key mode is now always enabled by default."
+      shift ;;
+    --no-api-key-mode)
+      echo "Error: --no-api-key-mode is no longer supported; Agent runs always require OPENAI_API_KEY." >&2
+      exit 1 ;;
+    --project-dir|-C)
+      [[ $# -ge 2 ]] || { echo "Error: --project-dir requires a path" >&2; exit 1; }
+      PROJECT_DIR="$2"; shift 2 ;;
+    --model)
+      [[ $# -ge 2 ]] || { echo "Error: --model requires a model id" >&2; exit 1; }
+      MODEL="$2"; shift 2 ;;
+    --openrouter-referer)
+      [[ $# -ge 2 ]] || { echo "Error: --openrouter-referer requires a URL" >&2; exit 1; }
+      OPENROUTER_HTTP_REFERER_OVERRIDE="$2"; shift 2 ;;
+    --openrouter-title)
+      [[ $# -ge 2 ]] || { echo "Error: --openrouter-title requires a title" >&2; exit 1; }
+      OPENROUTER_TITLE_OVERRIDE="$2"; shift 2 ;;
+    --help|-h)
+      usage; exit 0 ;;
+    --) shift; break ;;
+    -*)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1 ;;
+    *)
+      break ;;
+  esac
+done
+
+TASK="$*"
+
+MODEL="${MODEL:-$CODEX_MODEL_DEFAULT}"
+REQUESTED_PROVIDER="$(infer_codex_provider "$MODEL")"
+
+EFFECTIVE_MODEL="$MODEL"
+if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+  EFFECTIVE_MODEL="${EFFECTIVE_MODEL#openrouter/}"
+fi
+
+MODEL_ARGS=()
+if [[ -n "$EFFECTIVE_MODEL" ]]; then
+  MODEL_ARGS=(--model "$EFFECTIVE_MODEL")
+fi
+
+CONFIG_ARGS=()
+if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+  raw_referer_override="${OPENROUTER_HTTP_REFERER_OVERRIDE:-${OPENROUTER_HTTP_REFERER:-${HTTP_REFERER:-}}}"
+  if [[ -n "${raw_referer_override}" ]]; then
+    referer_value_base="${raw_referer_override}"
+  else
+    session_hash="${SESSION_ID:-${SESSION:-${SESSIONID:-code-s}}}"
+    referer_value_base="https://${session_hash}"
+  fi
+  base_title_value="${OPENROUTER_TITLE_OVERRIDE:-${OPENROUTER_APP_TITLE:-${X_TITLE:-Agent via OpenRouter}}}"
+  title_value="$base_title_value"
+
+  referer_effective="$referer_value_base"
+  global_task_meta=""
+  global_task_id=""
+  if command -v node >/dev/null 2>&1 && [[ -f "$GLOBAL_TASK_COUNTER_CLI" ]]; then
+    if task_info_output="$(node "$GLOBAL_TASK_COUNTER_CLI" next-info "$base_title_value" 2>/dev/null)"; then
+      if [[ "$task_info_output" == *$'\t'* ]]; then
+        global_task_id="${task_info_output%%$'\t'*}"
+        appended_title="${task_info_output#*$'\t'}"
+      else
+        appended_title="$task_info_output"
+        global_task_id=""
+      fi
+      if [[ -n "$appended_title" ]]; then
+        title_value="$appended_title"
+      fi
+      if [[ -n "$global_task_id" ]]; then
+        if [[ -n "${raw_referer_override}" ]]; then
+          referer_effective="${referer_value_base}${global_task_id}"
+        else
+          referer_effective="${referer_value_base}.${global_task_id}.alfe.sh"
+        fi
+        global_task_meta=" [global task id ${global_task_id} appended]"
+      else
+        global_task_meta=" [global task id missing]"
+      fi
+    else
+      global_task_meta=" [global task counter error]"
+    fi
+  else
+    global_task_meta=" [global task counter unavailable]"
+  fi
+  referer_value="$referer_effective"
+  referer_config=$(escape_config_value "$referer_value")
+  title_config=$(escape_config_value "$title_value")
+  CONFIG_ARGS=(
+    -c 'model_providers.openrouter.name="OpenRouter"'
+    -c 'model_providers.openrouter.base_url="https://openrouter.ai/api/v1"'
+    -c 'model_providers.openrouter.env_key="OPENROUTER_API_KEY"'
+    -c 'model_providers.openrouter.wire_api="chat"'
+    -c "model_providers.openrouter.http_headers={ HTTP-Referer = \"${referer_config}\", X-Title = \"${title_config}\" }"
+    -c 'model_provider="openrouter"'
+  )
+  log_meta "OpenRouter HTTP headers override: Referer=${referer_value}, X-Title=${title_value}${global_task_meta}"
+fi
+
+# Optionally load API key
+if $API_KEY_MODE; then
+  if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+    failure_message="Error: Agent runs for OpenRouter models require OPENROUTER_API_KEY. Export one or place it in a nearby .env file."
+  else
+    failure_message="Error: Agent runs require OPENAI_API_KEY or OPENROUTER_API_KEY. Export one or place it in a nearby .env file."
+  fi
+  if ! ensure_codex_api_key "$failure_message"; then
+    exit 1
+  fi
+fi
+
+# Runner that resolves codex from CODEX_DIR (handles spaces)
+run_codex() {
+  {
+    printf '[trace] run_codex(): start %s\n' "$(date -Is)"
+    printf '[trace] run_codex(): invoked with %s args -> %s\n' "$#" "$*"
+    printf '[trace] run_codex(): launching Agent via npm exec...\n'
+  } >&2
+  # npx lacks a stable --prefix; use npm exec with --prefix to target the install. :contentReference[oaicite:2]{index=2}
+  local -a cmd=(npm exec --prefix "$CODEX_DIR" codex -- "$@")
+  local unset_openai=false
+  if command -v stdbuf >/dev/null 2>&1; then
+    cmd=(stdbuf -o0 -e0 "${cmd[@]}")
+  fi
+  if [[ "$REQUESTED_PROVIDER" == "openrouter" && "$DETECTED_API_KEY_VAR" == "OPENROUTER_API_KEY" ]]; then
+    unset_openai=true
+    cmd=(env -u OPENAI_API_KEY "${cmd[@]}")
+  fi
+  if $unset_openai; then
+    log_meta "$META_OPENROUTER_UNSET_MSG"
+  fi
+  "${cmd[@]}"
+}
+
+maybe_git_pull() {
+  local dir="$1"
+
+  if [[ -z "$dir" ]]; then
+    dir="$(pwd)"
+  fi
+
+  if [[ ! -d "$dir" ]]; then
+    return 0
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    log_meta "Updating git repository at $dir before Agent run."
+    if ! git -C "$dir" pull --ff-only; then
+      echo "Warning: git pull failed in $dir. Continuing without updated changes." >&2
+    fi
+  fi
+}
+
+sanitize_branch_component() {
+  local component="$1"
+  # Replace any disallowed characters with dashes to keep the branch name valid.
+  component="${component//[^A-Za-z0-9._-]/-}"
+  # Trim leading or trailing dashes or dots which git treats specially.
+  component="${component##[-.]*}"
+  component="${component%%[-.]*}"
+  if [[ -z "$component" ]]; then
+    component="run"
+  fi
+  printf '%s' "$component"
+}
+
+# Execute either in current dir or a provided project dir (via subshell)
+run_here_or_in_project() {
+  if [[ -n "${PROJECT_DIR}" ]]; then
+    if [[ ! -d "$PROJECT_DIR" ]]; then
+      echo "Error: project directory not found: $PROJECT_DIR" >&2
+      return 2
+    fi
+    maybe_git_pull "$PROJECT_DIR"
+    # Before running, create a copy of the current repository and create a
+    # git branch for this run. The copy path uses the millisecond timestamp
+    # so each run snapshot is unique.
+    local repo_root=""
+    if command -v git >/dev/null 2>&1; then
+      repo_root="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+    fi
+    if [[ -z "$repo_root" ]]; then
+      repo_root="$PROJECT_DIR"
+    fi
+
+    local py_bin
+    if command -v python3 >/dev/null 2>&1; then
+      py_bin="python3"
+    elif command -v python >/dev/null 2>&1; then
+      py_bin="python"
+    else
+      echo "Error: Python interpreter not found; cannot create snapshot timestamp." >&2
+      return 1
+    fi
+
+    local ts_ms
+    ts_ms=$("$py_bin" - <<'PY2'
+import time
+print(int(time.time()*1000))
+PY2
+)
+
+    local snapshot_dir
+    snapshot_dir="${repo_root%/}-${ts_ms}"
+    if [[ ! -d "$snapshot_dir" ]]; then
+      log_meta "Creating project snapshot at $snapshot_dir"
+      mkdir -p "${snapshot_dir%/*}"
+      cp -a "$repo_root" "$snapshot_dir"
+    else
+      log_meta "Snapshot dir already exists: $snapshot_dir"
+    fi
+
+    printf '__STERLING_SNAPSHOT_DIR__=%s\n' "$snapshot_dir"
+
+    # Determine a run number via the global task counter (if available) and
+    # create a branch name under /alfe/<run#>. If the counter isn't
+    # available, fall back to a timestamp-based branch name.
+    local run_id
+    if command -v node >/dev/null 2>&1 && [[ -f "$GLOBAL_TASK_COUNTER_CLI" ]]; then
+      run_id="$(node "$GLOBAL_TASK_COUNTER_CLI" next-id 2>/dev/null || true)"
+    fi
+    local branch_suffix_raw
+    if [[ -n "$run_id" ]]; then
+      branch_suffix_raw="$run_id"
+    else
+      branch_suffix_raw="$ts_ms"
+    fi
+    local branch_suffix
+    branch_suffix="$(sanitize_branch_component "$branch_suffix_raw")"
+    if [[ -z "$branch_suffix" ]]; then
+      branch_suffix="$(sanitize_branch_component "$ts_ms")"
+    fi
+    local branch_name
+    branch_name="alfe/${branch_suffix}"
+
+    # If the snapshot is a git repo, create and checkout the branch there.
+    if [[ -d "$snapshot_dir/.git" ]]; then
+      local starting_branch
+      starting_branch="$(git -C "$snapshot_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+      if [[ -z "$starting_branch" || "$starting_branch" == "HEAD" ]]; then
+        starting_branch=""
+      fi
+
+      log_meta "Creating git branch '$branch_name' in snapshot"
+      git -C "$snapshot_dir" checkout -b "$branch_name" || true
+
+      if [[ -n "$starting_branch" && "$starting_branch" != "$branch_name" ]]; then
+        if git -C "$snapshot_dir" config branch."$branch_name".sterlingParent "$starting_branch" 2>/dev/null; then
+          log_meta "Recorded '$starting_branch' as parent for '$branch_name'"
+        else
+          log_meta "Warning: unable to record '$starting_branch' as parent for '$branch_name'"
+        fi
+      fi
+    else
+      log_meta "Snapshot is not a git repository; skipping branch creation"
+    fi
+
+    log_meta "Agent run will execute in snapshot directory: $snapshot_dir"
+    printf '%s%s\n' "$CODEX_SNAPSHOT_MARKER" "$snapshot_dir"
+
+    (
+      export CODEX_ORIGINAL_PROJECT_DIR="$PROJECT_DIR"
+      export CODEX_EFFECTIVE_PROJECT_DIR="$snapshot_dir"
+      export PROJECT_DIR="$snapshot_dir"
+      cd "$snapshot_dir" && run_codex "$@"
+    )
+  else
+    maybe_git_pull "$(pwd)"
+    run_codex "$@"
+  fi
+}
+
+
+filter_stdout_for_openrouter_notice() {
+  local stdout_path="$1"
+
+  if grep -qF "$OPENROUTER_UNSET_NOTICE" "$stdout_path"; then
+    awk -v notice="$OPENROUTER_UNSET_NOTICE" '
+      BEGIN {seen_notice = 0}
+      {
+        if (!seen_notice) {
+          if (index($0, notice)) {
+            seen_notice = 1
+          }
+          next
+        }
+        print
+      }
+    ' "$stdout_path"
+  else
+    cat "$stdout_path"
+  fi
+}
+
+filter_stdout_for_meta_lines() {
+  local stdout_path="$1"
+  if should_show_meta; then
+    cat "$stdout_path"
+  else
+    awk 'index($0, "[meta]") == 0' "$stdout_path"
+  fi
+}
+
+emit_filtered_stdout() {
+  local stdout_path="$1"
+  local processed_path="$stdout_path"
+  local tmp_file=""
+
+  if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+    tmp_file="$(mktemp)"
+    filter_stdout_for_openrouter_notice "$processed_path" >"$tmp_file"
+    processed_path="$tmp_file"
+  fi
+
+  filter_stdout_for_meta_lines "$processed_path"
+
+  if [[ -n "$tmp_file" ]]; then
+    rm -f "$tmp_file"
+  fi
+}
+
+run_with_filtered_streams() {
+  local stdout_tmp
+  stdout_tmp="$(mktemp)"
+
+  local status
+  if run_here_or_in_project "$@" \
+      >"$stdout_tmp" \
+      2> >(grep --line-buffered -v "dconf-CRITICAL" >&2); then
+    status=0
+  else
+    status=$?
+  fi
+
+  emit_filtered_stdout "$stdout_tmp"
+
+  rm -f "$stdout_tmp"
+  return $status
+}
+
+run_with_filtered_stderr() {
+  run_here_or_in_project "$@" \
+    2> >(grep --line-buffered -v "dconf-CRITICAL" >&2)
+  return ${PIPESTATUS[0]:-$?}
+}
+
+if [[ -z "$TASK" ]]; then
+  usage
+  echo "Starting interactive Agent session..."
+  log_meta "Using Agent model: $MODEL"
+  # Interactive
+  run_with_filtered_stderr "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}"
+  exit $?
+fi
+
+# Non-interactive
+set +e
+log_meta "Using Agent model: $MODEL"
+run_with_filtered_streams exec "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" --full-auto --skip-git-repo-check --sandbox workspace-write "$TASK"
+CMD_STATUS=$?
+set -e
+exit "$CMD_STATUS"

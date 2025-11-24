@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add New Repository</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <%- include('partials/session_banner') %>
+    <%- include('partials/cookie_banner') %>
+    <h1>Add New Repository</h1>
+    <p>Server working directory: <code><%= serverCWD %></code></p>
+    <p>Please provide an absolute path accessible by the server.</p>
+
+    <form action="/repositories/add" method="POST" id="addRepoForm">
+        <label for="repoName">Repository Name:</label><br>
+        <input type="text" id="repoName" name="repoName" required><br><br>
+
+        <label for="gitRepoURL">SSH Git Repo URL:</label><br>
+        <input type="text" id="gitRepoURL" name="gitRepoURL"><br><br>
+
+        <label for="gitRepoLocalPath">Or specify existing repo path:</label><br>
+        <input type="text" id="gitRepoLocalPath" name="gitRepoLocalPath" placeholder="/absolute/path/to/repo"><br>
+        <small>You can also browse to populate the path automatically.</small><br>
+        <input type="file" id="dirPicker" style="display:none" webkitdirectory directory>
+        <button type="button" id="browseBtn">Browse...</button><br><br>
+
+        <button type="submit">Add Repository</button>
+    </form>
+
+    <script>
+        const browseBtn = document.getElementById('browseBtn');
+        const dirPicker = document.getElementById('dirPicker');
+        const localPathInput = document.getElementById('gitRepoLocalPath');
+        const repoNameInput = document.getElementById('repoName');
+        const addRepoForm = document.getElementById('addRepoForm');
+        let repoNameManuallyEdited = false;
+        let lastDerivedRepoName = "";
+
+        function extractRepoName(path) {
+            if (!path) return "";
+            const trimmed = path.trim().replace(/[\\/]+$/, "");
+            if (!trimmed) return "";
+            const parts = trimmed.split(/[\\/]+/);
+            return parts.length ? parts[parts.length - 1] : "";
+        }
+
+        function updateRepoNameFromPath() {
+            const derivedName = extractRepoName(localPathInput.value);
+            if (!derivedName) {
+                return;
+            }
+
+            const currentValue = repoNameInput.value.trim();
+            const shouldUpdate =
+                !repoNameManuallyEdited ||
+                currentValue === "" ||
+                currentValue === lastDerivedRepoName;
+
+            lastDerivedRepoName = derivedName;
+
+            if (shouldUpdate) {
+                repoNameInput.value = derivedName;
+                repoNameManuallyEdited = false;
+            }
+        }
+
+        browseBtn.addEventListener('click', () => {
+            dirPicker.disabled = false;
+            dirPicker.click();
+        });
+
+        dirPicker.addEventListener('change', (ev) => {
+            const file = ev.target.files && ev.target.files[0];
+            if (!file) return;
+            let fullPath = file.path || '';
+            if (!fullPath && file.webkitRelativePath) {
+                const parts = file.webkitRelativePath.split('/');
+                parts.pop();
+                fullPath = parts.join('/');
+            }
+            if (fullPath) {
+                const sep = fullPath.includes('\\') ? /\\[^\\]*$/ : /\/[^/]*$/;
+                localPathInput.value = fullPath.replace(sep, '');
+                updateRepoNameFromPath();
+            }
+            // Disable the file input so directory contents are not uploaded
+            dirPicker.disabled = true;
+        });
+
+        localPathInput.addEventListener('input', updateRepoNameFromPath);
+
+        repoNameInput.addEventListener('input', () => {
+            repoNameManuallyEdited = repoNameInput.value.trim() !== "";
+        });
+
+        addRepoForm.addEventListener('submit', () => {
+            if (!repoNameInput.value.trim()) {
+                updateRepoNameFromPath();
+            }
+        });
+    </script>
+
+    <!-- Link back to Repositories -->
+    <footer>
+        <a href="/repositories">Back to Repositories</a>
+    </footer>
+</body>
+</html>

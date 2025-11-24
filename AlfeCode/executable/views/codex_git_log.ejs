@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Agent Git Log</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            --bg-gradient: radial-gradient(circle at top left, rgba(124, 58, 237, 0.45), rgba(15, 23, 42, 0.95));
+            --bg-main: rgba(15, 23, 42, 0.94);
+            --surface: rgba(30, 41, 59, 0.92);
+            --surface-soft: rgba(51, 65, 85, 0.65);
+            --surface-border: rgba(71, 85, 105, 0.45);
+            --text-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #7c3aed;
+            --accent-strong: #8b5cf6;
+            --danger: #f97316;
+            --shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            display: block;
+            align-items: stretch;
+            justify-content: stretch;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        a {
+            color: var(--accent-strong);
+            text-decoration: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--accent);
+            opacity: 0.85;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%);
+            border-radius: 0;
+            border: none;
+            padding: 20px;
+            box-shadow: none;
+            backdrop-filter: none;
+            overflow: auto;
+        }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 18px;
+        }
+
+        .top-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: clamp(1.8rem, 2.4vw, 2.5rem);
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        p.description {
+            margin: 0 0 16px;
+            color: var(--text-muted);
+            line-height: 1.65;
+            font-size: 1rem;
+        }
+
+        form.project-form {
+            display: grid;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .project-form label {
+            font-weight: 600;
+            color: #f1f5f9;
+            letter-spacing: 0.02em;
+        }
+
+        .project-form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .project-form-row input[type="text"] {
+            flex: 1;
+            min-width: 260px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .project-form-row input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .meta-grid {
+            margin-top: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .meta-grid strong {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .alert {
+            margin-top: 20px;
+            padding: 16px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(249, 115, 22, 0.35);
+            background: rgba(249, 115, 22, 0.12);
+            color: #fed7aa;
+            font-weight: 500;
+        }
+
+        .git-log-layout {
+            margin-top: 32px;
+        }
+
+        .git-log-card {
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 160px);
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
+            padding: 20px 22px;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+        }
+
+        .git-log-card h2 {
+            margin: 0 0 16px;
+            font-size: 1.2rem;
+            color: #f8fafc;
+        }
+
+        #gitCommitList {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        #gitCommitList li {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        #gitCommitList li:last-child {
+            border-bottom: none;
+        }
+
+        .git-commit-link {
+            color: var(--accent-strong);
+            font-weight: 600;
+        }
+
+        .git-pull-status {
+            min-height: 18px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .git-pull-status.error {
+            color: #fda4af;
+        }
+
+        .git-pull-status.success {
+            color: #34d399;
+        }
+
+        .git-log-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .git-log-actions .git-pull-status {
+            margin-left: 0;
+        }
+
+        .git-commit-link:hover {
+            color: var(--accent);
+        }
+
+        button,
+        .nav-button {
+            cursor: pointer;
+            border: none;
+            border-radius: 999px;
+            padding: 13px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            color: white;
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.35);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover,
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.38);
+        }
+
+        button:active,
+        .nav-button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary-nav,
+        .nav-button.secondary-nav {
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-muted);
+            border: 1px solid var(--surface-border);
+            box-shadow: none;
+        }
+
+        button.secondary-nav:hover,
+        .nav-button.secondary-nav:hover {
+            background: rgba(15, 23, 42, 0.85);
+            color: var(--text-color);
+        }
+
+        button:disabled,
+        button:disabled:hover,
+        .nav-button:disabled,
+        .nav-button:disabled:hover {
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .empty-state {
+            margin: 0;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-nav">
+            <div class="top-nav-actions">
+                <button id="gitPullButton" class="nav-button secondary-nav" type="button">Git Pull</button>
+                <span id="gitPullStatus" class="git-pull-status" role="status" aria-live="polite" style="margin-left:8px;"></span>                <% const runsUrl = sessionId ? `/agent/runs?sessionId=${encodeURIComponent(sessionId)}` : '/agent/runs'; %>                <a class="nav-button secondary-nav" style="display:none;" href="<%= runsUrl %>" target="_blank" rel="noopener noreferrer">Runs</a>
+                
+            </div>
+        </div>
+        <div class="meta-grid">
+            <% if (resolvedProjectDir) { %>
+                <span><strong>Resolved directory:</strong> <code><%= resolvedProjectDir %></code></span>
+            <% } %>
+            <% if (repoName) { %>
+                <span><strong>Repo:</strong> <%= repoName %></span>
+            <% } %>
+            <% if (gitMeta && gitMeta.branchName) { %>
+                <span><strong>Branch:</strong> <%= gitMeta.branchName %></span>
+            <% } %>
+            <% if (gitMeta && gitMeta.rev) { %>
+                <span><strong>Revision:</strong> <%= gitMeta.rev %></span>
+            <% } %>
+            <% if (gitMeta && gitMeta.dateStr) { %>
+                <span><strong>Updated:</strong> <%= gitMeta.dateStr %></span>
+            <% } %>
+        </div>
+        <% if (errorMessage) { %>
+            <div class="alert"><%= errorMessage %></div>
+        <% } %>
+        <div class="git-log-layout">
+            <section class="git-log-card">
+                <h2>Commit history</h2>
+                <% if (!gitCommits || gitCommits.length === 0) { %>
+                    <p class="empty-state">Loading commit history...</p>
+                <% } else { %>
+                    <ul id="gitCommitList">
+                        <% gitCommits.forEach(function(commit) { %>
+                            <li><%= commit %></li>
+                        <% }); %>
+                    </ul>
+                <% } %>
+                <div class="git-log-actions">
+                    <button
+                        id="gitLoadMoreButton"
+                        class="nav-button secondary-nav"
+                        type="button"
+                        <% if (!hasMoreCommits) { %>style="display:none;"<% } %>
+                    >
+                        Load more commits
+                    </button>
+                    <span id="gitCommitLoadStatus" class="git-pull-status" role="status" aria-live="polite"></span>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script>
+        window.CODEX_GIT_LOG_DATA = <%- JSON.stringify({
+            gitCommitGraph,
+            repoName,
+            errorMessage,
+            resolvedProjectDir,
+            commitLimit,
+            commitOffset,
+            commitNextOffset,
+            hasMoreCommits,
+        }) %>;
+    </script>
+    <script src="/JS/codex_git_log.js" defer></script>
+</body>
+</html>

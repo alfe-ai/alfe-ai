@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chats for Repository: <%= gitRepoNameCLI %></title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            --bg-gradient: radial-gradient(circle at top left, rgba(124, 58, 237, 0.45), rgba(15, 23, 42, 0.95));
+            --bg-main: rgba(15, 23, 42, 0.94);
+            --surface: rgba(30, 41, 59, 0.92);
+            --surface-soft: rgba(51, 65, 85, 0.65);
+            --surface-border: rgba(71, 85, 105, 0.45);
+            --surface-strong-border: rgba(148, 163, 184, 0.45);
+            --text-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #7c3aed;
+            --accent-strong: #8b5cf6;
+            --accent-soft: rgba(124, 58, 237, 0.28);
+            --danger: #f97316;
+            --success: #22c55e;
+            --shadow: 0 24px 60px rgba(15, 23, 42, 0.55);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: clamp(24px, 4vw, 48px);
+            gap: 24px;
+        }
+
+        a {
+            color: var(--accent-strong);
+            text-decoration: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--accent);
+            opacity: 0.85;
+        }
+
+        main {
+            width: min(1080px, 100%);
+        }
+
+        .container {
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%);
+            border-radius: 24px;
+            border: 1px solid var(--surface-border);
+            padding: clamp(24px, 4vw, 48px);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .top-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .top-nav-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .repo-summary {
+            gap: 20px;
+        }
+
+        .repo-path {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            color: var(--text-muted);
+            max-width: 100%;
+        }
+
+        .repo-path-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .repo-path code {
+            background: rgba(148, 163, 184, 0.12);
+            border-radius: 10px;
+            padding: 6px 12px;
+            color: #cbd5f5;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        .branch-status {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .branch-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 18px;
+            border-radius: 999px;
+            background: rgba(124, 58, 237, 0.12);
+            border: 1px solid rgba(124, 58, 237, 0.28);
+            box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.12);
+        }
+
+        .branch-pill-label {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .branch-pill-value {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #e0e7ff;
+        }
+
+        .branch-switch-button {
+            white-space: nowrap;
+        }
+
+        .branch-modal-message {
+            margin-top: 12px;
+            font-size: 0.9rem;
+        }
+
+        .top-nav span {
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.8rem, 2.6vw, 2.6rem);
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .description {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .sections {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .runs-section {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .runs-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px 16px;
+        }
+
+        .runs-header h2 {
+            margin: 0;
+            font-size: clamp(1.35rem, 2vw, 1.6rem);
+            color: #f1f5f9;
+        }
+
+        .runs-header p {
+            margin: 6px 0 0 0;
+            color: var(--text-muted);
+            max-width: 640px;
+            line-height: 1.6;
+        }
+
+        .runs-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .runs-frame-container {
+            border-radius: 20px;
+            border: 1px solid var(--surface-border);
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.88) 0%, rgba(15, 23, 42, 0.92) 100%);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            min-height: 460px;
+        }
+
+        .runs-frame-container iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 460px;
+            border: 0;
+            background: var(--bg-main);
+        }
+
+        .button {
+            cursor: pointer;
+            border: none;
+            border-radius: 999px;
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            color: white;
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.35);
+        }
+
+        .button-secondary {
+            background: rgba(124, 58, 237, 0.12);
+            color: #c4b5fd;
+            border: 1px solid rgba(124, 58, 237, 0.35);
+        }
+
+        .button-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--surface-border);
+        }
+
+        .button-danger {
+            background: linear-gradient(135deg, rgba(248, 113, 113, 0.9) 0%, rgba(249, 115, 22, 0.95) 100%);
+            color: #fff7ed;
+            box-shadow: 0 16px 32px rgba(248, 113, 113, 0.3);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.38);
+        }
+
+        .button-danger:hover {
+            box-shadow: 0 24px 40px rgba(248, 113, 113, 0.35);
+        }
+
+        .sections {
+            display: grid;
+            gap: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .section-count {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .chat-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .chat-card {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid var(--surface-border);
+            border-radius: 18px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: transform 0.18s ease, border-color 0.2s ease;
+        }
+
+        .chat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--surface-strong-border);
+        }
+
+        .chat-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: baseline;
+        }
+
+        .chat-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .chat-status {
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: rgba(124, 58, 237, 0.18);
+            color: #c4b5fd;
+            font-size: 0.85rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .chat-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .chat-actions form {
+            margin: 0;
+        }
+
+        .empty-state {
+            padding: 20px;
+            background: rgba(148, 163, 184, 0.08);
+            border-radius: 16px;
+            border: 1px dashed rgba(148, 163, 184, 0.25);
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: inherit;
+        }
+
+        footer a:hover {
+            color: #f8fafc;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 16px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .chat-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+    
+        .open-sterling { box-shadow: 0 16px 32px rgba(109,40,217,0.35); }
+        .button.open-agent-purple {
+            background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+            color: #fff;
+            border: none;
+            box-shadow: 0 18px 38px rgba(76, 29, 149, 0.42);
+        }
+
+        .button.open-agent-purple:hover {
+            filter: brightness(1.05);
+        }
+    </style>
+</head>
+<body data-repo-name="<%= gitRepoNameCLI %>" data-current-branch="<%= currentBranch || gitBranch || '' %>">
+<%- include('partials/session_banner') %>
+<main>
+    <div class="container">
+        <div class="top-nav">
+            <div class="top-nav-row">
+                <span><%= gitRepoNameCLI %></span>
+            </div>
+            <div class="top-nav-row">
+                <div class="repo-summary">
+                    <div class="repo-path">
+                        <span class="repo-path-label">Local path</span>
+                        <code><%= repoLocalPath || 'Unavailable' %></code>
+                    </div>
+                    <div class="branch-status">
+                        <div class="branch-pill">
+                            <span class="branch-pill-label">Active Branch</span>
+                            <% const rawBranchName = currentBranch || gitBranch || ''; %>
+                            <% const displayBranchName = rawBranchName ? (rawBranchName.replace(/^ALFE\//i, '') || rawBranchName) : 'Unknown'; %>
+                            <span class="branch-pill-value" id="activeBranchName"><%= displayBranchName %></span>
+                        </div>
+                        <button class="button button-secondary branch-switch-button" id="switchBranchButton" type="button">Switch Branch</button>
+                    </div>
+                </div>
+                <div class="action-bar">
+                    <% if (sterlingCodexLink) { %>
+                        <button
+                            type="button"
+                            class="button open-agent-purple"
+                            onclick='window.open(<%- JSON.stringify(sterlingCodexLink) %>, "_blank", "noopener,noreferrer");'>
+                            Open in Agent
+                        </button>
+                        <button
+                            type="button"
+                            class="button"
+                            onclick="(function(){ var _p=<%- JSON.stringify(repoLocalPath || '') %>; var _u = _p ? '/agent/git-tree?projectDir='+encodeURIComponent(_p) : '/agent/git-tree'; window.open(_u, '_blank', 'noopener,noreferrer'); })();"">
+                            Git Log
+                        </button>
+
+                    <% } %>
+                
+                    <% const runsUrlParams = [];
+                       if (repoLocalPath) {
+                           runsUrlParams.push(`repo_directory=${encodeURIComponent(repoLocalPath)}`);
+                       }
+                       if (sessionId) {
+                           runsUrlParams.push(`sessionId=${encodeURIComponent(sessionId)}`);
+                       }
+                       const runsUrl = `/agent/runs${runsUrlParams.length ? `?${runsUrlParams.join('&')}` : ''}`;
+                       const gitLogUrl = (typeof repoLocalPath !== 'undefined' && repoLocalPath)
+                           ? `/agent/git-log?projectDir=${encodeURIComponent(repoLocalPath)}`
+                           : '/agent/git-log'; %>
+</div>
+            </div>
+        </div>
+
+        <div class="sections">
+            <section class="runs-section" aria-labelledby="runs-section-heading">
+                <div class="runs-header">
+                    <div>
+                        <h2 id="runs-section-heading">Recent Agent Runs</h2>
+                        <p>Live status from the Sterling Codex runner for this repository and session.</p>
+                    </div>
+                    <div class="runs-actions">
+</div>
+                </div>
+                <div class="runs-frame-container">
+                    <iframe
+                        id="runsIframe"
+                        src=<%- JSON.stringify(runsUrl) %>
+                        title="Agent Runs"
+                        loading="lazy"
+                        allow="clipboard-read; clipboard-write"
+                    ></iframe>
+                </div>
+            </section>
+        </div>
+
+        <% /* Footer intentionally left empty to remove navigation links */ %>
+    </div>
+</main>
+
+<div id="switchBranchModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close-switch-branch">&times;</span>
+        <h2>Switch Branch</h2>
+        <div id="branchSelectContainer">
+            <label for="branchSelect">Select existing branch:</label>
+            <select id="branchSelect"></select>
+            <br><br>
+            <label>
+                <input type="checkbox" id="createNewBranchCheckbox"> Create new branch
+            </label>
+            <br>
+            <input type="text" id="newBranchName" placeholder="Enter new branch name" style="display:none;">
+            <br><br>
+            <button class="button button-primary" id="switchBranchSubmitButton">Switch</button>
+            <div id="switchBranchMessage" class="branch-modal-message"></div>
+        </div>
+    </div>
+</div>
+
+<script src="/JS/chats.js"></script>
+<%- include('partials/cookie_banner') %>
+</body>
+</html>

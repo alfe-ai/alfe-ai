@@ -1,0 +1,4456 @@
+const fs = require("fs");
+const path = require("path");
+const { randomUUID } = require("crypto");
+
+/**
+ * setupGetRoutes attaches all GET (and some auxiliary) routes to the Express
+ * application.  Everything the routes need is injected through the `deps`
+ * object so the module has zero hidden dependencies.
+ *
+ * @param {object} deps – injected dependencies
+ */
+function setupGetRoutes(deps) {
+    const {
+        app,
+        loadRepoConfig,
+        loadRepoJson,
+        saveRepoJson,
+        loadSingleRepoConfig,
+        loadCodexConfig,
+        loadGlobalInstructions,
+        getActiveInactiveChats,
+        generateFullDirectoryTree,
+        getGitMetaData,
+        getGitCommits,
+        getGitCommitGraph,
+        getGitBranches,
+        gitUpdatePull,
+        convertGitUrlToHttps,
+        analyzeProject,
+        analyzeCodeFlow,
+        AIModels,
+        DEFAULT_AIMODEL,
+        getDefaultCodexModel,
+        DEFAULT_CODEX_MODEL,
+        CODEX_MODEL_PATTERN,
+        execSync,
+        PROJECT_ROOT,
+        spawn,
+        buildSterlingCodexUrl,
+        loadCodexRuns,
+        upsertCodexRun,
+    } = deps;
+
+    const codexScriptPath = path.join(PROJECT_ROOT, "codex-tools", "run_codex.sh");
+    const STERLING_STORAGE_PRIMARY = path.join(path.sep, "git", "sterling");
+    const STERLING_STORAGE_FALLBACK = path.join(path.sep, "git", "stirling");
+    const STERLING_STORAGE_CACHE_TTL_MS = 30 * 1000;
+    let sterlingStorageSummaryCache = {
+        summary: null,
+        timestamp: 0,
+    };
+    const { version: sterlingVersion } = require(path.join(PROJECT_ROOT, "package.json"));
+    const appVersionDisplay =
+        typeof process.env.ALFE_APP_VERSION === "string" && process.env.ALFE_APP_VERSION.trim()
+            ? process.env.ALFE_APP_VERSION.trim()
+            : `beta-${sterlingVersion}`;
+    const CODEX_RUNNER_PROJECT_DIR_MARKER = "::CODEX_RUNNER_PROJECT_DIR::";
+    const defaultCodexProjectDir = "/git/sterlingcodex_testrepo";
+    const DEFAULT_GIT_LOG_LIMIT = 20;
+    const MAX_GIT_LOG_LIMIT = 200;
+    const FILE_TREE_EXCLUDES = new Set([
+        ".git",
+        "node_modules",
+        ".next",
+        "dist",
+        "build",
+        "tmp",
+        "temp",
+        "vendor",
+        "__pycache__",
+        ".cache",
+        "venv",
+        ".venv",
+    ]);
+    const MAX_FILE_TREE_DEPTH = 5;
+    const MAX_FILE_TREE_ENTRIES = 400;
+    const MAX_RUN_OUTPUT_LENGTH = 50000;
+    const MAX_STATUS_HISTORY = 200;
+    const gitPullUpdatingRegex = /^updating\s+[0-9a-f]+\.\.[0-9a-f]+/i;
+    const gitPullRangeLineRegex = /^\s*[0-9a-f]{7,}\.\.[0-9a-f]{7,}\s+\S+\s+->\s+\S+/i;
+    const gitPullBranchFetchRegex = /^\s*\*\s+branch\s+\S+\s+->\s+\S+/i;
+    const gitDiffStatLineRegex = /\|\s+\d+\s+(?:[+\-]+|bin\s+\d+\s+->\s+\d+\s+bytes)$/i;
+    const gitModeChangeRegex = /^\s*(?:create|delete)\s+mode\b/i;
+    const gitRenameCopyRegex = /^\s*(?:rename|copy)\s+/i;
+    const gitAlreadyUpToDateRegex = /^already up to date\.?$/i;
+    const gitRemoteLineRegex = /^remote:\s/i;
+    const gitFromRemoteRegex = /^from\s+\S+/i;
+    const statusNoiseRegexes = [
+        /^preparing agent run/i,
+        /^running\.\.\./i,
+        /^agent exited with code/i,
+        /^agent succeeded\./i,
+        /^git_fpush\.sh/i,
+        /^git pull/i,
+        /^git push/i,
+        /^git status/i,
+        /^connection (?:closed|interrupted)/i,
+        /^run cancell?ed by user/i,
+        /^unable to switch to /i,
+        /^agent run aborted/i,
+    ];
+
+    const isGitPullDiffStatLine = (line) => gitDiffStatLineRegex.test(line || "");
+
+    const isGitPullBlockLine = (line, trimmed, trimmedLower) => {
+        if (!trimmed) {
+            return true;
+        }
+        if (/^fast-forward\b/i.test(trimmed)) {
+            return true;
+        }
+        if (gitModeChangeRegex.test(trimmed)) {
+            return true;
+        }
+        if (gitRenameCopyRegex.test(trimmedLower)) {
+            return true;
+        }
+        if (/^-+\s*removed\b/i.test(trimmedLower)) {
+            return true;
+        }
+        if (/^\d+\s+files?\s+changed\b/i.test(trimmed)) {
+            return true;
+        }
+        if (isGitPullDiffStatLine(line)) {
+            return true;
+        }
+        return false;
+    };
+
+    const formatBytes = (bytes) => {
+        if (typeof bytes !== "number" || Number.isNaN(bytes) || bytes < 0) {
+            return "0 B";
+        }
+        if (bytes === 0) {
+            return "0 B";
+        }
+        const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+        const exponent = Math.min(
+            Math.floor(Math.log(bytes) / Math.log(1024)),
+            units.length - 1,
+        );
+        const value = bytes / 1024 ** exponent;
+        return `${value >= 100 ? value.toFixed(0) : value >= 10 ? value.toFixed(1) : value.toFixed(2)} ${units[exponent]}`;
+    };
+
+    const formatTimestamp = (date) => {
+        if (!(date instanceof Date) || Number.isNaN(date.valueOf())) {
+            return "Unknown";
+        }
+        return date.toISOString().replace("T", " ").replace(/Z$/, " UTC");
+    };
+
+    const resolveSterlingStorageRoot = () => {
+        const normaliseResult = (candidatePath, exists, usingFallback) => ({
+            path: candidatePath,
+            exists,
+            usingFallback,
+        });
+
+        try {
+            if (fs.existsSync(STERLING_STORAGE_PRIMARY)) {
+                const stats = fs.statSync(STERLING_STORAGE_PRIMARY);
+                if (stats.isDirectory()) {
+                    return normaliseResult(STERLING_STORAGE_PRIMARY, true, false);
+                }
+            }
+        } catch (err) {
+            console.warn(
+                "[WARN] Unable to inspect primary Sterling storage directory:",
+                err && err.message ? err.message : err,
+            );
+        }
+
+        try {
+            if (fs.existsSync(STERLING_STORAGE_FALLBACK)) {
+                const stats = fs.statSync(STERLING_STORAGE_FALLBACK);
+                if (stats.isDirectory()) {
+                    return normaliseResult(STERLING_STORAGE_FALLBACK, true, true);
+                }
+            }
+        } catch (err) {
+            console.warn(
+                "[WARN] Unable to inspect fallback Sterling storage directory:",
+                err && err.message ? err.message : err,
+            );
+        }
+
+        return normaliseResult(STERLING_STORAGE_PRIMARY, false, false);
+    };
+
+    const calculateDirectorySize = (directoryPath) => {
+        let total = 0;
+        const stack = [directoryPath];
+
+        while (stack.length > 0) {
+            const currentPath = stack.pop();
+            let entries;
+            try {
+                entries = fs.readdirSync(currentPath, { withFileTypes: true });
+            } catch (err) {
+                console.warn(
+                    "[WARN] Unable to read directory while calculating size:",
+                    currentPath,
+                    err && err.message ? err.message : err,
+                );
+                continue;
+            }
+
+            for (const entry of entries) {
+                if (!entry || typeof entry.name !== "string") {
+                    continue;
+                }
+
+                const entryPath = path.join(currentPath, entry.name);
+                let entryStats;
+                try {
+                    entryStats = fs.lstatSync(entryPath);
+                } catch (err) {
+                    console.warn(
+                        "[WARN] Unable to stat entry while calculating directory size:",
+                        entryPath,
+                        err && err.message ? err.message : err,
+                    );
+                    continue;
+                }
+
+                if (entryStats.isSymbolicLink()) {
+                    continue;
+                }
+
+                if (entryStats.isDirectory()) {
+                    stack.push(entryPath);
+                } else {
+                    total += entryStats.size;
+                }
+            }
+        }
+
+        return total;
+    };
+
+    const createStorageSummaryClone = (data) => ({
+        ...data,
+        directories: Array.isArray(data.directories)
+            ? data.directories.map((dir) => ({ ...dir }))
+            : [],
+    });
+
+    const getCachedStorageSummary = () => {
+        if (!sterlingStorageSummaryCache.summary) {
+            return null;
+        }
+        const ageMs = Date.now() - sterlingStorageSummaryCache.timestamp;
+        if (ageMs > STERLING_STORAGE_CACHE_TTL_MS) {
+            return null;
+        }
+        return createStorageSummaryClone(sterlingStorageSummaryCache.summary);
+    };
+
+    const updateStorageSummaryCache = (summary) => {
+        const cached = createStorageSummaryClone(summary);
+        sterlingStorageSummaryCache = {
+            summary: cached,
+            timestamp: Date.now(),
+        };
+        return createStorageSummaryClone(cached);
+    };
+
+    const invalidateStorageSummaryCache = () => {
+        sterlingStorageSummaryCache = {
+            summary: null,
+            timestamp: 0,
+        };
+    };
+
+    const collectSterlingStorageSummary = () => {
+        const cached = getCachedStorageSummary();
+        if (cached) {
+            return cached;
+        }
+
+        const rootInfo = resolveSterlingStorageRoot();
+        const summary = {
+            directories: [],
+            totalSizeBytes: 0,
+            rootExists: rootInfo.exists,
+            rootPath: rootInfo.path,
+            usingFallback: rootInfo.usingFallback,
+            error: "",
+        };
+
+        if (!rootInfo.exists) {
+            return updateStorageSummaryCache(summary);
+        }
+
+        let entries;
+        try {
+            entries = fs.readdirSync(rootInfo.path, { withFileTypes: true });
+        } catch (err) {
+            summary.error =
+                err && err.message ? `Unable to read storage directory: ${err.message}` : "Unable to read storage directory.";
+            summary.rootExists = false;
+            return updateStorageSummaryCache(summary);
+        }
+
+        for (const entry of entries) {
+            if (!entry || typeof entry.name !== "string") {
+                continue;
+            }
+            if (entry.isSymbolicLink && entry.isSymbolicLink()) {
+                continue;
+            }
+            const absolutePath = path.join(rootInfo.path, entry.name);
+            let stats;
+            try {
+                stats = fs.statSync(absolutePath);
+            } catch (err) {
+                console.warn(
+                    "[WARN] Unable to stat Sterling storage entry:",
+                    absolutePath,
+                    err && err.message ? err.message : err,
+                );
+                continue;
+            }
+            if (!stats.isDirectory()) {
+                continue;
+            }
+
+            const sizeBytes = calculateDirectorySize(absolutePath);
+            summary.totalSizeBytes += sizeBytes;
+
+            const createdDate =
+                stats.birthtime instanceof Date && !Number.isNaN(stats.birthtime.valueOf())
+                    ? stats.birthtime
+                    : stats.ctime instanceof Date && !Number.isNaN(stats.ctime.valueOf())
+                        ? stats.ctime
+                        : null;
+
+            summary.directories.push({
+                name: entry.name,
+                sizeBytes,
+                sizeHuman: formatBytes(sizeBytes),
+                createdAtDisplay: createdDate ? formatTimestamp(createdDate) : "Unknown",
+            });
+        }
+
+        summary.directories.sort((a, b) => b.sizeBytes - a.sizeBytes || a.name.localeCompare(b.name));
+
+        return updateStorageSummaryCache(summary);
+    };
+
+    const buildStdoutOnlyText = (stdoutText, prompt) => {
+        if (typeof stdoutText !== "string" || !stdoutText) {
+            return "";
+        }
+
+        const sanitizedStdout = stdoutText.replace(/\r/g, "");
+        const lines = sanitizedStdout.split("\n");
+        const normalizedPrompt = typeof prompt === "string" ? prompt.replace(/\r/g, "") : "";
+        const promptLines = normalizedPrompt ? normalizedPrompt.split("\n") : [];
+        let promptMatchIndex = 0;
+        let hasRenderedPrompt = promptLines.length === 0;
+        let skippingGitPullStdoutBlock = false;
+        const filteredLines = [];
+
+        const shouldSkipPromptLine = (line) => {
+            if (hasRenderedPrompt || promptLines.length === 0) {
+                return false;
+            }
+
+            const expectedLine = promptLines[promptMatchIndex] || "";
+            if (line === expectedLine) {
+                promptMatchIndex += 1;
+                if (promptMatchIndex >= promptLines.length) {
+                    hasRenderedPrompt = true;
+                    promptMatchIndex = 0;
+                }
+                return true;
+            }
+
+            if (promptMatchIndex > 0) {
+                promptMatchIndex = 0;
+                if (promptLines[0] && line === promptLines[0]) {
+                    if (promptLines.length === 1) {
+                        hasRenderedPrompt = true;
+                        promptMatchIndex = 0;
+                    } else {
+                        promptMatchIndex = 1;
+                    }
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        for (let index = 0; index < lines.length; index += 1) {
+            const line = lines[index];
+            if (index === lines.length - 1 && line === "") {
+                break;
+            }
+
+            if (shouldSkipPromptLine(line)) {
+                continue;
+            }
+
+            const trimmed = line.trim();
+            if (!trimmed) {
+                filteredLines.push("");
+                continue;
+            }
+
+            if (/^\[trace\]/i.test(trimmed)) {
+                continue;
+            }
+
+            const trimmedLower = trimmed.toLowerCase();
+
+            if (gitPullUpdatingRegex.test(trimmedLower)) {
+                skippingGitPullStdoutBlock = true;
+                continue;
+            }
+
+            if (skippingGitPullStdoutBlock) {
+                if (isGitPullBlockLine(line, trimmed, trimmedLower)) {
+                    continue;
+                }
+                skippingGitPullStdoutBlock = false;
+            }
+
+            if (
+                gitAlreadyUpToDateRegex.test(trimmed)
+                || gitRemoteLineRegex.test(trimmedLower)
+                || gitFromRemoteRegex.test(trimmedLower)
+                || gitPullRangeLineRegex.test(trimmed)
+                || gitPullBranchFetchRegex.test(trimmedLower)
+            ) {
+                continue;
+            }
+
+            if (trimmedLower.includes("model_providers")) {
+                continue;
+            }
+
+            if (/[├└]──/.test(line) || /^│/.test(trimmed)) {
+                continue;
+            }
+
+            if (trimmed.endsWith("/") && index + 1 < lines.length) {
+                const nextLine = lines[index + 1] || "";
+                const nextTrimmed = nextLine.trim();
+                if (/[├└]──/.test(nextLine) || /^│/.test(nextTrimmed)) {
+                    continue;
+                }
+            }
+
+            filteredLines.push(line);
+        }
+
+        let endIndex = filteredLines.length;
+        while (endIndex > 0 && filteredLines[endIndex - 1] === "") {
+            endIndex -= 1;
+        }
+
+        return filteredLines.slice(0, endIndex).join("\n");
+    };
+
+    const resolveGitBranchName = (directory) => {
+        const targetDir = typeof directory === "string" ? directory.trim() : "";
+        if (!targetDir) {
+            return "";
+        }
+
+        let stats;
+        try {
+            stats = fs.statSync(targetDir);
+        } catch (_err) {
+            return "";
+        }
+
+        if (!stats.isDirectory()) {
+            return "";
+        }
+
+        let branchName = "";
+        try {
+            branchName = execSync("git rev-parse --abbrev-ref HEAD", {
+                cwd: targetDir,
+                stdio: ["ignore", "pipe", "ignore"],
+            })
+                .toString()
+                .trim();
+        } catch (_err) {
+            branchName = "";
+        }
+
+        if (!branchName) {
+            return "";
+        }
+
+        if (branchName !== "HEAD") {
+            return branchName;
+        }
+
+        try {
+            const shortCommit = execSync("git rev-parse --short HEAD", {
+                cwd: targetDir,
+                stdio: ["ignore", "pipe", "ignore"],
+            })
+                .toString()
+                .trim();
+            if (shortCommit) {
+                return `HEAD (${shortCommit})`;
+            }
+        } catch (_err) {
+            // Ignore – fall through to the raw HEAD label.
+        }
+
+        return "HEAD";
+    };
+
+    const buildStatusOnlyText = (statusHistory, prompt) => {
+        if (!Array.isArray(statusHistory) || statusHistory.length === 0) {
+            return "";
+        }
+
+        const normalizedPrompt =
+            typeof prompt === "string" ? prompt.replace(/\r/g, "").trim() : "";
+        const statusLines = [];
+
+        statusHistory.forEach((entry) => {
+            if (typeof entry !== "string" || !entry) {
+                return;
+            }
+
+            const sanitizedEntry = entry.replace(/\r/g, "");
+            sanitizedEntry.split("\n").forEach((line) => {
+                if (typeof line !== "string") {
+                    return;
+                }
+                const trimmed = line.trim();
+                if (!trimmed) {
+                    if (statusLines.length > 0 && statusLines[statusLines.length - 1] !== "") {
+                        statusLines.push("");
+                    }
+                    return;
+                }
+                if (normalizedPrompt && trimmed === normalizedPrompt) {
+                    return;
+                }
+                if (statusNoiseRegexes.some((regex) => regex.test(trimmed))) {
+                    return;
+                }
+                statusLines.push(line);
+            });
+        });
+
+        while (statusLines.length > 0 && statusLines[statusLines.length - 1] === "") {
+            statusLines.pop();
+        }
+
+        const combined = statusLines.join("\n");
+        return combined.trim() ? combined : "";
+    };
+
+    const resolveStdoutOnlyTextForCommit = (record) => {
+        if (!record || typeof record !== "object") {
+            return "";
+        }
+
+        const combinedStdout = typeof record.stdout === "string" ? record.stdout : "";
+        if (!combinedStdout) {
+            return "";
+        }
+
+        const promptForFiltering = typeof record.effectivePrompt === "string" ? record.effectivePrompt : "";
+        const filteredStdout = buildStdoutOnlyText(combinedStdout, promptForFiltering);
+        if (filteredStdout.trim()) {
+            return filteredStdout;
+        }
+        const fallbackFromStdout = combinedStdout.trimEnd();
+        if (fallbackFromStdout) {
+            return fallbackFromStdout;
+        }
+
+        const statusOnlyText = buildStatusOnlyText(record.statusHistory, promptForFiltering);
+        if (statusOnlyText) {
+            return statusOnlyText;
+        }
+
+        const finalMessage = typeof record.finalMessage === "string" ? record.finalMessage.trim() : "";
+        return finalMessage;
+    };
+
+    const stripInitialHeaders = (text) => {
+        if (typeof text !== "string" || !text) {
+            return "";
+        }
+
+        const lines = text.split(/\r?\n/);
+        let index = 0;
+
+        while (index < lines.length && lines[index].trim() === "") {
+            index += 1;
+        }
+
+        const firstContentIndex = index;
+        let removedHeader = false;
+
+        const headerMatchers = [
+            /^#{1,6}\s+\S/, // Markdown heading
+            /^\*\*[^*]+\*\*$/, // Bold line such as **Result**
+            /^__[^_]+__$/, // Underlined header
+            /^[^:]+:\s*$/, // Title followed by a colon
+        ];
+
+        while (index < lines.length) {
+            const trimmed = lines[index].trim();
+
+            if (trimmed === "") {
+                index += 1;
+                continue;
+            }
+
+            const isHeader = headerMatchers.some((regex) => regex.test(trimmed));
+
+            if (!isHeader) {
+                break;
+            }
+
+            removedHeader = true;
+            index += 1;
+
+            while (index < lines.length && lines[index].trim() === "") {
+                index += 1;
+            }
+        }
+
+        if (!removedHeader) {
+            index = firstContentIndex;
+        }
+
+        return lines.slice(index).join("\n");
+    };
+
+    const resolveFinalOutputTextForCommit = async (record) => {
+        if (!record || typeof record !== "object") {
+            return "";
+        }
+
+        const stderrText = typeof record.stderr === "string" ? record.stderr : "";
+        const stdoutText = typeof record.stdout === "string" ? record.stdout : "";
+        const finalOutputField = typeof record.finalOutput === "string" ? record.finalOutput : "";
+
+        const extractFromText = (text) => {
+            if (typeof text !== "string" || !text) {
+                return null;
+            }
+
+            const sanitized = text.replace(/\r/g, "");
+            const sentinelRegex = /(^|\n)codex(\n|$)/g;
+            let match;
+            let lastMatch = null;
+
+            while ((match = sentinelRegex.exec(sanitized)) !== null) {
+                lastMatch = match;
+            }
+
+            if (!lastMatch) {
+                return null;
+            }
+
+            const sentinelStart = lastMatch.index + (lastMatch[1] ? lastMatch[1].length : 0);
+            const sentinelEnd = sentinelStart + "codex".length;
+            let commitStart = sentinelEnd;
+
+            if (sanitized.charAt(commitStart) === "\n") {
+                commitStart += 1;
+            }
+
+            const finalOutputRaw = sanitized.slice(commitStart).replace(/^\n+/, "");
+            const normalisedFinalOutput = finalOutputRaw.trimEnd();
+            const cleanedFinalOutput = stripInitialHeaders(normalisedFinalOutput);
+            return cleanedFinalOutput;
+        };
+
+        // Prefer stderr (legacy), then stdout, then the stored finalOutput field.
+        let cleanedFinalOutput = extractFromText(stderrText);
+        if (!cleanedFinalOutput) {
+            cleanedFinalOutput = extractFromText(stdoutText);
+        }
+        if (!cleanedFinalOutput && finalOutputField) {
+            const candidate = finalOutputField.replace(/\r/g, "").trim();
+            cleanedFinalOutput = candidate ? stripInitialHeaders(candidate) : "";
+        }
+
+        if (!cleanedFinalOutput) {
+            return "";
+        }
+
+        // If OpenRouter is configured, call its chat completions endpoint to
+        // generate a verbose commit summary from the cleaned final output.
+        const openrouterKey = process.env.OPENROUTER_API_KEY || "";
+        const openrouterModel = (process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b").toString();
+        if (!openrouterKey) {
+            return cleanedFinalOutput;
+        }
+
+        try {
+            const prompt = `Generate a verbose commit summary for this coding AI agent run.
+
+Full Output:
+
+${cleanedFinalOutput}`;
+            const payload = {
+                model: openrouterModel,
+                messages: [
+                    { role: "system", content: "You are a helpful assistant that writes comprehensive commit summaries. Do not use any Markdown headers." },
+                    { role: "user", content: prompt },
+                ],
+                temperature: 0.2,
+                max_tokens: 800,
+            };
+
+            const resp = await ensureFetch("https://openrouter.ai/api/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${openrouterKey}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!resp.ok) {
+                console.error(`[WARN] OpenRouter API returned ${resp.status}`);
+                return cleanedFinalOutput;
+            }
+
+            const result = await resp.json().catch(() => null);
+            const content =
+                result && result.choices && Array.isArray(result.choices) && result.choices[0] && result.choices[0].message
+                    ? result.choices[0].message.content
+                    : null;
+            if (typeof content === "string" && content.trim()) {
+                return content.trim();
+            }
+            return cleanedFinalOutput;
+        } catch (err) {
+            console.error("[WARN] Failed to call OpenRouter for final output generation:", err?.message || err);
+            return cleanedFinalOutput;
+        }
+    };
+    const openRouterTransactionsPath = path.join(
+        PROJECT_ROOT,
+        "data",
+        "openrouter_transactions.json",
+    );
+    const openRouterTimestampFormatter = new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+    });
+
+    const appendTextWithLimit = (record, key, addition, limit) => {
+        if (!record) {
+            return { truncated: false };
+        }
+        if (addition === undefined || addition === null) {
+            return { truncated: false };
+        }
+        const text = addition.toString();
+        if (!text) {
+            return { truncated: false };
+        }
+        const current = typeof record[key] === "string" ? record[key] : "";
+        if (!limit || limit <= 0) {
+            record[key] = current + text;
+            return { truncated: false };
+        }
+        if (current.length >= limit) {
+            record[key] = current;
+            return { truncated: true };
+        }
+        const available = limit - current.length;
+        if (text.length <= available) {
+            record[key] = current + text;
+            return { truncated: false };
+        }
+        record[key] = current + text.slice(0, available);
+        return { truncated: true };
+    };
+
+    const pushHistoryEntry = (record, key, value, limit) => {
+        if (!record) {
+            return;
+        }
+        if (value === undefined || value === null) {
+            return;
+        }
+        const entry = value.toString();
+        if (!entry) {
+            return;
+        }
+        const target = Array.isArray(record[key]) ? record[key] : [];
+        target.push(entry);
+        if (limit && limit > 0 && target.length > limit) {
+            target.splice(0, target.length - limit);
+        }
+        record[key] = target;
+    };
+
+    const resolveSessionId = (req) =>
+        (req && req.sessionId)
+            || (req && req.query && req.query.sessionId)
+            || "";
+
+    const normaliseProjectDir = (value) => {
+        if (typeof value !== "string") {
+            return "";
+        }
+        const firstLine = value.split(/\r?\n/, 1)[0];
+        const withoutMarkdownStatus = firstLine.replace(/\s+\*\*.*$/, "");
+        return withoutMarkdownStatus.replace(/\\+/g, "/").trim();
+    };
+
+    const collectProjectDirComparisons = (value) => {
+        const variants = new Set();
+        const lowerVariants = new Set();
+
+        const pushVariant = (candidate) => {
+            if (typeof candidate !== "string") {
+                return;
+            }
+            const trimmed = candidate.trim();
+            if (!trimmed) {
+                return;
+            }
+            variants.add(trimmed);
+            lowerVariants.add(trimmed.toLowerCase());
+        };
+
+        pushVariant(value);
+
+        const normalised = normaliseProjectDir(value);
+        pushVariant(normalised);
+
+        if (normalised) {
+            const forwardSlashes = normalised.replace(/\\+/g, "/");
+            pushVariant(forwardSlashes);
+            pushVariant(forwardSlashes.replace(/\/+$/, ""));
+        }
+
+        const baseForResolve = normalised || (typeof value === "string" ? value.trim() : "");
+        if (baseForResolve) {
+            try {
+                const resolved = path.resolve(baseForResolve);
+                pushVariant(resolved);
+                const resolvedForward = resolved.replace(/\\+/g, "/");
+                pushVariant(resolvedForward);
+                pushVariant(resolvedForward.replace(/\/+$/, ""));
+            } catch (_err) {
+                // Ignore resolution failures; path may be invalid on this host.
+            }
+        }
+
+        return { variants, lowerVariants };
+    };
+
+    const ensureFetch = async (...args) => {
+        if (typeof fetch !== "function") {
+            throw new Error(
+                "Global fetch API is not available in this Node.js runtime.",
+            );
+        }
+        return fetch(...args);
+    };
+
+    const getNestedValue = (obj, path) => {
+        if (!obj || typeof obj !== "object") {
+            return undefined;
+        }
+        if (typeof path === "function") {
+            try {
+                return path(obj);
+            } catch (_err) {
+                return undefined;
+            }
+        }
+        const segments = path.split(".");
+        let current = obj;
+        for (const segment of segments) {
+            if (current == null) {
+                return undefined;
+            }
+            current = current[segment];
+        }
+        return current;
+    };
+
+    const parseNumeric = (value) => {
+        if (typeof value === "string") {
+            const cleaned = value.replace(/[^0-9+\-Ee.]/g, "");
+            if (cleaned.length > 0) {
+                const parsed = Number(cleaned);
+                if (Number.isFinite(parsed)) {
+                    return parsed;
+                }
+            }
+        }
+        const direct = Number(value);
+        return Number.isFinite(direct) ? direct : null;
+    };
+
+    const pickFirstNumber = (source, paths) => {
+        for (const path of paths) {
+            const candidate = getNestedValue(source, path);
+            if (candidate === undefined || candidate === null) {
+                continue;
+            }
+            const parsed = parseNumeric(candidate);
+            if (parsed !== null) {
+                return parsed;
+            }
+        }
+        return 0;
+    };
+
+    const pickFirstString = (source, paths) => {
+        for (const path of paths) {
+            const candidate = getNestedValue(source, path);
+            if (typeof candidate === "string") {
+                const trimmed = candidate.trim();
+                if (trimmed.length > 0) {
+                    return trimmed;
+                }
+            }
+        }
+        return "";
+    };
+
+    const resolveTimestamp = (source) => {
+        const isoTimestamp = pickFirstString(source, [
+            "isoTimestamp",
+            "timestamp",
+            "created_at",
+            "createdAt",
+            "finished_at",
+            "finishedAt",
+            "time",
+            "metadata.timestamp",
+        ]) || null;
+
+        if (!isoTimestamp) {
+            return { isoTimestamp: null, timestampMs: null };
+        }
+
+        const parsedTime = Date.parse(isoTimestamp);
+        const timestampMs = Number.isNaN(parsedTime) ? null : parsedTime;
+        return { isoTimestamp, timestampMs };
+    };
+
+    const buildDisplayTimestamp = (timestampMs, fallback) => {
+        if (typeof fallback === "string" && fallback.trim().length > 0) {
+            return fallback.trim();
+        }
+        if (timestampMs === null) {
+            return "—";
+        }
+        return openRouterTimestampFormatter.format(new Date(timestampMs));
+    };
+
+    const normaliseStoredOpenRouterEntry = (entry) => {
+        const { isoTimestamp, timestampMs } = resolveTimestamp(entry);
+        const promptTokens = Number(entry.promptTokens) || 0;
+        const completionTokens = Number(entry.completionTokens) || 0;
+        const reasoningTokens = Number(entry.reasoningTokens) || 0;
+        const costUsd = Number(
+            entry.costUsd !== undefined ? entry.costUsd : entry.cost,
+        ) || 0;
+        const speedTps = Number(
+            entry.speedTps !== undefined ? entry.speedTps : entry.speed,
+        ) || 0;
+
+        const displayTimestamp = buildDisplayTimestamp(
+            timestampMs,
+            entry.displayTimestamp,
+        );
+
+        return {
+            timestampMs,
+            provider: entry.provider || "—",
+            model: entry.model || "—",
+            app: entry.app || "",
+            promptTokens,
+            completionTokens,
+            reasoningTokens,
+            totalTokens: promptTokens + completionTokens + reasoningTokens,
+            costUsd,
+            speedTps,
+            finishReason: entry.finishReason || entry.finish || "—",
+            displayTimestamp,
+            isoTimestamp,
+        };
+    };
+
+    const normaliseApiOpenRouterEntry = (entry) => {
+        if (!entry || typeof entry !== "object") {
+            return null;
+        }
+
+        let isoTimestamp = null;
+        let timestampMs = null;
+
+        if (typeof entry.date === "string" && entry.date.trim().length > 0) {
+            const isoFromDate = `${entry.date.trim()}T00:00:00Z`;
+            const parsedDate = Date.parse(isoFromDate);
+            if (!Number.isNaN(parsedDate)) {
+                isoTimestamp = isoFromDate;
+                timestampMs = parsedDate;
+            }
+        }
+
+        if (isoTimestamp === null || timestampMs === null) {
+            const resolved = resolveTimestamp(entry);
+            isoTimestamp = resolved.isoTimestamp;
+            timestampMs = resolved.timestampMs;
+        }
+        const promptTokens = pickFirstNumber(entry, [
+            "promptTokens",
+            "prompt_tokens",
+            "tokens.prompt",
+            "tokens_prompt",
+            "tokens.input",
+            "usage.prompt_tokens",
+            "usage.input_tokens",
+            "usage.tokens.prompt",
+        ]);
+        const completionTokens = pickFirstNumber(entry, [
+            "completionTokens",
+            "completion_tokens",
+            "tokens.completion",
+            "tokens_completion",
+            "tokens.output",
+            "usage.completion_tokens",
+            "usage.output_tokens",
+            "usage.tokens.completion",
+        ]);
+        const reasoningTokens = pickFirstNumber(entry, [
+            "reasoning_tokens",
+            "reasoningTokens",
+            "tokens.reasoning",
+            "tokens_reasoning",
+            "usage.reasoning_tokens",
+            "usage.tokens.reasoning",
+        ]);
+
+        let costUsd = parseNumeric(entry.usage);
+        if (costUsd === null) {
+            costUsd = pickFirstNumber(entry, [
+            "costUsd",
+            "cost_usd",
+            "costUSD",
+            "cost",
+            "cost.amount",
+            "cost.total",
+            "pricing.usd",
+            "pricing.total",
+            "pricing.total_usd",
+            "pricing.usage",
+            "usage.cost",
+            "usage.cost_usd",
+        ]);
+        }
+        const speedTps = pickFirstNumber(entry, [
+            "speedTps",
+            "speed_tps",
+            "speed",
+            "tokensPerSecond",
+            "tokens_per_second",
+            "metrics.speed",
+            "metrics.tokens_per_second",
+        ]);
+
+        const provider = pickFirstString(entry, [
+            () => (typeof entry.provider_name === "string" ? entry.provider_name.trim() : ""),
+            "provider",
+            "route.provider",
+            "metadata.provider",
+        ]) || "—";
+        const model = pickFirstString(entry, [
+            "model",
+            "route.model",
+            "metadata.model",
+            "target",
+        ]) || "—";
+        const app = pickFirstString(entry, [
+            "app",
+            "appUrl",
+            "metadata.app",
+            "metadata.app_url",
+            "metadata.appUrl",
+            "metadata.url",
+        ]);
+        const finishReason =
+            pickFirstString(entry, [
+                "finishReason",
+                "finish_reason",
+                "finish",
+            "usage.finish_reason",
+            "response.finish_reason",
+        ]) || "—";
+
+        const displayTimestamp = typeof entry.date === "string" && entry.date.trim().length > 0
+            ? entry.date.trim()
+            : buildDisplayTimestamp(timestampMs, entry.displayTimestamp);
+
+        return {
+            timestampMs,
+            record: {
+                provider,
+                model,
+                app,
+                promptTokens,
+                completionTokens,
+                reasoningTokens,
+                totalTokens: promptTokens + completionTokens + reasoningTokens,
+                costUsd,
+                speedTps,
+                finishReason,
+                timestamp: isoTimestamp,
+                displayTimestamp,
+            },
+        };
+    };
+
+    const extractTransactionsFromPayload = (payload) => {
+        if (Array.isArray(payload?.data)) {
+            return payload.data;
+        }
+        if (Array.isArray(payload?.transactions)) {
+            return payload.transactions;
+        }
+        if (Array.isArray(payload)) {
+            return payload;
+        }
+        return null;
+    };
+
+    function loadOpenRouterTransactions() {
+        try {
+            if (!fs.existsSync(openRouterTransactionsPath)) {
+                return [];
+            }
+
+            const raw = fs.readFileSync(openRouterTransactionsPath, "utf-8");
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+                console.warn(
+                    "[WARN] OpenRouter transactions file did not contain an array. Returning empty list.",
+                );
+                return [];
+            }
+
+            const normalised = parsed
+                .map((entry) => normaliseStoredOpenRouterEntry(entry))
+                .sort((a, b) => {
+                    if (a.timestampMs !== null && b.timestampMs !== null) {
+                        return b.timestampMs - a.timestampMs;
+                    }
+                    if (a.timestampMs !== null) return -1;
+                    if (b.timestampMs !== null) return 1;
+                    return 0;
+                })
+                .map((entry) => {
+                    const { timestampMs, ...rest } = entry;
+                    return rest;
+                });
+
+            return normalised;
+        } catch (err) {
+            console.error("[ERROR] Failed to load OpenRouter transactions:", err);
+            return [];
+        }
+    }
+
+    function saveOpenRouterTransactions(entries) {
+        try {
+            const directory = path.dirname(openRouterTransactionsPath);
+            if (!fs.existsSync(directory)) {
+                fs.mkdirSync(directory, { recursive: true });
+            }
+
+            const serialised = JSON.stringify(entries, null, 2);
+            fs.writeFileSync(openRouterTransactionsPath, `${serialised}\n`, "utf-8");
+            return true;
+        } catch (err) {
+            console.error("[ERROR] Failed to save OpenRouter transactions:", err);
+            return false;
+        }
+    }
+    const baseCodexModelGroups = [
+        {
+            label: "OpenRouter (OpenAI-compatible IDs)",
+            models: ["openai/gpt-4o-mini", "openai/gpt-4o", "openai/gpt-4.1-mini"],
+        },
+        {
+            label: "OpenRouter routing & community",
+            models: [
+                "openrouter/openai/gpt-5-mini",
+                "openrouter/openai/codex-mini",
+                "openrouter/auto",
+                "openrouter/deepseek/deepseek-chat-v3-0324",
+            ],
+        },
+        {
+            label: "GPT-5 family",
+            models: ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5-chat", "gpt-5-pro", "gpt-5-codex"],
+        },
+        {
+            label: "GPT-4.1 family",
+            models: ["gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano"],
+        },
+        {
+            label: "GPT-4o family",
+            models: ["gpt-4o", "gpt-4o-mini"],
+        },
+        {
+            label: '"o" series (reasoning)',
+            models: ["o1", "o3", "o3-mini", "o4-mini"],
+        },
+        {
+            label: "Image generation",
+            models: ["gpt-image-1", "gpt-image-1-mini"],
+        },
+    ];
+    const fallbackCodexModel = (() => {
+        if (typeof DEFAULT_CODEX_MODEL === "string" && DEFAULT_CODEX_MODEL.trim()) {
+            return DEFAULT_CODEX_MODEL.trim();
+        }
+        return "openrouter/openai/gpt-5-mini";
+    })();
+
+    const validCodexModelPattern = CODEX_MODEL_PATTERN instanceof RegExp
+        ? CODEX_MODEL_PATTERN
+        : /^[A-Za-z0-9._:+-]+(?:\/[A-Za-z0-9._:+-]+)*$/;
+
+    const resolveDefaultCodexModel = () => {
+        if (typeof getDefaultCodexModel === "function") {
+            try {
+                const resolved = getDefaultCodexModel();
+                if (typeof resolved === "string" && resolved.trim()) {
+                    return resolved.trim();
+                }
+            } catch (err) {
+                console.error(`[ERROR] resolveDefaultCodexModel: ${err.message}`);
+            }
+        }
+
+        return fallbackCodexModel;
+    };
+
+    const buildCodexModelGroups = (defaultCodexModel) => {
+        const groups = baseCodexModelGroups.map((group) => ({
+            label: group.label,
+            models: [...group.models],
+        }));
+
+        const openRouterSource = (AIModels && Array.isArray(AIModels.openrouter))
+            ? AIModels.openrouter
+            : [];
+        const openRouterModels = openRouterSource
+            .filter(
+                (model) => typeof model === "string" && model.trim().length > 0,
+            )
+            .map((model) => {
+                const trimmedModel = model.trim();
+                return trimmedModel.startsWith("openrouter/")
+                    ? trimmedModel
+                    : `openrouter/${trimmedModel}`;
+            });
+
+        if (openRouterModels.length > 0) {
+            const uniqueModels = [...new Set(openRouterModels)];
+            groups.unshift({
+                label: "OpenRouter (Sterling startup fetch)",
+                models: uniqueModels,
+            });
+        }
+
+        if (defaultCodexModel) {
+            const hasDefault = groups.some((group) =>
+                group.models.some((model) => model === defaultCodexModel),
+            );
+            if (!hasDefault) {
+                groups.unshift({
+                    label: "Saved default",
+                    models: [defaultCodexModel],
+                });
+            }
+        }
+
+        return groups;
+    };
+
+    const codexRunUser = process.env.CODEX_RUN_USER || "sterlingcodex";
+    const codexRunUserPattern = /^[a-z_][a-z0-9_-]*$/i;
+    let cachedCodexUserIds;
+
+    function getCodexUserIds() {
+        if (cachedCodexUserIds !== undefined) {
+            return cachedCodexUserIds;
+        }
+
+        if (!codexRunUser) {
+            cachedCodexUserIds = null;
+            return cachedCodexUserIds;
+        }
+
+        if (!codexRunUserPattern.test(codexRunUser)) {
+            console.warn(
+                `⚠️ Agent runner user "${codexRunUser}" contains unsupported characters. Falling back to current user.`,
+            );
+            cachedCodexUserIds = null;
+            return cachedCodexUserIds;
+        }
+
+        try {
+            const uid = Number.parseInt(
+                execSync(`id -u ${codexRunUser}`, { stdio: "pipe" }).toString().trim(),
+                10,
+            );
+            const gid = Number.parseInt(
+                execSync(`id -g ${codexRunUser}`, { stdio: "pipe" }).toString().trim(),
+                10,
+            );
+
+            if (Number.isNaN(uid) || Number.isNaN(gid)) {
+                console.warn(
+                    `⚠️ Unable to determine UID/GID for Agent runner user "${codexRunUser}". Falling back to current user.`,
+                );
+                cachedCodexUserIds = null;
+            } else {
+                cachedCodexUserIds = { uid, gid };
+            }
+        } catch (err) {
+            console.warn(
+                `⚠️ Failed to resolve Agent runner user "${codexRunUser}" (${err.message}). Falling back to current user.`,
+            );
+            cachedCodexUserIds = null;
+        }
+
+        return cachedCodexUserIds;
+    }
+
+    function sendSse(res, { event, data }) {
+        if (res.writableEnded) {
+            return;
+        }
+
+        if (event) {
+            res.write(`event: ${event}\n`);
+        }
+
+        const payload = typeof data === "string" ? data : JSON.stringify(data ?? "");
+        const lines = payload.split(/\r?\n/);
+        for (const line of lines) {
+            res.write(`data: ${line}\n`);
+        }
+        res.write("\n");
+    }
+
+    const generateJsonFileTree = (rootDir) => {
+        const resolvedRoot = path.resolve(rootDir);
+        let entryCount = 0;
+        let truncated = false;
+
+        const toPosixPath = (value) => value.split(path.sep).join("/");
+
+        const walk = (currentDir, relativeSegments, depth) => {
+            if (depth >= MAX_FILE_TREE_DEPTH) {
+                truncated = true;
+                return [];
+            }
+
+            let entries;
+            try {
+                entries = fs.readdirSync(currentDir, { withFileTypes: true });
+            } catch (err) {
+                truncated = true;
+                return [];
+            }
+
+            const filtered = entries
+                .filter((entry) => {
+                    const name = entry.name;
+                    if (!name) {
+                        return false;
+                    }
+                    if (name.startsWith(".")) {
+                        return false;
+                    }
+                    if (FILE_TREE_EXCLUDES.has(name)) {
+                        return false;
+                    }
+                    return true;
+                })
+                .sort((a, b) => {
+                    if (a.isDirectory() && !b.isDirectory()) return -1;
+                    if (!a.isDirectory() && b.isDirectory()) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+            const nodes = [];
+
+            for (let index = 0; index < filtered.length; index += 1) {
+                if (entryCount >= MAX_FILE_TREE_ENTRIES) {
+                    truncated = true;
+                    break;
+                }
+
+                const entry = filtered[index];
+                const isDirectory = entry.isDirectory();
+                const childRelativeSegments = [...relativeSegments, entry.name];
+                const childRelativePath = toPosixPath(path.join(...childRelativeSegments));
+
+                entryCount += 1;
+
+                if (isDirectory) {
+                    const directoryNode = {
+                        name: entry.name,
+                        type: "directory",
+                        path: childRelativePath,
+                        children: [],
+                    };
+
+                    if (entryCount < MAX_FILE_TREE_ENTRIES) {
+                        const childNodes = walk(
+                            path.join(currentDir, entry.name),
+                            childRelativeSegments,
+                            depth + 1,
+                        );
+                        if (childNodes.length) {
+                            directoryNode.children = childNodes;
+                        }
+                    } else {
+                        truncated = true;
+                    }
+
+                    nodes.push(directoryNode);
+                } else {
+                    nodes.push({
+                        name: entry.name,
+                        type: "file",
+                        path: childRelativePath,
+                        to_edit: false,
+                    });
+                }
+
+                if (truncated) {
+                    break;
+                }
+            }
+
+            return nodes;
+        };
+
+        const rootNode = {
+            name: path.basename(resolvedRoot) || path.basename(path.dirname(resolvedRoot)) || resolvedRoot,
+            type: "directory",
+            path: ".",
+            children: walk(resolvedRoot, [], 0),
+        };
+
+        return {
+            tree: rootNode,
+            truncated,
+        };
+    };
+
+    // One-time background prewarm of git metadata on first /agent access
+    let __gitPrewarmDone = false;
+    const __prewarmGitCaches = (paths) => {
+        if (__gitPrewarmDone) return;
+        __gitPrewarmDone = true;
+
+        try {
+            // Spawn a detached Node.js process to prewarm git caches so it cannot
+            // block the main event loop or delay response rendering. We pass the
+            // candidate paths via an environment variable as JSON and let the
+            // child process do best-effort git calls.
+            const env = Object.assign({}, process.env);
+            try { env.__STERLING_GIT_PREWARM_PATHS = paths && Array.isArray(paths) ? JSON.stringify(paths) : ''; } catch (_e) { env.__STERLING_GIT_PREWARM_PATHS = ''; }
+
+            const childScript = `
+(function(){
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const { spawnSync } = require('child_process');
+    const passed = process.env.__STERLING_GIT_PREWARM_PATHS || null;
+    const candidates = new Set();
+    if (passed) {
+      try { const arr = JSON.parse(passed); if (Array.isArray(arr)) arr.forEach(p=>{ if (p) candidates.add(p); }); } catch(_){}
+    }
+    try {
+      const gitRoot = path.join(path.sep, 'git');
+      if (fs.existsSync(gitRoot)) {
+        const entries = fs.readdirSync(gitRoot, { withFileTypes: true });
+        for (const e of entries) {
+          try { if (e && (typeof e.isDirectory === 'function' ? e.isDirectory() : e.isDirectory)) candidates.add(path.join(gitRoot, e.name)); } catch(_){}
+        }
+      }
+    } catch(_){}
+
+    for (const p of candidates) {
+      try { spawnSync('git', ['-C', p, 'rev-parse', '--git-dir'], { stdio: 'ignore' }); } catch(_){}
+      try { spawnSync('git', ['-C', p, 'branch', '--list'], { stdio: 'ignore' }); } catch(_){}
+    }
+  } catch(_){}
+})();
+`;
+
+            try {
+                const child = require('child_process').spawn(process.execPath, ['-e', childScript], { detached: true, stdio: 'ignore', env });
+                child.unref();
+            } catch (_e) { /* ignore */ }
+        } catch (_e) { /* ignore */ }
+    };
+    const renderCodexRunner = (req, res) => {
+        // Defer git cache prewarm until after the response is finished so the UI
+        // can be rendered immediately. The prewarm is best-effort and may be
+        // performed after the response has been sent.
+        try {
+            if (res && typeof res.once === 'function') {
+                res.once('finish', () => {
+                    try { __prewarmGitCaches(req?.query && [req.query.repo_directory || req.query.projectDir].filter(Boolean)); } catch (_e) { /* ignore */ }
+                });
+            } else {
+                // Fallback: schedule it asynchronously
+                setImmediate(() => { try { __prewarmGitCaches(req?.query && [req.query.repo_directory || req.query.projectDir].filter(Boolean)); } catch (_e) { /* ignore */ } });
+            }
+        } catch (_e) { /* ignore */ }
+
+        const defaultCodexModel = resolveDefaultCodexModel();
+        const codexConfig = typeof loadCodexConfig === "function" ? loadCodexConfig() : {};
+        const iframeParam = req?.query?.iframe;
+        const sessionId = resolveSessionId(req);
+        const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
+        const parseBooleanFlag = (value) => {
+            if (Array.isArray(value)) {
+                return parseBooleanFlag(value[value.length - 1]);
+            }
+
+            if (typeof value === "boolean") {
+                return value;
+            }
+
+            if (typeof value === "number") {
+                return value === 1;
+            }
+
+            if (typeof value === "string") {
+                const normalized = value.trim().toLowerCase();
+                if (!normalized) {
+                    return false;
+                }
+
+                return ["1", "true", "yes", "y", "on"].includes(normalized);
+            }
+
+            return false;
+        };
+        const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanFlag(iframeParam);
+        const defaultAgentInstructions =
+            typeof codexConfig?.defaultAgentInstructions === "string"
+                ? codexConfig.defaultAgentInstructions
+                : "";
+        const defaultOpenRouterReferer =
+            typeof codexConfig?.openRouterReferer === "string" && codexConfig.openRouterReferer.trim()
+                ? codexConfig.openRouterReferer.trim()
+                : process.env.OPENROUTER_HTTP_REFERER
+                    || process.env.HTTP_REFERER
+                    || "https://code-s.alfe.sh231";
+        const defaultOpenRouterTitle =
+            typeof codexConfig?.openRouterTitle === "string" && codexConfig.openRouterTitle.trim()
+                ? codexConfig.openRouterTitle.trim()
+                : process.env.OPENROUTER_APP_TITLE
+                    || process.env.X_TITLE
+                    || "Agent via OpenRouter";
+        const resolvedEditorTarget = resolveEditorTargetForProjectDir(
+            repoDirectoryParam,
+            sessionId,
+        );
+        const initialEditorLaunchConfig = resolvedEditorTarget && resolvedEditorTarget.url
+            ? resolvedEditorTarget
+            : null;
+        res.render("codex_runner", {
+            codexScriptPath,
+            defaultProjectDir: defaultCodexProjectDir,
+            codexModelGroups: buildCodexModelGroups(defaultCodexModel),
+            defaultCodexModel,
+            defaultAgentInstructions,
+            defaultOpenRouterReferer,
+            defaultOpenRouterTitle,
+            isIframeMode,
+            editorLaunchConfig: initialEditorLaunchConfig,
+
+            editorEnabled: parseBooleanFlag(process.env.EDITOR_ENABLED),
+            appVersion    : appVersionDisplay,
+            enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
+        });
+    };
+
+    app.get("/agent", renderCodexRunner);
+    app.get('/agent/help', (req, res) => { res.render('agent_help'); });
+    app.get('/agent/model-only', (req, res) => { res.render('model_only'); });
+
+
+
+    app.get("/agent/file-tree", (req, res) => {
+        const projectDir = (req.query.projectDir || "").toString().trim();
+
+        if (!projectDir) {
+            res.status(400).json({ error: "Project directory is required." });
+            return;
+        }
+
+        const resolvedPath = path.resolve(projectDir);
+        let stats;
+        try {
+            stats = fs.statSync(resolvedPath);
+        } catch (err) {
+            res.status(404).json({ error: `Project directory not found: ${projectDir}` });
+            return;
+        }
+
+        if (!stats.isDirectory()) {
+            res.status(400).json({ error: "Provided project directory is not a directory." });
+            return;
+        }
+
+        try {
+            const { tree, truncated } = generateJsonFileTree(resolvedPath);
+            res.json({ fileTree: tree, truncated });
+        } catch (err) {
+            console.error(`[ERROR] Failed to generate file tree for ${resolvedPath}:`, err);
+            res.status(500).json({ error: "Failed to generate file tree." });
+        }
+    });
+
+    app.get("/agent/test-python", async (_req, res) => {
+        const commandsToTry = [
+            { binary: "python", args: ["--version"] },
+            { binary: "python3", args: ["--version"] },
+        ];
+
+        const runCommand = (binary, args) => new Promise((resolve) => {
+            let stdout = "";
+            let stderr = "";
+            let settled = false;
+            let child;
+            try {
+                child = spawn(binary, args, { stdio: ["ignore", "pipe", "pipe"] });
+            } catch (error) {
+                resolve({
+                    success: false,
+                    exitCode: null,
+                    stdout: "",
+                    stderr: "",
+                    errorMessage: error?.message || String(error || ""),
+                });
+                return;
+            }
+
+            child.stdout.on("data", (chunk) => {
+                stdout += chunk.toString();
+            });
+
+            child.stderr.on("data", (chunk) => {
+                stderr += chunk.toString();
+            });
+
+            child.on("error", (error) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                resolve({
+                    success: false,
+                    exitCode: null,
+                    stdout,
+                    stderr,
+                    errorMessage: error?.message || String(error || ""),
+                });
+            });
+
+            child.on("close", (code) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                const exitCode = typeof code === "number" ? code : null;
+                resolve({
+                    success: exitCode === 0,
+                    exitCode,
+                    stdout,
+                    stderr,
+                    errorMessage:
+                        exitCode === 0
+                            ? ""
+                            : `Process exited with code ${exitCode !== null ? exitCode : "unknown"}.`,
+                });
+            });
+        });
+
+        const attempts = [];
+        let successfulAttempt = null;
+
+        for (const command of commandsToTry) {
+            const result = await runCommand(command.binary, command.args);
+            const commandLabel = `${command.binary} ${command.args.join(" ")}`.trim();
+            const formattedAttempt = {
+                command: commandLabel,
+                exitCode: result.exitCode,
+                stdout: (result.stdout || "").trim(),
+                stderr: (result.stderr || "").trim(),
+                error: result.errorMessage ? result.errorMessage.trim() : "",
+            };
+            attempts.push(formattedAttempt);
+            if (result.success) {
+                successfulAttempt = {
+                    command: commandLabel,
+                    versionOutput: formattedAttempt.stdout || formattedAttempt.stderr,
+                };
+                break;
+            }
+        }
+
+        const success = Boolean(successfulAttempt);
+        const versionOutput = success ? (successfulAttempt.versionOutput || "").trim() : "";
+        let message;
+        if (success) {
+            const commandLabel = successfulAttempt.command || "python --version";
+            message = versionOutput
+                ? `Python command is available via "${commandLabel}" – ${versionOutput}`
+                : `Python command is available via "${commandLabel}".`;
+        } else {
+            const lastAttempt = attempts[attempts.length - 1] || {};
+            const errorDetail = (lastAttempt.stderr || lastAttempt.error || lastAttempt.stdout || "")
+                .toString()
+                .trim();
+            const detailSuffix = errorDetail ? ` ${errorDetail}` : "";
+            message = `Python command is not available.${detailSuffix}`;
+        }
+
+        res.json({
+            success,
+            message,
+            command: successfulAttempt?.command || null,
+            versionOutput: versionOutput || null,
+            attempts,
+        });
+    });
+
+    app.get("/agent/stream", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const projectDir = (req.query.projectDir || "").toString().trim();
+        const prompt = (req.query.prompt || "").toString().trim();
+        const requestedModel = (req.query.model || "").toString().trim();
+        const openRouterReferer = (req.query.openRouterReferer || "").toString().trim();
+        const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
+        const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
+        const includeMeta = includeMetaParam === "1" || includeMetaParam === "true";
+        const gitFpushParam = (req.query.gitFpush || "").toString().trim().toLowerCase();
+        const gitFpushEnabled = gitFpushParam === "1" || gitFpushParam === "true";
+        const userPromptRaw = (req.query.userPrompt || "").toString();
+        const agentInstructionsRaw = (req.query.agentInstructions || "").toString();
+
+        const scriptPath = codexScriptPath;
+        const defaultCodexModel = resolveDefaultCodexModel();
+        let model = defaultCodexModel;
+        let invalidModelReason = "";
+        if (requestedModel) {
+            if (validCodexModelPattern.test(requestedModel)) {
+                model = requestedModel;
+            } else {
+                invalidModelReason = `Requested model \"${requestedModel}\" contains unsupported characters.`;
+            }
+        }
+
+        const runRecord = {
+            id: randomUUID(),
+            startedAt: new Date().toISOString(),
+            finishedAt: null,
+            projectDir,
+            requestedProjectDir: projectDir,
+            effectiveProjectDir: projectDir,
+            gitBranch: "",
+            userPrompt: userPromptRaw,
+            agentInstructions: agentInstructionsRaw,
+            effectivePrompt: prompt,
+            model,
+            includeMeta,
+            gitFpushEnabled,
+            openRouterReferer,
+            openRouterTitle,
+            statusHistory: [],
+            metaMessages: [],
+            stdout: "",
+            stdoutOnly: "",
+            finalOutput: "",
+            stderr: "",
+            stdoutTruncated: false,
+            stderrTruncated: false,
+            exitCode: null,
+            gitFpushExitCode: null,
+            finalMessage: "",
+            error: "",
+            invalidModelReason,
+        };
+        let effectiveProjectDir = projectDir;
+        let runPersisted = false;
+        let codexStreamTerminated = false;
+        let gitFpushChild = null;
+        let lastRunRecordPersistTs = 0;
+        const RUN_RECORD_PERSIST_INTERVAL_MS = 2000;
+        let lastBranchDir = "";
+        let branchPersistTimeoutId = null;
+
+        const updateRunBranchFromDir = (candidateDir, { force = false, skipPersist = false } = {}) => {
+            const targetDir = typeof candidateDir === "string" ? candidateDir.trim() : "";
+            if (!targetDir) {
+                return;
+            }
+
+            const previousBranch = typeof runRecord.gitBranch === "string" ? runRecord.gitBranch : "";
+            const resolvedBranch = resolveGitBranchName(targetDir);
+            const normalizedBranch = typeof resolvedBranch === "string" ? resolvedBranch.trim() : "";
+            const branchChanged = normalizedBranch !== previousBranch;
+
+            const scheduleBranchPersist = () => {
+                if (skipPersist || !branchChanged) {
+                    return;
+                }
+                if (branchPersistTimeoutId) {
+                    clearTimeout(branchPersistTimeoutId);
+                }
+                branchPersistTimeoutId = setTimeout(() => {
+                    branchPersistTimeoutId = null;
+                    persistRunRecord({ force: true, skipBranchUpdate: true });
+                }, 0);
+            };
+
+            if (normalizedBranch) {
+                lastBranchDir = targetDir;
+                if (!branchChanged && !force) {
+                    return;
+                }
+                runRecord.gitBranch = normalizedBranch;
+                scheduleBranchPersist();
+                return;
+            }
+
+            if (force && lastBranchDir !== targetDir) {
+                lastBranchDir = targetDir;
+            }
+
+            if (force && previousBranch) {
+                runRecord.gitBranch = "";
+                scheduleBranchPersist();
+            }
+        };
+
+        const persistRunRecord = ({ ensureFinished = false, force = false, skipBranchUpdate = false } = {}) => {
+            if (ensureFinished) {
+                runRecord.finishedAt = runRecord.finishedAt || new Date().toISOString();
+            }
+
+            runRecord.effectiveProjectDir = effectiveProjectDir;
+
+            if (!skipBranchUpdate) {
+                const branchTargetDir = effectiveProjectDir || projectDir;
+                if (branchTargetDir) {
+                    updateRunBranchFromDir(branchTargetDir, { force: true, skipPersist: true });
+                }
+            }
+
+            const now = Date.now();
+            if (!force && runPersisted && now - lastRunRecordPersistTs < RUN_RECORD_PERSIST_INTERVAL_MS) {
+                return;
+            }
+
+            try {
+                upsertCodexRun(sessionId, runRecord);
+                runPersisted = true;
+                lastRunRecordPersistTs = now;
+            } catch (error) {
+                console.error(`[ERROR] Failed to persist codex run: ${error.message}`);
+            }
+        };
+
+        updateRunBranchFromDir(projectDir, { force: true, skipPersist: true });
+        persistRunRecord({ force: true });
+
+        res.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+        });
+
+        if (typeof res.flushHeaders === "function") {
+            res.flushHeaders();
+        }
+
+        const emit = ({ event, data }) => {
+            if (res.writableEnded) {
+                return;
+            }
+            const payloadString = typeof data === "string" ? data : JSON.stringify(data ?? "");
+            let shouldPersist = false;
+            switch (event) {
+                case "output": {
+                    const { truncated } = appendTextWithLimit(runRecord, "stdout", payloadString, MAX_RUN_OUTPUT_LENGTH);
+                    if (truncated) {
+                        runRecord.stdoutTruncated = true;
+                    }
+                    break;
+                }
+                case "stderr": {
+                    const { truncated } = appendTextWithLimit(runRecord, "stderr", payloadString, MAX_RUN_OUTPUT_LENGTH);
+                    if (truncated) {
+                        runRecord.stderrTruncated = true;
+                    }
+                    break;
+                }
+                case "status": {
+                    pushHistoryEntry(runRecord, "statusHistory", payloadString, MAX_STATUS_HISTORY);
+                    shouldPersist = true;
+                    break;
+                }
+                case "meta": {
+                    pushHistoryEntry(runRecord, "metaMessages", payloadString, MAX_STATUS_HISTORY);
+                    shouldPersist = true;
+                    break;
+                }
+                case "stream-error": {
+                    if (!runRecord.error) {
+                        runRecord.error = payloadString;
+                    }
+                    shouldPersist = true;
+                    break;
+                }
+                case "end": {
+                    if (payloadString) {
+                        runRecord.finalMessage = payloadString;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            sendSse(res, { event, data });
+            if (shouldPersist) {
+                persistRunRecord();
+            }
+        };
+
+        emit({
+            event: "run-info",
+            data: {
+                id: runRecord.id,
+                numericId: runRecord.numericId,
+                projectDir,
+                requestedProjectDir: projectDir,
+                effectiveProjectDir,
+            },
+        });
+
+        const closeStream = () => {
+            if (!res.writableEnded) {
+                res.end();
+            }
+        };
+
+        const finalizeStream = (message) => {
+            if (codexStreamTerminated) {
+                return;
+            }
+            codexStreamTerminated = true;
+            if (typeof message === "string" && message) {
+                runRecord.finalMessage = message;
+            }
+            runRecord.finishedAt = runRecord.finishedAt || new Date().toISOString();
+            emit({ event: "end", data: message });
+            closeStream();
+            persistRunRecord({ ensureFinished: true, force: true });
+        };
+
+        emit({ event: "status", data: "Preparing Agent run..." });
+
+        if (!prompt) {
+            const errorMessage = "Prompt is required to run Agent.";
+            runRecord.error = errorMessage;
+            emit({ event: "stream-error", data: errorMessage });
+            finalizeStream("Agent run aborted before start.");
+            return;
+        }
+
+        if (!fs.existsSync(scriptPath)) {
+            const errorMessage = `Agent runner script not found at ${scriptPath}`;
+            runRecord.error = errorMessage;
+            emit({ event: "stream-error", data: errorMessage });
+            finalizeStream("Agent run aborted before start.");
+            return;
+        }
+
+        const codexToolsDir = path.dirname(scriptPath);
+        const args = ["--api-key-mode"];
+        if (invalidModelReason) {
+            runRecord.invalidModelReason = invalidModelReason;
+        }
+        if (invalidModelReason && includeMeta) {
+            emit({ event: "meta", data: `${invalidModelReason} Falling back to ${defaultCodexModel}.` });
+            model = defaultCodexModel;
+        }
+        const wantsOpenRouterHeaders = Boolean(openRouterReferer || openRouterTitle);
+
+        if (model) {
+            if (includeMeta) {
+                emit({ event: "meta", data: `Agent model: ${model}` });
+            }
+            args.push("--model", model);
+        }
+        runRecord.model = model;
+
+        if (projectDir) {
+            args.push("--project-dir", projectDir);
+        }
+        if (wantsOpenRouterHeaders) {
+            if (openRouterReferer) {
+                args.push("--openrouter-referer", openRouterReferer);
+            }
+            if (openRouterTitle) {
+                args.push("--openrouter-title", openRouterTitle);
+            }
+        }
+        args.push(prompt);
+
+        const baseSpawnOptions = {
+            cwd: codexToolsDir,
+            env: { ...process.env },
+            stdio: ["ignore", "pipe", "pipe"],
+        };
+
+        baseSpawnOptions.env.CODEX_SHOW_META = includeMeta ? "1" : "0";
+
+        const codexUserIds = getCodexUserIds();
+        let child;
+        let userSwitchError;
+
+        if (codexUserIds) {
+            try {
+                child = spawn(scriptPath, args, {
+                    ...baseSpawnOptions,
+                    uid: codexUserIds.uid,
+                    gid: codexUserIds.gid,
+                });
+            } catch (err) {
+                userSwitchError = err;
+            }
+        }
+
+        if (!child && userSwitchError) {
+            if (userSwitchError.code === "EPERM") {
+                console.warn(
+                    `⚠️ Unable to switch to Agent runner user "${codexRunUser}": ${userSwitchError.message}. Falling back to current user.`,
+                );
+                emit({
+                    event: "status",
+                    data: `Unable to switch to ${codexRunUser}. Running Agent as the current user instead.`,
+                });
+            } else {
+                const errorMessage = `Failed to start Agent: ${userSwitchError.message}`;
+                runRecord.error = errorMessage;
+                emit({ event: "stream-error", data: errorMessage });
+                finalizeStream("Agent run aborted before start.");
+                return;
+            }
+        }
+
+        if (!child) {
+            try {
+                child = spawn(scriptPath, args, baseSpawnOptions);
+            } catch (err) {
+                const errorMessage = `Failed to start Agent: ${err.message}`;
+                runRecord.error = errorMessage;
+                emit({ event: "stream-error", data: errorMessage });
+                finalizeStream("Agent run aborted before start.");
+                return;
+            }
+        }
+
+        const statusMessage = "Running...";
+        emit({ event: "status", data: statusMessage });
+
+        const updateEffectiveProjectDir = (candidateDir) => {
+            if (typeof candidateDir !== "string") {
+                return;
+            }
+            const trimmed = candidateDir.trim();
+            if (!trimmed) {
+                return;
+            }
+            if (trimmed === effectiveProjectDir) {
+                return;
+            }
+            effectiveProjectDir = trimmed;
+            runRecord.effectiveProjectDir = trimmed;
+            updateRunBranchFromDir(trimmed, { force: true });
+            emit({
+                event: "meta",
+                data: `Agent snapshot directory detected: ${trimmed}`,
+            });
+        };
+
+        let stdoutLineBuffer = "";
+
+        const emitFilteredStdout = (segment) => {
+            if (typeof segment !== "string" || segment.length === 0) {
+                return;
+            }
+            emit({ event: "output", data: segment });
+        };
+
+        const isPotentialMarkerPrefix = (value) => {
+            if (typeof value !== "string" || value.length === 0) {
+                return false;
+            }
+            const maxCheckLength = Math.min(value.length, CODEX_RUNNER_PROJECT_DIR_MARKER.length);
+            for (let prefixLength = 1; prefixLength <= maxCheckLength; prefixLength += 1) {
+                const suffix = value.slice(-prefixLength);
+                if (CODEX_RUNNER_PROJECT_DIR_MARKER.startsWith(suffix)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        const processCompletedLine = (lineWithNewline) => {
+            if (typeof lineWithNewline !== "string") {
+                return;
+            }
+            const trimmedLine = lineWithNewline.replace(/[\r\n]+$/, "");
+            if (trimmedLine.startsWith(CODEX_RUNNER_PROJECT_DIR_MARKER)) {
+                const detectedDir = trimmedLine.slice(CODEX_RUNNER_PROJECT_DIR_MARKER.length);
+                updateEffectiveProjectDir(detectedDir);
+                return;
+            }
+            emitFilteredStdout(lineWithNewline);
+        };
+
+        const handleStdoutChunk = (chunk) => {
+            stdoutLineBuffer += chunk;
+            let processedUpTo = 0;
+            let newlineIndex = stdoutLineBuffer.indexOf("\n", processedUpTo);
+            while (newlineIndex !== -1) {
+                const lineWithNewline = stdoutLineBuffer.slice(processedUpTo, newlineIndex + 1);
+                processCompletedLine(lineWithNewline);
+                processedUpTo = newlineIndex + 1;
+                newlineIndex = stdoutLineBuffer.indexOf("\n", processedUpTo);
+            }
+            stdoutLineBuffer = stdoutLineBuffer.slice(processedUpTo);
+            if (stdoutLineBuffer) {
+                const trimmedRemainder = stdoutLineBuffer.replace(/[\r\n]+$/, "");
+                const remainderLooksLikeMarker = trimmedRemainder.startsWith(
+                    CODEX_RUNNER_PROJECT_DIR_MARKER,
+                );
+                if (!remainderLooksLikeMarker && !isPotentialMarkerPrefix(stdoutLineBuffer)) {
+                    emitFilteredStdout(stdoutLineBuffer);
+                    stdoutLineBuffer = "";
+                }
+            }
+        };
+
+        child.stdout.on("data", (chunk) => {
+            const text = chunk.toString();
+            handleStdoutChunk(text);
+        });
+
+        child.stdout.on("end", () => {
+            if (stdoutLineBuffer) {
+                const remaining = stdoutLineBuffer;
+                stdoutLineBuffer = "";
+                const trimmedRemaining = remaining.replace(/[\r\n]+$/, "");
+                if (trimmedRemaining.startsWith(CODEX_RUNNER_PROJECT_DIR_MARKER)) {
+                    const detectedDir = trimmedRemaining.slice(CODEX_RUNNER_PROJECT_DIR_MARKER.length);
+                    updateEffectiveProjectDir(detectedDir);
+                } else {
+                    emitFilteredStdout(remaining);
+                }
+            }
+        });
+
+        child.stderr.on("data", (chunk) => {
+            emit({ event: "stderr", data: chunk.toString() });
+        });
+
+        child.on("error", (err) => {
+            const errorMessage = `Agent process error: ${err.message}`;
+            runRecord.error = errorMessage;
+            emit({ event: "stream-error", data: errorMessage });
+            finalizeStream("Agent run encountered an error.");
+        });
+
+        const runGitFpushIfNeeded = (code) => {
+            if (codexStreamTerminated) {
+                return Promise.resolve();
+            }
+            runRecord.exitCode = code;
+            const exitMessage = `Agent exited with code ${code}.`;
+            emit({ event: "status", data: exitMessage });
+
+            if (code !== 0) {
+                finalizeStream(exitMessage);
+                return Promise.resolve();
+            }
+
+            if (!gitFpushEnabled) {
+                emit({
+                    event: "status",
+                    data: "git_fpush.sh skipped: automatic push disabled.",
+                });
+                finalizeStream(exitMessage);
+                return Promise.resolve();
+            }
+
+            if (!effectiveProjectDir) {
+                emit({
+                    event: "status",
+                    data: projectDir
+                        ? `git_fpush.sh skipped: project directory was not provided (requested: ${projectDir}).`
+                        : "git_fpush.sh skipped: project directory was not provided.",
+                });
+                finalizeStream(exitMessage);
+                return Promise.resolve();
+            }
+
+            const resolvedProjectDir = path.resolve(effectiveProjectDir);
+            let projectStats;
+            try {
+                projectStats = fs.statSync(resolvedProjectDir);
+            } catch (_err) {
+                // project directory not found: silently skip git_fpush to avoid
+                // showing an alarming message in the Git Tree UI.
+                finalizeStream(exitMessage);
+                return Promise.resolve();
+            }
+
+            if (!projectStats.isDirectory()) {
+                emit({
+                    event: "status",
+                    data: "git_fpush.sh skipped: project directory is not a directory.",
+                });
+                finalizeStream(exitMessage);
+                return Promise.resolve();
+            }
+
+            const gitFpushScript = path.join(codexToolsDir, "git_fpush.sh");
+            if (!fs.existsSync(gitFpushScript)) {
+                emit({
+                    event: "status",
+                    data: `git_fpush.sh skipped: script not found at ${gitFpushScript}.`,
+                });
+                finalizeStream(exitMessage);
+                return Promise.resolve();
+            }
+
+            emit({
+                event: "status",
+                data: `Agent succeeded. Running git_fpush.sh in ${resolvedProjectDir}...`,
+            });
+
+            return new Promise((resolve) => {
+                // Pass the collected stdout-only output and final output to the git_fpush script.
+                const gitFpushStdout = resolveStdoutOnlyTextForCommit(runRecord);
+                const normalisedGitFpushStdout = typeof gitFpushStdout === "string" ? gitFpushStdout : "";
+                runRecord.stdoutOnly = normalisedGitFpushStdout;
+
+                // Resolve the final output (may call OpenRouter) and then spawn the
+                // git_fpush script once ready. We use an async IIFE inside the
+                // Promise executor so we can await the potentially-async
+                // resolveFinalOutputTextForCommit.
+                let gitFpushChildLocal = null;
+                let gitFpushFinished = false;
+
+                const completeGitFpush = (handler) => {
+                    if (gitFpushFinished) {
+                        return;
+                    }
+                    gitFpushFinished = true;
+                    try {
+                        handler();
+                    } finally {
+                        resolve();
+                    }
+                };
+
+                (async () => {
+                    try {
+                        const gitFpushFinalOutput = await resolveFinalOutputTextForCommit(runRecord);
+                        const normalisedGitFpushFinalOutput =
+                            typeof gitFpushFinalOutput === "string" ? gitFpushFinalOutput : "";
+                        runRecord.finalOutput = normalisedGitFpushFinalOutput;
+                        persistRunRecord({ force: true });
+
+                        gitFpushChildLocal = spawn(gitFpushScript, [], {
+                            cwd: resolvedProjectDir,
+                            env: {
+                                ...process.env,
+                                GIT_FPUSH_STDOUT: normalisedGitFpushStdout,
+                                GIT_FPUSH_FINAL_OUTPUT: normalisedGitFpushFinalOutput,
+                            },
+                            stdio: ["ignore", "pipe", "pipe"],
+                        });
+
+                        gitFpushChild = gitFpushChildLocal;
+
+                        gitFpushChildLocal.stdout.on("data", (chunk) => {
+                            emit({ event: "output", data: chunk.toString() });
+                        });
+
+                        gitFpushChildLocal.stderr.on("data", (chunk) => {
+                            emit({ event: "stderr", data: chunk.toString() });
+                        });
+
+                        gitFpushChildLocal.on("error", (err) => {
+                            completeGitFpush(() => {
+                                runRecord.gitFpushExitCode = null;
+                                const errorMessage = `git_fpush.sh failed to start: ${err.message}`;
+                                runRecord.error = errorMessage;
+                                emit({ event: "stream-error", data: errorMessage });
+                                gitFpushChild = null;
+                                finalizeStream(`${exitMessage} git_fpush.sh failed to start.`);
+                            });
+                        });
+
+                        gitFpushChildLocal.on("close", (gitCode) => {
+                            completeGitFpush(() => {
+                                gitFpushChild = null;
+                                runRecord.gitFpushExitCode = gitCode;
+                                const gitMessage = `git_fpush.sh exited with code ${gitCode}.`;
+                                emit({
+                                    event: "status",
+                                    data: gitMessage,
+                                });
+                                finalizeStream(`${exitMessage} ${gitMessage}`);
+                            });
+                        });
+                    } catch (err) {
+                        completeGitFpush(() => {
+                            const errorMessage = `Failed to run git_fpush.sh: ${err.message || err}`;
+                            runRecord.error = errorMessage;
+                            emit({ event: "stream-error", data: errorMessage });
+                            finalizeStream(`${exitMessage} Failed to run git_fpush.sh.`);
+                        });
+                    }
+                })();
+            });
+        };
+
+        child.on("close", (code) => {
+            if (codexStreamTerminated) {
+                return;
+            }
+            runGitFpushIfNeeded(code).catch((err) => {
+                const errorMessage = `Failed to run git_fpush.sh: ${err.message}`;
+                runRecord.error = errorMessage;
+                emit({ event: "stream-error", data: errorMessage });
+                finalizeStream(`Agent exited with code ${code}. Failed to run git_fpush.sh.`);
+            });
+        });
+
+        req.on("close", () => {
+            if (child && !child.killed) {
+                child.kill("SIGTERM");
+            }
+            if (gitFpushChild && !gitFpushChild.killed) {
+                gitFpushChild.kill("SIGTERM");
+            }
+            if (!codexStreamTerminated) {
+                codexStreamTerminated = true;
+                runRecord.finalMessage = runRecord.finalMessage || "Connection closed.";
+                runRecord.finishedAt = new Date().toISOString();
+                closeStream();
+                persistRunRecord({ ensureFinished: true, force: true });
+            }
+        });
+    });
+
+    app.get("/agent/runs/data", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const repoDirectoryFilter = (req.query.repo_directory || "").toString().trim();
+        const runIdFilter = (req.query.run_id || "").toString().trim();
+
+        let runs = [];
+        try {
+            const loaded = loadCodexRuns(sessionId);
+            runs = Array.isArray(loaded) ? loaded : [];
+        } catch (error) {
+            console.error(`[ERROR] Failed to load codex runs: ${error.message}`);
+            runs = [];
+        }
+
+        let filteredRuns = runs;
+        const repoFilterMeta = {
+            applied: false,
+            raw: repoDirectoryFilter,
+            normalized: repoDirectoryFilter ? normaliseProjectDir(repoDirectoryFilter) : "",
+            matched: false,
+            usedFallback: false,
+            recoveredWithAllRuns: false,
+        };
+
+        if (repoDirectoryFilter) {
+            repoFilterMeta.applied = true;
+            const { variants: filterVariants, lowerVariants: filterLowerVariants } =
+                collectProjectDirComparisons(repoDirectoryFilter);
+
+            const buildRunVariantSets = (run) => {
+                const variantSet = new Set();
+                const lowerVariantSet = new Set();
+                const sources = [run?.projectDir, run?.effectiveProjectDir, run?.requestedProjectDir];
+                sources.forEach((source) => {
+                    const { variants, lowerVariants } = collectProjectDirComparisons(source);
+                    variants.forEach((entry) => variantSet.add(entry));
+                    lowerVariants.forEach((entry) => lowerVariantSet.add(entry));
+                });
+                return { variantSet, lowerVariantSet };
+            };
+
+            const matchRuns = (runsToFilter, { allowLowerOnly = false } = {}) =>
+                runsToFilter.filter((run) => {
+                    const { variantSet, lowerVariantSet } = buildRunVariantSets(run);
+
+                    if (!allowLowerOnly) {
+                        for (const candidate of filterVariants) {
+                            if (variantSet.has(candidate)) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    for (const candidate of filterLowerVariants) {
+                        if (lowerVariantSet.has(candidate)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+
+            let matches = matchRuns(filteredRuns);
+
+            if (!matches.length && filterLowerVariants.size) {
+                repoFilterMeta.usedFallback = true;
+                matches = matchRuns(filteredRuns, { allowLowerOnly: true });
+            }
+
+            if (!matches.length) {
+                const normalizedFilterLower = (repoFilterMeta.normalized || repoDirectoryFilter || "").toLowerCase();
+                if (normalizedFilterLower) {
+                    repoFilterMeta.usedFallback = true;
+                    matches = filteredRuns.filter((run) => {
+                        const candidates = [
+                            normaliseProjectDir(run?.projectDir),
+                            normaliseProjectDir(run?.effectiveProjectDir),
+                            normaliseProjectDir(run?.requestedProjectDir),
+                        ].filter(Boolean);
+                        return candidates.some((candidate) =>
+                            candidate.toLowerCase().includes(normalizedFilterLower),
+                        );
+                    });
+                }
+            }
+
+            if (matches.length) {
+                filteredRuns = matches;
+                repoFilterMeta.matched = true;
+            } else if (filteredRuns.length) {
+                repoFilterMeta.usedFallback = true;
+                repoFilterMeta.recoveredWithAllRuns = true;
+            }
+        }
+        if (runIdFilter) {
+            filteredRuns = filteredRuns.filter((run) => (run?.id || "").toString() === runIdFilter);
+        }
+
+        res.json({ runs: filteredRuns, repoFilter: repoFilterMeta });
+    });
+
+    app.get("/agent/runs", (req, res) => {
+        const repoDirectory = (req.query.repo_directory || "").toString();
+        const runId = (req.query.run_id || "").toString();
+        const sessionId = resolveSessionId(req);
+        res.render("codex_runs", { repoDirectory, runId, sessionId });
+    });
+
+    const resolveRepoNameByLocalPath = (targetPath, sessionId) => {
+        if (!targetPath) {
+            return "";
+        }
+
+        try {
+            const repoConfig = (typeof loadRepoConfig === "function"
+                ? loadRepoConfig(sessionId)
+                : {}) || {};
+
+            for (const [name, cfg] of Object.entries(repoConfig)) {
+                if (cfg && cfg.gitRepoLocalPath) {
+                    const repoPathResolved = path.resolve(cfg.gitRepoLocalPath);
+                    if (repoPathResolved === targetPath) {
+                        return name;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error(
+                `[ERROR] Failed to resolve repo configuration for git path '${targetPath}': ${err.message}`,
+            );
+        }
+
+        return "";
+    };
+
+    app.get("/agent/project-meta", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const directoryParamRaw = ((req.query.projectDir || req.query.repo_directory || "")
+            .toString()
+            .trim());
+
+        if (!directoryParamRaw) {
+            res.status(400).json({ error: "projectDir parameter is required." });
+            return;
+        }
+
+        let resolvedProjectDir = directoryParamRaw;
+        try {
+            resolvedProjectDir = path.resolve(directoryParamRaw);
+        } catch (_err) {
+            resolvedProjectDir = directoryParamRaw;
+        }
+
+        let repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId) || "";
+        let repoCfg = null;
+        if (repoName) {
+            try {
+                repoCfg = loadSingleRepoConfig(repoName, sessionId);
+            } catch (err) {
+                console.warn(
+                    `[WARN] Failed to load repository config for ${repoName}:`,
+                    err && err.message ? err.message : err,
+                );
+                repoCfg = null;
+            }
+        }
+
+        let repoLocalPath = "";
+        if (repoCfg && typeof repoCfg.gitRepoLocalPath === "string" && repoCfg.gitRepoLocalPath.trim()) {
+            repoLocalPath = repoCfg.gitRepoLocalPath.trim();
+        }
+
+        const candidatePaths = [];
+        if (repoLocalPath) {
+            candidatePaths.push(repoLocalPath);
+        }
+        if (resolvedProjectDir && (!repoLocalPath || path.resolve(repoLocalPath) !== resolvedProjectDir)) {
+            candidatePaths.push(resolvedProjectDir);
+        }
+
+        let branchName = "";
+        let branchSource = "";
+
+        for (const candidate of candidatePaths) {
+            if (!candidate) {
+                continue;
+            }
+            try {
+                const stats = fs.statSync(candidate);
+                if (!stats.isDirectory()) {
+                    continue;
+                }
+            } catch (_err) {
+                continue;
+            }
+
+            try {
+                const meta = getGitMetaData(candidate);
+                if (meta && typeof meta.branchName === "string") {
+                    const trimmedBranch = meta.branchName.trim();
+                    if (trimmedBranch) {
+                        branchName = trimmedBranch;
+                        branchSource = candidate === repoLocalPath ? "git" : "git:project";
+                        break;
+                    }
+                }
+            } catch (err) {
+                console.warn(
+                    `[WARN] Failed to resolve git metadata for ${candidate}:`,
+                    err && err.message ? err.message : err,
+                );
+            }
+        }
+
+        if (!branchName && repoCfg && typeof repoCfg.gitBranch === "string") {
+            const configuredBranch = repoCfg.gitBranch.trim();
+            if (configuredBranch) {
+                branchName = configuredBranch;
+                branchSource = "config";
+            }
+        }
+
+        res.json({
+            projectDir: directoryParamRaw,
+            resolvedProjectDir,
+            repoName,
+            gitRepoLocalPath: repoLocalPath,
+            branchName,
+            branchSource,
+            repoConfigBranch: repoCfg && typeof repoCfg.gitBranch === "string"
+                ? repoCfg.gitBranch.trim()
+                : "",
+        });
+    });
+
+    const pickDefaultChatNumber = (repoName, sessionId) => {
+        if (!repoName) {
+            return "";
+        }
+
+        let repoData;
+        try {
+            repoData = loadRepoJson(repoName, sessionId);
+        } catch (error) {
+            console.error(
+                `[ERROR] Failed to load chats for repository '${repoName}': ${error.message}`,
+            );
+            return "";
+        }
+
+        if (!repoData || typeof repoData !== "object") {
+            return "";
+        }
+
+        const normaliseTimestamp = (value) => {
+            if (!value) {
+                return null;
+            }
+            const parsed = Date.parse(value);
+            return Number.isNaN(parsed) ? null : parsed;
+        };
+
+        const entries = Object.entries(repoData)
+            .map(([chatKey, chatValue]) => {
+                const number = Number.parseInt(chatKey, 10);
+                if (!Number.isFinite(number)) {
+                    return null;
+                }
+                const statusRaw = chatValue && typeof chatValue.status === "string"
+                    ? chatValue.status.trim().toUpperCase()
+                    : "";
+                const updatedAt = normaliseTimestamp(chatValue?.updatedAt);
+                const createdAt = normaliseTimestamp(chatValue?.createdAt);
+                return {
+                    number,
+                    status: statusRaw,
+                    updatedAt,
+                    createdAt,
+                };
+            })
+            .filter(Boolean);
+
+        if (!entries.length) {
+            return "";
+        }
+
+        const sortByRecency = (a, b) => {
+            const timeA = Number.isFinite(a.updatedAt)
+                ? a.updatedAt
+                : Number.isFinite(a.createdAt)
+                    ? a.createdAt
+                    : 0;
+            const timeB = Number.isFinite(b.updatedAt)
+                ? b.updatedAt
+                : Number.isFinite(b.createdAt)
+                    ? b.createdAt
+                    : 0;
+            if (timeA !== timeB) {
+                return timeB - timeA;
+            }
+            return a.number - b.number;
+        };
+
+        const selectByStatuses = (statuses) => {
+            const filtered = entries.filter((entry) => statuses.includes(entry.status));
+            if (!filtered.length) {
+                return null;
+            }
+            filtered.sort(sortByRecency);
+            return filtered[0];
+        };
+
+        const activeChat = selectByStatuses(["ACTIVE"]);
+        if (activeChat) {
+            return String(activeChat.number);
+        }
+
+        const preferredStatuses = ["", "INACTIVE", "PAUSED", "READY"];
+        const preferredChat = selectByStatuses(preferredStatuses);
+        if (preferredChat) {
+            return String(preferredChat.number);
+        }
+
+        const nonArchived = entries.filter(
+            (entry) => entry.status !== "ARCHIVED" && entry.status !== "ARCHIVED_CONTEXT",
+        );
+        if (nonArchived.length) {
+            nonArchived.sort(sortByRecency);
+            return String(nonArchived[0].number);
+        }
+
+        entries.sort(sortByRecency);
+        return String(entries[0].number);
+    };
+
+    const buildEditorUrl = (repoName, chatNumber) => {
+        const safeRepo = (repoName || "").toString().trim();
+        const safeChat = (chatNumber || "").toString().trim();
+        if (!safeRepo || !safeChat) {
+            return "";
+        }
+        return `/${encodeURIComponent(safeRepo)}/chat/${encodeURIComponent(safeChat)}/editor`;
+    };
+
+    const resolveEditorTargetForProjectDir = (projectDir, sessionId) => {
+        const rawDir = typeof projectDir === "string" ? projectDir.trim() : "";
+        if (!rawDir) {
+            return null;
+        }
+
+        let resolvedDir;
+        try {
+            resolvedDir = path.resolve(rawDir);
+        } catch (error) {
+            console.warn(
+                `[WARN] Failed to resolve project directory '${rawDir}': ${error.message}`,
+            );
+            resolvedDir = rawDir;
+        }
+
+        // Attempt to locate a matching run by resolved project directory
+        let runId = '';
+        try {
+            const runs = typeof loadCodexRuns === 'function' ? loadCodexRuns(sessionId) : [];
+            if (Array.isArray(runs) && runs.length) {
+                for (const candidateRun of runs) {
+                    const candidateDir = (candidateRun && (candidateRun.requestedProjectDir || candidateRun.effectiveProjectDir || candidateRun.projectDir)) || '';
+                    if (!candidateDir) continue;
+                    try {
+                        const resolvedCandidate = path.resolve(candidateDir);
+                        if (resolvedCandidate === resolvedDir) { runId = candidateRun.id || ''; break; }
+                    } catch (_e) { /* ignore */ }
+                }
+            }
+        } catch (_e) { /* ignore */ }
+        // Enforce allowed base: only allow editor for directories under /git/sterling
+        try {
+            const allowedBase = path.resolve('/git/sterling');
+            const resolvedCandidateRoot = path.resolve(resolvedDir);
+            if (!(resolvedCandidateRoot === allowedBase || resolvedCandidateRoot.startsWith(allowedBase + path.sep))) {
+                return null;
+            }
+        } catch (_e) { /* ignore */ }
+        const repoName = resolveRepoNameByLocalPath(resolvedDir, sessionId);
+        if (!repoName) {
+            return null;
+        }
+
+        const chatNumber = pickDefaultChatNumber(repoName, sessionId);
+        if (!chatNumber) {
+            return {
+                repoName,
+                chatNumber: "",
+                projectDir: resolvedDir,
+                url: "",
+            };
+        }
+
+        let urlPath = buildEditorUrl(repoName, chatNumber);
+        const qp = [];
+        qp.push('repo_directory=' + encodeURIComponent(resolvedDir));
+        if (runId) qp.push('run_id=' + encodeURIComponent(runId));
+        const fullUrl = urlPath + (qp.length ? ('?' + qp.join('&')) : '');
+        return {
+            repoName,
+            chatNumber,
+            projectDir: resolvedDir,
+            url: fullUrl,
+        };
+    };
+
+    const parseIntegerParam = (value, defaultValue, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) => {
+        if (typeof value === "undefined" || value === null || value === "") {
+            return defaultValue;
+        }
+
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return defaultValue;
+        }
+
+        const normalized = Math.floor(numeric);
+        if (normalized < min) {
+            return min;
+        }
+        if (normalized > max) {
+            return max;
+        }
+        return normalized;
+    };
+
+    const parseBooleanParam = (value, defaultValue = false) => {
+        if (typeof value === "undefined" || value === null) {
+            return defaultValue;
+        }
+
+        const normalized = String(value).trim().toLowerCase();
+        if (!normalized) {
+            return defaultValue;
+        }
+
+        if (["1", "true", "yes", "on"].includes(normalized)) {
+            return true;
+        }
+        if (["0", "false", "no", "off"].includes(normalized)) {
+            return false;
+        }
+        return defaultValue;
+    };
+
+    const buildGitCommitSlice = (repoPath, offset, limit) => {
+        const effectiveLimit = Math.max(1, Math.min(limit || DEFAULT_GIT_LOG_LIMIT, MAX_GIT_LOG_LIMIT));
+        const effectiveOffset = Math.max(0, offset || 0);
+
+        const rawCommits = getGitCommits(repoPath, {
+            limit: effectiveLimit + 1,
+            skip: effectiveOffset,
+        });
+
+        const commits = Array.isArray(rawCommits) ? rawCommits : [];
+        const hasExtra = commits.length > effectiveLimit;
+        const normalizedCommits = hasExtra ? commits.slice(0, effectiveLimit) : commits;
+
+        return {
+            commits: normalizedCommits,
+            hasMore: hasExtra,
+            limit: effectiveLimit,
+            offset: effectiveOffset,
+            nextOffset: effectiveOffset + normalizedCommits.length,
+        };
+    };
+
+    app.get("/agent/git-log", async (req, res) => {
+
+        // TIMING: measure sub-operation durations
+        const __timing_entries = [];
+        const __timing_start = Date.now();
+        const sessionId = resolveSessionId(req);
+        const requestedProjectDir = (req.query.projectDir || "").toString().trim();
+        const effectiveProjectDir = requestedProjectDir || defaultCodexProjectDir || "";
+        const resolvedProjectDir = effectiveProjectDir ? path.resolve(effectiveProjectDir) : "";
+        let errorMessage = "";
+        let gitCommits = [];
+        let gitCommitGraph = [];
+        let gitMeta = null;
+        let repoName = "";
+        let hasMoreCommits = false;
+        let commitLimit = DEFAULT_GIT_LOG_LIMIT;
+        let commitOffset = 0;
+        let commitNextOffset = 0;
+
+        if (!effectiveProjectDir) {
+            errorMessage = "Project directory is required.";
+        } else {
+            try {
+                const stats = fs.statSync(resolvedProjectDir);
+                if (!stats.isDirectory()) {
+                    errorMessage = `Provided project directory is not a directory: ${effectiveProjectDir}`;
+                }
+            } catch (err) {
+                errorMessage = `Project directory not found: ${effectiveProjectDir}`;
+            }
+        }
+
+        if (!errorMessage) {
+            const limitParam = parseIntegerParam(req.query.limit, DEFAULT_GIT_LOG_LIMIT, {
+                min: 1,
+                max: MAX_GIT_LOG_LIMIT,
+            });
+            const offsetParam = parseIntegerParam(req.query.offset, 0, { min: 0 });
+            const shouldAutoPull = parseBooleanParam(req.query.pull) || parseBooleanParam(req.query.autoPull);
+
+            if (shouldAutoPull && typeof gitUpdatePull === "function") {
+                try {
+                    const __t0_gitUpdatePull = Date.now();
+                    await gitUpdatePull(resolvedProjectDir);
+                    __timing_entries.push(`gitUpdatePull:${Date.now()-__t0_gitUpdatePull}ms`);
+                } catch (pullErr) {
+                    console.warn(`[WARN] Failed to git pull for ${resolvedProjectDir}:`, pullErr);
+                }
+            }
+
+            try {
+                const __t0_buildGitCommitSlice = Date.now();
+                const slice = buildGitCommitSlice(resolvedProjectDir, offsetParam, limitParam);
+                __timing_entries.push(`buildGitCommitSlice:${Date.now()-__t0_buildGitCommitSlice}ms`);
+                gitCommits = slice.commits;
+                hasMoreCommits = slice.hasMore;
+                commitLimit = slice.limit;
+                commitOffset = slice.offset;
+                commitNextOffset = slice.nextOffset;
+            } catch (err) {
+                console.error(`[ERROR] Failed to load git commits for ${resolvedProjectDir}:`, err);
+                gitCommits = [];
+                hasMoreCommits = false;
+                commitLimit = limitParam;
+                commitOffset = offsetParam;
+                commitNextOffset = offsetParam;
+            }
+
+            try {
+                const baseGraphLimit = Math.max(commitLimit || DEFAULT_GIT_LOG_LIMIT, DEFAULT_GIT_LOG_LIMIT);
+                const commitGraphLimit = Math.max(commitNextOffset || 0, baseGraphLimit) + baseGraphLimit;
+                const __t0_getGitCommitGraph = Date.now();
+                const commitGraph = getGitCommitGraph(resolvedProjectDir, {
+                    limit: commitGraphLimit,
+                });
+                __timing_entries.push(`getGitCommitGraph:${Date.now()-__t0_getGitCommitGraph}ms`);
+                gitCommitGraph = Array.isArray(commitGraph) ? commitGraph : [];
+            } catch (err) {
+                console.error(`[ERROR] Failed to load git commit graph for ${resolvedProjectDir}:`, err);
+                gitCommitGraph = [];
+            }
+
+            try {
+                const __t0_getGitMetaData = Date.now();
+                gitMeta = getGitMetaData(resolvedProjectDir);
+                __timing_entries.push(`getGitMetaData:${Date.now()-__t0_getGitMetaData}ms`);
+            } catch (err) {
+                console.error(`[ERROR] Failed to load git metadata for ${resolvedProjectDir}:`, err);
+                gitMeta = null;
+            }
+
+            repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
+        }
+
+        console.log(`[TIMING] /agent/git-log ${resolvedProjectDir} timings: ${__timing_entries.join(', ')} total:${Date.now()-__timing_start}ms`);
+        res.render("codex_git_log", {
+            defaultProjectDir: defaultCodexProjectDir,
+            requestedProjectDir,
+            effectiveProjectDir,
+            resolvedProjectDir,
+            gitCommits,
+            gitCommitGraph,
+            gitMeta,
+            repoName,
+            errorMessage,
+            sessionId,
+            hasMoreCommits,
+            commitLimit,
+            commitOffset,
+            commitNextOffset,
+        });
+    });
+
+    app.get("/agent/git-log/commits.json", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const requestedProjectDir = (req.query.projectDir || "").toString().trim();
+        const effectiveProjectDir = requestedProjectDir || defaultCodexProjectDir || "";
+
+        if (!effectiveProjectDir) {
+            res.status(400).json({ error: "Project directory is required." });
+            return;
+        }
+
+        let resolvedProjectDir;
+        try {
+            resolvedProjectDir = path.resolve(effectiveProjectDir);
+        } catch (_err) {
+            resolvedProjectDir = effectiveProjectDir;
+        }
+
+        try {
+            const stats = fs.statSync(resolvedProjectDir);
+            if (!stats.isDirectory()) {
+                res.status(400).json({
+                    error: `Provided project directory is not a directory: ${effectiveProjectDir}`,
+                });
+                return;
+            }
+        } catch (err) {
+            res.status(404).json({ error: `Project directory not found: ${effectiveProjectDir}` });
+            return;
+        }
+
+        const limitParam = parseIntegerParam(req.query.limit, DEFAULT_GIT_LOG_LIMIT, {
+            min: 1,
+            max: MAX_GIT_LOG_LIMIT,
+        });
+        const offsetParam = parseIntegerParam(req.query.offset, 0, { min: 0 });
+
+        try {
+            const __t0_buildGitCommitSlice = Date.now();
+                const slice = buildGitCommitSlice(resolvedProjectDir, offsetParam, limitParam);
+                __timing_entries.push(`buildGitCommitSlice:${Date.now()-__t0_buildGitCommitSlice}ms`);
+            const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId) || "";
+
+            res.json({
+                commits: slice.commits,
+                hasMore: slice.hasMore,
+                limit: slice.limit,
+                offset: slice.offset,
+                nextOffset: slice.nextOffset,
+                repoName,
+            });
+        } catch (err) {
+            console.error(`[ERROR] Failed to load git commits for ${resolvedProjectDir}:`, err);
+            res.status(500).json({ error: "Failed to load git commits." });
+        }
+    });
+
+    app.get("/agent/resolve-editor-target", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const directoryParam = ((req.query.repo_directory || req.query.projectDir || "")
+            .toString()
+            .trim());
+
+        if (!directoryParam) {
+            res.status(400).json({ error: "Project directory is required." });
+            return;
+        }
+
+        const target = resolveEditorTargetForProjectDir(directoryParam, sessionId);
+        if (!target || !target.repoName) {
+            res.status(404).json({
+                error: `Repository not registered for directory: ${directoryParam}`,
+            });
+            return;
+        }
+
+        if (!target.chatNumber) {
+            res.status(404).json({
+                error: `No chats available for repository '${target.repoName}'.`,
+            });
+            return;
+        }
+
+        res.json({ editorTarget: target });
+    });
+
+    app.get("/agent/git-tree", async (req, res) => {
+
+        // TIMING: measure sub-operation durations
+        const __timing_entries = [];
+        const __timing_start = Date.now();
+        const sessionId = resolveSessionId(req);
+        const requestedProjectDir = (req.query.projectDir || "").toString().trim();
+        const effectiveProjectDir = requestedProjectDir || defaultCodexProjectDir || "";
+        const resolvedProjectDir = effectiveProjectDir ? path.resolve(effectiveProjectDir) : "";
+
+        let errorMessage = "";
+        let gitCommitGraph = [];
+        let gitMeta = null;
+        let gitBranches = [];
+        let repoName = "";
+
+        if (!effectiveProjectDir) {
+            errorMessage = "Project directory is required.";
+        } else {
+            try {
+                const stats = fs.statSync(resolvedProjectDir);
+                if (!stats.isDirectory()) {
+                    errorMessage = `Provided project directory is not a directory: ${effectiveProjectDir}`;
+                }
+            } catch (err) {
+                errorMessage = `Project directory not found: ${effectiveProjectDir}`;
+            }
+        }
+
+        if (!errorMessage) {
+            try {
+                const commitGraph = getGitCommitGraph(resolvedProjectDir);
+                gitCommitGraph = Array.isArray(commitGraph) ? commitGraph : [];
+            } catch (err) {
+                console.error(`[ERROR] Failed to load git commit graph for ${resolvedProjectDir}:`, err);
+                gitCommitGraph = [];
+            }
+
+            try {
+                const __t0_getGitMetaData = Date.now();
+                gitMeta = getGitMetaData(resolvedProjectDir);
+                __timing_entries.push(`getGitMetaData:${Date.now()-__t0_getGitMetaData}ms`);
+            } catch (err) {
+                console.error(`[ERROR] Failed to load git metadata for ${resolvedProjectDir}:`, err);
+                gitMeta = null;
+            }
+
+            try {
+                const __t0_getGitBranches = Date.now();
+                const branches = getGitBranches(resolvedProjectDir);
+                __timing_entries.push(`getGitBranches:${Date.now()-__t0_getGitBranches}ms`);
+                gitBranches = Array.isArray(branches) ? branches : [];
+            } catch (err) {
+                console.error(`[ERROR] Failed to load git branches for ${resolvedProjectDir}:`, err);
+                gitBranches = [];
+            }
+
+            repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
+        }
+
+        console.log(`[TIMING] /agent/git-tree ${resolvedProjectDir} timings: ${__timing_entries.join(', ')} total:${Date.now()-__timing_start}ms`);
+        res.render("codex_git_tree", {
+            defaultProjectDir: defaultCodexProjectDir,
+            requestedProjectDir,
+            effectiveProjectDir,
+            resolvedProjectDir,
+            gitCommitGraph,
+            gitMeta,
+            gitBranches,
+            repoName,
+            errorMessage,
+            sessionId,
+        });
+    });
+
+    app.get("/agent/git-tree/commit", (req, res) => {
+
+        // TIMING: measure sub-operation durations
+        const __timing_entries = [];
+        const __timing_start = Date.now();
+        const requestedProjectDir = (req.query.projectDir || "").toString().trim();
+        const effectiveProjectDir = requestedProjectDir || defaultCodexProjectDir || "";
+        const resolvedProjectDir = effectiveProjectDir ? path.resolve(effectiveProjectDir) : "";
+        const commitRefInput = (req.query.hash || "").toString();
+
+        if (!effectiveProjectDir) {
+            return res.status(400).json({ error: "Project directory is required." });
+        }
+
+        try {
+            const stats = fs.statSync(resolvedProjectDir);
+            if (!stats.isDirectory()) {
+                return res.status(400).json({ error: `Provided project directory is not a directory: ${effectiveProjectDir}` });
+            }
+        } catch (err) {
+            return res.status(400).json({ error: `Project directory not found: ${effectiveProjectDir}` });
+        }
+
+        const sanitizeRevision = (value) => {
+            const trimmed = (value || "").toString().trim();
+            if (!trimmed) {
+                return { value: "", error: "Commit hash is required." };
+            }
+
+            const match = trimmed.match(/\((?:[0-9a-fA-F]{6,40})\)$/);
+            if (match) {
+                const inner = match[0].slice(1, -1);
+                return { value: inner, error: "" };
+            }
+
+            if (!/^[0-9A-Za-z._^~/:-]+$/.test(trimmed)) {
+                return { value: "", error: "Invalid commit reference." };
+            }
+
+            return { value: trimmed, error: "" };
+        };
+
+        const sanitized = sanitizeRevision(commitRefInput);
+        if (sanitized.error) {
+            return res.status(400).json({ error: sanitized.error });
+        }
+
+        const commitRef = sanitized.value;
+
+        try {
+            const __t0_git_show_meta = Date.now();
+            const metaRaw = execSync(
+                `git show --no-color --no-patch --date=iso --pretty=format:%H%n%P%n%an%n%ad%n%s%n%b ${commitRef}`,
+                {
+                    cwd: resolvedProjectDir,
+                    maxBuffer: 1024 * 1024 * 4,
+                }
+            )
+                .toString()
+                .replace(/\r/g, "");
+            __timing_entries.push(`git_show_meta:${Date.now()-__t0_git_show_meta}ms`);
+
+            const metaLines = metaRaw.split("\n");
+            const hash = (metaLines.shift() || "").trim();
+            const parentsLine = (metaLines.shift() || "").trim();
+            const author = (metaLines.shift() || "").trim();
+            const date = (metaLines.shift() || "").trim();
+            const subject = (metaLines.shift() || "").trim();
+            const body = metaLines.join("\n").trim();
+
+            const __t0_git_show_numstat = Date.now();
+            const numstatRaw = execSync(`git show --no-color --numstat --format="" ${commitRef}`, {
+                cwd: resolvedProjectDir,
+                maxBuffer: 1024 * 1024 * 2,
+            })
+                .toString()
+                .replace(/\r/g, "")
+                .trim();
+            __timing_entries.push(`git_show_numstat:${Date.now()-__t0_git_show_numstat}ms`);
+
+            const files = numstatRaw
+                ? numstatRaw.split("\n").map((line) => {
+                      if (!line.trim()) {
+                          return null;
+                      }
+
+                      const parts = line.split("\t");
+                      if (parts.length < 3) {
+                          return null;
+                      }
+
+                      const [additionsRaw, deletionsRaw, ...pathParts] = parts;
+                      const additions = additionsRaw === "-" ? null : Number(additionsRaw) || 0;
+                      const deletions = deletionsRaw === "-" ? null : Number(deletionsRaw) || 0;
+                      const filePath = pathParts.join("\t");
+
+                      return {
+                          path: filePath,
+                          additions,
+                          deletions,
+                          isBinary: additionsRaw === "-" || deletionsRaw === "-",
+                      };
+                  })
+                : [];
+
+            const __t0_git_show_diff = Date.now();
+            const diffText = execSync(`git show --no-color --format= --patch ${commitRef}`, {
+                cwd: resolvedProjectDir,
+                maxBuffer: 1024 * 1024 * 10,
+            })
+                .toString()
+                .replace(/\r/g, "");
+            __timing_entries.push(`git_show_diff:${Date.now()-__t0_git_show_diff}ms`);
+
+            const structuredDiff = parseUnifiedDiff(diffText);
+
+            console.log(`[TIMING] /agent/git-tree/commit ${resolvedProjectDir} ${commitRef} timings: ${__timing_entries.join(', ')} total:${Date.now()-__timing_start}ms`);
+            return res.json({
+                commit: {
+                    hash,
+                    parents: parentsLine ? parentsLine.split(/\s+/).filter(Boolean) : [],
+                    author,
+                    date,
+                    subject,
+                    body,
+                },
+                files: Array.isArray(files) ? files.filter(Boolean) : [],
+                diffText,
+                diff: structuredDiff,
+            });
+        } catch (err) {
+            console.error(`[ERROR] Failed to load commit ${commitRef} in ${resolvedProjectDir}:`, err);
+            return res.status(500).json({ error: `Failed to load commit details for ${commitRef}.` });
+        }
+    });
+
+    function parseUnifiedDiff(diffText) {
+        if (!diffText || !diffText.trim()) {
+            return [];
+        }
+
+        const files = [];
+        const lines = diffText.replace(/\r\n/g, "\n").split("\n");
+
+        let currentFile = null;
+        let currentHunk = null;
+        let leftLine = 0;
+        let rightLine = 0;
+        let removalBuffer = [];
+
+        const flushRemovalBuffer = () => {
+            if (!currentHunk || !removalBuffer.length) {
+                return;
+            }
+            for (const removed of removalBuffer) {
+                currentHunk.rows.push({
+                    type: "remove",
+                    leftNumber: removed.leftNumber,
+                    leftContent: removed.leftContent,
+                    rightNumber: "",
+                    rightContent: "",
+                });
+            }
+            removalBuffer = [];
+        };
+
+        for (const rawLine of lines) {
+            const line = rawLine;
+
+            if (line.startsWith("diff --git ")) {
+                flushRemovalBuffer();
+                currentHunk = null;
+
+                const parts = line.split(" ");
+                const oldName = parts[2] ? parts[2].replace(/^a\//, "") : "";
+                const newName = parts[3] ? parts[3].replace(/^b\//, "") : "";
+
+                currentFile = {
+                    header: line,
+                    oldPath: oldName,
+                    newPath: newName,
+                    hunks: [],
+                    isBinary: false,
+                    binaryMessage: "",
+                };
+                files.push(currentFile);
+                continue;
+            }
+
+            if (!currentFile) {
+                continue;
+            }
+
+            if (line.startsWith("Binary files ")) {
+                currentFile.isBinary = true;
+                currentFile.binaryMessage = line;
+                continue;
+            }
+
+            if (line.startsWith("--- ")) {
+                const value = line.slice(4).trim();
+                currentFile.oldPath = value === "/dev/null" ? "" : value.replace(/^a\//, "");
+                continue;
+            }
+
+            if (line.startsWith("+++ ")) {
+                const value = line.slice(4).trim();
+                currentFile.newPath = value === "/dev/null" ? "" : value.replace(/^b\//, "");
+                continue;
+            }
+
+            if (line.startsWith("@@")) {
+                flushRemovalBuffer();
+                const match = /@@ -(?<leftStart>\d+)(?:,(?<leftCount>\d+))? \+(?<rightStart>\d+)(?:,(?<rightCount>\d+))? @@/.exec(line);
+                const leftStart = match && match.groups && match.groups.leftStart ? parseInt(match.groups.leftStart, 10) : 0;
+                const rightStart = match && match.groups && match.groups.rightStart ? parseInt(match.groups.rightStart, 10) : 0;
+                leftLine = Number.isNaN(leftStart) ? 0 : leftStart;
+                rightLine = Number.isNaN(rightStart) ? 0 : rightStart;
+                currentHunk = {
+                    header: line,
+                    rows: [],
+                };
+                currentFile.hunks.push(currentHunk);
+                removalBuffer = [];
+                continue;
+            }
+
+            if (!currentHunk) {
+                continue;
+            }
+
+            if (line.startsWith("-")) {
+                removalBuffer.push({
+                    leftNumber: leftLine++,
+                    leftContent: line.slice(1),
+                });
+                continue;
+            }
+
+            if (line.startsWith("+")) {
+                const row = {
+                    type: removalBuffer.length ? "modify" : "add",
+                    leftNumber: "",
+                    leftContent: "",
+                    rightNumber: rightLine++,
+                    rightContent: line.slice(1),
+                };
+
+                if (removalBuffer.length) {
+                    const removed = removalBuffer.shift();
+                    row.leftNumber = removed.leftNumber;
+                    row.leftContent = removed.leftContent;
+                }
+
+                currentHunk.rows.push(row);
+                continue;
+            }
+
+            if (line.startsWith(" ")) {
+                flushRemovalBuffer();
+                const content = line.slice(1);
+                currentHunk.rows.push({
+                    type: "context",
+                    leftNumber: leftLine++,
+                    leftContent: content,
+                    rightNumber: rightLine++,
+                    rightContent: content,
+                });
+                continue;
+            }
+
+            if (line.startsWith("\\")) {
+                currentHunk.rows.push({
+                    type: "meta",
+                    leftNumber: "",
+                    leftContent: "",
+                    rightNumber: "",
+                    rightContent: "",
+                    metaContent: line,
+                });
+                continue;
+            }
+        }
+
+        flushRemovalBuffer();
+        return files;
+    }
+
+    /* ---------- Root ---------- */
+    app.get("/", (_req, res) => res.redirect("/repositories"));
+
+    /* ---------- Global instructions ---------- */
+    app.get("/global_instructions", (_req, res) => {
+        console.log("[DEBUG] GET /global_instructions => calling loadGlobalInstructions...");
+        const currentGlobal = loadGlobalInstructions();
+        console.log(`[DEBUG] GET /global_instructions => instructions length: ${currentGlobal.length}`);
+        res.render("global_instructions", { currentGlobal });
+    });
+
+    /* ---------- File summarizer ---------- */
+    app.get("/filesummarizer", (_req, res) => {
+        res.sendFile(path.join(PROJECT_ROOT, "public", "filesummarizer.html"));
+    });
+
+    app.get("/file_summarizer/models", (_req, res) => {
+        // Restrict available models to the OpenAI "gpt-5" series only.
+        // We allow both `openai/gpt-5*` and `openrouter/openai/gpt-5*` entries.
+        const rawProviders = Object.fromEntries(
+            Object.entries(AIModels || {}).map(([provider, models]) => [
+                provider,
+                Array.isArray(models) ? [...models] : [],
+            ])
+        );
+
+        const filteredProviders = {};
+        for (const [provider, models] of Object.entries(rawProviders)) {
+            filteredProviders[provider] = (models || []).filter((m) => {
+                if (!m || typeof m !== 'string') return false;
+                const lower = m.toLowerCase();
+                const allowedPrefixes = [
+                    'gpt-5',
+                    'gpt-5-',
+                    'openai/gpt-5',
+                    'openrouter/openai/gpt-5',
+                ];
+
+                return (
+                    allowedPrefixes.some((prefix) => lower.startsWith(prefix)) ||
+                    lower.includes('gpt-5')
+                );
+            });
+        }
+
+        // Ensure default AI model (if configured) is present under openrouter.
+        if (DEFAULT_AIMODEL) {
+            if (!filteredProviders.openrouter) {
+                filteredProviders.openrouter = [];
+            }
+            if (!filteredProviders.openrouter.includes(DEFAULT_AIMODEL)) {
+                // Only add if it matches the gpt-5 filter
+                const dm = (DEFAULT_AIMODEL || '').toLowerCase();
+                if (dm.includes('gpt-5')) {
+                    filteredProviders.openrouter.push(DEFAULT_AIMODEL);
+                }
+            }
+        }
+
+        const providerKeys = Object.keys(filteredProviders);
+        const defaultProvider = providerKeys.includes("openrouter")
+            ? "openrouter"
+            : providerKeys[0] || "";
+
+        res.json({
+            providers: filteredProviders,
+            defaultProvider,
+            defaultModel: (DEFAULT_AIMODEL && DEFAULT_AIMODEL.toLowerCase().includes('gpt-5')) ? DEFAULT_AIMODEL : "",
+        });
+    });
+
+    /* ---------- OpenRouter transactions ---------- */
+    app.get("/openrouter/transactions", (_req, res) => {
+        const transactions = loadOpenRouterTransactions();
+
+        const summary = transactions.reduce(
+            (acc, tx) => {
+                acc.promptTokens += tx.promptTokens;
+                acc.completionTokens += tx.completionTokens;
+                acc.reasoningTokens += tx.reasoningTokens || 0;
+                acc.totalTokens += tx.totalTokens;
+                return acc;
+            },
+            {
+                promptTokens: 0,
+                completionTokens: 0,
+                reasoningTokens: 0,
+                totalTokens: 0,
+            },
+        );
+
+        res.render("openrouter_transactions", {
+            transactions,
+            summary,
+            lastUpdated: transactions[0]?.displayTimestamp || null,
+        });
+    });
+
+    app.post("/openrouter/transactions/fetch", async (_req, res) => {
+        const provisioningKey = process.env.OPENROUTER_PROVISIONING_KEY;
+        if (!provisioningKey) {
+            res.status(400).json({
+                success: false,
+                error: "Set OPENROUTER_PROVISIONING_KEY (provisioning key) to use /openrouter/transactions/fetch.",
+            });
+            return;
+        }
+
+        const refererHeader =
+            process.env.OPENROUTER_HTTP_REFERER
+            || process.env.HTTP_REFERER
+            || "https://alfe.sh";
+        const titleHeader =
+            process.env.OPENROUTER_APP_TITLE
+            || process.env.X_TITLE
+            || "Alfe AI";
+
+        const activityUrl = "https://openrouter.ai/api/v1/activity";
+
+        try {
+            const response = await ensureFetch(activityUrl, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${provisioningKey}`,
+                    Accept: "application/json",
+                    "HTTP-Referer": refererHeader,
+                    "X-Title": titleHeader,
+                },
+            });
+
+            if (!response.ok) {
+                const responseText = await response.text().catch(() => "");
+                const errorMessage = responseText
+                    ? `OpenRouter responded with ${response.status}: ${responseText}`
+                    : `OpenRouter responded with ${response.status}`;
+                throw new Error(errorMessage);
+            }
+
+            const payload = await response.json();
+            const activityRows = extractTransactionsFromPayload(payload);
+            if (activityRows === null) {
+                throw new Error("Unexpected OpenRouter response payload format.");
+            }
+
+            const normalised = activityRows
+                .map((entry) => normaliseApiOpenRouterEntry(entry))
+                .filter((entry) => entry !== null)
+                .sort((a, b) => {
+                    if (a.timestampMs !== null && b.timestampMs !== null) {
+                        return b.timestampMs - a.timestampMs;
+                    }
+                    if (a.timestampMs !== null) return -1;
+                    if (b.timestampMs !== null) return 1;
+                    return 0;
+                });
+
+            const recordsToSave = normalised.map((entry) => entry.record);
+
+            const persisted = saveOpenRouterTransactions(recordsToSave);
+            if (!persisted) {
+                throw new Error("Failed to persist fetched OpenRouter transactions to disk.");
+            }
+
+            res.json({
+                success: true,
+                count: recordsToSave.length,
+                lastUpdated: recordsToSave[0]?.displayTimestamp || null,
+            });
+        } catch (err) {
+            console.error("[ERROR] Failed to fetch OpenRouter transactions:", err);
+            res.status(500).json({
+                success: false,
+                error:
+                    err && typeof err.message === "string" && err.message.trim()
+                        ? err.message
+                        : "Failed to fetch OpenRouter transactions.",
+            });
+        }
+    });
+
+    app.post("/openrouter/transactions/delete", (_req, res) => {
+        const success = saveOpenRouterTransactions([]);
+
+        if (!success) {
+            res.status(500).json({ success: false, error: "Failed to clear transactions." });
+            return;
+        }
+
+        res.json({ success: true });
+    });
+
+    /* ---------- Sterling storage overview ---------- */
+    app.get("/sterling/storage", (req, res) => {
+        const storageSummary = collectSterlingStorageSummary();
+        const deletedDir = typeof req.query.deleted === "string" ? req.query.deleted : "";
+        const errorMessage = typeof req.query.error === "string" ? req.query.error : "";
+
+        res.render("sterling_storage", {
+            storageRoot: storageSummary.rootPath,
+            rootExists: storageSummary.rootExists,
+            usingFallback: storageSummary.usingFallback,
+            storageError: storageSummary.error,
+            directories: storageSummary.directories,
+            totalSizeBytes: storageSummary.totalSizeBytes,
+            totalSizeHuman: formatBytes(storageSummary.totalSizeBytes),
+            deletedDir,
+            errorMessage,
+        });
+    });
+
+    app.post("/sterling/storage/delete", (req, res) => {
+        const directoryNameRaw =
+            req && req.body && typeof req.body.directory === "string" ? req.body.directory.trim() : "";
+
+        if (!directoryNameRaw) {
+            res.redirect("/sterling/storage?error=" + encodeURIComponent("No directory selected for deletion."));
+            return;
+        }
+
+        const directoryName = path.basename(directoryNameRaw);
+        if (directoryName !== directoryNameRaw) {
+            res.redirect("/sterling/storage?error=" + encodeURIComponent("Invalid directory name."));
+            return;
+        }
+
+        const { path: storageRoot, exists: rootExists } = resolveSterlingStorageRoot();
+        const normalisedRoot = path.resolve(storageRoot);
+
+        if (!rootExists) {
+            res.redirect("/sterling/storage?error=" + encodeURIComponent("Storage directory is unavailable."));
+            return;
+        }
+
+        const targetPath = path.resolve(normalisedRoot, directoryName);
+        if (!targetPath.startsWith(normalisedRoot + path.sep)) {
+            res.redirect("/sterling/storage?error=" + encodeURIComponent("Deletion request is outside of storage directory."));
+            return;
+        }
+
+        let stats;
+        try {
+            stats = fs.statSync(targetPath);
+        } catch (err) {
+            res.redirect(
+                "/sterling/storage?error="
+                    + encodeURIComponent(
+                        err && err.message ? `Directory not found: ${err.message}` : "Directory not found.",
+                    ),
+            );
+            return;
+        }
+
+        if (!stats.isDirectory()) {
+            res.redirect("/sterling/storage?error=" + encodeURIComponent("Selected path is not a directory."));
+            return;
+        }
+
+        try {
+            fs.rmSync(targetPath, { recursive: true, force: true });
+        } catch (err) {
+            res.redirect(
+                "/sterling/storage?error="
+                    + encodeURIComponent(
+                        err && err.message ? `Failed to delete directory: ${err.message}` : "Failed to delete directory.",
+                    ),
+            );
+            return;
+        }
+
+        invalidateStorageSummaryCache();
+
+        res.redirect("/sterling/storage?deleted=" + encodeURIComponent(directoryName));
+    });
+
+    /* ---------- Repositories listing ---------- */
+    app.get("/repositories", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const repoConfig = loadRepoConfig(sessionId);
+        const repoList = [];
+        if (repoConfig) {
+            for (const repoName in repoConfig) {
+                if (Object.prototype.hasOwnProperty.call(repoConfig, repoName)) {
+                    repoList.push({
+                        name: repoName,
+                        gitRepoLocalPath: repoConfig[repoName].gitRepoLocalPath,
+                        gitRepoURL: repoConfig[repoName].gitRepoURL || "#",
+                    });
+                }
+            }
+        }
+        res.render("repositories", { repos: repoList });
+    });
+
+    app.get("/repositories/add", (_req, res) => {
+        const serverCWD = process.cwd();
+        res.render("add_repository", { serverCWD });
+    });
+
+    /* ---------- Repo helper redirects ---------- */
+    app.get("/:repoName", (req, res) => {
+        res.redirect(`/environment/${req.params.repoName}`);
+    });
+
+    /* ---------- Chats list ---------- */
+    app.get("/environment/:repoName", (req, res) => {
+        const repoName = req.params.repoName;
+        const sessionId = resolveSessionId(req);
+        const repoCfg = loadSingleRepoConfig(repoName, sessionId);
+        if (!repoCfg) {
+            res.status(404).send(`Repository configuration not found: '${repoName}'`);
+            return;
+        }
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const { activeChats, inactiveChats, archivedChats, archivedContextChats } = getActiveInactiveChats(dataObj);
+        const sterlingCodexLink = buildSterlingCodexUrl(
+            res.locals.sterlingCodexBaseUrl,
+            repoCfg.gitRepoLocalPath,
+        );
+
+        let currentBranchName = "";
+        try {
+            const gitMeta = repoCfg.gitRepoLocalPath ? getGitMetaData(repoCfg.gitRepoLocalPath) : null;
+            if (gitMeta && typeof gitMeta.branchName === "string") {
+                currentBranchName = gitMeta.branchName;
+            }
+        } catch (err) {
+            console.warn("[WARN] Unable to resolve active branch for", repoName, err && err.message ? err.message : err);
+        }
+        if (!currentBranchName && typeof repoCfg.gitBranch === "string") {
+            currentBranchName = repoCfg.gitBranch;
+        }
+
+        res.render("chats", {
+            gitRepoNameCLI: repoName,
+            activeChats,
+            inactiveChats,
+            archivedChats,
+            archivedContextChats,
+            sterlingCodexLink,
+            repoLocalPath: repoCfg && repoCfg.gitRepoLocalPath,
+            gitBranch: typeof repoCfg.gitBranch === "string" ? repoCfg.gitBranch : "",
+            currentBranch: currentBranchName,
+            sessionId,
+        });
+    });
+
+    /* ---------- Create new chat ---------- */
+    app.get("/:repoName/chat", (req, res) => {
+        const repoName = req.params.repoName;
+        const sessionId = resolveSessionId(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+
+        /* find highest existing chat number */
+        let maxChatNumber = 0;
+        for (const key of Object.keys(dataObj)) {
+            const n = parseInt(key, 10);
+            if (!isNaN(n) && n > maxChatNumber) maxChatNumber = n;
+        }
+        const newChatNumber = maxChatNumber + 1;
+
+        dataObj[newChatNumber] = {
+            status: "ACTIVE",
+            agentInstructions: loadGlobalInstructions(),
+            attachedFiles: [],
+            chatHistory: [],
+            aiProvider: "openrouter",
+            aiModel: DEFAULT_AIMODEL,
+            pushAfterCommit: true,
+        };
+        saveRepoJson(repoName, dataObj, sessionId);
+        res.redirect(`/${repoName}/chat/${newChatNumber}`);
+    });
+
+    /* ---------- Show specific chat ---------- */
+    app.get("/:repoName/chat/:chatNumber", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const sessionId = resolveSessionId(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+
+        const repoCfg = loadSingleRepoConfig(repoName, sessionId);
+        if (!repoCfg) return res.status(400).send(`[ERROR] Repo config not found: '${repoName}'`);
+
+        /* defaults */
+        chatData.aiModel = (chatData.aiModel || DEFAULT_AIMODEL).toLowerCase();
+        chatData.aiProvider = chatData.aiProvider || "openrouter";
+        chatData.additionalRepos = chatData.additionalRepos || [];
+
+        const {
+            gitRepoLocalPath,
+            gitBranch,
+            openAIAccount,
+            gitRepoURL,
+        } = repoCfg;
+        const sterlingCodexLink = buildSterlingCodexUrl(
+            res.locals.sterlingCodexBaseUrl,
+            gitRepoLocalPath,
+        );
+
+        const attachedFiles = chatData.attachedFiles || [];
+        const directoryTreeHTML = generateFullDirectoryTree(gitRepoLocalPath, repoName, attachedFiles.filter(s => !s.includes('|')));
+
+        // Collect additional repos' directory trees
+        const additionalReposTrees = [];
+        const loadRepoConfiguration = loadRepoConfig(sessionId) || {};
+        for (const otherRepoName of chatData.additionalRepos) {
+            const otherRepoCfg = loadSingleRepoConfig(otherRepoName, sessionId);
+            if (otherRepoCfg) {
+                // parse out only this repo's attached files
+                const filesForThisRepo = attachedFiles
+                    .filter(f => f.startsWith(otherRepoName + "|"))
+                    .map(f => f.replace(otherRepoName + "|", ""));
+                const treeHTML = generateFullDirectoryTree(
+                    otherRepoCfg.gitRepoLocalPath,
+                    otherRepoName,
+                    filesForThisRepo
+                );
+                additionalReposTrees.push({ repoName: otherRepoName, directoryTreeHTML: treeHTML });
+            }
+        }
+
+        // For selection in the "Add other repo" form
+        const allRepoConfig = loadRepoConfig(sessionId) || {};
+        const allRepoNames = Object.keys(allRepoConfig);
+        const possibleReposToAdd = allRepoNames.filter(name => name !== repoName && !chatData.additionalRepos.includes(name));
+
+        const meta            = getGitMetaData(gitRepoLocalPath);
+        const gitCommits      = getGitCommits(gitRepoLocalPath, { limit: DEFAULT_GIT_LOG_LIMIT });
+        const gitCommitGraph  = getGitCommitGraph(gitRepoLocalPath);
+
+        const githubURL       = convertGitUrlToHttps(gitRepoURL);
+        const chatGPTURL      = chatData.chatURL || "";
+        const status          = chatData.status || "ACTIVE";
+
+        const directoryAnalysisText = analyzeProject(gitRepoLocalPath, { plainText: true });
+
+        /* basic system info via neofetch (optional) */
+        function getSystemInformation() {
+            let output = "";
+            try {
+                execSync("command -v neofetch");
+                output = execSync("neofetch --config none --ascii off --color_blocks off --stdout").toString();
+            } catch {
+                output = "[neofetch not available]";
+            }
+            return output;
+        }
+
+        const aiModelsForProvider = AIModels[chatData.aiProvider.toLowerCase()] || [];
+
+        res.render("chat", {
+            gitRepoNameCLI : repoName,
+            chatNumber,
+            directoryTreeHTML,
+            additionalReposTrees,
+            possibleReposToAdd,
+            chatData,
+            AIModels        : aiModelsForProvider,
+            aiModel         : chatData.aiModel,
+            status,
+            gitRepoLocalPath,
+            githubURL,
+            gitBranch,
+            openAIAccount,
+            chatGPTURL,
+            sterlingCodexLink,
+            gitRevision     : meta.rev,
+            gitTimestamp    : meta.dateStr,
+            gitBranchName   : meta.branchName,
+            gitTag          : meta.latestTag,
+            gitCommits,
+            gitCommitGraph,
+            directoryAnalysisText,
+            systemInformationText : getSystemInformation(),
+            environment     : res.locals.environment,
+            
+            editorEnabled: (function(){ let v = process.env.EDITOR_ENABLED; if (Array.isArray(v)) v = v[v.length-1]; if (typeof v === 'boolean') return v; if (typeof v === 'number') return v === 1; if (typeof v === 'string') return ['1','true','yes','y','on'].includes(v.trim().toLowerCase()); return false; })(),
+        });
+    });
+
+    /* ---------- Dedicated editor view ---------- */
+    app.get("/:repoName/chat/:chatNumber/editor", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const sessionId = resolveSessionId(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) {
+            return res.status(404).send("Chat not found.");
+        }
+
+        const repoCfg = loadSingleRepoConfig(repoName, sessionId);
+        if (!repoCfg) {
+            return res.status(400).send(`Repository '${repoName}' not found.`);
+        }
+
+        const additionalRepos = chatData.additionalRepos || [];
+
+        const directoryTreeHTML = generateFullDirectoryTree(
+            repoCfg.gitRepoLocalPath,
+            repoName,
+            []
+        );
+
+        const additionalReposTrees = [];
+        additionalRepos.forEach((otherRepoName) => {
+            const otherRepoCfg = loadSingleRepoConfig(otherRepoName, sessionId);
+            if (otherRepoCfg) {
+                const treeHTML = generateFullDirectoryTree(
+                    otherRepoCfg.gitRepoLocalPath,
+                    otherRepoName,
+                    []
+                );
+                additionalReposTrees.push({
+                    repoName: otherRepoName,
+                    directoryTreeHTML: treeHTML,
+                });
+            }
+        });
+
+        
+        // If a run_id query param is present, attempt to resolve run metadata for header display
+        let runTitle = '';
+        let runBranch = '';
+        let runIdShort = '';
+        try {
+            const runIdQuery = (req.query && req.query.run_id ? req.query.run_id.toString().trim() : '');
+            if (runIdQuery) {
+                const runs = typeof loadCodexRuns === 'function' ? loadCodexRuns(sessionId) : [];
+                if (Array.isArray(runs)) {
+                    const found = runs.find((r) => r && r.id === runIdQuery);
+                    if (found) {
+                        runTitle = (found.userPrompt || found.effectivePrompt || '').toString();
+                        runBranch = (found.branchName || found.gitBranch || '').toString();
+                        runIdShort = found.id ? String(found.id).slice(0, 12) : '' ;
+                    }
+                }
+            }
+        } catch (_e) { /* ignore */ }
+
+res.render("editor", {
+            runTitle: runTitle,
+            runBranch: runBranch,
+            runIdShort: runIdShort,
+            gitRepoNameCLI: repoName,
+            chatNumber,
+            directoryTreeHTML,
+            additionalReposTrees,
+            attachedRepos: additionalRepos,
+            primaryRepoPath: repoCfg.gitRepoLocalPath,
+            environment: res.locals.environment,
+        });
+    });
+
+    /* ---------- Fetch file content for editor ---------- */
+    app.get("/:repoName/chat/:chatNumber/editor/file", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const { repo: targetRepo, path: requestedPath } = req.query;
+
+        if (!targetRepo || !requestedPath) {
+            return res.status(400).json({ error: "Missing repo or path." });
+        }
+
+        const sessionId = resolveSessionId(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) {
+            return res.status(404).json({ error: "Chat not found." });
+        }
+
+        const allowedRepos = new Set([repoName, ...(chatData.additionalRepos || [])]);
+        if (!allowedRepos.has(targetRepo)) {
+            return res.status(403).json({ error: "Repository not available for this chat." });
+        }
+
+        const repoCfg = loadSingleRepoConfig(targetRepo, sessionId);
+        if (!repoCfg) {
+            return res.status(400).json({ error: "Repository configuration missing." });
+        }
+
+        // Enforce allowed base (only allow repos under /git/sterling)
+        try {
+            const allowedBase = path.resolve('/git/sterling');
+            const repoRootResolved = path.resolve(repoCfg.gitRepoLocalPath || '');
+            if (!(repoRootResolved === allowedBase || repoRootResolved.startsWith(allowedBase + path.sep))) {
+                return res.status(403).json({ error: 'Repository path not permitted for editor.' });
+            }
+        } catch (_e) { /* ignore */ }
+
+        const repoRoot = path.resolve(repoCfg.gitRepoLocalPath);
+        const normalizedRelative = path.normalize(requestedPath);
+        const absolutePath = path.resolve(repoRoot, normalizedRelative);
+        const relativeToRoot = path.relative(repoRoot, absolutePath);
+        if (relativeToRoot.startsWith("..") || path.isAbsolute(relativeToRoot)) {
+            return res.status(400).json({ error: "Invalid file path." });
+        }
+
+        try {
+            const stat = fs.statSync(absolutePath);
+            if (!stat.isFile()) {
+                return res.status(404).json({ error: "Path is not a file." });
+            }
+            const content = fs.readFileSync(absolutePath, "utf-8");
+            return res.json({
+                repo: targetRepo,
+                path: requestedPath,
+                content,
+                lastModified: stat.mtimeMs,
+            });
+        } catch (err) {
+            console.error("[ERROR] Failed to load file for editor:", err);
+            return res.status(500).json({ error: "Failed to read file." });
+        }
+    });
+
+    /* ---------- Code-flow visualiser ---------- */
+    app.get("/code_flow", (_req, res) => {
+        const routes = analyzeCodeFlow(app);
+        res.render("code_flow", { routes });
+    });
+
+    /* ---------- Raw / JSON viewer helpers ---------- */
+    app.get("/:repoName/chat/:chatNumber/raw/:idx", (req, res) => {
+        const { repoName, chatNumber, idx } = req.params;
+        const sessionId = resolveSessionId(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+        if (!chatData.chatHistory || !chatData.chatHistory[idx])
+            return res.status(404).send("Message not found.");
+
+        const msg = chatData.chatHistory[idx];
+        if (msg.role !== "user" || !msg.messagesSent)
+            return res.status(404).send("No raw messages available for this message.");
+
+        res.type("application/json").send(JSON.stringify(msg.messagesSent, null, 2));
+    });
+
+    app.get("/:repoName/chat/:chatNumber/json_viewer/:idx", (req, res) => {
+        const { repoName, chatNumber, idx } = req.params;
+        const sessionId = resolveSessionId(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+        if (!chatData.chatHistory || !chatData.chatHistory[idx])
+            return res.status(404).send("Message not found.");
+
+        const msg = chatData.chatHistory[idx];
+        if (msg.role !== "user" || !msg.messagesSent)
+            return res.status(404).send("No raw messages available for this message.");
+
+        res.render("json_viewer", { messages: msg.messagesSent });
+    });
+
+    /* ---------- Git log (JSON) ---------- */
+    app.get("/:repoName/git_log", (req, res) => {
+        const { repoName } = req.params;
+        const sessionId = resolveSessionId(req);
+        const repoCfg = loadSingleRepoConfig(repoName, sessionId);
+        if (!repoCfg) return res.status(400).json({ error: `Repository '${repoName}' not found.` });
+
+        const gitCommits = getGitCommitGraph(repoCfg.gitRepoLocalPath);
+        res.json({ commits: gitCommits });
+    });
+
+    /* ---------- /:repoName/git_branches ---------- */
+    app.get("/:repoName/git_branches", (req, res) => {
+        const { repoName } = req.params;
+        const sessionId = resolveSessionId(req);
+        const repoCfg = loadSingleRepoConfig(repoName, sessionId);
+        if (!repoCfg) {
+            return res.status(400).json({ error: `Repo '${repoName}' not found.` });
+        }
+        const { gitRepoLocalPath } = repoCfg;
+        let branchData = [];
+        try {
+            const branchRaw = execSync("git branch --format='%(refname:short)'", { cwd: gitRepoLocalPath })
+                .toString()
+                .trim()
+                .split("\n");
+            branchData = branchRaw.map(b => b.replace(/^\*\s*/, ""));
+        } catch (err) {
+            console.error("[ERROR] getBranches =>", err);
+            return res.status(500).json({ error: "Failed to list branches." });
+        }
+        return res.json({ branches: branchData });
+    });
+
+    /* ---------- New fixMissingChunks page ---------- */
+    app.get("/:repoName/fixMissingChunks", (req, res) => {
+        res.render("fixMissingChunks", {
+            repoName: req.params.repoName
+        });
+    });
+
+    app.get("/agent/git-diff-branch-merge", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const projectDirParam = (req.query.projectDir || "").toString().trim();
+        const branchParam = (req.query.branch || "").toString().trim();
+
+        if (!branchParam) {
+            return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam });
+        }
+
+        const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
+        if (!resolvedProjectDir) {
+            return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam });
+        }
+
+        try {
+            // Determine candidate parent branches. Prefer configured sterlingParent if present
+            let parentCandidates = [];
+            try {
+                const cfg = execSync(`git config branch."${branchParam}".sterlingParent`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] }).toString().trim();
+                if (cfg) parentCandidates.push(cfg);
+            } catch (_err) {}
+
+            parentCandidates = parentCandidates.concat(['main', 'master', 'origin/main', 'origin/master']);
+
+            let foundMergeCommit = '';
+            let foundParent = '';
+
+            for (const candidate of parentCandidates) {
+                if (!candidate) continue;
+                // Check if candidate ref exists
+                try {
+                    execSync(`git rev-parse --verify --quiet ${candidate}`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] });
+                } catch (_e) { continue; }
+
+                // List recent merges on candidate
+                let merges = '';
+                try {
+                    merges = execSync(`git log ${candidate} --merges --pretty=format:%H -n 200`, { cwd: resolvedProjectDir, maxBuffer: 1024 * 1024 * 5 }).toString();
+                } catch (_e) { merges = ''; }
+
+                if (!merges) continue;
+                const mergeList = merges.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+                for (const mergeHash of mergeList) {
+                    if (!mergeHash) continue;
+                    try {
+                        // Check if the branch is an ancestor of this merge commit
+                        execSync(`git merge-base --is-ancestor ${branchParam} ${mergeHash}`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] });
+                        // exit code 0 means ancestor
+                        foundMergeCommit = mergeHash;
+                        foundParent = candidate;
+                        break;
+                    } catch (_e) {
+                        // not ancestor
+                    }
+                }
+                if (foundMergeCommit) break;
+            }
+
+            if (!foundMergeCommit) {
+                // No merge commit found on parent candidates
+                return res.status(404).render("diff", {
+                    gitRepoNameCLI: resolvedProjectDir,
+                    baseRev: '',
+                    compRev: '',
+                    diffOutput: '',
+                    structuredDiff: [],
+                    debugMode: !!process.env.DEBUG,
+                    environment: res.locals.environment,
+                    diffFormAction: "/agent/git-diff",
+                    repoLinksEnabled: false,
+                    projectDir: resolvedProjectDir,
+                    errorMessage: `Unable to find a merge commit on parent branches for '${branchParam}'.`,
+                });
+            }
+
+            const baseRev = `${foundMergeCommit}^`;
+            const compRev = foundMergeCommit;
+            let diffOutput = '';
+            try {
+                diffOutput = execSync(`git diff ${baseRev} ${compRev}`, { cwd: resolvedProjectDir, maxBuffer: 1024 * 1024 * 10 }).toString();
+            } catch (err) {
+                diffOutput = `[ERROR] Failed to run git diff ${baseRev} ${compRev}
+
+${err}`;
+            }
+            const structuredDiff = parseUnifiedDiff(diffOutput);
+
+            const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
+            const repoLinksEnabled = !!repoName;
+
+            const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+            const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+
+            res.render("diff", {
+                gitRepoNameCLI: repoName || resolvedProjectDir,
+                baseRev,
+                compRev,
+                diffOutput,
+                structuredDiff,
+                debugMode: !!process.env.DEBUG,
+                environment: res.locals.environment,
+                diffFormAction: repoLinksEnabled ? `/${repoName}/diff` : "/agent/git-diff",
+                repoLinksEnabled,
+                projectDir: resolvedProjectDir,
+                errorMessage: '',
+                baseMeta,
+                compMeta,
+            });
+        } catch (err) {
+            console.error('[ERROR] /agent/git-diff-branch-merge:', err);
+            return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error' });
+        }
+    });
+
+app.get("/agent/git-diff", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const projectDirParam = (req.query.projectDir || "").toString().trim();
+        const baseRevInput = (req.query.baseRev || "").toString();
+        const compRevInput = (req.query.compRev || "").toString();
+
+        const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
+
+        let errorMessage = "";
+
+        if (!resolvedProjectDir) {
+            errorMessage = "Project directory is required.";
+        } else {
+            try {
+                const stats = fs.statSync(resolvedProjectDir);
+                if (!stats.isDirectory()) {
+                    errorMessage = `Provided project directory is not a directory: ${projectDirParam}`;
+                }
+            } catch (err) {
+                // Project dir missing — attempt to recover by mapping a deleted
+                // Sterling temp snapshot directory to a registered repository.
+                try {
+                    const repoConfig = (typeof loadRepoConfig === "function" ? loadRepoConfig(sessionId) : {}) || {};
+                    const candidateBase = path.basename(resolvedProjectDir || projectDirParam || '');
+                    let fallbackPath = '';
+
+                    // First, try to match by repo local path basename.
+                    for (const [name, cfg] of Object.entries(repoConfig)) {
+                        if (cfg && cfg.gitRepoLocalPath) {
+                            try {
+                                const repoPathResolved = path.resolve(cfg.gitRepoLocalPath);
+                                if (path.basename(repoPathResolved) === candidateBase && fs.existsSync(repoPathResolved)) {
+                                    fallbackPath = repoPathResolved;
+                                    break;
+                                }
+                            } catch (_e) { /* ignore */ }
+                        }
+                    }
+
+                    // Next, try to find a run that references the missing temp dir and map
+                    // it to the repo configured for that run.
+                    if (!fallbackPath) {
+                        try {
+                            const runs = typeof loadCodexRuns === 'function' ? loadCodexRuns(sessionId) : [];
+                            if (Array.isArray(runs) && runs.length) {
+                                for (const r of runs) {
+                                    const candidateDir = (r && (r.requestedProjectDir || r.effectiveProjectDir || r.projectDir)) || '';
+                                    if (!candidateDir) continue;
+                                    try {
+                                        if (path.basename(candidateDir) === candidateBase && r.repoName && repoConfig[r.repoName] && repoConfig[r.repoName].gitRepoLocalPath) {
+                                            const repoPathResolved = path.resolve(repoConfig[r.repoName].gitRepoLocalPath);
+                                            if (fs.existsSync(repoPathResolved)) { fallbackPath = repoPathResolved; break; }
+                                        }
+                                    } catch (_e) { /* ignore */ }
+                                }
+                            }
+                        } catch (_e) { /* ignore */ }
+                    }
+
+                    if (fallbackPath) {
+                        resolvedProjectDir = fallbackPath;
+                    } else {
+                        errorMessage = `Project directory not found: ${projectDirParam || resolvedProjectDir}`;
+                    }
+                } catch (_e) {
+                    errorMessage = `Project directory not found: ${projectDirParam || resolvedProjectDir}`;
+                }
+            }
+        }
+
+        const sanitizeRevision = (value, label) => {
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return { value: "", error: `${label} is required.` };
+            }
+
+            // Allow human-friendly display like "HEAD (abc123)" by extracting
+            // an inner hex-ish commit id in parentheses if present.
+            const match = trimmed.match(/\((?:[0-9a-fA-F]{6,40})\)$/);
+            if (match) {
+                const inner = match[0].slice(1, -1);
+                return { value: inner, error: "" };
+            }
+
+            // Accept normal git refs and partial commit hashes.
+            if (!/^[0-9A-Za-z._^~/:-]+$/.test(trimmed)) {
+                return { value: "", error: `Invalid ${label} parameter.` };
+            }
+
+            return { value: trimmed, error: "" };
+        };
+
+        let baseRev = baseRevInput.trim();
+        let compRev = compRevInput.trim();
+
+        if (!errorMessage) {
+            const sanitizedBase = sanitizeRevision(baseRevInput, "baseRev");
+            const sanitizedComp = sanitizeRevision(compRevInput, "compRev");
+
+            if (sanitizedBase.error) {
+                errorMessage = sanitizedBase.error;
+            }
+
+            if (!errorMessage && sanitizedComp.error) {
+                errorMessage = sanitizedComp.error;
+            }
+
+            if (!errorMessage) {
+                baseRev = sanitizedBase.value;
+                compRev = sanitizedComp.value;
+            }
+        }
+
+        let diffOutput = "";
+        let structuredDiff = [];
+
+        if (!errorMessage) {
+            try {
+                diffOutput = execSync(`git diff ${baseRev} ${compRev}`, {
+                    cwd: resolvedProjectDir,
+                    maxBuffer: 1024 * 1024 * 10,
+                }).toString();
+            } catch (err) {
+                diffOutput = `[ERROR] Failed to run git diff ${baseRev} ${compRev}\n\n${err}`;
+            }
+
+            structuredDiff = parseUnifiedDiff(diffOutput);
+        }
+
+        const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
+        const repoLinksEnabled = !!repoName;
+
+        const statusCode = errorMessage ? 400 : 200;
+
+        const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+        const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+
+        res.status(statusCode).render("diff", {
+            gitRepoNameCLI: repoName || resolvedProjectDir,
+            baseRev,
+            compRev,
+            diffOutput,
+            structuredDiff,
+            debugMode: !!process.env.DEBUG,
+            environment: res.locals.environment,
+            diffFormAction: repoLinksEnabled ? `/${repoName}/diff` : "/agent/git-diff",
+            repoLinksEnabled,
+            projectDir: resolvedProjectDir,
+            errorMessage,
+            baseMeta,
+            compMeta,
+        });
+    });
+
+    
+
+    const getCommitMeta = (cwd, rev) => {
+        if (!rev) return { hash: '', authorName: '', authorEmail: '', message: '' };
+        try {
+            const out = execSync(`git show -s --format=%H%n%an%n%ae%n%s ${rev}`, { cwd, maxBuffer: 1024 * 1024 }).toString();
+            const parts = out.split(/\r?\n/);
+            return { hash: parts[0] || '', authorName: parts[1] || '', authorEmail: parts[2] || '', message: parts[3] || '' };
+        } catch (err) {
+            return { hash: '', authorName: '', authorEmail: '', message: '' };
+        }
+    };
+
+/* ---------- New diff page ---------- */
+    app.get("/:repoName/diff", (req, res) => {
+        const { repoName } = req.params;
+        const sessionId = resolveSessionId(req);
+        const { baseRev, compRev } = req.query;
+        let diffOutput = "";
+        const repoCfg = loadSingleRepoConfig(repoName, sessionId);
+        if (!repoCfg) {
+            return res.status(400).send(`Repository '${repoName}' not found.`);
+        }
+        const { gitRepoLocalPath } = repoCfg;
+
+        if (baseRev && compRev) {
+            try {
+                diffOutput = execSync(`git diff ${baseRev} ${compRev}`, {
+                    cwd: gitRepoLocalPath,
+                    maxBuffer: 1024 * 1024 * 10,
+                }).toString();
+            } catch (err) {
+                diffOutput = `[ERROR] Failed to run git diff ${baseRev} ${compRev}\n\n${err}`;
+            }
+        }
+
+        const structuredDiff = parseUnifiedDiff(diffOutput);
+
+        const baseMeta = baseRev ? getCommitMeta(gitRepoLocalPath, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+        const compMeta = compRev ? getCommitMeta(gitRepoLocalPath, compRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+
+        res.render("diff", {
+            gitRepoNameCLI: repoName,
+            baseRev: baseRev || "",
+            compRev: compRev || "",
+            diffOutput,
+            structuredDiff,
+            debugMode: !!process.env.DEBUG,
+            environment: res.locals.environment,
+            diffFormAction: `/${repoName}/diff`,
+            repoLinksEnabled: true,
+            projectDir: gitRepoLocalPath,
+            errorMessage: "",
+            baseMeta,
+            compMeta,
+        });
+    });
+}
+
+module.exports = { setupGetRoutes };

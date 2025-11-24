@@ -13,8 +13,8 @@ The software development component is coming soon, and is available now as a Pre
 
 ![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)  
 
-Alfe AI beta-2.30+ (Image Design): https://github.com/alfe-ai/alfe-ai-2.0_beta  
-Alfe AI beta-0.4x+ (Software Development): https://github.com/alfe-ai/Sterling  
+Alfe AI beta-2.30+ (Image Design): https://github.com/alfe-ai
+Alfe AI beta-0.4x+ (Software Development): https://github.com/alfe-ai
 
 ## Deploying
 
@@ -31,6 +31,14 @@ wget https://raw.githubusercontent.com/alfe-ai/alfe-ai-Aurelix/refs/heads/Aurora
 Set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` to the SSL key and certificate files
 to enable HTTPS across the included servers. If the files are missing the
 services fall back to HTTP.
+
+### Third-party components
+
+The platform depends on the `codex-cli` npm package as an external tool. It
+remains under its original Apache 2.0 license and is not redistributed under
+the Alfe AI License. If you vendor or otherwise ship binaries or source that
+bundle `codex-cli`, include its Apache 2.0 LICENSE (and NOTICE file if
+provided) alongside your distribution so the required notices stay intact.
 
 You can quickly obtain free certificates from Let's Encrypt by running the
 `setup_certbot.sh` script. It installs Certbot and generates the key and
@@ -70,14 +78,46 @@ Send POST requests to `/sql` with a JSON body containing a `sql` string and
 optional `params` array. Select queries return rows while other statements
 return change information.
 
-### Prerequisites
-
-```bash
-npm install axios commander
-```
-
 ### Reasoning menu configuration
 
 The order of models shown in the reasoning tooltip can be customized.
 Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
 `chatModels` and `reasoningModels` arrays to suit your preferences.
+
+The chat model list now includes **Anthropic Claude Sonnet 4** as an
+`ultimate` tier option. Pricing is $3 per million input tokens,
+$15 per million output tokens, and $4.80 per thousand input images.
+
+**Anthropic Claude 3.7 Sonnet** is available under the `pro` tier. Created Feb 24, 2025 with a 200,000 token context limit, pricing is $3 per million input tokens and $15 per million output tokens.
+**Anthropic Claude Opus 4** is also available under the `ultimate` tier.
+Created May 22, 2025 with a 200,000 token context limit, pricing is
+$15 per million input tokens and $75 per million output tokens.
+
+**Anthropic Claude 3.7 Sonnet (thinking)** has been added to the reasoning
+menu as an `ultimate` tier option. Created Feb 24, 2025 with a 200,000 token
+context limit, pricing is $3 per million input tokens and $15 per million
+output tokens.
+
+**Anthropic Claude 3.5 Haiku** has been added to the chat model menu under the
+`pro` tier. It offers enhanced speed, coding accuracy, and tool use, making it
+ideal for real-time applications like chat interactions and instant coding
+suggestions. Created Nov 4, 2024 with a 200,000 token context limit, pricing is
+$0.80 per million input tokens and $4 per million output tokens.
+
+**OpenAI GPT-5 Chat** has been added under the `pro` tier for advanced, natural,
+multimodal, and context-aware conversations. It supports a 400,000 token context
+with pricing at $1.25 per million input tokens and $10 per million output tokens.
+
+**OpenAI GPT-5** is now available under the `pro` tier, offering major
+improvements in reasoning, code quality, and user experience. It also supports a
+400,000 token context and is priced at $1.25 per million input tokens and $10 per
+million output tokens.
+
+**OpenAI GPT-5 Mini** provides lighter-weight reasoning with reduced latency and
+cost. Available under the `pro` tier, it offers a 400,000 token context and
+costs $0.25 per million input tokens and $2 per million output tokens.
+
+**OpenAI GPT-5 Nano** is optimized for ultra-low latency environments. Under the
+`pro` tier, it features a 400,000 token context and pricing of $0.05 per million
+input tokens and $0.40 per million output tokens.
+

@@ -1,0 +1,47 @@
+<div id="cookieBanner" role="region" aria-label="Cookie usage notification">
+  This site uses cookies to store your preferences.
+  <button type="button" id="cookieMoreInfoBtn">More Info</button>
+  <button type="button" id="cookieAcceptBtn">Accept</button>
+</div>
+<script>
+  (function() {
+    var banner = document.getElementById('cookieBanner');
+    if (!banner) return;
+
+    function hideBanner() {
+      banner.style.display = 'none';
+    }
+
+    function showBanner() {
+      if (!localStorage.getItem('cookieAccepted')) {
+        banner.style.display = 'block';
+      }
+    }
+
+    function wireEvents() {
+      var acceptBtn = document.getElementById('cookieAcceptBtn');
+      var moreInfoBtn = document.getElementById('cookieMoreInfoBtn');
+
+      if (acceptBtn) {
+        acceptBtn.addEventListener('click', function() {
+          localStorage.setItem('cookieAccepted', 'yes');
+          hideBanner();
+        });
+      }
+
+      if (moreInfoBtn) {
+        moreInfoBtn.addEventListener('click', function() {
+          window.open('https://app.alfe.sh/cookies.html', '_blank', 'noopener');
+        });
+      }
+
+      showBanner();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', wireEvents, { once: true });
+    } else {
+      wireEvents();
+    }
+  })();
+</script>

@@ -8,7 +8,7 @@ const dotenv = require('dotenv');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3108;
 const SHOP_ID = process.env.PRINTIFY_SHOP_ID;
 const API_TOKEN = process.env.PRINTIFY_API_TOKEN;
 const PRINTIFY_API_BASE = 'https://api.printify.com/v1';

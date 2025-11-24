@@ -18,7 +18,7 @@ function backupDb() {
   if (useRds) return; // RDS is managed separately
   const dbPath = path.resolve("issues.sqlite");
   if (!fs.existsSync(dbPath)) {
-    console.log("[TaskQueue] No existing DB to backup (first run).");
+    console.log("[AlfeChat] No existing DB to backup (first run).");
     return;
   }
 
@@ -30,7 +30,7 @@ function backupDb() {
   const backupPath = path.join(backupsDir, `issues-${ts}.sqlite`);
 
   fs.copyFileSync(dbPath, backupPath);
-  console.log(`[TaskQueue] Backup created: ${backupPath}`);
+  console.log(`[AlfeChat] Backup created: ${backupPath}`);
 }
 
 async function main() {
@@ -51,7 +51,7 @@ async function main() {
 
     const label = process.env.GITHUB_LABEL;
     console.log(
-        `[TaskQueue] Fetching tasks from GitHub ${
+        `[AlfeChat] Fetching tasks from GitHub ${
             label ? `(label='${label}')` : "(all open issues)"
         } …`
     );
@@ -77,11 +77,11 @@ async function main() {
     // 2. Populate in-memory queue (only open issues)
     resolvedIssues.forEach((issue) => queue.enqueue(issue));
 
-    console.log(`[TaskQueue] ${queue.size()} task(s) in queue.`);
+    console.log(`[AlfeChat] ${queue.size()} task(s) in queue.`);
     // Intentionally omit printing the full issue list to keep logs concise
 
     // Debug: show DB snapshot (can be removed)
-    // console.debug("[TaskQueue] Current DB state:", db.dump());
+    // console.debug("[AlfeChat] Current DB state:", db.dump());
   } catch (err) {
     console.error("Fatal:", err.message);
     process.exit(1);

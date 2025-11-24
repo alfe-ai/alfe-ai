@@ -10,7 +10,7 @@
           id="favicon"
           rel="icon"
           type="image/x-icon"
-          href="/alfe_favicon_chat_mountain_rect_purple_WHITEBG.ico"
+          href="/alfe_favicon_64x64.ico"
   />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0b1723" />
@@ -19,51 +19,22 @@
 
 <div class="app">
   <aside class="sidebar">
-    <img id="sidebarToggleIcon" class="sidebar-toggle-icon" src="/alfe_favicon_64x64.ico" alt="Toggle sidebar" title="Toggle sidebar"/>
+    <img id="sidebarToggleIcon" class="sidebar-toggle-icon sidebar-logo" src="/alfe_favicon_64x64.ico" alt="Toggle sidebar" title="Toggle sidebar" />
     <span id="sidebarBrandText" class="sidebar-brand-text">Alfe AI</span>
     <span id="closeSidebarIcon" class="close-sidebar-icon">&laquo;</span>
-        <div id="versionInfo" class="version-info" style="margin-bottom: 5px;"><span id="versionSpan">beta-3.0.0</span> <a href="/about.html" target="_blank" style="color: var(--accent)">about</a></div>
-    <span id="sessionIdText" class="session-id"></span>
     <button id="hideSidebarBtn" class="hide-sidebar-btn">Hide Sidebar</button>
-    <div id="navSpinner" style="text-align:center; margin-top:1rem;"><span class="loading-spinner"></span></div>
-    <ul id="navSkeletonList" style="list-style:none;padding:0 1rem;display:none;">
-      <li class="nav-placeholder"></li>
-      <li class="nav-placeholder"></li>
-      <li class="nav-placeholder"></li>
-      <li class="nav-placeholder"></li>
-      <li class="nav-placeholder"></li>
-      <li class="nav-placeholder"></li>
-    </ul>
     <!-- Tree-style menu with sections -->
-    <nav class="tree-menu" style="display:none;">
+    <nav class="tree-menu">
       <ul>
-        <li><button id="navChatTabsBtn" class="tree-button active">Chats</button></li>
-        <li hidden><button id="navTasksBtn" class="tree-button">Projects and Tasks</button></li>
-        <li hidden><button id="navUploaderBtn" class="tree-button">Images</button></li>
-        <li><button id="navArchiveTabsBtn" class="tree-button">Archived</button></li>
-        <li><button id="navFileTreeBtn" class="tree-button">File Tree</button></li>
-        <li><button id="navAiModelsBtn" class="tree-button" data-url="/ai_models">AI Models</button></li>
-        <li><button id="navImageGeneratorBtn" class="tree-button" data-url="/image_generator">Image Generator</button></li>
-        <li><button id="navJobsBtn" class="tree-button" data-url="/jobs.html" data-target="_blank" hidden>Jobs</button></li>
-        <li><button id="navActivityIframeBtn" class="tree-button">Activity IFrame</button></li>
-        <li><button id="navNexumChatBtn" class="tree-button" data-url="/index.html">Nexum Chat</button></li>
-        <li><button id="navNexumTabsBtn" class="tree-button" data-url="/nexum_tabs.html">Nexum Tabs</button></li>
-      </ul>
+        <li><button id="navCodeTasksBtn" class="tree-button"><span class="tree-button-icon" aria-hidden="true"><img src="/icons/code.svg" class="icon-image" data-icon="code" alt="" /></span><span class="tree-button-label">Code</span></button></li>
+        <li><button id="navChatTabsBtn" class="tree-button active"><span class="tree-button-icon" aria-hidden="true">💬</span><span class="tree-button-label">Chat</span></button></li>
+        <li><button id="navUploaderBtn" class="tree-button"><span class="tree-button-icon" aria-hidden="true">🎨</span><span class="tree-button-label">Image Design</span></button></li></ul>
     </nav>
     <!-- Icon-only menu for collapsed sidebar -->
-    <nav class="icon-menu" style="display:none;">
-      <button id="navChatTabsIcon" class="icon-btn" title="Chats">💬</button>
-      <button id="navTasksIcon" class="icon-btn" title="Projects and Tasks" hidden>✅</button>
-      <button id="navUploaderIcon" class="icon-btn" title="Images" hidden>🖼️</button>
-      <button id="navArchiveTabsIcon" class="icon-btn" title="Archived">&#128452;</button>
-      <button id="navFileTreeIcon" class="icon-btn" title="File Tree">📁</button>
-      <button id="navAiModelsIcon" class="icon-btn" title="AI Models">🤖</button>
-      <button id="navImageGeneratorIcon" class="icon-btn" title="Image Generator">🎨</button>
-      <button id="navJobsIcon" class="icon-btn" title="Jobs">💼</button>
-      <button id="navActivityIframeIcon" class="icon-btn" title="Activity">🌐</button>
-      <button id="navNexumChatIcon" class="icon-btn" title="Nexum Chat">✨</button>
-      <button id="navNexumTabsIcon" class="icon-btn" title="Nexum Tabs">🗂️</button>
-    </nav>
+    <nav class="icon-menu">
+      <button id="navCodeTasksIcon" class="icon-btn" title="Code" aria-label="Code"><img src="/icons/code.svg" class="icon-image" data-icon="code" alt="" aria-hidden="true" /></button>
+      <button id="navChatTabsIcon" class="icon-btn" title="Chat">💬</button>
+      <button id="navUploaderIcon" class="icon-btn" title="Image Design">🖼️</button></nav>
 
     <!-- Tasks view panel -->
     <div id="sidebarViewTasks" style="display:none;">
@@ -101,6 +72,40 @@
       </table>
     </div>
 
+    <!-- Code Tasks view panel -->
+    <div id="sidebarViewCodeTasks" style="display:none;">
+      <div class="code-tasks-header">
+        <h2 class="code-tasks-title">Code</h2>
+        <div class="code-project-controls">
+          <select id="codeProjectSelector" class="code-project-selector" aria-label="Select code project"></select>
+          <button type="button" id="addCodeProjectButton" class="code-project-add-btn" aria-label="Add project">➕</button>
+        </div>
+        <div class="code-tasks-actions" role="group" aria-label="Code shortcuts">
+          <button type="button" id="codeEnvironmentButton" class="code-tasks-action-btn">Environment</button>
+          <button type="button" id="codeEditorButton" class="code-tasks-action-btn">Editor</button>
+        </div>
+      </div>
+      <form id="codeTaskForm" class="code-task-form">
+        <div class="code-task-input-row">
+          <select id="codeTaskIteration" class="code-task-iteration-select" name="iterations" aria-label="Iteration count">
+            <option value="1" selected>1x</option>
+            <option value="2" disabled>2x</option>
+            <option value="3" disabled>3x</option>
+            <option value="4" disabled>4x</option>
+          </select>
+          <input id="codeTaskInput" class="code-task-input" type="text" name="task" placeholder="Make a new code change" aria-label="New code task" required / autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off">
+          <button type="submit" class="code-task-submit" aria-label="Add code task">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </form>
+      <div id="codeTasksContainer" class="code-tasks-container" role="list"></div>
+    </div>
+
     <!-- Uploader view panel (hidden by default) -->
     <div id="sidebarViewUploader" style="display:none; max-height:60vh; overflow:auto;">
 <!--      <h2>Secure File Uploader</h2>-->
@@ -108,6 +113,7 @@
         <input type="file" id="fileInput"/>
         <button type="submit">Upload</button>
       </form>
+      <button id="printifyQueueButton" type="button" style="display:none;" class="sidebar-link-button" data-url="/pipeline_queue.html">Printify Queue</button>
       <table id="secureFilesList" class="file-table">
         <thead>
           <tr>
@@ -115,15 +121,7 @@
             <th id="numericIdHeader" data-col="id">ID</th>
             <th>Thumb</th>
             <th data-col="name">File</th>
-            <th data-col="title">Title</th>
-            <th data-col="source">Source</th>
             <th data-col="status">Status</th>
-            <th data-col="productUrl">Printify URL</th>
-            <th data-col="ebayUrl">eBay URL</th>
-            <th data-col="portfolio">Portfolio</th>
-            <th data-col="hidden">Hidden</th>
-            <th data-col="size">Size (KB)</th>
-            <th data-col="mtime">Last Modified</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -172,6 +170,7 @@
       <h2>Activity IFrame</h2>
       <iframe src="/activity" style="width:100%; height:800px; border:none;"></iframe>
     </div>
+    
     <!-- Printify Products panel -->
     <div id="sidebarViewPrintifyProducts" style="display:none;">
       <h2>Printify Products</h2>
@@ -186,10 +185,9 @@
         <tbody></tbody>
       </table>
     </div>
-    <footer class="sidebar-footer">
-      <a href="https://github.com/alfe-ai" target="_blank">GitHub</a> |
-      <a href="https://bsky.app/profile/alfeai.bsky.social" target="_blank">Bluesky</a>
-    </footer>
+    <div id="sidebarFooterLinks" class="sidebar-footer">
+      <a href="/about.html" target="_blank" rel="noopener noreferrer">About</a> | <a href="https://github.com/alfe-ai" target="_blank" rel="noopener noreferrer">Github</a>
+    </div>
   </aside>
 
   <div id="divider" class="divider"></div>
@@ -201,34 +199,62 @@
 <!--    <span class="subscribe-teaser">Join the beta:</span>-->
 <!--    <a id="subscribeBtn" href="#" class="top-btn">Subscribe</a>-->
       <a id="githubBtn" href="https://github.com/alfe-ai" target="_blank" class="top-btn" style="display:none;">GitHub</a>
-      <a id="blueskyBtn" href="https://bsky.app/profile/alfeai.bsky.social" target="_blank" class="top-btn" title="AlfeAI on Bluesky" style="display:none;">🦋</a>
       <button id="chatSettingsBtn" class="top-btn" title="Chat Settings" style="display:none;">⚙️</button>
       <button id="globalAiSettingsBtn" class="top-btn" title="Global AI Settings" style="display:none;">🤖</button>
       <button id="aiFavoritesBtn" class="top-btn" title="AI Favorites" style="color: gold; display:none;">⭐</button>
-      <button id="settingsBtn" class="top-btn" title="Settings">⚙️</button>
       <button id="signupBtn" class="top-btn" style="display:none;">Sign Up / Login</button>
+      <a
+        id="googlePlayBadge"
+        class="store-badge disabled"
+        href="https://play.google.com/store/apps/details?id=ai.alfe.aurora"
+        data-default-href="https://play.google.com/store/apps/details?id=ai.alfe.aurora"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Get the Aurora app on Google Play (coming soon)"
+        aria-disabled="true"
+      >
+        <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" width="155" height="40" loading="lazy" />
+      </a>
+      <a
+        id="appStoreBadge"
+        class="store-badge disabled"
+        href="https://apps.apple.com/app/id6504207150"
+        data-default-href="https://apps.apple.com/app/id6504207150"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Download the Aurora app on the App Store (coming soon)"
+        aria-disabled="true"
+      >
+        <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" width="135" height="40" loading="lazy" />
+      </a>
+      <button id="settingsBtn" class="top-btn" title="Settings">⚙️</button>
 <!--    <a id="changelogBtn" href="/changelog.html" class="top-btn" target="_blank">Changelog</a>-->
     </div>
 
   <div id="expandSidebarBtn" style="position: absolute; top: 75px; left: 8px; background: #444; color: #ddd; padding: 4px 8px; cursor: pointer; z-index: 999; display: none;">
     Show Sidebar
   </div>
-  <img id="collapsedSidebarLogo" src="/alfe_favicon_64x64.ico" title="Expand sidebar" alt="Alfe AI logo" style="height:32px; position:absolute; top:8px; left:8px; cursor:pointer; display:none; z-index:1000;"/>
+  <img id="collapsedSidebarLogo" class="sidebar-logo collapsed-sidebar-logo" src="/alfe_favicon_64x64.ico" title="Expand sidebar" alt="Alfe AI logo" />
   <span id="expandSidebarArrow" title="Expand sidebar" style="position:absolute; top:20px; left:48px; font-size:1.4rem; cursor:pointer; display:none; z-index:1000;">&raquo;</span>
   <div id="thinSidebar" class="thin-sidebar">
     <button id="thinIconChats" class="thin-icon" title="Chats" aria-label="Open chats">
       💬
     </button>
-    <button id="thinIconArchived" class="thin-icon" title="Archived" aria-label="Open archived chats">
-      <img src="/icons/archive.svg" alt="Archive" />
-    </button>
-  </div>
+</div>
 
   <main class="chat-panel">
+    <header class="chat-panel-header" aria-live="polite">
+      <div class="chat-title-wrapper">
+        <button id="chatFavoriteBtn" class="favorite-toggle chat-favorite-btn" type="button" title="Add to favorites" aria-label="Add to favorites" aria-pressed="false">☆</button>
+        <div class="chat-title-group">
+          <h1 id="chatTitleText" class="chat-title">Chat</h1>
+          <span id="chatTitleProject" class="chat-title-project" hidden></span>
+        </div>
+      </div>
+    </header>
+
     <div id="viewTabsBar" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;" hidden>
-      <button id="viewTabChat" class="view-tab active" hidden>💬 Chat</button>
-      <button id="viewTabTasks" class="view-tab" hidden>☑️ Tasks</button>
-      <button id="viewTabArchive" class="view-tab" hidden>Archive</button>
+      <button id="viewTabChat" class="view-tab active" hidden>💬 Chat</button><button id="viewTabArchive" class="view-tab" hidden>Archive</button>
     </div>
     <!-- New Empty Task List Panel Above Chat UI -->
     <div id="taskListPanel" style="display:none;border:1px dashed #666; padding:8px; margin:8px 0;">
@@ -278,9 +304,18 @@
           <!-- Hidden file input for image uploading -->
           <input type="file" id="imageUploadInput" accept="image/*" style="display:none" multiple />
           <button id="chatImageBtn" class="send-btn" title="Upload Image" style="display:none;" hidden>📤</button>
+          <button id="searchToggleBtn" class="chat-toggle-btn icon-stack-btn" title="Enable search mode" aria-label="Enable search mode">
+            <span class="icon-stack" aria-hidden="true">
+              <span class="icon icon-globe">🌐</span>
+              <span class="icon icon-search">🔍</span>
+            </span>
+          </button>
           <button id="reasoningToggleBtn" class="send-btn reasoning-toggle-btn" title="Reasoning" style="display:none;" hidden>🤖</button>
 
           <textarea id="chatInput" placeholder="Type your message..." autocomplete="off"></textarea>
+          <button id="chatRepeatBtn" class="send-btn" title="Repeat last message" style="display:none;" hidden>
+            ⟳
+          </button>
           <button id="chatSendBtn" class="send-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                  stroke-linecap="round" stroke-linejoin="round" class="feather feather-send">
@@ -403,6 +438,19 @@
         <div class="icon">🔍</div>
         <div>Search</div>
       </button>
+    </div>
+  </div>
+</div>
+
+<div id="editTabNameModal" class="modal">
+  <div class="modal-content">
+    <h2>Edit Tab Name</h2>
+    <label>New name:<br/>
+      <input type="text" id="editTabNameInput" style="width:100%;" />
+    </label>
+    <div class="modal-buttons">
+      <button id="editTabNameSaveBtn">Save</button>
+      <button id="editTabNameCancelBtn">Cancel</button>
     </div>
   </div>
 </div>
@@ -580,16 +628,6 @@
     <div style="margin-top:8px;">
       <label>AI Search Model:
         <select id="globalAiSearchModelSelect">
-          <option value="sonar">sonar</option>
-          <option value="openrouter/perplexity/sonar">perplexity/sonar</option>
-          <option value="sonar-pro">sonar-pro</option>
-          <option value="openrouter/perplexity/sonar-pro">perplexity/sonar-pro</option>
-          <option value="sonar-reasoning">sonar-reasoning</option>
-          <option value="openrouter/perplexity/sonar-reasoning">perplexity/sonar-reasoning</option>
-          <option value="sonar-reasoning-pro">sonar-reasoning-pro</option>
-          <option value="openrouter/perplexity/sonar-reasoning-pro">perplexity/sonar-reasoning-pro</option>
-          <option value="sonar-deep-research">sonar-deep-research</option>
-          <option value="openrouter/perplexity/sonar-deep-research">perplexity/sonar-deep-research</option>
           <option value="openai/gpt-4o-mini-search-preview">openai/gpt-4o-mini-search-preview</option>
           <option value="openai/gpt-4o-search-preview">openai/gpt-4o-search-preview</option>
        </select>
@@ -643,6 +681,35 @@
   </div>
 </div>
 
+<div id="addCodeProjectModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="addCodeProjectModalTitle">
+  <div class="modal-content" role="document">
+    <h2 id="addCodeProjectModalTitle">Add project</h2>
+    <form id="addCodeProjectForm" novalidate>
+      <label class="modal__label" for="addCodeProjectNameInput">Project name</label>
+      <input type="text" id="addCodeProjectNameInput" class="modal__input" autocomplete="off" placeholder="New Project" />
+
+      <label class="modal__label" for="addCodeProjectRepoInput" style="margin-top:1rem;">Git repository URL</label>
+      <input
+        type="text"
+        id="addCodeProjectRepoInput"
+        class="modal__input"
+        autocomplete="off"
+        placeholder="https://github.com/example-org/example-repo.git  or  git+ssh://git@github.com/example-org/example-repo.git  or  git@github.com:example-org/example-repo.git"
+      />
+      <p class="modal__help-text">Accepted formats include HTTPS, SSH, and git+ssh URLs (e.g. git+ssh://git@github.com/...).</p>
+      <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+        <label class="modal__label" style="margin:0; font-weight:400;">Or</label>
+        <button type="button" id="tryDemoRepoBtn" class="secondary" title="Try our demo repository">Try our demo repository</button>
+      </div>
+      <p id="addCodeProjectError" class="modal-error" aria-live="assertive"></p>
+      <div class="modal-buttons">
+        <button type="button" id="addCodeProjectCancelBtn">Cancel</button>
+        <button type="submit" class="primary" id="addCodeProjectSubmitBtn">Add project</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div id="setProjectModal" class="modal">
   <div class="modal-content">
     <h2>Set Project</h2>
@@ -674,6 +741,37 @@
       <button id="sterlingBranchCancelBtn">Cancel</button>
     </div>
     <p id="sterlingBranchMsg" style="margin-top:8px; color:#aaa;"></p>
+  </div>
+</div>
+
+<!-- Sterling link modal placeholder -->
+<div id="sterlingLinkModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="sterlingLinkModalTitle">
+  <div class="modal-content">
+    <div class="modal-title-row">
+      <h2 id="sterlingLinkModalTitle"><span id="sterlingLinkProjectName">Sterling Link</span></h2>
+      <button type="button" id="sterlingLinkEditButton" class="modal-title-action" aria-label="Edit project name" title="Edit project name">✏️</button>
+    </div>
+    <p style="margin-bottom:1.5rem;">Link a Git repository to manage Sterling environment configurations for this project.</p>
+    <label for="sterlingLinkRepoInput" style="display:block;margin-bottom:1.5rem;">
+      Git repository URL or SSH (git+ssh) format<br/>
+      <input type="text" id="sterlingLinkRepoInput" placeholder="https://github.com/your-org/your-repo  or  git+ssh://git@github.com/your-org/your-repo.git  or  git@github.com:your-org/your-repo.git" style="width:100%;" autocomplete="off" />
+    </label>
+    <div class="modal-buttons">
+      <button type="button" id="sterlingLinkCreateRepoBtn">Create New Repository</button>
+      <button type="button" id="sterlingLinkDeleteBtn" style="background-color:#c33;color:#fff;">Delete Project</button>
+      <button type="button" id="sterlingLinkModalCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Printify Queue modal -->
+<div id="printifyQueueModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="printifyQueueModalTitle">
+  <div class="modal-content modal-content--iframe" role="document">
+    <div class="modal-title-row">
+      <h2 id="printifyQueueModalTitle">Printify Queue</h2>
+      <button type="button" id="printifyQueueModalCloseBtn" class="modal-title-action" aria-label="Close Printify Queue modal" title="Close">✕</button>
+    </div>
+    <iframe id="printifyQueueIframe" class="modal-iframe" src="" title="Printify Queue"></iframe>
   </div>
 </div>
 
@@ -738,8 +836,7 @@
     <label><input type="checkbox" id="nexumTabsMenuCheck"/> Show Nexum Tabs menu</label><br/>
     <label><input type="checkbox" id="fileTreeMenuCheck"/> Show File Tree button</label><br/>
     <label><input type="checkbox" id="aiModelsMenuCheck"/> Show AI Models link</label><br/>
-    <label><input type="checkbox" id="tasksMenuCheck" checked/> Show Projects and Tasks button</label><br/>
-    <label><input type="checkbox" id="jobsMenuCheck"/> Show Jobs button</label><br/>
+        <label><input type="checkbox" id="jobsMenuCheck"/> Show Jobs button</label><br/>
     <label><input type="checkbox" id="chatTabsMenuCheck"/> Show Chats button</label><br/>
     <label><input type="checkbox" id="viewTabsBarFlagCheck"/> Show Chat/Tasks bar</label><br/>
     <label><input type="checkbox" id="showProjectNameTabsCheck"/> Show project name in tabs</label><br/>
@@ -800,6 +897,16 @@
       <label style="margin-top:8px;">Confirm Password:<br/>
         <input type="password" id="signupConfirm" style="width:100%;" />
       </label>
+      <div class="password-requirements" aria-live="polite">
+        <p class="password-requirements__title">Must have at least 8 characters</p>
+        <p class="password-requirements__subtitle">It's best to have:</p>
+        <ul class="password-requirements__list">
+          <li class="password-requirements__item">At least 12 characters</li>
+          <li class="password-requirements__item">Uppercase and lowercase letters</li>
+          <li class="password-requirements__item">Numbers</li>
+          <li class="password-requirements__item">Symbols (#$&amp;)</li>
+        </ul>
+      </div>
       <div class="modal-buttons">
         <button id="signupSubmitBtn">Register</button>
         <button id="showLoginBtn">Back to Login</button>
@@ -824,14 +931,7 @@
       <p id="totpEnabledMsg" style="display:none;">2FA Enabled</p>
     </div>
     <div id="planSection" style="margin-top:10px;">
-      <label>Subscription Plan:<br/>
-        <select id="accountPlan">
-          <option value="Free">Free</option>
-          <option value="Pro">Pro</option>
-          <option value="Ultimate">Ultimate</option>
-        </select>
-      </label>
-      <button id="planSaveBtn" style="margin-top:8px;">Save</button>
+      <p id="accountPlanText">Subscription Plan: <strong>Free</strong></p>
     </div>
     <div id="passwordSection" style="margin-top:10px;">
       <button id="showChangePasswordBtn">Change Password</button>
@@ -861,9 +961,18 @@
     <h2>Settings</h2>
     <div id="timezoneSection" style="margin-top:10px;">
       <label>Timezone:<br/>
-        <input type="text" id="accountTimezone" style="width:100%;" placeholder="e.g., America/Chicago" />
+        <select id="accountTimezone" style="width:100%;">
+          <option value="">Select a timezone</option>
+        </select>
       </label>
-      <button id="timezoneSaveBtn" style="margin-top:8px;">Save</button>
+    </div>
+    <div id="themeSection" style="margin-top:10px;">
+      <label>Theme:<br/>
+        <select id="themeSelect">
+          <option value="dark">Dark Nexum (default)</option>
+          <option value="light">Light Nexum</option>
+        </select>
+      </label>
     </div>
     <div id="autoScrollSection" style="margin-top:10px;">
       <label><input type="checkbox" id="accountAutoScrollCheck" checked/> Keep chat pinned to bottom</label>
@@ -871,18 +980,39 @@
     <div id="mobileThinSidebarSection" style="margin-top:10px;">
       <label><input type="checkbox" id="mobileThinSidebarCheck" checked/> Show sidebar toolbar on mobile</label>
     </div>
-    <div id="defaultModelSection" style="margin-top:10px;">
-      <label class="disabled-setting">Default Model for New Chats:
-        <select id="defaultModelSelect" disabled>
-          <option value="">Managed by your administrator</option>
-        </select>
-      </label>
-      <p class="disabled-setting-note">This setting is locked. Contact your administrator for changes.</p>
-    </div>
     <div class="modal-buttons">
-      <button id="settingsCloseBtn">Close</button>
+      <button id="settingsSaveBtn">Save</button>
     </div>
+    <div id="sessionIdSection" style="margin-top:12px; font-size:0.85rem; color:#8ea1b3; word-break:break-all;">
+      Session ID: <code id="settingsSessionIdText"></code>
+    </div>
+    <div id="usageCountersSection" style="margin-top:8px; font-size:0.85rem; color:#8ea1b3;">
+      <div>Image generations</div>
+      <div style="margin-left:12px;">Session: <span id="settingsImageSessionCounter">…</span></div>
+      <div style="margin-left:12px;">IP: <span id="settingsImageIpCounter">…</span></div>
+      <div style="margin-top:6px;">Searches</div>
+      <div style="margin-left:12px;">Session: <span id="settingsSearchSessionCounter">…</span></div>
+      <div style="margin-left:12px;">IP: <span id="settingsSearchIpCounter">…</span></div>
+    </div>
+  </div>
 </div>
+
+<!-- Usage limit modal -->
+<div id="usageLimitModal" class="modal usage-limit-modal" role="dialog" aria-modal="true" aria-labelledby="usageLimitModalTitle">
+  <div class="modal-content usage-limit-modal__content">
+    <div class="usage-limit-modal__header">
+      <div id="usageLimitModalIcon" class="usage-limit-modal__icon" aria-hidden="true">⚠️</div>
+      <div class="usage-limit-modal__title-group">
+        <h2 id="usageLimitModalTitle" class="usage-limit-modal__title">Usage limit reached</h2>
+        <p id="usageLimitModalMessage" class="usage-limit-modal__message">You have reached the current usage limit. Please try again later.</p>
+      </div>
+    </div>
+    <p id="usageLimitModalSummary" class="usage-limit-modal__summary"></p>
+    <p id="usageLimitModalCta" class="usage-limit-modal__cta">Subscribe to Alfe AI Plus for increased limits. <span class="usage-limit-modal__cta-tag">Coming soon</span></p>
+    <div class="modal-buttons usage-limit-modal__actions">
+      <button id="usageLimitModalCloseBtn">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- Subscription Plans modal -->
@@ -935,6 +1065,55 @@
   </div>
 </div>
 
+<!-- Reusable confirmation modal -->
+<div
+        id="confirmModal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-hidden="true"
+        aria-labelledby="confirmModalTitle"
+>
+  <div class="modal-content confirm-modal">
+    <div class="modal-title-row">
+      <h2 id="confirmModalTitle">Confirm Action</h2>
+      <button
+              type="button"
+              id="confirmModalCloseBtn"
+              class="modal-title-action"
+              aria-label="Close confirmation dialog"
+      >×</button>
+    </div>
+    <p id="confirmModalMessage" class="confirm-modal-message"></p>
+    <div class="modal-buttons">
+      <button type="button" id="confirmModalCancelBtn">Cancel</button>
+      <button type="button" id="confirmModalConfirmBtn" class="danger">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Image preview modal -->
+<div
+        id="imagePreviewModal"
+        class="modal"
+        aria-hidden="true"
+        role="dialog"
+        aria-labelledby="imagePreviewModalTitle"
+>
+  <div class="modal-content image-preview-modal">
+    <div class="modal-title-row">
+      <h2 id="imagePreviewModalTitle">Image Preview</h2>
+      <button
+              type="button"
+              id="imagePreviewModalClose"
+              class="modal-title-action"
+              aria-label="Close image preview"
+      >✕</button>
+    </div>
+    <img id="imagePreviewModalImg" alt="" loading="lazy" />
+  </div>
+</div>
+
 <div id="pageLoader" class="page-loader">
   <span class="loading-spinner"></span>
 </div>
@@ -945,6 +1124,7 @@
   <button id="cookieAcceptBtn">Accept</button>
 </div>
 <script src="/session.js"></script>
+<script src="/aurora-config.js"></script>
 <script src="/reasoning_tooltip_config.js"></script>
 <script src="/main.js"></script>
 <script>

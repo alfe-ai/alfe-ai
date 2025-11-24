@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sterling · File Summarizer</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/CSS/filesummarizer.css" />
+</head>
+<body>
+    <header class="page-header">
+        <h1>Sterling File Summarizer</h1>
+        <p class="subtitle">
+            Generate concise, high-signal summaries of project files, including the
+            key responsibilities and important function or variable definitions without
+            dumping the entire source.
+        </p>
+    </header>
+
+    <main class="layout">
+        <section class="card">
+            <form id="summarizerForm" class="form" autocomplete="off">
+                <div class="form-row">
+                    <label class="form-label" for="fileInput">Select a file</label>
+                    <input id="fileInput" name="file" type="file" class="form-input" required />
+                    <p class="help-text">Upload a source file from your local machine. Text-based files work best.</p>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="aiProvider">AI provider</label>
+                    <select id="aiProvider" name="aiProvider" class="form-input" disabled>
+                        <option>Loading providers…</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="aiModel">Model</label>
+                    <select id="aiModel" name="aiModel" class="form-input" disabled>
+                        <option>Loading models…</option>
+                    </select>
+                    <p class="help-text">Pick the model that will craft the summary.</p>
+                </div>
+
+                <div class="form-actions">
+                    <button id="summarizeButton" type="submit" class="primary-btn" disabled>Summarize file</button>
+                </div>
+
+                <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+            </form>
+        </section>
+
+        <section class="card">
+            <header class="card-header">
+                <h2>Summary</h2>
+            </header>
+            <article id="summaryOutput" class="summary-output" aria-live="polite">
+                <p class="placeholder">Your summary will appear here after processing.</p>
+            </article>
+        </section>
+    </main>
+
+    <template id="errorTemplate">
+        <div class="error-box" role="alert"></div>
+    </template>
+
+    <script src="/JS/filesummarizer.js" defer></script>
+</body>
+</html>

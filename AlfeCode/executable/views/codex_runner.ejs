@@ -1,0 +1,2544 @@
+<!DOCTYPE html>
+<html lang="en" class="agent-scale-80">
+<head>
+    <meta charset="UTF-8">
+    <title>Agent Runner</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            --bg-gradient: radial-gradient(circle at top left, rgba(124, 58, 237, 0.45), rgba(15, 23, 42, 0.95));
+            --bg-main: rgba(15, 23, 42, 0.94);
+            --bg-alt: rgba(15, 23, 42, 0.82);
+            --surface: rgba(30, 41, 59, 0.92);
+            --surface-soft: rgba(51, 65, 85, 0.65);
+            --surface-border: rgba(71, 85, 105, 0.45);
+            --surface-strong-border: rgba(148, 163, 184, 0.45);
+            --text-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #7c3aed;
+            --accent-strong: #8b5cf6;
+            --accent-soft: rgba(124, 58, 237, 0.28);
+            --danger: #f97316;
+            --shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
+            --runs-sidebar-width: clamp(260px, 22vw, 360px);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 0 48px;
+        }
+
+        :root.agent-scale-80 {
+            font-size: 80%;
+        }
+
+        .agent-scale-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .agent-scale-container .page-shell {
+            width: 100%;
+        }
+
+        body.is-resizing,
+        body.is-resizing * {
+            cursor: col-resize !important;
+        }
+
+        .page-shell {
+            flex: 1 1 auto;
+            width: 100%;
+            display: grid;
+            grid-template-columns: var(--runs-sidebar-width, clamp(260px, 22vw, 360px)) minmax(0, 1fr);
+            gap: 0;
+            align-items: stretch;
+            padding: 0;
+            box-sizing: border-box;
+            min-height: 100vh;
+        }
+
+        a {
+            color: #fff !important;
+            text-decoration: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--accent);
+            opacity: 0.85;
+        }
+
+        .project-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.32rem 0.85rem 0.36rem;
+            margin: 0;
+            border: 1px solid rgba(148, 163, 184, 0.32);
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.16) 0%, rgba(51, 65, 85, 0.26) 100%);
+            color: rgba(226, 232, 240, 0.9);
+            font: inherit;
+            font-size: 0.94rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.16s ease;
+        }
+
+        .project-info:hover,
+        .project-info:focus-visible,
+        .project-info.is-open {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.32) 0%, rgba(99, 102, 241, 0.3) 100%);
+            border-color: rgba(167, 139, 250, 0.65);
+            color: #f8fafc;
+            box-shadow: 0 12px 30px rgba(30, 64, 175, 0.32);
+            transform: translateY(-1px);
+        }
+
+        .project-info:focus-visible {
+            outline: none;
+        }
+
+        .project-info__caret {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+        .repo-caret {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            margin-right: 6px;
+            color: inherit;
+        }
+
+
+
+        .project-info.is-open .project-info__caret {
+            transform: rotate(-180deg);
+        }
+
+        .project-info__text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-brand {
+            margin-bottom: 18px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .sidebar-brand-icon {
+            width: 46px;
+            height: 46px;
+            flex: 0 0 46px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.8) 0%, rgba(45, 212, 191, 0.35) 100%);
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-brand-icon img {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            display: block;
+            object-fit: cover;
+        }
+
+        .sidebar-brand-heading {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: baseline;
+            gap: 0.45rem;
+        }
+
+        .sidebar-brand-name {
+            color: inherit;
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: inherit;
+        }
+
+        .sidebar-brand-name:hover {
+            color: var(--accent-strong);
+        }
+
+        .sidebar-version {
+            margin: 0;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-transform: none;
+        }
+
+        /* Aurora-inspired agent nav */
+        .aurora-nav {
+            margin: 6px 0 12px;
+            padding: 10px;
+            background: linear-gradient(145deg, rgba(16, 25, 44, 0.96), rgba(12, 19, 34, 0.92));
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            box-shadow: 0 16px 32px rgba(6, 10, 20, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            width: 100%;
+        }
+
+        .aurora-nav__inner {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px 10px;
+            background: radial-gradient(circle at 20% 14%, rgba(124, 58, 237, 0.16), rgba(12, 15, 28, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            width: 100%;
+        }
+
+        .sidebar-nav-item {
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 11px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.96rem;
+            letter-spacing: 0.01em;
+            color: rgba(226, 232, 240, 0.88) !important;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            background: linear-gradient(168deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.38);
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
+        }
+
+        .sidebar-nav-item__icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(226, 232, 240, 0.92);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.25);
+        }
+
+        .sidebar-nav-item__label {
+            flex: 1 1 auto;
+            white-space: nowrap;
+        }
+
+        .sidebar-nav-item:hover,
+        .sidebar-nav-item:focus-visible {
+            color: #e5e7eb !important;
+            border-color: rgba(96, 165, 250, 0.32);
+            background: linear-gradient(155deg, rgba(59, 130, 246, 0.14), rgba(124, 58, 237, 0.12));
+            transform: translateY(-1px);
+            box-shadow: 0 16px 34px rgba(37, 99, 235, 0.26);
+        }
+
+        .sidebar-nav-item.is-active {
+            color: #f8fafc !important;
+            border-color: rgba(124, 58, 237, 0.5);
+            background: linear-gradient(140deg, rgba(59, 130, 246, 0.46), rgba(124, 58, 237, 0.64));
+            box-shadow: 0 18px 36px rgba(67, 56, 202, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        .sidebar-version .repo-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.85rem 0.4rem;
+            margin: 0;
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(79, 70, 229, 0.14) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+            box-shadow: 0 8px 22px rgba(2, 6, 23, 0.28);
+            font: inherit;
+            color: rgba(226, 232, 240, 0.95);
+            letter-spacing: inherit;
+            text-transform: inherit;
+            cursor: pointer;
+            max-width: 100%;
+            flex: 1 1 auto;
+            transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.16s ease;
+        }
+
+        .sidebar-version .repo-trigger:hover,
+        .sidebar-version .repo-trigger:focus-visible,
+        .sidebar-version .repo-trigger[aria-expanded="true"] {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.32) 0%, rgba(99, 102, 241, 0.28) 100%);
+            border-color: rgba(167, 139, 250, 0.65);
+            color: #f8fafc;
+            box-shadow: 0 12px 30px rgba(30, 64, 175, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .sidebar-version .repo-trigger:focus-visible {
+            outline: none;
+        }
+
+        .sidebar-version .repo-trigger__text {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.4rem;
+            flex: 1 1 auto;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .sidebar-version .repo-trigger__text .repo-name {
+            display: inline-block;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-breadcrumb {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .sidebar-breadcrumb a {
+            color: inherit;
+        }
+
+        .environment-indicator {
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.78rem;
+            color: var(--accent);
+        }
+
+        .container {
+            width: 100%;
+            max-width: none;
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%);
+            border-radius: 0 24px 24px 0;
+            border: 1px solid var(--surface-border);
+            border-left: none;
+            padding: clamp(24px, 4vw, 48px);
+            padding-top: clamp(20px, 3vw, 32px);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        /* Neutralize sidebar styling on /agent to remove purple gradient */
+
+        /* Remove purple glow from runs sidebar and backlog/archive buttons */
+        /* Overrides to ensure the /agent page doesn't show purple highlights */
+        #runsSidebar .runs-sidebar__item,
+        #runsSidebar .runs-sidebar__item:not(.is-disabled):hover,
+        #runsSidebar .runs-sidebar__item:focus-visible,
+        #runsSidebar .runs-sidebar__item.is-active,
+        #runsSidebar .runs-sidebar__new-task,
+        #runsSidebar .runs-sidebar__primary-action,
+        #runsSidebar .runs-sidebar__archive-btn,
+        #runsSidebar .runs-sidebar__new-task:hover,
+        #runsSidebar .runs-sidebar__icon-button {
+            border-color: rgba(148,163,184,0.18) !important;
+            box-shadow: none !important;
+            background: rgba(15,23,42,0.55) !important;
+            outline: none !important;
+            transform: none !important;
+        }
+
+        #runsSidebar .runs-sidebar__item:not(.is-disabled):hover {
+            border-color: rgba(148,163,184,0.28) !important;
+        }
+
+        #runsSidebar .runs-sidebar__item.is-active {
+            background: rgba(148,163,184,0.06) !important;
+        }
+
+        .runs-sidebar__archive-btn {
+            box-shadow: none !important;
+            border-color: rgba(148,163,184,0.12) !important;
+            background: rgba(15,23,42,0.85) !important;
+            color: var(--text-color) !important;
+        }
+
+        .runs-sidebar__new-task {
+            background: linear-gradient(135deg, rgba(148,163,184,0.95) 0%, rgba(120,130,150,0.95) 100%) !important;
+            box-shadow: none !important;
+            color: #ffffff !important;
+        }
+
+        #runsSidebar .runs-sidebar__icon-button {
+            box-shadow: 0 8px 22px rgba(2, 6, 23, 0.28) !important;
+            border-color: rgba(148,163,184,0.35) !important;
+            color: rgba(226,232,240,0.95) !important;
+            background: linear-gradient(135deg, rgba(148,163,184,0.18) 0%, rgba(79,70,229,0.14) 100%) !important;
+        }
+
+        #runsSidebar .runs-sidebar__icon-button:hover,
+        #runsSidebar .runs-sidebar__icon-button:focus-visible {
+            background: linear-gradient(135deg, rgba(124,58,237,0.32) 0%, rgba(99,102,241,0.28) 100%) !important;
+            border-color: rgba(167,139,250,0.65) !important;
+            color: #f8fafc !important;
+            box-shadow: 0 12px 30px rgba(30,64,175,0.35) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        body {
+            background: #0b1120 !important;
+        }
+
+        #runsSidebar {
+            background: #0f172a !important;
+            background-image: none !important;
+            border: 1px solid var(--surface-border) !important;
+            border-left: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            border-radius: 0 !important;
+        }
+
+        #runsSidebar .runs-sidebar__header,
+        #runsSidebar .runs-sidebar__title-group,
+        #runsSidebar .runs-sidebar__primary-action,
+        #runsSidebar .runs-sidebar__body {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        #runsSidebar .runs-sidebar__new-task {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.98) 100%) !important;
+            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.28) !important;
+            color: #fff !important;
+        }
+
+        #runsSidebar .runs-sidebar__new-task:hover,
+        #runsSidebar .runs-sidebar__new-task:focus-visible {
+            filter: none !important;
+            transform: none !important;
+            box-shadow: none !important;
+            background: var(--surface-soft) !important;
+        }
+
+        .runs-sidebar {
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%);
+            border-radius: 24px 0 0 24px;
+            border: 1px solid var(--surface-border);
+            padding: clamp(20px, 3vw, 28px);
+            padding-top: clamp(8px, 1.6vw, 18px);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0; /* allow proper flex shrinking to avoid layout jumps */
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            width: var(--runs-sidebar-width, clamp(260px, 22vw, 360px));
+            max-width: 100%;
+        }
+        /* Ensure the list can shrink and scroll without forcing parent height */
+        .runs-sidebar__list { flex: 1 1 auto; min-height: 0; }
+
+        .runs-sidebar__resizer {
+            position: absolute;
+            top: 0;
+            right: -8px;
+            width: 16px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 1200;
+            display: block;
+            background: linear-gradient(90deg, rgba(0,0,0,0), rgba(255,255,255,0.02), rgba(0,0,0,0));
+            border-radius: 8px;
+        }
+
+        /* Visible handle for desktop */
+        .runs-sidebar__resizer::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 36px;
+            background: rgba(148,163,184,0.18);
+            border-radius: 2px;
+            box-shadow: 0 0 0 4px rgba(148,163,184,0.02);
+        }
+
+        .runs-sidebar__body {
+            position: relative;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+        }
+
+        .runs-sidebar__pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 12px 16px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.45) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            color: rgba(226, 232, 240, 0.82);
+            font-size: 0.85rem;
+        }
+        .runs-sidebar__pagination.is-hidden { display: none; }
+
+        .runs-sidebar__pagination-button {
+            flex: 0 0 auto;
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.2) 0%, rgba(79, 70, 229, 0.16) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+            color: rgba(226, 232, 240, 0.92);
+            padding: 0.35rem 0.9rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .runs-sidebar__pagination-button:hover,
+        .runs-sidebar__pagination-button:focus-visible {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(99, 102, 241, 0.28) 100%);
+            border-color: rgba(167, 139, 250, 0.6);
+            color: #f8fafc;
+            outline: none;
+            box-shadow: 0 10px 24px rgba(30, 64, 175, 0.32);
+        }
+        .runs-sidebar__pagination-button[disabled] {
+            opacity: 0.45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .runs-sidebar__pagination-indicator {
+            flex: 1 1 auto;
+            text-align: center;
+            color: rgba(203, 213, 225, 0.9);
+            font-weight: 500;
+        }
+
+        .runs-sidebar__footer {
+            margin-top: 4px;
+            padding: 12px 16px;
+            font-size: 0.82rem;
+            color: rgba(203, 213, 225, 0.7);
+            text-align: center;
+            border-top: 1px solid rgba(148, 163, 184, 0.12);
+        }
+        .runs-sidebar__footer a {
+            color: inherit;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .runs-sidebar__footer a:hover,
+        .runs-sidebar__footer a:focus-visible {
+            color: #f8fafc;
+            text-decoration: underline;
+        }
+
+        .runs-sidebar__primary-action {
+            padding: 4px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(15, 23, 42, 0.65) 100%);
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .runs-sidebar__new-task {
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.98) 100%);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.28);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+        }
+
+        .runs-sidebar__new-task:hover,
+        .runs-sidebar__new-task:focus-visible {
+            transform: translateY(-1px);
+            box-shadow: 0 22px 40px rgba(124, 58, 237, 0.32);
+            filter: brightness(1.05);
+            outline: none;
+        }
+
+        .runs-sidebar__new-task:active {
+            transform: translateY(0);
+            box-shadow: 0 16px 26px rgba(124, 58, 237, 0.24);
+        }
+
+        .runs-sidebar__new-task[disabled] {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            filter: saturate(0.7);
+        }
+
+        .runs-sidebar__new-task-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.35);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+        .runs-sidebar__new-task-label {
+            white-space: nowrap;
+        }
+
+        .runs-sidebar__icon-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.18) 0%, rgba(79, 70, 229, 0.14) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+            color: rgba(226, 232, 240, 0.92);
+            padding: 0.35rem 0.95rem 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            box-shadow: 0 8px 22px rgba(2, 6, 23, 0.28);
+            transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.18s ease;
+        }
+
+        .runs-sidebar__icon-button:hover,
+        .runs-sidebar__icon-button:focus-visible {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.32) 0%, rgba(99, 102, 241, 0.28) 100%);
+            border-color: rgba(167, 139, 250, 0.65);
+            color: #f8fafc;
+            box-shadow: 0 12px 30px rgba(30, 64, 175, 0.35);
+            outline: none;
+            transform: translateY(-1px);
+        }
+
+        .runs-sidebar__icon-button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .runs-sidebar__hint {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .runs-sidebar__list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            padding-right: 4px;
+            margin-top: -2px;
+        }
+
+        .runs-sidebar__list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .runs-sidebar__list::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.25);
+            border-radius: 999px;
+        }
+
+        .runs-sidebar__item {
+            position: relative;
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.55);
+            color: inherit;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease, transform 0.18s ease, box-shadow 0.2s ease;
+        }
+
+        .runs-sidebar__archive-btn {
+            position: absolute;
+            right: 12px;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            will-change: transform;
+            opacity: 0;
+            transition: opacity 0.12s ease;
+            background: rgba(15,23,42,0.85);
+            border: 1px solid rgba(148,163,184,0.18);
+            color: var(--text-color);
+            padding: 6px 8px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+        .runs-sidebar__archive-btn.is-active {
+            background: var(--accent) !important;
+            border-color: rgba(124,58,237,0.95) !important;
+            box-shadow: 0 12px 28px rgba(124,58,237,0.28) !important;
+            color: #fff !important;
+            transform: translateY(-1px) !important;
+        }
+        .runs-sidebar__item:hover .runs-sidebar__archive-btn { opacity: 1; }
+        /* Scope hover rules to non-disabled items to prevent hover lift on disabled runs */
+        .runs-sidebar__item:not(.is-disabled):hover {
+            transform: translateY(-1px);
+            border-color: rgba(124, 58, 237, 0.65);
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.22);
+        }
+
+        .runs-sidebar__item:focus-visible {
+            outline: 2px solid rgba(124, 58, 237, 0.8);
+            outline-offset: 2px;
+        }
+
+        .runs-sidebar__item.is-active {
+            border-color: rgba(124, 58, 237, 0.95);
+            background: rgba(124, 58, 237, 0.18);
+            box-shadow: 0 18px 34px rgba(124, 58, 237, 0.24);
+        }
+
+        .runs-sidebar__item.is-disabled, .runs-sidebar__item[disabled] {
+            opacity: 0.55;
+            /* keep hand cursor and allow clicks so JS can open disabled items in new tab */
+            cursor: pointer;
+            pointer-events: auto;
+            transform: none;
+        }
+
+        .runs-sidebar__item-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .runs-sidebar__item-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .runs-sidebar__item-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .runs-sidebar__item-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .runs-sidebar__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(148, 163, 184, 0.12);
+            color: #cbd5f5;
+        }
+
+        .runs-sidebar__badge::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: currentColor;
+            opacity: 0.8;
+        }
+
+        .runs-sidebar__badge--running {
+            background: rgba(255, 193, 7, 0.18);
+            border-color: rgba(255, 193, 7, 0.35);
+            color: #f6c200;
+        }
+
+        .runs-sidebar__badge--merged {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: rgba(124, 58, 237, 0.4);
+            color: #e9d5ff;
+        }
+
+
+        .runs-sidebar__badge--canceled {
+            background: rgba(148, 163, 184, 0.12);
+            border-color: rgba(148, 163, 184, 0.28);
+            color: #cbd5f5;
+        }
+
+.runs-sidebar__badge--success {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.35);
+            color: #bbf7d0;
+        }
+
+        .runs-sidebar__badge--error {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #fecaca;
+        }
+
+        .runs-sidebar__item-description {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .runs-sidebar__status {
+            position: absolute;
+            /* Make the loading indicator a small floating panel to avoid covering the list */
+            top: 12px;
+            right: 12px;
+            left: auto;
+            bottom: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.2;
+            backdrop-filter: blur(6px);
+            background: rgba(15, 23, 42, 0.85);
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.6);
+            opacity: 0;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            transform: translateY(-6px);
+            pointer-events: none;
+        }
+
+        .runs-sidebar__status:not(.is-hidden) {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .runs-sidebar__error {
+            color: #fecaca;
+        }
+
+        @media (max-width: 1100px) {
+            .page-shell {
+                grid-template-columns: minmax(0, 1fr);
+                gap: clamp(20px, 4vw, 32px);
+                padding-left: clamp(16px, 4vw, 32px);
+                min-height: auto;
+            }
+
+            .runs-sidebar {
+                order: -1;
+                height: auto;
+                width: auto;
+                border-radius: 24px;
+                padding: clamp(18px, 5vw, 24px);
+            }
+
+            .runs-sidebar__resizer {
+                display: none;
+            }
+
+            .container {
+                border-radius: 24px;
+                border-left: 1px solid var(--surface-border);
+                padding: clamp(24px, 4vw, 48px);
+            }
+        }
+
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            color: var(--text-muted);
+            gap: 14px;
+        }
+
+        .top-nav span {
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .top-nav-actions {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .top-nav-floating {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.78);
+            box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(18px);
+            z-index: 0;
+        }
+
+        .top-nav-floating::before {
+            content: "";
+            position: absolute;
+            inset: -20px -24px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, rgba(15, 23, 42, 0) 65%);
+            z-index: -1;
+            opacity: 0.65;
+            filter: blur(6px);
+            pointer-events: none;
+        }
+
+        .top-nav-links,
+        .top-nav-utility {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: nowrap;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: clamp(1.8rem, 2.4vw, 2.5rem);
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        p.description {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.65;
+            font-size: 1rem;
+        }
+
+        form {
+            display: grid;
+            gap: 18px;
+            margin-top: 28px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #f1f5f9;
+            letter-spacing: 0.02em;
+        }
+
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(148, 163, 184, 0.7);
+        }
+
+        input[type="text"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.25);
+            transform: translateY(-1px);
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            line-height: 1.55;
+        }
+
+        #prompt {
+            min-height: 140px;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .python-test {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .python-test-result {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            min-height: 1.2em;
+        }
+
+        .python-test-result.success {
+            color: #4ade80;
+        }
+
+        .python-test-result.error {
+            color: #fca5a5;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 999px;
+            padding: 13px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            color: white;
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.35);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.38);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-muted);
+            border: 1px solid var(--surface-border);
+            box-shadow: none;
+        }
+
+        /* Run button: arrow submit like Aurora */
+        .run-submit {
+            padding: 10px;
+            width: 48px;
+            height: 48px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            color: white;
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.35);
+            border: none;
+        }
+        .run-submit svg { width: 22px; height: 22px; }
+        .run-submit .run-icon-stop { display: none; }
+        .run-submit .run-icon-send { display: inline-block; }
+        #runButton.is-cancel .run-icon-stop { display: inline-block; }
+        #runButton.is-cancel .run-icon-send { display: none; }
+        .run-submit:hover { transform: translateY(-2px); }
+        /* position run button to the right of controls */
+        .actions { display: flex; align-items: center; gap: 12px; }
+        #runButton { margin-left: auto; }
+
+        button.secondary:hover {
+            background: rgba(15, 23, 42, 0.85);
+            color: var(--text-color);
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.85) 0%, rgba(139, 92, 246, 0.95) 100%);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.35);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease;
+        }
+
+        .nav-button.icon-only {
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            padding: 0;
+            justify-content: center;
+            gap: 0;
+            border: 1px solid rgba(167, 139, 250, 0.45);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.32) 0%, rgba(79, 70, 229, 0.5) 100%);
+            box-shadow: 0 18px 36px rgba(76, 29, 149, 0.35);
+        }
+
+        .nav-button.icon-only svg,
+        .nav-button.icon-only .icon {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-button.icon-only .icon {
+            font-size: 1.35rem;
+            line-height: 1;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.4);
+            opacity: 0.9;
+            color: white;
+        }
+
+        .nav-button:focus-visible {
+            outline: 2px solid rgba(124, 58, 237, 0.8);
+            outline-offset: 2px;
+        }
+
+        #sterlingSettingsBtn.nav-button {
+            padding: 0;
+        }
+
+        .status {
+            margin-top: 28px;
+            padding: 18px 22px;
+            border-radius: 14px;
+            background: rgba(124, 58, 237, 0.15);
+            border: 1px solid rgba(124, 58, 237, 0.28);
+            color: #ede9fe;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #followupSessions {
+            margin-top: 32px;
+        }
+
+        .followup-session + .followup-session {
+            margin-top: 28px;
+        }
+
+        .followup-status {
+            margin: 0 0 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .followup-status.followup-status--running {
+            color: var(--accent-strong);
+        }
+
+        .followup-status.followup-status--complete {
+            color: #4ade80;
+        }
+
+        .followup-status.followup-status--error {
+            color: #fca5a5;
+        }
+
+        .followup-status.followup-status--canceled {
+            color: #fcd34d;
+        }
+
+        .prompt-preview {
+            margin-top: 16px;
+            cursor: pointer;
+            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+            text-align: left;
+        }
+
+        .prompt-preview:hover,
+        .prompt-preview:focus-visible {
+            background: rgba(124, 58, 237, 0.22);
+            border-color: rgba(124, 58, 237, 0.45);
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .prompt-preview:active {
+            transform: translateY(0);
+        }
+
+        .prompt-preview[aria-hidden="true"] {
+            display: none !important;
+        }
+
+        .prompt-preview-text {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .prompt-preview-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            color: rgba(226, 232, 240, 0.75);
+        }
+
+        .status-text {
+            display: inline-block;
+        }
+
+        .status-text.status-text-running {
+            font-weight: 700;
+            color: #00f5ff;
+            background-image: linear-gradient(120deg, #00f5ff 0%, #00eaff 25%, #8ffeff 50%, #00eaff 75%, #00f5ff 100%);
+            background-size: 260% 100%;
+            background-repeat: no-repeat;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: statusRunningCyan 2.6s ease-in-out infinite;
+            text-shadow: 0 2px 10px rgba(0, 245, 255, 0.16);
+        }
+
+        @keyframes statusRunningCyan {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .status-idle {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px dashed var(--surface-border);
+            color: var(--text-muted);
+        }
+
+        .status.error {
+            background: rgba(249, 115, 22, 0.1);
+            border-color: rgba(249, 115, 22, 0.35);
+            color: #fed7aa;
+        }
+
+        .output-tabs {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .tab-button {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 999px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 8px 18px;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .tab-button:hover,
+        .tab-button:focus-visible {
+            background: rgba(15, 23, 42, 0.65);
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .tab-button.active {
+            background: rgba(124, 58, 237, 0.18);
+            border-color: rgba(124, 58, 237, 0.35);
+            color: #ede9fe;
+        }
+
+        .log-output {
+            background: rgba(2, 6, 23, 0.85);
+            border: 1px solid var(--surface-strong-border);
+            border-radius: 18px;
+            padding: 22px;
+            margin-top: 28px;
+            white-space: pre-wrap;
+            max-height: 520px;
+            overflow-y: auto;
+            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+        }
+
+        .is-hidden {
+            display: none !important;
+        }
+
+        .log-line {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .log-line.stderr {
+            color: #4dd0e1;
+        }
+
+        .log-line.status {
+            color: #c4b5fd;
+        }
+
+        .log-line.meta {
+            color: #67e8f9;
+        }
+
+        .codex-hide-meta .log-output .log-line.meta {
+            display: none;
+        }
+
+        .meta {
+            margin-top: 32px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            display: grid;
+            gap: 8px;
+            border-top: 1px solid rgba(148, 163, 184, 0.15);
+            padding-top: 20px;
+        }
+
+        .meta code {
+            background: rgba(15, 23, 42, 0.7);
+            padding: 4px 8px;
+            border-radius: 8px;
+            color: #f8fafc;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .default-model {
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .default-model h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            color: #0f172a;
+        }
+
+        .default-model p {
+            margin: 0 0 14px 0;
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .default-model-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .default-model-controls input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.03);
+            font-size: 0.95rem;
+            color: #0f172a;
+        }
+
+        .default-model-controls input[type="text"]:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            background: #fff;
+        }
+
+        .default-model-feedback {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #0f172a;
+        }
+
+        .default-model-feedback.error {
+            color: #b91c1c;
+        }
+
+        .default-model-feedback.success {
+            color: #047857;
+        }
+
+        .default-model-feedback.hidden {
+            display: none;
+        }
+
+        .agent-instructions-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .agent-instructions-feedback {
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .agent-instructions-feedback.success {
+            color: #047857;
+        }
+
+        .agent-instructions-feedback.error {
+            color: #b91c1c;
+        }
+
+        .agent-instructions-feedback.hidden {
+            display: none;
+        }
+
+        .file-tree-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .file-tree-header label {
+            margin-bottom: 0;
+        }
+
+        .file-tree-toggle {
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.55);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: none;
+            flex-shrink: 0;
+            transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .file-tree-toggle:hover,
+        .file-tree-toggle:focus-visible {
+            background: rgba(15, 23, 42, 0.75);
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .file-tree-toggle:focus-visible {
+            outline: 2px solid rgba(124, 58, 237, 0.6);
+            outline-offset: 2px;
+        }
+
+        .file-tree-toggle.is-active {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.9) 0%, rgba(139, 92, 246, 0.95) 100%);
+            color: #f8fafc;
+            border-color: transparent;
+            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.35);
+        }
+
+        .file-tree-toggle.is-active:hover,
+        .file-tree-toggle.is-active:focus-visible {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.95) 0%, rgba(124, 58, 237, 0.95) 100%);
+            color: #f8fafc;
+        }
+
+        .file-tree-container textarea {
+            min-height: 220px;
+            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+            line-height: 1.5;
+            white-space: pre;
+            overflow: auto;
+            resize: vertical;
+        }
+
+        .file-tree-container textarea[readonly] {
+            background: rgba(2, 6, 23, 0.75);
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+
+        .file-tree-status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .file-tree-status.error {
+            color: #fda4af;
+        }
+
+        .file-tree-status.success {
+            color: #34d399;
+        }
+
+        .file-tree-status.muted {
+            color: rgba(148, 163, 184, 0.7);
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 16px;
+            }
+
+            .container {
+                padding: 24px 20px;
+            }
+
+            .top-nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .top-nav-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .nav-button {
+                width: auto;
+            }
+
+            .file-tree-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .file-tree-toggle {
+                width: 100%;
+            }
+
+            .default-model-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            button,
+            button.secondary {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    
+        
+        /* Git Log modal removed */
+        /* no-op */
+        #gitLogModal,
+        #gitTreeModal {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+        }
+        #gitLogModal .modal-content,
+        #gitTreeModal .modal-content {
+            /* removed */
+
+            max-height: 100vh !important;
+            border-radius: 0 !important;
+        }
+        .modal-overlay {
+
+            position: fixed;
+            inset: 0;
+            background: rgba(2,6,23,0.6);
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+            z-index: 10000;
+            padding: 0; /* remove extra margin so modal can fill viewport */
+            box-sizing: border-box;
+        }
+        .modal-overlay.is-hidden { display: none; }
+        .modal-content {
+            width: 100%;
+            max-width: 100%;
+            max-height: 100vh;
+            height: 100vh;
+            border-radius: 8px; /* small radius to keep subtle rounding */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%);
+            box-shadow: 0 24px 80px rgba(2,6,23,0.7);
+            border: 1px solid var(--surface-border);
+            margin: 0; /* ensure no extra margin */
+        }
+        .modal-iframe {
+            width: 100%;
+            height: 100%;
+            flex: 1 1 auto;
+            border: 0;
+            display: block;
+            background: white;
+        }
+
+        .prompt-modal-content {
+            max-width: min(900px, 92vw);
+            height: auto;
+            max-height: min(720px, 92vh);
+            margin: auto;
+        }
+
+        .prompt-modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 32px;
+            flex: 1;
+        }
+
+        .prompt-modal-body textarea {
+            flex: 1;
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--surface-border);
+            background: rgba(2, 6, 23, 0.85);
+            color: var(--text-color);
+            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            padding: 18px 20px;
+            resize: none;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+        }
+
+        .prompt-modal-body textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.28);
+        }
+        .modal-close {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            z-index: 10001;
+            background: rgba(15,23,42,0.6);
+            border-radius: 999px;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+/* Custom Run/Cancel and Merge styles */
+        /* Run button transforms into Cancel Run while controls are disabled (visual only) */
+        #runButton.is-cancel {
+            background: rgba(245, 101, 101, 0.12); /* faint red */
+            color: #ffdede;
+            border: 1px solid rgba(245, 101, 101, 0.18);
+            box-shadow: none;
+        }
+        #runButton.is-cancel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(245, 101, 101, 0.06);
+        }
+
+        /* Merge button default: subtle grey-white */
+        .merge-button-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+        .merge-button-wrapper .merge-disabled-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translate(-50%, 6px);
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.95);
+            color: rgba(241, 245, 249, 0.95);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            max-width: 260px;
+            white-space: normal;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            z-index: 5;
+        }
+        .merge-button-wrapper.is-merge-disabled:hover .merge-disabled-tooltip,
+        .merge-button-wrapper.is-merge-disabled.is-tooltip-visible .merge-disabled-tooltip {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+        #mergeButton {
+            background: rgba(255,255,255,0.03);
+            color: rgba(230,230,230,0.9);
+            border: 1px solid rgba(255,255,255,0.04);
+            box-shadow: none;
+            transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #mergeButton svg { opacity: 0.9; }
+
+        /* Merge button when ready: brighten to accent */
+        #mergeButton.is-merge-ready {
+            background: linear-gradient(135deg, rgba(124,58,237,0.92) 0%, rgba(139,92,246,0.98) 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.28);
+        }
+
+
+        /* Archived toggle active style */
+        #runsSidebar .runs-sidebar__icon-button[aria-pressed="true"] {
+            background: linear-gradient(135deg, rgba(124,58,237,0.95) 0%, rgba(139,92,246,0.98) 100%) !important;
+            color: #fff !important;
+            border-color: rgba(124,58,237,0.95) !important;
+            box-shadow: 0 12px 28px rgba(124,58,237,0.28) !important;
+        }
+
+
+        .runs-sidebar__back-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            padding-left: 6px;
+        }
+        .runs-sidebar__back-link.is-hidden { display: none; }
+
+
+        /* Repositories dropdown */
+        .repos-dropdown { position: absolute; display: none; z-index: 1200; }
+        .repos-dropdown.is-visible { display: block; }
+        .repos-dropdown__inner { width: 420px; height: 360px; background: linear-gradient(180deg, rgba(6,8,15,0.98), rgba(12,16,28,0.95)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(2,6,23,0.6); border-radius: 12px; overflow: hidden; }
+        .repos-dropdown__inner iframe { width: 100%; height: 100%; border: none; }
+
+    </style>
+</head>
+<body>
+<% var iframeMode = typeof isIframeMode === "boolean" ? isIframeMode : true; %>
+    <div class="agent-scale-container">
+        <div class="page-shell">
+        <aside id="runsSidebar" class="runs-sidebar" aria-labelledby="runsSidebarTitle">
+            <div id="runsSidebarResizer" class="runs-sidebar__resizer" aria-hidden="true"></div>
+            <div class="runs-sidebar__header">
+                <div class="sidebar-brand">
+                <div class="sidebar-header">
+                    <div class="sidebar-brand-icon">
+                        <a href="https://app.alfe.sh" target="_blank" rel="noopener noreferrer"><img src="/alfe_favicon_chat_mountain_rect_purple_WHITEBG_64x64.png" alt="Alfe AI logo">
+                    </a></div>
+                    <div class="sidebar-brand-text">
+                        <h1 class="sidebar-brand-heading">
+                            <% if (typeof environment !== 'undefined' && environment && environment !== 'unknown') { %>
+                                <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
+                            <% } %>
+                            <a href="https://app.alfe.sh" class="sidebar-brand-name" target="_blank" rel="noopener noreferrer">Alfe AI</a>
+                        </h1>
+                    </div>
+                </div>
+            </div>
+            <div class="runs-sidebar__title-group">
+
+                <nav class="sidebar-nav aurora-nav" aria-label="Agent primary tabs">
+                    <div class="aurora-nav__inner">
+                        <a href="/agent?tab=code" class="sidebar-nav-item" data-tab="code" aria-label="Code tab">
+                            <span class="sidebar-nav-item__icon" aria-hidden="true">&lt;/&gt;</span>
+                            <span class="sidebar-nav-item__label">Code</span>
+                        </a>
+                        <a href="https://app.alfe.sh" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="chat" aria-label="Chat tab">
+                            <span class="sidebar-nav-item__icon" aria-hidden="true">💬</span>
+                            <span class="sidebar-nav-item__label">Chat</span>
+                        </a>
+                        <a href="https://app.alfe.sh/chat/design" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="design" aria-label="Image Design tab">
+                            <span class="sidebar-nav-item__icon" aria-hidden="true">🎨</span>
+                            <span class="sidebar-nav-item__label">Image Design</span>
+                        </a>
+                    </div>
+                </nav>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        try {
+                            var params = new URLSearchParams(window.location.search || "");
+                            var activeTab = (params.get('tab') || 'code').toLowerCase();
+                            var navLinks = document.querySelectorAll('.sidebar-nav-item');
+                            navLinks.forEach(function(link) {
+                                var tabValue = (link.dataset && link.dataset.tab ? link.dataset.tab : '').toLowerCase();
+                                var shouldActivate = (!activeTab && tabValue === 'code') || activeTab === tabValue;
+                                if (shouldActivate) {
+                                    link.classList.add('is-active');
+                                    link.setAttribute('aria-current', 'page');
+                                }
+                            });
+                        } catch (e) {
+                            /* no-op */
+                        }
+                    });
+                </script>
+                    <div id="runsSidebarTitle" class="runs-sidebar__title"><div class="sidebar-version" style="margin:0; font-size:1.007rem; font-weight:600;">
+                            <button
+                                id="repoDropdownTrigger"
+                                class="repo-trigger"
+                                type="button"
+                                aria-haspopup="true"
+                                aria-expanded="false"
+                                aria-controls="reposDropdown"
+                            >
+                                <span class="repo-caret" aria-hidden="true">▾</span>
+                                <span class="repo-trigger__text">
+                                    <span class="repo-label">Repository:</span>
+                                    <span class="repo-name"><%= typeof repoName !== "undefined" && repoName ? repoName : "Select a repository" %></span>
+                                </span>
+                            </button>
+                        </div>
+                        </div>
+                    <button
+                        type="button"
+                        id="projectInfo"
+                        class="project-info"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        aria-controls="branchesDropdown"
+                    >
+                        <span id="projectInfoCaret" class="project-info__caret" aria-hidden="true">▾</span>
+                        <span id="projectInfoText" class="project-info__text">Branch</span>
+                    </button>
+                </div>
+                <div id="reposDropdown" class="repos-dropdown is-hidden" aria-hidden="true">
+                    <div class="repos-dropdown__inner">
+                        <iframe id="reposDropdownIframe" src="/repositories" frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" ></iframe>
+                    </div>
+                </div>
+                <div id="branchesDropdown" class="repos-dropdown is-hidden" aria-hidden="true">
+                    <div class="repos-dropdown__inner">
+                        <iframe id="branchesDropdownIframe" src="/agent/git-tree" frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+                    </div>
+                </div>
+                <div class="runs-sidebar__actions">
+<button type="button" id="backlogButton" class="runs-sidebar__icon-button" aria-label="Backlog" title="Backlog" onclick="window.open('https://code-s.alfe.sh/ProjectView/', '_blank')">Backlog</button>
+<button type="button" id="runsSidebarOpenRunsButton" class="runs-sidebar__icon-button" aria-label="Detail run" title="Detail run">
+                        Detail
+                    </button>
+<button type="button" id="runsSidebarArchiveToggle" class="runs-sidebar__icon-button" aria-pressed="false" aria-label="Archived" title="Archived">Archived</button>
+
+                </div>
+            </div>
+
+
+            <div class="runs-sidebar__primary-action">
+                <button type="button" id="runsSidebarNewTaskButton" class="runs-sidebar__new-task">
+                    <span class="runs-sidebar__new-task-icon" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    <span class="runs-sidebar__new-task-label">New Task</span>
+                </button>
+                <button type="button" id="backToCurrentTasksLink" class="runs-sidebar__back-link is-hidden" aria-hidden="true">&lt;-- Back to Current Tasks</button>
+
+            </div>
+            <div class="runs-sidebar__body">
+                <div id="runsSidebarLoading" class="runs-sidebar__status runs-sidebar__loading is-hidden" role="status" aria-live="polite"></div>
+                <div id="runsSidebarError" class="runs-sidebar__status runs-sidebar__error is-hidden" role="alert"></div>
+                <div id="runsSidebarEmpty" class="runs-sidebar__status runs-sidebar__empty is-hidden">No runs recorded yet.</div>
+                <div id="runsSidebarList" class="runs-sidebar__list" role="list" aria-labelledby="runsSidebarTitle"></div>
+            </div>
+            <div id="runsSidebarPagination" class="runs-sidebar__pagination is-hidden" aria-live="polite">
+                <button type="button" id="runsSidebarPrevPage" class="runs-sidebar__pagination-button" aria-label="Previous runs page">Previous</button>
+                <div id="runsSidebarPageIndicator" class="runs-sidebar__pagination-indicator" role="status">Page 1 of 1</div>
+                <button type="button" id="runsSidebarNextPage" class="runs-sidebar__pagination-button" aria-label="Next runs page">Next</button>
+            </div>
+            <footer class="runs-sidebar__footer">
+                <a href="/about.html" target="_blank" rel="noopener noreferrer">About</a>
+                <span aria-hidden="true"> | </span>
+                <a href="https://github.com/alfe-ai" target="_blank" rel="noopener noreferrer">Source</a>
+            </footer>
+        </aside>
+        <div class="container">
+
+        <div class="top-nav">
+            <div class="top-nav-actions">
+                <div class="top-nav-floating">
+                    <div class="top-nav-links">
+                        <% if (!iframeMode) { %>
+                        <button
+                            id="refreshRunsButton"
+                            type="button"
+                            class="nav-button secondary icon-only is-hidden"
+                            title="Refresh runs (repo only)"
+                            aria-label="Refresh runs (repo only)"
+                            onclick="(function(){const input=document.getElementById('projectDir');const dir=(input && input.value && input.value.trim())?input.value.trim():(new URLSearchParams(window.location.search).get('repo_directory')||'');const url='/environment'+(dir?('?repo_directory='+encodeURIComponent(dir)):'');window.location.href=url;})();"
+                        >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 10-3.22 6.53" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 3v6h-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span class="sr-only">Refresh runs</span>
+                        </button>
+                        <% } %>
+
+                        <button id="openGitTreeButton" class="nav-button" type="button" title="Open Git Log" aria-label="Open Git Log" onclick="(function(){ try{ const dirInput=document.getElementById('projectDir'); const dir=(dirInput && dirInput.value && dirInput.value.trim())?dirInput.value.trim():''; const url='/agent/git-tree'+(dir?('?projectDir='+encodeURIComponent(dir)):''); const modal=document.getElementById('gitTreeModal'); const iframe=document.getElementById('gitTreeIframe'); if(iframe) iframe.src=url; if(modal) { modal.classList.remove('is-hidden'); document.body.style.overflow='hidden'; } }catch(e){ window.open('/agent/git-tree', '_blank'); } })()">
+                            Git Log
+                        </button>
+                    </div>
+                    <div class="top-nav-utility">
+                        <button id="agentHelpBtn" class="nav-button icon-only" type="button" title="Help" aria-label="Open agent help" onclick="(function(){ try{ window.open('/agent/help', '_blank', 'noopener,noreferrer'); }catch(e){} })()">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <path d="M8.625 9.75a3.375 3.375 0 116.75 0c0 1.5-1.125 2.25-2.25 3s-1.125 1.5-1.125 2.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M12 17.25h.007v.008H12v-.008z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <span class="sr-only">Open Sterling Agent help</span>
+                        </button>
+                        <button
+                            id="sterlingSettingsBtn"
+                            class="nav-button icon-only"
+                            type="button"
+                            title="Settings"
+                            aria-label="Open Sterling settings"
+                        >
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <path
+                                    d="M10.343 3.94c.09-.54.56-.94 1.11-.94h1.093c.55 0 1.02.4 1.11.94l.149.894c.07.47.48.816.955.816.2 0 .398-.06.568-.17l.737-.494a1.125 1.125 0 011.45.12l.773.774c.39.39.44 1.007.12 1.45l-.494.737a1.125 1.125 0 00-.17.568c0 .475.346.885.816.955l.893.149c.54.09.94.56.94 1.11v1.094c0 .55-.4 1.02-.94 1.11l-.894.149c-.47.07-.816.48-.816.955 0 .2.06.398.17.568l.494.737c.32.443.27 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.494c-.17-.114-.367-.17-.567-.17a1.125 1.125 0 00-.955.816l-.149.894c-.09.54-.56.94-1.11.94h-1.094c-.55 0-1.02-.4-1.11-.94l-.149-.894a1.125 1.125 0 00-.955-.816c-.2 0-.398.056-.568.17l-.737.494a1.125 1.125 0 01-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.494-.737c.114-.17.17-.367.17-.567 0-.475-.346-.885-.816-.955l-.894-.149c-.54-.09-.94-.56-.94-1.11v-1.094c0-.55.4-1.02.94-1.11l.894-.149c.47-.07.816-.48.816-.955 0-.2-.056-.398-.17-.568l-.494-.737a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.494c.17.114.367.17.567.17.475 0 .885-.346.955-.816l.149-.894z"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                                <path
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                            <span class="sr-only">Open Sterling settings</span>
+                        </button>
+                    </div>
+                </div>
+                <% if (editorEnabled) { %>
+                <button id="openEditorTopButton" class="nav-button" type="button" title="Open Editor" aria-label="Open Editor" onclick="(function(){ try{ window.__pendingEditorWindow = window.open('about:blank', '_blank', 'noopener,noreferrer'); }catch(e){} })()">Editor</button>
+                <% } %>
+                <% if (!iframeMode) { %>
+                <button type="button" id="toggleFieldsButton" class="nav-button is-hidden" aria-pressed="false">
+                    Toggle Fields
+                </button>
+                <% } %>
+            </div>
+        </div>
+        <h1 id="pageTitle" class="is-hidden">Run Agent from Sterling</h1>
+        <p id="pageDescription" class="description is-hidden">
+            Provide a project directory and prompt, then watch <code>run_codex.sh</code> stream
+            output directly in the browser. This uses server-side streaming to relay stdout and stderr in real time.
+        </p>
+        <div class="default-model is-hidden" id="defaultModelCard">
+            <h2>Default Agent model</h2>
+            <p>
+                Update the model used when no explicit selection is provided. Enter the full provider and model identifier
+                (for example, <code>openrouter/openai/gpt-5-mini</code>).
+            </p>
+            <div class="default-model-controls">
+                <input
+                    type="text"
+                    id="defaultModelInput"
+                    name="defaultModel"
+                    placeholder="provider/model"
+                    value="<%= defaultCodexModel %>"
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+                <button type="button" id="defaultModelSaveButton">Save default</button>
+            </div>
+            <div id="defaultModelFeedback" class="default-model-feedback hidden" role="status" aria-live="polite"></div>
+        </div>
+        <form id="codexForm">
+            <div id="modelField" class="is-hidden">
+                <label for="model">Model</label>
+                <select id="model" name="model">
+                    <% codexModelGroups.forEach((group) => { %>
+                        <optgroup label="<%= group.label %>">
+                            <% group.models.forEach((model) => { %>
+                                <option value="<%= model %>" <%= model === defaultCodexModel ? "selected" : "" %>><%= model %></option>
+                            <% }) %>
+                        </optgroup>
+                    <% }) %>
+                </select>
+            </div>
+            <div id="projectDirField" class="is-hidden">
+                <label for="projectDir">Project directory</label>
+                <input type="text" id="projectDir" name="projectDir" placeholder="/path/to/project" autocomplete="off">
+            </div>
+            <div id="openRouterHeadersField" class="is-hidden">
+                <label for="openRouterReferer">OpenRouter HTTP Referer</label>
+                <input
+                    type="text"
+                    id="openRouterReferer"
+                    name="openRouterReferer"
+                    placeholder="https://your-app.example"
+                    autocomplete="off"
+                    spellcheck="false"
+                    value="<%= defaultOpenRouterReferer %>"
+                >
+                <label for="openRouterTitle" style="margin-top: 16px; display: block;">OpenRouter X-Title</label>
+                <input
+                    type="text"
+                    id="openRouterTitle"
+                    name="openRouterTitle"
+                    placeholder="Agent via OpenRouter"
+                    autocomplete="off"
+                    spellcheck="false"
+                    value="<%= defaultOpenRouterTitle %>"
+                >
+            </div>
+            <div id="agentInstructionsField" class="is-hidden">
+                <label for="agentInstructions">Agent instructions</label>
+                <textarea id="agentInstructions" name="agentInstructions" autocomplete="off"><%= defaultAgentInstructions %></textarea>
+                <div class="agent-instructions-actions">
+                    <button type="button" id="saveAgentInstructionsButton">Save agent instructions</button>
+                </div>
+                <div id="agentInstructionsFeedback" class="agent-instructions-feedback hidden" role="status" aria-live="polite"></div>
+            </div>
+            <div id="fileTreeField" class="file-tree-container is-hidden">
+                <div class="file-tree-header">
+                    <label for="fileTree">Project file tree</label>
+                    <button
+                        type="button"
+                        id="fileTreeToggleButton"
+                        class="file-tree-toggle"
+                        aria-pressed="false"
+                        aria-label="Enable sending file tree"
+                    >
+                        Toggle sending file tree
+                    </button>
+                </div>
+                <textarea
+                    id="fileTree"
+                    name="fileTree"
+                    readonly
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-describedby="fileTreeStatus"
+                ></textarea>
+                <p id="fileTreeStatus" class="file-tree-status" role="status" aria-live="polite"></p>
+            </div>
+            <div id="gitFpushField" class="git-fpush-container is-hidden">
+                <div class="git-fpush-header">
+                    <span class="git-fpush-label">Automatic git push</span>
+                    <button
+                        type="button"
+                        id="gitFpushToggleButton"
+                        class="git-fpush-toggle"
+                        aria-pressed="true"
+                        aria-label="Disable git_fpush.sh"
+                    >
+                        Disable git_fpush.sh
+                    </button>
+                </div>
+                <p class="git-fpush-description">
+                    When enabled, run <code>git_fpush.sh</code> automatically after a successful Agent run.
+                </p>
+            </div>
+            <div>
+                <label for="prompt">Prompt</label>
+                <textarea
+                    id="prompt"
+                    name="prompt"
+                    placeholder="Start a new task or ask a question"
+                    required
+                    autocomplete="off"
+                    spellcheck="false"
+                    rows="6"
+                ></textarea>
+            </div>
+
+            <div class="actions">
+                <button
+                    type="button"
+                    id="updateBranchButton"
+                    class="secondary"
+                    title="Update this branch with changes from its parent"
+                >
+                    Update branch
+                </button>
+                <div class="merge-button-wrapper" id="mergeButtonWrapper">
+                    <button
+                        type="button"
+                        id="mergeButton"
+                        class="secondary"
+                        disabled
+                        aria-disabled="true"
+                        title="Merge is available after&#10;agent finishes running."
+                    >
+                        <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:8px;opacity:0.95;">
+                            <path d="M18 3a2 2 0 11-4 0 2 2 0 014 0zM6 21a2 2 0 11-4 0 2 2 0 014 0zM18 21a2 2 0 11-4 0 2 2 0 014 0zM8.5 12.5l6-3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Merge</span>
+                    </button>
+                    <div class="merge-disabled-tooltip" id="mergeDisabledTooltip" role="tooltip" aria-hidden="true">
+                        Merge is available after<br />agent finishes running.
+                    </div>
+                </div>
+
+
+                <button type="button" id="deleteLocalButton" class="secondary" title="Delete local checkout" style="margin-left:8px; display:none;">
+                    <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:6px;opacity:0.95;">
+                        <path d="M3 6h18M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Delete local</span>
+                </button>
+
+                <button type="submit" id="runButton" class="run-submit" aria-label="Run Agent">
+                    <svg class="run-icon-send" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
+                    </svg>
+                    <svg class="run-icon-stop" aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="6" y="6" width="12" height="12" rx="2" ry="2" fill="currentColor"></rect>
+                    </svg>
+                    <span id="runButtonLabel" class="sr-only">Run Agent</span>
+                </button>
+            </div>
+            <div id="pythonTestField" class="python-test is-hidden">
+                <div class="python-test-header" style="display:flex;align-items:center;gap:12px;">
+                    <span class="python-test-label">Python command test</span>
+                    <button type="button" id="pythonTestToggleButton" class="file-tree-toggle" aria-pressed="false" aria-label="Enable python command test">Enable python command test</button>
+                </div>
+                <button type="button" id="testPythonButton" class="secondary" aria-describedby="pythonTestResult" disabled aria-disabled="true">
+                    Test python command
+                </button>
+                <p id="pythonTestResult" class="python-test-result" role="status" aria-live="polite"></p>
+            </div>
+        </form>
+
+        <div id="status" class="status status-idle"><span id="statusText" class="status-text">Waiting to start…</span></div>
+        <div
+            id="userPromptPreview"
+            class="status status-idle prompt-preview"
+            role="button"
+            tabindex="0"
+            aria-hidden="true"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+        >
+            <span id="userPromptPreviewText" class="status-text prompt-preview-text"></span>
+            <span class="prompt-preview-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 5h10v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M5 19l14-14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </span>
+        </div>
+        <div id="outputTabs" class="output-tabs is-hidden" role="tablist" aria-label="Agent output views">
+            <button
+                type="button"
+                id="fullOutputTabButton"
+                class="tab-button active"
+                role="tab"
+                aria-selected="true"
+                aria-controls="output"
+                tabindex="0"
+            >
+                Full output
+            </button>
+            <button
+                type="button"
+                id="stdoutTabButton"
+                class="tab-button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="stdoutOutput"
+                tabindex="-1"
+            >
+                Final output
+            </button>
+        </div>
+        <div id="output" class="log-output" role="log" aria-live="polite"></div>
+        <div id="stdoutOutput" class="log-output is-hidden" role="log" aria-live="polite"></div>
+        <div id="mergeOutputContainer" class="is-hidden">
+            <div class="merge-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button id="mergeToggleButton" class="tab-button" type="button" aria-expanded="false">Show merge output</button>
+                    <span id="mergeSummary" class="status-text">&nbsp;</span>
+                </div>
+                <div style="margin-left:12px;">
+                    <!-- View Diff visible before merge -->
+                    <button id="openMergeDiffButton" class="nav-button" type="button" title="View Diff" aria-label="View Diff" disabled>
+                        View Diff
+                    </button>
+                </div>
+            </div>
+            <div id="mergeOutput" class="log-output is-hidden" role="log" aria-live="polite"></div>
+        </div>
+
+        <div id="followupSessions" class="is-hidden" aria-live="polite"></div>
+
+        <div class="meta is-hidden" id="metaSection">
+            <p>Default project directory: <code><%= defaultProjectDir %></code></p>
+            <p>Agent runner script: <code><%= codexScriptPath %></code></p>
+        </div>
+        </div>
+    </div>
+    </div>
+
+
+    <div id="promptModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="User prompt">
+      <div class="modal-content prompt-modal-content">
+        <button class="modal-close" type="button" id="promptModalCloseButton">×</button>
+        <div class="prompt-modal-body">
+          <textarea
+            id="promptModalTextarea"
+            readonly
+            spellcheck="false"
+            autocomplete="off"
+            aria-label="User prompt"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="gitTreeModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Git Log">
+      <div class="modal-content">
+        <button class="modal-close" type="button" onclick="(function(){ const modal=document.getElementById('gitTreeModal'); const iframe=document.getElementById('gitTreeIframe'); if(iframe) iframe.src=''; if(modal) modal.classList.add('is-hidden'); document.body.style.overflow=''; })()">×</button>
+        <iframe id="gitTreeIframe" class="modal-iframe" src="/agent/git-tree" title="Git Log"></iframe>
+      </div>
+    </div>
+    <div id="gitLogModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Git Diff">
+      <div class="modal-content">
+        <button class="modal-close" type="button" onclick="(function(){ const modal=document.getElementById('gitLogModal'); const iframe=document.getElementById('gitLogIframe'); if(iframe) iframe.src=''; if(modal) modal.classList.add('is-hidden'); document.body.style.overflow=''; })()">×</button>
+        <iframe id="gitLogIframe" class="modal-iframe" src="" title="Git Diff"></iframe>
+      </div>
+    </div>
+
+    <div id="sterlingSettingsModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Settings">
+      <div class="modal-content" style="position:relative;min-height:140px;max-width:980px;margin:auto; width:90%;">
+        <button class="modal-close" type="button" id="sterlingSettingsCloseButton">×</button>
+        <iframe
+          id="sterlingSettingsIframe"
+          class="modal-iframe"
+          src=""
+          data-default-src="https://code-s.alfe.sh/agent/model-only"
+          title="Settings"
+          style="width:100%;height:80vh;border:0;border-radius:6px;"
+        ></iframe>
+      </div>
+    </div>
+
+    <script>
+        window.CODEX_RUNNER_CONFIG = Object.assign(
+            {},
+            window.CODEX_RUNNER_CONFIG || {},
+            {
+                defaultProjectDir: <%- JSON.stringify(defaultProjectDir || "") %>,
+                defaultModel: <%- JSON.stringify(defaultCodexModel || "") %>,
+                defaultAgentInstructions: <%- JSON.stringify(defaultAgentInstructions || "") %>,
+                defaultOpenRouterReferer: <%- JSON.stringify(defaultOpenRouterReferer || "") %>,
+                defaultOpenRouterTitle: <%- JSON.stringify(defaultOpenRouterTitle || "") %>,
+                isIframeMode: <%- JSON.stringify(!!iframeMode) %>,
+                editorLaunchConfig: <%- JSON.stringify(editorLaunchConfig || null) %>,
+                enableFollowups: <%- JSON.stringify(enableFollowups || false) %>,
+            }
+        );
+    </script>
+                    <script src="/JS/codex_runner.js" defer></script>
+
+<script>
+(function(){
+  const sidebar = document.getElementById('runsSidebar');
+  // Prefer the repo header button for the repositories dropdown; fall back to the Runs title if unavailable.
+  const repoDropdownTriggerButton = document.getElementById('repoDropdownTrigger');
+  const repoTriggerEl = repoDropdownTriggerButton || document.getElementById('runsSidebarTitle');
+  const reposDropdown = document.getElementById('reposDropdown');
+  const reposIframe = document.getElementById('reposDropdownIframe');
+  const projectInfo = document.getElementById('projectInfo');
+  const branchesDropdown = document.getElementById('branchesDropdown');
+  const branchesIframe = document.getElementById('branchesDropdownIframe');
+
+  if(!sidebar) { return; }
+
+  const hideDropdown = (dropdownEl, triggerEl) => {
+    if(!dropdownEl) return;
+    dropdownEl.classList.remove('is-visible');
+    dropdownEl.classList.add('is-hidden');
+    dropdownEl.setAttribute('aria-hidden','true');
+    if(triggerEl) {
+      triggerEl.setAttribute('aria-expanded','false');
+    }
+  };
+
+  const positionDropdown = (triggerEl, dropdownEl) => {
+    if(!triggerEl || !dropdownEl) return;
+    const triggerRect = triggerEl.getBoundingClientRect();
+    const sidebarRect = sidebar.getBoundingClientRect();
+    dropdownEl.style.left = `${triggerRect.left - sidebarRect.left}px`;
+    dropdownEl.style.top = `${triggerRect.bottom - sidebarRect.top + 6}px`;
+  };
+
+  const showDropdown = (triggerEl, dropdownEl) => {
+    if(!triggerEl || !dropdownEl) return;
+    positionDropdown(triggerEl, dropdownEl);
+    dropdownEl.classList.add('is-visible');
+    dropdownEl.classList.remove('is-hidden');
+    dropdownEl.setAttribute('aria-hidden','false');
+    triggerEl.setAttribute('aria-expanded','true');
+  };
+
+  const hideAllDropdowns = () => {
+    hideDropdown(reposDropdown, repoTriggerEl);
+    hideDropdown(branchesDropdown, projectInfo);
+    if(projectInfo) {
+      projectInfo.classList.remove('is-open');
+    }
+  };
+
+  if(repoTriggerEl && reposDropdown) {
+    const toggleReposDropdown = (ev) => {
+      if(ev) {
+        ev.stopPropagation();
+      }
+      if(reposDropdown.classList.contains('is-visible')) {
+        hideDropdown(reposDropdown, repoTriggerEl);
+      } else {
+        hideDropdown(branchesDropdown, projectInfo);
+        if(projectInfo) {
+          projectInfo.classList.remove('is-open');
+        }
+        showDropdown(repoTriggerEl, reposDropdown);
+      }
+    };
+
+    const isButtonTrigger = repoTriggerEl.tagName === 'BUTTON';
+    if(!isButtonTrigger) {
+      repoTriggerEl.style.cursor = 'pointer';
+      repoTriggerEl.setAttribute('role', 'button');
+      repoTriggerEl.setAttribute('tabindex', '0');
+      repoTriggerEl.setAttribute('aria-controls', 'reposDropdown');
+    } else {
+      if(!repoTriggerEl.hasAttribute('aria-controls')) {
+        repoTriggerEl.setAttribute('aria-controls', 'reposDropdown');
+      }
+    }
+    repoTriggerEl.setAttribute('aria-expanded', 'false');
+
+    repoTriggerEl.addEventListener('click', toggleReposDropdown);
+
+    if(!isButtonTrigger) {
+      repoTriggerEl.addEventListener('keydown', (ev) => {
+        if(ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          toggleReposDropdown(ev);
+        }
+      });
+    }
+  }
+
+  if(reposDropdown) {
+    reposDropdown.addEventListener('click', (ev) => ev.stopPropagation());
+  }
+
+  if(reposIframe) {
+    reposIframe.addEventListener('load', () => {
+      try {
+        const doc = reposIframe.contentDocument || reposIframe.contentWindow.document;
+        if(doc) {
+          doc.querySelectorAll('a').forEach((anchor) => {
+            anchor.setAttribute('target', '_blank');
+            anchor.setAttribute('rel', 'noopener noreferrer');
+          });
+        }
+      } catch(_err) {
+        // Ignore cross-origin errors
+      }
+    });
+  }
+
+  const buildBranchesUrl = () => {
+    if(!projectInfo) return '/agent/git-tree';
+    const dir = projectInfo.dataset.projectDir || '';
+    if(!dir) return '/agent/git-tree';
+    const params = new URLSearchParams({ projectDir: dir });
+    return `/agent/git-tree?${params.toString()}`;
+  };
+
+  const ensureBranchesSrc = () => {
+    if(!branchesIframe) return;
+    const nextSrc = buildBranchesUrl();
+    if(branchesIframe.dataset.currentSrc === nextSrc) return;
+    branchesIframe.dataset.currentSrc = nextSrc;
+    branchesIframe.src = nextSrc;
+  };
+
+  if(projectInfo && branchesDropdown) {
+    const toggleBranchesDropdown = (ev) => {
+      ev.stopPropagation();
+      if(branchesDropdown.classList.contains('is-visible')) {
+        projectInfo.classList.remove('is-open');
+        hideDropdown(branchesDropdown, projectInfo);
+      } else {
+        hideDropdown(reposDropdown, title);
+        showDropdown(projectInfo, branchesDropdown);
+        ensureBranchesSrc();
+        projectInfo.classList.add('is-open');
+      }
+    };
+
+    projectInfo.addEventListener('click', toggleBranchesDropdown);
+  }
+
+  if(branchesDropdown) {
+    branchesDropdown.addEventListener('click', (ev) => ev.stopPropagation());
+  }
+
+  document.addEventListener('click', hideAllDropdowns);
+  window.addEventListener('resize', hideAllDropdowns);
+
+})();
+
+  // Sterling Settings button behavior
+  const sterlingSettingsBtn = document.getElementById('sterlingSettingsBtn');
+  const sterlingSettingsModal = document.getElementById('sterlingSettingsModal');
+  const sterlingSettingsIframe = document.getElementById('sterlingSettingsIframe');
+  const sterlingSettingsCloseButton = document.getElementById('sterlingSettingsCloseButton');
+  if(sterlingSettingsBtn && sterlingSettingsModal){
+    const defaultSettingsUrl = (sterlingSettingsIframe && (sterlingSettingsIframe.dataset.defaultSrc || sterlingSettingsIframe.getAttribute('data-default-src'))) || 'https://code-s.alfe.sh/agent/model-only';
+    sterlingSettingsBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (sterlingSettingsIframe) {
+        const currentSrcAttr = sterlingSettingsIframe.getAttribute('src');
+        if (!currentSrcAttr || currentSrcAttr === '') {
+          sterlingSettingsIframe.src = defaultSettingsUrl;
+        }
+      }
+      sterlingSettingsModal.classList.remove('is-hidden');
+      document.body.style.overflow='hidden';
+    });
+  }
+  if(sterlingSettingsCloseButton && sterlingSettingsModal){
+    sterlingSettingsCloseButton.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      sterlingSettingsModal.classList.add('is-hidden');
+      document.body.style.overflow='';
+      if(sterlingSettingsIframe){
+        sterlingSettingsIframe.src = '';
+      }
+    });
+  }
+
+</script>
+
+<%- include('partials/cookie_banner') %>
+
+</body>
+</html>

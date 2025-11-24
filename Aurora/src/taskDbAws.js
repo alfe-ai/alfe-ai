@@ -57,6 +57,13 @@ export default class TaskDBAws {
         value TEXT NOT NULL
       );`);
 
+      await client.query(`CREATE TABLE IF NOT EXISTS session_settings (
+        session_id TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value TEXT NOT NULL,
+        PRIMARY KEY (session_id, key)
+      );`);
+
       const { rows } = await client.query('SELECT COUNT(*) AS count FROM issues');
       const issueCount = parseInt(rows[0].count, 10);
       if (issueCount === 0) {
@@ -187,6 +194,36 @@ export default class TaskDBAws {
     );
   }
 
+  async getSessionSetting(sessionId, key) {
+    if (!sessionId) {
+      return this.getSetting(key);
+    }
+    const { rows } = await this.pool.query(
+      'SELECT value FROM session_settings WHERE session_id = $1 AND key = $2',
+      [sessionId, key]
+    );
+    if (!rows.length) return undefined;
+    try {
+      return JSON.parse(rows[0].value);
+    } catch {
+      return rows[0].value;
+    }
+  }
+
+  async setSessionSetting(sessionId, key, value) {
+    if (!sessionId) {
+      await this.setSetting(key, value);
+      return;
+    }
+    const val = JSON.stringify(value);
+    await this.pool.query(
+      `INSERT INTO session_settings (session_id, key, value)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (session_id, key) DO UPDATE SET value = EXCLUDED.value`,
+      [sessionId, key, val]
+    );
+  }
+
   async _importFromSqlite(client) {
     const sqlitePath = path.resolve('issues.sqlite');
     if (!fs.existsSync(sqlitePath)) {
@@ -283,6 +320,10 @@ export default class TaskDBAws {
 
   async setCodexUrl(id, url) {
     await this.pool.query('UPDATE issues SET codex_url=$1 WHERE id=$2', [url, id]);
+  }
+
+  ensureDesignChatTab() {
+    throw new Error('Design chat tab is not supported for the AWS task DB backend.');
   }
 
   // Placeholder methods for the rest of the TaskDB API used by server.js

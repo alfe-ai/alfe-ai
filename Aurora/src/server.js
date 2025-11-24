@@ -1,8 +1,9 @@
 import dotenv from "dotenv";
 import fs from "fs";
+import { mkdir, readFile, writeFile, access, unlink, readdir } from "fs/promises";
 import path from "path";
 import https from "https";
-import { URL } from "url";
+import { URL, fileURLToPath } from "url";
 import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
@@ -15,6 +16,42 @@ import { pbkdf2Sync, randomBytes, randomUUID } from "crypto";
 import speakeasy from "speakeasy";
 
 dotenv.config();
+
+function parseBooleanEnv(value, defaultValue = false) {
+  if (typeof value === "undefined" || value === null) {
+    return defaultValue;
+  }
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "0", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  return defaultValue;
+}
+
+const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
+const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
+const codeAlfeRedirectEnabled = parseBooleanEnv(
+  process.env.CODE_ALFE_REDIRECT,
+  false
+);
+
+function normalizeSterlingBaseUrl(url) {
+  return url.replace(/\/+$/, "");
+}
+
+const sterlingBaseUrlInput = process.env.STERLING_BASE_URL?.trim();
+const sterlingBaseUrl = sterlingBaseUrlInput
+  ? normalizeSterlingBaseUrl(sterlingBaseUrlInput)
+  : undefined;
+const sterlingApiBaseUrl =
+  sterlingBaseUrl && sterlingBaseUrl.endsWith("/api")
+    ? sterlingBaseUrl
+    : sterlingBaseUrl
+      ? `${sterlingBaseUrl}/api`
+      : undefined;
 
 const origDebug = console.debug.bind(console);
 console.debug = (...args) => {
@@ -32,6 +69,221 @@ console.error = (...args) => {
   origError(`[${ts}]`, ...args);
 };
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const projectViewDataFile = path.join(
+  __dirname,
+  "../data/projectView/projects.json"
+);
+
+const projectViewQueueFile = path.join(
+  __dirname,
+  "../data/projectView/queue.json"
+);
+
+const legacyProjectViewDataFile = path.join(
+  __dirname,
+  "../../ProjectView/data/projects.json"
+);
+
+let projectViewDataMigrationPromise = null;
+
+async function migrateLegacyProjectViewDataIfNeeded() {
+  if (!projectViewDataMigrationPromise) {
+    projectViewDataMigrationPromise = (async () => {
+      try {
+        await access(legacyProjectViewDataFile);
+      } catch (err) {
+        if (err?.code === "ENOENT") {
+          return;
+        }
+
+        console.warn(
+          "[ProjectView] Skipping legacy data migration: unable to access legacy file:",
+          err
+        );
+        return;
+      }
+
+      try {
+        const legacyPayload = await readFile(legacyProjectViewDataFile, "utf-8");
+        await mkdir(path.dirname(projectViewDataFile), { recursive: true });
+        await writeFile(projectViewDataFile, legacyPayload, "utf-8");
+
+        try {
+          await unlink(legacyProjectViewDataFile);
+        } catch (removeErr) {
+          if (removeErr?.code !== "ENOENT") {
+            console.warn(
+              "[ProjectView] Migrated legacy data but failed to remove original file:",
+              removeErr
+            );
+          }
+        }
+
+        console.log(
+          "[ProjectView] Migrated legacy projects.json to Aurora/data/projectView/projects.json"
+        );
+      } catch (migrationErr) {
+        console.error(
+          "[ProjectView] Failed to migrate legacy ProjectView data:",
+          migrationErr
+        );
+      }
+    })();
+  }
+
+  return projectViewDataMigrationPromise;
+}
+
+async function loadGlobalProjectViewData(dataDir) {
+  try {
+    const file = await readFile(projectViewDataFile, "utf-8");
+    return JSON.parse(file);
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      throw err;
+    }
+  }
+
+  try {
+    const entries = await readdir(dataDir, { withFileTypes: true });
+    const fallbackFiles = entries
+      .filter(
+        (entry) =>
+          entry.isFile() &&
+          entry.name.endsWith(".json") &&
+          !entry.name.endsWith(".queue.json") &&
+          entry.name !== path.basename(projectViewDataFile)
+      )
+      .map((entry) => entry.name)
+      .sort();
+
+    for (const name of fallbackFiles) {
+      const fullPath = path.join(dataDir, name);
+      try {
+        const payload = await readFile(fullPath, "utf-8");
+        const parsed = JSON.parse(payload);
+        await mkdir(dataDir, { recursive: true });
+        await writeFile(projectViewDataFile, JSON.stringify(parsed, null, 2), "utf-8");
+        console.log(
+          `[ProjectView] Seeded ${path.basename(projectViewDataFile)} from existing ${name}`
+        );
+        return parsed;
+      } catch (fallbackErr) {
+        console.warn(
+          `[ProjectView] Unable to seed projects.json from ${name}:`,
+          fallbackErr
+        );
+      }
+    }
+  } catch (dirErr) {
+    if (dirErr?.code !== "ENOENT") {
+      throw dirErr;
+    }
+  }
+
+  return null;
+}
+
+async function readProjectViewProjects(sessionId) {
+  await migrateLegacyProjectViewDataIfNeeded();
+  const dataDir = path.dirname(projectViewDataFile);
+  if (sessionId) {
+    const sessionFile = path.join(dataDir, `${sessionId}.json`);
+    try {
+      const file = await readFile(sessionFile, "utf-8");
+      return JSON.parse(file);
+    } catch (err) {
+      if (err?.code === "ENOENT") {
+        const fallback = await loadGlobalProjectViewData(dataDir);
+        if (fallback) {
+          await mkdir(dataDir, { recursive: true });
+          await writeFile(sessionFile, JSON.stringify(fallback, null, 2), "utf-8");
+          return fallback;
+        }
+        return [];
+      }
+      throw err;
+    }
+  }
+
+  const globalProjects = await loadGlobalProjectViewData(dataDir);
+  return globalProjects ?? [];
+}
+
+async function writeProjectViewProjects(projects, sessionId) {
+  await migrateLegacyProjectViewDataIfNeeded();
+  const dataDir = path.dirname(projectViewDataFile);
+  await mkdir(dataDir, { recursive: true });
+  const payload = JSON.stringify(projects, null, 2);
+  if (sessionId) {
+    const sessionFile = path.join(dataDir, `${sessionId}.json`);
+    await writeFile(sessionFile, payload, "utf-8");
+    await writeFile(projectViewDataFile, payload, "utf-8");
+  } else {
+    await writeFile(projectViewDataFile, payload, "utf-8");
+  }
+}
+
+
+async function readProjectViewQueue(sessionId) {
+  await migrateLegacyProjectViewDataIfNeeded();
+  try {
+    const dataDir = path.dirname(projectViewDataFile);
+    if (sessionId) {
+      const sessionFile = path.join(dataDir, `${sessionId}.queue.json`);
+      try {
+        const file = await readFile(sessionFile, "utf-8");
+        return JSON.parse(file);
+      } catch (err) {
+        if (err?.code === "ENOENT") {
+          try {
+            const globalFile = await readFile(projectViewQueueFile, "utf-8");
+            const parsed = JSON.parse(globalFile);
+            await mkdir(dataDir, { recursive: true });
+            await writeFile(sessionFile, JSON.stringify(parsed, null, 2), "utf-8");
+            return parsed;
+          } catch (globalErr) {
+            if (globalErr?.code === "ENOENT") {
+              return [];
+            }
+            throw globalErr;
+          }
+        }
+        throw err;
+      }
+    }
+
+    try {
+      const file = await readFile(projectViewQueueFile, "utf-8");
+      return JSON.parse(file);
+    } catch (err) {
+      if (err?.code === "ENOENT") {
+        return [];
+      }
+      throw err;
+    }
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function writeProjectViewQueue(queue, sessionId) {
+  await migrateLegacyProjectViewDataIfNeeded();
+  const dataDir = path.dirname(projectViewDataFile);
+  await mkdir(dataDir, { recursive: true });
+  const payload = JSON.stringify(queue, null, 2);
+  if (sessionId) {
+    const sessionFile = path.join(dataDir, `${sessionId}.queue.json`);
+    await writeFile(sessionFile, payload, "utf-8");
+  } else {
+    await writeFile(projectViewQueueFile, payload, "utf-8");
+  }
+}
+
+
 /**
  * Create a timestamped backup of issues.sqlite (if it exists).
  */
@@ -39,7 +291,7 @@ function backupDb() {
   if (useRds) return; // RDS is managed separately
   const dbPath = path.resolve("issues.sqlite");
   if (!fs.existsSync(dbPath)) {
-    console.log("[TaskQueue] No existing DB to backup (first run).");
+    console.log("[AlfeChat] No existing DB to backup (first run).");
     return;
   }
 
@@ -50,7 +302,7 @@ function backupDb() {
   const backupPath = path.join(backupsDir, `issues-${ts}.sqlite`);
 
   fs.copyFileSync(dbPath, backupPath);
-  console.log(`[TaskQueue] Backup created: ${backupPath}`);
+  console.log(`[AlfeChat] Backup created: ${backupPath}`);
 }
 
 async function main() {
@@ -65,11 +317,11 @@ async function main() {
 
     const tasks = db.listTasks(true);
     tasks.forEach(t => queue.enqueue(t));
-    console.log(`[TaskQueue] ${queue.size()} task(s) loaded from DB.`);
+    console.log(`[AlfeChat] ${queue.size()} task(s) loaded from DB.`);
     // Intentionally omit printing the full issue list to keep logs concise
 
     // Debug: show DB snapshot (can be removed)
-    // console.debug("[TaskQueue] Current DB state:", db.dump());
+    // console.debug("[AlfeChat] Current DB state:", db.dump());
   } catch (err) {
     console.error("Fatal:", err.message);
     process.exit(1);
@@ -79,17 +331,16 @@ async function main() {
 main();
 
 import express from "express";
+import sterlingProxy from './sterlingproxy.js';
+
 import cors from "cors";
 import bodyParser from "body-parser";
 import multer from "multer";
 import compression from "compression";
-import { fileURLToPath } from "url";
 import OpenAI from "openai";
 import { encoding_for_model } from "tiktoken";
 import axios from "axios";
 
-// __dirname replacement for ES modules
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import os from "os";
 import child_process from "child_process";
 import JobManager from "./jobManager.js";
@@ -102,8 +353,60 @@ let aiModelsCacheTs = 0;
 const AI_MODELS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 const db = new TaskDB();
-const DEFAULT_CHAT_MODEL = "openrouter/deepseek/deepseek-chat-v3-0324";
+const DEFAULT_CHAT_MODEL = (process.env.AI_MODEL && process.env.AI_MODEL.trim()) ||
+  "openai/gpt-oss-20b";
+const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";
 console.debug(`[Server Debug] Using default chat model => ${DEFAULT_CHAT_MODEL}`);
+
+const FREE_IMAGE_LIMIT = parseInt(process.env.AURORA_FREE_IMAGE_LIMIT || process.env.FREE_IMAGE_LIMIT || '10', 10);
+const FREE_SEARCH_LIMIT = parseInt(process.env.AURORA_FREE_SEARCH_LIMIT || process.env.FREE_SEARCH_LIMIT || '10', 10);
+
+const SESSION_SETTING_KEYS = new Set(["last_chat_tab"]);
+
+function isSessionSettingKey(key) {
+  return SESSION_SETTING_KEYS.has(key);
+}
+
+function readSessionAwareSetting(sessionId, key) {
+  if (!isSessionSettingKey(key)) {
+    return db.getSetting(key);
+  }
+  const normalizedSessionId = sessionId || "";
+  try {
+    const sessionValue = db.getSessionSetting(normalizedSessionId, key);
+    if (typeof sessionValue !== "undefined") {
+      return sessionValue;
+    }
+  } catch (err) {
+    console.error(`[Server Debug] Failed reading session setting ${key} for ${normalizedSessionId.slice(0, 8)}…:`, err);
+  }
+  const fallback = db.getSetting(key);
+  if (typeof fallback !== "undefined" && normalizedSessionId) {
+    try {
+      db.setSessionSetting(normalizedSessionId, key, fallback);
+    } catch (err) {
+      console.error(`[Server Debug] Failed seeding session setting ${key} for ${normalizedSessionId.slice(0, 8)}…:`, err);
+    }
+  }
+  return fallback;
+}
+
+function writeSessionAwareSetting(sessionId, key, value) {
+  if (!isSessionSettingKey(key)) {
+    db.setSetting(key, value);
+    return;
+  }
+  const normalizedSessionId = sessionId || "";
+  try {
+    if (normalizedSessionId) {
+      db.setSessionSetting(normalizedSessionId, key, value);
+    } else {
+      db.setSetting(key, value);
+    }
+  } catch (err) {
+    console.error(`[Server Debug] Failed writing session setting ${key} for ${normalizedSessionId.slice(0, 8)}…:`, err);
+  }
+}
 
 function buildContextsForTab(tabInfo) {
   const savedInstructions = db.getSetting("agent_instructions") || "";
@@ -151,8 +454,15 @@ function buildContextsForTab(tabInfo) {
 console.debug("[Server Debug] Checking or setting default 'ai_search_model' in DB...");
 const currentSearchModel = db.getSetting("ai_search_model");
 if (!currentSearchModel) {
-  console.debug("[Server Debug] 'ai_search_model' is missing in DB, setting default to 'sonar-pro'.");
-  db.setSetting("ai_search_model", "sonar-pro");
+  console.debug(
+    `[Server Debug] 'ai_search_model' is missing in DB, setting default to '${DEFAULT_SEARCH_MODEL}'.`
+  );
+  db.setSetting("ai_search_model", DEFAULT_SEARCH_MODEL);
+} else if (isDeprecatedSearchModel(currentSearchModel)) {
+  console.debug(
+    `[Server Debug] 'ai_search_model' found legacy value '${currentSearchModel}', updating to '${DEFAULT_SEARCH_MODEL}'.`
+  );
+  db.setSetting("ai_search_model", DEFAULT_SEARCH_MODEL);
 } else {
   console.debug("[Server Debug] 'ai_search_model' found =>", currentSearchModel);
 }
@@ -169,8 +479,8 @@ if (!currentChatSearchModel) {
 console.debug("[Server Debug] Checking or setting default 'ai_reasoning_model' in DB...");
 const currentReasoningModel = db.getSetting("ai_reasoning_model");
 if (!currentReasoningModel) {
-  console.debug("[Server Debug] 'ai_reasoning_model' is missing in DB, setting default to 'sonar-reasoning'.");
-  db.setSetting("ai_reasoning_model", "sonar-reasoning");
+  console.debug("[Server Debug] 'ai_reasoning_model' is missing in DB, setting default to 'openai/o4-mini'.");
+  db.setSetting("ai_reasoning_model", "openai/o4-mini");
 } else {
   console.debug("[Server Debug] 'ai_reasoning_model' found =>", currentReasoningModel);
 }
@@ -237,6 +547,57 @@ if (db.getSetting("new_tab_opens_search") === undefined) {
 }
 
 const app = express();
+
+// Auto-hide cookie banner when requested via env var HIDE_COOKIE_BANNER=true
+const _hideCookieBanner = (typeof process !== 'undefined' && (process.env.HIDE_COOKIE_BANNER === 'true' || process.env.HIDE_COOKIE_BANNER === '1'));
+if (_hideCookieBanner) {
+  app.use((req, res, next) => {
+    const _send = res.send.bind(res);
+    res.send = function (body) {
+      try {
+        if (typeof body === 'string') {
+          const inject = "<script>try{localStorage.setItem('cookieAccepted','yes');}catch(e){};</script>";
+          if (body.includes('</head>')) {
+            body = body.replace('</head>', inject + '</head>');
+          } else if (body.includes('</body>')) {
+            body = body.replace('</body>', inject + '</body>');
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      return _send(body);
+    };
+    next();
+  });
+}
+
+
+
+// Serve Sterling proxy either via the internal mock splash pages or by redirecting
+// to an externally hosted Sterling instance when STERLINGPROXY_URL is provided.
+const sterlingProxyTarget = (process.env.STERLINGPROXY_URL || '').trim();
+if(sterlingProxyTarget){
+  const normalizedTarget = sterlingProxyTarget.replace(/\/$/, '');
+  app.use('/sterlingproxy', (req, res) => {
+    const suffix = req.originalUrl.replace(/^\/sterlingproxy/, '') || '';
+    res.redirect(302, `${normalizedTarget}${suffix}`);
+  });
+  app.get('/code', (req, res) => {
+    const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+    // Redirect /code to the external Sterling instance's /splash so the external :3333 server
+    // serves the splash page (preserve query string)
+    res.redirect(302, `${normalizedTarget}/splash${qs}`);
+  });
+} else {
+  app.use('/sterlingproxy', sterlingProxy);
+  app.get('/code', (req, res) => {
+    const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+    res.redirect(302, `/sterlingproxy/splash${qs}`);
+  });
+}
+
+
 app.use(compression());
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
@@ -254,23 +615,40 @@ const shopId = process.env.PRINTIFY_SHOP_ID || 18663958;
  * Returns a configured OpenAI client, depending on "ai_service" setting.
  * Added checks to help diagnose missing or invalid API keys.
  */
-function getOpenAiClient() {
-  let service = db.getSetting("ai_service") || "openrouter";
-  const currentModel = DEFAULT_CHAT_MODEL;
-  const { provider } = parseProviderModel(currentModel);
+function getOpenAiClient(options = {}) {
+  let preferredModel = null;
+  let serviceOverride = null;
 
-  // Default to the provider indicated by the model name unless
-  // explicitly overridden by the ai_service setting.
-  if (provider === "openrouter") {
+  if (typeof options === "string") {
+    preferredModel = options;
+  } else if (options && typeof options === "object") {
+    preferredModel = options.model || null;
+    serviceOverride = options.service || null;
+  }
+
+  const configuredService = db.getSetting("ai_service") || "openrouter";
+  let service = serviceOverride || configuredService;
+  const modelHint = preferredModel || DEFAULT_CHAT_MODEL;
+
+  const { provider } = parseProviderModel(modelHint);
+  if (provider === "openai") {
+    service = "openai";
+  } else if (provider === "openrouter") {
     service = "openrouter";
   }
 
   const openAiKey = process.env.OPENAI_API_KEY || "";
   const openRouterKey = process.env.OPENROUTER_API_KEY || "";
 
-  console.debug("[Server Debug] Creating OpenAI client with service =", service);
+  console.debug(
+    "[Server Debug] Creating OpenAI client with service =",
+    service,
+    "(model hint =",
+    modelHint,
+    ")"
+  );
 
-  if (service === "openrouter") {
+  if (service === "openrouter" || service === "deepseek") {
     if (!openRouterKey) {
       throw new Error(
         "Missing OPENROUTER_API_KEY environment variable, please set it before using OpenRouter."
@@ -283,45 +661,36 @@ function getOpenAiClient() {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "X-Title": "MyAwesomeApp",
-        "HTTP-Referer": "https://my-awesome-app.example.com"
+        "HTTP-Referer": "https://alfe.sh"
       }
     });
-  } else {
+  }
+
+  if (service === "openai" || !service) {
     if (!openAiKey) {
       throw new Error(
         "Missing OPENAI_API_KEY environment variable, please set it before using OpenAI."
       );
     }
-    // Default to openai
     console.debug("[Server Debug] Using openai with provided OPENAI_API_KEY.");
     return new OpenAI({
       apiKey: openAiKey
     });
   }
+
+  throw new Error(`Unsupported ai_service '${service}'.`);
 }
 
 function parseProviderModel(model) {
   if (!model) return { provider: "Unknown", shortModel: "Unknown" };
   if (model.startsWith("openai/")) {
     return { provider: "openai", shortModel: model.replace(/^openai\//, "") };
-  } else if (model.startsWith("openrouter/perplexity/")) {
-    // Treat OpenRouter's Perplexity models as OpenRouter provider
-    return {
-      provider: "openrouter",
-      shortModel: model.replace(/^openrouter\/perplexity\//, "")
-    };
   } else if (model.startsWith("openrouter/")) {
     return { provider: "openrouter", shortModel: model.replace(/^openrouter\//, "") };
   } else if (model.startsWith("deepseek/")) {
     return { provider: "openrouter", shortModel: model.replace(/^deepseek\//, "") };
-  } else if (model.startsWith("perplexity/")) {
-    return { provider: "perplexity", shortModel: model.replace(/^perplexity\//, "") };
-  } else if (model.startsWith("sonar") ||
-             model === "r1-1776" ||
-             model.startsWith("mistral-") ||
-             model.startsWith("llama-") ||
-             model.startsWith("codellama-")) {
-    return { provider: "perplexity", shortModel: model };
+  } else if (model.startsWith("anthropic/")) {
+    return { provider: "anthropic", shortModel: model.replace(/^anthropic\//, "") };
   }
   return { provider: "Unknown", shortModel: model };
 }
@@ -333,7 +702,18 @@ function stripModelPrefix(model) {
   if (model.startsWith("openai/")) return model.substring("openai/".length);
   if (model.startsWith("openrouter/")) return model.substring("openrouter/".length);
   if (model.startsWith("deepseek/")) return model.substring("deepseek/".length);
+  if (model.startsWith("anthropic/")) return model.substring("anthropic/".length);
   return model;
+}
+
+function isDeprecatedSearchModel(model) {
+  const trimmed = (model || "").trim();
+  if (!trimmed) {
+    return true;
+  }
+  const parts = trimmed.split("/");
+  const base = parts[parts.length - 1];
+  return base.startsWith("sonar") || base === "r1-1776";
 }
 
 // Cache tokenizers to avoid repeated disk loads
@@ -380,10 +760,6 @@ function stripUtmSource(text) {
   });
 }
 
-function stripPerplexityCitations(text) {
-  return (text || '').replace(/\s*\[[0-9]+\]/g, '');
-}
-
 async function callOpenAiModel(client, model, opts = {}) {
   const { messages = [], max_tokens, temperature, stream = false } = opts;
 
@@ -395,24 +771,6 @@ async function callOpenAiModel(client, model, opts = {}) {
     temperature,
     stream
   });
-}
-
-async function callPerplexityModel(model, opts = {}) {
-  const { messages = [], stream = false } = opts;
-  const apiKey = process.env.PERPLEXITY_API_KEY;
-  if (!apiKey) throw new Error('Missing PERPLEXITY_API_KEY environment variable');
-  const res = await axios.post('https://api.perplexity.ai/chat/completions', {
-    model,
-    messages,
-    stream
-  }, {
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    responseType: stream ? 'stream' : 'json'
-  });
-  return res.data;
 }
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -467,6 +825,17 @@ function getSessionIdFromRequest(req) {
     cookies[name] = val;
   });
   return cookies.sessionId || "";
+}
+
+function resolveTabPath(tab) {
+  if (!tab) return null;
+  if (tab.path_alias && tab.path_alias.trim()) {
+    return tab.path_alias.trim();
+  }
+  if (tab.tab_uuid) {
+    return `/chat/${tab.tab_uuid}`;
+  }
+  return null;
 }
 
 function hashPassword(password) {
@@ -588,7 +957,7 @@ app.get('/api/printify/product/:id', async (req, res) => {
 // List products for the configured shop
 app.get('/api/printify/products', async (req, res) => {
   const page = parseInt(req.query.page || '1', 10);
-  const limit = parseInt(req.query.limit || '10', 10);
+  const limit = parseInt(req.query.limit || String(process.env.AURORA_DEFAULT_PAGE_LIMIT || process.env.DEFAULT_PAGE_LIMIT || '10'), 10);
   const fetchAll = req.query.all === 'true' || req.query.all === '1';
 
   try {
@@ -632,7 +1001,7 @@ app.get('/api/printify/products', async (req, res) => {
 async function deriveImageTitle(prompt, client = null) {
   if (!prompt) return '';
 
-  const openAiClient = client || getOpenAiClient();
+  const openAiClient = client || getOpenAiClient(DEFAULT_CHAT_MODEL);
   const storedModel = DEFAULT_CHAT_MODEL;
   const modelForOpenAI = stripModelPrefix(storedModel);
 
@@ -683,7 +1052,7 @@ async function deriveImageTitle(prompt, client = null) {
 async function deriveTabTitle(message, client = null) {
   if (!message) return '';
 
-  const openAiClient = client || getOpenAiClient();
+  const openAiClient = client || getOpenAiClient(DEFAULT_CHAT_MODEL);
   const storedModel = DEFAULT_CHAT_MODEL;
   const modelForOpenAI = stripModelPrefix(storedModel);
 
@@ -894,7 +1263,7 @@ app.get("/api/tasks", (req, res) => {
     console.debug("[Server Debug] Found tasks =>", tasks.length);
     res.json(tasks);
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks failed:", err);
+    console.error("[AlfeChat] /api/tasks failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -907,7 +1276,7 @@ app.get("/api/projects", (req, res) => {
     console.debug("[Server Debug] Found projects =>", projects.length);
     res.json(projects);
   } catch (err) {
-    console.error("[TaskQueue] /api/projects failed:", err);
+    console.error("[AlfeChat] /api/projects failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -919,7 +1288,7 @@ app.get("/api/sprints", (req, res) => {
     console.debug("[Server Debug] Found sprints =>", sprints.length);
     res.json(sprints);
   } catch (err) {
-    console.error("[TaskQueue] /api/sprints failed:", err);
+    console.error("[AlfeChat] /api/sprints failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -931,7 +1300,7 @@ app.get("/api/projectBranches", (req, res) => {
     console.debug("[Server Debug] Found projectBranches =>", result.length);
     res.json(result);
   } catch (err) {
-    console.error("[TaskQueue] GET /api/projectBranches error:", err);
+    console.error("[AlfeChat] GET /api/projectBranches error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -950,7 +1319,7 @@ app.post("/api/projectBranches", (req, res) => {
     db.logActivity("Update project branches", JSON.stringify(data));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/projectBranches error:", err);
+    console.error("[AlfeChat] POST /api/projectBranches error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -963,7 +1332,7 @@ app.delete("/api/projectBranches/:project", (req, res) => {
     db.logActivity("Delete project branch", project);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] DELETE /api/projectBranches/:project error:", err);
+    console.error("[AlfeChat] DELETE /api/projectBranches/:project error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -973,7 +1342,7 @@ app.get("/api/upworkJobs", (req, res) => {
     const jobs = db.listUpworkJobs();
     res.json(jobs);
   } catch (err) {
-    console.error("[TaskQueue] /api/upworkJobs failed:", err);
+    console.error("[AlfeChat] /api/upworkJobs failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -987,7 +1356,7 @@ app.post("/api/upworkJobs", (req, res) => {
     const id = db.addUpworkJob({ title, link, bid, status, notes });
     res.json({ success: true, id });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/upworkJobs failed:", err);
+    console.error("[AlfeChat] POST /api/upworkJobs failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1001,7 +1370,7 @@ app.delete("/api/upworkJobs/:id", (req, res) => {
     db.deleteUpworkJob(id);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] DELETE /api/upworkJobs/:id failed:", err);
+    console.error("[AlfeChat] DELETE /api/upworkJobs/:id failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1014,7 +1383,7 @@ app.post("/api/tasks/hidden", (req, res) => {
     db.logActivity("Set hidden", JSON.stringify({ id, hidden }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/hidden failed:", err);
+    console.error("[AlfeChat] /api/tasks/hidden failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1031,7 +1400,7 @@ app.post("/api/tasks/reorder", (req, res) => {
       res.status(400).json({ error: "Unable to reorder" });
     }
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/reorder failed:", err);
+    console.error("[AlfeChat] /api/tasks/reorder failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1047,7 +1416,7 @@ app.post("/api/tasks/reorderAll", (req, res) => {
     db.logActivity("Reorder all tasks", JSON.stringify({ orderedIds }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/reorderAll failed:", err);
+    console.error("[AlfeChat] /api/tasks/reorderAll failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1060,7 +1429,7 @@ app.post("/api/tasks/points", (req, res) => {
     db.logActivity("Set fib_points", JSON.stringify({ id, points }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/points failed:", err);
+    console.error("[AlfeChat] /api/tasks/points failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1073,7 +1442,7 @@ app.post("/api/tasks/project", (req, res) => {
     db.logActivity("Set project", JSON.stringify({ id, project }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/project failed:", err);
+    console.error("[AlfeChat] /api/tasks/project failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1086,7 +1455,7 @@ app.post("/api/tasks/sprint", (req, res) => {
     db.logActivity("Set sprint", JSON.stringify({ id, sprint }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/sprint failed:", err);
+    console.error("[AlfeChat] /api/tasks/sprint failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1107,7 +1476,7 @@ app.post("/api/tasks/priority", (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/priority failed:", err);
+    console.error("[AlfeChat] /api/tasks/priority failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1120,7 +1489,7 @@ app.post("/api/tasks/status", (req, res) => {
     db.logActivity("Set status", JSON.stringify({ id, status }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/status failed:", err);
+    console.error("[AlfeChat] /api/tasks/status failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1133,7 +1502,7 @@ app.post("/api/tasks/dependencies", (req, res) => {
     db.logActivity("Set dependencies", JSON.stringify({ id, dependencies }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/dependencies failed:", err);
+    console.error("[AlfeChat] /api/tasks/dependencies failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1146,7 +1515,7 @@ app.post("/api/tasks/blocking", (req, res) => {
     db.logActivity("Set blocking", JSON.stringify({ id, blocking }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/blocking failed:", err);
+    console.error("[AlfeChat] /api/tasks/blocking failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1159,7 +1528,7 @@ app.post("/api/tasks/codex-url", (req, res) => {
     db.logActivity("Set codex_url", JSON.stringify({ id, url }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/codex-url failed:", err);
+    console.error("[AlfeChat] /api/tasks/codex-url failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1186,6 +1555,7 @@ app.post("/api/tasks/new", async (req, res) => {
 app.get("/api/settings", (req, res) => {
   console.debug("[Server Debug] GET /api/settings =>", req.query.keys);
   try {
+    const sessionId = getSessionIdFromRequest(req);
     const keysParam = req.query.keys;
     let settings;
     if (keysParam) {
@@ -1195,13 +1565,13 @@ app.get("/api/settings", (req, res) => {
             .split(",")
             .map((k) => k.trim())
             .filter((k) => k);
-      settings = keys.map((k) => ({ key: k, value: db.getSetting(k) }));
+      settings = keys.map((k) => ({ key: k, value: readSessionAwareSetting(sessionId, k) }));
     } else {
       settings = db.allSettings();
     }
     res.json({ settings });
   } catch (err) {
-    console.error("[TaskQueue] GET /api/settings failed", err);
+    console.error("[AlfeChat] GET /api/settings failed", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1209,10 +1579,11 @@ app.get("/api/settings", (req, res) => {
 app.get("/api/settings/:key", (req, res) => {
   console.debug("[Server Debug] GET /api/settings/:key =>", req.params.key);
   try {
-    const val = db.getSetting(req.params.key);
+    const sessionId = getSessionIdFromRequest(req);
+    const val = readSessionAwareSetting(sessionId, req.params.key);
     res.json({ key: req.params.key, value: val });
   } catch (err) {
-    console.error("[TaskQueue] GET /api/settings/:key failed", err);
+    console.error("[AlfeChat] GET /api/settings/:key failed", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1220,11 +1591,12 @@ app.get("/api/settings/:key", (req, res) => {
 app.post("/api/settings", (req, res) => {
   console.debug("[Server Debug] POST /api/settings => body:", req.body);
   try {
+    const sessionId = getSessionIdFromRequest(req);
     const { key, value } = req.body;
-    db.setSetting(key, value);
+    writeSessionAwareSetting(sessionId, key, value);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/settings failed:", err);
+    console.error("[AlfeChat] POST /api/settings failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1232,18 +1604,19 @@ app.post("/api/settings", (req, res) => {
 app.post("/api/settings/batch", (req, res) => {
   console.debug("[Server Debug] POST /api/settings/batch => body:", req.body);
   try {
+    const sessionId = getSessionIdFromRequest(req);
     const { settings } = req.body;
     if (!Array.isArray(settings)) {
       return res.status(400).json({ error: "settings array required" });
     }
     settings.forEach(({ key, value }) => {
       if (typeof key !== "undefined") {
-        db.setSetting(key, value);
+        writeSessionAwareSetting(sessionId, key, value);
       }
     });
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/settings/batch failed:", err);
+    console.error("[AlfeChat] POST /api/settings/batch failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1262,7 +1635,7 @@ app.get("/api/nodes", (req, res) => {
     });
     res.json({ nodes, host, addresses });
   } catch (err) {
-    console.error("[TaskQueue] GET /api/nodes failed:", err);
+    console.error("[AlfeChat] GET /api/nodes failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1279,7 +1652,7 @@ app.post("/api/nodes", (req, res) => {
     db.setSetting("nodes", nodes);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/nodes failed:", err);
+    console.error("[AlfeChat] POST /api/nodes failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1295,7 +1668,7 @@ app.post("/api/feedback", (req, res) => {
     db.addFeedback(message, fbType);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/feedback failed:", err);
+    console.error("[AlfeChat] POST /api/feedback failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1303,6 +1676,9 @@ app.post("/api/feedback", (req, res) => {
 app.post("/api/register", (req, res) => {
   console.debug("[Server Debug] POST /api/register =>", req.body);
   try {
+    if (!accountsEnabled) {
+      return res.status(404).json({ error: "not found" });
+    }
     const { email, password } = req.body;
     const sessionId = req.body.sessionId || getSessionIdFromRequest(req);
     if (!email || !password) {
@@ -1313,9 +1689,9 @@ app.post("/api/register", (req, res) => {
     }
     const hash = hashPassword(password);
     const id = db.createAccount(email, hash, sessionId);
-    res.json({ success: true, id });
+    res.json({ success: true, id, accountsEnabled });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/register failed:", err);
+    console.error("[AlfeChat] POST /api/register failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1323,6 +1699,9 @@ app.post("/api/register", (req, res) => {
 app.post("/api/login", (req, res) => {
   console.debug("[Server Debug] POST /api/login =>", req.body);
   try {
+    if (!accountsEnabled) {
+      return res.status(404).json({ error: "not found" });
+    }
     const { email, password, token } = req.body;
     let sessionId = req.body.sessionId || getSessionIdFromRequest(req);
     if (!email || !password) {
@@ -1350,14 +1729,17 @@ app.post("/api/login", (req, res) => {
     }
 
     db.setAccountSession(account.id, sessionId);
-    res.json({ success: true, id: account.id, email: account.email, sessionId });
+    res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/login failed:", err);
+    console.error("[AlfeChat] POST /api/login failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 app.get("/api/totp/generate", (req, res) => {
+  if (!accountsEnabled) {
+    return res.status(404).json({ error: "not found" });
+  }
   const sessionId = getSessionIdFromRequest(req);
   const account = sessionId ? db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
@@ -1366,6 +1748,9 @@ app.get("/api/totp/generate", (req, res) => {
 });
 
 app.post("/api/totp/enable", (req, res) => {
+  if (!accountsEnabled) {
+    return res.status(404).json({ error: "not found" });
+  }
   const sessionId = getSessionIdFromRequest(req);
   const account = sessionId ? db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
@@ -1384,10 +1769,16 @@ app.post("/api/totp/enable", (req, res) => {
 app.get("/api/account", (req, res) => {
   console.debug("[Server Debug] GET /api/account");
   try {
+    if (!accountsEnabled) {
+      return res.json({ accountsEnabled: false, exists: false });
+    }
     const sessionId = getSessionIdFromRequest(req);
     const account = sessionId ? db.getAccountBySession(sessionId) : null;
-    if (!account) return res.json({ exists: false });
+    if (!account) {
+      return res.json({ accountsEnabled: true, exists: false });
+    }
     res.json({
+      accountsEnabled: true,
       exists: true,
       id: account.id,
       email: account.email,
@@ -1396,12 +1787,15 @@ app.get("/api/account", (req, res) => {
       plan: account.plan || 'Free'
     });
   } catch(err) {
-    console.error("[TaskQueue] GET /api/account failed:", err);
+    console.error("[AlfeChat] GET /api/account failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 app.post("/api/account/timezone", (req, res) => {
+  if (!accountsEnabled) {
+    return res.status(404).json({ error: "not found" });
+  }
   const sessionId = getSessionIdFromRequest(req);
   const account = sessionId ? db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
@@ -1414,6 +1808,9 @@ app.post("/api/account/timezone", (req, res) => {
 });
 
 app.post("/api/account/plan", (req, res) => {
+  if (!accountsEnabled) {
+    return res.status(404).json({ error: "not found" });
+  }
   const sessionId = getSessionIdFromRequest(req);
   const account = sessionId ? db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
@@ -1426,6 +1823,9 @@ app.post("/api/account/plan", (req, res) => {
 });
 
 app.post("/api/account/password", (req, res) => {
+  if (!accountsEnabled) {
+    return res.status(404).json({ error: "not found" });
+  }
   const sessionId = getSessionIdFromRequest(req);
   const account = sessionId ? db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
@@ -1451,7 +1851,7 @@ app.post("/api/logout", (req, res) => {
     }
     res.json({ success: true });
   } catch(err) {
-    console.error("[TaskQueue] POST /api/logout failed:", err);
+    console.error("[AlfeChat] POST /api/logout failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1469,7 +1869,7 @@ app.get("/api/tasks/:id", (req, res) => {
     }
     res.json(t);
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/:id failed:", err);
+    console.error("[AlfeChat] /api/tasks/:id failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1480,7 +1880,7 @@ app.get("/api/projects/:project", (req, res) => {
     const tasks = db.listTasksByProject(req.params.project);
     res.json(tasks);
   } catch (err) {
-    console.error("[TaskQueue] /api/projects/:project failed:", err);
+    console.error("[AlfeChat] /api/projects/:project failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1491,7 +1891,7 @@ app.get("/api/sprints/:sprint", (req, res) => {
     const tasks = db.listTasksBySprint(req.params.sprint);
     res.json(tasks);
   } catch (err) {
-    console.error("[TaskQueue] /api/sprints/:sprint failed:", err);
+    console.error("[AlfeChat] /api/sprints/:sprint failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1514,7 +1914,7 @@ app.post("/api/tasks/rename", async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/tasks/rename error:", err);
+    console.error("[AlfeChat] /api/tasks/rename error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1525,7 +1925,7 @@ app.get("/api/activity", (req, res) => {
     const activity = db.getActivity();
     res.json(activity);
   } catch (err) {
-    console.error("[TaskQueue] /api/activity failed:", err);
+    console.error("[AlfeChat] /api/activity failed:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -1593,15 +1993,6 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-4-32k-0314": 32767,
     "openai/gpt-4-vision-preview": 128000,
     "openai/gpt-3.5-turbo-0301": "--"
-    ,"openrouter/perplexity/r1-1776": 128000
-    ,"perplexity/r1-1776": 128000
-    ,"r1-1776": 128000
-    ,"openrouter/perplexity/sonar-reasoning": 127000
-    ,"perplexity/sonar-reasoning": 127000
-    ,"sonar-reasoning": 127000
-    ,"openrouter/perplexity/sonar-reasoning-pro": 128000
-    ,"perplexity/sonar-reasoning-pro": 128000
-    ,"sonar-reasoning-pro": 128000
   };
 
   // Known model costs are stored per one million tokens so that the
@@ -1661,16 +2052,7 @@ app.get("/api/ai/models", async (req, res) => {
     "openai/gpt-4-0314": { input: "$30", output: "$60" },
     "openai/gpt-4-32k-0314": { input: "$60", output: "$120" },
     "openai/gpt-4-vision-preview": { input: "--", output: "--" },
-    "openai/gpt-3.5-turbo-0301": { input: "--", output: "--" },
-    "openrouter/perplexity/r1-1776": { input: "$2", output: "$8" },
-    "perplexity/r1-1776": { input: "$2", output: "$8" },
-    "r1-1776": { input: "$2", output: "$8" },
-    "openrouter/perplexity/sonar-reasoning": { input: "$1", output: "$5" },
-    "perplexity/sonar-reasoning": { input: "$1", output: "$5" },
-    "sonar-reasoning": { input: "$1", output: "$5" }
-    ,"openrouter/perplexity/sonar-reasoning-pro": { input: "$2", output: "$8" }
-    ,"perplexity/sonar-reasoning-pro": { input: "$2", output: "$8" }
-    ,"sonar-reasoning-pro": { input: "$2", output: "$8" }
+    "openai/gpt-3.5-turbo-0301": { input: "--", output: "--" }
   };
 
   let openAIModelData = [];
@@ -1702,7 +2084,7 @@ app.get("/api/ai/models", async (req, res) => {
           };
         });
       } catch (err) {
-        console.error("[TaskQueue] Error listing OpenAI models:", err);
+        console.error("[AlfeChat] Error listing OpenAI models:", err);
       }
     }
 
@@ -1734,7 +2116,7 @@ app.get("/api/ai/models", async (req, res) => {
           };
         });
       } catch (err) {
-        console.error("[TaskQueue] Error fetching OpenRouter models:", err);
+        console.error("[AlfeChat] Error fetching OpenRouter models:", err);
       }
     }
 
@@ -1743,12 +2125,6 @@ app.get("/api/ai/models", async (req, res) => {
     const forcedModels = [
       "openai/o4-mini-high",
       "openai/codex-mini",
-      "openrouter/perplexity/r1-1776",
-      "perplexity/r1-1776",
-      "r1-1776",
-      "openrouter/perplexity/sonar-reasoning",
-      "perplexity/sonar-reasoning",
-      "sonar-reasoning",
       "openrouter/anthropic/claude-3.5-haiku",
       "anthropic/claude-3.5-haiku",
       "anthropic/claude-3.7-sonnet",
@@ -1771,7 +2147,7 @@ app.get("/api/ai/models", async (req, res) => {
         id,
         provider:
           id.startsWith("openrouter/") ? "openrouter" :
-          (id.startsWith("perplexity/") || id === "r1-1776") ? "perplexity" :
+          id.includes("anthropic/") ? "anthropic" :
           "openai",
         tokenLimit: limit,
         inputCost: cInfo.input,
@@ -1784,7 +2160,7 @@ app.get("/api/ai/models", async (req, res) => {
       }
     }
   } catch (err) {
-    console.error("[TaskQueue] /api/ai/models error:", err);
+    console.error("[AlfeChat] /api/ai/models error:", err);
   }
 
   const deepseekModelData = [
@@ -1953,11 +2329,37 @@ app.post("/api/chat", async (req, res) => {
     const userMessage = req.body.message || "";
     const chatTabId = req.body.tabId || 1;
     const sessionId = req.body.sessionId || "";
+    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
+        .split(",")[0]
+        .trim();
     const tabInfo = db.getChatTab(chatTabId, sessionId || null);
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
     }
     const userTime = req.body.userTime || new Date().toISOString();
+
+    if (tabInfo && tabInfo.tab_type === 'search') {
+      if (sessionId) {
+        const sessionSearchCount = db.countSearchesForSession(sessionId);
+        if (sessionSearchCount >= FREE_SEARCH_LIMIT) {
+          return res.status(429).json({
+            error: "Search limit reached for this session",
+            type: "search_session_limit",
+            counts: { sessionCount: sessionSearchCount, sessionLimit: FREE_SEARCH_LIMIT }
+          });
+        }
+      }
+      if (ipAddress) {
+        const ipSearchCount = db.countSearchesForIp(ipAddress);
+        if (ipSearchCount >= FREE_SEARCH_LIMIT) {
+          return res.status(429).json({
+            error: "Search limit reached for this IP",
+            type: "search_ip_limit",
+            counts: { ipCount: ipSearchCount, ipLimit: FREE_SEARCH_LIMIT }
+          });
+        }
+      }
+    }
 
     if (!userMessage) {
       return res.status(400).send("Missing message");
@@ -1968,6 +2370,22 @@ app.post("/api/chat", async (req, res) => {
     let model = tabInfo && tabInfo.model_override
       ? tabInfo.model_override
       : DEFAULT_CHAT_MODEL;
+    model = (model || "").trim() || DEFAULT_CHAT_MODEL;
+
+    if (tabInfo && tabInfo.tab_type === 'search') {
+      const configuredSearchModel = (db.getSetting("ai_search_model") || DEFAULT_SEARCH_MODEL).trim();
+      if (isDeprecatedSearchModel(model)) {
+        if (model !== configuredSearchModel) {
+          console.debug(
+            `[Server Debug] Updating legacy search model '${model}' to '${configuredSearchModel}' for tab ${chatTabId}.`
+          );
+          db.setChatTabModel(chatTabId, configuredSearchModel);
+          tabInfo.model_override = configuredSearchModel;
+        }
+        model = configuredSearchModel;
+      }
+    }
+
     const isDesignTab = tabInfo && tabInfo.tab_type === 'design';
     let finalUserMessage = userMessage;
     if (isDesignTab) {
@@ -1985,11 +2403,10 @@ app.post("/api/chat", async (req, res) => {
       finalUserMessage = `${prependInstr}\n\n${userMessage}`;
     }
 
-    const { provider } = parseProviderModel(model || DEFAULT_CHAT_MODEL);
-    const isOpenrouterPerplexity = (model || '').startsWith('openrouter/perplexity/');
     const { systemContext, projectContext } = buildContextsForTab(tabInfo);
     const fullContext = projectContext ?
       `${systemContext}\n${projectContext}` : systemContext;
+    const { provider } = parseProviderModel(model);
     const sysContent = `${fullContext}\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
 
     const conversation = [{ role: "system", content: sysContent }];
@@ -2001,7 +2418,14 @@ app.post("/api/chat", async (req, res) => {
       }
     }
 
-    const chatPairId = db.createChatPair(userMessage, chatTabId, systemContext, projectContext, sessionId);
+    const chatPairId = db.createChatPair(
+        userMessage,
+        chatTabId,
+        systemContext,
+        projectContext,
+        sessionId,
+        ipAddress
+    );
     conversation.push({ role: "user", content: finalUserMessage });
     db.logActivity("User chat", JSON.stringify({ tabId: chatTabId, message: userMessage, userTime }));
 
@@ -2022,13 +2446,12 @@ app.post("/api/chat", async (req, res) => {
 
     console.debug("[Server Debug] Chat conversation assembled with length =>", conversation.length);
 
-    const openaiClient = getOpenAiClient();
+    const openaiClient = getOpenAiClient({ model });
     if (!model) {
       model = "unknown";
     }
 
     const modelForOpenAI = stripModelPrefix(model);
-    const usePerplexity = provider === 'perplexity';
 
     console.debug("[Server Debug] Using model =>", model, " (stripped =>", modelForOpenAI, ")");
     const encoder = getEncoding(modelForOpenAI);
@@ -2055,21 +2478,8 @@ app.post("/api/chat", async (req, res) => {
     const streamingSetting = db.getSetting("chat_streaming");
     const useStreaming = (streamingSetting === false) ? false : true;
 
-    let citations = [];
-    if (usePerplexity) {
-      const completion = await callPerplexityModel(modelForOpenAI, {
-        messages: truncatedConversation
-      });
-      assistantMessage = completion.choices?.[0]?.message?.content || "";
-      citations = completion.choices?.[0]?.message?.citations || [];
-      assistantMessage = stripUtmSource(assistantMessage);
-      if (isOpenrouterPerplexity) {
-        assistantMessage = stripPerplexityCitations(assistantMessage);
-      }
-      res.write(assistantMessage);
-      res.end();
-      console.debug("[Server Debug] Perplexity completed, length =>", assistantMessage.length);
-    } else if (useStreaming) {
+    const citations = [];
+    if (useStreaming) {
       const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
         stream: true
@@ -2086,8 +2496,7 @@ app.post("/api/chat", async (req, res) => {
         if (chunk.includes("[DONE]")) {
           break;
         }
-        let cleanChunk = stripUtmSource(chunk);
-        if (isOpenrouterPerplexity) cleanChunk = stripPerplexityCitations(cleanChunk);
+        const cleanChunk = stripUtmSource(chunk);
         assistantMessage += cleanChunk;
         res.write(cleanChunk);
         if (res.flush) res.flush();
@@ -2103,9 +2512,6 @@ app.post("/api/chat", async (req, res) => {
         completion.choices?.[0]?.message?.content ||
         completion.choices?.[0]?.text || "";
       assistantMessage = stripUtmSource(assistantMessage);
-      if (isOpenrouterPerplexity) {
-        assistantMessage = stripPerplexityCitations(assistantMessage);
-      }
       res.write(assistantMessage);
       res.end();
       console.debug("[Server Debug] AI non-streaming completed, length =>", assistantMessage.length);
@@ -2158,6 +2564,9 @@ app.post("/api/chat/pairs/prefab", (req, res) => {
     const sessionId = req.body.sessionId || "";
     const text = (req.body.text || "").trim();
     const kind = (req.body.kind || "prefab").toLowerCase();
+    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
+        .split(",")[0]
+        .trim();
 
     if (!text) {
       return res.status(400).json({ error: "Missing text" });
@@ -2172,7 +2581,7 @@ app.post("/api/chat/pairs/prefab", (req, res) => {
     }
 
     const { systemContext, projectContext } = buildContextsForTab(tabInfo);
-    const pairId = db.createChatPair('', chatTabId, systemContext, projectContext, sessionId);
+    const pairId = db.createChatPair('', chatTabId, systemContext, projectContext, sessionId, ipAddress);
     const modelLabel = kind === 'greeting' ? 'prefab/greeting' : 'prefab/manual';
     db.finalizeChatPair(pairId, text, modelLabel, new Date().toISOString());
     db.logActivity("AI chat (prefab)", JSON.stringify({ tabId: chatTabId, response: text, kind }));
@@ -2229,7 +2638,7 @@ app.get("/api/chat/history", (req, res) => {
       totalOutputTokens
     });
   } catch (err) {
-    console.error("[TaskQueue] /api/chat/history error:", err);
+    console.error("[AlfeChat] /api/chat/history error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2266,7 +2675,30 @@ app.get("/api/chat/tabs", (req, res) => {
     });
     res.json(tabs);
   } catch (err) {
-    console.error("[TaskQueue] GET /api/chat/tabs error:", err);
+    console.error("[AlfeChat] GET /api/chat/tabs error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/api/chat/design_tab", (req, res) => {
+  const sessionId = req.query.sessionId || "";
+  if (!sessionId) {
+    return res.status(400).json({ error: "Missing sessionId" });
+  }
+  try {
+    const tab = db.ensureDesignChatTab(sessionId);
+    if (!tab) {
+      return res.status(500).json({ error: "Failed to create design chat" });
+    }
+    res.json({
+      id: tab.id,
+      uuid: tab.tab_uuid,
+      pathAlias: tab.path_alias || '/chat/design',
+      showInSidebar: tab.show_in_sidebar !== 0,
+      tabType: tab.tab_type
+    });
+  } catch (err) {
+    console.error("[Server Debug] GET /api/chat/design_tab error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2283,6 +2715,13 @@ app.post("/api/chat/tabs/new", (req, res) => {
     const type = req.body.type || 'chat';
     const sessionId = req.body.sessionId || '';
     const chatgptUrl = req.body.chatgptUrl || '';
+    const showInSidebarRaw = Object.prototype.hasOwnProperty.call(req.body, 'showInSidebar')
+      ? req.body.showInSidebar
+      : undefined;
+    let showInSidebar = showInSidebarRaw === undefined
+      ? 1
+      : (showInSidebarRaw === true || showInSidebarRaw === 1 || showInSidebarRaw === '1' ? 1 : 0);
+    let pathAlias = typeof req.body.pathAlias === 'string' ? req.body.pathAlias.trim() : '';
     const sendProjectContextRaw = Object.prototype.hasOwnProperty.call(req.body, 'sendProjectContext')
       ? req.body.sendProjectContext
       : undefined;
@@ -2290,20 +2729,45 @@ app.post("/api/chat/tabs/new", (req, res) => {
       ? 0
       : (sendProjectContextRaw === true || sendProjectContextRaw === 1 || sendProjectContextRaw === '1' ? 1 : 0);
 
+    if (type === 'code') {
+      showInSidebar = 0;
+    }
+
     const autoNaming = db.getSetting("chat_tab_auto_naming");
     const projectName = db.getSetting("sterling_project") || "";
     if (autoNaming && projectName) {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId, sendProjectContext, chatgptUrl);
-    res.json({ success: true, id: tabId, uuid });
+    const { id: tabId, uuid } = db.createChatTab(
+      name,
+      nexum,
+      project,
+      repo,
+      extraProjects,
+      taskId,
+      type,
+      sessionId,
+      sendProjectContext,
+      chatgptUrl,
+      showInSidebar,
+      pathAlias
+    );
+
+    if (type === 'code') {
+      pathAlias = '/code';
+      db.setChatTabPathAlias(tabId, pathAlias);
+    } else if (pathAlias) {
+      db.setChatTabPathAlias(tabId, pathAlias);
+    }
+
+    res.json({ success: true, id: tabId, uuid, pathAlias });
     if (type === 'search') {
-      const searchModel = db.getSetting('ai_search_model') || 'sonar-pro';
+      const searchModel = db.getSetting('ai_search_model') || DEFAULT_SEARCH_MODEL;
       db.setChatTabModel(tabId, searchModel);
     }
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/new error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/new error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2322,7 +2786,7 @@ app.post("/api/chat/tabs/rename", (req, res) => {
     db.renameChatTab(tabId, newName);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/rename error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/rename error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2341,7 +2805,7 @@ app.post("/api/chat/tabs/duplicate", (req, res) => {
     const { id: newId, uuid } = db.duplicateChatTab(tabId, name);
     res.json({ success: true, id: newId, uuid });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/duplicate error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/duplicate error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2360,7 +2824,26 @@ app.post("/api/chat/tabs/archive", (req, res) => {
     db.setChatTabArchived(tabId, archived ? 1 : 0);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/archive error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/archive error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/chat/tabs/favorite", (req, res) => {
+  console.debug("[Server Debug] POST /api/chat/tabs/favorite =>", req.body);
+  try {
+    const { tabId, favorite = false, sessionId = '' } = req.body;
+    if (!tabId) {
+      return res.status(400).json({ error: "Missing tabId" });
+    }
+    const tab = sessionId ? db.getChatTab(tabId, sessionId) : db.getChatTab(tabId);
+    if (!tab) {
+      return res.status(404).json({ error: "Chat tab not found" });
+    }
+    db.setChatTabFavorite(tabId, favorite ? 1 : 0);
+    res.json({ success: true, favorite: !!favorite });
+  } catch (err) {
+    console.error("[AlfeChat] POST /api/chat/tabs/favorite error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2379,7 +2862,7 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
     db.setChatTabGenerateImages(tabId, enabled ? 1 : 0);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/generate_images error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/generate_images error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2413,7 +2896,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, sendProjectContext, chatgptUrl);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/config error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2432,7 +2915,7 @@ app.post("/api/chat/tabs/model", (req, res) => {
     db.setChatTabModel(tabId, model.trim());
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/model error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/model error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2451,7 +2934,7 @@ app.post("/api/chat/tabs/parent", (req, res) => {
     db.setChatTabParent(tabId, parentId);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/tabs/parent error:", err);
+    console.error("[AlfeChat] POST /api/chat/tabs/parent error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2462,7 +2945,7 @@ app.get("/api/chat/subroutines", (req, res) => {
     const subs = db.listChatSubroutines();
     res.json(subs);
   } catch (err) {
-    console.error("[TaskQueue] GET /api/chat/subroutines error:", err);
+    console.error("[AlfeChat] GET /api/chat/subroutines error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2477,7 +2960,7 @@ app.post("/api/chat/subroutines/new", (req, res) => {
     const id = db.createChatSubroutine(name, trigger, action, hook);
     res.json({ success: true, id });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/subroutines/new error:", err);
+    console.error("[AlfeChat] POST /api/chat/subroutines/new error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2492,7 +2975,7 @@ app.post("/api/chat/subroutines/rename", (req, res) => {
     db.renameChatSubroutine(id, newName);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/subroutines/rename error:", err);
+    console.error("[AlfeChat] POST /api/chat/subroutines/rename error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2507,7 +2990,7 @@ app.post("/api/chat/subroutines/update", (req, res) => {
     db.updateChatSubroutine(id, name, trigger, action, hook);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/subroutines/update error:", err);
+    console.error("[AlfeChat] POST /api/chat/subroutines/update error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2527,7 +3010,7 @@ app.delete("/api/chat/tabs/:id", (req, res) => {
     db.deleteChatTab(tabId);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] DELETE /api/chat/tabs/:id error:", err);
+    console.error("[AlfeChat] DELETE /api/chat/tabs/:id error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2650,19 +3133,30 @@ app.get("/api/image/counts", (req, res) => {
   try {
     const sessionId = req.query.sessionId || "";
     const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
-    const account = sessionId ? db.getAccountBySession(sessionId) : null;
     const sessionCount = sessionId ? db.countImagesForSession(sessionId) : 0;
     const ipCount = ipAddress ? db.countImagesForIp(ipAddress) : 0;
+    const searchSessionCount = sessionId ? db.countSearchesForSession(sessionId) : 0;
+    const searchIpCount = ipAddress ? db.countSearchesForIp(ipAddress) : 0;
 
-    let sessionLimit = sessionId ? db.imageLimitForSession(sessionId, 50) : 50;
-    let ipLimit = 50;
-    if (account) {
-      sessionLimit = Infinity;
-      ipLimit = Infinity;
-    }
+    const sessionLimit = sessionId
+      ? db.imageLimitForSession(sessionId, FREE_IMAGE_LIMIT)
+      : FREE_IMAGE_LIMIT;
+    const ipLimit = FREE_IMAGE_LIMIT;
+    const searchSessionLimit = FREE_SEARCH_LIMIT;
+    const searchIpLimit = FREE_SEARCH_LIMIT;
 
     const nextReduction = sessionId ? db.nextImageLimitReductionTime(sessionId) : null;
-    res.json({ sessionCount, sessionLimit, ipCount, ipLimit, nextReduction });
+    res.json({
+      sessionCount,
+      sessionLimit,
+      ipCount,
+      ipLimit,
+      nextReduction,
+      searchSessionCount,
+      searchSessionLimit,
+      searchIpCount,
+      searchIpLimit
+    });
   } catch (err) {
     console.error("[Server Debug] /api/image/counts error:", err);
     res.status(500).json({ error: "Internal server error" });
@@ -2781,9 +3275,9 @@ app.post("/api/chat/image", upload.single("imageFile"), async (req, res) => {
 
     let desc = "";
     try {
-      const openaiClient = getOpenAiClient();
-      const imageData = fs.readFileSync(filePath, { encoding: "base64" });
       const visionSetting = db.getSetting("ai_vision_model") || "openai/gpt-4o";
+      const openaiClient = getOpenAiClient(visionSetting);
+      const imageData = fs.readFileSync(filePath, { encoding: "base64" });
       function stripModelPrefix(m) {
         if (!m) return "gpt-4o";
         if (m.startsWith("openai/")) return m.substring("openai/".length);
@@ -3607,22 +4101,27 @@ app.post("/api/image/generate", async (req, res) => {
       "[Server Debug] /api/image/generate =>",
       JSON.stringify({ prompt, n, size, model, provider, tabId, sessionId })
     );
-    const account = sessionId ? db.getAccountBySession(sessionId) : null;
     if (!prompt) {
       return res.status(400).json({ error: "Missing prompt" });
     }
 
+    let tabRecord = null;
+    let isDesignTab = false;
     if (tabId) {
-      const tab = db.getChatTab(parseInt(tabId, 10), sessionId || null);
-      if (!tab) {
+      tabRecord = db.getChatTab(parseInt(tabId, 10), sessionId || null);
+      if (!tabRecord) {
         return res.status(403).json({ error: 'Forbidden' });
       }
-      if (tab.tab_type !== 'design') {
+      if (tabRecord.tab_type !== 'design') {
         return res.status(400).json({ error: 'Image generation only allowed for design tabs' });
       }
+      isDesignTab = true;
     }
 
-    const service = (provider || db.getSetting("image_gen_service") || "openai").toLowerCase();
+    let service = (provider || db.getSetting("image_gen_service") || "openai").toLowerCase();
+    if (isDesignTab) {
+      service = 'openai';
+    }
 
     const allowedSizes = ["1024x1024", "1024x1792", "1792x1024"];
     const imgSize = allowedSizes.includes(size) ? size : "1024x1024";
@@ -3634,20 +4133,26 @@ app.post("/api/image/generate", async (req, res) => {
       db.ensureImageSession(sessionId);
     }
 
-    if (!account) {
-      if (sessionId) {
-        const current = db.countImagesForSession(sessionId);
-        const limit = db.imageLimitForSession(sessionId, 50);
-        if (current >= limit) {
-          return res.status(400).json({ error: 'Image generation limit reached for this session' });
-        }
+    if (sessionId) {
+      const current = db.countImagesForSession(sessionId);
+      const limit = db.imageLimitForSession(sessionId, FREE_IMAGE_LIMIT);
+      if (limit >= 0 && current >= limit) {
+        return res.status(429).json({
+          error: 'Image generation limit reached for this session',
+          type: 'image_session_limit',
+          counts: { sessionCount: current, sessionLimit: limit }
+        });
       }
+    }
 
-      if (ipAddress) {
-        const ipCount = db.countImagesForIp(ipAddress);
-        if (ipCount >= 50) {
-          return res.status(400).json({ error: 'Image generation limit reached for this IP' });
-        }
+    if (ipAddress) {
+      const ipCount = db.countImagesForIp(ipAddress);
+      if (ipCount >= FREE_IMAGE_LIMIT) {
+        return res.status(429).json({
+          error: 'Image generation limit reached for this IP',
+          type: 'image_ip_limit',
+          counts: { ipCount, ipLimit: FREE_IMAGE_LIMIT }
+        });
       }
     }
 
@@ -3677,7 +4182,7 @@ app.post("/api/image/generate", async (req, res) => {
         "Image generate",
         JSON.stringify({ prompt, url: localUrl, model: model || "", n: countParsed, provider: service })
       );
-      const tab = parseInt(tabId, 10) || 1;
+      const tab = tabRecord ? tabRecord.id : parseInt(tabId, 10) || 1;
       const imageTitle = await deriveImageTitle(prompt);
       const modelId = model ? `stable-diffusion/${model}` : 'stable-diffusion';
       db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, ipAddress, modelId, 1);
@@ -3686,9 +4191,11 @@ app.post("/api/image/generate", async (req, res) => {
 
     const openAiKey = process.env.OPENAI_API_KEY;
     if (!openAiKey) {
-      return res
-        .status(500)
-        .json({ error: "OPENAI_API_KEY environment variable not configured" });
+      console.warn("[Server Debug] /api/image/generate missing OPENAI_API_KEY");
+      return res.status(500).json({
+        error:
+          "Image generation is not configured. Please ask an administrator to set the OpenAI API key."
+      });
     }
 
     const openaiClient = new OpenAI({ apiKey: openAiKey });
@@ -3697,6 +4204,9 @@ app.post("/api/image/generate", async (req, res) => {
     if (modelName === "gptimage1") modelName = "gpt-image-1";
     if (modelName === "dalle2") modelName = "dall-e-2";
     if (modelName === "dalle3") modelName = "dall-e-3";
+    if (isDesignTab) {
+      modelName = "gpt-image-1";
+    }
     const allowedModels = ["dall-e-2", "dall-e-3", "gpt-image-1"];
     if (!allowedModels.includes(modelName)) {
       return res.status(400).json({ error: "Invalid model" });
@@ -3790,7 +4300,7 @@ app.post("/api/image/generate", async (req, res) => {
       JSON.stringify({ prompt, url: localUrl, model: modelName, n: countParsed, provider: service })
     );
 
-    const tab = parseInt(tabId, 10) || 1;
+    const tab = tabRecord ? tabRecord.id : parseInt(tabId, 10) || 1;
     const imageTitle = await deriveImageTitle(prompt, openaiClient);
     const modelId = `openai/${modelName}`;
     db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, ipAddress, modelId, 1);
@@ -3878,7 +4388,7 @@ app.get("/", (req, res) => {
       return res.redirect("https://alfe.sh");
     }
 
-    const lastTabId = db.getSetting("last_chat_tab");
+    const lastTabId = readSessionAwareSetting(sessionId, "last_chat_tab");
     let target = null;
     if (typeof lastTabId !== "undefined") {
       target = db.getChatTab(lastTabId, sessionId);
@@ -3886,11 +4396,12 @@ app.get("/", (req, res) => {
     if (!target) {
       target = tabs[0];
     }
-    if (target && target.tab_uuid) {
+    const path = resolveTabPath(target);
+    if (path) {
       console.debug(
-        `[Server Debug] GET / => Redirecting to last tab ${target.tab_uuid}`
+        `[Server Debug] GET / => Redirecting to last tab ${target.tab_uuid || path}`
       );
-      return res.redirect(`/chat/${target.tab_uuid}`);
+      return res.redirect(path);
     }
   } catch (err) {
     console.error("[Server Debug] Error checking chat tabs:", err);
@@ -3915,7 +4426,7 @@ app.get("/search", (req, res) => {
       0
     );
     const searchModel =
-      db.getSetting("ai_search_model") || "sonar-pro";
+      db.getSetting("ai_search_model") || DEFAULT_SEARCH_MODEL;
     db.setChatTabModel(tabId, searchModel);
     const query = q ? `?search=1&q=${encodeURIComponent(q)}` : "?search=1";
     return res.redirect(`/chat/${uuid}${query}`);
@@ -3949,7 +4460,7 @@ app.get("/new", (req, res) => {
       ""
     );
 
-    db.setSetting("last_chat_tab", tabId);
+    writeSessionAwareSetting(sessionId, "last_chat_tab", tabId);
     if (created) {
       console.debug(
         `[Server Debug] GET /new => Created chat tab ${tabId} (${uuid}) for new session ${sessionId.slice(0, 8)}…`
@@ -3967,6 +4478,166 @@ app.get("/new", (req, res) => {
   }
 });
 
+
+const projectViewPublicDir = path.join(
+  __dirname,
+  "../public/ProjectView"
+);
+
+const projectViewRouter = express.Router();
+
+projectViewRouter.get("/api/projects", async (req, res) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  try {
+    const projects = await readProjectViewProjects(sessionId);
+    res.json(projects);
+  } catch (err) {
+    console.error("[ProjectView] Failed to load projects:", err);
+    res.status(500).json({ message: "Unable to load projects." });
+  }
+});
+
+projectViewRouter.post("/api/projects", async (req, res) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  const projects = req.body;
+  if (!Array.isArray(projects)) {
+    return res
+      .status(400)
+      .json({ message: "Request body must be an array of projects." });
+  }
+
+  try {
+    await writeProjectViewProjects(projects, sessionId);
+    res.status(200).json({ message: "Projects saved successfully." });
+  } catch (err) {
+    console.error("[ProjectView] Failed to save projects:", err);
+    res.status(500).json({ message: "Unable to save projects." });
+  }
+});
+
+projectViewRouter.get("/api/queue", async (req, res) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  try {
+    const queue = await readProjectViewQueue(sessionId);
+    res.json(queue);
+  } catch (err) {
+    console.error("[ProjectView] Failed to load queue:", err);
+    res.status(500).json({ message: "Unable to load queue." });
+  }
+});
+
+projectViewRouter.post("/api/queue", async (req, res) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  const task = req.body;
+  if (!task || typeof task !== "object" || !task.title) {
+    return res
+      .status(400)
+      .json({ message: "Task must be an object with a title." });
+  }
+
+  try {
+    const queue = await readProjectViewQueue(sessionId);
+    const newTask = {
+      id: randomUUID(),
+      title: String(task.title || "").trim(),
+      description: String(task.description || "").trim(),
+      createdAt: new Date().toISOString(),
+    };
+    queue.push(newTask);
+    await writeProjectViewQueue(queue, sessionId);
+    res.status(200).json({ message: "Task enqueued.", task: newTask });
+  } catch (err) {
+    console.error("[ProjectView] Failed to save queue:", err);
+    res.status(500).json({ message: "Unable to save queue." });
+  }
+});
+
+projectViewRouter.post("/api/queue/send", async (req, res) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  const { taskId, projectId } = req.body || {};
+  if (!taskId || !projectId) {
+    return res
+      .status(400)
+      .json({ message: "taskId and projectId are required." });
+  }
+
+  try {
+    const queue = await readProjectViewQueue(sessionId);
+    const idx = queue.findIndex((t) => t && t.id === taskId);
+    if (idx === -1) {
+      return res.status(404).json({ message: "Task not found in queue." });
+    }
+    const [task] = queue.splice(idx, 1);
+
+    const projects = await readProjectViewProjects(sessionId);
+    const project = Array.isArray(projects)
+      ? projects.find((p) => p && p.id === projectId)
+      : null;
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+    if (!Array.isArray(project.tasks)) {
+      project.tasks = [];
+    }
+    project.tasks.push({
+      id: task.id,
+      title: task.title,
+      description: task.description || "",
+      completed: false,
+    });
+
+    await writeProjectViewProjects(projects, sessionId);
+    await writeProjectViewQueue(queue, sessionId);
+
+    res.status(200).json({ message: "Task sent to project." });
+  } catch (err) {
+    console.error("[ProjectView] Failed to send task:", err);
+    res.status(500).json({ message: "Unable to send task." });
+  }
+});
+
+projectViewRouter.get("/queue", (_req, res) => {
+  res.sendFile(path.join(projectViewPublicDir, "queue.html"));
+});
+
+projectViewRouter.use(express.static(projectViewPublicDir));
+
+projectViewRouter.get("*", (_req, res) => {
+  res.sendFile(path.join(projectViewPublicDir, "index.html"));
+});
+
+const projectViewEnabled = parseBooleanEnv(
+  process.env.AURORA_PROJECTVIEW_ENABLED,
+  true
+);
+
+if (projectViewEnabled) {
+  app.use("/ProjectView", projectViewRouter);
+} else {
+  console.debug(
+    "[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED; /ProjectView routes not mounted."
+  );
+}
+
+app.get("/aurora-config.js", (_req, res) => {
+  const flags = {
+    codeRedirect: {
+      enabled: codeAlfeRedirectEnabled,
+      target: CODE_ALFE_REDIRECT_TARGET,
+    },
+    printifyQueue: {
+      enabled: parseBooleanEnv(process.env.AURORA_PRINTIFY_QUEUE_ENABLED, false),
+    },
+  };
+  const script = `window.AURORA_FLAGS = Object.assign({}, window.AURORA_FLAGS || {}, ${JSON.stringify(
+    flags
+  )});`;
+  res
+    .type("application/javascript")
+    .set("Cache-Control", "no-store")
+    .send(`${script}\n`);
+});
+
 const staticCacheSeconds = parseInt(process.env.STATIC_CACHE_SECONDS || "900", 10);
 app.use(
   express.static(path.join(__dirname, "../public"), {
@@ -3978,9 +4649,11 @@ app.use(
   })
 );
 
-app.get("/beta", (req, res) => {
-  console.debug("[Server Debug] GET /beta => Redirecting to home page");
-  res.redirect("/");
+app.all(["/beta", "/beta/*"], (req, res) => {
+  console.debug(
+    `[Server Debug] ${req.method} ${req.originalUrl} => Redirecting to home page`
+  );
+  res.redirect(302, "/");
 });
 
 app.get("/chat", (req, res) => {
@@ -3990,6 +4663,28 @@ app.get("/chat", (req, res) => {
 
 app.get("/chat/:tabUuid", (req, res) => {
   console.debug(`[Server Debug] GET /chat/${req.params.tabUuid} => Serving aurora.html`);
+  res.sendFile(path.join(__dirname, "../public/aurora.html"));
+});
+
+app.get("/code", (req, res) => {
+  if (codeAlfeRedirectEnabled) {
+    console.debug(
+      `[Server Debug] GET /code => Redirecting to ${CODE_ALFE_REDIRECT_TARGET}`
+    );
+    return res.redirect(302, CODE_ALFE_REDIRECT_TARGET);
+  }
+  console.debug("[Server Debug] GET /code => Serving aurora.html");
+  res.sendFile(path.join(__dirname, "../public/aurora.html"));
+});
+
+app.get("/code/:tabUuid", (req, res) => {
+  if (codeAlfeRedirectEnabled) {
+    console.debug(
+      `[Server Debug] GET /code/${req.params.tabUuid} => Redirecting to ${CODE_ALFE_REDIRECT_TARGET}`
+    );
+    return res.redirect(302, CODE_ALFE_REDIRECT_TARGET);
+  }
+  console.debug(`[Server Debug] GET /code/${req.params.tabUuid} => Serving aurora.html`);
   res.sendFile(path.join(__dirname, "../public/aurora.html"));
 });
 
@@ -4038,7 +4733,7 @@ app.delete("/api/chat/pair/:id", (req, res) => {
     db.deleteChatPair(pairId);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] DELETE /api/chat/pair/:id error:", err);
+    console.error("[AlfeChat] DELETE /api/chat/pair/:id error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4053,7 +4748,7 @@ app.delete("/api/chat/pair/:id/ai", (req, res) => {
     db.deleteAiPart(pairId);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] DELETE /api/chat/pair/:id/ai error:", err);
+    console.error("[AlfeChat] DELETE /api/chat/pair/:id/ai error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4068,7 +4763,7 @@ app.delete("/api/chat/pair/:id/user", (req, res) => {
     db.deleteUserPart(pairId);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] DELETE /api/chat/pair/:id/user error:", err);
+    console.error("[AlfeChat] DELETE /api/chat/pair/:id/user error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4084,7 +4779,7 @@ app.post("/api/chat/pair/:id/user", (req, res) => {
     db.updateUserText(pairId, text);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/pair/:id/user error:", err);
+    console.error("[AlfeChat] POST /api/chat/pair/:id/user error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4100,7 +4795,7 @@ app.post("/api/chat/pair/:id/ai", (req, res) => {
     db.updateAiText(pairId, text);
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] POST /api/chat/pair/:id/ai error:", err);
+    console.error("[AlfeChat] POST /api/chat/pair/:id/ai error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4121,7 +4816,7 @@ app.post("/api/projectSearch", async (req, res) => {
       })
       .join('\n');
     const searchModel = db.getSetting("ai_chatsearch_model") || "openai/gpt-4o";
-    const openaiClient = getOpenAiClient();
+    const openaiClient = getOpenAiClient(searchModel);
     function stripModelPrefix(m) {
       if (!m) return "gpt-4o";
       if (m.startsWith("openai/")) return m.substring("openai/".length);
@@ -4141,7 +4836,7 @@ app.post("/api/projectSearch", async (req, res) => {
       completion.choices?.[0]?.text?.trim() || "";
     res.json({ result: text });
   } catch (err) {
-    console.error("[TaskQueue] /api/projectSearch error:", err);
+    console.error("[AlfeChat] /api/projectSearch error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4150,12 +4845,18 @@ app.post("/api/createSterlingChat", async (req, res) => {
   db.logActivity("Create Sterling Chat", "User triggered createSterlingChat endpoint.");
 
   try {
-    const baseURL = 'http://localhost:3444/api';
+    if (!sterlingApiBaseUrl || !sterlingBaseUrl) {
+      console.error("[Sterling] STERLING_BASE_URL is not configured; cannot create Sterling chat.");
+      return res.status(500).json({
+        success: false,
+        error: "STERLING_BASE_URL is not configured."
+      });
+    }
     const project = db.getSetting("sterling_project") || "alfe-dev_test_repo";
     const projectName = "aurora_working-" + project;
 
     console.log('=== Testing createChat endpoint ===');
-    const createChatResponse = await axios.post(`${baseURL}/createChat`, {
+    const createChatResponse = await axios.post(`${sterlingApiBaseUrl}/createChat`, {
       repoName: projectName
     });
     console.log('Response from /createChat:', createChatResponse.data);
@@ -4170,7 +4871,7 @@ app.post("/api/createSterlingChat", async (req, res) => {
 
     try {
       const changeBranchResp = await axios.post(
-        `${baseURL}/changeBranchOfChat/${encodeURIComponent(projectName)}/${createChatResponse.data.newChatNumber}`,
+        `${sterlingApiBaseUrl}/changeBranchOfChat/${encodeURIComponent(projectName)}/${createChatResponse.data.newChatNumber}`,
         {
           createNew: false,
           branchName: sterlingBranch
@@ -4183,7 +4884,7 @@ app.post("/api/createSterlingChat", async (req, res) => {
 
     console.log('=== Test run completed. ===');
 
-    const sterlingUrl = `http://localhost:3444/${encodeURIComponent(projectName)}/chat/${createChatResponse.data.newChatNumber}`;
+    const sterlingUrl = `${sterlingBaseUrl}/${encodeURIComponent(projectName)}/chat/${createChatResponse.data.newChatNumber}`;
     db.setSetting("sterling_chat_url", sterlingUrl);
 
     res.json({
@@ -4210,7 +4911,7 @@ app.post("/api/projects/rename", (req, res) => {
     db.logActivity("Rename project", JSON.stringify({ oldProject, newProject }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/projects/rename error:", err);
+    console.error("[AlfeChat] /api/projects/rename error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4227,7 +4928,7 @@ app.post("/api/projects/archive", (req, res) => {
     db.logActivity("Archive project", JSON.stringify({ project, archived }));
     res.json({ success: true });
   } catch (err) {
-    console.error("[TaskQueue] /api/projects/archive error:", err);
+    console.error("[AlfeChat] /api/projects/archive error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -4324,7 +5025,7 @@ function commitAndPushMarkdown(repoDir) {
 
 app.get("/api/version", (req, res) => {
   try {
-    const version = "beta-3.0.0";
+    const version = "beta-3.0.2";
     res.json({ version });
   } catch (err) {
     console.error("[Server Debug] GET /api/version =>", err);
@@ -4729,10 +5430,13 @@ app.get('/api/local_skus', (req, res) => {
   }
 });
 
+const DEFAULT_PORT = Math.floor(Math.random() * (65535 - 49152 + 1)) + 49152;
 const PORT =
   process.env.AURORA_PORT ||
   process.env.PORT ||
-  3000;
+  DEFAULT_PORT;
+// Ensure other modules can read the chosen port
+process.env.AURORA_PORT = String(PORT);
 const keyPath = process.env.HTTPS_KEY_PATH;
 const certPath = process.env.HTTPS_CERT_PATH;
 
@@ -4745,10 +5449,10 @@ if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
     cert: fs.readFileSync(certPath)
   };
   https.createServer(options, app).listen(PORT, () => {
-    console.log(`[TaskQueue] HTTPS server running on port ${PORT}`);
+    console.log(`[AlfeChat] HTTPS server running on port ${PORT} (url=https://localhost:${PORT})`);
   });
 } else {
   app.listen(PORT, () => {
-    console.log(`[TaskQueue] Web server is running on port ${PORT} (verbose='true')`);
+    console.log(`[AlfeChat] Web server is running on port ${PORT} (verbose='true', url=http://localhost:${PORT})`);
   });
 }

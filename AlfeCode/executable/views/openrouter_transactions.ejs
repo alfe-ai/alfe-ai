@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sterling · OpenRouter Usage</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            color-scheme: dark;
+            --nexum-bg-outer: #050713;
+            --nexum-bg-inner: #111528;
+            --nexum-panel: rgba(15, 20, 38, 0.85);
+            --nexum-card: rgba(22, 28, 52, 0.92);
+            --nexum-border: rgba(124, 144, 196, 0.22);
+            --nexum-text: #e2e8f0;
+            --nexum-muted: #94a3b8;
+            --nexum-accent: #8a2be2;
+            --nexum-accent-soft: rgba(138, 43, 226, 0.32);
+            --nexum-accent-bright: #7dd3fc;
+            --nexum-table-alt: rgba(31, 41, 71, 0.55);
+            --nexum-hover: rgba(138, 43, 226, 0.24);
+            --shadow-strong: 0 32px 68px rgba(3, 7, 18, 0.65);
+            --shadow-soft: 0 24px 48px rgba(7, 11, 25, 0.4);
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 52px 32px 72px;
+            background: radial-gradient(circle at top left, rgba(138, 43, 226, 0.22), transparent 55%),
+                radial-gradient(circle at 20% 120%, rgba(125, 211, 252, 0.22), transparent 55%),
+                linear-gradient(135deg, var(--nexum-bg-outer), var(--nexum-bg-inner));
+            color: var(--nexum-text);
+            min-height: 100vh;
+        }
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-bottom: 36px;
+            padding: 28px;
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(17, 24, 39, 0.8), rgba(17, 24, 39, 0.6));
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(12px);
+        }
+        .header-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .header-bar h1 {
+            font-size: 2.3rem;
+            font-weight: 700;
+            margin: 0;
+            color: #f8fafc;
+            letter-spacing: 0.02em;
+        }
+        .header-bar p {
+            margin: 0;
+            color: var(--nexum-muted);
+            font-size: 1rem;
+        }
+        .header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+        .primary-button,
+        .delete-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border 0.2s ease;
+        }
+        .primary-button {
+            border: 1px solid rgba(125, 211, 252, 0.6);
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.25), rgba(138, 43, 226, 0.25));
+            color: #f8fafc;
+            box-shadow: 0 12px 24px rgba(125, 211, 252, 0.18);
+        }
+        .primary-button:hover {
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.35), rgba(138, 43, 226, 0.35));
+            border-color: rgba(125, 211, 252, 0.8);
+        }
+        .primary-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .delete-button {
+            border: 1px solid rgba(138, 43, 226, 0.45);
+            background: rgba(138, 43, 226, 0.18);
+            color: var(--nexum-accent-bright);
+            font-weight: 600;
+        }
+        .delete-button:hover {
+            background: rgba(138, 43, 226, 0.28);
+            color: #f8fafc;
+            border-color: rgba(138, 43, 226, 0.6);
+        }
+        .delete-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-top: 4px;
+        }
+        .nav-links a {
+            font-weight: 500;
+            color: var(--nexum-accent-bright);
+            text-decoration: none;
+            position: relative;
+            transition: color 0.25s ease;
+        }
+        .nav-links a::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -4px;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--nexum-accent), var(--nexum-accent-bright));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.25s ease;
+        }
+        .nav-links a:hover {
+            color: #f8fafc;
+        }
+        .nav-links a:hover::after {
+            transform: scaleX(1);
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 36px;
+        }
+        .summary-card {
+            position: relative;
+            padding: 24px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.78));
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+        }
+        .summary-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, var(--nexum-accent-soft), transparent 55%);
+            opacity: 0.9;
+            pointer-events: none;
+        }
+        .summary-card h2 {
+            position: relative;
+            margin: 0 0 14px 0;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--nexum-accent-bright);
+        }
+        .summary-card .value {
+            position: relative;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #f9fafb;
+        }
+        .summary-card .subtext {
+            position: relative;
+            margin-top: 12px;
+            color: var(--nexum-muted);
+            font-size: 0.95rem;
+        }
+        .summary-card .token-breakdown {
+            color: var(--nexum-accent-bright);
+            font-weight: 600;
+        }
+        .usage-footnote {
+            margin-top: 18px;
+            color: var(--nexum-muted);
+            font-size: 0.85rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--nexum-panel);
+            border-radius: 22px;
+            overflow: hidden;
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-strong);
+            margin-bottom: 48px;
+            backdrop-filter: blur(14px);
+        }
+        thead {
+            background: linear-gradient(90deg, rgba(138, 43, 226, 0.9), rgba(125, 211, 252, 0.45));
+            color: #fdfcff;
+        }
+        thead th {
+            text-align: left;
+            padding: 18px 22px;
+            font-size: 0.8rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        tbody td {
+            padding: 18px 22px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            vertical-align: top;
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        tbody tr:nth-child(even) {
+            background: var(--nexum-table-alt);
+        }
+        tbody tr:hover {
+            background: var(--nexum-hover);
+        }
+        .app-link {
+            color: var(--nexum-accent-bright);
+            text-decoration: none;
+            word-break: break-all;
+            transition: color 0.2s ease;
+        }
+        .app-link:hover {
+            color: #f8fafc;
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(138, 43, 226, 0.18);
+            color: var(--nexum-accent-bright);
+            border: 1px solid rgba(138, 43, 226, 0.35);
+        }
+        @media (min-width: 768px) {
+            .header-bar {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+        }
+        @media (max-width: 900px) {
+            body {
+                padding: 36px 20px 48px;
+            }
+        }
+        @media (max-width: 768px) {
+            header {
+                padding: 24px;
+            }
+            table {
+                font-size: 0.95rem;
+            }
+            thead {
+                display: none;
+            }
+            table, tbody, tr, td {
+                display: block;
+                width: 100%;
+            }
+            tbody tr {
+                margin-bottom: 18px;
+                border-radius: 20px;
+                border: 1px solid var(--nexum-border);
+                overflow: hidden;
+                background: rgba(15, 19, 39, 0.92);
+                box-shadow: var(--shadow-soft);
+            }
+            tbody td {
+                border: none;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            }
+            tbody td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.14em;
+                margin-bottom: 6px;
+                color: var(--nexum-accent-bright);
+            }
+            tbody tr:last-child td {
+                border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            }
+        }
+        .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            color: var(--nexum-muted);
+            background: var(--nexum-panel);
+            border-radius: 22px;
+            border: 1px dashed rgba(138, 43, 226, 0.4);
+            box-shadow: var(--shadow-soft);
+        }
+    </style>
+</head>
+<body>
+<%- include('partials/session_banner') %>
+    <div class="page">
+<header>
+    <div class="header-bar">
+        <div>
+            <h1>OpenRouter Transactions</h1>
+            <p>
+                Usage metrics for recent Sterling OpenRouter calls.
+                <% if (lastUpdated) { %>
+                    Last refreshed: <strong><%= lastUpdated %></strong>
+                <% } %>
+            </p>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="primary-button" id="sync-transactions">
+                Refresh from OpenRouter
+            </button>
+            <button type="button" class="delete-button" id="clear-transactions">
+                Clear all transactions
+            </button>
+        </div>
+    </div>
+    <div class="nav-links">
+        <a href="/">Home</a>
+    </div>
+</header>
+
+<% if (transactions.length > 0) { %>
+<section class="summary-grid">
+    <article class="summary-card">
+        <h2>Total Runs</h2>
+        <div class="value"><%= transactions.length.toLocaleString() %></div>
+        <p class="subtext">Recorded OpenRouter executions</p>
+    </article>
+    <article class="summary-card">
+        <h2>Total Tokens</h2>
+        <div class="value"><%= summary.totalTokens.toLocaleString() %></div>
+        <p class="subtext">
+            <span class="token-breakdown">Prompt: <%= summary.promptTokens.toLocaleString() %></span>
+            · Completion: <span class="token-breakdown"><%= summary.completionTokens.toLocaleString() %></span>
+            <% if (summary.reasoningTokens > 0) { %>
+                · Reasoning: <span class="token-breakdown"><%= summary.reasoningTokens.toLocaleString() %></span>
+            <% } %>
+        </p>
+    </article>
+</section>
+
+<table aria-label="OpenRouter transactions">
+    <thead>
+        <tr>
+            <th scope="col">Timestamp</th>
+            <th scope="col">Provider</th>
+            <th scope="col">Model</th>
+            <th scope="col">App</th>
+            <th scope="col">Prompt Tokens</th>
+            <th scope="col">Completion Tokens</th>
+            <th scope="col">Reasoning Tokens</th>
+            <th scope="col">Total Tokens</th>
+            <th scope="col">Cost (USD)</th>
+            <th scope="col">Speed (tps)</th>
+            <th scope="col">Finish</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% transactions.forEach(function(tx) { %>
+            <tr>
+                <td data-label="Timestamp"><%= tx.displayTimestamp %></td>
+                <td data-label="Provider">
+                    <span class="badge"><%= tx.provider %></span>
+                </td>
+                <td data-label="Model"><%= tx.model %></td>
+                <td data-label="App">
+                    <% if (tx.app) { %>
+                        <a class="app-link" href="<%= tx.app %>" target="_blank" rel="noopener noreferrer"><%= tx.app %></a>
+                    <% } else { %>
+                        —
+                    <% } %>
+                </td>
+                <td data-label="Prompt Tokens"><%= tx.promptTokens.toLocaleString() %></td>
+                <td data-label="Completion Tokens"><%= tx.completionTokens.toLocaleString() %></td>
+                <td data-label="Reasoning Tokens"><%= tx.reasoningTokens.toLocaleString() %></td>
+                <td data-label="Total Tokens"><%= tx.totalTokens.toLocaleString() %></td>
+                <td data-label="Cost (USD)">$<%= tx.costUsd.toFixed(6) %></td>
+                <td data-label="Speed (tps)"><%= tx.speedTps >= 1000 ? (tx.speedTps / 1000).toFixed(2) + 'K' : tx.speedTps.toLocaleString(undefined, { maximumFractionDigits: 2 }) %></td>
+                <td data-label="Finish"><%= tx.finishReason %></td>
+            </tr>
+        <% }); %>
+    </tbody>
+</table>
+<p class="usage-footnote">
+    “Cost (USD)” reflects the <code>usage</code> value returned by OpenRouter’s <code>/api/v1/activity</code> endpoint.
+</p>
+<% } else { %>
+    <div class="empty-state">
+        <h2>No OpenRouter usage yet</h2>
+        <p>Once Sterling completes OpenRouter requests, they will appear here with token, provider, and speed details.</p>
+    </div>
+<% } %>
+</div>
+<script>
+    (function attachSyncHandler() {
+        const syncButton = document.getElementById("sync-transactions");
+        if (!syncButton) {
+            return;
+        }
+
+        syncButton.addEventListener("click", async () => {
+            const previousLabel = syncButton.textContent;
+            syncButton.disabled = true;
+            syncButton.textContent = "Syncing…";
+
+            try {
+                const response = await fetch("/openrouter/transactions/fetch", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                const payload = await response.json();
+                if (!payload.success) {
+                    throw new Error(payload.error || "OpenRouter sync failed.");
+                }
+
+                window.location.reload();
+            } catch (error) {
+                console.error("Failed to fetch transactions from OpenRouter", error);
+                window.alert(
+                    "Failed to sync transactions from OpenRouter. Please check the server logs and try again.",
+                );
+                syncButton.disabled = false;
+                syncButton.textContent = previousLabel;
+            }
+        });
+    })();
+
+    (function attachDeleteHandler() {
+        const deleteButton = document.getElementById("clear-transactions");
+        if (!deleteButton) {
+            return;
+        }
+
+        deleteButton.addEventListener("click", async () => {
+            const confirmClear = window.confirm(
+                "Delete all OpenRouter transactions? This cannot be undone.",
+            );
+            if (!confirmClear) {
+                return;
+            }
+
+            const previousLabel = deleteButton.textContent;
+            deleteButton.disabled = true;
+            deleteButton.textContent = "Clearing…";
+
+            try {
+                const response = await fetch("/openrouter/transactions/delete", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                window.location.reload();
+            } catch (error) {
+                console.error("Failed to clear transactions", error);
+                window.alert("Failed to clear transactions. Please try again.");
+                deleteButton.disabled = false;
+                deleteButton.textContent = previousLabel;
+            }
+        });
+    })();
+</script>
+</body>
+</html>

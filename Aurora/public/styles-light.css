@@ -1,0 +1,224 @@
+@import url("/styles.css");
+
+:root {
+  font-size:85%;
+  color-scheme: light;
+  --bg-gradient: linear-gradient(180deg, rgba(224, 231, 245, 0.92), rgba(203, 213, 225, 0.96));
+  --bg-main: #dfe5f1;
+  --bg-alt: #cbd5e1;
+  --surface: rgba(248, 250, 252, 0.96);
+  --surface-solid: #f1f5f9;
+  --surface-border: rgba(100, 116, 139, 0.45);
+  --surface-border-strong: rgba(71, 85, 105, 0.65);
+  --text-color: #0f172a;
+  --text-muted: #475569;
+  --accent: #7c3aed;
+  --accent-soft: rgba(124, 58, 237, 0.16);
+  --accent-light: rgba(124, 58, 237, 0.1);
+  --accent-strong: #6d28d9;
+  --positive: #16a34a;
+  --negative: #ea580c;
+  --shadow: 0 18px 42px rgba(148, 163, 184, 0.28);
+}
+
+body {
+  background: var(--bg-gradient);
+  color: var(--text-color);
+}
+
+.sidebar {
+  background: linear-gradient(185deg, rgba(248, 250, 252, 0.96), rgba(224, 231, 245, 0.92));
+  color: var(--text-color);
+  border-right: 1px solid var(--surface-border);
+}
+
+.sidebar-brand-text {
+  color: var(--text-color);
+  text-shadow: none;
+}
+
+.sidebar .sidebar-subtext,
+.sidebar .sidebar-section h3,
+.sidebar .sidebar-section p {
+  color: var(--text-muted);
+}
+
+.chat-panel {
+  background: linear-gradient(170deg, rgba(241, 245, 249, 0.96), rgba(203, 213, 225, 0.94));
+  color: var(--text-color);
+}
+
+.tree-menu .tree-button.active,
+.icon-menu .icon-btn.active,
+.thin-sidebar .thin-icon.active {
+  color: var(--text-color);
+}
+
+.tree-menu .tree-button-icon .icon-image[data-icon="code"],
+.icon-menu .icon-image[data-icon="code"],
+.thin-sidebar .thin-icon img[data-icon="code"] {
+  filter: none;
+}
+
+.chat-panel .chat-title,
+.chat-panel .chat-title-project {
+  color: var(--text-color);
+}
+
+.divider {
+  background: rgba(124, 58, 237, 0.12);
+  border-right: 1px solid rgba(124, 58, 237, 0.25);
+  border-left: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.chat-sequence {
+  background: linear-gradient(160deg, rgba(248, 250, 252, 0.97), rgba(221, 229, 241, 0.9));
+  color: var(--text-color);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.chat-user pre,
+.chat-bot pre {
+  background: rgba(236, 239, 244, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: var(--text-color);
+}
+
+.chat-system,
+.chat-instructions {
+  background: rgba(233, 238, 247, 0.95);
+  color: var(--text-muted);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.chat-input-container {
+  background: rgba(248, 250, 252, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+#chatInput {
+  background: rgba(252, 253, 255, 0.98);
+  color: var(--text-color);
+}
+
+button,
+.button,
+.top-btn,
+.model-pill,
+.chat-input-actions button {
+  color: var(--text-color);
+}
+
+.modal-content {
+  background: rgba(248, 250, 252, 0.98);
+  color: var(--text-color);
+  box-shadow: var(--shadow);
+  /* match dark theme: increase modal max-width so Add project modal fits */
+  max-width: 960px;
+}
+
+.modal-buttons button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #f8fafc;
+}
+
+.modal-buttons button.primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.modal-buttons button.danger {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #f8fafc;
+}
+
+.modal-buttons button.danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.confirm-modal {
+  max-width: 420px;
+}
+
+.confirm-modal-message {
+  margin: 1rem 0;
+  line-height: 1.5;
+}
+
+input,
+textarea,
+select {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-color);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.toast {
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+}
+
+.chat-user {
+  background: linear-gradient(150deg, rgba(148, 163, 184, 0.35), rgba(124, 58, 237, 0.22));
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.25);
+  color: var(--text-color);
+}
+
+.chat-bot {
+  background: linear-gradient(150deg, rgba(248, 250, 252, 0.98), rgba(226, 232, 240, 0.94));
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: 0 18px 36px rgba(148, 163, 184, 0.25);
+  color: var(--text-color);
+}
+
+.chat-model-info {
+  background: rgba(248, 250, 252, 0.98);
+  border-color: rgba(124, 58, 237, 0.35);
+  color: var(--accent-strong);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
+}
+
+.chat-model-info::after {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: var(--text-color);
+  box-shadow: 0 12px 28px rgba(148, 163, 184, 0.25);
+}
+
+.modal-buttons button {
+  background: rgba(236, 239, 244, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  color: #1e293b;
+}
+
+.modal-buttons button:hover {
+  background: rgba(124, 58, 237, 0.16);
+  border-color: var(--accent);
+  color: var(--text-color);
+}
+
+.top-right-buttons .top-btn {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: #1e293b;
+}
+
+.top-right-buttons .top-btn:hover {
+  background: rgba(124, 58, 237, 0.16);
+  border-color: var(--accent);
+}
+
+#scrollDownBtn {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: #1e293b;
+}
+
+#scrollDownBtn:hover {
+  background: rgba(124, 58, 237, 0.16);
+  border-color: var(--accent);
+}

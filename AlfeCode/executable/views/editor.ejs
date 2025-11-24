@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= gitRepoNameCLI %> · Editor · Chat <%= chatNumber %></title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css" integrity="sha512-K7V6czS4fFqqpwYBF2Uowf5QkGoGB8NAFxnGSsg5uoHupS6aFD7fIH1SjS9K1zJnueJfm6D/Ejko116IhVQF7A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/CSS/chat.css">
+    <link rel="stylesheet" href="/CSS/editor.css">
+</head>
+<body>
+    <%- include('partials/session_banner') %>
+    <header class="editor-header">
+        <div>
+            <h1>Editor for <%= gitRepoNameCLI %></h1>
+            <div class="editor-subtitle">
+                Run #<%= runIdShort || chatNumber %> · <%= (runTitle && runTitle.length) ? runTitle : (runBranch || environment) %>
+            </div>
+        </div>
+        <button id="toggleSidebarBtn" type="button" title="Toggle sidebar">☰</button>
+        <button id="saveFileButton" disabled>Save</button>
+    </header>
+
+    <div class="editor-layout">
+        <aside class="editor-sidebar">
+            <div class="collapsible-section expanded">
+                <div class="collapsible-header">
+                    <span class="tree-label">Main Repo: <%= gitRepoNameCLI %></span>
+                </div>
+                <div class="collapsible-content directory-tree" data-repo="<%= gitRepoNameCLI %>">
+                    <%- directoryTreeHTML %>
+                </div>
+            </div>
+
+            <% additionalReposTrees.forEach(function(rep) { %>
+                <div class="collapsible-section collapsed">
+                    <div class="collapsible-header">
+                        <span class="tree-label">Attached Repo: <%= rep.repoName %></span>
+                    </div>
+                    <div class="collapsible-content directory-tree" data-repo="<%= rep.repoName %>">
+                        <%- rep.directoryTreeHTML %>
+                    </div>
+                </div>
+            <% }); %>
+        </aside>
+        <div id="divider" class="divider" title="Drag to resize"></div>
+
+        <main class="editor-main">
+            <div class="editor-file-info">
+                <div id="currentFilePath">Select a file from the sidebar</div>
+                <div id="editorStatus"></div>
+            </div>
+            <div class="editor-tabs" id="editorTabs" aria-label="Open files"></div>
+            <textarea id="codeEditor" spellcheck="false"></textarea>
+        </main>
+    </div>
+
+    <script>
+        window.EDITOR_CONFIG = {
+            repoName: "<%= gitRepoNameCLI %>",
+            chatNumber: "<%= chatNumber %>",
+            baseFileUrl: "/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor/file"
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js" integrity="sha512-4d6dkprdOCi/hTyBC0bY4Z1cdqUPVHtVHCnRvWmvMRGsiE9zraFMvx6bMpiKFFitvolG/GpNZgbf+168Q5e0ig==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js" integrity="sha512-/hMBDuNIQP5CKEM5Qn2ATqNnS/xP8Gr3HdWu3UwG2n7NXm/SuKD5Vac/mswHxZ34rnOG0r8QwMCKaRZ3eLaxhA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js" integrity="sha512-lZX31lrT7xvFeoJEB6Digw1VE3DybMT0SqnX+ANXoy2cuglRez2oJ6TP2RFxYDs2fzGEylh4G6dkprdFM5lCXg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/shell/shell.min.js" integrity="sha512-m1Ian+FJxuxMxDPZWS9Vyuk3F7S3w7Dnk3a1JpN96CBvs1+qsSVqSdz+CA0nVddOZXS6jttuPAHyBs+K6TfGsA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/xml/xml.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/htmlmixed/htmlmixed.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/css/css.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/sass/sass.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/markdown/markdown.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/yaml/yaml.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/sql/sql.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/properties/properties.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/toml/toml.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/ruby/ruby.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/php/php.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/go/go.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/rust/rust.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/clike/clike.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="/JS/editor.js"></script>
+  <div id="expandSidebarBtn" style="position: absolute; top: 80px; left: 8px; background: #444; color: #ddd; padding: 6px 8px; cursor: pointer; z-index: 999; display: none; border-radius:6px;">⟵</div>
+</body>
+</html>

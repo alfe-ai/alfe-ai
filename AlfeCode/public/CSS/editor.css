@@ -1,0 +1,292 @@
+:root {
+    color-scheme: dark;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+    color: #e2e8f0;
+}
+
+
+/* Sidebar divider for resizing */
+.divider {
+    width: 6px;
+    cursor: col-resize;
+    background: rgba(124, 58, 237, 0.12);
+    backdrop-filter: blur(6px);
+    border-right: 1px solid rgba(124, 58, 237, 0.18);
+    border-left: 1px solid rgba(148, 163, 184, 0.08);
+    flex: none;
+}
+
+#expandSidebarBtn {
+    display: none;
+    position: absolute;
+    left: 8px;
+    top: 80px;
+    background: rgba(68,68,68,0.9);
+    color: #eee;
+    padding: 6px 8px;
+    border-radius: 6px;
+    z-index: 999;
+}
+
+/* Ensure layout keeps sidebar left-aligned and full height */
+.editor-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: rgba(15, 23, 42, 0.92);
+    border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.45);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.editor-header h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.editor-header .editor-subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+.editor-layout {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.editor-sidebar {
+    width: clamp(280px, 24vw, 340px);
+    background: rgba(17, 24, 39, 0.94);
+    border-right: 1px solid rgba(51, 65, 85, 0.6);
+    padding: 1.25rem 1rem;
+    overflow-y: auto;
+}
+
+.editor-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 23, 42, 0.88);
+}
+
+.editor-file-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    background: rgba(17, 24, 39, 0.92);
+    gap: 1rem;
+}
+
+.editor-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.85rem 0.4rem;
+    background: rgba(15, 23, 42, 0.92);
+    border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.editor-tabs:empty {
+    display: none;
+}
+
+.editor-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px 8px 0 0;
+    background: rgba(30, 41, 59, 0.65);
+    color: #cbd5f5;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    position: relative;
+    transition: background 0.2s ease, color 0.2s ease;
+    max-width: 220px;
+}
+
+.editor-tab:hover {
+    background: rgba(59, 130, 246, 0.28);
+}
+
+.editor-tab.active {
+    background: rgba(124, 58, 237, 0.28);
+    border-color: rgba(124, 58, 237, 0.55);
+    color: #f8fafc;
+}
+
+.editor-tab.dirty::after {
+    content: "●";
+    font-size: 0.65rem;
+    color: #f59e0b;
+    margin-left: 0.1rem;
+}
+
+.editor-tab-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 160px;
+}
+
+.editor-tab-close {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.15rem;
+    line-height: 1;
+    border-radius: 6px;
+}
+
+.editor-tab-close:hover {
+    background: rgba(71, 85, 105, 0.55);
+}
+
+#currentFilePath {
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: #cbd5f5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#editorStatus {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+#editorStatus.success {
+    color: #34d399;
+}
+
+#editorStatus.error {
+    color: #f87171;
+}
+
+#saveFileButton {
+    padding: 0.55rem 1.2rem;
+    background: #7c3aed;
+    border: none;
+    color: #fff;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+#saveFileButton:disabled {
+    background: rgba(124, 58, 237, 0.4);
+    cursor: not-allowed;
+}
+
+#saveFileButton:not(:disabled):hover {
+    background: #8b5cf6;
+    transform: translateY(-1px);
+}
+
+.editor-sidebar .collapsible-section {
+    background: rgba(30, 41, 59, 0.45);
+    border: 1px solid rgba(51, 65, 85, 0.6);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.editor-sidebar .collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.75rem 0.9rem;
+    font-weight: 600;
+    user-select: none;
+}
+
+.editor-sidebar .collapsible-content {
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 0.75rem 0.9rem 1rem;
+    border-top: 1px solid rgba(51, 65, 85, 0.45);
+}
+
+.collapsible-section.collapsed .collapsible-content {
+    display: none;
+}
+
+.tree-label {
+    font-weight: 600;
+    color: #cbd5f5;
+}
+
+.selected-file {
+    background: rgba(124, 58, 237, 0.35);
+}
+
+.CodeMirror {
+    flex: 1;
+    height: 100%;
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.95rem;
+}
+
+.CodeMirror-gutters {
+    background: rgba(15, 23, 42, 0.92);
+    border-right: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+#codeEditor.plain-text-editor {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    padding: 1rem;
+    border: none;
+    outline: none;
+    background: rgba(15, 23, 42, 0.92);
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    resize: none;
+}
+
+@media (max-width: 1100px) {
+    .editor-layout {
+        flex-direction: column;
+    }
+
+    .editor-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    }
+}

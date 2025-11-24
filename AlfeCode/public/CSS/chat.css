@@ -1,0 +1,1004 @@
+/* Aurora-inspired Sterling chat theme */
+:root {
+    color-scheme: dark;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --bg-gradient: linear-gradient(180deg, rgba(124, 58, 237, 0.32), rgba(15, 23, 42, 0.94));
+    --bg-main: rgba(15, 23, 42, 0.92);
+    --bg-alt: rgba(15, 23, 42, 0.82);
+    --surface: rgba(30, 41, 59, 0.94);
+    --surface-soft: rgba(30, 41, 59, 0.75);
+    --surface-border: rgba(51, 65, 85, 0.65);
+    --surface-border-strong: rgba(148, 163, 184, 0.65);
+    --text-color: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent: #7c3aed;
+    --accent-soft: rgba(124, 58, 237, 0.28);
+    --accent-light: rgba(124, 58, 237, 0.18);
+    --accent-strong: #8b5cf6;
+    --positive: #22c55e;
+    --negative: #f97316;
+    --shadow: 0 18px 42px rgba(15, 23, 42, 0.45);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: inherit;
+    background: var(--bg-gradient);
+    color: var(--text-color);
+}
+
+body.aurora-theme {
+    background: var(--bg-gradient);
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+a:hover {
+    color: var(--accent-strong);
+    opacity: 0.9;
+}
+
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    background: transparent;
+}
+
+@media (max-width: 1100px) {
+    .app-shell {
+        flex-direction: column;
+        min-height: auto;
+    }
+}
+
+/* Sidebar */
+#sidebar {
+    flex: 0 0 clamp(280px, 28vw, 340px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 2.5rem 1.75rem 2rem;
+    background: linear-gradient(190deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.94));
+    border-right: 1px solid var(--surface-border);
+    color: var(--text-color);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    overflow-y: auto;
+}
+
+body.agent-route #sidebar {
+    padding-top: 1.25rem;
+    background: var(--bg-main) !important;
+    box-shadow: none;
+    backdrop-filter: none;
+    gap: 1rem;
+}
+
+body.agent-route #sidebar .sidebar-action-buttons {
+    margin-top: 0;
+}
+
+@media (max-width: 1100px) {
+    #sidebar {
+        flex: none;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--surface-border);
+        box-shadow: none;
+        padding: 1.75rem 1.25rem;
+    }
+}
+
+#sidebar h1 {
+    margin: 0;
+}
+/* Aurora icon + Alfe AI branding in sidebar */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    text-align: left;
+}
+.sidebar-brand-icon svg, .sidebar-brand-icon img {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    flex: 0 0 44px;
+}
+.sidebar-brand-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+.sidebar-brand-heading {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+.sidebar-brand-name {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: inherit;
+}
+.sidebar-brand-name:hover {
+    color: var(--accent-strong);
+}
+.sidebar-version {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.sidebar-brand-text .breadcrumb {
+    margin: 0.125rem 0;
+}
+
+
+#sidebar .breadcrumb {
+    margin: 0.15rem 0;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+#sidebar .breadcrumb a {
+    color: inherit;
+    font-weight: 500;
+}
+
+.sidebar-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sidebar-action-buttons .sidebar-
+/* Purple Open in Agent button */
+.button.open-agent-purple,
+.sidebar-button.open-agent-purple {
+    background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(124,58,237,0.28);
+    border: none;
+}
+.button.open-agent-purple:hover,
+.sidebar-button.open-agent-purple:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+}
+
+button {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    color: var(--text-color);
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-action-buttons .sidebar-button:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.sidebar-action-buttons .sidebar-button:active {
+    transform: translateY(0);
+}
+
+#sidebar button,
+#sidebar select,
+#sidebar input,
+#sidebar label {
+    font-family: inherit;
+    color: var(--text-color);
+}
+
+.environment-indicator {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.85rem;
+    margin-right: 0.4rem;
+    color: var(--accent);
+}
+
+
+.repo-metadata .collapsible-header {
+    background: rgba(34, 197, 94, 0.18);
+    color: var(--text-color);
+}
+
+.repo-metadata.collapsed .collapsible-header {
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.repo-metadata .collapsible-content {
+    background: rgba(15, 23, 42, 0.85);
+}
+
+.metadata-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.92rem;
+}
+
+.metadata-label {
+    font-weight: 600;
+    color: var(--positive);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.78rem;
+}
+
+.metadata-value {
+    color: var(--text-color);
+    overflow-wrap: anywhere;
+}
+
+.metadata-value code {
+    font-family: "Fira Code", "Source Code Pro", monospace;
+    font-size: 0.88rem;
+}
+
+.metadata-branch {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.metadata-branch > span:first-child {
+    flex: 1 1 auto;
+}
+
+.metadata-branch button {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(30, 64, 175, 0.25);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.metadata-branch button:hover {
+    background: rgba(59, 130, 246, 0.35);
+    border-color: rgba(59, 130, 246, 0.45);
+}
+
+#gitUpdatePullButton {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border-radius: 12px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+#gitUpdatePullButton:hover {
+    transform: translateY(-1px);
+    background: var(--accent-strong);
+}
+
+.sidebar-panel form {
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.1);
+}
+
+.sidebar-panel select,
+.sidebar-panel input[type="text"] {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--surface-border);
+    background: rgba(15, 23, 42, 0.85);
+    padding: 0.45rem 0.75rem;
+}
+
+.sidebar-panel select:focus,
+.sidebar-panel input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.35);
+}
+
+.sidebar-panel label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.sidebar-panel input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+.sidebar-panel .collapsible-section {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 14px;
+    box-shadow: none;
+}
+
+/* Main chat content */
+#content.chat-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(1.75rem, 3vw, 2.75rem);
+    background: linear-gradient(170deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.96));
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.content-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+.content-inner > form,
+.content-inner > .collapsible-section,
+.content-inner > .tabs {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 18px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.content-inner > .collapsible-section {
+    padding: 0;
+}
+
+h2 {
+    margin: 0;
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+}
+
+#aiModelForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+#aiModelForm .ai-selectors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+#aiModelForm select,
+#aiModelForm input[type="text"] {
+    min-width: 220px;
+    padding: 0.55rem 0.9rem;
+    border-radius: 14px;
+    border: 1px solid var(--surface-border);
+    background: rgba(15, 23, 42, 0.85);
+    color: var(--text-color);
+}
+
+#aiModelForm select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.28);
+}
+
+label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+select,
+input[type="text"],
+textarea {
+    font-family: inherit;
+    color: var(--text-color);
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--surface-border);
+    border-radius: 14px;
+    padding: 0.55rem 0.85rem;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+select:focus,
+input[type="text"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.28);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: rgba(226, 232, 240, 0.55);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 140px;
+}
+
+#chatForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+#tokenCountDisplay {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.form-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+button {
+    font-family: inherit;
+    font-weight: 600;
+    border-radius: 14px;
+    border: none;
+    padding: 0.55rem 1.1rem;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 12px 24px rgba(124, 58, 237, 0.25);
+}
+
+button:hover {
+    transform: translateY(-1px);
+    background: var(--accent-strong);
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+.form-buttons button {
+    min-width: 140px;
+}
+
+.remove-file-button {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(124, 58, 237, 0.4);
+    padding: 0.3rem 0.75rem;
+    box-shadow: none;
+}
+
+.remove-file-button:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.success-message {
+    background: rgba(34, 197, 94, 0.18);
+    border: 1px solid rgba(34, 197, 94, 0.32);
+    color: #b9f6ca;
+    padding: 0.9rem 1.1rem;
+    border-radius: 14px;
+    margin-bottom: 1rem;
+}
+
+/* Collapsible sections */
+.collapsible-section {
+    border-radius: 18px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.95rem 1.2rem;
+    cursor: pointer;
+    background: var(--accent-light);
+    color: var(--text-color);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.collapsible-section.expanded .collapsible-header {
+    background: rgba(124, 58, 237, 0.28);
+}
+
+.collapsible-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.collapsible-header .triangle {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--text-color);
+    transition: transform 0.2s ease;
+}
+
+.collapsible-section.expanded .collapsible-header .triangle {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    display: none;
+    padding: 1.1rem 1.2rem 1.35rem;
+    background: rgba(15, 23, 42, 0.82);
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.collapsible-section.expanded .collapsible-content {
+    display: block;
+}
+
+.directory-tree {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    font-size: 0.95rem;
+    line-height: 1.45em;
+    background: rgba(15, 23, 42, 0.65);
+    border-radius: 12px;
+    padding: 0.65rem 0.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.directory-tree ul {
+    list-style: none;
+    margin: 0;
+    padding-left: 1rem;
+}
+
+.directory-tree li {
+    margin: 0.25rem 0;
+}
+
+.folder > .tree-label {
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    padding-left: 20px;
+    color: var(--text-color);
+}
+
+.folder > .tree-label::before {
+    content: "▶";
+    position: absolute;
+    left: 0;
+    transition: transform 0.2s ease;
+    font-size: 0.85rem;
+    color: var(--accent);
+}
+
+.folder.collapsed > ul {
+    display: none;
+}
+
+.folder.expanded > .tree-label::before {
+    transform: rotate(90deg);
+}
+
+.folder.expanded > ul {
+    display: block;
+    margin-left: 0.3rem;
+    border-left: 1px dashed rgba(148, 163, 184, 0.35);
+    padding-left: 0.75rem;
+}
+
+.file-item {
+    cursor: pointer;
+    padding: 0.35rem 0.25rem 0.35rem 28px;
+    color: var(--text-muted);
+    border-radius: 10px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.file-item:hover {
+    background: rgba(124, 58, 237, 0.16);
+    color: var(--text-color);
+}
+
+.file-item.selected-file {
+    background: rgba(124, 58, 237, 0.35);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.tab-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.tab-buttons .tablink {
+    background: rgba(124, 58, 237, 0.15);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    color: var(--text-color);
+    padding: 0.5rem 1.1rem;
+    border-radius: 999px;
+    box-shadow: none;
+}
+
+.tab-buttons .tablink.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(124, 58, 237, 0.25);
+}
+
+.tab-buttons .tablink:hover {
+    background: rgba(124, 58, 237, 0.28);
+}
+
+.tab-content {
+    display: none;
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 16px;
+    padding: 1.25rem 1.35rem;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content h3 {
+    margin-top: 0;
+}
+
+.tab-content ul {
+    padding-left: 1.25rem;
+}
+
+/* Collapsible chat messages */
+.collapsible-message {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.85);
+}
+
+.collapsible-message .message-header {
+    background: rgba(124, 58, 237, 0.22);
+    color: var(--text-color);
+    padding: 0.85rem 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.collapsible-message .message-header .triangle {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--text-color);
+    transition: transform 0.2s ease;
+}
+
+.collapsible-message.expanded .message-header .triangle {
+    transform: rotate(180deg);
+}
+
+.collapsible-message .message-header .sender {
+    font-weight: 600;
+    flex-grow: 1;
+}
+
+.collapsible-message .message-header button {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(124, 58, 237, 0.45);
+    box-shadow: none;
+}
+
+.collapsible-message .message-header button:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.collapsible-message.collapsed .message-content {
+    display: none;
+}
+
+.collapsible-message .message-content {
+    padding: 1rem 1.25rem;
+}
+
+.collapsible-message .message-content pre {
+    background: rgba(15, 23, 42, 0.9);
+    color: var(--text-color);
+    padding: 1rem;
+    border-radius: 14px;
+    margin: 0;
+    overflow-x: auto;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+pre {
+    font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Loading indicator */
+#loadingIndicator {
+    display: none;
+    align-items: center;
+    color: var(--text-color);
+    margin-top: 0.75rem;
+    font-size: 0.95rem;
+    font-style: italic;
+}
+
+#spinner {
+    width: 24px;
+    height: 24px;
+    border: 4px solid rgba(226, 232, 240, 0.35);
+    border-top: 4px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 0.65rem;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#executionTimeText {
+    display: none;
+    color: var(--text-muted);
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+}
+
+/* Modal styling */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background-color: rgba(6, 12, 24, 0.72);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px; /* small viewport margin */
+    box-sizing: border-box;
+}
+
+.modal.is-hidden { display: none; }
+
+.modal-content {
+    background: rgba(15, 23, 42, 0.98);
+    color: var(--text-color);
+    width: calc(100% - 20px);
+    height: calc(100% - 20px);
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(148,163,184,0.08);
+    overflow: auto;
+    box-shadow: 0 24px 80px rgba(2,6,23,0.7);
+}
+
+
+.close,
+.close-switch-branch {
+    color: var(--text-muted);
+    float: right;
+    font-size: 1.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close:hover,
+.close-switch-branch:hover {
+    color: #fff;
+}
+
+.git-status-output {
+    font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", monospace;
+    white-space: pre-wrap;
+    background: rgba(15, 23, 42, 0.85);
+    border-radius: 14px;
+    padding: 1rem;
+    color: var(--text-color);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+#branchSelectContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+#branchSelectContainer label {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+#branchSelectContainer select,
+#branchSelectContainer input[type="text"] {
+    width: 100%;
+}
+
+#switchBranchSubmitButton {
+    align-self: flex-start;
+}
+
+#switchBranchMessage {
+    min-height: 1.2rem;
+    color: var(--text-muted);
+}
+
+/* Attached files */
+.attached-files-section ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.attached-files-section li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+/* Output files tab override */
+#outputFilesTab .collapsible-header {
+    background: rgba(124, 58, 237, 0.25) !important;
+    color: var(--text-color);
+}
+
+#outputFilesTab .collapsible-content {
+    background: rgba(15, 23, 42, 0.88);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #aiModelForm .ai-selectors {
+        flex-direction: column;
+    }
+
+    #sidebar {
+        border-radius: 0;
+    }
+
+    .content-inner > form,
+    .content-inner > .collapsible-section,
+    .content-inner > .tabs {
+        padding: 1.25rem;
+    }
+}
+
+
+/* Added: 5px horizontal padding for right-panel elements on /agent page */
+.content-inner > * {
+    padding-left: 5px;
+    padding-right: 5px;
+    box-sizing: border-box;
+}
+
+/* agent route: show pointer for disabled buttons/icons while keeping disabled functionality */
+body.agent-route button[disabled],
+body.agent-route .git-action-button[disabled],
+body.agent-route .nav-button[disabled],
+body.agent-route .sidebar-button[disabled],
+body.agent-route .run-submit[disabled] {
+  cursor: pointer !important;
+}
+
+
+/* Global scaling helper so the /agent page can reduce element size without shrinking panels */
+:root.agent-scale-80 {
+    font-size: 80%;
+}
+
+
+/* /agent page adjustments: increase prompt text and reduce send button */
+body.agent-route #chatInput,
+body.agent-route textarea#chatInput {
+    /* Make prompt text 10% larger on /agent route */
+    font-size: 110% !important;
+    line-height: 1.35 !important;
+}
+
+body.agent-route #chatForm .form-buttons button[type="submit"] {
+    /* Make the submit button footprint considerably smaller on /agent */
+    font-size: 0.68rem;
+    line-height: 1.1;
+    padding: 0.28rem 0.55rem !important;
+    min-width: 86px;
+    border-radius: 10px;
+}
+
+body.agent-route #chatForm .form-buttons button[type="submit"] svg,
+body.agent-route #chatForm .form-buttons button[type="submit"] .send-arrow {
+    width: 0.85em;
+    height: 0.85em;
+}

@@ -70,6 +70,15 @@ export default class TaskDB {
       );
     `);
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_settings (
+                                            session_id TEXT NOT NULL,
+                                            key        TEXT NOT NULL,
+                                            value      TEXT NOT NULL,
+                                            PRIMARY KEY (session_id, key)
+      );
+    `);
+
     this.db.exec(
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_github ON issues(github_id);`
     );
@@ -105,7 +114,10 @@ export default class TaskDB {
                                                send_project_context INTEGER DEFAULT 1,
                                               session_id TEXT DEFAULT '',
                                              tab_uuid TEXT DEFAULT '',
-                                             chatgpt_url TEXT DEFAULT ''
+                                             chatgpt_url TEXT DEFAULT '',
+                                             show_in_sidebar INTEGER DEFAULT 1,
+                                             favorite INTEGER DEFAULT 0,
+                                             path_alias TEXT DEFAULT ''
       );
     `);
       try {
@@ -198,6 +210,24 @@ export default class TaskDB {
       console.debug("[TaskDB Debug] Added chat_tabs.chatgpt_url column");
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_tabs.chatgpt_url column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec('ALTER TABLE chat_tabs ADD COLUMN show_in_sidebar INTEGER DEFAULT 1;');
+      console.debug("[TaskDB Debug] Added chat_tabs.show_in_sidebar column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_tabs.show_in_sidebar column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec("ALTER TABLE chat_tabs ADD COLUMN path_alias TEXT DEFAULT '';" );
+      console.debug("[TaskDB Debug] Added chat_tabs.path_alias column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_tabs.path_alias column exists, skipping.", e.message);
+    }
+    try {
+      this.db.exec('ALTER TABLE chat_tabs ADD COLUMN favorite INTEGER DEFAULT 0;');
+      console.debug("[TaskDB Debug] Added chat_tabs.favorite column");
+    } catch(e) {
+      //console.debug("[TaskDB Debug] chat_tabs.favorite column exists, skipping.", e.message);
     }
 
     this.db.exec(`
@@ -588,7 +618,52 @@ export default class TaskDB {
         hidden ? 1 : 0,
         id
     );
+
+    try {
+      this.db.exec(
+        `CREATE TABLE IF NOT EXISTS sterlingproxy (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL,
+          ip_address TEXT DEFAULT '',
+          start_timestamp TEXT NOT NULL,
+          last_used_timestamp TEXT NOT NULL,
+          status TEXT DEFAULT 'Running',
+          assigned_port INTEGER DEFAULT NULL,
+          runs INTEGER DEFAULT 0
+        );`
+      );
+      console.debug("[TaskDB Debug] Created sterlingproxy table");
+    } catch(e) {}
+
+    try {
+      this.db.exec('ALTER TABLE sterlingproxy ADD COLUMN runs INTEGER DEFAULT 0;');
+      console.debug("[TaskDB Debug] Added sterlingproxy.runs column");
+    } catch(e) {}
+
   }
+  ensureSterlingProxy(sessionId) {
+      if (!sessionId) return;
+      const exists = this.db.prepare("SELECT 1 FROM sterlingproxy WHERE session_id=?").get(sessionId);
+      if (!exists) {
+        const now = new Date().toISOString();
+        this.db.prepare("INSERT INTO sterlingproxy (session_id, ip_address, start_timestamp, last_used_timestamp, status) VALUES (?, ?, ?, ?, ?)").run(sessionId, '', now, now, 'Running');
+      }
+    }
+
+    upsertSterlingProxy(sessionId, ipAddress, assignedPort) {
+      if (!sessionId) return;
+      const now = new Date().toISOString();
+      const row = this.db.prepare("SELECT id FROM sterlingproxy WHERE session_id=?").get(sessionId);
+      if (row) {
+        this.db.prepare("UPDATE sterlingproxy SET ip_address=?, last_used_timestamp=?, assigned_port=? WHERE session_id=?").run(ipAddress||'', now, assignedPort||null, sessionId);
+      } else {
+        this.db.prepare("INSERT INTO sterlingproxy (session_id, ip_address, start_timestamp, last_used_timestamp, status, assigned_port) VALUES (?, ?, ?, ?, ?, ?)").run(sessionId, ipAddress||'', now, now, 'Running', assignedPort||null);
+      }
+    }
+
+    listSterlingProxy() {
+      return this.db.prepare("SELECT session_id, ip_address, start_timestamp, last_used_timestamp, status, assigned_port, runs FROM sterlingproxy ORDER BY start_timestamp DESC").all();
+    }
 
   setPoints(id, points) {
     this.db.prepare("UPDATE issues SET fib_points = ? WHERE id = ?").run(
@@ -675,6 +750,29 @@ export default class TaskDB {
     this.db
         .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)")
         .run(key, val);
+  }
+
+  getSessionSetting(sessionId, key) {
+    if (!sessionId) {
+      return this.getSetting(key);
+    }
+    const row = this.db
+        .prepare("SELECT value FROM session_settings WHERE session_id = ? AND key = ?")
+        .get(sessionId, key);
+    return row ? this._safeParse(row.value) : undefined;
+  }
+
+  setSessionSetting(sessionId, key, value) {
+    if (!sessionId) {
+      this.setSetting(key, value);
+      return;
+    }
+    const val = JSON.stringify(value);
+    this.db
+        .prepare(
+            "INSERT OR REPLACE INTO session_settings (session_id, key, value) VALUES (?, ?, ?)"
+        )
+        .run(sessionId, key, val);
   }
 
   listProjects(includeArchived = false) {
@@ -801,18 +899,25 @@ export default class TaskDB {
         .run(message, type, new Date().toISOString());
   }
 
-  createChatPair(userText, chatTabId = 1, systemContext = "", projectContext = "", sessionId = "") {
+  createChatPair(
+      userText,
+      chatTabId = 1,
+      systemContext = "",
+      projectContext = "",
+      sessionId = "",
+      ipAddress = ""
+  ) {
     const timestamp = new Date().toISOString();
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
-        citations_json, image_url, image_alt, image_title, session_id
+        citations_json, image_url, image_alt, image_title, session_id, ip_address
       )
       VALUES (
         @user_text, '', '', @timestamp, NULL,
         @chat_tab_id, @system_context, @project_context, NULL,
-        NULL, NULL, '', '', @session_id
+        NULL, NULL, '', '', @session_id, @ip_address
       )
     `).run({
       user_text: userText,
@@ -821,7 +926,8 @@ export default class TaskDB {
       system_context: systemContext,
       project_context: projectContext,
       citations_json: null,
-      session_id: sessionId
+      session_id: sessionId,
+      ip_address: ipAddress
     });
     return lastInsertRowid;
   }
@@ -901,14 +1007,14 @@ export default class TaskDB {
         .get(id);
   }
 
-  createChatTab(name, nexum = 0, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sessionId = '', sendProjectContext = 0, chatgptUrl = '') {
+  createChatTab(name, nexum = 0, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sessionId = '', sendProjectContext = 0, chatgptUrl = '', showInSidebar = 1, pathAlias = '') {
     const ts = new Date().toISOString();
     const genImages = type === 'design' ? 1 : 0;
     if (project) this.ensureProjectMeta(project);
     const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
     const { lastInsertRowid } = this.db.prepare(`
-      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, send_project_context, session_id, tab_uuid, chatgpt_url)
-      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @send_project_context, @session_id, @uuid, @chatgpt_url)
+      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, send_project_context, session_id, tab_uuid, chatgpt_url, show_in_sidebar, favorite, path_alias)
+      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @send_project_context, @session_id, @uuid, @chatgpt_url, @show_in_sidebar, @favorite, @path_alias)
     `).run({
       name,
       created_at: ts,
@@ -922,7 +1028,10 @@ export default class TaskDB {
       send_project_context: sendProjectContext ? 1 : 0,
       session_id: sessionId,
       uuid,
-      chatgpt_url: chatgptUrl
+      chatgpt_url: chatgptUrl,
+      show_in_sidebar: showInSidebar ? 1 : 0,
+      favorite: 0,
+      path_alias: pathAlias
     });
     return { id: lastInsertRowid, uuid };
   }
@@ -957,6 +1066,11 @@ export default class TaskDB {
     this.db.prepare("UPDATE chat_tabs SET name=? WHERE id=?").run(newName, tabId);
   }
 
+  setChatTabPathAlias(tabId, alias = '') {
+    const normalized = (alias || '').trim();
+    this.db.prepare("UPDATE chat_tabs SET path_alias=? WHERE id=?").run(normalized, tabId);
+  }
+
   setChatTabArchived(tabId, archived = 1) {
     if (archived) {
       this.db.prepare("UPDATE chat_tabs SET archived=1, archived_at=? WHERE id=?")
@@ -965,6 +1079,11 @@ export default class TaskDB {
       this.db.prepare("UPDATE chat_tabs SET archived=0, archived_at=NULL WHERE id=?")
           .run(tabId);
     }
+  }
+
+  setChatTabFavorite(tabId, favorite = 1) {
+    this.db.prepare('UPDATE chat_tabs SET favorite=? WHERE id=?')
+        .run(favorite ? 1 : 0, tabId);
   }
 
   setProjectArchived(project, archived = 1) {
@@ -1053,6 +1172,37 @@ export default class TaskDB {
     return this.db.prepare("SELECT * FROM chat_tabs WHERE tab_uuid=?").get(uuid);
   }
 
+  getChatTabByPathAlias(alias, sessionId = null) {
+    if (!alias) return null;
+    if (sessionId) {
+      return this.db
+          .prepare("SELECT * FROM chat_tabs WHERE path_alias=? AND session_id=?")
+          .get(alias, sessionId);
+    }
+    return this.db.prepare("SELECT * FROM chat_tabs WHERE path_alias=?").get(alias);
+  }
+
+  ensureDesignChatTab(sessionId = '') {
+    const alias = '/chat/design';
+    const existing = this.getChatTabByPathAlias(alias, sessionId || null);
+    if (existing) return existing;
+    const { id } = this.createChatTab(
+      'Design Chat',
+      0,
+      '',
+      '',
+      '',
+      0,
+      'design',
+      sessionId,
+      0,
+      '',
+      0,
+      alias
+    );
+    return this.getChatTab(id, sessionId || null);
+  }
+
   getChatTabUuidByTaskId(taskId) {
     const row = this.db
         .prepare("SELECT tab_uuid FROM chat_tabs WHERE task_id=?")
@@ -1067,8 +1217,8 @@ export default class TaskDB {
     const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
     const newName = name || `${tab.name} Copy`;
     const { lastInsertRowid } = this.db.prepare(`
-      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, send_project_context, session_id, tab_uuid, chatgpt_url)
-      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @send_project_context, @session_id, @uuid, @chatgpt_url)
+      INSERT INTO chat_tabs (name, created_at, generate_images, nexum, project_name, repo_ssh_url, extra_projects, task_id, tab_type, send_project_context, session_id, tab_uuid, chatgpt_url, show_in_sidebar, favorite, path_alias)
+      VALUES (@name, @created_at, @generate_images, @nexum, @project_name, @repo_ssh_url, @extra_projects, @task_id, @tab_type, @send_project_context, @session_id, @uuid, @chatgpt_url, @show_in_sidebar, @favorite, @path_alias)
     `).run({
       name: newName,
       created_at: ts,
@@ -1082,7 +1232,10 @@ export default class TaskDB {
       send_project_context: tab.send_project_context,
       session_id: tab.session_id,
       uuid,
-      chatgpt_url: tab.chatgpt_url || ''
+      chatgpt_url: tab.chatgpt_url || '',
+      show_in_sidebar: tab.show_in_sidebar ? 1 : 0,
+      favorite: tab.favorite ? 1 : 0,
+      path_alias: tab.path_alias || ''
     });
 
     this.db.prepare(`
@@ -1314,6 +1467,9 @@ export default class TaskDB {
   }
 
   imageLimitForSession(sessionId, baseLimit = 50) {
+    if (baseLimit <= 10) {
+      return baseLimit;
+    }
     const hours = this.hoursSinceImageSessionStart(sessionId);
     return Math.max(0, baseLimit - hours);
   }
@@ -1341,6 +1497,32 @@ export default class TaskDB {
     const row = this.db
         .prepare(
             "SELECT COUNT(*) AS count FROM chat_pairs WHERE ip_address=? AND image_url IS NOT NULL"
+        )
+        .get(ipAddress);
+    return row ? row.count : 0;
+  }
+
+  countSearchesForSession(sessionId) {
+    if (!sessionId) return 0;
+    const row = this.db
+        .prepare(
+            `SELECT COUNT(*) AS count
+               FROM chat_pairs cp
+               JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
+              WHERE cp.session_id = ? AND ct.tab_type = 'search'`
+        )
+        .get(sessionId);
+    return row ? row.count : 0;
+  }
+
+  countSearchesForIp(ipAddress) {
+    if (!ipAddress) return 0;
+    const row = this.db
+        .prepare(
+            `SELECT COUNT(*) AS count
+               FROM chat_pairs cp
+               JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
+              WHERE cp.ip_address = ? AND ct.tab_type = 'search'`
         )
         .get(ipAddress);
     return row ? row.count : 0;

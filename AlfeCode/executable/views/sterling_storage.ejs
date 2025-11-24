@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sterling · Storage Overview</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            color-scheme: dark;
+            --nexum-bg-outer: #050713;
+            --nexum-bg-inner: #111528;
+            --nexum-panel: rgba(15, 20, 38, 0.9);
+            --nexum-card: rgba(22, 28, 52, 0.95);
+            --nexum-border: rgba(124, 144, 196, 0.25);
+            --nexum-text: #e2e8f0;
+            --nexum-muted: #94a3b8;
+            --nexum-accent: #7c3aed;
+            --nexum-danger: #f87171;
+            --nexum-danger-strong: #dc2626;
+            --shadow-soft: 0 24px 48px rgba(7, 11, 25, 0.45);
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 48px 24px;
+            background: radial-gradient(circle at top left, var(--nexum-bg-outer), var(--nexum-bg-inner));
+            color: var(--nexum-text);
+            min-height: 100vh;
+        }
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        header {
+            padding: 24px;
+            border-radius: 18px;
+            background: linear-gradient(145deg, rgba(17, 24, 39, 0.92), rgba(17, 24, 39, 0.7));
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 28px;
+        }
+        header h1 {
+            margin: 0 0 6px 0;
+            font-size: 1.9rem;
+        }
+        header p {
+            margin: 6px 0;
+            color: var(--nexum-muted);
+        }
+        .metrics {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+        .metric-card {
+            flex: 1 1 240px;
+            background: var(--nexum-card);
+            border: 1px solid var(--nexum-border);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: var(--shadow-soft);
+        }
+        .metric-title {
+            font-size: 0.9rem;
+            color: var(--nexum-muted);
+            margin-bottom: 6px;
+        }
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        .metric-subtle {
+            font-size: 0.85rem;
+            color: var(--nexum-muted);
+        }
+        .alert {
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+        }
+        .alert-success {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.35);
+            color: #6ee7b7;
+        }
+        .alert-error {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(220, 38, 38, 0.35);
+            color: #fca5a5;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--nexum-card);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+        }
+        thead {
+            background: rgba(31, 41, 71, 0.7);
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid rgba(124, 144, 196, 0.15);
+        }
+        th {
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--nexum-muted);
+        }
+        tbody tr:hover {
+            background: rgba(124, 58, 237, 0.14);
+        }
+        .size {
+            font-variant-numeric: tabular-nums;
+        }
+        .actions {
+            text-align: right;
+        }
+        .delete-form {
+            display: inline-block;
+            margin: 0;
+        }
+        .delete-button {
+            appearance: none;
+            border: 1px solid rgba(220, 38, 38, 0.6);
+            background: rgba(248, 113, 113, 0.2);
+            color: #fecaca;
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .delete-button:hover {
+            background: rgba(248, 113, 113, 0.35);
+            transform: translateY(-1px);
+        }
+        .delete-button:active {
+            transform: translateY(0);
+            background: rgba(220, 38, 38, 0.45);
+        }
+        .empty-state {
+            padding: 24px;
+            text-align: center;
+            color: var(--nexum-muted);
+        }
+        footer {
+            margin-top: 28px;
+            color: var(--nexum-muted);
+            font-size: 0.9rem;
+        }
+        code {
+            background: rgba(15, 23, 42, 0.55);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/session_banner') %>
+    <div class="page">
+        <header>
+            <h1>Storage Management</h1>
+            <p>
+                Monitoring directories inside
+                <code><%= storageRoot %></code>
+                <% if (usingFallback) { %>
+                    <span style="color: var(--nexum-muted);">(using fallback path)</span>
+                <% } %>
+            </p>
+            <% if (storageError) { %>
+                <div class="alert alert-error"><%= storageError %></div>
+            <% } %>
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-title">Total disk usage</div>
+                    <div class="metric-value"><%= totalSizeHuman %></div>
+                    <div class="metric-subtle">≈ <%= totalSizeBytes.toLocaleString() %> bytes</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Directories tracked</div>
+                    <div class="metric-value"><%= directories.length %></div>
+                    <div class="metric-subtle">Top-level folders in storage root</div>
+                </div>
+            </div>
+        </header>
+
+        <% if (deletedDir) { %>
+            <div class="alert alert-success">Deleted directory <strong><%= deletedDir %></strong>.</div>
+        <% } %>
+        <% if (errorMessage && !storageError) { %>
+            <div class="alert alert-error"><%= errorMessage %></div>
+        <% } %>
+
+        <% if (!rootExists) { %>
+            <div class="alert alert-error">
+                Storage directory could not be found. Expected at <code><%= storageRoot %></code>.
+            </div>
+        <% } else if (!directories.length) { %>
+            <div class="empty-state">
+                No directories detected yet. New agent runs will appear here once created under <code><%= storageRoot %></code>.
+            </div>
+        <% } else { %>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Directory</th>
+                        <th>Created</th>
+                        <th class="size">Size</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% directories.forEach(function(dir) { %>
+                        <tr>
+                            <td><strong><%= dir.name %></strong></td>
+                            <td><%= dir.createdAtDisplay %></td>
+                            <td class="size"><%= dir.sizeHuman %> <span style="color: var(--nexum-muted);">(<%= dir.sizeBytes.toLocaleString() %> bytes)</span></td>
+                            <td class="actions">
+                                <form class="delete-form" method="POST" action="/sterling/storage/delete">
+                                    <input type="hidden" name="directory" value="<%= dir.name %>">
+                                    <button type="submit" class="delete-button" data-directory="<%= dir.name %>">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        <% } %>
+
+        <footer>
+            Deleting a directory immediately frees up space on disk. This action cannot be undone.
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.delete-button').forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    var dir = button.getAttribute('data-directory') || 'this directory';
+                    var confirmed = window.confirm('Delete "' + dir + '"? This cannot be undone.');
+                    if (!confirmed) {
+                        event.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+
+    <%- include('partials/cookie_banner') %>
+</body>
+</html>

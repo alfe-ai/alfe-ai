@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alfe AI Agent</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body { font-family: Roboto, sans-serif; margin: 24px; }
+        .container { max-width: 900px; }
+        h1 { margin-bottom: 8px; }
+        section { margin-top: 18px; }
+        pre { background:#f6f6f6; padding:12px; overflow:auto; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Alfe AI Agent</h1>
+    <p>This page documents how to use the Sterling <code>/agent</code> interface and common workflows.</p>
+
+    <section>
+        <h2>Overview</h2>
+        <p>The Sterling Agent lets you run codex-style agents against a repository. Provide a <strong>Project directory</strong> (optional), configure agent settings, and enter a prompt to start a run.</p>
+    </section>
+
+    <section>
+        <h2>Fields</h2>
+        <ul>
+            <li><strong>Model</strong> — choose the model to use for the agent (when visible).</li>
+            <li><strong>Project directory</strong> — path to the repository to operate on. If blank, local default is used.</li>
+            <li><strong>Agent instructions</strong> — system-level instructions guiding the agent's behavior.</li>
+            <li><strong>Project file tree</strong> — when enabled, the UI can send a file tree snapshot to the agent.</li>
+            <li><strong>Prompt</strong> — the user-visible task or question for the agent.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Buttons & Actions</h2>
+        <ul>
+            <li><strong>Run</strong> — starts the agent run and streams output to the page.</li>
+            <li><strong>Cancel</strong> — stops a running agent process.</li>
+            <li><strong>Merge</strong> — available after a successful run to apply suggested changes.</li>
+            <li><strong>Update branch</strong> — pulls changes from the parent branch into the current branch.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Common Workflows</h2>
+        <h3>1) Small change or bugfix</h3>
+        <ol>
+            <li>Enter the project directory.</li>
+            <li>Provide a clear prompt describing the change (goal, files to modify, tests to run).</li>
+            <li>Run the agent and review stdout / file diffs in the output tabs.</li>
+            <li>If satisfied, use <code>Merge</code> to apply commits.</li>
+        </ol>
+
+        <h3>2) Explore repository</h3>
+        <ol>
+            <li>Enable the file tree to give the agent context about the repository layout.</li>
+            <li>Ask high-level questions (e.g., "Where is the API router defined?").</li>
+        </ol>
+    </section>
+
+    <section>
+        <h2>Troubleshooting</h2>
+        <ul>
+            <li>If Python commands fail, ensure the server has a Python 3 interpreter available.</li>
+            <li>Large repositories may truncate file tree snapshots — prefer targeted directories.</li>
+            <li>Check server logs for agent run details in <code>run_codex.sh</code>.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Security & Safety</h2>
+        <p>Be careful when running automatic merge operations. Review changes before applying. Do not include secrets in prompts.</p>
+    </section>
+
+    <footer style="margin-top:28px;">
+        <a href="/agent" target="_blank">Back to Agent</a>
+    </footer>
+</div>
+</body>
+</html>

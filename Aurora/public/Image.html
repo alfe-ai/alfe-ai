@@ -7,7 +7,7 @@
 </head>
 <body style="padding:1rem;">
   <h2>Image Design Pipeline</h2>
-  <p><button id="backToAuroraBtn">&larr; Back to Aurora</button></p>
+  <p><button id="backToAuroraBtn">&larr; Back to Alfe AI</button></p>
   <div id="errorMessage" style="color:red;margin-bottom:0.5rem;"></div>
   <ul id="stageList"></ul>
   <div id="imageTabs" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
@@ -44,11 +44,8 @@
   </div>
   <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
     <button id="upscaleButton" hidden>Submit to Upscale</button>
-    <button id="printifyButton" hidden>Submit to Printify</button>
-    <button id="printifyTitleFixButton" hidden>Title Fix</button>
-    <button id="printifyPriceButton" hidden>Submit Price Update</button>
+    <button id="printifyPublishButton" hidden>Run Printify Publish (placeholder)</button>
     <button id="setProductUrlButton" hidden>Set Product URL</button>
-    <button id="printifyApiButton">Submit Printify API Updates</button>
     <button id="printifyFinishButton" style="margin-left:auto;">Programatic: Printify Finish</button>
   </div>
   <pre id="upscaleTerminal" style="background:#000;color:#0f0;padding:0.5rem;margin-top:0.5rem;height:200px;overflow:auto;font-family:monospace;"></pre>
@@ -80,12 +77,8 @@
     const stageParam = parseInt(params.get('stage'));
     const stages = [
       { name: 'Generated' },
-      { name: 'Border Added', disabled: true },
       { name: 'Upscaled', disabled: true },
-      { name: 'Printify Puppet', disabled: true },
-      { name: 'Printify API Title Fix', disabled: true },
-      { name: 'Printify Price Puppet', disabled: true },
-      { name: 'Printify API Updates', disabled: true },
+      { name: 'Printify Publish', disabled: true },
       { name: 'Ebay Shipping Updated', disabled: true },
       { name: 'Done', disabled: true }
     ];
@@ -107,14 +100,35 @@
       'Generated',
       'Upscaled',
       'Background Removed',
-      'Border Added',
-      'Printify Step',
-      'Printify API Title Fix',
-      'Printify Price Puppet',
-      'Printify API Updates',
+      'Printify Publish',
       'Ebay Shipping Updated',
       'Done'
     ];
+
+    const stageOrder = stages.map(stage => stage.name);
+
+    function applyStageProgress(status){
+      if(!status) return;
+      const targetIdx = stageOrder.indexOf(status);
+      if(targetIdx === -1) return;
+
+      stageItems.forEach((item, idx) => {
+        if(idx === 0){
+          item.classList.add('completed');
+        } else {
+          item.classList.toggle('completed', idx < targetIdx || status === 'Done');
+        }
+        item.classList.remove('current');
+      });
+
+      if(status === 'Done'){
+        stageItems.forEach((item, idx) => {
+          if(idx <= targetIdx) item.classList.add('completed');
+        });
+      } else if(stageItems[targetIdx]){
+        stageItems[targetIdx].classList.add('current');
+      }
+    }
 
     async function loadStatus(){
       try{
@@ -146,34 +160,9 @@
             printifyUrl = null;
             statusText.textContent = current;
           }
-          if(printifyTitleFixBtn) printifyTitleFixBtn.hidden = !printifyUrl;
           updateProductTable();
         }
-      if(current === 'Printify API Title Fix'){
-          if(stageItems[3]) stageItems[3].classList.add('completed');
-          if(stageItems[4]) stageItems[4].classList.add('current');
-        } else if(current === 'Printify Price Puppet'){
-          if(stageItems[3]) stageItems[3].classList.add('completed');
-          if(stageItems[4]) stageItems[4].classList.add('completed');
-          if(stageItems[5]) stageItems[5].classList.add('current');
-        } else if(current === 'Printify API Updates'){
-          if(stageItems[3]) stageItems[3].classList.add('completed');
-          if(stageItems[4]) stageItems[4].classList.add('completed');
-          if(stageItems[5]) stageItems[5].classList.add('completed');
-          if(stageItems[6]) stageItems[6].classList.add('current');
-        } else if(current === 'Ebay Shipping Updated'){
-          if(stageItems[3]) stageItems[3].classList.add('completed');
-          if(stageItems[4]) stageItems[4].classList.add('completed');
-          if(stageItems[5]) stageItems[5].classList.add('completed');
-          if(stageItems[6]) stageItems[6].classList.add('completed');
-          if(stageItems[7]) stageItems[7].classList.add('current');
-        } else if(current === 'Done'){
-          if(stageItems[3]) stageItems[3].classList.add('completed');
-          if(stageItems[4]) stageItems[4].classList.add('completed');
-          if(stageItems[5]) stageItems[5].classList.add('completed');
-          if(stageItems[6]) stageItems[6].classList.add('completed');
-          if(stageItems[7]) stageItems[7].classList.add('completed');
-        }
+        applyStageProgress(current);
       }catch(e){
         console.error('Failed to check status =>', e);
       }
@@ -312,9 +301,7 @@
     let upscaledPath = null;
     let nobgFile = null;
     let nobgPath = null;
-    let printifyBtn;
-    let printifyTitleFixBtn;
-    let printifyPriceBtn;
+    let printifyPublishBtn;
     let setProductUrlBtn;
     let productUrlCell;
     let printifyUrl = null;
@@ -349,12 +336,10 @@
         } else if(upscaledPath){
           normalRadio.checked = true;
         }
-        printifyBtn.hidden = false;
-        if(printifyPriceBtn) printifyPriceBtn.hidden = false;
+        if(printifyPublishBtn) printifyPublishBtn.hidden = false;
       } else {
         choiceDiv.style.display = 'none';
-        printifyBtn.hidden = true;
-        if(printifyPriceBtn) printifyPriceBtn.hidden = true;
+        if(printifyPublishBtn) printifyPublishBtn.hidden = true;
       }
     }
 
@@ -386,7 +371,10 @@
           upscaledFile = data.url.split(/[/\\]/).pop();
           upscaledPath = data.url;
           document.getElementById('tabUpscaled').style.display = '';
-          if(stageItems[2]) stageItems[2].classList.add('completed');
+          const upscaledIdx = stageOrder.indexOf('Upscaled');
+          if(upscaledIdx !== -1 && stageItems[upscaledIdx]){
+            stageItems[upscaledIdx].classList.add('completed');
+          }
           showUpscaled();
         }
         const nobgCandidate = data.nobgUrl || (data.url && /(?:[_-](?:no)?[-_]?bg)/i.test(data.url) ? data.url : null);
@@ -411,12 +399,9 @@
     showOriginal();
 
     const upscaleBtn = document.getElementById('upscaleButton');
-    printifyBtn = document.getElementById('printifyButton');
-    printifyTitleFixBtn = document.getElementById('printifyTitleFixButton');
-    printifyPriceBtn = document.getElementById('printifyPriceButton');
+    printifyPublishBtn = document.getElementById('printifyPublishButton');
     setProductUrlBtn = document.getElementById('setProductUrlButton');
     productUrlCell = document.getElementById('productUrlCell');
-    const printifyApiBtn = document.getElementById('printifyApiButton');
     const terminalEl = document.getElementById('upscaleTerminal');
     const jobsListEl = document.getElementById('jobsList');
 
@@ -438,11 +423,8 @@
       console.debug('Loaded Image page for file =>', file);
       if (file) {
       upscaleBtn.hidden = false;
-      printifyBtn.hidden = true;
-      if(printifyTitleFixBtn) printifyTitleFixBtn.hidden = true;
-      if(printifyPriceBtn) printifyPriceBtn.hidden = true;
+      if(printifyPublishBtn) printifyPublishBtn.hidden = true;
       if(setProductUrlBtn) setProductUrlBtn.hidden = false;
-      printifyApiBtn.hidden = false;
       upscaleBtn.addEventListener('click', async () => {
         console.debug('Submit to Upscale clicked with file =>', file);
         terminalEl.textContent = '';
@@ -467,97 +449,30 @@
           terminalEl.textContent = 'Upscale request failed.';
         }
       });
-      printifyBtn.addEventListener('click', async () => {
-        const choice = document.querySelector('input[name="printifyVariant"]:checked');
-        const variant = choice ? choice.value : (nobgFile ? 'nobg' : 'normal');
-        const targetFile = variant === 'nobg' ? nobgFile : upscaledFile;
-        const targetPath = variant === 'nobg' ? nobgPath : upscaledPath;
-        console.debug('Submit to Printify clicked with file =>', targetPath);
-        terminalEl.textContent = '';
-        if(!targetFile && !targetPath){
-          terminalEl.textContent = 'Upscaled 4096 image not available.';
-          console.debug('Printify aborted => upscaled image missing');
-          return;
-        }
-        try {
-          console.debug('Sending POST /api/printify');
-          const res = await fetch('/api/printify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file: targetPath || targetFile })
-          });
-          console.debug('Received response =>', res.status);
-          const data = await res.json().catch(() => ({}));
-          if (res.ok && data.jobId) {
-            window.open(`jobs.html?jobId=${data.jobId}`, '_blank');
-            terminalEl.textContent = `Job started with ID ${data.jobId}. Open the Jobs List to view progress.`;
-          } else {
-            terminalEl.textContent = data.error || 'Printify request failed.';
-            console.debug('Printify failed =>', terminalEl.textContent);
-          }
-        } catch (err) {
-          console.error('Printify request error =>', err);
-        terminalEl.textContent = 'Printify request failed.';
-      }
-      });
-      if(printifyTitleFixBtn){
-        printifyTitleFixBtn.addEventListener('click', async () => {
-          if(!printifyUrl){
-            terminalEl.textContent = 'No Printify URL found.';
-            return;
-          }
-          terminalEl.textContent = '';
-          try {
-            const res = await fetch('/api/printifyTitleFix', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ file })
-            });
-            const data = await res.json().catch(() => ({}));
-            if(res.ok && data.jobId){
-              window.open(`jobs.html?jobId=${data.jobId}`, '_blank');
-              terminalEl.textContent = `Job started with ID ${data.jobId}. Open the Jobs List to view progress.`;
-            } else {
-              terminalEl.textContent = data.error || 'Title Fix request failed.';
-            }
-          } catch(err){
-            console.error('Title Fix request error =>', err);
-            terminalEl.textContent = 'Title Fix request failed.';
-          }
-        });
-      }
-      if(printifyPriceBtn){
-        printifyPriceBtn.addEventListener('click', async () => {
+      if(printifyPublishBtn){
+        printifyPublishBtn.addEventListener('click', async () => {
           const choice = document.querySelector('input[name="printifyVariant"]:checked');
           const variant = choice ? choice.value : (nobgFile ? 'nobg' : 'normal');
           const targetFile = variant === 'nobg' ? nobgFile : upscaledFile;
           const targetPath = variant === 'nobg' ? nobgPath : upscaledPath;
-          console.debug('Submit to Printify Price Puppet clicked with file =>', targetPath);
+          console.debug('Printify Publish placeholder clicked with file =>', targetPath);
           terminalEl.textContent = '';
           if(!targetFile && !targetPath){
             terminalEl.textContent = 'Upscaled 4096 image not available.';
+            console.debug('Printify Publish aborted => upscaled image missing');
             return;
           }
           try {
-            const res = await fetch('/api/printifyPrice', {
+            await fetch('/api/upload/status', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                file: targetPath || targetFile,
-                url: printifyUrl || undefined
-              })
+              body: JSON.stringify({ name: file, status: 'Printify Publish' })
             });
-            const data = await res.json().catch(() => ({}));
-            if(res.ok && data.jobId){
-              window.open(`jobs.html?jobId=${data.jobId}`, '_blank');
-              terminalEl.textContent = `Job started with ID ${data.jobId}. Open the Jobs List to view progress.`;
-            } else {
-              terminalEl.textContent = data.error || 'Printify Price request failed.';
-            }
           } catch(err){
-            console.error('Printify Price request error =>', err);
-            terminalEl.textContent = 'Printify Price request failed.';
+            console.error('Failed to update status for Printify Publish =>', err);
           }
+          terminalEl.textContent = `Placeholder: Printify Publish would process ${targetPath || targetFile}.`;
+          await checkStatus();
         });
       }
       if(setProductUrlBtn){
@@ -577,43 +492,6 @@
           }
         });
       }
-      printifyApiBtn.addEventListener('click', async () => {
-        const productId = prompt('Enter Printify Product ID:');
-        if(!productId) return;
-        const priceStr = prompt('Enter new price for all variants:', '19.44');
-        if(priceStr === null) return;
-        const qtyStr = prompt('Enter inventory quantity for all variants:', '20');
-        if(qtyStr === null) return;
-        const price = Math.round((parseFloat(priceStr) || 0) * 100);
-        const quantity = parseInt(qtyStr, 10) || 0;
-        terminalEl.textContent = '';
-        try {
-          const vRes = await fetch(`/api/printify/product/${encodeURIComponent(productId)}`);
-          const vData = await vRes.json();
-          if(!vRes.ok){
-            terminalEl.textContent = vData.error || 'Failed to load product.';
-            return;
-          }
-          const variants = Array.isArray(vData.variants)
-            ? vData.variants.map(v => ({ id: v.id, price, inventory_quantity: quantity }))
-            : [];
-          const res = await fetch('/api/printify/updateProduct', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId, variants, file: upscaledPath || upscaledFile || file })
-          });
-          const data = await res.json().catch(() => ({}));
-          if(res.ok && data.updated){
-            terminalEl.textContent = 'Printify product updated.';
-            await checkStatus();
-          } else {
-            terminalEl.textContent = data.error || 'Printify API update failed.';
-          }
-        } catch(err){
-          console.error('Printify API update error =>', err);
-          terminalEl.textContent = 'Printify API update failed.';
-        }
-      });
       async function loadJobs(){
         try {
           const res = await fetch('/api/jobs');
@@ -655,10 +533,6 @@
           }
 
           if(anyFinished){
-            if(stageItems[3] && !stageItems[3].classList.contains('completed')){
-              stageItems[3].classList.add('completed');
-              if(stageItems[4]) stageItems[4].classList.add('current');
-            }
             checkStatus();
           }
         } catch(err){
@@ -675,11 +549,8 @@
       setInterval(checkPortfolio, 5000);
     } else {
       upscaleBtn.disabled = true;
-      printifyBtn.disabled = true;
-      if(printifyTitleFixBtn) printifyTitleFixBtn.disabled = true;
-      if(printifyPriceBtn) printifyPriceBtn.disabled = true;
+      if(printifyPublishBtn) printifyPublishBtn.disabled = true;
       if(setProductUrlBtn) setProductUrlBtn.disabled = true;
-      printifyApiBtn.disabled = true;
       console.debug('No file parameter found => Upscale disabled');
       if(!errorEl.textContent){
         errorEl.textContent = 'No file specified.';

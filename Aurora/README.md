@@ -15,7 +15,7 @@ npm start
 | Name             | Purpose                                               |
 | ---------------- | ----------------------------------------------------- |
 | `OPENAI_API_KEY` | OpenAI API key for AI features ([get here](https://platform.openai.com/api-keys)) |
-| `AI_MODEL`   | (Optional) Default AI model used if the database has no value (default: openrouter/deepseek/deepseek-chat-v3-0324) |
+| `AI_MODEL`   | (Optional) Default AI model used if the database has no value (default: openrouter/openai/gpt-5-mini) |
 | `STABILITY_API_KEY` | (Optional) API key for the Stability AI upscaler |
 | `PRINTIFY_SCRIPT_PATH` | (Optional) Path to the Printify submission script. Defaults to the included run.sh |
 | `PRINTIFY_PRICE_SCRIPT_PATH` | (Optional) Path to the Printify price update script. Defaults to `/home/admin/Puppets/PrintifyPricePuppet/run.sh` |
@@ -24,6 +24,7 @@ npm start
 | `PRINTIFY_API_TOKEN` | (Optional) API token for Printify REST API (legacy `PRINTIFY_TOKEN` also supported) |
 | `PRINTIFY_SHOP_ID` | (Optional) Shop ID for Printify API requests |
 | `STABLE_DIFFUSION_URL` | (Optional) Base URL for a self-hosted Stable Diffusion API |
+| `STERLING_BASE_URL` | (Optional) Base URL for SterlingLink. API endpoints are resolved under `${STERLING_BASE_URL}/api`. |
 | `HTTPS_KEY_PATH` | (Optional) Path to SSL private key for HTTPS |
 | `HTTPS_CERT_PATH` | (Optional) Path to SSL certificate for HTTPS |
 | `AURORA_PORT` | (Optional) Port for the web server (default: 3000) |

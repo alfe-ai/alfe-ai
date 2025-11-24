@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ProjectView Queue</title>
+  <link rel="stylesheet" href="/ProjectView/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Task Queue</h1>
+    <section id="add-task">
+      <input id="task-title" placeholder="Task title" />
+      <input id="task-desc" placeholder="Description (optional)" />
+      <button id="enqueue">Add to queue</button>
+    </section>
+
+    <section id="assign">
+      <label for="project-select">Assign to project:</label>
+      <select id="project-select"><option value="">(select project)</option></select>
+    </section>
+
+    <section id="queue-list">
+      <h2>Queued Tasks</h2>
+      <div id="tasks"></div>
+    </section>
+  </main>
+  <script src="/ProjectView/queue.js"></script>
+</body>
+</html>

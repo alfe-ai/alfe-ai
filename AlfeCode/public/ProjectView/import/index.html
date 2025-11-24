@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Import ProjectView Data</title>
+    <link rel="icon" href="/alfe_favicon.ico" />
+    <link rel="stylesheet" href="../style.css" />
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem 1rem;
+        gap: 1.5rem;
+      }
+
+      main {
+        width: min(960px, 100%);
+        background: #ffffffdd;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.14);
+        padding: 2rem 2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.75rem, 3vw, 2.4rem);
+        text-align: center;
+      }
+
+      p.description {
+        margin: 0;
+        color: #475569;
+        text-align: center;
+        line-height: 1.6;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 320px;
+        border-radius: 12px;
+        border: 1px solid #cbd5f5;
+        padding: 1rem 1.25rem;
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        resize: vertical;
+        background: #f8fafc;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 0.75rem 1.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      }
+
+      button:focus-visible {
+        outline: 3px solid rgba(99, 102, 241, 0.35);
+        outline-offset: 2px;
+      }
+
+      button.import {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+        box-shadow: 0 12px 30px rgba(99, 102, 241, 0.25);
+      }
+
+      button.import:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 36px rgba(99, 102, 241, 0.3);
+      }
+
+      button.clear {
+        background: #e2e8f0;
+        color: #1e293b;
+      }
+
+      button.clear:hover {
+        opacity: 0.8;
+      }
+
+      .status {
+        min-height: 1.5rem;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+      }
+
+      .status--success {
+        color: #15803d;
+      }
+
+      .status--error {
+        color: #b91c1c;
+      }
+
+      .status--info {
+        color: #2563eb;
+      }
+
+      .nav-link {
+        text-decoration: none;
+        color: #4c1d95;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .nav-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Import ProjectView JSON</h1>
+      <p class="description">
+        Paste the JSON array exported from ProjectView. When you select
+        <strong>Import projects</strong> it will replace the current projects
+        stored on the server.
+      </p>
+      <textarea
+        id="project-json"
+        placeholder="Paste your ProjectView JSON here..."
+        aria-label="ProjectView JSON"
+      ></textarea>
+      <div class="button-row">
+        <button type="button" class="clear" id="clear-json">Clear</button>
+        <button type="button" class="import" id="import-json">
+          Import projects
+        </button>
+        <button type="button" class="clear" id="download-json">Download JSON</button>
+      </div>
+      <div class="status status--info" id="status">Waiting for input…</div>
+      <a class="nav-link" href="../">Back to ProjectView</a>
+    </main>
+      <div style="margin-top:1rem; font-size:0.9rem; color:#475569; text-align:center;">
+        Full JSON file: <code id="projectview-data-file-path">Loading...</code>
+      </div>
+    <script>
+      (function(){
+        function setPath(p){
+          var el = document.getElementById('projectview-data-file-path');
+          if(!el) return;
+          el.textContent = p || 'unknown';
+        }
+        fetch('/ProjectView/api/filepath').then(function(r){ return r.json(); }).then(function(j){ setPath(j.path); }).catch(function(){ setPath('unavailable'); });
+      })();
+    </script>
+    <script src="../import.js" defer></script>
+  </body>
+</html>

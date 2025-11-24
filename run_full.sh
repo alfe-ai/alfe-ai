@@ -30,6 +30,8 @@ if [ ! -w "$PKG_LOCK" ]; then
   sudo chown -R $(whoami):$(whoami) "$(dirname "$PKG_LOCK")" || sudo chmod -R u+w "$(dirname "$PKG_LOCK")"
 fi
 sudo git pull
+
+git log -n 6
 #git log -n 3
 echo "------"
 bash -c "cd Aurora && ./run_full.sh"
