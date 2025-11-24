@@ -1,4 +1,4 @@
-# Alfe AI / 2.30 Beta  
+# Alfe AI / Beta  
 
 ### Alfe AI: Project Management, Image Design, and Software Development Platform
 
