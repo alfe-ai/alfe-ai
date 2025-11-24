@@ -82,6 +82,18 @@ const printifyQueueConfig = (() => {
     enabledValue === '1';
   return { enabled };
 })();
+const imageUploadConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const cfg = flags.imageUpload || {};
+  const enabledValue = cfg.enabled;
+  const enabled =
+    enabledValue === true ||
+    enabledValue === 'true' ||
+    enabledValue === 1 ||
+    enabledValue === '1';
+  return { enabled };
+})();
+
 const DEFAULT_CODE_REDIRECT_TARGET = 'https://code.alfe.sh';
 const codeRedirectConfig = (() => {
   const flags = window.AURORA_FLAGS || {};
@@ -228,6 +240,27 @@ function ensureSidebarHiddenForEmbed(){
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Hide image upload UI when disabled via AURORA_FLAGS.imageUpload.enabled
+  try {
+    if (!imageUploadConfig.enabled) {
+      ['fileInput','imageUploadInput','chatImageBtn'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.style.display = 'none';
+      });
+      // Hide secure upload submit button and uploader panel by default
+      const submitBtn = document.getElementById('secureUploadSubmit');
+      if(submitBtn) submitBtn.style.display = 'none';
+      const uploaderPanel = document.getElementById('sidebarViewUploader');
+      if(uploaderPanel) uploaderPanel.style.display = 'none';
+    } else {
+      // Ensure Image Design nav button is always visible regardless of upload config
+      const uploaderBtn = document.getElementById('navUploaderBtn');
+      if(uploaderBtn) uploaderBtn.style.display = '';
+      const uploaderIcon = document.getElementById('navUploaderIcon');
+      if(uploaderIcon) uploaderIcon.style.display = '';
+    }
+  } catch(e) { console.warn('Error applying imageUploadConfig', e); }
+
   const sessEl = document.getElementById('sessionIdText');
   if (sessEl) sessEl.textContent = sessionId;
   document.title = defaultTitle;
@@ -7594,7 +7627,7 @@ function showFileCabinetPanel(){
   setSetting("last_sidebar_view", "fileCabinet");
   loadFileCabinet();
   setActiveCollapsedIcon(btnFileCabinetIcon || null);
-  setActiveThinIcon(thinCabinetIcon || null);
+  setActiveThinIcon(null);
 }
 
 async function focusPreferredSidebarChatTab(){
@@ -7644,7 +7677,7 @@ function showArchiveTabsPanel(){
   setSetting("last_sidebar_view", "archiveTabs");
   loadTabs().then(renderArchivedSidebarTabs);
   setActiveCollapsedIcon(btnArchiveTabsIcon || null);
-  setActiveThinIcon(thinArchiveIcon || null);
+  setActiveThinIcon(null);
 }
 
 function showActivityIframePanel(){
@@ -7679,7 +7712,7 @@ function showPrintifyProductsPanel(){
   printifyPage = 1;
   loadPrintifyProducts();
   setActiveCollapsedIcon(btnPrintifyProductsIcon || null);
-  setActiveThinIcon(thinPrintifyIcon || null);
+  setActiveThinIcon(null);
 }
 
 function showCodeTasksPanel(){
@@ -7696,7 +7729,7 @@ function showCodeTasksPanel(){
   setTreeNavActive("#navCodeTasksBtn");
   setSetting("last_sidebar_view", "codeTasks");
   setActiveCollapsedIcon(btnCodeTasksIcon || null);
-  setActiveThinIcon(null);
+  setActiveThinIcon(thinCodeIcon || null);
   const input = document.getElementById("codeTaskInput");
   if(input){
     setTimeout(() => { input.focus(); }, 50);
@@ -7909,11 +7942,9 @@ const btnActivityIframeIcon = document.getElementById("navActivityIframeIcon");
 const btnNexumChatIcon = document.getElementById("navNexumChatIcon");
 const btnNexumTabsIcon = document.getElementById("navNexumTabsIcon");
 // Thin sidebar icons
+const thinCodeIcon = document.getElementById("thinIconCode");
 const thinChatIcon = document.getElementById("thinIconChats");
 const thinImagesIcon = document.getElementById("thinIconImages");
-const thinArchiveIcon = document.getElementById("thinIconArchived");
-const thinCabinetIcon = document.getElementById("thinIconCabinet");
-const thinPrintifyIcon = document.getElementById("thinIconPrintify");
 
 let creatingCodeChat = false;
 
@@ -7930,11 +7961,9 @@ const collapsedSidebarIcons = [
 ].filter(Boolean);
 
 const thinSidebarIcons = [
+  thinCodeIcon,
   thinChatIcon,
-  thinImagesIcon,
-  thinArchiveIcon,
-  thinCabinetIcon,
-  thinPrintifyIcon
+  thinImagesIcon
 ].filter(Boolean);
 
 function setActiveCollapsedIcon(activeBtn){
@@ -8809,6 +8838,11 @@ function codeTaskDragEnd(){
   }
 }
 // Thin sidebar icon actions
+thinCodeIcon?.addEventListener("click", ev => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  void openPanelWithSidebar(showCodeTasksPanel);
+});
 thinChatIcon?.addEventListener("click", ev => {
   ev.preventDefault();
   ev.stopPropagation();
@@ -8819,22 +8853,12 @@ thinImagesIcon?.addEventListener("click", ev => {
   ev.stopPropagation();
   void openPanelWithSidebar(showUploaderPanel);
 });
-thinArchiveIcon?.addEventListener("click", ev => {
-  ev.preventDefault();
-  ev.stopPropagation();
-  void openPanelWithSidebar(showArchiveTabsPanel);
-});
-thinCabinetIcon?.addEventListener("click", ev => {
-  ev.preventDefault();
-  ev.stopPropagation();
-  void openPanelWithSidebar(showFileCabinetPanel);
-});
-thinPrintifyIcon?.addEventListener("click", ev => {
-  ev.preventDefault();
-  ev.stopPropagation();
-  void openPanelWithSidebar(showPrintifyProductsPanel);
-});
 // Ensure taps on mobile trigger the same actions
+thinCodeIcon?.addEventListener("touchstart", ev => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  void openPanelWithSidebar(showCodeTasksPanel);
+});
 thinChatIcon?.addEventListener("touchstart", ev => {
   ev.preventDefault();
   ev.stopPropagation();
@@ -8844,21 +8868,6 @@ thinImagesIcon?.addEventListener("touchstart", ev => {
   ev.preventDefault();
   ev.stopPropagation();
   void openPanelWithSidebar(showUploaderPanel);
-});
-thinArchiveIcon?.addEventListener("touchstart", ev => {
-  ev.preventDefault();
-  ev.stopPropagation();
-  void openPanelWithSidebar(showArchiveTabsPanel);
-});
-thinCabinetIcon?.addEventListener("touchstart", ev => {
-  ev.preventDefault();
-  ev.stopPropagation();
-  void openPanelWithSidebar(showFileCabinetPanel);
-});
-thinPrintifyIcon?.addEventListener("touchstart", ev => {
-  ev.preventDefault();
-  ev.stopPropagation();
-  void openPanelWithSidebar(showPrintifyProductsPanel);
 });
 
 (async function init(){

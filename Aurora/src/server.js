@@ -32,6 +32,8 @@ function parseBooleanEnv(value, defaultValue = false) {
 }
 
 const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
+const IMAGE_UPLOAD_ENABLED = parseBooleanEnv(process.env.IMAGE_UPLOAD_ENABLED, false);
+
 const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
 const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
@@ -513,7 +515,7 @@ if (!db.getSetting("image_gen_model")) {
 
 console.debug("[Server Debug] Checking or setting default 'image_upload_enabled' in DB...");
 if (db.getSetting("image_upload_enabled") === undefined) {
-  db.setSetting("image_upload_enabled", true);
+  db.setSetting("image_upload_enabled", IMAGE_UPLOAD_ENABLED);
 }
 
 console.debug("[Server Debug] Checking or setting default 'show_session_id' in DB...");
@@ -1245,6 +1247,20 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+// Block image upload endpoints when IMAGE_UPLOAD_ENABLED is false
+app.use((req, res, next) => {
+  try {
+    if (!IMAGE_UPLOAD_ENABLED) {
+      if (req.path.startsWith('/api/upload') || req.path === '/api/chat/image') {
+        return res.status(403).json({ error: 'Image upload disabled' });
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  next();
+});
+
 
 // Database calls and API routes
 
@@ -4627,6 +4643,9 @@ app.get("/aurora-config.js", (_req, res) => {
     },
     printifyQueue: {
       enabled: parseBooleanEnv(process.env.AURORA_PRINTIFY_QUEUE_ENABLED, false),
+    },
+    imageUpload: {
+      enabled: IMAGE_UPLOAD_ENABLED,
     },
   };
   const script = `window.AURORA_FLAGS = Object.assign({}, window.AURORA_FLAGS || {}, ${JSON.stringify(
