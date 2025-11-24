@@ -2,7 +2,7 @@
 // Reorder chatModels or reasoningModels arrays to change the order shown
 window.REASONING_TOOLTIP_CONFIG = {
   chatModels: [
-    { name: 'deepseek/deepseek-chat-v3-0324' },
+    { name: 'openrouter/deepseek/deepseek-chat-v3-0324' },
     { name: 'openai/gpt-4o-mini' },
     { name: 'openai/gpt-4.1-mini' },
     { name: 'openai/gpt-4o', label: 'pro' },

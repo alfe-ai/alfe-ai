@@ -11,7 +11,7 @@ import TaskDBAws from "./taskDbAws.js";
 
 const useRds = process.env.AWS_DB_URL || process.env.AWS_DB_HOST;
 const TaskDB = useRds ? TaskDBAws : TaskDBLocal;
-import { pbkdf2Sync, randomBytes } from "crypto";
+import { pbkdf2Sync, randomBytes, randomUUID } from "crypto";
 import speakeasy from "speakeasy";
 
 dotenv.config();
@@ -102,16 +102,50 @@ let aiModelsCacheTs = 0;
 const AI_MODELS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 const db = new TaskDB();
-console.debug("[Server Debug] Checking or setting default 'ai_model' in DB...");
-const envModel = process.env.AI_MODEL;
-let currentModel = db.getSetting("ai_model");
-if (!currentModel) {
-  const defaultModel = envModel || "deepseek/deepseek-chat";
-  console.debug(`[Server Debug] 'ai_model' missing in DB, setting default to '${defaultModel}'.`);
-  db.setSetting("ai_model", defaultModel);
-  currentModel = defaultModel;
-} else {
-  console.debug("[Server Debug] 'ai_model' found =>", currentModel);
+const DEFAULT_CHAT_MODEL = "openrouter/deepseek/deepseek-chat-v3-0324";
+console.debug(`[Server Debug] Using default chat model => ${DEFAULT_CHAT_MODEL}`);
+
+function buildContextsForTab(tabInfo) {
+  const savedInstructions = db.getSetting("agent_instructions") || "";
+  let systemContext = `System Context:\n${savedInstructions}`;
+  let projectContext = '';
+
+  if (tabInfo && tabInfo.send_project_context && (tabInfo.project_name || tabInfo.extra_projects)) {
+    const allProjects = [];
+    if (tabInfo.project_name && tabInfo.project_name.trim()) {
+      allProjects.push(tabInfo.project_name.trim());
+    }
+    if (tabInfo.extra_projects) {
+      tabInfo.extra_projects.split(',').forEach(p => {
+        p = p.trim();
+        if (p && !allProjects.includes(p)) allProjects.push(p);
+      });
+    }
+
+    const histories = [];
+    for (const pr of allProjects) {
+      const projectPairs = db.getChatPairsByProject(pr);
+      const pairsByTab = {};
+      for (const p of projectPairs) {
+        const tab = db.getChatTab(p.chat_tab_id);
+        const tName = (tab && tab.name) ? tab.name : `Chat ${p.chat_tab_id}`;
+        if (!pairsByTab[tName]) pairsByTab[tName] = [];
+        pairsByTab[tName].push(p);
+      }
+      const lines = [`Project: ${pr}`];
+      for (const [chatName, ps] of Object.entries(pairsByTab)) {
+        lines.push(`Chat: ${chatName}`);
+        ps.forEach(cp => {
+          if (cp.user_text) lines.push(`User: ${cp.user_text}`);
+          if (cp.ai_text) lines.push(`Assistant: ${cp.ai_text}`);
+        });
+      }
+      histories.push(lines.join('\n'));
+    }
+    projectContext = histories.join('\n');
+  }
+
+  return { systemContext, projectContext };
 }
 
 console.debug("[Server Debug] Checking or setting default 'ai_search_model' in DB...");
@@ -222,7 +256,7 @@ const shopId = process.env.PRINTIFY_SHOP_ID || 18663958;
  */
 function getOpenAiClient() {
   let service = db.getSetting("ai_service") || "openrouter";
-  const currentModel = db.getSetting("ai_model") || "";
+  const currentModel = DEFAULT_CHAT_MODEL;
   const { provider } = parseProviderModel(currentModel);
 
   // Default to the provider indicated by the model name unless
@@ -290,6 +324,16 @@ function parseProviderModel(model) {
     return { provider: "perplexity", shortModel: model };
   }
   return { provider: "Unknown", shortModel: model };
+}
+
+function stripModelPrefix(model) {
+  if (!model) {
+    return DEFAULT_CHAT_MODEL.replace(/^openrouter\//, "");
+  }
+  if (model.startsWith("openai/")) return model.substring("openai/".length);
+  if (model.startsWith("openrouter/")) return model.substring("openrouter/".length);
+  if (model.startsWith("deepseek/")) return model.substring("deepseek/".length);
+  return model;
 }
 
 // Cache tokenizers to avoid repeated disk loads
@@ -369,6 +413,47 @@ async function callPerplexityModel(model, opts = {}) {
     responseType: stream ? 'stream' : 'json'
   });
   return res.data;
+}
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+function normalizeHostname(req) {
+  const header = req.hostname || req.get("host") || "";
+  return header.split(":")[0].toLowerCase();
+}
+
+function buildSessionCookie(sessionId, hostname) {
+  const expires = new Date(Date.now() + ONE_YEAR_MS);
+  const parts = [
+    `sessionId=${encodeURIComponent(sessionId)}`,
+    "Path=/",
+    `Expires=${expires.toUTCString()}`,
+    `Max-Age=${Math.floor(ONE_YEAR_MS / 1000)}`,
+  ];
+
+  if (hostname === "alfe.sh" || hostname.endsWith(".alfe.sh")) {
+    parts.push("Domain=.alfe.sh");
+  }
+
+  return parts.join("; ");
+}
+
+function ensureSessionIdCookie(req, res) {
+  let sessionId = getSessionIdFromRequest(req);
+  let created = false;
+
+  if (!sessionId) {
+    sessionId = randomUUID();
+    created = true;
+    const hostname = normalizeHostname(req);
+    const cookie = buildSessionCookie(sessionId, hostname);
+    res.append("Set-Cookie", cookie);
+    console.debug(
+      `[Server Debug] ensureSessionIdCookie => Issued new session ${sessionId.slice(0, 8)}… for host ${hostname || "(unknown)"}`
+    );
+  }
+
+  return { sessionId, created };
 }
 
 function getSessionIdFromRequest(req) {
@@ -548,14 +633,7 @@ async function deriveImageTitle(prompt, client = null) {
   if (!prompt) return '';
 
   const openAiClient = client || getOpenAiClient();
-  const storedModel = db.getSetting('ai_model') || 'deepseek/deepseek-chat';
-  function stripModelPrefix(m) {
-    if (!m) return 'deepseek/deepseek-chat';
-    if (m.startsWith('openai/')) return m.substring('openai/'.length);
-    if (m.startsWith('openrouter/')) return m.substring('openrouter/'.length);
-    if (m.startsWith('deepseek/')) return m.substring('deepseek/'.length);
-    return m;
-  }
+  const storedModel = DEFAULT_CHAT_MODEL;
   const modelForOpenAI = stripModelPrefix(storedModel);
 
   if (openAiClient) {
@@ -606,14 +684,7 @@ async function deriveTabTitle(message, client = null) {
   if (!message) return '';
 
   const openAiClient = client || getOpenAiClient();
-  const storedModel = db.getSetting('ai_model') || 'deepseek/deepseek-chat';
-  function stripModelPrefix(m) {
-    if (!m) return 'deepseek/deepseek-chat';
-    if (m.startsWith('openai/')) return m.substring('openai/'.length);
-    if (m.startsWith('openrouter/')) return m.substring('openrouter/'.length);
-    if (m.startsWith('deepseek/')) return m.substring('deepseek/'.length);
-    return m;
-  }
+  const storedModel = DEFAULT_CHAT_MODEL;
   const modelForOpenAI = stripModelPrefix(storedModel);
 
   if (openAiClient) {
@@ -647,59 +718,6 @@ async function deriveTabTitle(message, client = null) {
     title = title.charAt(0).toUpperCase() + title.slice(1);
   }
   return title;
-}
-
-async function generateInitialGreeting(type, client = null) {
-  const openAiClient = getOpenAiClient();
-  const storedModel = db.getSetting("ai_model") || 'deepseek/deepseek-chat';
-  function stripModelPrefix(m) {
-    if (!m) return 'deepseek/deepseek-chat';
-    if (m.startsWith('openai/')) return m.substring('openai/'.length);
-    if (m.startsWith('openrouter/')) return m.substring('openrouter/'.length);
-    if (m.startsWith('deepseek/')) return m.substring('deepseek/'.length);
-    return m;
-  }
-  const modelForOpenAI = stripModelPrefix(storedModel);
-
-  let prompt = 'Write a brief friendly greeting as an AI assistant named Alfe. ';
-  if (type === 'design') {
-    prompt += 'Invite the user to share what they would like to create.';
-  } else if (type === 'pm_agi') {
-    prompt += 'Ask the user what they are working on and help them plan tasks.';
-  } else {
-    prompt += 'Invite the user to share what they would like to talk about.';
-  }
-
-  if (openAiClient) {
-    try {
-      const completion = await callOpenAiModel(openAiClient, modelForOpenAI, {
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 60,
-        temperature: 0.7
-      });
-      const text =
-        completion.choices?.[0]?.message?.content?.trim() ||
-        completion.choices?.[0]?.text?.trim();
-      if (text) return text;
-    } catch (e) {
-      console.debug('[Server Debug] Initial greeting generation failed =>', e.message);
-    }
-  }
-
-  return type === 'design'
-    ? 'Hello! I am Alfe, your AI assistant. What would you like to design today?'
-    : type === 'pm_agi'
-      ? 'What are you working on?'
-      : 'Hello! I am Alfe, your AI assistant. What would you like to talk about?';
-}
-
-async function createInitialTabMessage(tabId, type, sessionId = '') {
-  const greeting = await generateInitialGreeting(type);
-  const pairId = db.createChatPair('', tabId, '', '', sessionId);
-  const defaultModel = db.getSetting("ai_model") || 'deepseek/deepseek-chat';
-  db.finalizeChatPair(pairId, greeting, defaultModel, new Date().toISOString(), null, null);
 }
 
 async function removeColorSwatches(filePath) {
@@ -1771,14 +1789,14 @@ app.get("/api/ai/models", async (req, res) => {
 
   const deepseekModelData = [
     {
-      id: "deepseek/deepseek-chat-v3-0324:free",
+      id: "openrouter/deepseek/deepseek-chat-v3-0324:free",
       provider: "deepseek",
       tokenLimit: 163840,
       inputCost: "$0",
       outputCost: "$0"
     },
     {
-      id: "deepseek/deepseek-chat-v3-0324",
+      id: "openrouter/deepseek/deepseek-chat-v3-0324",
       provider: "deepseek",
       tokenLimit: 163840,
       inputCost: "$0.30",
@@ -1949,9 +1967,7 @@ app.post("/api/chat", async (req, res) => {
     const isFirstMessage = !db.hasUserMessages(chatTabId);
     let model = tabInfo && tabInfo.model_override
       ? tabInfo.model_override
-      : db.getSetting("ai_model");
-    const savedInstructions = db.getSetting("agent_instructions") || "";
-
+      : DEFAULT_CHAT_MODEL;
     const isDesignTab = tabInfo && tabInfo.tab_type === 'design';
     let finalUserMessage = userMessage;
     if (isDesignTab) {
@@ -1969,43 +1985,9 @@ app.post("/api/chat", async (req, res) => {
       finalUserMessage = `${prependInstr}\n\n${userMessage}`;
     }
 
-    const { provider } = parseProviderModel(model || "deepseek/deepseek-chat");
+    const { provider } = parseProviderModel(model || DEFAULT_CHAT_MODEL);
     const isOpenrouterPerplexity = (model || '').startsWith('openrouter/perplexity/');
-    let systemContext = `System Context:\n${savedInstructions}`;
-    let projectContext = '';
-    if (tabInfo && tabInfo.send_project_context && (tabInfo.project_name || tabInfo.extra_projects)) {
-      const allProjects = [];
-      if (tabInfo.project_name && tabInfo.project_name.trim()) {
-        allProjects.push(tabInfo.project_name.trim());
-      }
-      if (tabInfo.extra_projects) {
-        tabInfo.extra_projects.split(',').forEach(p => {
-          p = p.trim();
-          if (p && !allProjects.includes(p)) allProjects.push(p);
-        });
-      }
-      const histories = [];
-      for (const pr of allProjects) {
-        const projectPairs = db.getChatPairsByProject(pr);
-        const pairsByTab = {};
-        for (const p of projectPairs) {
-          const tab = db.getChatTab(p.chat_tab_id);
-          const tName = (tab && tab.name) ? tab.name : `Chat ${p.chat_tab_id}`;
-          if (!pairsByTab[tName]) pairsByTab[tName] = [];
-          pairsByTab[tName].push(p);
-        }
-        const lines = [`Project: ${pr}`];
-        for (const [chatName, ps] of Object.entries(pairsByTab)) {
-          lines.push(`Chat: ${chatName}`);
-          ps.forEach(cp => {
-            if (cp.user_text) lines.push(`User: ${cp.user_text}`);
-            if (cp.ai_text) lines.push(`Assistant: ${cp.ai_text}`);
-          });
-        }
-        histories.push(lines.join('\n'));
-      }
-      projectContext = histories.join('\n');
-    }
+    const { systemContext, projectContext } = buildContextsForTab(tabInfo);
     const fullContext = projectContext ?
       `${systemContext}\n${projectContext}` : systemContext;
     const sysContent = `${fullContext}\n\nModel: ${model} (provider: ${provider})\nUserTime: ${userTime}\nTimeZone: Central`;
@@ -2045,12 +2027,6 @@ app.post("/api/chat", async (req, res) => {
       model = "unknown";
     }
 
-    function stripModelPrefix(m) {
-      if (!m) return "deepseek/deepseek-chat";
-      if (m.startsWith("openai/")) return m.substring("openai/".length);
-      if (m.startsWith("openrouter/")) return m.substring("openrouter/".length);
-      return m;
-    }
     const modelForOpenAI = stripModelPrefix(model);
     const usePerplexity = provider === 'perplexity';
 
@@ -2175,6 +2151,40 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+app.post("/api/chat/pairs/prefab", (req, res) => {
+  console.debug("[Server Debug] POST /api/chat/pairs/prefab =>", req.body);
+  try {
+    const chatTabId = parseInt(req.body.tabId || "1", 10);
+    const sessionId = req.body.sessionId || "";
+    const text = (req.body.text || "").trim();
+    const kind = (req.body.kind || "prefab").toLowerCase();
+
+    if (!text) {
+      return res.status(400).json({ error: "Missing text" });
+    }
+    if (Number.isNaN(chatTabId)) {
+      return res.status(400).json({ error: "Invalid tab" });
+    }
+
+    const tabInfo = db.getChatTab(chatTabId, sessionId || null);
+    if (!tabInfo) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { systemContext, projectContext } = buildContextsForTab(tabInfo);
+    const pairId = db.createChatPair('', chatTabId, systemContext, projectContext, sessionId);
+    const modelLabel = kind === 'greeting' ? 'prefab/greeting' : 'prefab/manual';
+    db.finalizeChatPair(pairId, text, modelLabel, new Date().toISOString());
+    db.logActivity("AI chat (prefab)", JSON.stringify({ tabId: chatTabId, response: text, kind }));
+
+    const pair = db.getPairById(pairId);
+    res.json({ pair });
+  } catch (err) {
+    console.error("[Server Debug] POST /api/chat/pairs/prefab error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/api/chat/history", (req, res) => {
   console.debug("[Server Debug] GET /api/chat/history =>", req.query);
   try {
@@ -2226,9 +2236,9 @@ app.get("/api/chat/history", (req, res) => {
 
 app.get("/api/model", (req, res) => {
   console.debug("[Server Debug] GET /api/model called.");
-  let m = db.getSetting("ai_model");
-  console.debug(`[Server Debug] DB returned ai_model => ${m}`);
-  res.json({ model: m });
+  const model = DEFAULT_CHAT_MODEL;
+  console.debug(`[Server Debug] Effective ai_model => ${model}`);
+  res.json({ model });
 });
 
 app.get("/api/chat/tabs", (req, res) => {
@@ -2273,6 +2283,12 @@ app.post("/api/chat/tabs/new", (req, res) => {
     const type = req.body.type || 'chat';
     const sessionId = req.body.sessionId || '';
     const chatgptUrl = req.body.chatgptUrl || '';
+    const sendProjectContextRaw = Object.prototype.hasOwnProperty.call(req.body, 'sendProjectContext')
+      ? req.body.sendProjectContext
+      : undefined;
+    const sendProjectContext = sendProjectContextRaw === undefined
+      ? 0
+      : (sendProjectContextRaw === true || sendProjectContextRaw === 1 || sendProjectContextRaw === '1' ? 1 : 0);
 
     const autoNaming = db.getSetting("chat_tab_auto_naming");
     const projectName = db.getSetting("sterling_project") || "";
@@ -2280,14 +2296,11 @@ app.post("/api/chat/tabs/new", (req, res) => {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId, 1, chatgptUrl);
+    const { id: tabId, uuid } = db.createChatTab(name, nexum, project, repo, extraProjects, taskId, type, sessionId, sendProjectContext, chatgptUrl);
     res.json({ success: true, id: tabId, uuid });
     if (type === 'search') {
       const searchModel = db.getSetting('ai_search_model') || 'sonar-pro';
       db.setChatTabModel(tabId, searchModel);
-    } else {
-      createInitialTabMessage(tabId, type, sessionId).catch(e =>
-        console.error('[Server Debug] Initial message error:', e.message));
     }
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/new error:", err);
@@ -2374,7 +2387,22 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
 app.post("/api/chat/tabs/config", (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
-    const { tabId, project = '', repo = '', extraProjects = '', taskId = 0, type = 'chat', sendProjectContext = 1, chatgptUrl = '', sessionId = '' } = req.body;
+    const {
+      tabId,
+      project = '',
+      repo = '',
+      extraProjects = '',
+      taskId = 0,
+      type = 'chat',
+      chatgptUrl = '',
+      sessionId = ''
+    } = req.body;
+    const sendProjectContextRaw = Object.prototype.hasOwnProperty.call(req.body, 'sendProjectContext')
+      ? req.body.sendProjectContext
+      : undefined;
+    const sendProjectContext = sendProjectContextRaw === undefined
+      ? 0
+      : (sendProjectContextRaw === true || sendProjectContextRaw === 1 || sendProjectContextRaw === '1' ? 1 : 0);
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
@@ -2382,7 +2410,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, sendProjectContext ? 1 : 0, chatgptUrl);
+    db.setChatTabConfig(tabId, project, repo, extraProjects, taskId, type, sendProjectContext, chatgptUrl);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] POST /api/chat/tabs/config error:", err);
@@ -2497,7 +2525,6 @@ app.delete("/api/chat/tabs/:id", (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
     db.deleteChatTab(tabId);
-    db.prepare("DELETE FROM chat_pairs WHERE chat_tab_id=?").run(tabId);
     res.json({ success: true });
   } catch (err) {
     console.error("[TaskQueue] DELETE /api/chat/tabs/:id error:", err);
@@ -3790,6 +3817,13 @@ app.get("/Image.html", (req, res) => {
 });
 
 // Default landing page
+app.all("/index.html", (req, res) => {
+  console.debug(
+    `[Server Debug] ${req.method} /index.html => Redirecting to alfe.sh`
+  );
+  return res.redirect("https://alfe.sh");
+});
+
 app.get("/", (req, res) => {
   const sessionId = getSessionIdFromRequest(req);
   if (req.hostname === "dev.alfe.sh") {
@@ -3800,8 +3834,10 @@ app.get("/", (req, res) => {
         "",
         "",
         '',
+        0,
         "chat",
-        sessionId
+        sessionId,
+        0
       );
       return res.redirect(`/chat/${uuid}`);
     } catch (err) {
@@ -3819,8 +3855,10 @@ app.get("/", (req, res) => {
           "",
           "",
           '',
+          0,
           "chat",
-          sessionId
+          sessionId,
+          0
         );
         return res.redirect(`/chat/${uuid}`);
       }
@@ -3830,14 +3868,14 @@ app.get("/", (req, res) => {
   }
   try {
     if (!sessionId) {
-      console.debug("[Server Debug] GET / => Redirecting to index.html");
-      return res.redirect("/index.html");
+      console.debug("[Server Debug] GET / => Redirecting to alfe.sh");
+      return res.redirect("https://alfe.sh");
     }
 
     const tabs = db.listChatTabs(null, false, sessionId);
     if (tabs.length === 0) {
-      console.debug("[Server Debug] GET / => Redirecting to index.html");
-      return res.redirect("/index.html");
+      console.debug("[Server Debug] GET / => Redirecting to alfe.sh");
+      return res.redirect("https://alfe.sh");
     }
 
     const lastTabId = db.getSetting("last_chat_tab");
@@ -3873,7 +3911,8 @@ app.get("/search", (req, res) => {
       "",
       0,
       "chat",
-      sessionId
+      sessionId,
+      0
     );
     const searchModel =
       db.getSetting("ai_search_model") || "sonar-pro";
@@ -3882,34 +3921,49 @@ app.get("/search", (req, res) => {
     return res.redirect(`/chat/${uuid}${query}`);
   } catch (err) {
     console.error("[Server Debug] GET /search error:", err);
-    res.redirect("/index.html");
+    res.redirect("https://alfe.sh");
   }
 });
 
 app.get("/new", (req, res) => {
   try {
-    const sessionId = getSessionIdFromRequest(req);
-    const openSearch = db.getSetting("new_tab_opens_search") === true;
-    const { id: tabId } = db.createChatTab(
-      "New Tab",
-      0,
-      "",
-      "",
-      "",
-      0,
-      openSearch ? "search" : "chat",
-      sessionId
-    );
-    if (openSearch) {
-      const searchModel =
-        db.getSetting("ai_search_model") || "sonar-pro";
-      db.setChatTabModel(tabId, searchModel);
+    const { sessionId, created } = ensureSessionIdCookie(req, res);
+
+    let name = "Untitled";
+    const autoNaming = db.getSetting("chat_tab_auto_naming");
+    const projectName = db.getSetting("sterling_project") || "";
+    if (autoNaming && projectName) {
+      name = `${projectName}: ${name}`;
     }
+
+    const { id: tabId, uuid } = db.createChatTab(
+      name,
+      0,
+      "",
+      "",
+      "",
+      0,
+      "chat",
+      sessionId,
+      0,
+      ""
+    );
+
     db.setSetting("last_chat_tab", tabId);
-    res.sendFile(path.join(__dirname, "../public/aurora.html"));
+    if (created) {
+      console.debug(
+        `[Server Debug] GET /new => Created chat tab ${tabId} (${uuid}) for new session ${sessionId.slice(0, 8)}…`
+      );
+    } else {
+      console.debug(
+        `[Server Debug] GET /new => Created chat tab ${tabId} (${uuid}) for existing session ${sessionId.slice(0, 8)}…`
+      );
+    }
+    console.debug(`[Server Debug] GET /new => Redirecting to /chat/${uuid}`);
+    res.redirect(`/chat/${uuid}`);
   } catch (err) {
     console.error("[Server Debug] GET /new error:", err);
-    res.redirect("/index.html");
+    res.redirect("https://alfe.sh");
   }
 });
 
@@ -3926,6 +3980,11 @@ app.use(
 
 app.get("/beta", (req, res) => {
   console.debug("[Server Debug] GET /beta => Redirecting to home page");
+  res.redirect("/");
+});
+
+app.get("/chat", (req, res) => {
+  console.debug("[Server Debug] GET /chat => Redirecting to home page logic");
   res.redirect("/");
 });
 
@@ -4265,13 +4324,8 @@ function commitAndPushMarkdown(repoDir) {
 
 app.get("/api/version", (req, res) => {
   try {
-    const latestTag = child_process
-      .execSync("git tag --sort=-creatordate | head -n 1", {
-        cwd: path.join(__dirname, ".."),
-      })
-      .toString()
-      .trim();
-    res.json({ version: `beta-${latestTag}` });
+    const version = "beta-3.0.0";
+    res.json({ version });
   } catch (err) {
     console.error("[Server Debug] GET /api/version =>", err);
     res.status(500).json({ error: "Unable to determine version" });

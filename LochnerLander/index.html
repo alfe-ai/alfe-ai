@@ -5,73 +5,126 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lochner Tech</title>
   <style>
+    :root {
+      color-scheme: light dark;
+    }
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       background: #f5f5f5;
+      color: #222;
     }
-    .container {
-      display: flex;
-      gap: 1rem;
+    .site-header {
+      text-align: center;
+      padding: 3rem 1.5rem 2rem;
+      background: linear-gradient(135deg, #1f3c88, #39a0ed);
+      color: #ffffff;
     }
-
-    @media (max-width: 600px) {
-      body {
-        height: auto;
-        padding: 1rem;
-      }
-      .container {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .panel {
-        width: 100%;
-      }
+    .site-header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: 0.05em;
     }
-    .panel {
+    .site-header p {
+      margin: 0.75rem 0 0;
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .site-header .contact-email {
+      font-size: 1rem;
+      margin-top: 0.5rem;
+      color: rgba(255, 255, 255, 0.75);
+    }
+    main {
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: white;
-      padding: 1.5rem;
-      text-align: center;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      width: 150px;
+      gap: 2rem;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+    .section-link {
+      display: block;
+      padding: 2rem;
+      border-radius: 12px;
+      background: #ffffff;
+      color: inherit;
       text-decoration: none;
-      color: #333;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .panel span {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 0.5rem;
+    .section-link:hover,
+    .section-link:focus-visible {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
     }
-    .panel p {
+    .section-link h1,
+    .section-link h2 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.75rem, 3vw, 2.5rem);
+      line-height: 1.2;
+    }
+    .section-link p {
       margin: 0;
-      font-size: 0.9rem;
+      font-size: 1rem;
       color: #555;
+    }
+    .section-link small {
+      display: block;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #777;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #0f1115;
+        color: #f1f1f1;
+      }
+      .site-header {
+        background: linear-gradient(135deg, #101728, #274060);
+      }
+      .site-header p {
+        color: rgba(255, 255, 255, 0.75);
+      }
+      .section-link {
+        background: #1a1d24;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      }
+      .section-link p {
+        color: #d0d0d0;
+      }
+      .section-link small {
+        color: #a0a0a0;
+      }
+      .site-header .contact-email {
+        color: rgba(255, 255, 255, 0.65);
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <a href="https://alfe.sh" class="panel" target="_blank">
-      <span>Alfe AI</span>
+  <header class="site-header">
+    <h1>Lochner Technology</h1>
+    <p>Software Consulting</p>
+    <p class="contact-email">development@lochner.tech</p>
+  </header>
+  <main>
+    <a href="https://alfe.sh" class="section-link" target="_blank" rel="noopener">
+      <h1>Alfe AI</h1>
       <p>Software and image design platform</p>
+      <small>alfe.sh</small>
     </a>
-    <a href="https://confused.store" class="panel" target="_blank">
-      <span>Confused Apparel</span>
-      <p>Wear the Weird</p>
+    <a href="https://confused.store" class="section-link" target="_blank" rel="noopener">
+      <h2>Apparel</h2>
+      <p>Aliens, UFOs, Cats</p>
+      <p>Wear the Weird at Confused Apparel</p>
+      <small>confused.store</small>
     </a>
-    <a href="https://github.com/lochner-lw" class="panel" target="_blank">
-      <span>More Projects</span>
+    <a href="https://github.com/lochner-lw" class="section-link" target="_blank" rel="noopener">
+      <h2>More Projects</h2>
       <p>GitHub</p>
+      <small>github.com/lochner-lw</small>
     </a>
-  </div>
+  </main>
 </body>
 </html>

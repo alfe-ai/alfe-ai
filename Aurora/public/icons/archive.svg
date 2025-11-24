@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="archiveGradient" x1="16" y1="4" x2="16" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8EA4FF"/>
+      <stop offset="1" stop-color="#5163C9"/>
+    </linearGradient>
+    <linearGradient id="archiveHighlight" x1="16" y1="10" x2="16" y2="14" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E9EEFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#C7D2FF" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="6" width="22" height="6" rx="2.5" fill="#1D2A5D" opacity="0.85"/>
+  <rect x="6" y="8" width="20" height="2" rx="1" fill="#4E5FAF" opacity="0.9"/>
+  <path d="M7 11h18v13.5c0 1.38-1.12 2.5-2.5 2.5H9.5A2.5 2.5 0 0 1 7 24.5V11z" fill="url(#archiveGradient)"/>
+  <rect x="12" y="15" width="8" height="3" rx="1.5" fill="rgba(10,15,40,0.25)"/>
+  <rect x="11" y="11" width="10" height="4" rx="1.8" fill="url(#archiveHighlight)"/>
+  <path d="M13 19h6v4h-6z" fill="#1A2550" opacity="0.55"/>
+  <rect x="14.25" y="20.25" width="3.5" height="1.5" rx="0.75" fill="#F5F7FF"/>
+</svg>

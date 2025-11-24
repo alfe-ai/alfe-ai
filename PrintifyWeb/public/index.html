@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Listings</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --fg: #e2e8f0;
+        --card-bg: rgba(15, 23, 42, 0.7);
+        --accent: #38bdf8;
+        --border: rgba(148, 163, 184, 0.4);
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top, #1e293b 0%, #020617 70%);
+        min-height: 100vh;
+        color: var(--fg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1.5rem;
+      }
+
+      main {
+        width: min(1100px, 100%);
+        background: var(--card-bg);
+        border-radius: 18px;
+        padding: 2.5rem 2rem;
+        box-shadow: 0 25px 60px rgba(2, 6, 23, 0.55);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      p.description {
+        margin: 0.75rem 0 1.5rem;
+        color: rgba(226, 232, 240, 0.75);
+        max-width: 60ch;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+      }
+
+      .search-wrapper {
+        position: relative;
+        flex: 1 1 260px;
+      }
+
+      .button {
+        appearance: none;
+        border: 1px solid rgba(56, 189, 248, 0.6);
+        background: rgba(56, 189, 248, 0.18);
+        color: var(--fg);
+        border-radius: 999px;
+        padding: 0.65rem 1.3rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease, border-color 0.2s ease,
+          transform 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .button:hover:not(:disabled) {
+        background: rgba(56, 189, 248, 0.28);
+        border-color: rgba(56, 189, 248, 0.8);
+        transform: translateY(-1px);
+      }
+
+      .button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        transform: none;
+      }
+
+      .search-wrapper input {
+        width: 100%;
+        padding: 0.85rem 1rem 0.85rem 2.8rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.65);
+        color: inherit;
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .search-wrapper input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+      }
+
+      .search-wrapper svg {
+        position: absolute;
+        top: 50%;
+        left: 1rem;
+        transform: translateY(-50%);
+        width: 1.1rem;
+        height: 1.1rem;
+        stroke: rgba(148, 163, 184, 0.9);
+      }
+
+      #status {
+        font-size: 0.95rem;
+        color: rgba(148, 163, 184, 0.9);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.55);
+      }
+
+      thead {
+        background: rgba(30, 64, 175, 0.35);
+      }
+
+      th,
+      td {
+        padding: 1rem;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      }
+
+      tbody tr:hover {
+        background: rgba(56, 189, 248, 0.08);
+      }
+
+      .product-title {
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin-bottom: 0.3rem;
+      }
+
+      .product-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        color: rgba(148, 163, 184, 0.85);
+      }
+
+      .list-index-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+        background: rgba(56, 189, 248, 0.16);
+        border: 1px solid rgba(56, 189, 248, 0.38);
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: rgba(226, 232, 240, 0.85);
+        letter-spacing: 0.01em;
+      }
+
+      .sku-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .sku-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: 12px;
+        padding: 0.35rem 0.65rem;
+        background: rgba(37, 99, 235, 0.18);
+        border: 1px solid rgba(37, 99, 235, 0.45);
+        font-size: 0.9rem;
+      }
+
+      .variant-title {
+        color: rgba(226, 232, 240, 0.8);
+        font-size: 0.8rem;
+      }
+
+      .variant-details {
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.35);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        padding: 0.4rem 0.75rem;
+      }
+
+      .variant-details summary {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.45rem 0.35rem;
+        cursor: pointer;
+        color: rgba(226, 232, 240, 0.9);
+        font-weight: 600;
+      }
+
+      .variant-details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .variant-details summary::after {
+        content: '▾';
+        font-size: 0.85rem;
+        color: rgba(148, 163, 184, 0.9);
+        transition: transform 0.2s ease;
+      }
+
+      .variant-details[open] summary::after {
+        transform: rotate(180deg);
+      }
+
+      .variant-hint {
+        color: rgba(148, 163, 184, 0.75);
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .variant-details ul {
+        margin-top: 0.6rem;
+      }
+
+      .muted {
+        color: rgba(148, 163, 184, 0.7);
+        font-size: 0.85rem;
+      }
+
+      .ebay-link {
+        color: var(--accent);
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .ebay-link:hover {
+        text-decoration: underline;
+      }
+
+      .error {
+        color: #fca5a5;
+      }
+
+      @media (max-width: 768px) {
+        main {
+          padding: 1.5rem 1.2rem;
+        }
+
+        table,
+        thead,
+        tbody,
+        th,
+        td,
+        tr {
+          display: block;
+        }
+
+        thead {
+          display: none;
+        }
+
+        tbody tr {
+          margin-bottom: 1.2rem;
+          border: 1px solid rgba(148, 163, 184, 0.2);
+          border-radius: 12px;
+          padding: 1rem;
+        }
+
+        td {
+          border: none;
+          padding: 0.4rem 0;
+        }
+
+        td::before {
+          content: attr(data-label);
+          font-weight: 600;
+          display: block;
+          margin-bottom: 0.35rem;
+          color: rgba(226, 232, 240, 0.75);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Listings</h1>
+      <div class="toolbar">
+        <div class="search-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15z"
+            />
+          </svg>
+          <input id="search" type="search" placeholder="Search by title or SKU" />
+        </div>
+        <button id="refresh" type="button" class="button">Refresh</button>
+        <div id="status">Loading listings…</div>
+      </div>
+      <table id="products-table" hidden>
+        <thead>
+          <tr>
+            <th scope="col">Product</th>
+            <th scope="col">SKUs & Variants</th>
+            <th scope="col">Metadata</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+    <script>
+      const statusEl = document.getElementById('status');
+      const table = document.getElementById('products-table');
+      const tbody = table.querySelector('tbody');
+      const searchInput = document.getElementById('search');
+      const refreshButton = document.getElementById('refresh');
+      let allProducts = [];
+      let lastSyncedAt = null;
+
+      function formatDate(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString();
+      }
+
+      function formatLastSynced(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        return `Last synced ${date.toLocaleString()}`;
+      }
+
+      function parsePrice(value) {
+        if (value === null || value === undefined || value === '') return null;
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+      }
+
+      function formatPriceFromCents(cents) {
+        if (cents === null) return null;
+        return `$${(cents / 100).toFixed(2)}`;
+      }
+
+      function render(filter = '') {
+        const query = filter.trim().toLowerCase();
+        const isSearching = query.length > 0;
+        const filtered = !query
+          ? allProducts
+          : allProducts.filter((product) => {
+              if (product.title.toLowerCase().includes(query)) return true;
+              if ((product.handle || '').toLowerCase().includes(query)) return true;
+              if ((product.ebay_listing_id || '').toLowerCase().includes(query)) return true;
+              if ((product.ebay_listing_url || '').toLowerCase().includes(query)) return true;
+
+              const salesChannels = Array.isArray(product.sales_channels)
+                ? product.sales_channels
+                : [];
+              if (
+                salesChannels.some((channel) =>
+                  [channel.platform, channel.name, channel.status, channel.externalId, channel.url]
+                    .filter((field) => typeof field === 'string')
+                    .some((field) => field.toLowerCase().includes(query))
+                )
+              ) {
+                return true;
+              }
+
+              return product.variants.some((variant) =>
+                [variant.sku, variant.title].some((field) =>
+                  (field || '').toLowerCase().includes(query)
+                )
+              );
+            });
+
+        tbody.innerHTML = '';
+
+        if (!filtered.length) {
+          table.hidden = true;
+          statusEl.textContent = query
+            ? 'No listings match your search.'
+            : 'No listings available.';
+          return;
+        }
+
+        const lastSyncedLabel = formatLastSynced(lastSyncedAt);
+        statusEl.textContent = `${filtered.length} of ${allProducts.length} listings${
+          lastSyncedLabel ? ` — ${lastSyncedLabel}` : ''
+        }`;
+        table.hidden = false;
+
+        const fragment = document.createDocumentFragment();
+        filtered.forEach((product, filteredIndex) => {
+          const fallbackIndex = filteredIndex + 1;
+          const derivedIndex = allProducts.findIndex((item) => item.id === product.id);
+          const listIndex = Number.isFinite(product.listIndex)
+            ? product.listIndex
+            : derivedIndex >= 0
+            ? derivedIndex + 1
+            : fallbackIndex;
+
+          const row = document.createElement('tr');
+
+          const hasVariants = product.variants.length > 0;
+          const salesChannels = Array.isArray(product.sales_channels)
+            ? product.sales_channels
+            : [];
+          const variantsHtml = hasVariants
+            ? product.variants
+                .map((variant, variantIndex) => {
+                  const variantNumber = Number.isFinite(variant.listIndex)
+                    ? variant.listIndex
+                    : variantIndex + 1;
+                  const sku = variant.sku || '—';
+                  const priceInCents = parsePrice(variant.price);
+                  const price = priceInCents !== null ? formatPriceFromCents(priceInCents) : '';
+                  const parts = [`#${variantNumber}`, sku];
+                  if (price) parts.push(price);
+                  return `<li class="sku-pill">${parts.join(' · ')}<span class="variant-title">${
+                    variant.title || ''
+                  }</span></li>`;
+                })
+                .join('')
+            : '';
+
+          const hasVariantMatch = isSearching
+            ? product.variants.some((variant) =>
+                [variant.sku, variant.title].some((field) =>
+                  (field || '').toLowerCase().includes(query)
+                )
+              )
+            : false;
+
+          const priceRange = hasVariants
+            ? product.variants
+                .map((variant) => parsePrice(variant.price))
+                .filter((value) => value !== null)
+            : [];
+
+          const priceRangeLabel = priceRange.length
+            ? `${formatPriceFromCents(Math.min(...priceRange))} - ${formatPriceFromCents(
+                Math.max(...priceRange)
+              )}`
+            : '';
+
+          const variantSummaryLabel = hasVariants
+            ? `${product.variants.length} variant${
+                product.variants.length === 1 ? '' : 's'
+              }${priceRangeLabel ? ` · ${priceRangeLabel}` : ''}`
+            : 'No variants';
+
+          const variantHint = hasVariants
+            ? hasVariantMatch && isSearching
+              ? 'Matches search'
+              : 'Click to view SKUs'
+            : '';
+
+          const variantsSection = hasVariants
+            ? `<details class="variant-details"${hasVariantMatch ? ' open' : ''}>
+                <summary>
+                  <span>${variantSummaryLabel}</span>
+                  <span class="variant-hint">${variantHint}</span>
+                </summary>
+                <ul class="sku-list">${variantsHtml}</ul>
+              </details>`
+            : '<div class="muted">No variants</div>';
+
+          const ebayUrl = typeof product.ebay_listing_url === 'string' ? product.ebay_listing_url : '';
+          const ebayId = typeof product.ebay_listing_id === 'string' ? product.ebay_listing_id : '';
+          const ebayUrlMarkup = ebayUrl
+            ? `<div><a class="ebay-link" href="${ebayUrl.replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer">View on eBay</a></div>`
+            : '';
+          const ebayIdMarkup = ebayId ? `<div class="muted">eBay ID: ${ebayId}</div>` : '';
+
+          const salesChannelsMarkup = salesChannels.length
+            ? `<div class="muted">Sales channels: ${salesChannels
+                .map((channel) => channel.platform || channel.name || channel.marketplace || 'Unknown')
+                .join(', ')}</div>`
+            : '';
+
+          row.innerHTML = `
+            <td data-label="Product">
+              <div class="product-title">${product.title}</div>
+              <div class="product-meta">
+                <span>ID: ${product.id} <span class="list-index-pill">#${listIndex}</span></span>
+                ${product.handle ? `<span>Handle: ${product.handle}</span>` : ''}
+              </div>
+            </td>
+            <td data-label="SKUs & Variants">
+              ${variantsSection}
+            </td>
+            <td data-label="Metadata">
+              <div class="muted">Created ${formatDate(product.created_at)}</div>
+              <div class="muted">Updated ${formatDate(product.updated_at)}</div>
+              ${salesChannelsMarkup}
+              ${ebayUrlMarkup}
+              ${ebayIdMarkup}
+            </td>
+          `;
+
+          fragment.appendChild(row);
+        });
+
+        tbody.appendChild(fragment);
+      }
+
+      async function fetchProducts({ silent = false } = {}) {
+        try {
+          if (!silent) {
+            statusEl.textContent = 'Loading listings…';
+          }
+
+          const response = await fetch('/api/products');
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.details || `Request failed with status ${response.status}`);
+          }
+          const payload = await response.json();
+          const data = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.products)
+            ? payload.products
+            : [];
+          const meta = Array.isArray(payload) ? {} : payload?.meta || {};
+          const rawProducts = Array.isArray(data) ? data : [];
+          allProducts = rawProducts.map((product, index) => {
+            const variants = Array.isArray(product?.variants)
+              ? product.variants.map((variant, variantIndex) => ({
+                  ...variant,
+                  listIndex: variantIndex + 1,
+                }))
+              : [];
+
+            return {
+              ...product,
+              listIndex: index + 1,
+              variants,
+            };
+          });
+          lastSyncedAt = meta.lastSyncedAt || meta.last_synced_at || null;
+          if (!allProducts.length) {
+            statusEl.textContent = 'No listings available.';
+            return;
+          }
+          render(searchInput.value);
+        } catch (error) {
+          table.hidden = true;
+          const message = error.message || 'Unknown error';
+          statusEl.innerHTML = `<span class="error">Failed to load listings: ${message}</span>`;
+        }
+      }
+
+      searchInput.addEventListener('input', (event) => {
+        render(event.target.value);
+      });
+
+      refreshButton.addEventListener('click', async () => {
+        if (refreshButton.disabled) return;
+
+        const defaultLabel = refreshButton.textContent;
+        refreshButton.disabled = true;
+        refreshButton.textContent = 'Refreshing…';
+        statusEl.textContent = 'Refreshing listings…';
+
+        try {
+          const response = await fetch('/api/products/refresh', { method: 'POST' });
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.details || `Request failed with status ${response.status}`);
+          }
+
+          const payload = await response.json();
+          const rawCount = Number(payload.newOrUpdated ?? payload.updated ?? 0);
+          const updatedCount = Number.isFinite(rawCount) ? rawCount : 0;
+          const refreshedAt = payload.lastSyncedAt || payload.last_synced_at || null;
+          const updateMessage = updatedCount
+            ? `Fetched ${updatedCount} new or updated listing${updatedCount === 1 ? '' : 's'}.`
+            : 'No new listings found.';
+
+          await fetchProducts({ silent: true });
+          if (refreshedAt) {
+            lastSyncedAt = refreshedAt;
+          }
+          const baseStatus = statusEl.textContent;
+          statusEl.textContent = `${baseStatus} — ${updateMessage}`;
+        } catch (error) {
+          const message = error.message || 'Unknown error';
+          statusEl.innerHTML = `<span class="error">Refresh failed: ${message}</span>`;
+        } finally {
+          refreshButton.disabled = false;
+          refreshButton.textContent = defaultLabel;
+        }
+      });
+
+      fetchProducts();
+    </script>
+  </body>
+</html>

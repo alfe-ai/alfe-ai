@@ -1,6 +1,6 @@
 # Alfe.sh Redirect
 
-Simple Node.js server that listens on HTTPS port `3001` and redirects all traffic to [https://mvp2.alfe.sh](https://mvp2.alfe.sh).
+Simple Node.js server that listens on HTTPS port `3001` and redirects all traffic to [https://app.alfe.sh](https://app.alfe.sh).
 
 ## Setup
 1. Ensure Node.js and npm are installed.

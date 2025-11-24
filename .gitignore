@@ -5,6 +5,7 @@
 TaskQueue/.env
 *.env
 !PrintifyPriceUpdater/sample.env
+!PrintifyWeb/sample.env
 printifyQueue.json
 
 # Ignore global node modules
@@ -19,3 +20,4 @@ PrintifyPriceUpdater/.patchfiles_ignore/
 # package lock files are intentionally tracked
 
 PrintifyPriceUpdater/skus.db
+PrintifyWeb/.cache/
