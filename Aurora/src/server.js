@@ -4371,23 +4371,21 @@ app.get("/", (req, res) => {
     }
   }
 
-  if (["mvp2.alfe.sh", "app.alfe.sh"].includes(req.hostname) && sessionId) {
+  if (["mvp2.alfe.sh", "app.alfe.sh"].includes(req.hostname)) {
     try {
-      const account = db.getAccountBySession(sessionId);
-      if (account) {
-        const { uuid } = db.createChatTab(
-          "Untitled",
-          0,
-          "",
-          "",
-          '',
-          0,
-          "chat",
-          sessionId,
-          0
-        );
-        return res.redirect(`/chat/${uuid}`);
-      }
+      const { sessionId } = ensureSessionIdCookie(req, res);
+      const { uuid } = db.createChatTab(
+        "Untitled",
+        0,
+        "",
+        "",
+        '',
+        0,
+        "chat",
+        sessionId,
+        0
+      );
+      return res.redirect(`/chat/${uuid}`);
     } catch (err) {
       console.error("[Server Debug] Auto new tab error:", err);
     }
