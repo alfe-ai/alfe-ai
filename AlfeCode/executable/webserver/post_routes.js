@@ -50,6 +50,15 @@ function setupPostRoutes(deps) {
     const STERLING_TEMP_BASE = path.resolve("/git/sterling");
     const STERLING_TEMP_DIR_PATTERN = /^(?:,,,-\d{6,}|sterlingcodex[_-]?.+|.+-\d{10,})$/i;
 
+    const TRUTHY_ENV_VALUES = ["1", "true", "yes", "on"];
+    const isTruthyEnvValue = (value) => {
+        return (
+            typeof value === "string"
+            && TRUTHY_ENV_VALUES.includes(value.trim().toLowerCase())
+        );
+    };
+    const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
+
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
 
     const appendStatusEntries = (history, entries, limit) => {
@@ -144,6 +153,10 @@ function setupPostRoutes(deps) {
     };
 
     const cleanupSterlingTempDir = (targetPath) => {
+        if (!MERGE_TEMP_CLEANUP_ENABLED) {
+            return;
+        }
+
         if (!targetPath) {
             return;
         }

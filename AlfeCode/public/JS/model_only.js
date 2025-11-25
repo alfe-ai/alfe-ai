@@ -7,7 +7,12 @@
       const res=await fetch('/file_summarizer/models');
       if(!res.ok)throw new Error('Failed to load models');
       const data=await res.json();
-      const providers=Object.keys(data.providers||{});
+      let providers = Object.keys(data.providers||{});
+      // Restrict providers to only 'openrouter' in the UI
+      providers = ['openrouter'];
+      // Override available models for the selector to the approved set
+      window.__providerModels = window.__providerModels || {};
+      window.__providerModels['openrouter'] = ['openai/gpt-5-mini','openai/gpt-5-nano','openai/gpt-5.1-codex-mini'];
       providerSelect.innerHTML='';
       providers.forEach(p=>{
         const opt=document.createElement('option');opt.value=p;opt.textContent=p;providerSelect.appendChild(opt);
@@ -16,9 +21,8 @@
       if(defaultProvider)providerSelect.value=defaultProvider;
       populateModels();
       // Render default model; hide deprecated branding label if present
-  const dm = data.defaultModel;
-  const displayModel = (dm && dm !== 'deepseek/deepseek-chat') ? dm : '(none)';
-  info.textContent = 'Default model: ' + displayModel;
+  // Default model display removed
+  info.textContent = '';
     }catch(e){info.textContent='Error loading models: '+e.message}
   }
   function populateModels(){

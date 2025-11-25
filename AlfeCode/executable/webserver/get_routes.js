@@ -1595,6 +1595,7 @@ ${cleanedFinalOutput}`;
         const initialEditorLaunchConfig = resolvedEditorTarget && resolvedEditorTarget.url
             ? resolvedEditorTarget
             : null;
+        const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
         res.render("codex_runner", {
             codexScriptPath,
             defaultProjectDir: defaultCodexProjectDir,
@@ -1609,6 +1610,7 @@ ${cleanedFinalOutput}`;
             editorEnabled: parseBooleanFlag(process.env.EDITOR_ENABLED),
             appVersion    : appVersionDisplay,
             enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
+            showNewTaskButton,
         });
     };
 
@@ -4126,25 +4128,79 @@ res.render("editor", {
         });
     });
 
+    const MERGE_DIFF_CACHE_TTL_MS = 5 * 60 * 1000;
+    const mergeDiffCache = new Map();
+
+    const buildMergeDiffCacheKey = (sessionId, projectDir, baseRev, compRev) => {
+        const safeSession = (sessionId || '').trim() || 'default';
+        const safeProject = (projectDir || '').toString().replace(/\\+/g, '/').trim();
+        return `${safeSession}::${safeProject}::${baseRev || ''}::${compRev || ''}`;
+    };
+
+    const getCachedMergeDiff = (key) => {
+        if (!key) return null;
+        const entry = mergeDiffCache.get(key);
+        if (!entry) return null;
+        if (Date.now() - entry.timestamp > MERGE_DIFF_CACHE_TTL_MS) {
+            mergeDiffCache.delete(key);
+            return null;
+        }
+        return entry;
+    };
+
+    const storeMergeDiffCache = (key, payload) => {
+        if (!key || !payload) return;
+        mergeDiffCache.set(key, {
+            ...payload,
+            timestamp: Date.now(),
+        });
+    };
+
+    const isTruthyFlag = (value) => {
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return ["1", "true", "yes", "on"].includes(normalized);
+        }
+        return Boolean(value);
+    };
+
+    const extractComparisonPromptLine = (value) => {
+        if (typeof value !== 'string') {
+            return '';
+        }
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return '';
+        }
+        const firstLine = trimmed.split(/\r?\n/)[0].trim();
+        return firstLine;
+    };
+
     app.get("/agent/git-diff-branch-merge", (req, res) => {
         const sessionId = resolveSessionId(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
         const branchParam = (req.query.branch || "").toString().trim();
+        const branchName = branchParam.replace(/^['"]+|['"]+$/g, "");
+        const mergeReady = isTruthyFlag(req.query.mergeReady);
+        const prefetchOnly = isTruthyFlag(req.query.prefetch);
+        const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
 
         if (!branchParam) {
-            return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam });
+            return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
+                        comparisonPromptLine });
         }
 
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
         if (!resolvedProjectDir) {
-            return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam });
+            return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
+                        comparisonPromptLine });
         }
 
         try {
             // Determine candidate parent branches. Prefer configured sterlingParent if present
             let parentCandidates = [];
             try {
-                const cfg = execSync(`git config branch."${branchParam}".sterlingParent`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] }).toString().trim();
+                const cfg = execSync(`git config branch."${branchName}".sterlingParent`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] }).toString().trim();
                 if (cfg) parentCandidates.push(cfg);
             } catch (_err) {}
 
@@ -4172,7 +4228,7 @@ res.render("editor", {
                     if (!mergeHash) continue;
                     try {
                         // Check if the branch is an ancestor of this merge commit
-                        execSync(`git merge-base --is-ancestor ${branchParam} ${mergeHash}`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] });
+                        execSync(`git merge-base --is-ancestor ${branchName} ${mergeHash}`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] });
                         // exit code 0 means ancestor
                         foundMergeCommit = mergeHash;
                         foundParent = candidate;
@@ -4184,34 +4240,159 @@ res.render("editor", {
                 if (foundMergeCommit) break;
             }
 
+            // Helper to resolve a ref against common namespaces
+            const resolveRefCandidates = (candidates) => {
+                for (const cand of candidates) {
+                    if (!cand) continue;
+                    try {
+                        const sha = execSync(`git rev-parse --verify ${cand}`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','pipe'] })
+                            .toString()
+                            .trim();
+                        if (sha) {
+                            return { sha, ref: cand };
+                        }
+                    } catch (_e) {
+                        // try next candidate
+                    }
+                }
+                return null;
+            };
+
+            // Build a candidate list for the branch that includes all configured remotes
+            const buildBranchCandidates = () => {
+                const candidates = new Set([
+                    `${branchName}`,
+                    `refs/heads/${branchName}`,
+                    `refs/remotes/${branchName}`,
+                    `refs/remotes/origin/${branchName}`,
+                    `origin/${branchName}`,
+                ]);
+
+                // Include refs/remotes/<remote>/<branch> for each configured remote
+                try {
+                    const remotes = execSync('git remote', { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] })
+                        .toString()
+                        .split(/\r?\n/)
+                        .map(r => r.trim())
+                        .filter(Boolean);
+                    for (const remote of remotes) {
+                        candidates.add(`${remote}/${branchName}`);
+                        candidates.add(`refs/remotes/${remote}/${branchName}`);
+                    }
+                } catch (_e) {}
+
+                // Add any matching remote refs discovered via for-each-ref (covers nested paths)
+                try {
+                    const matchingRemoteRefs = execSync(`git for-each-ref --format='%(refname)' "refs/remotes/*/${branchName}"`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] })
+                        .toString()
+                        .split(/\r?\n/)
+                        .map(r => r.trim())
+                        .filter(Boolean);
+                    for (const ref of matchingRemoteRefs) {
+                        candidates.add(ref);
+                    }
+                } catch (_e) {}
+
+                return Array.from(candidates);
+            };
+
+            let baseRev = "";
+            let compRev = "";
+            let diffCommand = "";
+
             if (!foundMergeCommit) {
-                // No merge commit found on parent candidates
-                return res.status(404).render("diff", {
-                    gitRepoNameCLI: resolvedProjectDir,
-                    baseRev: '',
-                    compRev: '',
-                    diffOutput: '',
-                    structuredDiff: [],
-                    debugMode: !!process.env.DEBUG,
-                    environment: res.locals.environment,
-                    diffFormAction: "/agent/git-diff",
-                    repoLinksEnabled: false,
-                    projectDir: resolvedProjectDir,
-                    errorMessage: `Unable to find a merge commit on parent branches for '${branchParam}'.`,
-                });
+                // No merge commit found on parent candidates. Try to compare the branch
+                // against the best available parent so users can review changes before merging.
+                let resolvedBranch = resolveRefCandidates(buildBranchCandidates());
+
+                let resolvedParent = resolveRefCandidates(parentCandidates);
+
+                // If the branch could not be resolved locally, attempt a lightweight fetch
+                // to refresh remote references before giving up.
+                if (!resolvedBranch) {
+                    try {
+                        execSync('git fetch --all --prune --tags --quiet', { cwd: resolvedProjectDir, stdio: ['ignore','pipe','ignore'] });
+                        resolvedBranch = resolveRefCandidates(buildBranchCandidates());
+                        // Parent candidates may also be remote-only; refresh them too.
+                        if (!resolvedParent) {
+                            resolvedParent = resolveRefCandidates(parentCandidates);
+                        }
+                    } catch (_err) {
+                        // Ignore fetch failures; we'll fall back to the existing error path.
+                    }
+                }
+
+                if (!resolvedBranch) {
+                    return res.status(404).render("diff", {
+                        gitRepoNameCLI: resolvedProjectDir,
+                        baseRev: '',
+                        compRev: '',
+                        diffOutput: '',
+                        structuredDiff: [],
+                        debugMode: !!process.env.DEBUG,
+                        environment: res.locals.environment,
+                        diffFormAction: "/agent/git-diff",
+                        repoLinksEnabled: false,
+                        projectDir: resolvedProjectDir,
+                        errorMessage: `Unable to resolve branch '${branchName}' for diff.`,
+                        mergeReady,
+                        comparisonPromptLine,
+                    });
+                }
+
+                compRev = resolvedBranch.sha;
+
+                if (resolvedParent) {
+                    let mergeBase = "";
+                    try {
+                        mergeBase = execSync(`git merge-base ${resolvedParent.ref} ${resolvedBranch.ref}`, { cwd: resolvedProjectDir, stdio: ['pipe','pipe','pipe'] })
+                            .toString()
+                            .trim();
+                    } catch (_e) {
+                        mergeBase = "";
+                    }
+
+                    baseRev = mergeBase || resolvedParent.sha;
+                    // Use a three-dot diff so the output reflects changes on the branch relative to parent
+                    diffCommand = `git diff ${resolvedParent.ref}...${resolvedBranch.ref}`;
+                } else {
+                    baseRev = `${resolvedBranch.sha}^`;
+                    diffCommand = `git diff ${baseRev} ${resolvedBranch.sha}`;
+                }
+            } else {
+                baseRev = `${foundMergeCommit}^`;
+                compRev = foundMergeCommit;
+                diffCommand = `git diff ${baseRev} ${compRev}`;
             }
 
-            const baseRev = `${foundMergeCommit}^`;
-            const compRev = foundMergeCommit;
+            const cacheKey = buildMergeDiffCacheKey(sessionId, resolvedProjectDir, baseRev, compRev);
+            const cachedDiff = getCachedMergeDiff(cacheKey);
+
             let diffOutput = '';
-            try {
-                diffOutput = execSync(`git diff ${baseRev} ${compRev}`, { cwd: resolvedProjectDir, maxBuffer: 1024 * 1024 * 10 }).toString();
-            } catch (err) {
-                diffOutput = `[ERROR] Failed to run git diff ${baseRev} ${compRev}
+            let structuredDiff = [];
+
+            if (cachedDiff) {
+                diffOutput = cachedDiff.diffOutput || '';
+                structuredDiff = Array.isArray(cachedDiff.structuredDiff) ? cachedDiff.structuredDiff : [];
+            } else {
+                try {
+                    diffOutput = execSync(diffCommand, { cwd: resolvedProjectDir, maxBuffer: 1024 * 1024 * 10 }).toString();
+                } catch (err) {
+                    diffOutput = `[ERROR] Failed to run ${diffCommand}
 
 ${err}`;
+                }
+                structuredDiff = parseUnifiedDiff(diffOutput);
+                storeMergeDiffCache(cacheKey, { diffOutput, structuredDiff, baseRev, compRev, projectDir: resolvedProjectDir });
             }
-            const structuredDiff = parseUnifiedDiff(diffOutput);
+
+            if (prefetchOnly) {
+                // Refresh the cache timestamp even when serving from cache.
+                storeMergeDiffCache(cacheKey, { diffOutput, structuredDiff, baseRev, compRev, projectDir: resolvedProjectDir });
+                return res.json({ status: 'ok', cached: !!cachedDiff, baseRev, compRev });
+            }
+
+            storeMergeDiffCache(cacheKey, { diffOutput, structuredDiff, baseRev, compRev, projectDir: resolvedProjectDir });
 
             const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
             const repoLinksEnabled = !!repoName;
@@ -4233,10 +4414,13 @@ ${err}`;
                 errorMessage: '',
                 baseMeta,
                 compMeta,
+                mergeReady,
+                comparisonPromptLine,
             });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
-            return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error' });
+            return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
+                comparisonPromptLine });
         }
     });
 
@@ -4245,6 +4429,9 @@ app.get("/agent/git-diff", (req, res) => {
         const projectDirParam = (req.query.projectDir || "").toString().trim();
         const baseRevInput = (req.query.baseRev || "").toString();
         const compRevInput = (req.query.compRev || "").toString();
+        const mergeReady = isTruthyFlag(req.query.mergeReady);
+        const prefetchOnly = isTruthyFlag(req.query.prefetch);
+        const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
 
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
 
@@ -4357,16 +4544,34 @@ app.get("/agent/git-diff", (req, res) => {
         let structuredDiff = [];
 
         if (!errorMessage) {
-            try {
-                diffOutput = execSync(`git diff ${baseRev} ${compRev}`, {
-                    cwd: resolvedProjectDir,
-                    maxBuffer: 1024 * 1024 * 10,
-                }).toString();
-            } catch (err) {
-                diffOutput = `[ERROR] Failed to run git diff ${baseRev} ${compRev}\n\n${err}`;
+            const cacheKey = buildMergeDiffCacheKey(sessionId, resolvedProjectDir, baseRev, compRev);
+            const cachedDiff = getCachedMergeDiff(cacheKey);
+
+            if (cachedDiff) {
+                diffOutput = cachedDiff.diffOutput || "";
+                structuredDiff = Array.isArray(cachedDiff.structuredDiff) ? cachedDiff.structuredDiff : [];
+            } else {
+                try {
+                    diffOutput = execSync(`git diff ${baseRev} ${compRev}`, {
+                        cwd: resolvedProjectDir,
+                        maxBuffer: 1024 * 1024 * 10,
+                    }).toString();
+                } catch (err) {
+                    diffOutput = `[ERROR] Failed to run git diff ${baseRev} ${compRev}\n\n${err}`;
+                }
+
+                structuredDiff = parseUnifiedDiff(diffOutput);
+                storeMergeDiffCache(cacheKey, { diffOutput, structuredDiff, baseRev, compRev, projectDir: resolvedProjectDir });
             }
 
-            structuredDiff = parseUnifiedDiff(diffOutput);
+            if (prefetchOnly) {
+                storeMergeDiffCache(cacheKey, { diffOutput, structuredDiff, baseRev, compRev, projectDir: resolvedProjectDir });
+                return res.json({ status: 'ok', cached: !!cachedDiff, baseRev, compRev });
+            }
+
+            storeMergeDiffCache(cacheKey, { diffOutput, structuredDiff, baseRev, compRev, projectDir: resolvedProjectDir });
+        } else if (prefetchOnly) {
+            return res.status(400).json({ error: errorMessage });
         }
 
         const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
@@ -4374,8 +4579,8 @@ app.get("/agent/git-diff", (req, res) => {
 
         const statusCode = errorMessage ? 400 : 200;
 
-        const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
-        const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+        const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
+        const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
 
         res.status(statusCode).render("diff", {
             gitRepoNameCLI: repoName || resolvedProjectDir,
@@ -4391,19 +4596,24 @@ app.get("/agent/git-diff", (req, res) => {
             errorMessage,
             baseMeta,
             compMeta,
+            mergeReady,
+            comparisonPromptLine,
         });
     });
 
     
 
     const getCommitMeta = (cwd, rev) => {
-        if (!rev) return { hash: '', authorName: '', authorEmail: '', message: '' };
+        if (!rev) return { hash: '', authorName: '', authorEmail: '', message: '', fullMessage: '' };
         try {
-            const out = execSync(`git show -s --format=%H%n%an%n%ae%n%s ${rev}`, { cwd, maxBuffer: 1024 * 1024 }).toString();
+            const out = execSync(`git show -s --format=%H%n%an%n%ae%n%s%n%b ${rev}`, { cwd, maxBuffer: 1024 * 1024 }).toString();
             const parts = out.split(/\r?\n/);
-            return { hash: parts[0] || '', authorName: parts[1] || '', authorEmail: parts[2] || '', message: parts[3] || '' };
+            const [hash = '', authorName = '', authorEmail = '', subject = '', ...bodyParts] = parts;
+            const body = bodyParts.join('\n').replace(/\n+$/, '');
+            const fullMessage = body ? `${subject}\n${body}` : subject;
+            return { hash, authorName, authorEmail, message: subject, fullMessage };
         } catch (err) {
-            return { hash: '', authorName: '', authorEmail: '', message: '' };
+            return { hash: '', authorName: '', authorEmail: '', message: '', fullMessage: '' };
         }
     };
 
@@ -4412,6 +4622,7 @@ app.get("/agent/git-diff", (req, res) => {
         const { repoName } = req.params;
         const sessionId = resolveSessionId(req);
         const { baseRev, compRev } = req.query;
+        const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         let diffOutput = "";
         const repoCfg = loadSingleRepoConfig(repoName, sessionId);
         if (!repoCfg) {
@@ -4432,8 +4643,10 @@ app.get("/agent/git-diff", (req, res) => {
 
         const structuredDiff = parseUnifiedDiff(diffOutput);
 
-        const baseMeta = baseRev ? getCommitMeta(gitRepoLocalPath, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
-        const compMeta = compRev ? getCommitMeta(gitRepoLocalPath, compRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+        const baseMeta = baseRev ? getCommitMeta(gitRepoLocalPath, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
+        const compMeta = compRev ? getCommitMeta(gitRepoLocalPath, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
+
+        const mergeReady = isTruthyFlag(req.query.mergeReady);
 
         res.render("diff", {
             gitRepoNameCLI: repoName,
@@ -4449,6 +4662,8 @@ app.get("/agent/git-diff", (req, res) => {
             errorMessage: "",
             baseMeta,
             compMeta,
+            mergeReady,
+            comparisonPromptLine,
         });
     });
 }

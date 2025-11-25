@@ -38,6 +38,8 @@
         .button { display:inline-block; padding:10px 14px; border-radius:999px; background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: #ffffff; border: none; text-decoration:none; font-weight:600; }
         .button.secondary { background: rgba(17,24,39,0.65); border:1px solid var(--nexum-border); color:var(--nexum-text); }
         .button.secondary:hover { background: rgba(17,24,39,0.85); color:#fff; }
+        .button.disabled { opacity: 0.6; pointer-events: none; cursor: default; }
+
     </style>
 </head>
 <body>
@@ -45,8 +47,7 @@
     <div class="page">
         <header>
             <div class="actions">
-                <a class="button" href="/repositories/add" target="_blank" rel="noopener noreferrer">Add New Repository</a>
-                <a class="button secondary" href="/sterling/storage" target="_blank" rel="noopener noreferrer">Manage Storage</a>
+                <a class="button disabled" href="javascript:void(0);" role="button" aria-disabled="true" title="Add New Repository (disabled)">Add New Repository</a>
             </div>
         </header>
 
@@ -54,7 +55,7 @@
             <% repos.forEach(function(repo) { %>
                 <li class="repo">
                     <div>
-                        <a class="repo-link" href="/environment?repo_directory=<%= encodeURIComponent(repo.gitRepoLocalPath) %>&repo_name=<%= encodeURIComponent(repo.name) %>" target="_blank" rel="noopener noreferrer"><%= repo.name %></a>
+                        <span class="repo-link"><%= repo.name %></span>
                     </div>
                 </li>
             <% }); %>

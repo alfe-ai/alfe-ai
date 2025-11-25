@@ -90,7 +90,9 @@
             defaultProvider = data.defaultProvider || "";
             defaultModel = data.defaultModel || "";
 
-            const providers = Object.keys(providerModelMap);
+            let providers = Object.keys(providerModelMap);
+            // Restrict providers to only 'openrouter' in the UI
+            providers = providers.filter(p => p === 'openrouter');
             providerSelect.innerHTML = "";
             if (!providers.length) {
                 const option = document.createElement("option");

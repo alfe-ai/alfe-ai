@@ -360,8 +360,9 @@ const DEFAULT_CHAT_MODEL = (process.env.AI_MODEL && process.env.AI_MODEL.trim())
 const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";
 console.debug(`[Server Debug] Using default chat model => ${DEFAULT_CHAT_MODEL}`);
 
-const FREE_IMAGE_LIMIT = parseInt(process.env.AURORA_FREE_IMAGE_LIMIT || process.env.FREE_IMAGE_LIMIT || '10', 10);
-const FREE_SEARCH_LIMIT = parseInt(process.env.AURORA_FREE_SEARCH_LIMIT || process.env.FREE_SEARCH_LIMIT || '10', 10);
+const LIMITS_ENABLED = parseBooleanEnv(process.env.AURORA_LIMITS_ENABLED, true);
+const FREE_IMAGE_LIMIT = LIMITS_ENABLED ? parseInt(process.env.AURORA_FREE_IMAGE_LIMIT || process.env.FREE_IMAGE_LIMIT || '10', 10) : Number.POSITIVE_INFINITY;
+const FREE_SEARCH_LIMIT = LIMITS_ENABLED ? parseInt(process.env.AURORA_FREE_SEARCH_LIMIT || process.env.FREE_SEARCH_LIMIT || '10', 10) : Number.POSITIVE_INFINITY;
 
 const SESSION_SETTING_KEYS = new Set(["last_chat_tab"]);
 
@@ -1251,7 +1252,16 @@ const upload = multer({ storage });
 app.use((req, res, next) => {
   try {
     if (!IMAGE_UPLOAD_ENABLED) {
-      if (req.path.startsWith('/api/upload') || req.path === '/api/chat/image') {
+      const isUploadApi = req.path.startsWith('/api/upload');
+      const isReadOnlyUpload =
+        req.method === 'GET' &&
+        (req.path === '/api/upload/list' || req.path === '/api/upload/byId' || req.path === '/api/upload/title');
+
+      if (isUploadApi && !isReadOnlyUpload) {
+        return res.status(403).json({ error: 'Image upload disabled' });
+      }
+
+      if (req.path === '/api/chat/image') {
         return res.status(403).json({ error: 'Image upload disabled' });
       }
     }
@@ -3114,7 +3124,10 @@ app.get("/api/upload/list", (req, res) => {
     const files = [];
     for (const name of fileNames) {
       const imgSession = db.getImageSessionForUrl(`/uploads/${name}`);
-      if (sessionId && imgSession !== sessionId) continue;
+      // Some legacy images were created without a recorded session. When the
+      // user filters by session, keep showing those session-less entries so the
+      // table isn’t empty even though images exist for the current visit.
+      if (sessionId && imgSession && imgSession !== sessionId) continue;
       const hidden = db.getImageHiddenForUrl(`/uploads/${name}`) ? 1 : 0;
       if(!showHidden && hidden) continue;
       const { size, mtime } = fs.statSync(path.join(uploadsDir, name));

@@ -836,6 +836,12 @@
             color: #f6c200;
         }
 
+        .runs-sidebar__badge--merging {
+            background: rgba(255, 193, 7, 0.18);
+            border-color: rgba(255, 193, 7, 0.35);
+            color: #f6c200;
+        }
+
         .runs-sidebar__badge--merged {
             background: rgba(124, 58, 237, 0.2);
             border-color: rgba(124, 58, 237, 0.4);
@@ -991,6 +997,79 @@
             align-items: center;
             gap: 12px;
             flex-wrap: nowrap;
+        }
+
+        .top-nav-links .store-badge {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border-radius: 9px;
+            overflow: hidden;
+            line-height: 0;
+            border: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            height: clamp(40px, 6vw, 52px);
+            background: rgba(15, 23, 42, 0.78);
+            box-shadow: 0 18px 28px rgba(15, 23, 42, 0.45);
+        }
+
+        #googlePlayBadge {
+            height: clamp(44px, 6vw, 56px);
+        }
+
+        #appStoreBadge {
+            height: clamp(34px, 4.5vw, 40px);
+        }
+
+        .top-nav-links .store-badge img {
+            display: block;
+            height: 100%;
+            width: auto;
+        }
+
+        .top-nav-links .store-badge.disabled {
+            opacity: 0.7;
+            pointer-events: none;
+            box-shadow: none;
+        }
+
+        .top-nav-links .store-badge.disabled::after {
+            content: 'Soon';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-18deg);
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            pointer-events: none;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(236, 72, 153, 0.15);
+            white-space: nowrap;
+        }
+
+        .top-nav-links .store-badge:hover,
+        .top-nav-links .store-badge:focus-visible {
+            transform: translateY(-1px);
+            box-shadow: 0 20px 32px rgba(15, 23, 42, 0.6);
+        }
+
+        .top-nav-links .store-badge:focus-visible {
+            outline: 2px solid #a855f7;
+            outline-offset: 2px;
+        }
+
+        .top-nav-links .store-badge.disabled:hover,
+        .top-nav-links .store-badge.disabled:focus-visible {
+            transform: none;
+            box-shadow: none;
+            outline: none;
         }
 
         h1 {
@@ -1688,6 +1767,65 @@
             display: block;
             background: white;
         }
+        /* Git Log modal loader */
+        .git-log-loader {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2,6,23,0.56);
+            z-index: 1001;
+        }
+        .git-log-loader.is-hidden { display: none; }
+        .git-log-loader .loading-spinner {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.12);
+            border-top-color: #9ad3ff;
+            animation: spin 0.9s linear infinite;
+        }
+
+        .git-log-loader .loading-card {
+            min-width: 260px;
+            max-width: min(90vw, 420px);
+            padding: 18px 22px;
+            border-radius: 12px;
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.78));
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            box-shadow: var(--shadow-elevated);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .git-log-loader .loading-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .git-log-loader .loading-log {
+            margin: 0;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
+            font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            text-align: left;
+            white-space: pre-line;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
 
         .prompt-modal-content {
             max-width: min(900px, 92vw);
@@ -1736,6 +1874,19 @@
             padding: 8px 12px;
             cursor: pointer;
             font-size: 1.2rem;
+        }
+
+        #gitLogModal .modal-close {
+            background: #dc2626;
+            color: #fff;
+            box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.45);
+            border: 1px solid rgba(185, 28, 28, 0.8);
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
         }
 /* Custom Run/Cancel and Merge styles */
         /* Run button transforms into Cancel Run while controls are disabled (visual only) */
@@ -1828,7 +1979,16 @@
         .repos-dropdown__inner { width: 420px; height: 360px; background: linear-gradient(180deg, rgba(6,8,15,0.98), rgba(12,16,28,0.95)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(2,6,23,0.6); border-radius: 12px; overflow: hidden; }
         .repos-dropdown__inner iframe { width: 100%; height: 100%; border: none; }
 
-    </style>
+    
+        /* Tooltip for Branch button */
+        #branchComingSoonTooltip {
+            transition: opacity 0.18s ease;
+            position: absolute;
+            display: inline-block;
+            white-space: normal;
+            text-align: center;
+        }
+</style>
 </head>
 <body>
 <% var iframeMode = typeof isIframeMode === "boolean" ? isIframeMode : true; %>
@@ -1840,14 +2000,18 @@
                 <div class="sidebar-brand">
                 <div class="sidebar-header">
                     <div class="sidebar-brand-icon">
-                        <a href="https://app.alfe.sh" target="_blank" rel="noopener noreferrer"><img src="/alfe_favicon_chat_mountain_rect_purple_WHITEBG_64x64.png" alt="Alfe AI logo">
-                    </a></div>
+                        <a href="javascript:void(0)" class="sidebar-brand-icon-link" aria-label="Alfe AI" onclick="if(event){event.preventDefault();}">
+                            <img src="/alfe_favicon_chat_mountain_rect_purple_WHITEBG_64x64.png" alt="Alfe AI logo">
+                        </a>
+                    </div>
+        
+
                     <div class="sidebar-brand-text">
                         <h1 class="sidebar-brand-heading">
                             <% if (typeof environment !== 'undefined' && environment && environment !== 'unknown') { %>
                                 <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
                             <% } %>
-                            <a href="https://app.alfe.sh" class="sidebar-brand-name" target="_blank" rel="noopener noreferrer">Alfe AI</a>
+                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="Alfe AI" onclick="if(event){event.preventDefault();}">Alfe AI</a>
                         </h1>
                     </div>
                 </div>
@@ -1856,7 +2020,7 @@
 
                 <nav class="sidebar-nav aurora-nav" aria-label="Agent primary tabs">
                     <div class="aurora-nav__inner">
-                        <a href="/agent?tab=code" class="sidebar-nav-item" data-tab="code" aria-label="Code tab">
+                        <a href="javascript:void(0)" class="sidebar-nav-item" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
                             <span class="sidebar-nav-item__icon" aria-hidden="true">&lt;/&gt;</span>
                             <span class="sidebar-nav-item__label">Code</span>
                         </a>
@@ -1870,6 +2034,31 @@
                         </a>
                     </div>
                 </nav>
+</nav>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        try {
+                            // Ensure Image Design link is visible
+                            var designLink = document.querySelector('.sidebar-nav-item[data-tab="design"]');
+                            if(designLink) { designLink.style.display = ''; }
+                            // Hide any upload buttons/inputs in sidebar by default
+                            var fileInput = document.getElementById('fileInput');
+                            if(fileInput) fileInput.style.display = 'none';
+                            var secureSubmit = document.getElementById('secureUploadSubmit');
+                            if(secureSubmit) secureSubmit.style.display = 'none';
+                            // Hide buttons that have text 'Upload'
+                            document.querySelectorAll('#runsSidebarList button, #runsSidebarList input, .runs-sidebar__body button, .runs-sidebar__body input, .sidebar button, .sidebar input').forEach(function(el){
+                                try {
+                                    var txt = (el.innerText || el.value || '').trim().toLowerCase();
+                                    if(txt === 'upload' || txt === 'upload & upscale' || txt === 'upload image'){
+                                        el.style.display = 'none';
+                                    }
+                                } catch(e) {}
+                            });
+                        } catch (e) { /* no-op */ }
+                    });
+                </script>
+
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         try {
@@ -1930,7 +2119,7 @@
                 </div>
                 <div class="runs-sidebar__actions">
 <button type="button" id="backlogButton" class="runs-sidebar__icon-button" aria-label="Backlog" title="Backlog" onclick="window.open('https://code-s.alfe.sh/ProjectView/', '_blank')">Backlog</button>
-<button type="button" id="runsSidebarOpenRunsButton" class="runs-sidebar__icon-button" aria-label="Detail run" title="Detail run">
+<button type="button" id="runsSidebarOpenRunsButton" class="runs-sidebar__icon-button is-hidden" aria-label="Detail run" title="Detail run">
                         Detail
                     </button>
 <button type="button" id="runsSidebarArchiveToggle" class="runs-sidebar__icon-button" aria-pressed="false" aria-label="Archived" title="Archived">Archived</button>
@@ -1940,7 +2129,7 @@
 
 
             <div class="runs-sidebar__primary-action">
-                <button type="button" id="runsSidebarNewTaskButton" class="runs-sidebar__new-task">
+                <% if (showNewTaskButton) { %><button type="button" id="runsSidebarNewTaskButton" class="runs-sidebar__new-task">
                     <span class="runs-sidebar__new-task-icon" aria-hidden="true">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
                             <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -1948,6 +2137,7 @@
                     </span>
                     <span class="runs-sidebar__new-task-label">New Task</span>
                 </button>
+                <% } %>
                 <button type="button" id="backToCurrentTasksLink" class="runs-sidebar__back-link is-hidden" aria-hidden="true">&lt;-- Back to Current Tasks</button>
 
             </div>
@@ -1988,14 +2178,38 @@
                         </button>
                         <% } %>
 
-                        <button id="openGitTreeButton" class="nav-button" type="button" title="Open Git Log" aria-label="Open Git Log" onclick="(function(){ try{ const dirInput=document.getElementById('projectDir'); const dir=(dirInput && dirInput.value && dirInput.value.trim())?dirInput.value.trim():''; const url='/agent/git-tree'+(dir?('?projectDir='+encodeURIComponent(dir)):''); const modal=document.getElementById('gitTreeModal'); const iframe=document.getElementById('gitTreeIframe'); if(iframe) iframe.src=url; if(modal) { modal.classList.remove('is-hidden'); document.body.style.overflow='hidden'; } }catch(e){ window.open('/agent/git-tree', '_blank'); } })()">
-                            Git Log
-                        </button>
-                    </div>
-                    <div class="top-nav-utility">
-                        <button id="agentHelpBtn" class="nav-button icon-only" type="button" title="Help" aria-label="Open agent help" onclick="(function(){ try{ window.open('/agent/help', '_blank', 'noopener,noreferrer'); }catch(e){} })()">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-                                <path d="M8.625 9.75a3.375 3.375 0 116.75 0c0 1.5-1.125 2.25-2.25 3s-1.125 1.5-1.125 2.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        <a
+                            id="googlePlayBadge"
+                            class="store-badge disabled"
+                            href="https://play.google.com/store/apps/details?id=ai.alfe.aurora"
+                            data-default-href="https://play.google.com/store/apps/details?id=ai.alfe.aurora"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Get the Aurora app on Google Play (coming soon)"
+                            aria-disabled="true"
+                        >
+                            <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" loading="lazy" />
+                        </a>
+                        <a
+                            id="appStoreBadge"
+                            class="store-badge disabled"
+                            href="https://apps.apple.com/app/id6504207150"
+                            data-default-href="https://apps.apple.com/app/id6504207150"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Download the Aurora app on the App Store (coming soon)"
+                            aria-disabled="true"
+                        >
+                            <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" loading="lazy" />
+                        </a>
+                          <button id="openGitTreeButton" class="nav-button" type="button" title="Open Git Log" aria-label="Open Git Log" onclick="(function(){ try{ const dirInput=document.getElementById('projectDir'); const dir=(dirInput && dirInput.value && dirInput.value.trim())?dirInput.value.trim():''; const url='/agent/git-tree'+(dir?('?projectDir='+encodeURIComponent(dir)):''); const modal=document.getElementById('gitTreeModal'); const iframe=document.getElementById('gitTreeIframe'); if(iframe) iframe.src=url; if(modal) { modal.classList.remove('is-hidden'); document.body.style.overflow='hidden'; } }catch(e){ window.open('/agent/git-tree', '_blank'); } })()">
+                              Git Log
+                          </button>
+                      </div>
+                      <div class="top-nav-utility">
+                          <button id="agentHelpBtn" style="display:none;" class="nav-button icon-only" type="button" title="Help" aria-label="Open agent help" onclick="(function(){ try{ window.open('/agent/help', '_blank', 'noopener,noreferrer'); }catch(e){} })()">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                  <path d="M8.625 9.75a3.375 3.375 0 116.75 0c0 1.5-1.125 2.25-2.25 3s-1.125 1.5-1.125 2.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                                 <path d="M12 17.25h.007v.008H12v-.008z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                                 <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
@@ -2037,6 +2251,11 @@
                 </button>
                 <% } %>
             </div>
+        </div>
+
+        <!-- Demo disclaimer moved below the panel -->
+        <div class="demo-disclaimer" aria-live="polite" style="margin-top:6px;color:var(--text-muted);font-weight:500;font-size:0.78rem;">
+            This is a Demo of Alfe AI Code. Accounts + Remote Git integration available soon. Data will be cleared periodiocally.
         </div>
         <h1 id="pageTitle" class="is-hidden">Run Agent from Sterling</h1>
         <p id="pageDescription" class="description is-hidden">
@@ -2318,6 +2537,14 @@
     <div id="gitLogModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Git Diff">
       <div class="modal-content">
         <button class="modal-close" type="button" onclick="(function(){ const modal=document.getElementById('gitLogModal'); const iframe=document.getElementById('gitLogIframe'); if(iframe) iframe.src=''; if(modal) modal.classList.add('is-hidden'); document.body.style.overflow=''; })()">×</button>
+        <div id="gitLogLoader" class="git-log-loader is-hidden" role="status" aria-live="polite">
+            <div class="loading-card">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <p class="loading-title">Loading Diff…</p>
+                <p id="gitLogLoaderLog" class="loading-log">Preparing diff…</p>
+            </div>
+        </div>
+
         <iframe id="gitLogIframe" class="modal-iframe" src="" title="Git Diff"></iframe>
       </div>
     </div>
@@ -2481,20 +2708,50 @@
   };
 
   if(projectInfo && branchesDropdown) {
-    const toggleBranchesDropdown = (ev) => {
+    const showBranchComingSoonTooltip = (ev) => {
       ev.stopPropagation();
-      if(branchesDropdown.classList.contains('is-visible')) {
-        projectInfo.classList.remove('is-open');
-        hideDropdown(branchesDropdown, projectInfo);
-      } else {
-        hideDropdown(reposDropdown, title);
-        showDropdown(projectInfo, branchesDropdown);
-        ensureBranchesSrc();
-        projectInfo.classList.add('is-open');
+      try {
+        let tip = document.getElementById('branchComingSoonTooltip');
+        if(!tip) {
+          tip = document.createElement('div');
+          tip.id = 'branchComingSoonTooltip';
+          tip.textContent = 'Ability to switch branches coming soon.';
+          document.body.appendChild(tip);
+        }
+        tip.style.position = 'absolute';
+        tip.style.pointerEvents = 'none';
+        tip.style.opacity = '0';
+        tip.style.zIndex = 10000;
+        tip.style.maxWidth = '320px';
+        tip.style.padding = '8px 12px';
+        tip.style.borderRadius = '8px';
+        tip.style.background = 'rgba(0,0,0,0.86)';
+        tip.style.color = '#fff';
+        tip.style.fontSize = '0.9rem';
+        tip.style.boxShadow = '0 8px 24px rgba(0,0,0,0.6)';
+
+        // Position centered under the button
+        const rect = projectInfo.getBoundingClientRect();
+        document.body.appendChild(tip); // ensure in DOM for measurements
+        const left = Math.max(8, Math.round(rect.left + (rect.width - tip.offsetWidth)/2));
+        const top = Math.round(rect.bottom + 8 + window.scrollY);
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+
+        // show
+        requestAnimationFrame(() => { tip.style.opacity = '1'; });
+
+        if(tip._timeout) clearTimeout(tip._timeout);
+        tip._timeout = setTimeout(()=>{
+          tip.style.opacity = '0';
+          setTimeout(()=>{ try{ tip.remove(); }catch(_e){} }, 220);
+        }, 2800);
+      } catch(e) {
+        // noop
       }
     };
 
-    projectInfo.addEventListener('click', toggleBranchesDropdown);
+    projectInfo.addEventListener('click', showBranchComingSoonTooltip);
   }
 
   if(branchesDropdown) {

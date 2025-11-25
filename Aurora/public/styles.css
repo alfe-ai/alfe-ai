@@ -1054,6 +1054,13 @@ body {
   cursor: pointer;
 }
 
+.is-disabled-link {
+  color: var(--muted-text, #9ca3af);
+  cursor: not-allowed;
+  text-decoration: none;
+  opacity: 0.8;
+}
+
 .modal-content.image-preview-modal {
   max-width: min(90vw, 720px);
 }

@@ -18,6 +18,8 @@ const PROJECT_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_AIMODEL = "deepseek/deepseek-chat";
 const DEFAULT_GIT_COMMIT_GRAPH_LIMIT = 400;
 const MAX_GIT_COMMIT_GRAPH_LIMIT = 2000;
+const SESSION_GIT_BASE_PATH = path.join(path.sep, "git");
+const NEW_SESSION_REPO_NAME = "New";
 
 function parseBooleanEnv(value, defaultValue = false) {
     if (typeof value === "undefined" || value === null) {
@@ -184,6 +186,79 @@ function buildSessionCookie(sessionId, hostname) {
     return parts.join("; ");
 }
 
+function ensureDirectory(targetPath) {
+    if (!targetPath) {
+        return;
+    }
+    if (!fs.existsSync(targetPath)) {
+        fs.mkdirSync(targetPath, { recursive: true });
+    }
+}
+
+function getSessionGitRoot(sessionId) {
+    const safeId = sanitizeSessionId(sessionId);
+    if (!safeId) {
+        return null;
+    }
+    return path.join(SESSION_GIT_BASE_PATH, safeId);
+}
+
+function getSessionRepoPath(sessionId, repoName = NEW_SESSION_REPO_NAME) {
+    const gitRoot = getSessionGitRoot(sessionId);
+    if (!gitRoot) {
+        return null;
+    }
+    return path.join(gitRoot, repoName);
+}
+
+function ensureGitRepository(repoDir) {
+    if (!repoDir) {
+        return;
+    }
+    const gitMetaDir = path.join(repoDir, ".git");
+    if (fs.existsSync(gitMetaDir)) {
+        return;
+    }
+    try {
+        execSync("git init --initial-branch=main", {
+            cwd: repoDir,
+            stdio: "ignore",
+        });
+    } catch (error) {
+        console.error(`[ERROR] ensureGitRepository: Failed to init ${repoDir} => ${error.message}`);
+    }
+}
+
+function ensureSessionDefaultRepo(sessionId) {
+    if (!sessionId) {
+        return;
+    }
+    const repoName = NEW_SESSION_REPO_NAME;
+    const repoDir = getSessionRepoPath(sessionId, repoName);
+    if (!repoDir) {
+        return;
+    }
+    ensureDirectory(path.dirname(repoDir));
+    ensureDirectory(repoDir);
+    ensureGitRepository(repoDir);
+
+    try {
+        const repoConfig = loadRepoConfig(sessionId) || {};
+        const normalizedPath = repoDir;
+        const existingEntry = repoConfig[repoName];
+        const needsUpdate = !existingEntry || existingEntry.gitRepoLocalPath !== normalizedPath;
+        if (needsUpdate) {
+            repoConfig[repoName] = {
+                ...(existingEntry || {}),
+                gitRepoLocalPath: normalizedPath,
+            };
+            saveRepoConfig(repoConfig, sessionId);
+        }
+    } catch (error) {
+        console.error(`[ERROR] ensureSessionDefaultRepo: ${error.message}`);
+    }
+}
+
 function parseCookies(req) {
     const header = req.headers.cookie || "";
     const cookies = {};
@@ -234,6 +309,10 @@ function ensureSessionIdCookie(req, res) {
                 `[ERROR] ensureSessionIdCookie => Failed to initialize git session directory: ${error.message}`,
             );
         }
+    }
+
+    if (created) {
+        ensureSessionDefaultRepo(sessionId);
     }
 
     return { sessionId, created };
@@ -1381,5 +1460,3 @@ if (projectViewEnabled) {
 } else {
   console.debug("[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED; /ProjectView routes not mounted.");
 }
-
-

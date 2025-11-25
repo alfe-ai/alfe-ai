@@ -7130,13 +7130,46 @@ function sortFileData(){
   });
 }
 
+function getFileUrl(file){
+  if(!file) return "";
+  const rawUrl = file.url || file.fileUrl || "";
+  if(rawUrl){
+    if(rawUrl.startsWith("http://") || rawUrl.startsWith("https://") || rawUrl.startsWith("/")){
+      return rawUrl;
+    }
+    return `/uploads/${encodeURIComponent(rawUrl)}`;
+  }
+  if(file.name){
+    return `/uploads/${encodeURIComponent(file.name)}`;
+  }
+  return "";
+}
+
+function getFileDisplayName(file){
+  if(!file) return "";
+  if(file.name) return file.name;
+  const rawUrl = file.url || file.fileUrl || "";
+  if(rawUrl){
+    const parts = rawUrl.split("/");
+    const last = parts[parts.length - 1] || "";
+    try {
+      return decodeURIComponent(last) || rawUrl;
+    } catch (e) {
+      return last || rawUrl;
+    }
+  }
+  return "";
+}
+
 function renderFileList(){
   const table = $("#secureFilesList");
   const tbody = table.querySelector("tbody");
   tbody.innerHTML = "";
   fileListData.forEach((f, idx) => {
+    const fileUrl = getFileUrl(f);
+    const displayName = getFileDisplayName(f);
     const tr = document.createElement("tr");
-    tr.dataset.fileName = f.name;
+    tr.dataset.fileName = displayName || f.name || "";
     const tdIndex = document.createElement("td");
     tdIndex.className = "uuid-col";
     tdIndex.textContent = f.uuid ?? "";
@@ -7145,8 +7178,10 @@ function renderFileList(){
     tdId.textContent = (f.id !== null && f.id !== undefined) ? `img-${f.id}` : "";
     const tdThumb = document.createElement("td");
     const thumbImg = document.createElement("img");
-    thumbImg.src = `/uploads/${encodeURIComponent(f.name)}`;
-    thumbImg.alt = f.title || f.name;
+    if(fileUrl){
+      thumbImg.src = fileUrl;
+    }
+    thumbImg.alt = f.title || displayName || "Image thumbnail";
     thumbImg.className = "table-thumb";
     const imageModalTitle = getImageModalTitle(f);
     thumbImg.setAttribute("role", "button");
@@ -7163,9 +7198,16 @@ function renderFileList(){
     const tdName = document.createElement("td");
     tdName.className = "name-col";
     const link = document.createElement("a");
-    link.href = `/uploads/${f.name}`;
-    link.target = "_blank";
-    link.textContent = f.name;
+    if(fileUrl){
+      link.href = fileUrl;
+      link.target = "_blank";
+    } else {
+      link.href = "#";
+      link.setAttribute("aria-disabled", "true");
+      link.classList.add("is-disabled-link");
+      link.style.pointerEvents = "none";
+    }
+    link.textContent = displayName || "(no filename)";
     tdName.appendChild(link);
     const tdStatus = document.createElement("td");
     tdStatus.textContent = f.status || "";
@@ -7176,10 +7218,15 @@ function renderFileList(){
     openBtn.type = "button";
     openBtn.className = "table-open-btn";
     openBtn.textContent = "Open";
+    if(!fileUrl){
+      openBtn.disabled = true;
+    }
     openBtn?.addEventListener("click", () => {
+      if(!fileUrl) return;
       if(isPrintifyQueueEnabled()){
+        const fileParam = displayName || fileUrl.split("/").pop() || "";
         window.open(
-          `/Image.html?file=${encodeURIComponent(f.name)}`,
+          `/Image.html?file=${encodeURIComponent(fileParam)}`,
           "_blank"
         );
       } else {
@@ -7194,10 +7241,14 @@ function renderFileList(){
     dlBtn.innerHTML = "⤓ Download";
     dlBtn.title = "Download this image";
     dlBtn.setAttribute("aria-label", "Download this image");
+    if(!fileUrl){
+      dlBtn.disabled = true;
+    }
     dlBtn?.addEventListener("click", () => {
+      if(!fileUrl) return;
       const a = document.createElement("a");
-      a.href = `/uploads/${encodeURIComponent(f.name)}`;
-      a.download = f.name;
+      a.href = fileUrl;
+      a.download = displayName || f.name || "image";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -7222,8 +7273,9 @@ function getImageModalTitle(file){
   if(file.title && String(file.title).trim()){
     return String(file.title).trim();
   }
-  if(file.name && String(file.name).trim()){
-    return String(file.name).trim();
+  const displayName = getFileDisplayName(file);
+  if(displayName && String(displayName).trim()){
+    return String(displayName).trim();
   }
   return "Image Preview";
 }
@@ -7238,12 +7290,13 @@ function openImagePreviewModal(file){
     titleEl.textContent = modalTitle;
   }
   if(imgEl){
-    if(file && file.name){
-      imgEl.src = `/uploads/${encodeURIComponent(file.name)}`;
+    const fileUrl = getFileUrl(file);
+    if(fileUrl){
+      imgEl.src = fileUrl;
     } else {
       imgEl.removeAttribute("src");
     }
-    imgEl.alt = (file && (file.title || file.name)) || modalTitle;
+    imgEl.alt = (file && (file.title || getFileDisplayName(file))) || modalTitle;
   }
   showModal(modal);
 }
@@ -7321,7 +7374,25 @@ async function loadNextFilePage(){
   if(spin) spin.style.display = "block";
   try {
     const resp = await fetch(`/api/upload/list?sessionId=${encodeURIComponent(sessionId)}&showHidden=1&limit=${fileListLimit}&offset=${fileListOffset}`);
-    const data = await resp.json();
+    const payload = await resp.json().catch(() => null);
+
+    if(!resp.ok){
+      const message = payload && payload.error ? payload.error : `Status ${resp.status}`;
+      console.error("Error fetching file list:", message);
+      if(typeof showToast === "function"){
+        showToast(`Unable to load images: ${message}`);
+      }
+      fileListEnd = true;
+      return;
+    }
+
+    if(!Array.isArray(payload)){
+      console.error("Unexpected file list response:", payload);
+      fileListEnd = true;
+      return;
+    }
+
+    const data = payload;
     fileListData = fileListData.concat(data);
     fileListOffset += data.length;
     if(data.length < fileListLimit) fileListEnd = true;

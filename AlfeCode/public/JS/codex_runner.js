@@ -42,6 +42,9 @@
   const fullOutputTabButton = document.getElementById("fullOutputTabButton");
   const stdoutTabButton = document.getElementById("stdoutTabButton");
   const gitLogLink = document.getElementById("gitLogLink");
+  const gitLogModal = document.getElementById("gitLogModal");
+  const gitLogIframe = document.getElementById("gitLogIframe");
+  const VIEW_DIFF_MERGE_MESSAGE_TYPE = "STERLING_VIEW_DIFF_MODAL_MERGE_REQUEST";
   const cancelButton = document.getElementById("cancelButton");
   const runButton = document.getElementById("runButton");
   const mergeButton = document.getElementById("mergeButton");
@@ -895,6 +898,8 @@
   let awaitingGitFpushCompletion = false;
   let pythonTestInFlight = false;
   let gitFpushActive = false;
+  let autoOpenMergeDiffOnEnable = false;
+  let hydratingRunFromHistory = false;
   let pendingGitFpushHash = "";
   let pendingGitFpushHashProjectDir = "";
   let pendingGitFpushBranch = "";
@@ -2063,6 +2068,12 @@
     const params = new URLSearchParams({ baseRev, compRev: hash });
     const dir = normaliseProjectDir(projectDirValue) || normaliseProjectDir(currentSnapshotProjectDir) || (currentRunContext && currentRunContext.projectDir) || '';
     if (dir) params.set('projectDir', dir);
+    params.set('mergeReady', '1');
+    const promptForDiff = typeof lastUserPrompt === 'string' ? lastUserPrompt : '';
+    if (promptForDiff) {
+      params.set('userPrompt', promptForDiff);
+    }
+
     return `/agent/git-diff?${params.toString()}`;
   };
   const buildMergeDiffUrlForBranch = (branch, projectDirValue) => {
@@ -2070,15 +2081,276 @@
     const params = new URLSearchParams({ branch });
     const dir = normaliseProjectDir(projectDirValue) || normaliseProjectDir(currentSnapshotProjectDir) || (currentRunContext && currentRunContext.projectDir) || '';
     if (dir) params.set('projectDir', dir);
+    params.set('mergeReady', '1');
+    const promptForDiff = typeof lastUserPrompt === 'string' ? lastUserPrompt : '';
+    if (promptForDiff) {
+      params.set('userPrompt', promptForDiff);
+    }
+
     // Use a server-side resolver to find the parent-merge commit for this branch
     return `/agent/git-diff-branch-merge?${params.toString()}`;
   };
+
+  const prefetchMergeDiffUrl = async (url) => {
+    if (!url || typeof url !== "string") {
+      return false;
+    }
+
+    try {
+      const parsed = new URL(url, window.location.origin);
+      parsed.searchParams.set("prefetch", "1");
+      const response = await fetch(parsed.toString(), { method: "GET", credentials: "same-origin" });
+      return response.ok;
+    } catch (err) {
+      console.error("Failed to prefetch merge diff", err);
+      return false;
+    }
+  };
+
+  const enableMergeDiffAfterPrefetch = ({ branch, hash, projectDirValue }) => {
+    const useBranch = Boolean(branch);
+    const diffUrl = useBranch
+      ? buildMergeDiffUrlForBranch(branch, projectDirValue || "")
+      : buildMergeDiffUrl(hash, projectDirValue || "");
+
+    if (!diffUrl) {
+      if (useBranch) {
+        enableMergeDiffButtonForBranch(branch, projectDirValue || "");
+      } else if (hash) {
+        enableMergeDiffButtonForHash(hash, projectDirValue || "");
+      }
+      return;
+    }
+
+    prefetchMergeDiffUrl(diffUrl)
+      .catch(() => false)
+      .finally(() => {
+        if (useBranch) {
+          enableMergeDiffButtonForBranch(branch, projectDirValue || "");
+        } else if (hash) {
+          enableMergeDiffButtonForHash(hash, projectDirValue || "");
+        }
+      });
+  };
+
+  // --- Git Log modal loader helpers ---
+  const gitLogLoaderMessages = [
+    'Preparing diff…',
+    'Collecting changes…',
+    'Rendering diff…',
+    'Finalizing view…',
+  ];
+  let gitLogLoaderTimer = null;
+
+  const showGitLogLoader = () => {
+    const loader = document.getElementById('gitLogLoader');
+    const log = document.getElementById('gitLogLoaderLog');
+    if (!loader) return;
+    loader.classList.remove('is-hidden');
+    if (!log) return;
+    let idx = 0;
+    log.textContent = gitLogLoaderMessages[0];
+    if (gitLogLoaderTimer) {
+      clearInterval(gitLogLoaderTimer);
+      gitLogLoaderTimer = null;
+    }
+    gitLogLoaderTimer = setInterval(() => {
+      idx = Math.min(idx + 1, gitLogLoaderMessages.length - 1);
+      log.textContent = gitLogLoaderMessages[idx];
+      if (idx === gitLogLoaderMessages.length - 1) {
+        clearInterval(gitLogLoaderTimer);
+        gitLogLoaderTimer = null;
+      }
+    }, 1400);
+  };
+
+  const hideGitLogLoader = () => {
+    if (gitLogLoaderTimer) {
+      clearInterval(gitLogLoaderTimer);
+      gitLogLoaderTimer = null;
+    }
+    const loader = document.getElementById('gitLogLoader');
+    const log = document.getElementById('gitLogLoaderLog');
+    if (loader) loader.classList.add('is-hidden');
+    if (log) log.textContent = '';
+  };
+
+  const closeGitLogModal = () => {
+    try {
+      if (gitLogIframe) {
+        gitLogIframe.src = "";
+      }
+      if (gitLogModal) {
+        gitLogModal.classList.add("is-hidden");
+      }
+      if (document && document.body) {
+        document.body.style.overflow = "";
+      }
+      hideGitLogLoader();
+    } catch (_err) { /* ignore */ }
+  };
+
+  const handleDiffModalMergeRequest = (event) => {
+    if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
+      return;
+    }
+    if (event.origin && window.location && window.location.origin && event.origin !== window.location.origin) {
+      return;
+    }
+    if (gitLogIframe && event.source && gitLogIframe.contentWindow !== event.source) {
+      return;
+    }
+    closeGitLogModal();
+    if (mergeButton && !mergeButton.disabled) {
+      mergeButton.click();
+    }
+  };
+
+  window.addEventListener("message", handleDiffModalMergeRequest, false);
+
+  const looksLikeHtmlDocument = (text) => {
+    if (!text || typeof text !== 'string') return false;
+    const trimmed = text.trim();
+    if (!trimmed.startsWith('<')) return false;
+
+    const lowered = trimmed.toLowerCase();
+    return lowered.startsWith('<!doctype') || lowered.startsWith('<html') || lowered.startsWith('<head') || lowered.startsWith('<body');
+  };
+
+  const escapeHtml = (value) => {
+    if (!value || typeof value !== 'string') return '';
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const decodeJsonStringMaybe = (text) => {
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'string') {
+        return parsed;
+      }
+    } catch (_e) { /* ignore */ }
+    return text;
+  };
+
+  const loadDiffIframeContent = async (iframe, url) => {
+    if (!iframe || !url) return { loaded: false, rawText: '' };
+
+    // Always allow the browser to render the real diff page directly so
+    // scripts, styles, and anchors behave exactly as when opened in a new tab.
+    // The previous srcdoc approach caused some browsers to display the raw
+    // HTML source instead of the rendered page, leaving the modal looking
+    // "broken".
+    try {
+      let loaderTimeoutId = null;
+      const hideLoaderOnce = () => {
+        if (loaderTimeoutId) {
+          clearTimeout(loaderTimeoutId);
+          loaderTimeoutId = null;
+        }
+        hideGitLogLoader();
+      };
+      iframe.onload = hideLoaderOnce;
+      iframe.onerror = hideLoaderOnce;
+      loaderTimeoutId = setTimeout(hideLoaderOnce, 15000);
+      iframe.src = url;
+      return { loaded: true, rawText: '' };
+    } catch (_e) {
+      hideGitLogLoader();
+      return { loaded: false, rawText: '' };
+    }
+  };
+
+  const renderDiffFallbackContent = (iframe, url, rawText) => {
+    if (!iframe) return false;
+
+    const sanitizedSnippet = rawText ? escapeHtml(rawText.slice(0, 2400)) : '';
+    const message = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0b1223; color: #e5e7eb; padding: 24px; margin: 0; }
+      .card { background: #0f172a; border: 1px solid #1f2937; border-radius: 12px; padding: 18px; max-width: 860px; margin: 0 auto; box-shadow: 0 16px 36px rgba(0,0,0,0.4); }
+      h1 { font-size: 18px; margin: 0 0 10px; }
+      p { margin: 0 0 12px; color: #cbd5e1; line-height: 1.5; }
+      a { color: #93c5fd; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      pre { margin: 0; padding: 12px; background: #111827; border-radius: 10px; border: 1px solid #1f2937; color: #cbd5e1; font-size: 12px; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Unable to render diff preview</h1>
+      <p>The response was not valid HTML. <a href="${escapeHtml(url)}" target="_blank" rel="noopener">Open the full diff in a new tab</a> to view it directly.</p>
+      ${sanitizedSnippet ? `<pre aria-label="Diff response preview">${sanitizedSnippet}</pre>` : ''}
+    </div>
+  </body>
+</html>`;
+
+    iframe.onload = () => { hideGitLogLoader(); };
+    iframe.removeAttribute('src');
+    iframe.srcdoc = message;
+    setTimeout(() => hideGitLogLoader(), 1500);
+    return true;
+  };
+
+  const openMergeDiffModal = async (url) => {
+    try {
+      const modal = document.getElementById('gitLogModal');
+      const iframe = document.getElementById('gitLogIframe');
+      showGitLogLoader();
+
+      if (!iframe) {
+        hideGitLogLoader();
+        window.open(url, '_blank', 'noopener');
+        return;
+      }
+
+      const { loaded, rawText } = await loadDiffIframeContent(iframe, url);
+
+      if (!loaded) {
+        const renderedFallback = renderDiffFallbackContent(iframe, url, rawText);
+        if (!renderedFallback) {
+          iframe.onload = () => { hideGitLogLoader(); };
+          iframe.src = url;
+        }
+      }
+
+      if (modal) { modal.classList.remove('is-hidden'); }
+      document.body.style.overflow = 'hidden';
+    } catch (e) {
+      hideGitLogLoader();
+      window.open(url, '_blank', 'noopener');
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.openMergeDiffModal = openMergeDiffModal;
+  }
 
   const ensureMergeDiffContainerVisible = () => {
     const container = document.getElementById("mergeOutputContainer");
     if (container) {
       container.classList.remove("is-hidden");
     }
+  };
+
+  const hasActiveMergeDiffLink = () => {
+    if (!mergeDiffButton) {
+      return false;
+    }
+
+    if (mergeDiffButton.classList.contains("is-hidden")) {
+      return false;
+    }
+
+    const href = mergeDiffButton.getAttribute("data-href") || "";
+    return Boolean(href.trim()) && !mergeDiffButton.disabled;
   };
 
   const captureGitFpushDiffCandidates = (text, projectDirValue) => {
@@ -2110,7 +2382,7 @@
     }
   };
 
-  const consumePendingGitFpushDiff = () => {
+  const consumePendingGitFpushDiff = (options = {}) => {
     const branch = pendingGitFpushBranch;
     const branchProjectDir = pendingGitFpushBranchProjectDir;
     const hash = pendingGitFpushHash;
@@ -2122,12 +2394,20 @@
     pendingGitFpushHashProjectDir = "";
 
     if (branch) {
-      enableMergeDiffButtonForBranch(branch, branchProjectDir);
+      if (options.prefetchFirst) {
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir });
+      } else {
+        enableMergeDiffButtonForBranch(branch, branchProjectDir);
+      }
       return true;
     }
 
     if (hash) {
-      enableMergeDiffButtonForHash(hash, hashProjectDir);
+      if (options.prefetchFirst) {
+        enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir });
+      } else {
+        enableMergeDiffButtonForHash(hash, hashProjectDir);
+      }
       return true;
     }
 
@@ -2157,17 +2437,11 @@
     mergeDiffButton.setAttribute('data-href', url);
     mergeDiffButton.setAttribute('aria-disabled', 'false');
     mergeDiffButton.classList.remove('is-hidden');
-    mergeDiffButton.onclick = () => {
-      try {
-        const modal = document.getElementById('gitLogModal');
-        const iframe = document.getElementById('gitLogIframe');
-        if (iframe) { iframe.src = url; }
-        if (modal) { modal.classList.remove('is-hidden'); }
-        document.body.style.overflow = 'hidden';
-      } catch(e) {
-        window.open(url, '_blank', 'noopener');
-      }
-    };
+    mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
+    if (autoOpenMergeDiffOnEnable) {
+      autoOpenMergeDiffOnEnable = false;
+      setTimeout(() => mergeDiffButton.click(), 0);
+    }
   };
 
   const extractBranchFromText = (text) => {
@@ -2200,17 +2474,11 @@
     mergeDiffButton.setAttribute('data-href', url);
     mergeDiffButton.setAttribute('aria-disabled', 'false');
     mergeDiffButton.classList.remove('is-hidden');
-    mergeDiffButton.onclick = () => {
-      try {
-        const modal = document.getElementById('gitLogModal');
-        const iframe = document.getElementById('gitLogIframe');
-        if (iframe) { iframe.src = url; }
-        if (modal) { modal.classList.remove('is-hidden'); }
-        document.body.style.overflow = 'hidden';
-      } catch(e) {
-        window.open(url, '_blank', 'noopener');
-      }
-    };
+    mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
+    if (autoOpenMergeDiffOnEnable) {
+      autoOpenMergeDiffOnEnable = false;
+      setTimeout(() => mergeDiffButton.click(), 0);
+    }
   };
 
   const tryEnableMergeDiffFromText = (text, projectDirValue) => {
@@ -2313,6 +2581,15 @@
     applyMergeButtonState();
   };
 
+  const enableAutoOpenMergeDiffIfAllowed = () => {
+    if (hydratingRunFromHistory) {
+      autoOpenMergeDiffOnEnable = false;
+      return false;
+    }
+    autoOpenMergeDiffOnEnable = true;
+    return true;
+  };
+
   const handleGitFpushCompletionMessage = (message) => {
     if (typeof message !== "string" || !message) {
       return;
@@ -2323,19 +2600,32 @@
     }
     if (normalized.includes("git_fpush.sh exited with code 0")) {
       setMergeReady(true);
+      const effectiveProjectDir = (currentRunContext && currentRunContext.effectiveProjectDir)
+        || currentRunContext.projectDir
+        || "";
       // If git_fpush succeeded, try to enable the merge diff button by
-      // extracting any commit hash from the output (e.g., a pushed commit).
-      tryEnableMergeDiffFromText(message, (currentRunContext && currentRunContext.effectiveProjectDir) || currentRunContext.projectDir || "");
+      // extracting any commit hash from the output (e.g., a pushed commit) and
+      // pre-generating the raw diff before showing the button.
+      const detectedHash = extractFirstHashFromText(message);
 
       // Also try to extract a branch name emitted by git_fpush.sh and use it to enable the merge diff button.
       const branch = extractBranchFromText(message);
+      enableAutoOpenMergeDiffIfAllowed();
       if (branch) {
-        enableMergeDiffButtonForBranch(branch, (currentRunContext && currentRunContext.effectiveProjectDir) || currentRunContext.projectDir || '');
-        consumePendingGitFpushDiff();
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir });
+        consumePendingGitFpushDiff({ prefetchFirst: true });
         markGitFpushPhaseComplete();
         return;
       }
-      if (consumePendingGitFpushDiff()) {
+
+      if (detectedHash) {
+        enableMergeDiffAfterPrefetch({ hash: detectedHash, projectDirValue: effectiveProjectDir });
+        consumePendingGitFpushDiff({ prefetchFirst: true });
+        markGitFpushPhaseComplete();
+        return;
+      }
+
+      if (consumePendingGitFpushDiff({ prefetchFirst: true })) {
         markGitFpushPhaseComplete();
         return;
       }
@@ -2360,6 +2650,49 @@
       normalized.includes("git_fpush.sh failed to start")
     ) {
       markGitFpushPhaseComplete();
+    }
+  };
+
+  const enableMergeDiffButtonFromSavedRun = (run) => {
+    if (!run || typeof run !== "object") {
+      return;
+    }
+
+    if (Number(run.gitFpushExitCode) !== 0) {
+      return;
+    }
+
+    const diffProjectDir =
+      normaliseProjectDir(run.effectiveProjectDir)
+      || normaliseProjectDir(run.projectDir)
+      || normaliseProjectDir(currentSnapshotProjectDir)
+      || (currentRunContext
+        && normaliseProjectDir(
+          currentRunContext.effectiveProjectDir
+            || currentRunContext.projectDir
+            || "",
+        ))
+      || "";
+
+    const branchFromRun = extractBranchFromRun(run);
+    if (branchFromRun) {
+      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir);
+    }
+
+    const candidateTexts = [
+      run.gitFpushFinalOutput,
+      run.finalOutput,
+      run.gitMergeStdout,
+      run.gitMergeStderr,
+      run.stdout,
+      run.stderr,
+    ];
+
+    for (const candidate of candidateTexts) {
+      if (hasActiveMergeDiffLink()) {
+        return;
+      }
+      tryEnableMergeDiffFromText(candidate, diffProjectDir);
     }
   };
 
@@ -2587,6 +2920,7 @@
     "Python command is available via \"python3 --version\" – Python 3.11.2",
     "Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.",
     "When starting, please check AGENTS.md in repository root for further instructions.",
+    "Unless otherwise specified, YOU WILL NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:",
     "-"
   ].join("\n");
 
@@ -3174,56 +3508,60 @@ const appendMergeChunk = (text, type = "output") => {
       return;
     }
 
-    resetFollowupSessions();
-    clearOutput();
-    closeExistingStream(true);
-    toggleButtons(false);
-    resetMergeState();
+    hydratingRunFromHistory = true;
+    autoOpenMergeDiffOnEnable = false;
 
-    const resolvedProjectDir = normaliseProjectDir(
-      run.requestedProjectDir || run.projectDir || run.effectiveProjectDir || "",
-    );
-    const resolvedEffectiveDir = normaliseProjectDir(run.effectiveProjectDir || "");
+    try {
+      resetFollowupSessions();
+      clearOutput();
+      closeExistingStream(true);
+      toggleButtons(false);
+      resetMergeState();
 
-    const previousProjectDir = currentRunContext.projectDir;
-    const nextProjectDir =
-      resolvedProjectDir
-      || previousProjectDir
-      || repoDirectoryFromUrl
-      || codexDefaultProjectDir
-      || "";
-    const nextEffectiveProjectDir =
-      resolvedEffectiveDir
-      || resolvedProjectDir
-      || previousProjectDir
-      || repoDirectoryFromUrl
-      || codexDefaultProjectDir
-      || "";
+      const resolvedProjectDir = normaliseProjectDir(
+        run.requestedProjectDir || run.projectDir || run.effectiveProjectDir || "",
+      );
+      const resolvedEffectiveDir = normaliseProjectDir(run.effectiveProjectDir || "");
 
-    const nextBranchName = extractBranchFromRun(run);
-    currentRunContext = buildRunContext({
-      projectDir: nextProjectDir,
-      runId: normaliseRunId(run.id),
-      effectiveProjectDir: nextEffectiveProjectDir,
-      branchName: nextBranchName,
-    });
-    lastRequestedProjectDir = currentRunContext.projectDir;
-    updateRunsSidebarHeading(currentRunContext.projectDir);
-    updateProjectInfoProjectDir();
-    refreshProjectInfoBranchDisplay();
+      const previousProjectDir = currentRunContext.projectDir;
+      const nextProjectDir =
+        resolvedProjectDir
+        || previousProjectDir
+        || repoDirectoryFromUrl
+        || codexDefaultProjectDir
+        || "";
+      const nextEffectiveProjectDir =
+        resolvedEffectiveDir
+        || resolvedProjectDir
+        || previousProjectDir
+        || repoDirectoryFromUrl
+        || codexDefaultProjectDir
+        || "";
 
-    setRunsSidebarActiveRun(currentRunContext.runId);
-    const normalizedSidebarDir = normaliseProjectDir(currentRunContext.projectDir);
-    if (normalizedSidebarDir) {
-      if (
-        normalizedSidebarDir !== lastRunsSidebarProjectDir
-        || !runsSidebarRuns.length
-      ) {
-        loadRunsSidebar({ projectDir: normalizedSidebarDir, force: true, resetPage: true });
-      } else {
-        renderRunsSidebar(runsSidebarRuns, { preserveScroll: true });
+      const nextBranchName = extractBranchFromRun(run);
+      currentRunContext = buildRunContext({
+        projectDir: nextProjectDir,
+        runId: normaliseRunId(run.id),
+        effectiveProjectDir: nextEffectiveProjectDir,
+        branchName: nextBranchName,
+      });
+      lastRequestedProjectDir = currentRunContext.projectDir;
+      updateRunsSidebarHeading(currentRunContext.projectDir);
+      updateProjectInfoProjectDir();
+      refreshProjectInfoBranchDisplay();
+
+      setRunsSidebarActiveRun(currentRunContext.runId);
+      const normalizedSidebarDir = normaliseProjectDir(currentRunContext.projectDir);
+      if (normalizedSidebarDir) {
+        if (
+          normalizedSidebarDir !== lastRunsSidebarProjectDir
+          || !runsSidebarRuns.length
+        ) {
+          loadRunsSidebar({ projectDir: normalizedSidebarDir, force: true, resetPage: true });
+        } else {
+          renderRunsSidebar(runsSidebarRuns, { preserveScroll: true });
+        }
       }
-    }
 
     if (projectDirInput && currentRunContext.projectDir) {
       projectDirInput.value = currentRunContext.projectDir;
@@ -3327,6 +3665,8 @@ const appendMergeChunk = (text, type = "output") => {
       appendChunk(run.error, "stderr");
     }
 
+    enableMergeDiffButtonFromSavedRun(run);
+
     const hasHydratedFinalOutput = hydrateFinalOutputFromSavedRun(run);
 
     // Render persisted merge output if present
@@ -3344,6 +3684,10 @@ const appendMergeChunk = (text, type = "output") => {
       setActiveOutputTab("stdout");
     } else {
       setActiveOutputTab("combined");
+    }
+    } finally {
+      hydratingRunFromHistory = false;
+      autoOpenMergeDiffOnEnable = false;
     }
   };
 
@@ -3503,6 +3847,25 @@ const appendMergeChunk = (text, type = "output") => {
     /merged successfully/i,
   ];
 
+  const MERGE_IN_PROGRESS_PATTERNS = [
+    /^merging\b/i,
+  ];
+
+  const isMergeInProgressStatus = (text) => {
+    if (!text && text !== 0) {
+      return false;
+    }
+    try {
+      const candidate = String(text).trim();
+      if (!candidate) {
+        return false;
+      }
+      return MERGE_IN_PROGRESS_PATTERNS.some((pattern) => pattern.test(candidate));
+    } catch (_err) {
+      return false;
+    }
+  };
+
   const hasSuccessfulMerge = (run, latestStatusText) => {
     if (!run) return false;
 
@@ -3554,6 +3917,10 @@ const getSidebarBadgeInfo = (run) => {
     }
     if (!latestStatusText && run?.finalMessage) {
       latestStatusText = String(run.finalMessage);
+    }
+
+    if (isMergeInProgressStatus(latestStatusText)) {
+      return { text: "Merging", variant: "merging" };
     }
 
     if (hasSuccessfulMerge(run, latestStatusText)) {
@@ -4731,6 +5098,7 @@ const getSidebarBadgeInfo = (run) => {
     }
 
     if (normalizedMessage.includes("running git_fpush.sh")) {
+      gitFpushActive = true;
       suppressStdoutOutput = true;
       return;
     }
@@ -4742,6 +5110,7 @@ const getSidebarBadgeInfo = (run) => {
       || normalizedMessage.includes("failed to run git_fpush.sh")
       || normalizedMessage.includes("git_fpush.sh failed to start")
     ) {
+      gitFpushActive = false;
       suppressStdoutOutput = false;
     }
   };
@@ -4804,6 +5173,9 @@ const getSidebarBadgeInfo = (run) => {
     mergeButton.addEventListener("click", async () => {
       mergeTooltipPinned = false;
       setMergeTooltipVisibility(false);
+
+      // Ensure merge operations do not auto-open the diff modal
+      autoOpenMergeDiffOnEnable = false;
 
       const effectiveDir = resolveEffectiveProjectDirForMerge();
       if (!effectiveDir) {
@@ -4876,6 +5248,7 @@ const getSidebarBadgeInfo = (run) => {
           // merge completed; enable diff button below merge output for user to open
         } catch (e) { console.warn('Failed to enable merge diff button', e); }
 
+        autoOpenMergeDiffOnEnable = false;
         setMergeReady(false);
       } catch (error) {
         const errorMessage = error && error.message
