@@ -1,7 +1,1 @@
-{
-  "lochner-lw/monorepo": {
-    "gitRepoLocalPath": "/workspace/monorepo",
-    "gitRepoURL": "https://github.com/lochner-lw/monorepo",
-    "gitBranch": "main"
-  }
-}
+{}

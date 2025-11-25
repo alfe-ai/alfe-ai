@@ -646,7 +646,8 @@
             border: 1px solid rgba(148, 163, 184, 0.18);
             background: rgba(15, 23, 42, 0.55);
             margin-top: 10px;
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
 
         .diff-hunk-header {
@@ -659,13 +660,14 @@
 
         .diff-row {
             display: grid;
-            grid-template-columns: 34px 34px 1fr;
+            grid-template-columns: 34px 34px minmax(0, 1fr);
             align-items: stretch;
             padding: 0;
+            min-width: max-content;
         }
 
         .diff-row-meta {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
         }
 
         .diff-cell {
@@ -690,6 +692,7 @@
             font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
             line-height: 1.35;
             tab-size: 4;
+            min-width: 100%;
         }
 
         .diff-row-meta .diff-code {

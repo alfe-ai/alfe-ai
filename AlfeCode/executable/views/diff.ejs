@@ -240,6 +240,7 @@
             align-items: center;
             gap: 10px;
             min-height: 40px;
+            margin-right: 50px;
         }
         #mergeButton svg { opacity: 0.95; }
         #mergeButton:enabled:hover {
@@ -422,28 +423,28 @@
             min-width: 0;
         }
 
-        .diff-file-subtitle {
-            font-size: 12px;
-            color: var(--muted);
-            flex: 0 0 auto;
-        }
-
         .diff-file-viewer {
             background: #020617;
             border-radius: 10px;
             border: 1px solid var(--border);
             padding: 14px;
-            overflow: visible;
+            overflow-x: auto;
+            overflow-y: hidden;
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+            width: 100%;
         }
 
         .diff-lines {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
             display: flex;
             flex-direction: column;
             gap: 0;
-            max-height: 520px;
-            overflow: auto;
+            overflow-x: auto;
+            overflow-y: visible;
             overscroll-behavior: contain;
+            width: max-content;
+            min-width: 100%;
         }
 
         .diff-header {
@@ -489,11 +490,6 @@
             border-left: none;
         }
 
-        .code-lines {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 12px;
-        }
-
         .diff-line {
             display: grid;
             grid-template-columns: 3.75rem minmax(0, 1fr);
@@ -501,6 +497,8 @@
             white-space: pre;
             line-height: 1.35;
             padding: 0 10px;
+            width: max-content;
+            min-width: 100%;
         }
 
         .line-num {
@@ -514,6 +512,7 @@
         .code {
             display: block;
             overflow: visible;
+            min-width: max-content;
         }
 
         .line-sign {
@@ -690,7 +689,6 @@
         <section id="diff" class="viewer-panel diff-view stacked" aria-label="Diff viewer">
             <div class="file-meta" aria-live="polite">
                 <span id="current-file-label">Select a file</span>
-                <span id="hunk-count">0 lines</span>
             </div>
             <div class="diff-inner"></div>
         </section>
@@ -800,7 +798,6 @@
     const diffInner = diffEl?.querySelector('.diff-inner');
     const fileListEl = document.getElementById('file-list');
     const fileLabelEl = document.getElementById('current-file-label');
-    const hunkCountEl = document.getElementById('hunk-count');
     let focusedFileIndex = 0;
 
     const createDiffLine = (lineNumber, codeText, className) => {
@@ -837,6 +834,27 @@
 
     const appendInlineDiffRows = (rows, container) => {
         if (!container) return;
+
+        const flushChangedGroup = (group) => {
+            if (!group.length) return;
+
+            group.forEach((row) => {
+                if (row.left || row.leftNo) {
+                    container.appendChild(createDiffLine(row.leftNo, row.left, 'changed-left'));
+                }
+            });
+
+            group.forEach((row) => {
+                if (row.right || row.rightNo) {
+                    container.appendChild(createDiffLine(row.rightNo, row.right, 'changed-right'));
+                }
+            });
+
+            group.length = 0;
+        };
+
+        const changedGroup = [];
+
         (rows || []).forEach((row) => {
             if (!row || typeof row !== 'object') {
                 return;
@@ -845,6 +863,13 @@
             const appendLine = (lineNumber, text, className) => {
                 container.appendChild(createDiffLine(lineNumber, text, className));
             };
+
+            if (row.type === 'changed') {
+                changedGroup.push(row);
+                return;
+            }
+
+            flushChangedGroup(changedGroup);
 
             if (row.type === 'meta') {
                 appendLine('', row.left || row.right || row.metaContent || '', 'meta');
@@ -861,18 +886,10 @@
                 return;
             }
 
-            if (row.type === 'changed') {
-                if (row.left || row.leftNo) {
-                    appendLine(row.leftNo, row.left, 'changed-left');
-                }
-                if (row.right || row.rightNo) {
-                    appendLine(row.rightNo, row.right, 'changed-right');
-                }
-                return;
-            }
-
             appendLine(row.rightNo || row.leftNo, row.right || row.left || '', 'unchanged');
         });
+
+        flushChangedGroup(changedGroup);
     };
 
     const normalizedRowCount = (value) => (Array.isArray(value) ? value.length : 0);
@@ -881,16 +898,12 @@
 
     const updateSummary = () => {
         const totalFiles = files.length;
-        const totalLines = files.reduce((sum, file) => sum + normalizedRowCount(file.rows), 0);
         if (fileLabelEl) {
             if (totalFiles) {
                 fileLabelEl.textContent = `${totalFiles} file${totalFiles === 1 ? '' : 's'} diff`;
             } else {
                 fileLabelEl.textContent = 'Diff';
             }
-        }
-        if (hunkCountEl) {
-            hunkCountEl.textContent = `${totalLines} line${totalLines === 1 ? '' : 's'}`;
         }
     };
 
@@ -913,11 +926,6 @@
             header.appendChild(title);
 
             const rowCount = normalizedRowCount(file.rows);
-            const subtitle = document.createElement('span');
-            subtitle.className = 'diff-file-subtitle';
-            subtitle.textContent = `${rowCount} ${rowCount === 1 ? 'line' : 'lines'}`;
-            header.appendChild(subtitle);
-
             section.appendChild(header);
 
             const viewer = document.createElement('div');
@@ -944,7 +952,6 @@
         if (!diffInner) return;
         diffInner.innerHTML = '<div class="empty-state">No structured diff available.</div>';
         if (fileLabelEl) fileLabelEl.textContent = rawDiffText ? 'No structured diff' : 'No diff available';
-        if (hunkCountEl) hunkCountEl.textContent = '0 lines';
     };
 
     const focusFileSection = (index) => {

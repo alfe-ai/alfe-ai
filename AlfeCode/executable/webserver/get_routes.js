@@ -56,6 +56,7 @@ function setupGetRoutes(deps) {
             : `beta-${sterlingVersion}`;
     const CODEX_RUNNER_PROJECT_DIR_MARKER = "::CODEX_RUNNER_PROJECT_DIR::";
     const defaultCodexProjectDir = "/git/sterlingcodex_testrepo";
+    const NEW_SESSION_REPO_NAME = "New";
     const DEFAULT_GIT_LOG_LIMIT = 20;
     const MAX_GIT_LOG_LIMIT = 200;
     const FILE_TREE_EXCLUDES = new Set([
@@ -3434,7 +3435,22 @@ ${cleanedFinalOutput}`;
     }
 
     /* ---------- Root ---------- */
-    app.get("/", (_req, res) => res.redirect("/repositories"));
+    app.get("/", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
+        const defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
+
+        if (defaultRepoPath && fs.existsSync(defaultRepoPath)) {
+            const params = new URLSearchParams({
+                repo_directory: defaultRepoPath,
+                repo_name: NEW_SESSION_REPO_NAME,
+            });
+            res.redirect(`/agent?${params.toString()}`);
+            return;
+        }
+
+        res.redirect("/repositories");
+    });
 
     /* ---------- Global instructions ---------- */
     app.get("/global_instructions", (_req, res) => {
@@ -3723,7 +3739,7 @@ ${cleanedFinalOutput}`;
                 }
             }
         }
-        res.render("repositories", { repos: repoList });
+        res.render("repositories", { repos: repoList, sessionId: sessionId });
     });
 
     app.get("/repositories/add", (_req, res) => {
