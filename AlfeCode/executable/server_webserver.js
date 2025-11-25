@@ -18,7 +18,20 @@ const PROJECT_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_AIMODEL = "deepseek/deepseek-chat";
 const DEFAULT_GIT_COMMIT_GRAPH_LIMIT = 400;
 const MAX_GIT_COMMIT_GRAPH_LIMIT = 2000;
-const SESSION_GIT_BASE_PATH = path.join(path.sep, "git");
+const SESSION_GIT_BASE_PATH = (function(){
+    // Prefer an explicit env override for session git base path. If not set,
+    // store session repos under the application's data directory so the
+    // process typically has write permission. Fall back to OS temp dir.
+    const candidate = process.env.SESSION_GIT_BASE_PATH || path.join(__dirname, '..', 'data', 'sessions_git');
+    try {
+        // Ensure directory exists
+        if (!fs.existsSync(candidate)) fs.mkdirSync(candidate, { recursive: true });
+        return candidate;
+    } catch (e) {
+        // Last resort: OS temp dir
+        return os.tmpdir();
+    }
+})();
 const NEW_SESSION_REPO_NAME = "New";
 
 function parseBooleanEnv(value, defaultValue = false) {

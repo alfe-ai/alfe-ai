@@ -478,8 +478,9 @@
             gap: 10px;
             min-height: 0; /* allow proper flex shrinking to avoid layout jumps */
             height: 100%;
-            overflow: hidden;
+            overflow: visible; /* allow dropdown iframes to escape the sidebar bounds */
             position: relative;
+            z-index: 2; /* ensure overlays stack above adjacent content */
             width: var(--runs-sidebar-width, clamp(260px, 22vw, 360px));
             max-width: 100%;
         }
@@ -1974,7 +1975,7 @@
 
 
         /* Repositories dropdown */
-        .repos-dropdown { position: absolute; display: none; z-index: 1200; }
+        .repos-dropdown { position: absolute; display: none; z-index: 4000; }
         .repos-dropdown.is-visible { display: block; }
         .repos-dropdown__inner { width: 420px; height: 360px; background: linear-gradient(180deg, rgba(6,8,15,0.98), rgba(12,16,28,0.95)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(2,6,23,0.6); border-radius: 12px; overflow: hidden; }
         .repos-dropdown__inner iframe { width: 100%; height: 100%; border: none; }
