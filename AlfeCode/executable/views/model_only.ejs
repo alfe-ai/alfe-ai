@@ -5,14 +5,47 @@
   <title>Settings</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;height:100vh;background:#0b1120;color:#e2e8f0}
-    .card{background:rgba(15,23,42,0.9);padding:24px;border-radius:12px;border:1px solid rgba(71,85,105,0.4);flex:1;display:flex;flex-direction:column;}
-    select{font-size:1rem;padding:8px;margin:8px 0;width:100%}
-    label{font-size:0.85rem;color:#94a3b8}
+    body{
+      font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      display:flex;
+      justify-content:center;
+      background:#0b1120;
+      color:#e2e8f0;
+      min-height:100vh;
+      margin:0;
+      padding:32px 20px;
+    }
+    .card{
+      background:rgba(15,23,42,0.9);
+      padding:24px;
+      border-radius:12px;
+      border:1px solid rgba(71,85,105,0.4);
+      width:min(520px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      box-shadow:0 20px 45px rgba(0,0,0,0.35);
+    }
+    .card h2{
+      margin:0 0 6px 0;
+    }
+    select{font-size:1rem;padding:10px;margin:6px 0 0 0;width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,0.25);border-radius:8px;}
+    label{font-size:0.85rem;color:#94a3b8;display:block;margin-top:8px;}
+    .footer{
+      margin-top:auto;
+      padding-top:12px;
+      border-top:1px solid rgba(148,163,184,0.12);
+      color:#94a3b8;
+      text-align:center;
+      display:flex;
+      justify-content:center;
+      gap:8px;
+    }
+    .footer a{color:inherit;}
   </style>
 </head>
 <body>
-  <div id="__alfe_root" style="min-height:100vh;display:flex;flex-direction:column;">
+  <div id="__alfe_root" style="width:100%;display:flex;flex-direction:column;align-items:center;">
   <div class="card">
     <h2>Settings</h2>
     <div>
@@ -27,14 +60,19 @@
       <span id="defaultModelFeedback" class="default-model-feedback hidden" aria-live="polite"></span>
     </div>
     </div>
-    <p id="info" style="color:#94a3b8;margin-top:8px"></p>
-    <div style="margin-top:16px;">
+    <p id="info" style="color:#94a3b8;margin:2px 0 8px 0;"></p>
+    <div style="margin-top:8px;">
       <label for="gitButtonSelect">Git Log Button Target</label>
-      <select id="gitButtonSelect" style="width:100%;padding:8px;margin-top:6px;">
+      <select id="gitButtonSelect" style="width:100%;padding:10px;margin-top:6px;">
         <option value="git-log">Git Log</option>
         <option value="git-tree">Git Tree</option>
       </select>
           </div>
+    <footer class="footer">
+      <a href="/about.html" target="_blank" rel="noopener noreferrer">About</a>
+      <span aria-hidden="true">|</span>
+      <a href="https://github.com/alfe-ai" target="_blank" rel="noopener noreferrer">Source</a>
+    </footer>
   </div>
   </div>
   <script src="/JS/model_only.js"></script>
@@ -51,12 +89,5 @@
       }catch(e){ /* noop */ }
     })();
     </script>
-
-    <footer style="position:sticky;margin-top:auto;padding:10px 0;background:rgba(11,17,32,0.9);color:#94a3b8;text-align:center;border-top:1px solid rgba(148,163,184,0.12)">
-      <a href="/about.html" target="_blank" rel="noopener noreferrer" style="color:inherit;">About</a>
-      <span aria-hidden="true"> | </span>
-      <a href="https://github.com/alfe-ai" target="_blank" rel="noopener noreferrer" style="color:inherit;">Source</a>
-    </footer>
-
 </body>
 </html>
