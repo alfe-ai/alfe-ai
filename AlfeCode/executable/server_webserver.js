@@ -21,6 +21,8 @@ const PROJECT_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_AIMODEL = "deepseek/deepseek-chat";
 const DEFAULT_GIT_COMMIT_GRAPH_LIMIT = 400;
 const MAX_GIT_COMMIT_GRAPH_LIMIT = 2000;
+const GITHOST_SCRIPT_PATH = path.join(PROJECT_ROOT, "githost", "git-server.sh");
+const GITHOST_REPO_ROOT = path.join(path.sep, "srv", "git", "repositories");
 const SESSION_GIT_BASE_PATH = (function(){
     // Prefer an explicit env override for session git base path. If not set,
     // store session repos under the application's data directory so the
@@ -219,6 +221,23 @@ function ensureDirectory(targetPath) {
     }
 }
 
+function sanitizeRepoSegment(name, fallback = "repo") {
+    if (typeof name !== "string") {
+        return fallback;
+    }
+    const trimmed = name.trim();
+    if (!trimmed) {
+        return fallback;
+    }
+    return trimmed.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 160) || fallback;
+}
+
+function buildSessionRemoteRepoName(sessionId, repoName = NEW_SESSION_REPO_NAME) {
+    const safeSessionId = sanitizeSessionId(sessionId) || "session";
+    const safeRepoName = sanitizeRepoSegment(repoName);
+    return sanitizeRepoSegment(`${safeSessionId}-${safeRepoName}`, `${safeRepoName}-session`);
+}
+
 function getSessionGitRoot(sessionId) {
     const safeId = sanitizeSessionId(sessionId);
     if (!safeId) {
@@ -263,8 +282,51 @@ function ensureSessionDefaultRepo(sessionId) {
         return;
     }
     ensureDirectory(path.dirname(repoDir));
-    ensureDirectory(repoDir);
-    ensureGitRepository(repoDir);
+
+    const remoteRepoName = buildSessionRemoteRepoName(sessionId, repoName);
+    const remoteRepoPath = path.join(GITHOST_REPO_ROOT, `${remoteRepoName}.git`);
+    const gitHostScriptExists = fs.existsSync(GITHOST_SCRIPT_PATH);
+    let clonedFromRemote = false;
+
+    if (gitHostScriptExists) {
+        try {
+            execSync(`sudo "${GITHOST_SCRIPT_PATH}" create-repo "${remoteRepoName}"`, {
+                stdio: "inherit",
+            });
+        } catch (error) {
+            console.error(
+                `[ERROR] ensureSessionDefaultRepo => Failed to create remote repo '${remoteRepoName}': ${error.message}`,
+            );
+        }
+
+        if (fs.existsSync(remoteRepoPath)) {
+            try {
+                if (fs.existsSync(repoDir)) {
+                    const entries = fs.readdirSync(repoDir);
+                    if (entries.length > 0) {
+                        fs.rmSync(repoDir, { recursive: true, force: true });
+                        ensureDirectory(repoDir);
+                    }
+                } else {
+                    ensureDirectory(repoDir);
+                }
+
+                execSync(`git clone "${remoteRepoPath}" "${repoDir}"`, {
+                    stdio: "ignore",
+                });
+                clonedFromRemote = true;
+            } catch (cloneError) {
+                console.error(
+                    `[ERROR] ensureSessionDefaultRepo => Failed to clone remote repo '${remoteRepoName}': ${cloneError.message}`,
+                );
+            }
+        }
+    }
+
+    if (!clonedFromRemote) {
+        ensureDirectory(repoDir);
+        ensureGitRepository(repoDir);
+    }
 
     // Create blank AGENTS.md and make an initial commit if repo has no commits
     try {
@@ -281,8 +343,18 @@ function ensureSessionDefaultRepo(sessionId) {
         }
         if (!hasCommit) {
             try {
+                execSync("git checkout -B main", { cwd: repoDir, stdio: "ignore" });
                 execSync("git add AGENTS.md", { cwd: repoDir, stdio: "ignore" });
                 execSync('git commit -m "Initial commit"', { cwd: repoDir, stdio: "ignore" });
+                if (clonedFromRemote) {
+                    try {
+                        execSync("git push -u origin main", { cwd: repoDir, stdio: "ignore" });
+                    } catch (pushErr) {
+                        console.error(
+                            `[ERROR] ensureSessionDefaultRepo => Failed to push initial commit to remote: ${pushErr.message}`,
+                        );
+                    }
+                }
                 console.debug(`[Server Debug] ensureSessionDefaultRepo => Created initial commit in ${repoDir}`);
             } catch (commitErr) {
                 console.error(`[ERROR] ensureSessionDefaultRepo => Failed to create initial commit: ${commitErr.message}`);
@@ -295,12 +367,14 @@ function ensureSessionDefaultRepo(sessionId) {
     try {
         const repoConfig = loadRepoConfig(sessionId) || {};
         const normalizedPath = repoDir;
+        const gitRepoURL = clonedFromRemote && fs.existsSync(remoteRepoPath) ? remoteRepoPath : "";
         const existingEntry = repoConfig[repoName];
         const needsUpdate = !existingEntry || existingEntry.gitRepoLocalPath !== normalizedPath;
         if (needsUpdate) {
             repoConfig[repoName] = {
                 ...(existingEntry || {}),
                 gitRepoLocalPath: normalizedPath,
+                gitRepoURL,
             };
             saveRepoConfig(repoConfig, sessionId);
         }
