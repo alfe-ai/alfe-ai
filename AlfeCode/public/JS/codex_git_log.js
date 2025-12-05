@@ -139,25 +139,6 @@
 
     const meta = document.createElement("div");
     meta.className = "cli-meta";
-
-    // Timestamp element: show absolute ISO on hover and short relative on the row
-    const timestampEl = document.createElement('span');
-    timestampEl.className = 'cli-timestamp';
-    if (mappedEntry && mappedEntry.date) {
-      const iso = mappedEntry.date;
-      try {
-        const d = new Date(iso);
-        if (!Number.isNaN(d.getTime())) {
-          timestampEl.textContent = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-          timestampEl.title = d.toLocaleString();
-        } else {
-          timestampEl.textContent = iso;
-        }
-      } catch (e) {
-        timestampEl.textContent = iso;
-      }
-    }
-
     if (author) {
       const authorEl = document.createElement("span");
       authorEl.className = "cli-author";
@@ -182,8 +163,6 @@
     messageEl.textContent = message;
 
     row.appendChild(hashEl);
-    // place timestamp directly after the hash for right-side alignment via CSS grid
-    row.appendChild(timestampEl);
     row.appendChild(meta);
     row.appendChild(messageEl);
 
