@@ -2352,7 +2352,7 @@
                     </div>
                 </div>
                 <div class="runs-sidebar__actions">
-<button type="button" id="backlogButton" class="runs-sidebar__icon-button" aria-label="Backlog" title="Backlog" onclick="window.open('https://code-s.alfe.sh/ProjectView/', '_blank')">Backlog</button>
+<button type="button" id="backlogButton" class="runs-sidebar__icon-button" aria-label="Backlog" title="Backlog" onclick="window.open('https://code.alfe.sh/ProjectView/', '_blank')">Backlog</button>
 <button type="button" id="runsSidebarOpenRunsButton" class="runs-sidebar__icon-button is-hidden" aria-label="Detail run" title="Detail run">
                         Detail
                     </button>
@@ -2792,7 +2792,7 @@
           id="sterlingSettingsIframe"
           class="modal-iframe"
           src=""
-          data-default-src="https://code-s.alfe.sh/agent/model-only"
+          data-default-src="https://code.alfe.sh/agent/model-only"
           title="Settings"
           style="width:100%;height:80vh;border:0;border-radius:6px;"
         ></iframe>
@@ -3005,7 +3005,7 @@
   const sterlingSettingsIframe = document.getElementById('sterlingSettingsIframe');
   const sterlingSettingsCloseButton = document.getElementById('sterlingSettingsCloseButton');
   if(sterlingSettingsBtn && sterlingSettingsModal){
-    const defaultSettingsUrl = (sterlingSettingsIframe && (sterlingSettingsIframe.dataset.defaultSrc || sterlingSettingsIframe.getAttribute('data-default-src'))) || 'https://code-s.alfe.sh/agent/model-only';
+    const defaultSettingsUrl = (sterlingSettingsIframe && (sterlingSettingsIframe.dataset.defaultSrc || sterlingSettingsIframe.getAttribute('data-default-src'))) || 'https://code.alfe.sh/agent/model-only';
     sterlingSettingsBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       if (sterlingSettingsIframe) {
