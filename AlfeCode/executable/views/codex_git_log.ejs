@@ -205,6 +205,26 @@
             gap: 10px;
         }
 
+        /* Make entire commit row interactive and highlighted on hover */
+        .cli-row {
+            padding: 8px 10px;
+            border-radius: 10px;
+            transition: background 0.12s ease, transform 0.08s ease;
+        }
+        li:hover .cli-row, .cli-row:hover {
+            background: rgba(124,58,237,0.06);
+            transform: translateY(-1px);
+        }
+        /* Only show pointer cursor when row is clickable (has diff) */
+        .cli-row[data-diff-url] {
+            cursor: pointer;
+        }
+        .cli-row:focus {
+            outline: 2px solid rgba(124,58,237,0.14);
+            outline-offset: 2px;
+        }
+
+
         .cli-meta {
             display: flex;
             align-items: center;

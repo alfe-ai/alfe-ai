@@ -166,6 +166,30 @@
     row.appendChild(meta);
     row.appendChild(messageEl);
 
+    // Make the whole row clickable and keyboard accessible if a diff URL exists
+    if (diffUrl) {
+      try {
+        row.dataset.diffUrl = diffUrl;
+        row.tabIndex = 0;
+        row.setAttribute('role', 'link');
+        row.setAttribute('aria-label', `Open diff for commit ${lookupHash}`);
+        row.addEventListener('click', (e) => {
+          // If an inner anchor was clicked, let the anchor handle navigation
+          if (e.target && e.target.closest && e.target.closest('a')) return;
+          window.open(diffUrl, '_blank', 'noopener,noreferrer');
+        });
+        row.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            window.open(diffUrl, '_blank', 'noopener,noreferrer');
+          }
+        });
+      } catch (err) {
+        // defensive: ignore if DOM operations fail
+        console.error('[DEBUG] attach row click failed', err);
+      }
+    }
+
     item.appendChild(row);
     item.dataset.enhanced = "true";
   };
