@@ -1793,6 +1793,30 @@
                 width: auto;
             }
 
+            body.agent-mobile-enabled .top-nav-floating {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                padding: 14px 16px;
+            }
+
+            body.agent-mobile-enabled .top-nav-floating::before {
+                inset: -8px -10px;
+            }
+
+            body.agent-mobile-enabled .top-nav-links,
+            body.agent-mobile-enabled .top-nav-utility {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            body.agent-mobile-enabled .top-nav-links .store-badge {
+                width: 100%;
+                justify-content: center;
+            }
+
             body.agent-mobile-enabled .file-tree-header {
                 flex-direction: column;
                 align-items: flex-start;
