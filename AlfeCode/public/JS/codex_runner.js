@@ -17,7 +17,22 @@
       const promptEl = promptInput;
       if (!promptEl) return;
       const hasSelectedRun = Boolean(config.enableFollowups && (Boolean(runsSidebarSelectedRunId) || (currentRunContext && currentRunContext.runId)));
-      promptEl.placeholder = hasSelectedRun ? "Add a followup to current task or ask a question" : "Start a new task or ask a question";
+      const suggestions = [
+  'Make a snake game.',
+  'Create a to-do app.',
+  'Build a calculator.',
+  'Implement a chat UI.',
+  'Write unit tests for a module.',
+  'Create a REST API endpoint.',
+  'Generate a README template.',
+  'Prototype a drawing app.',
+  'Build a markdown previewer.',
+  'Create a CLI tool.'
+];
+const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+promptEl.placeholder = hasSelectedRun ? "Add a followup to current task or ask a question" : `Start a new task or ask a question
+
+Try: ${suggestion}`;
     } catch (_e) { /* ignore */ }
   };
   // Update initial placeholder and whenever selection/context changes
