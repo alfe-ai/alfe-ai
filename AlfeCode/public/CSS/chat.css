@@ -60,7 +60,7 @@ a:hover {
 
 /* Sidebar */
 #sidebar {
-    flex: 0 0 clamp(280px, 28vw, 340px);
+    flex: 0 0 clamp(340px, 28vw, 340px);
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
