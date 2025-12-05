@@ -313,6 +313,14 @@
           const out = res.body && (res.body.output || res.body.message || res.body.stdout) || '';
           const firstLine = (out || '').split('\n').slice(0,2).join(' ');
           showStatus(firstLine || 'Git pull completed', 'success');
+          // Auto-refresh the page after successful git pull to show updated logs
+          try {
+            // small delay to allow user to read the status
+            setTimeout(() => { window.location.reload(true); }, 800);
+          } catch (e) {
+            console.error('[DEBUG] reload failed', e);
+          }
+
         })
         .catch((err) => {
           showStatus('Git pull request failed', 'error');
