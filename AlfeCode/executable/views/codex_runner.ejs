@@ -25,8 +25,7 @@
             --accent-soft: rgba(124, 58, 237, 0.28);
             --danger: #f97316;
             --shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
-            /* Give the agent sidebar more breathing room so action buttons are not clipped */
-            --runs-sidebar-width: clamp(320px, 26vw, 380px);
+            --runs-sidebar-width: clamp(260px, 22vw, 360px);
             --runs-sidebar-collapsed-width: 56px;
         }
 
@@ -569,8 +568,7 @@
             overflow: visible; /* allow dropdown iframes to escape the sidebar bounds */
             position: relative;
             z-index: 2; /* ensure overlays stack above adjacent content */
-            width: var(--runs-sidebar-width, clamp(320px, 26vw, 380px));
-            min-width: var(--runs-sidebar-width, clamp(320px, 26vw, 380px));
+            width: var(--runs-sidebar-width, clamp(260px, 22vw, 360px));
             max-width: 100%;
         }
 
