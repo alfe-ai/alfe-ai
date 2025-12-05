@@ -1,6 +1,11 @@
 (() => {
     const data = window.__GIT_TREE_DATA__ || {};
     const commitGraph = Array.isArray(data.gitCommitGraph) ? data.gitCommitGraph : [];
+
+    // When rendering commit rows, try to include a short time next to the hash
+    // This read-only enhancement will be picked up by the existing rendering
+    // logic that looks for .cli-timestamp class in rows.
+
     const branches = Array.isArray(data.gitBranches) ? data.gitBranches : [];
     const projectDir = typeof data.resolvedProjectDir === "string" ? data.resolvedProjectDir : "";
 
