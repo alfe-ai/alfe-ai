@@ -39,6 +39,9 @@ function setupGetRoutes(deps) {
         buildSterlingCodexUrl,
         loadCodexRuns,
         upsertCodexRun,
+        ensureSessionDefaultRepo,
+        buildSessionCookie,
+        normalizeHostname,
     } = deps;
 
     const codexScriptPath = path.join(PROJECT_ROOT, "codex-tools", "run_codex.sh");
@@ -3536,9 +3539,33 @@ ${cleanedFinalOutput}`;
 
     /* ---------- Root ---------- */
     app.get("/", (req, res) => {
-        const sessionId = resolveSessionId(req);
-        const defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
-        const defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
+        let sessionId = resolveSessionId(req);
+        let defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
+        let defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
+
+        if (!defaultRepoPath || !fs.existsSync(defaultRepoPath)) {
+            const freshSessionId = randomUUID();
+            sessionId = freshSessionId;
+
+            try {
+                const hostname = normalizeHostname(req);
+                const cookie = buildSessionCookie(freshSessionId, hostname);
+                res.append("Set-Cookie", cookie);
+                req.sessionId = freshSessionId;
+                res.locals.sessionId = freshSessionId;
+            } catch (error) {
+                console.error(`Failed to issue session cookie for new session: ${error?.message || error}`);
+            }
+
+            try {
+                ensureSessionDefaultRepo(freshSessionId);
+            } catch (error) {
+                console.error(`Failed to initialize default repo for new session: ${error?.message || error}`);
+            }
+
+            defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, freshSessionId);
+            defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
+        }
 
         if (defaultRepoPath && fs.existsSync(defaultRepoPath)) {
             const params = new URLSearchParams({

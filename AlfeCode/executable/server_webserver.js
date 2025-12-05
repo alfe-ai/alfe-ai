@@ -1070,6 +1070,9 @@ setupGetRoutes({
     buildSterlingCodexUrl,
     loadCodexRuns,
     upsertCodexRun,
+    ensureSessionDefaultRepo,
+    buildSessionCookie,
+    normalizeHostname,
 });
 
 /**
