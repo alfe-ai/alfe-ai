@@ -2515,13 +2515,18 @@ body {
 }
 #expandSidebarArrow {
   position: absolute;
-  top: 20px;
-  left: 48px;
+  top: 18px;
+  left: 64px;
   font-size: 1.4rem;
   color: var(--text-muted);
   cursor: pointer;
   display: none;
   z-index: 1000;
+  padding: 4px 6px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.35);
 }
 .app.sidebar-collapsed .thin-sidebar {
   display: flex;
