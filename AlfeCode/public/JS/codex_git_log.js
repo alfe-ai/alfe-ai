@@ -162,28 +162,7 @@
     messageEl.className = "cli-message";
     messageEl.textContent = message;
 
-    // append hash, optional timestamp, then meta and message
     row.appendChild(hashEl);
-
-    // Add absolute timestamp to the right of the hash (if available)
-    let _cli_timestamp_el = null;
-    if (mappedEntry && mappedEntry.date) {
-      const _ts = Date.parse(mappedEntry.date);
-      if (!Number.isNaN(_ts)) {
-        _cli_timestamp_el = document.createElement('span');
-        _cli_timestamp_el.className = 'cli-timestamp';
-        try {
-          _cli_timestamp_el.textContent = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(_ts);
-          _cli_timestamp_el.title = new Intl.DateTimeFormat(undefined, { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', timeZoneName:'short' }).format(_ts);
-        } catch (e) {
-          _cli_timestamp_el.textContent = mappedEntry.date;
-          _cli_timestamp_el.title = mappedEntry.date;
-        }
-        _cli_timestamp_el.style.marginLeft = '8px';
-      }
-    }
-
-    if (_cli_timestamp_el) row.appendChild(_cli_timestamp_el);
     row.appendChild(meta);
     row.appendChild(messageEl);
 
