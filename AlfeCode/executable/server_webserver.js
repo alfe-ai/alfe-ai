@@ -314,6 +314,11 @@ function ensureSessionDefaultRepo(sessionId) {
                 execSync(`git clone "${remoteRepoPath}" "${repoDir}"`, {
                     stdio: "ignore",
                 });
+                try {
+                    execSync("git config pull.rebase false", { cwd: repoDir });
+                } catch (cfgErr) {
+                    console.warn(`[WARN] Failed to set git pull.rebase for ${repoDir}: ${cfgErr.message}`);
+                }
                 clonedFromRemote = true;
             } catch (cloneError) {
                 console.error(
@@ -1006,6 +1011,11 @@ function cloneRepository(repoName, repoURL, sessionId, callback) {
             return callback(error, null);
         }
         console.log("[DEBUG] Successfully cloned:", repoName);
+        exec(`git -C "${clonePath}" config pull.rebase false`, (cfgErr) => {
+            if (cfgErr) {
+                console.warn(`[WARN] Failed to set git pull.rebase for ${clonePath}: ${cfgErr.message}`);
+            }
+        });
         callback(null, clonePath);
     });
 }
