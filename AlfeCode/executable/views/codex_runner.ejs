@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" class="agent-scale-80">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Alfe AI - Code</title>
     <meta name="description" content="Alfe AI: FLOSS, Self-hostable, AI Software Development, Chat, and Image Design - a cloud-based code-assistant interface for running and managing agents.">
     <link id="favicon" rel="icon" href="/alfe_favicon_64x64.ico">
@@ -2197,6 +2198,35 @@
 </style>
 </head>
 <body>
+<script>
+    (function(){
+        const docEl = document.documentElement;
+        const bodyEl = document.body;
+        const mobileQuery = window.matchMedia('(max-width: 900px)');
+
+        const applyResponsiveMode = () => {
+            const isMobile = mobileQuery.matches;
+            if (isMobile) {
+                docEl.classList.remove('agent-scale-80');
+                bodyEl.classList.add('agent-mobile-enabled');
+            } else {
+                docEl.classList.add('agent-scale-80');
+                bodyEl.classList.remove('agent-mobile-enabled');
+            }
+        };
+
+        try {
+            applyResponsiveMode();
+            if (mobileQuery.addEventListener) {
+                mobileQuery.addEventListener('change', applyResponsiveMode);
+            } else if (mobileQuery.addListener) {
+                mobileQuery.addListener(applyResponsiveMode);
+            }
+        } catch (_err) {
+            docEl.classList.add('agent-scale-80');
+        }
+    })();
+</script>
 <% var iframeMode = typeof isIframeMode === "boolean" ? isIframeMode : true; %>
     <div class="agent-scale-container">
         <div class="page-shell">
