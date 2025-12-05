@@ -2969,7 +2969,9 @@ ${cleanedFinalOutput}`;
                 max: MAX_GIT_LOG_LIMIT,
             });
             const offsetParam = parseIntegerParam(req.query.offset, 0, { min: 0 });
-            const shouldAutoPull = parseBooleanParam(req.query.pull) || parseBooleanParam(req.query.autoPull);
+            const pullRequested = parseBooleanParam(req.query.pull, true);
+            const autoPullRequested = parseBooleanParam(req.query.autoPull, pullRequested);
+            const shouldAutoPull = pullRequested && autoPullRequested;
 
             if (shouldAutoPull && typeof gitUpdatePull === "function") {
                 try {
