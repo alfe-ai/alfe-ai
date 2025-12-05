@@ -4204,11 +4204,20 @@ res.render("editor", {
     });
 
     /* ---------- Git log (JSON) ---------- */
-    app.get("/:repoName/git_log", (req, res) => {
+    app.get("/:repoName/git_log", async (req, res) => {
         const { repoName } = req.params;
         const sessionId = resolveSessionId(req);
         const repoCfg = loadSingleRepoConfig(repoName, sessionId);
         if (!repoCfg) return res.status(400).json({ error: `Repository '${repoName}' not found.` });
+
+        const shouldAutoPull = parseBooleanParam(req.query.pull, true);
+        if (shouldAutoPull && typeof gitUpdatePull === "function") {
+            try {
+                await gitUpdatePull(repoCfg.gitRepoLocalPath);
+            } catch (pullErr) {
+                console.warn(`[WARN] Failed to git pull for ${repoCfg.gitRepoLocalPath}:`, pullErr);
+            }
+        }
 
         const gitCommits = getGitCommitGraph(repoCfg.gitRepoLocalPath);
         res.json({ commits: gitCommits });
