@@ -21,3 +21,4 @@ PrintifyPriceUpdater/.patchfiles_ignore/
 
 PrintifyPriceUpdater/skus.db
 PrintifyWeb/.cache/
+package-lock.json
