@@ -306,6 +306,15 @@
   };
 
   let isGitPullInFlight = false;
+  const gitPullOverlay = document.getElementById("gitPullOverlay");
+
+  const showGitPullOverlay = (show) => {
+    try {
+      if (!gitPullOverlay) return;
+      gitPullOverlay.style.display = show ? 'flex' : 'none';
+      gitPullOverlay.setAttribute('aria-hidden', show ? 'false' : 'true');
+    } catch (e) { }
+  };
 
   const triggerGitPull = () => {
     if (isGitPullInFlight) {
@@ -317,6 +326,7 @@
     }
     isGitPullInFlight = true;
     showStatus("Running git pull...", null);
+    showGitPullOverlay(true);
     fetch("/agent/git-pull", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -348,6 +358,7 @@
       })
       .finally(() => {
         isGitPullInFlight = false;
+        showGitPullOverlay(false);
       });
   };
 
