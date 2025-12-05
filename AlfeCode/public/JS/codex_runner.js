@@ -6057,7 +6057,7 @@ const getSidebarBadgeInfo = (run) => {
   if (!pageShell || !resizer) return;
 
   const STORAGE_KEY = 'sterling:runsSidebarWidth';
-  const minWidth = 240;
+  const minWidth = 320;
   const maxWidth = 640;
   let dragging = false;
   let currentWidth = null;
