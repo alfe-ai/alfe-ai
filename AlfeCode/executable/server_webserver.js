@@ -450,6 +450,23 @@ app.use((req, res, next) => {
 });
 
 // Serve static assets
+// Create a new session and initialize its default repo
+app.post('/session/new', (req, res) => {
+    try {
+        const sessionId = randomUUID();
+        const hostname = normalizeHostname(req);
+        const cookie = buildSessionCookie(sessionId, hostname);
+        res.append('Set-Cookie', cookie);
+        // Ensure filesystem repo exists and default repo is created
+        ensureSessionDefaultRepo(sessionId);
+        res.json({ sessionId });
+    } catch (e) {
+        console.error('[ERROR] POST /session/new =>', e);
+        res.status(500).json({ error: 'Failed to create new session' });
+    }
+});
+
+
 app.use(express.static(path.join(PROJECT_ROOT, "public")));
 app.use(express.static(path.join(PROJECT_ROOT, "images")));
 

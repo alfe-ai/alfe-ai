@@ -147,7 +147,10 @@
                 </p>
             </div>
         </footer>
-        <div style="margin-top:12px;color:var(--nexum-muted);font-size:0.9rem;">Session ID: <%= sessionId %></div>
+        <div style="margin-top:12px;color:var(--nexum-muted);font-size:0.9rem;">Session ID: <span id="sessionIdDisplay"><%= sessionId %></span></div>
+        <div style="margin-top:8px;">
+            <button id="getNewSessionBtn" class="button">Get New Session</button>
+        </div>
 
         <script>
             (function(){
