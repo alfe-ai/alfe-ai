@@ -14,6 +14,9 @@ const https = require("https");
 const { OpenAI } = require("openai");
 const app = express();
 
+const vmManager = require("./vm_manager");
+const vmRunsRouter = require("./vm_runs_router");
+
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_AIMODEL = "deepseek/deepseek-chat";
 const DEFAULT_GIT_COMMIT_GRAPH_LIMIT = 400;
@@ -22,7 +25,7 @@ const SESSION_GIT_BASE_PATH = (function(){
     // Prefer an explicit env override for session git base path. If not set,
     // store session repos under the application's data directory so the
     // process typically has write permission. Fall back to OS temp dir.
-    const candidate = process.env.SESSION_GIT_BASE_PATH || path.join(__dirname, '..', 'data', 'sessions_git');
+    const candidate = process.env.SESSION_GIT_BASE_PATH || path.join(path.sep, 'git');
     try {
         // Ensure directory exists
         if (!fs.existsSync(candidate)) fs.mkdirSync(candidate, { recursive: true });
@@ -33,6 +36,14 @@ const SESSION_GIT_BASE_PATH = (function(){
     }
 })();
 const NEW_SESSION_REPO_NAME = "New";
+
+const vmPortStartEnv = Number.parseInt(process.env.ALFECODE_VM_PORT_START, 10);
+const vmPortEndEnv = Number.parseInt(process.env.ALFECODE_VM_PORT_END, 10);
+const VM_PORT_START = Number.isFinite(vmPortStartEnv) && vmPortStartEnv > 0 ? vmPortStartEnv : 32000;
+const VM_PORT_END = (Number.isFinite(vmPortEndEnv) && vmPortEndEnv >= VM_PORT_START) ? vmPortEndEnv : VM_PORT_START + 999;
+const DEFAULT_VM_IMAGE_PATH = path.join(PROJECT_ROOT, '..', 'example', 'alfe-agent.qcow2');
+const VM_IMAGE_PATH = process.env.ALFECODE_VM_IMAGE_PATH || process.env.AURORA_QEMU_IMAGE || DEFAULT_VM_IMAGE_PATH;
+const VM_LOG_DIR = path.join(PROJECT_ROOT, 'data', 'vm_runs_logs');
 
 function parseBooleanEnv(value, defaultValue = false) {
     if (typeof value === "undefined" || value === null) {
@@ -255,6 +266,32 @@ function ensureSessionDefaultRepo(sessionId) {
     ensureDirectory(repoDir);
     ensureGitRepository(repoDir);
 
+    // Create blank AGENTS.md and make an initial commit if repo has no commits
+    try {
+        const agentsPath = path.join(repoDir, "AGENTS.md");
+        if (!fs.existsSync(agentsPath)) {
+            fs.writeFileSync(agentsPath, "", { encoding: "utf-8" });
+        }
+        // Only create an initial commit if repository has no commits yet
+        let hasCommit = true;
+        try {
+            execSync("git rev-parse --verify HEAD", { cwd: repoDir, stdio: "ignore" });
+        } catch (e) {
+            hasCommit = false;
+        }
+        if (!hasCommit) {
+            try {
+                execSync("git add AGENTS.md", { cwd: repoDir, stdio: "ignore" });
+                execSync('git commit -m "Initial commit"', { cwd: repoDir, stdio: "ignore" });
+                console.debug(`[Server Debug] ensureSessionDefaultRepo => Created initial commit in ${repoDir}`);
+            } catch (commitErr) {
+                console.error(`[ERROR] ensureSessionDefaultRepo => Failed to create initial commit: ${commitErr.message}`);
+            }
+        }
+    } catch (err) {
+        console.error(`[ERROR] ensureSessionDefaultRepo => Failed to create AGENTS.md or commit: ${err.message}`);
+    }
+
     try {
         const repoConfig = loadRepoConfig(sessionId) || {};
         const normalizedPath = repoDir;
@@ -340,6 +377,7 @@ app.use((req, res, next) => {
 
 // Serve static assets
 app.use(express.static(path.join(PROJECT_ROOT, "public")));
+app.use(express.static(path.join(PROJECT_ROOT, "images")));
 
 app.use((req, res, next) => {
     res.locals.sterlingCodexBaseUrl = resolveSterlingCodexBaseUrl(req);
@@ -662,7 +700,7 @@ function getGitCommitGraph(repoPath, options = {}) {
 
     const args = [
         "log",
-        '--pretty=format:"%h%x09%p%x09%an%x09%ad%x09%s"',
+        '--pretty=format:"%h%x09%p%x09%an%x09%ad%x09%d%x09%s"',
         "--date=iso",
     ];
 
@@ -680,12 +718,17 @@ function getGitCommitGraph(repoPath, options = {}) {
         }).toString();
 
         return gitLog.split("\n").map((line) => {
-            const [hash, parents, author, date, message] = line.split("\t");
+            const parts = line.split("\t");
+            const [hash, parents, author, date, refsOrMessage, maybeMessage] = parts;
+            const hasRefs = parts.length >= 6;
+            const message = hasRefs ? maybeMessage : refsOrMessage;
+            const refs = hasRefs ? refsOrMessage : "";
             return {
                 hash,
                 parents: parents ? parents.split(" ") : [],
                 author,
                 date,
+                refs: refs ? refs.trim() : "",
                 message,
             };
         });
@@ -920,6 +963,9 @@ setupPostRoutes({
     upsertCodexRun,
 });
 
+
+app.use("/vm_runs", vmRunsRouter);
+
 /* ------------- REGISTER GET ROUTES (new) ------------- */
 const { setupGetRoutes } = require("./webserver/get_routes");
 setupGetRoutes({
@@ -959,6 +1005,7 @@ const apiConnector = require("../alfe/Aurelix/dev/api_connector.js");
 
 // Host the routes from apiConnector at /api
 app.use("/api", apiConnector);
+
 
 /**
  * Start server
@@ -1225,6 +1272,89 @@ const { mkdir, readFile, writeFile, access, unlink, readdir } = fs.promises;
 const projectViewDataFile = path.join(__dirname, "../data/projectView/projects.json");
 const legacyProjectViewDataFile = path.join(__dirname, "../../ProjectView/data/projects.json");
 let projectViewDataMigrationPromise = null;
+
+function isSterlingGitProjectEntry(project) {
+  if (!project || typeof project !== 'object') {
+    return false;
+  }
+
+  if (
+    project.isSterlingGitProject ||
+    project.isSterlingGit ||
+    project.sterlingGitProject ||
+    (typeof project.source === 'string' && project.source.toLowerCase().includes('sterling-git'))
+  ) {
+    return true;
+  }
+
+  const typeCandidates = [project.type, project.category, project.projectType];
+  if (
+    typeCandidates.some(
+      (value) => typeof value === 'string' && value.toLowerCase().includes('sterling'),
+    )
+  ) {
+    return true;
+  }
+
+  const tagSets = [project.tags, project.labels];
+  if (
+    tagSets.some(
+      (tags) =>
+        Array.isArray(tags) &&
+        tags.some((tag) => typeof tag === 'string' && tag.toLowerCase().includes('sterling')),
+    )
+  ) {
+    return true;
+  }
+
+  const metadata = project.metadata && typeof project.metadata === 'object' ? project.metadata : null;
+  if (metadata) {
+    if (
+      metadata.isSterlingGitProject ||
+      metadata.isSterlingGit ||
+      metadata.sterlingGitProject
+    ) {
+      return true;
+    }
+
+    const metadataTypeCandidates = [metadata.type, metadata.category, metadata.source];
+    if (
+      metadataTypeCandidates.some(
+        (value) => typeof value === 'string' && value.toLowerCase().includes('sterling'),
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      Array.isArray(metadata.tags) &&
+      metadata.tags.some((tag) => typeof tag === 'string' && tag.toLowerCase().includes('sterling'))
+    ) {
+      return true;
+    }
+  }
+
+  const gitIndicators = [
+    project.gitRepoLocalPath,
+    project.gitRepoNameCLI,
+    project.gitRepoName,
+    project.gitRepoURL,
+    project.repoLocalPath,
+  ];
+
+  return gitIndicators.some((value) => typeof value === 'string' && value.trim() !== '');
+}
+
+function sanitizeProjectViewEntries(projectList) {
+  if (!Array.isArray(projectList)) {
+    return { sanitized: [], removed: 0 };
+  }
+
+  const normalized = projectList.filter((entry) => entry && typeof entry === 'object');
+  const sanitized = normalized.filter((entry) => !isSterlingGitProjectEntry(entry));
+  return { sanitized, removed: normalized.length - sanitized.length };
+}
+
 async function migrateLegacyProjectViewDataIfNeeded() {
   if (!projectViewDataMigrationPromise) {
     projectViewDataMigrationPromise = (async () => {
@@ -1253,36 +1383,15 @@ async function migrateLegacyProjectViewDataIfNeeded() {
 async function loadGlobalProjectViewData(dataDir) {
   try {
     const file = await readFile(projectViewDataFile, 'utf-8');
-    return JSON.parse(file);
+    const parsed = JSON.parse(file);
+    const { sanitized, removed } = sanitizeProjectViewEntries(parsed);
+    if (removed > 0) {
+      await mkdir(dataDir, { recursive: true });
+      await writeFile(projectViewDataFile, JSON.stringify(sanitized, null, 2), 'utf-8');
+    }
+    return sanitized;
   } catch (err) {
     if (err?.code !== 'ENOENT') throw err;
-  }
-  // If the canonical projects.json doesn't exist, try to seed it from the
-  // Sterling repository configuration so repositories added via
-  // /repositories show up in ProjectView under the Sterling Git Projects
-  // section.
-  try {
-    const repoCfg = typeof loadRepoConfig === 'function' ? loadRepoConfig() : null;
-    if (repoCfg && Object.keys(repoCfg).length > 0) {
-      const seeded = Object.keys(repoCfg).map((key) => {
-        const entry = repoCfg[key] || {};
-        return {
-          id: `repo-${key}`,
-          name: entry.name || key,
-          gitRepoLocalPath: entry.gitRepoLocalPath || entry.localPath || '',
-          gitRepoNameCLI: key,
-          gitRepoURL: entry.gitRepoURL || entry.gitUrl || '',
-          tasks: [],
-        };
-      });
-      // persist the seeded projects to the canonical file so future reads
-      // return the same data.
-      await mkdir(dataDir, { recursive: true });
-      await writeFile(projectViewDataFile, JSON.stringify(seeded, null, 2), 'utf-8');
-      return seeded;
-    }
-  } catch (seedErr) {
-    console.warn('[ProjectView] Unable to seed projects.json from repo_config:', seedErr);
   }
   try {
     const entries = await readdir(dataDir, { withFileTypes: true });
@@ -1292,10 +1401,14 @@ async function loadGlobalProjectViewData(dataDir) {
       try {
         const payload = await readFile(fullPath, 'utf-8');
         const parsed = JSON.parse(payload);
+        const { sanitized, removed } = sanitizeProjectViewEntries(parsed);
         await mkdir(dataDir, { recursive: true });
-        await writeFile(projectViewDataFile, JSON.stringify(parsed, null, 2), 'utf-8');
+        await writeFile(projectViewDataFile, JSON.stringify(sanitized, null, 2), 'utf-8');
         console.log(`[ProjectView] Seeded ${path.basename(projectViewDataFile)} from existing ${name}`);
-        return parsed;
+        if (removed > 0) {
+          console.warn(`[ProjectView] Removed ${removed} Sterling Git project(s) while seeding from ${name}.`);
+        }
+        return sanitized;
       } catch (fallbackErr) {
         console.warn(`[ProjectView] Unable to seed projects.json from ${name}:`, fallbackErr);
       }
@@ -1310,7 +1423,13 @@ async function readProjectViewProjects(sessionId) {
     const sessionFile = path.join(dataDir, `${sessionId}.json`);
     try {
       const file = await readFile(sessionFile, 'utf-8');
-      return JSON.parse(file);
+      const parsed = JSON.parse(file);
+      const { sanitized, removed } = sanitizeProjectViewEntries(parsed);
+      if (removed > 0) {
+        await writeFile(sessionFile, JSON.stringify(sanitized, null, 2), 'utf-8');
+        console.log(`[ProjectView] Removed ${removed} Sterling Git project(s) from session file ${path.basename(sessionFile)}.`);
+      }
+      return sanitized;
     } catch (err) {
       if (err?.code === 'ENOENT') {
         const fallback = await loadGlobalProjectViewData(dataDir);

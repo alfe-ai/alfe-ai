@@ -19,6 +19,11 @@
             --accent-strong: #8b5cf6;
             --danger: #f97316;
             --shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
+            --hash-color: #8b5cf6;
+            --author-color: #c084fc;
+            --date-color: #a5b4fc;
+            --message-color: #e2e8f0;
+            --refs-color: #fbbf24;
         }
 
         * {
@@ -193,6 +198,45 @@
             border-bottom: none;
         }
 
+        .cli-row {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .cli-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .cli-hash {
+            color: var(--hash-color);
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .cli-author {
+            color: var(--author-color);
+            font-weight: 600;
+        }
+
+        .cli-date {
+            color: var(--date-color);
+        }
+
+        .cli-refs {
+            color: var(--refs-color);
+            font-weight: 600;
+        }
+
+        .cli-message {
+            color: var(--message-color);
+        }
+
         .git-commit-link {
             color: var(--accent-strong);
             font-weight: 600;
@@ -285,9 +329,48 @@
             margin: 0;
             color: var(--text-muted);
         }
+
+        .loading-panel {
+            margin-top: 24px;
+            padding: 32px;
+            border-radius: 18px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.1);
+        }
+
+        .loading-spinner {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 4px solid rgba(124, 58, 237, 0.18);
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            margin: 0;
+            font-weight: 700;
+            color: #e2e8f0;
+            letter-spacing: 0.01em;
+        }
+
+        .loading-subtext {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
+    <% const showLoadingState = Boolean(errorMessage) && !requestedProjectDir && (!gitCommits || gitCommits.length === 0); %>
     <div class="container">
         <div class="top-nav">
             <div class="top-nav-actions">
@@ -313,34 +396,44 @@
                 <span><strong>Updated:</strong> <%= gitMeta.dateStr %></span>
             <% } %>
         </div>
-        <% if (errorMessage) { %>
+        <% if (showLoadingState) { %>
+            <div class="loading-panel" role="status" aria-live="polite">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <div>
+                    <p class="loading-text">Preparing Git log…</p>
+                    <p class="loading-subtext">We’re locating your project and loading commit history.</p>
+                </div>
+            </div>
+        <% } else if (errorMessage) { %>
             <div class="alert"><%= errorMessage %></div>
         <% } %>
-        <div class="git-log-layout">
-            <section class="git-log-card">
-                <h2>Commit history</h2>
-                <% if (!gitCommits || gitCommits.length === 0) { %>
-                    <p class="empty-state">Loading commit history...</p>
-                <% } else { %>
-                    <ul id="gitCommitList">
-                        <% gitCommits.forEach(function(commit) { %>
-                            <li><%= commit %></li>
-                        <% }); %>
-                    </ul>
-                <% } %>
-                <div class="git-log-actions">
-                    <button
-                        id="gitLoadMoreButton"
-                        class="nav-button secondary-nav"
-                        type="button"
-                        <% if (!hasMoreCommits) { %>style="display:none;"<% } %>
-                    >
-                        Load more commits
-                    </button>
-                    <span id="gitCommitLoadStatus" class="git-pull-status" role="status" aria-live="polite"></span>
-                </div>
-            </section>
-        </div>
+        <% if (!showLoadingState) { %>
+            <div class="git-log-layout">
+                <section class="git-log-card">
+                    <h2>Commit history (<%= gitCommitGraph ? gitCommitGraph.length : 0 %> loaded)</h2>
+                    <% if (!gitCommits || gitCommits.length === 0) { %>
+                        <p class="empty-state">No commits yet.</p>
+                    <% } else { %>
+                        <ul id="gitCommitList">
+                            <% gitCommits.forEach(function(commit) { %>
+                                <li><%= commit %></li>
+                            <% }); %>
+                        </ul>
+                    <% } %>
+                    <div class="git-log-actions">
+                        <button
+                            id="gitLoadMoreButton"
+                            class="nav-button secondary-nav"
+                            type="button"
+                            <% if (!hasMoreCommits) { %>style="display:none;"<% } %>
+                        >
+                            Load more commits
+                        </button>
+                        <span id="gitCommitLoadStatus" class="git-pull-status" role="status" aria-live="polite"></span>
+                    </div>
+                </section>
+            </div>
+        <% } %>
     </div>
     <script>
         window.CODEX_GIT_LOG_DATA = <%- JSON.stringify({

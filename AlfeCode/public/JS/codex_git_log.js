@@ -26,6 +26,29 @@
   }
   let isLoadingMore = false;
 
+  const commitLookup = new Map();
+  commitGraph.forEach((commit) => {
+    if (!commit || typeof commit.hash !== "string") {
+      return;
+    }
+    const commitHash = commit.hash.trim();
+    if (!commitHash) {
+      return;
+    }
+    const parents = Array.isArray(commit.parents) ? commit.parents : [];
+    const primaryParentRaw =
+      parents.length > 0 && typeof parents[0] === "string" ? parents[0] : null;
+    const primaryParent = primaryParentRaw ? primaryParentRaw.trim() || null : null;
+    commitLookup.set(commitHash.toLowerCase(), {
+      hash: commitHash,
+      parent: primaryParent,
+      author: typeof commit.author === "string" ? commit.author : "",
+      date: typeof commit.date === "string" ? commit.date : "",
+      message: typeof commit.message === "string" ? commit.message : "",
+      refs: typeof commit.refs === "string" ? commit.refs : "",
+    });
+  });
+
   const buildDiffUrl = (hash, parentHash) => {
     if (!hash) {
       return "";
@@ -50,115 +73,112 @@
     return "";
   };
 
-  const makeCommitListClickable = () => {
-    if (!repoName && !resolvedProjectDir) {
-      return;
+  const formatRelativeDate = (dateValue) => {
+    if (!dateValue) return "";
+    const ts = Date.parse(dateValue);
+    if (Number.isNaN(ts)) {
+      return dateValue;
     }
-    const listItems = document.querySelectorAll("#gitCommitList li");
-    if (!listItems.length) {
-      return;
+    const diffMs = Date.now() - ts;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) {
+      return "today";
     }
-
-    // Build hash -> parent map from commit graph data
-    const hashToParent = new Map();
-    commitGraph.forEach((commit) => {
-      if (!commit || typeof commit.hash !== "string") {
-        return;
-      }
-      const commitHash = commit.hash.trim();
-      if (!commitHash) {
-        return;
-      }
-      const parents = Array.isArray(commit.parents) ? commit.parents : [];
-      const primaryParentRaw =
-        parents.length > 0 && typeof parents[0] === "string" ? parents[0] : null;
-      const primaryParent = primaryParentRaw ? primaryParentRaw.trim() || null : null;
-      hashToParent.set(commitHash.toLowerCase(), {
-        hash: commitHash,
-        parent: primaryParent,
-      });
-    });
-
-    // Helper to replace the first occurrence of the hash inside a Text node with an anchor
-    const replaceHashWithAnchor = (item, hash, diffUrl) => {
-      if (!item || !hash || !diffUrl) return false;
-
-      // Walk child nodes to find a Text node containing the hash
-      for (let idx = 0; idx < item.childNodes.length; idx++) {
-        const node = item.childNodes[idx];
-        if (node.nodeType !== Node.TEXT_NODE) continue;
-        const text = node.nodeValue || '';
-        const pos = text.indexOf(hash);
-        if (pos === -1) continue;
-
-        // Split the text node into before, match, after
-        const before = text.slice(0, pos);
-        const after = text.slice(pos + hash.length);
-
-        const doc = item.ownerDocument || document;
-        const beforeNode = doc.createTextNode(before);
-        const anchor = doc.createElement('a');
-        anchor.href = diffUrl;
-        anchor.target = '_blank';
-        anchor.rel = 'noopener noreferrer';
-        anchor.textContent = hash;
-        anchor.classList.add('git-commit-link');
-        const afterNode = doc.createTextNode(after);
-
-        // Replace the original text node with before + anchor + after
-        item.replaceChild(afterNode, node);
-        item.insertBefore(anchor, afterNode);
-        if (before) item.insertBefore(beforeNode, anchor);
-
-        return true;
-      }
-
-      // If we didn't find a text node, try a naive replacement of innerText
-      const rawText = item.textContent || '';
-      const idxHash = rawText.indexOf(hash);
-      if (idxHash === -1) return false;
-
-      item.textContent = '';
-      const a = document.createElement('a');
-      a.href = diffUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.textContent = hash;
-      a.classList.add('git-commit-link');
-      const trailing = rawText.slice(idxHash + hash.length);
-      const leading = rawText.slice(0, idxHash);
-      if (leading) item.appendChild(document.createTextNode(leading));
-      item.appendChild(a);
-      if (trailing) item.appendChild(document.createTextNode(trailing));
-      return true;
-    };
-
-    listItems.forEach((item) => {
-      if (!item || item.dataset.hashLinked === "true") {
-        return;
-      }
-      const rawText = item.textContent || "";
-      const match = rawText.match(/\b[0-9a-f]{7,40}\b/i);
-      if (!match) {
-        return;
-      }
-      const matchedHash = match[0];
-      const mappedEntry = hashToParent.get(matchedHash.toLowerCase()) || null;
-      const lookupHash = mappedEntry ? mappedEntry.hash : matchedHash;
-      const parentHash = mappedEntry ? mappedEntry.parent : null;
-      const diffUrl = buildDiffUrl(lookupHash, parentHash);
-      if (!diffUrl) {
-        return;
-      }
-
-      const replaced = replaceHashWithAnchor(item, matchedHash, diffUrl);
-      if (replaced) {
-        item.dataset.hashLinked = "true";
-      }
-    });
+    if (diffDays === 1) {
+      return "yesterday";
+    }
+    if (diffDays < 14) {
+      return `${diffDays} days ago`;
+    }
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    }).format(ts);
   };
 
-  makeCommitListClickable();
+  const enhanceCommitItem = (item) => {
+    if (!item || item.dataset.enhanced === "true") {
+      return;
+    }
+    const rawText = item.textContent || "";
+    const match = rawText.match(/\b[0-9a-f]{7,40}\b/i);
+    if (!match) {
+      return;
+    }
+    const matchedHash = match[0];
+    const mappedEntry = commitLookup.get(matchedHash.toLowerCase()) || null;
+    const lookupHash = mappedEntry ? mappedEntry.hash : matchedHash;
+    const parentHash = mappedEntry ? mappedEntry.parent : null;
+    const diffUrl = buildDiffUrl(lookupHash, parentHash);
+
+    const authorMatch = rawText.match(/-\s([^,]+),/);
+    const dateMatch = rawText.match(/,\s([^:]+)\s:/);
+    const messageMatch = rawText.split(/:\s(.+)/);
+
+    const author = mappedEntry?.author || (authorMatch ? authorMatch[1].trim() : "");
+    const dateLabel = mappedEntry?.date
+      ? formatRelativeDate(mappedEntry.date)
+      : dateMatch
+        ? dateMatch[1].trim()
+        : "";
+    const message = mappedEntry?.message || (messageMatch && messageMatch[1] ? messageMatch[1].trim() : rawText.trim());
+
+    item.textContent = "";
+    const row = document.createElement("div");
+    row.className = "cli-row";
+
+    const hashEl = document.createElement(diffUrl ? "a" : "span");
+    hashEl.className = "cli-hash git-commit-link";
+    hashEl.textContent = lookupHash.slice(0, 7);
+    if (diffUrl) {
+      hashEl.href = diffUrl;
+      hashEl.target = "_blank";
+      hashEl.rel = "noopener noreferrer";
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "cli-meta";
+    if (author) {
+      const authorEl = document.createElement("span");
+      authorEl.className = "cli-author";
+      authorEl.textContent = author;
+      meta.appendChild(authorEl);
+    }
+    if (dateLabel) {
+      const dateEl = document.createElement("span");
+      dateEl.className = "cli-date";
+      dateEl.textContent = dateLabel;
+      meta.appendChild(dateEl);
+    }
+    if (mappedEntry && mappedEntry.refs) {
+      const refsEl = document.createElement("span");
+      refsEl.className = "cli-refs";
+      refsEl.textContent = mappedEntry.refs;
+      meta.appendChild(refsEl);
+    }
+
+    const messageEl = document.createElement("div");
+    messageEl.className = "cli-message";
+    messageEl.textContent = message;
+
+    row.appendChild(hashEl);
+    row.appendChild(meta);
+    row.appendChild(messageEl);
+
+    item.appendChild(row);
+    item.dataset.enhanced = "true";
+  };
+
+  const renderCommitItems = () => {
+    if (!commitListEl) {
+      return;
+    }
+    const listItems = commitListEl.querySelectorAll("li");
+    listItems.forEach(enhanceCommitItem);
+  };
+
+  renderCommitItems();
 
   const updateLoadMoreVisibility = () => {
     if (!loadMoreButton) {
@@ -194,6 +214,7 @@
     });
 
     commitListEl.appendChild(frag);
+    renderCommitItems();
   };
 
   const buildCommitsApiUrl = (offsetValue) => {

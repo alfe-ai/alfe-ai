@@ -874,6 +874,17 @@ function setupPostRoutes(deps) {
         }
 
         try {
+            // Ensure the repository has at least one configured remote before attempting a pull.
+            try {
+                const remotesRaw = execSync('git remote', { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] }).toString();
+                const remotes = remotesRaw.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+                if (!remotes.length) {
+                    return res.status(400).json({ error: 'No git remotes configured for repository.' });
+                }
+            } catch (_e) {
+                return res.status(400).json({ error: 'No git remotes configured for repository.' });
+            }
+
             const pullOutput = await gitUpdatePull(resolvedProjectDir);
             let currentCommit = "";
             try {

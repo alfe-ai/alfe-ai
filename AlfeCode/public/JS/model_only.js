@@ -1,6 +1,8 @@
 (function(){
+  const MODEL_CHANGE_MESSAGE = 'Ability to change model available soon.';
   const providerSelect=document.getElementById('providerSelect');
   const modelSelect=document.getElementById('modelSelect');
+  if (modelSelect) modelSelect.disabled = true;
   const info=document.getElementById('info');
   async function load(){
     try{
@@ -22,7 +24,7 @@
       populateModels();
       // Render default model; hide deprecated branding label if present
   // Default model display removed
-  info.textContent = '';
+  info.textContent = MODEL_CHANGE_MESSAGE;
     }catch(e){info.textContent='Error loading models: '+e.message}
   }
   function populateModels(){
@@ -34,5 +36,32 @@
     x.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;modelSelect.appendChild(o)})
   }
   providerSelect.addEventListener('change',populateModels);
+
+  // Prevent changing model while dropdown is expanded by reverting changes if user tries to pick another model
+  (function(){
+    let lastValue = modelSelect.value;
+    // Remember value when user focuses (opens) the select
+    modelSelect.addEventListener('focus', function(){ lastValue = modelSelect.value; });
+    // On mousedown on options, prevent changing by marking as prevented
+    let isOpen = false;
+    modelSelect.addEventListener('mousedown', function(){ isOpen = true; });
+    modelSelect.addEventListener('blur', function(){ isOpen = false; });
+    // If change happens while open, revert to lastValue
+    modelSelect.addEventListener('change', function(e){
+      if(isOpen){
+        // revert selection
+        modelSelect.value = lastValue;
+        // provide brief feedback
+        if(window.__modelChangeFeedbackTimeout) clearTimeout(window.__modelChangeFeedbackTimeout);
+        const prev = lastValue || '(none)';
+        console.warn('Model change prevented while dropdown open. Reverting to', prev);
+        const infoEl = document.getElementById('info');
+        if(infoEl){ infoEl.textContent = MODEL_CHANGE_MESSAGE; }
+      } else {
+        lastValue = modelSelect.value;
+      }
+    });
+  })();
+
   load();
 })();

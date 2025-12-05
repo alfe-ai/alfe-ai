@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Model Selector</title>
+  <title>Settings</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
     body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;height:100vh;background:#0b1120;color:#e2e8f0}
@@ -13,21 +13,42 @@
 </head>
 <body>
   <div class="card">
-    <h2>Model Selector</h2>
+    <h2>Settings</h2>
     <div>
       <label for="providerSelect">Provider</label>
       <select id="providerSelect"></select>
     </div>
     <div>
       <label for="modelSelect">Model</label>
-      <select id="modelSelect"></select>
+      <select id="modelSelect" disabled aria-disabled="true"></select>
     <div style="margin-top:8px;">
-      <button id="defaultModelSaveButton" type="button">Save Default Model</button>
+      <button id="defaultModelSaveButton" type="button" disabled>Save Default Model</button>
       <span id="defaultModelFeedback" class="default-model-feedback hidden" aria-live="polite"></span>
     </div>
     </div>
     <p id="info" style="color:#94a3b8;margin-top:8px"></p>
+    <div style="margin-top:16px;">
+      <label for="gitButtonSelect">Git Log Button Target</label>
+      <select id="gitButtonSelect" style="width:100%;padding:8px;margin-top:6px;">
+        <option value="git-log">Git Log</option>
+        <option value="git-tree">Git Tree</option>
+      </select>
+          </div>
   </div>
   <script src="/JS/model_only.js"></script>
+    <script>
+    (function(){
+      try{
+        const sel=document.getElementById('gitButtonSelect');
+        const STORAGE_KEY='sterling.gitButtonTarget';
+        function send(val){ try{ window.parent.postMessage({type:'sterling:settings', key:'gitButtonTarget', value:val}, '*'); }catch(e){} }
+        const cur = (function(){ try{ return localStorage.getItem(STORAGE_KEY) || 'git-log'; }catch(e){ return 'git-log'; } })();
+        if(sel) sel.value = cur;
+        send(cur);
+        if(sel){ sel.addEventListener('change', function(){ const v=sel.value; try{ localStorage.setItem(STORAGE_KEY, v); }catch(e){} send(v); }); }
+      }catch(e){ /* noop */ }
+    })();
+    </script>
+
 </body>
 </html>

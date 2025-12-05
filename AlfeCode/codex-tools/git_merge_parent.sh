@@ -261,8 +261,12 @@ if [[ -n "$parent_remote" ]]; then
     printf '%s\n' "$push_output"
   fi
 else
-  log "Pushing '$parent_branch'..."
-  if ! push_output="$(git push 2>&1)"; then
+  remotes="$(git remote 2>/dev/null || true)"
+  if [[ -z "$remotes" ]]; then
+    log "No remotes configured; skipping push of '$parent_branch'."
+  else
+    log "Pushing '$parent_branch'..."
+    if ! push_output="$(git push 2>&1)"; then
     printf '%s\n' "$push_output" >&2
     if echo "$push_output" | grep -qi 'non-fast-forward'; then
       log "Detected that '$parent_branch' is behind its upstream. Pulling latest changes..."
@@ -284,6 +288,7 @@ else
     fi
   else
     printf '%s\n' "$push_output"
+  fi
   fi
 fi
 

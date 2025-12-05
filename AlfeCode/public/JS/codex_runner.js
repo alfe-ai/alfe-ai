@@ -410,6 +410,7 @@
 
 
   const runsSidebarNewTaskButton = document.getElementById("runsSidebarNewTaskButton");
+  const collapsedNewTaskBtn = document.getElementById("collapsedNewTaskBtn");
   const runsSidebarRefreshButton = document.getElementById("runsSidebarRefreshButton");
   const promptPreviewEl = document.getElementById("userPromptPreview");
   const promptPreviewTextEl = document.getElementById("userPromptPreviewText");
@@ -898,6 +899,8 @@
   let awaitingGitFpushCompletion = false;
   let pythonTestInFlight = false;
   let gitFpushActive = false;
+  let gitFpushDetectedChanges = false;
+  let mergeDiffLockedAfterMerge = false;
   let autoOpenMergeDiffOnEnable = false;
   let hydratingRunFromHistory = false;
   let pendingGitFpushHash = "";
@@ -2340,6 +2343,20 @@
     }
   };
 
+  const lockMergeDiffButton = () => {
+    mergeDiffLockedAfterMerge = true;
+    hideMergeDiffButton();
+  };
+
+  const hideMergeDiffButton = () => {
+    if (!mergeDiffButton) return;
+    mergeDiffButton.disabled = true;
+    mergeDiffButton.removeAttribute('data-href');
+    mergeDiffButton.setAttribute('aria-disabled', 'true');
+    mergeDiffButton.onclick = null;
+    mergeDiffButton.classList.add('is-hidden');
+  };
+
   const hasActiveMergeDiffLink = () => {
     if (!mergeDiffButton) {
       return false;
@@ -2351,6 +2368,47 @@
 
     const href = mergeDiffButton.getAttribute("data-href") || "";
     return Boolean(href.trim()) && !mergeDiffButton.disabled;
+  };
+
+  const detectGitChangeIndicator = (text) => {
+    if (!text || typeof text !== "string") {
+      return false;
+    }
+
+    const fileChangeMatch = text.match(/(\d+)\s+files?\s+changed/i);
+    if (fileChangeMatch) {
+      const fileCount = parseInt(fileChangeMatch[1], 10);
+      if (Number.isFinite(fileCount) && fileCount > 0) {
+        return true;
+      }
+    }
+
+    const insertionMatch = text.match(/(\d+)\s+insertions?/i);
+    if (insertionMatch) {
+      const insertionCount = parseInt(insertionMatch[1], 10);
+      if (Number.isFinite(insertionCount) && insertionCount > 0) {
+        return true;
+      }
+    }
+
+    const deletionMatch = text.match(/(\d+)\s+deletions?/i);
+    if (deletionMatch) {
+      const deletionCount = parseInt(deletionMatch[1], 10);
+      if (Number.isFinite(deletionCount) && deletionCount > 0) {
+        return true;
+      }
+    }
+
+    const indicators = [
+      /create mode/i,
+      /delete mode/i,
+      /renamed?:/i,
+      /modified:/i,
+      /new file:/i,
+      /changes to be committed/i,
+    ];
+
+    return indicators.some((pattern) => pattern.test(text));
   };
 
   const captureGitFpushDiffCandidates = (text, projectDirValue) => {
@@ -2379,6 +2437,10 @@
     if (detectedHash) {
       pendingGitFpushHash = detectedHash;
       pendingGitFpushHashProjectDir = effectiveDir;
+    }
+
+    if (detectGitChangeIndicator(text)) {
+      gitFpushDetectedChanges = true;
     }
   };
 
@@ -2415,6 +2477,10 @@
   };
 
   const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
+    if (mergeDiffLockedAfterMerge) {
+      hideMergeDiffButton();
+      return;
+    }
     if (!mergeDiffButton) return;
     if (!branch) {
       mergeDiffButton.disabled = true;
@@ -2452,6 +2518,10 @@
 
 
   const enableMergeDiffButtonForHash = (hash, projectDirValue) => {
+    if (mergeDiffLockedAfterMerge) {
+      hideMergeDiffButton();
+      return;
+    }
     if (!mergeDiffButton) return;
     if (!hash) {
       mergeDiffButton.disabled = true;
@@ -2566,10 +2636,12 @@
   const resetMergeState = () => {
     mergeReady = false;
     mergeInFlight = false;
+    mergeDiffLockedAfterMerge = false;
     applyMergeButtonState();
     // Disable merge-diff button when merge state resets
     enableMergeDiffButtonForHash("", "");
     gitFpushActive = false;
+    gitFpushDetectedChanges = false;
     pendingGitFpushHash = "";
     pendingGitFpushHashProjectDir = "";
     pendingGitFpushBranch = "";
@@ -2599,6 +2671,18 @@
       return;
     }
     if (normalized.includes("git_fpush.sh exited with code 0")) {
+      const hasDetectedChanges = gitFpushDetectedChanges || detectGitChangeIndicator(message);
+      if (!hasDetectedChanges) {
+        setMergeReady(false);
+        enableMergeDiffButtonForHash("", "");
+        pendingGitFpushHash = "";
+        pendingGitFpushHashProjectDir = "";
+        pendingGitFpushBranch = "";
+        pendingGitFpushBranchProjectDir = "";
+        markGitFpushPhaseComplete();
+        return;
+      }
+
       setMergeReady(true);
       const effectiveProjectDir = (currentRunContext && currentRunContext.effectiveProjectDir)
         || currentRunContext.projectDir
@@ -2674,10 +2758,9 @@
         ))
       || "";
 
-    const branchFromRun = extractBranchFromRun(run);
-    if (branchFromRun) {
-      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir);
-    }
+    const gitFpushChangeFlag = run.gitFpushDetectedChanges;
+    const hasExplicitChanges = gitFpushChangeFlag === true;
+    const hasExplicitNoChanges = gitFpushChangeFlag === false;
 
     const candidateTexts = [
       run.gitFpushFinalOutput,
@@ -2687,6 +2770,21 @@
       run.stdout,
       run.stderr,
     ];
+
+    const hasGitChanges = hasExplicitChanges
+      || candidateTexts.some((candidate) => detectGitChangeIndicator(candidate));
+    if (hasExplicitNoChanges || !hasGitChanges) {
+      setMergeReady(false);
+      enableMergeDiffButtonForHash("", "");
+      return;
+    }
+
+    setMergeReady(true);
+
+    const branchFromRun = extractBranchFromRun(run);
+    if (branchFromRun) {
+      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir);
+    }
 
     for (const candidate of candidateTexts) {
       if (hasActiveMergeDiffLink()) {
@@ -3518,6 +3616,8 @@ const appendMergeChunk = (text, type = "output") => {
       toggleButtons(false);
       resetMergeState();
 
+      gitFpushDetectedChanges = run.gitFpushDetectedChanges === true;
+
       const resolvedProjectDir = normaliseProjectDir(
         run.requestedProjectDir || run.projectDir || run.effectiveProjectDir || "",
       );
@@ -3612,9 +3712,15 @@ const appendMergeChunk = (text, type = "output") => {
         || "",
     );
 
+    const badgeInfo = getSidebarBadgeInfo(run);
     const summary = summariseRunStatus(run);
-    const statusVariant = run.error ? "error" : run.finishedAt ? "idle" : "active";
-    setStatus(summary || "Saved run loaded.", statusVariant);
+    let statusVariant = run.error ? "error" : run.finishedAt ? "idle" : "active";
+
+    if (badgeInfo?.variant === "merged") {
+      statusVariant = "merged";
+    }
+
+    setStatus((badgeInfo?.text || summary || "Saved run loaded."), statusVariant);
 
     if (run.id) {
       appendChunk(`Restored saved run ${run.id.slice(0, 12)}.`, "status");
@@ -4406,6 +4512,24 @@ const getSidebarBadgeInfo = (run) => {
       prepareNewTask();
     });
   }
+
+  if (collapsedNewTaskBtn) {
+    collapsedNewTaskBtn.addEventListener("click", () => {
+      // Forward to the main New Task button when available so behavior is consistent.
+      try {
+        if (typeof runsSidebarNewTaskButton !== 'undefined' && runsSidebarNewTaskButton) {
+          runsSidebarNewTaskButton.click();
+          return;
+        }
+        // Fallback: call prepareNewTask directly if available.
+        if (typeof prepareNewTask === 'function') {
+          prepareNewTask();
+        }
+      } catch (e) {
+        console.warn('[Codex Runner] collapsedNewTaskBtn handler error', e);
+      }
+    });
+  }
   if (backToCurrentTasksLink) {
     backToCurrentTasksLink.addEventListener('click', (ev) => {
       ev.preventDefault();
@@ -4517,6 +4641,7 @@ const getSidebarBadgeInfo = (run) => {
       try {
         markRunMergedInSidebar((currentRunContext && currentRunContext.runId) || '', message || 'Merged');
       } catch (e) { /* ignore */ }
+      lockMergeDiffButton();
     }
 
     if (runButton) {
@@ -5099,6 +5224,7 @@ const getSidebarBadgeInfo = (run) => {
 
     if (normalizedMessage.includes("running git_fpush.sh")) {
       gitFpushActive = true;
+      gitFpushDetectedChanges = false;
       suppressStdoutOutput = true;
       return;
     }
@@ -5812,6 +5938,115 @@ const getSidebarBadgeInfo = (run) => {
   window.addEventListener("hashchange", () => {
     maybeLoadRunFromHash(window.location.hash || "");
   });
+})();
+
+
+// Runs sidebar collapse toggle with persisted visibility
+(function(){
+  const collapseButton = document.getElementById('collapseRunsSidebarBtn');
+  const expandButton = document.getElementById('expandRunsSidebarArrow');
+  const collapsedLogoButton = document.getElementById('collapsedSidebarLogo');
+  if (!collapseButton || !expandButton) { return; }
+
+  const STORAGE_KEY = 'sterling:runsSidebarCollapsed';
+
+  const persistState = (isCollapsed) => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, isCollapsed ? '1' : '0');
+    } catch (_err) {
+      /* ignore storage errors */
+    }
+  };
+
+  const readPersistedState = () => {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY) === '1';
+    } catch (_err) {
+      return false;
+    }
+  };
+
+  const applyState = (isCollapsed) => {
+    document.body.classList.toggle('runs-sidebar-collapsed', isCollapsed);
+    collapseButton.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false');
+    expandButton.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    if (collapsedLogoButton) {
+      collapsedLogoButton.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    }
+  };
+
+  const collapse = () => {
+    applyState(true);
+    persistState(true);
+    try { expandButton.focus({ preventScroll: true }); } catch (_err) { /* ignore */ }
+  };
+
+  const expand = () => {
+    applyState(false);
+    persistState(false);
+    try { collapseButton.focus({ preventScroll: true }); } catch (_err) { /* ignore */ }
+  };
+
+  if (readPersistedState()) {
+    applyState(true);
+  }
+
+  collapseButton.addEventListener('click', collapse);
+  [expandButton, collapsedLogoButton].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('click', expand);
+    el.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        expand();
+      }
+    });
+  });
+
+  // Clicking brand logo/name collapses expanded sidebar
+  (function(){
+    const brandIcon = document.querySelectorAll('.sidebar-brand-icon-link, .sidebar-brand-name');
+    brandIcon.forEach((el) => {
+      if (!el) return;
+      el.addEventListener('click', (e) => {
+        try{ e.preventDefault(); }catch(_e){}
+        const isCollapsed = document.body.classList.contains('runs-sidebar-collapsed');
+        if (!isCollapsed) {
+          collapse();
+        }
+      });
+      el.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          const isCollapsed = document.body.classList.contains('runs-sidebar-collapsed');
+          if (!isCollapsed) { collapse(); }
+        }
+      });
+    });
+  })();
+
+  // Make collapsed nav Code icon expand the sidebar when clicked
+  try {
+    const collapsedNavLinks = document.querySelectorAll('.runs-sidebar__collapsed-nav-link[data-tab="code"]');
+    collapsedNavLinks.forEach(link => {
+      if (!link) return;
+      link.addEventListener('click', (e) => {
+        try { e.preventDefault(); } catch(_e) {}
+        const isCollapsed = document.body.classList.contains('runs-sidebar-collapsed');
+        if (isCollapsed) {
+          expand();
+        }
+      });
+      link.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          const isCollapsed = document.body.classList.contains('runs-sidebar-collapsed');
+          if (isCollapsed) expand();
+        }
+      });
+    });
+  } catch (e) { /* ignore */ }
+
 })();
 
 

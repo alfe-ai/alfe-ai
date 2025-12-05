@@ -128,6 +128,47 @@ function setupGetRoutes(deps) {
         return false;
     };
 
+    const detectGitChangeIndicator = (text) => {
+        if (!text || typeof text !== "string") {
+            return false;
+        }
+
+        const fileChangeMatch = text.match(/(\d+)\s+files?\s+changed/i);
+        if (fileChangeMatch) {
+            const fileCount = parseInt(fileChangeMatch[1], 10);
+            if (Number.isFinite(fileCount) && fileCount > 0) {
+                return true;
+            }
+        }
+
+        const insertionMatch = text.match(/(\d+)\s+insertions?/i);
+        if (insertionMatch) {
+            const insertionCount = parseInt(insertionMatch[1], 10);
+            if (Number.isFinite(insertionCount) && insertionCount > 0) {
+                return true;
+            }
+        }
+
+        const deletionMatch = text.match(/(\d+)\s+deletions?/i);
+        if (deletionMatch) {
+            const deletionCount = parseInt(deletionMatch[1], 10);
+            if (Number.isFinite(deletionCount) && deletionCount > 0) {
+                return true;
+            }
+        }
+
+        const indicators = [
+            /create mode/i,
+            /delete mode/i,
+            /renamed?:/i,
+            /modified:/i,
+            /new file:/i,
+            /changes to be committed/i,
+        ];
+
+        return indicators.some((pattern) => pattern.test(text));
+    };
+
     const formatBytes = (bytes) => {
         if (typeof bytes !== "number" || Number.isNaN(bytes) || bytes < 0) {
             return "0 B";
@@ -1612,6 +1653,7 @@ ${cleanedFinalOutput}`;
             appVersion    : appVersionDisplay,
             enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
             showNewTaskButton,
+        showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
         });
     };
 
@@ -1818,6 +1860,7 @@ ${cleanedFinalOutput}`;
             stderrTruncated: false,
             exitCode: null,
             gitFpushExitCode: null,
+            gitFpushDetectedChanges: false,
             finalMessage: "",
             error: "",
             invalidModelReason,
@@ -1900,6 +1943,17 @@ ${cleanedFinalOutput}`;
                 lastRunRecordPersistTs = now;
             } catch (error) {
                 console.error(`[ERROR] Failed to persist codex run: ${error.message}`);
+            }
+        };
+
+        const markGitFpushChangeIfDetected = (text) => {
+            if (!text || runRecord.gitFpushDetectedChanges) {
+                return;
+            }
+
+            if (detectGitChangeIndicator(text)) {
+                runRecord.gitFpushDetectedChanges = true;
+                persistRunRecord({ force: true, skipBranchUpdate: true });
             }
         };
 
@@ -2330,11 +2384,15 @@ ${cleanedFinalOutput}`;
                         gitFpushChild = gitFpushChildLocal;
 
                         gitFpushChildLocal.stdout.on("data", (chunk) => {
-                            emit({ event: "output", data: chunk.toString() });
+                            const chunkText = chunk.toString();
+                            emit({ event: "output", data: chunkText });
+                            markGitFpushChangeIfDetected(chunkText);
                         });
 
                         gitFpushChildLocal.stderr.on("data", (chunk) => {
-                            emit({ event: "stderr", data: chunk.toString() });
+                            const chunkText = chunk.toString();
+                            emit({ event: "stderr", data: chunkText });
+                            markGitFpushChangeIfDetected(chunkText);
                         });
 
                         gitFpushChildLocal.on("error", (err) => {
@@ -3082,10 +3140,14 @@ ${cleanedFinalOutput}`;
         const resolvedProjectDir = effectiveProjectDir ? path.resolve(effectiveProjectDir) : "";
 
         let errorMessage = "";
+        let gitCommits = [];
         let gitCommitGraph = [];
         let gitMeta = null;
-        let gitBranches = [];
         let repoName = "";
+        let hasMoreCommits = false;
+        let commitLimit = DEFAULT_GIT_LOG_LIMIT;
+        let commitOffset = 0;
+        let commitNextOffset = 0;
 
         if (!effectiveProjectDir) {
             errorMessage = "Project directory is required.";
@@ -3101,8 +3163,38 @@ ${cleanedFinalOutput}`;
         }
 
         if (!errorMessage) {
+            const limitParam = parseIntegerParam(req.query.limit, DEFAULT_GIT_LOG_LIMIT, {
+                min: 1,
+                max: MAX_GIT_LOG_LIMIT,
+            });
+            const offsetParam = parseIntegerParam(req.query.offset, 0, { min: 0 });
+
             try {
-                const commitGraph = getGitCommitGraph(resolvedProjectDir);
+                const __t0_buildGitCommitSlice = Date.now();
+                const slice = buildGitCommitSlice(resolvedProjectDir, offsetParam, limitParam);
+                __timing_entries.push(`buildGitCommitSlice:${Date.now()-__t0_buildGitCommitSlice}ms`);
+                gitCommits = slice.commits;
+                hasMoreCommits = slice.hasMore;
+                commitLimit = slice.limit;
+                commitOffset = slice.offset;
+                commitNextOffset = slice.nextOffset;
+            } catch (err) {
+                console.error(`[ERROR] Failed to load git commits for ${resolvedProjectDir}:`, err);
+                gitCommits = [];
+                hasMoreCommits = false;
+                commitLimit = limitParam;
+                commitOffset = offsetParam;
+                commitNextOffset = offsetParam;
+            }
+
+            try {
+                const baseGraphLimit = Math.max(commitLimit || DEFAULT_GIT_LOG_LIMIT, DEFAULT_GIT_LOG_LIMIT);
+                const commitGraphLimit = Math.max(commitNextOffset || 0, baseGraphLimit) + baseGraphLimit;
+                const __t0_getGitCommitGraph = Date.now();
+                const commitGraph = getGitCommitGraph(resolvedProjectDir, {
+                    limit: commitGraphLimit,
+                });
+                __timing_entries.push(`getGitCommitGraph:${Date.now()-__t0_getGitCommitGraph}ms`);
                 gitCommitGraph = Array.isArray(commitGraph) ? commitGraph : [];
             } catch (err) {
                 console.error(`[ERROR] Failed to load git commit graph for ${resolvedProjectDir}:`, err);
@@ -3118,17 +3210,18 @@ ${cleanedFinalOutput}`;
                 gitMeta = null;
             }
 
-            try {
-                const __t0_getGitBranches = Date.now();
-                const branches = getGitBranches(resolvedProjectDir);
-                __timing_entries.push(`getGitBranches:${Date.now()-__t0_getGitBranches}ms`);
-                gitBranches = Array.isArray(branches) ? branches : [];
-            } catch (err) {
-                console.error(`[ERROR] Failed to load git branches for ${resolvedProjectDir}:`, err);
-                gitBranches = [];
-            }
-
             repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
+        }
+
+        // Determine if this repository has any configured git remotes.
+        let hasRemotes = false;
+        try {
+            const remotesRaw = execSync('git remote', { cwd: resolvedProjectDir, stdio: ['pipe','pipe','ignore'] })
+                .toString();
+            const remotes = remotesRaw.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+            hasRemotes = remotes.length > 0;
+        } catch (_e) {
+            hasRemotes = false;
         }
 
         console.log(`[TIMING] /agent/git-tree ${resolvedProjectDir} timings: ${__timing_entries.join(', ')} total:${Date.now()-__timing_start}ms`);
@@ -3137,12 +3230,17 @@ ${cleanedFinalOutput}`;
             requestedProjectDir,
             effectiveProjectDir,
             resolvedProjectDir,
+            gitCommits,
             gitCommitGraph,
             gitMeta,
-            gitBranches,
             repoName,
             errorMessage,
             sessionId,
+            hasRemotes,
+            hasMoreCommits,
+            commitLimit,
+            commitOffset,
+            commitNextOffset,
         });
     });
 

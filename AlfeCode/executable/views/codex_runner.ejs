@@ -2,7 +2,10 @@
 <html lang="en" class="agent-scale-80">
 <head>
     <meta charset="UTF-8">
-    <title>Agent Runner</title>
+    <title>Alfe AI - Code</title>
+    <meta name="description" content="Alfe AI: FLOSS, Self-hostable, AI Software Development, Chat, and Image Design - a cloud-based code-assistant interface for running and managing agents.">
+    <link id="favicon" rel="icon" href="/alfe_favicon_64x64.ico">
+    <link rel="alternate icon" href="/alfe_favicon_64x64.ico" type="image/x-icon">
     <link rel="stylesheet" href="/styles.css">
     <style>
         :root {
@@ -23,6 +26,7 @@
             --danger: #f97316;
             --shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
             --runs-sidebar-width: clamp(260px, 22vw, 360px);
+            --runs-sidebar-collapsed-width: 56px;
         }
 
         * {
@@ -70,6 +74,10 @@
             padding: 0;
             box-sizing: border-box;
             min-height: 100vh;
+        }
+
+        .runs-sidebar-collapsed .page-shell {
+            grid-template-columns: var(--runs-sidebar-collapsed-width, 56px) minmax(0, 1fr);
         }
 
         a {
@@ -230,6 +238,78 @@
             border-radius: 14px;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
             width: 100%;
+        }
+
+        /* Collapsed sidebar quick-links */
+        .runs-sidebar__collapsed-mini {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 6px 14px;
+        }
+
+        .runs-sidebar__collapsed-logo {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: radial-gradient(circle at 30% 30%, rgba(124, 58, 237, 0.35), rgba(12, 19, 34, 0.92));
+            box-shadow: 0 12px 26px rgba(2, 6, 23, 0.6);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            background-clip: padding-box;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        .runs-sidebar__collapsed-logo:focus-visible {
+            outline: 2px solid rgba(167, 139, 250, 0.7);
+            outline-offset: 2px;
+        }
+
+        .runs-sidebar__collapsed-logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .runs-sidebar__collapsed-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .runs-sidebar__collapsed-nav-link {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(124, 58, 237, 0.18));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(226, 232, 240, 0.9) !important;
+            box-shadow: 0 10px 22px rgba(2, 6, 23, 0.65);
+            transition: transform 0.16s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        .runs-sidebar__collapsed-nav-link:hover,
+        .runs-sidebar__collapsed-nav-link:focus-visible {
+            transform: translateY(-1px);
+            border-color: rgba(167, 139, 250, 0.6);
+            box-shadow: 0 14px 26px rgba(30, 64, 175, 0.4);
+        }
+
+        .runs-sidebar__collapsed-nav-link.is-active {
+            background: linear-gradient(150deg, rgba(59, 130, 246, 0.44), rgba(124, 58, 237, 0.56));
+            border-color: rgba(124, 58, 237, 0.52);
+            color: #f8fafc !important;
+            box-shadow: 0 18px 36px rgba(67, 56, 202, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.18);
         }
 
         .sidebar-nav-item {
@@ -433,6 +513,7 @@
         }
 
         #runsSidebar {
+            position: relative;
             background: #0f172a !important;
             background-image: none !important;
             border: 1px solid var(--surface-border) !important;
@@ -449,6 +530,11 @@
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+        }
+
+        #runsSidebar .runs-sidebar__header,
+        #runsSidebar .runs-sidebar__title-group {
+            padding-right: 64px;
         }
 
         #runsSidebar .runs-sidebar__new-task {
@@ -483,6 +569,14 @@
             z-index: 2; /* ensure overlays stack above adjacent content */
             width: var(--runs-sidebar-width, clamp(260px, 22vw, 360px));
             max-width: 100%;
+        }
+
+        .runs-sidebar-collapsed #runsSidebar {
+            width: var(--runs-sidebar-collapsed-width, 56px);
+            min-width: var(--runs-sidebar-collapsed-width, 56px);
+            padding: 14px 10px;
+            border-radius: 0 0 0 0;
+            gap: 0;
         }
         /* Ensure the list can shrink and scroll without forcing parent height */
         .runs-sidebar__list { flex: 1 1 auto; min-height: 0; }
@@ -588,6 +682,9 @@
         }
 
         .runs-sidebar__primary-action {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             padding: 4px;
             border-radius: 18px;
             background: linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(15, 23, 42, 0.65) 100%);
@@ -597,6 +694,7 @@
 
         .runs-sidebar__new-task {
             width: 100%;
+            flex: 1 1 auto;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -838,9 +936,9 @@
         }
 
         .runs-sidebar__badge--merging {
-            background: rgba(255, 193, 7, 0.18);
-            border-color: rgba(255, 193, 7, 0.35);
-            color: #f6c200;
+            background: rgba(255, 143, 0, 0.18);
+            border-color: rgba(255, 143, 0, 0.35);
+            color: #ff8f00;
         }
 
         .runs-sidebar__badge--merged {
@@ -915,15 +1013,16 @@
             color: #fecaca;
         }
 
+        /* Mobile styling is opt-in; /agent defaults to desktop layout */
         @media (max-width: 1100px) {
-            .page-shell {
+            body.agent-mobile-enabled .page-shell {
                 grid-template-columns: minmax(0, 1fr);
                 gap: clamp(20px, 4vw, 32px);
                 padding-left: clamp(16px, 4vw, 32px);
                 min-height: auto;
             }
 
-            .runs-sidebar {
+            body.agent-mobile-enabled .runs-sidebar {
                 order: -1;
                 height: auto;
                 width: auto;
@@ -931,11 +1030,11 @@
                 padding: clamp(18px, 5vw, 24px);
             }
 
-            .runs-sidebar__resizer {
+            body.agent-mobile-enabled .runs-sidebar__resizer {
                 display: none;
             }
 
-            .container {
+            body.agent-mobile-enabled .container {
                 border-radius: 24px;
                 border-left: 1px solid var(--surface-border);
                 padding: clamp(24px, 4vw, 48px);
@@ -1669,49 +1768,49 @@
         }
 
         @media (max-width: 720px) {
-            body {
+            body.agent-mobile-enabled {
                 padding: 16px;
             }
 
-            .container {
+            body.agent-mobile-enabled .container {
                 padding: 24px 20px;
             }
 
-            .top-nav {
+            body.agent-mobile-enabled .top-nav {
                 flex-direction: column;
                 align-items: flex-start;
             }
 
-            .top-nav-actions {
+            body.agent-mobile-enabled .top-nav-actions {
                 width: 100%;
                 justify-content: space-between;
             }
 
-            .nav-button {
+            body.agent-mobile-enabled .nav-button {
                 width: auto;
             }
 
-            .file-tree-header {
+            body.agent-mobile-enabled .file-tree-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
 
-            .file-tree-toggle {
+            body.agent-mobile-enabled .file-tree-toggle {
                 width: 100%;
             }
 
-            .default-model-controls {
+            body.agent-mobile-enabled .default-model-controls {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            .actions {
+            body.agent-mobile-enabled .actions {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            button,
-            button.secondary {
+            body.agent-mobile-enabled button,
+            body.agent-mobile-enabled button.secondary {
                 width: 100%;
                 text-align: center;
             }
@@ -1989,6 +2088,110 @@
             white-space: normal;
             text-align: center;
         }
+
+
+        /* Runs sidebar collapse/expand controls */
+        .runs-sidebar__toggle {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1400;
+        }
+        .expand-runs-sidebar-arrow {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(15,23,42,0.85));
+            color: var(--text-color);
+            box-shadow: 0 12px 28px rgba(2,6,23,0.5);
+            cursor: pointer;
+            font-weight: 700;
+            border: 1px solid rgba(148,163,184,0.12);
+        }
+        .runs-sidebar__collapse {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            height: 38px;
+            padding: 6px;
+            border-radius: 8px;
+            background: rgba(124,58,237,0.12);
+            color: var(--text-color);
+            border: 1px solid rgba(148,163,184,0.06);
+            cursor: pointer;
+            margin-left: 0;
+        }
+        .runs-sidebar-collapsed #runsSidebarResizer { display: none !important; }
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__header,
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__title-group,
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__actions,
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__primary-action,
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__body,
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__pagination { display: none !important; }
+        .runs-sidebar-collapsed .expand-runs-sidebar-arrow { display: flex !important; }
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__collapsed-mini { display: flex; }
+        .runs-sidebar-collapsed .runs-sidebar__collapse { display: none !important; }
+        /* Keep footer visible in collapsed sidebar and pin to bottom */
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__footer {
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            position: absolute;
+            bottom: 10px;
+            left: 8px;
+            right: 8px;
+            padding: 10px 8px !important;
+            font-size: 0.78rem !important;
+            text-align: center !important;
+            white-space: normal;
+            line-height: 1.2;
+        }
+
+        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__footer a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 10px;
+            background: rgba(148, 163, 184, 0.08);
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+        }
+
+    
+        /* Collapsed mini New Task button */
+        .runs-sidebar__collapsed-newtask {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            margin: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.98) 100%);
+            border: none;
+            color: #fff;
+            box-shadow: 0 12px 26px rgba(124, 58, 237, 0.28);
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .runs-sidebar__collapsed-newtask:hover,
+        .runs-sidebar__collapsed-newtask:focus-visible {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 36px rgba(124, 58, 237, 0.32);
+            outline: none;
+        }
 </style>
 </head>
 <body>
@@ -1997,6 +2200,32 @@
         <div class="page-shell">
         <aside id="runsSidebar" class="runs-sidebar" aria-labelledby="runsSidebarTitle">
             <div id="runsSidebarResizer" class="runs-sidebar__resizer" aria-hidden="true"></div>
+            <div class="runs-sidebar__toggle">
+                <button type="button" id="collapseRunsSidebarBtn" class="runs-sidebar__collapse" aria-label="Collapse sidebar">«</button>
+            </div>
+
+            <div class="runs-sidebar__collapsed-mini" aria-label="Collapsed agent navigation">
+                <button type="button" id="collapsedSidebarLogo" class="runs-sidebar__collapsed-logo" aria-label="Expand sidebar">
+                    <img src="/alfe_favicon_chat_mountain_rect_purple_WHITEBG_64x64.png" alt="Alfe AI logo">
+                </button>
+
+                <button type="button" id="expandRunsSidebarArrow" class="expand-runs-sidebar-arrow" aria-label="Expand sidebar">»</button>
+                <div class="runs-sidebar__collapsed-nav" role="navigation" aria-label="Agent quick links">
+                    <a href="javascript:void(0)" class="runs-sidebar__collapsed-nav-link" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
+                        <span aria-hidden="true">&lt;/&gt;</span>
+                    </a>
+                    <a href="https://app.alfe.sh" target="_blank" rel="noopener noreferrer" class="runs-sidebar__collapsed-nav-link" data-tab="chat" aria-label="Chat tab">
+                        <span aria-hidden="true">💬</span>
+                    </a>
+                    <a href="https://app.alfe.sh/chat/design" target="_blank" rel="noopener noreferrer" class="runs-sidebar__collapsed-nav-link" data-tab="design" aria-label="Image Design tab">
+                        <span aria-hidden="true">🎨</span>
+                    </a>
+                </div>
+                <button type="button" id="collapsedNewTaskBtn" class="runs-sidebar__collapsed-newtask" aria-label="New Task" title="New Task">
+                    <span aria-hidden="true">+</span>
+                </button>
+            </div>
+
             <div class="runs-sidebar__header">
                 <div class="sidebar-brand">
                 <div class="sidebar-header">
@@ -2065,10 +2294,12 @@
                         try {
                             var params = new URLSearchParams(window.location.search || "");
                             var activeTab = (params.get('tab') || 'code').toLowerCase();
-                            var navLinks = document.querySelectorAll('.sidebar-nav-item');
+                            var navLinks = document.querySelectorAll('.sidebar-nav-item, .runs-sidebar__collapsed-nav-link');
                             navLinks.forEach(function(link) {
                                 var tabValue = (link.dataset && link.dataset.tab ? link.dataset.tab : '').toLowerCase();
                                 var shouldActivate = (!activeTab && tabValue === 'code') || activeTab === tabValue;
+                                link.classList.remove('is-active');
+                                link.removeAttribute('aria-current');
                                 if (shouldActivate) {
                                     link.classList.add('is-active');
                                     link.setAttribute('aria-current', 'page');
@@ -2179,6 +2410,7 @@
                         </button>
                         <% } %>
 
+                        <% if (showStoreButtons) { %>
                         <a
                             id="googlePlayBadge"
                             class="store-badge disabled"
@@ -2203,7 +2435,8 @@
                         >
                             <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" loading="lazy" />
                         </a>
-                          <button id="openGitTreeButton" class="nav-button" type="button" title="Open Git Log" aria-label="Open Git Log" onclick="(function(){ try{ const dirInput=document.getElementById('projectDir'); const dir=(dirInput && dirInput.value && dirInput.value.trim())?dirInput.value.trim():''; const url='/agent/git-tree'+(dir?('?projectDir='+encodeURIComponent(dir)):''); const modal=document.getElementById('gitTreeModal'); const iframe=document.getElementById('gitTreeIframe'); if(iframe) iframe.src=url; if(modal) { modal.classList.remove('is-hidden'); document.body.style.overflow='hidden'; } }catch(e){ window.open('/agent/git-tree', '_blank'); } })()">
+                        <% } %>
+                          <button id="openGitTreeButton" class="nav-button" type="button" title="Open Git Log" aria-label="Open Git Log">
                               Git Log
                           </button>
                       </div>
@@ -2716,7 +2949,7 @@
         if(!tip) {
           tip = document.createElement('div');
           tip.id = 'branchComingSoonTooltip';
-          tip.textContent = 'Ability to switch branches coming soon.';
+          tip.textContent = 'Ability to switch branches available soon.';
           document.body.appendChild(tip);
         }
         tip.style.position = 'absolute';
@@ -2794,6 +3027,70 @@
     });
   }
 
+
+
+// STERLING_GIT_BUTTON_SCRIPT
+(function(){
+  try{
+    var gitButtonPref = (function(){ try{ return localStorage.getItem('sterling.gitButtonTarget') || 'git-log'; }catch(e){ return 'git-log'; } })();
+    window.addEventListener('message', function(ev){
+      try{
+        var d = ev && ev.data;
+        if(!d || d.type !== 'sterling:settings' || d.key !== 'gitButtonTarget') return;
+        if(typeof d.value === 'string'){
+          gitButtonPref = d.value;
+          try{ localStorage.setItem('sterling.gitButtonTarget', gitButtonPref); }catch(e){}
+        }
+      }catch(e){}
+    });
+    var btn = document.getElementById('openGitTreeButton');
+    if(!btn) return;
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      try{
+        // Ensure we respect the latest user preference (fallback to localStorage)
+        try {
+          var __storedGitBtn = (function(){ try{ return localStorage.getItem('sterling.gitButtonTarget'); }catch(e){ return null; } })();
+          var __candidateGitBtn = (typeof __storedGitBtn === 'string' && __storedGitBtn ? __storedGitBtn : gitButtonPref);
+          if (typeof __candidateGitBtn === 'string') {
+            try {
+              var __maybeParsed = JSON.parse(__candidateGitBtn);
+              if (typeof __maybeParsed === 'string') __candidateGitBtn = __maybeParsed;
+            } catch(__ignored) { /* ignore parse issues */ }
+            var __normalizedGitBtn = __candidateGitBtn.trim().toLowerCase();
+            if (__normalizedGitBtn === 'git-tree' || __normalizedGitBtn === 'git-log') {
+              gitButtonPref = __normalizedGitBtn;
+            }
+          }
+        } catch(_e) { /* ignore */ }
+
+        var dirInput = document.getElementById('projectDir');
+        var dir = (dirInput && dirInput.value && dirInput.value.trim()) ? dirInput.value.trim() : '';
+        var url = '';
+        if(gitButtonPref === 'git-tree'){
+          url = '/agent/git-tree' + (dir ? ('?projectDir=' + encodeURIComponent(dir)) : '');
+          var modal = document.getElementById('gitTreeModal');
+          var iframe = document.getElementById('gitTreeIframe');
+          if(iframe) iframe.src = url;
+          if(modal) { modal.classList.remove('is-hidden'); document.body.style.overflow = 'hidden'; }
+        } else {
+          // default to git-log
+          url = '/agent/git-log' + (dir ? ('?projectDir=' + encodeURIComponent(dir)) : '');
+          var modal = document.getElementById('gitLogModal');
+          var iframe = document.getElementById('gitLogIframe');
+          var loader = document.getElementById('gitLogLoader');
+          if(loader) loader.classList.remove('is-hidden');
+          if(iframe) iframe.src = url;
+          if(modal) { modal.classList.remove('is-hidden'); document.body.style.overflow = 'hidden'; }
+          // hide loader after short delay if present; actual git-log script will manage loading state
+          setTimeout(function(){ if(loader) loader.classList.add('is-hidden'); }, 1200);
+        }
+      }catch(e){ try{ window.open('/agent/git-tree', '_blank'); }catch(_e){} }
+    });
+  }catch(e){}
+})();
+
+// END STERLING_GIT_BUTTON_SCRIPT
 </script>
 
 <%- include('partials/cookie_banner') %>

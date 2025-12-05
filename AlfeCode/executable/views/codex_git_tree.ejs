@@ -7,21 +7,23 @@
     <style>
         :root {
             color-scheme: dark;
-            font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-            --bg-main: #0f172a;
-            --bg-panel: rgba(15, 23, 42, 0.88);
-            --bg-soft: rgba(30, 41, 59, 0.82);
-            --bg-card: rgba(30, 41, 59, 0.68);
-            --border-soft: rgba(148, 163, 184, 0.14);
-            --border-strong: rgba(148, 163, 184, 0.24);
-            --text-primary: #e2e8f0;
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            --bg-gradient: radial-gradient(circle at top left, rgba(34, 197, 235, 0.35), rgba(15, 23, 42, 0.95));
+            --bg-main: rgba(15, 23, 42, 0.94);
+            --surface: rgba(30, 41, 59, 0.92);
+            --surface-soft: rgba(51, 65, 85, 0.65);
+            --surface-border: rgba(71, 85, 105, 0.45);
+            --text-color: #e2e8f0;
             --text-muted: #94a3b8;
             --accent: #22d3ee;
             --accent-strong: #38bdf8;
             --danger: #f97316;
-            --success: #34d399;
-            --warning: #facc15;
-            --shadow-elevated: 0 32px 60px rgba(15, 23, 42, 0.55);
+            --shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
+            --hash-color: #38bdf8;
+            --author-color: #c084fc;
+            --date-color: #a5b4fc;
+            --message-color: #e2e8f0;
+            --refs-color: #fbbf24;
         }
 
         * {
@@ -31,129 +33,180 @@
         body {
             margin: 0;
             min-height: 100vh;
-            background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), rgba(15, 23, 42, 0.96));
-            color: var(--text-primary);
-            display: flex;
-            flex-direction: column;
-            font-size: 14px;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            display: block;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
         }
 
         a {
             color: var(--accent-strong);
             text-decoration: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
         }
 
         a:hover {
             color: var(--accent);
+            opacity: 0.85;
         }
 
-        .git-tree-page {
+        .container {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%);
+            border: none;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .top-nav {
             display: flex;
-            flex-direction: column;
-            flex: 1 1 auto;
-            padding: 16px;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 18px;
+        }
+
+        .top-nav-actions {
+            display: flex;
+            align-items: center;
             gap: 16px;
-        }
-
-        header.git-tree-header {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.84));
-            border-radius: 14px;
-            padding: 18px;
-            border: 1px solid var(--border-soft);
-            box-shadow: var(--shadow-elevated);
-        }
-
-        .header-top {
-            display: flex;
             flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 16px;
         }
 
-        .header-top h1 {
-            margin: 0 0 6px;
-            font-size: clamp(1.6rem, 2.5vw, 2.1rem);
+        h1 {
+            margin: 0 0 16px;
+            font-size: clamp(1.8rem, 2.4vw, 2.5rem);
             font-weight: 600;
             color: #f8fafc;
         }
 
-        .header-top p {
-            margin: 0;
-            max-width: 520px;
-            line-height: 1.5;
+        p.description {
+            margin: 0 0 16px;
             color: var(--text-muted);
+            line-height: 1.65;
+            font-size: 1rem;
+        }
+
+        .project-form {
+            display: grid;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .project-form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .project-form-row input[type="text"] {
+            flex: 1;
+            min-width: 260px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .project-form-row input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.25);
+            transform: translateY(-1px);
         }
 
         .meta-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .meta-item {
+            margin-top: 18px;
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
         }
 
-        .meta-item span.label {
-            font-size: 0.7rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+        .meta-grid strong {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .alert {
+            margin-top: 20px;
+            padding: 16px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(249, 115, 22, 0.35);
+            background: rgba(249, 115, 22, 0.12);
+            color: #fed7aa;
+            font-weight: 500;
+        }
+
+        .info {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(15, 23, 42, 0.55);
             color: var(--text-muted);
         }
 
-        .meta-item span.value {
+        .git-log-layout {
+            margin-top: 32px;
+        }
+
+        .git-log-card {
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 200px);
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 18px;
+            padding: 20px 22px;
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+        }
+
+        .git-log-card h2 {
+            margin: 0 0 12px;
+            font-size: 1.2rem;
+            color: #f8fafc;
+        }
+
+        #gitCommitList {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
             font-size: 0.95rem;
-            font-weight: 600;
+            line-height: 1.6;
         }
 
-        .header-actions {
+        #gitCommitList li {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        }
+
+        #gitCommitList li:last-child {
+            border-bottom: none;
+        }
+
+        .git-log-actions {
+            margin-top: 14px;
             display: flex;
-            flex-wrap: wrap;
             align-items: center;
-            justify-content: space-between;
-            gap: 14px;
-            margin-top: 12px;
-        }
-
-        .header-actions-left {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .git-action-button {
-            padding: 9px 16px;
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.65);
-            color: #e2e8f0;
-            font-size: 0.85rem;
-            font-weight: 600;
-            letter-spacing: 0.01em;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-        }
-
-        .git-action-button:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .git-action-button:not(:disabled):hover {
-            transform: translateY(-1px);
-            border-color: rgba(148, 163, 184, 0.55);
-            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.45);
+            gap: 12px;
+            justify-content: flex-start;
         }
 
         .git-pull-status {
             min-height: 18px;
-            font-size: 0.78rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
@@ -162,784 +215,174 @@
         }
 
         .git-pull-status.success {
-            color: var(--success);
+            color: #34d399;
         }
 
-        .project-path {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 12px;
-            border: 1px solid var(--border-soft);
-            background: rgba(15, 23, 42, 0.55);
-            min-width: 260px;
-            flex: 1 1 280px;
-        }
-
-        .project-path-label {
-            font-weight: 600;
-            color: #f1f5f9;
-            letter-spacing: 0.02em;
-            white-space: nowrap;
-        }
-
-        .project-path-value {
-            font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-            font-size: 0.85rem;
-            line-height: 1.45;
-            padding: 6px 10px;
-            border-radius: 8px;
-            background: rgba(15, 23, 42, 0.75);
-            border: 1px dashed rgba(148, 163, 184, 0.3);
-            color: var(--accent-strong);
-            word-break: break-all;
-            flex: 1 1 auto;
-        }
-
-        main.git-tree-layout {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            flex: 1 1 auto;
-            min-height: 0;
-        }
-
-        .panel {
-            background: var(--bg-panel);
-            border-radius: 12px;
-            border: 1px solid var(--border-soft);
-            box-shadow: var(--shadow-elevated);
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        .panel.branches-panel {
-            display: none;
-        }
-
-        .panel-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #f8fafc;
-        }
-
-        .branch-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            overflow-y: auto;
-            padding-right: 2px;
-        }
-
-        .branch-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid transparent;
-            transition: border-color 0.2s ease, background 0.2s ease;
-        }
-
-        .branch-item.is-current {
-            border-color: var(--accent-strong);
-            background: rgba(56, 189, 248, 0.15);
-        }
-
-        .branch-item .branch-name {
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-
-        .branch-item .branch-meta {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .branch-item .branch-chip {
-        .branch-item .parent-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 12px;
-            background: rgba(56, 189, 248, 0.08);
-            border: 1px solid rgba(56,189,248,0.12);
-            color: var(--accent-strong);
-        }
-
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-        }
-
-        .tree-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .tree-toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            background: var(--bg-panel);
-            border-radius: 12px;
-            padding: 10px 12px;
-            border: 1px solid var(--border-soft);
-            box-shadow: var(--shadow-elevated);
-        }
-
-        .tree-toolbar input[type="search"] {
-            flex: 1 1 auto;
-            min-width: 160px;
-            padding: 8px 10px;
-            border-radius: 10px;
-            border: 1px solid var(--border-soft);
-            background: rgba(15, 23, 42, 0.6);
-            color: var(--text-primary);
-            font-size: 0.85rem;
-        }
-
-        .tree-table {
-            background: var(--bg-panel);
-            border-radius: 12px;
-            border: 1px solid var(--border-soft);
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-            box-shadow: var(--shadow-elevated);
-        }
-
-        .tree-header-row,
-        .tree-row {
+        .cli-row {
             display: grid;
-            grid-template-columns: minmax(88px, 140px) minmax(0, 1fr) 160px 130px;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .tree-header-row {
-            font-size: 0.7rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border-soft);
-            padding: 9px 12px;
-        }
-
-        .tree-rows {
-            flex: 1 1 auto;
-            overflow-y: auto;
-        }
-
-        .tree-row {
-            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-            padding: 0 12px;
-        }
-
-        .tree-row:last-child {
-            border-bottom: none;
-        }
-
-        .tree-cell {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            min-width: 0;
-        }
-
-        .graph-cell {
-            justify-content: flex-start;
-            align-items: stretch;
-            align-self: stretch;
-            max-width: 140px;
-            width: 100%;
-        }
-
-        .tree-message {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 4px;
-        }
-
-        .commit-subject {
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: #f8fafc;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            width: 100%;
-        }
-
-        .commit-meta {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .hash-chip {
-            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(148, 163, 184, 0.24);
-        }
-
-        .author-cell {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .date-cell {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            justify-content: flex-end;
-        }
-
-        .graph-cell svg {
-            display: block;
-            width: 100%;
-            max-width: 140px;
-            height: 100%;
-        }
-
-        .details-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .details-card {
-            background: var(--bg-panel);
-            border-radius: 12px;
-            border: 1px solid var(--border-soft);
-            padding: 14px 16px;
-            box-shadow: var(--shadow-elevated);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            min-height: 0;
-        }
-
-        .details-card.flex-1 {
-            flex: 1 1 auto;
-        }
-
-        .details-card h2,
-        .details-card h3 {
-            margin: 0;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #f8fafc;
-        }
-
-        .commit-info {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            overflow-y: auto;
-            max-height: 160px;
-            padding-right: 2px;
-        }
-
-        .commit-title {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .commit-title .hash {
-            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
-            font-size: 0.78rem;
-            color: var(--accent-strong);
-        }
-
-        .commit-title .subject {
-            font-size: 0.95rem;
-            font-weight: 600;
-        }
-
-        .commit-meta-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 8px;
-        }
-
-        .commit-meta-grid .meta {
-            display: flex;
-            flex-direction: column;
-            font-size: 0.72rem;
-            color: var(--text-muted);
-        }
-
-        .commit-meta-grid .meta strong {
-            font-size: 0.85rem;
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .commit-body {
-            font-size: 0.8rem;
-            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
-            white-space: pre-wrap;
-            line-height: 1.5;
-            color: var(--text-muted);
-        }
-
-        .changed-files {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            overflow-y: auto;
-            max-height: 160px;
-            padding-right: 2px;
-        }
-
-        .changed-file {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-        }
-
-        .changed-file.is-clickable {
-            cursor: pointer;
-        }
-
-        .changed-file.is-clickable:hover,
-        .changed-file.is-clickable:focus-visible {
-            background: rgba(34, 211, 238, 0.16);
-            border-color: rgba(56, 189, 248, 0.35);
-            transform: translateY(-1px);
-            outline: none;
-        }
-
-        .changed-file .file-path {
-            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
-            font-size: 0.76rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1 1 auto;
-        }
-
-        .changed-file .file-stats {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.7rem;
-        }
-
-        .changed-file .file-stats .additions {
-            color: var(--success);
-        }
-
-        .changed-file .file-stats .deletions {
-            color: #f87171;
-        }
-
-        .changed-file .file-stats .binary {
-            color: var(--warning);
-        }
-
-        .diff-viewer {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow: auto;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.16);
-            padding: 14px;
-            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
-            font-size: 0.78rem;
-            line-height: 1.45;
-        }
-
-        .diff-file {
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            background: rgba(15, 23, 42, 0.55);
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 14px;
-            scroll-margin-top: 10px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .diff-file.is-highlighted {
-            border-color: rgba(56, 189, 248, 0.45);
-            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
-        }
-
-        .diff-file-header {
-            display: flex;
-            flex-wrap: wrap;
+            grid-template-columns: auto auto 1fr;
             align-items: baseline;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 10px;
         }
 
-        .diff-file-title {
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: #f1f5f9;
-        }
-
-        .diff-file-rename {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-        }
-
-        .diff-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .diff-badge-binary {
-            background: rgba(250, 204, 21, 0.18);
-            color: var(--warning);
-        }
-
-        .diff-binary-notice,
-        .diff-empty {
-            margin: 0;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px dashed rgba(148, 163, 184, 0.24);
-            color: var(--text-muted);
-        }
-
-        .diff-hunk {
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            background: rgba(15, 23, 42, 0.55);
-            margin-top: 10px;
-            overflow-x: auto;
-            overflow-y: hidden;
-        }
-
-        .diff-hunk-header {
-            padding: 6px 10px;
-            background: rgba(56, 189, 248, 0.08);
-            color: var(--accent-strong);
-            font-size: 0.72rem;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-        }
-
-        .diff-row {
-            display: grid;
-            grid-template-columns: 34px 34px minmax(0, 1fr);
-            align-items: stretch;
-            padding: 0;
-            min-width: max-content;
-        }
-
-        .diff-row-meta {
-            grid-template-columns: minmax(0, 1fr);
-        }
-
-        .diff-cell {
+        .cli-meta {
             display: flex;
             align-items: center;
-            justify-content: flex-end;
-            padding: 0 4px;
+            gap: 12px;
             color: var(--text-muted);
-            font-size: 0.68rem;
-            font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-            line-height: 1.35;
+            font-size: 0.9rem;
         }
 
-        .diff-code {
-            margin: 0;
-            padding: 2px 10px 2px 6px;
-            white-space: pre;
-            overflow-x: auto;
-            background: transparent;
-            color: var(--text-primary);
-            font-size: 0.78rem;
-            font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-            line-height: 1.35;
-            tab-size: 4;
-            min-width: 100%;
+        .cli-hash {
+            color: var(--hash-color);
+            font-weight: 700;
+            letter-spacing: 0.02em;
         }
 
-        .diff-row-meta .diff-code {
-            padding: 6px 10px;
-            color: var(--text-muted);
-            white-space: pre-wrap;
+        .cli-author {
+            color: var(--author-color);
+            font-weight: 600;
         }
 
-        .diff-code-add {
-            background: rgba(34, 197, 94, 0.18);
-            color: #bbf7d0;
-            border-left: 3px solid rgba(34, 197, 94, 0.4);
+        .cli-date {
+            color: var(--date-color);
         }
 
-        .diff-code-remove {
-            background: rgba(248, 113, 113, 0.18);
-            color: #fecaca;
-            border-left: 3px solid rgba(248, 113, 113, 0.4);
+        .cli-refs {
+            color: var(--refs-color);
+            font-weight: 600;
         }
 
-        .diff-code-modify {
-            background: rgba(250, 204, 21, 0.14);
-            color: #fef9c3;
-            border-left: 3px solid rgba(250, 204, 21, 0.4);
-        }
-
-        .diff-raw {
-            margin: 0;
-            padding: 10px;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            white-space: pre-wrap;
-            word-break: break-word;
+        .cli-message {
+            color: var(--message-color);
         }
 
         .empty-state {
-            margin: 0;
-            font-size: 0.85rem;
             color: var(--text-muted);
+            padding: 10px 0;
         }
 
-        .loading-state {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
+        .nav-button.secondary-nav {
+            background: rgba(148, 163, 184, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.3);
         }
 
-        .loading-state::before {
-            content: "";
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            border: 2px solid rgba(148, 163, 184, 0.4);
-            border-top-color: var(--accent-strong);
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @media (max-width: 980px) {
-            .git-tree-page {
-                padding: 14px;
-            }
-
-            main.git-tree-layout {
-                display: flex;
-                flex-direction: column;
-            }
-
-            .panel,
-            .tree-table,
-            .tree-toolbar,
-            .details-card {
-                border-radius: 12px;
-            }
-        }
-        .loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(10, 16, 28, 0.96);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            transition: opacity 0.4s ease, visibility 0.4s ease;
-        }
-
-        .loading-overlay.is-hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .loading-card {
-            min-width: 260px;
-            max-width: min(90vw, 360px);
-            padding: 24px;
-            border-radius: 16px;
-            background: linear-gradient(160deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.78));
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            box-shadow: var(--shadow-elevated);
-            text-align: center;
+        .loading-panel {
+            margin-top: 32px;
+            padding: 32px 28px;
+            border-radius: 18px;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            align-items: center;
+            gap: 14px;
         }
 
         .loading-spinner {
-            width: 46px;
-            height: 46px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            border: 3px solid rgba(148, 163, 184, 0.2);
-            border-top-color: var(--accent-strong);
-            margin: 0 auto;
-            animation: spin 0.9s linear infinite;
+            border: 4px solid rgba(148, 163, 184, 0.35);
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
         }
 
-        .loading-title {
-            margin: 0;
-            font-size: 1rem;
+        .loading-text {
             font-weight: 600;
             color: #f8fafc;
+            margin: 0;
         }
 
-        .loading-log {
+        .loading-subtext {
             margin: 0;
-            padding: 12px;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.8);
-            font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
-            font-size: 0.78rem;
-            line-height: 1.5;
             color: var(--text-muted);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            text-align: left;
-            white-space: pre-line;
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
-
-    
-        /* Make commit rows highlightable and clickable */
-        .tree-row { cursor: pointer; }
-        .tree-row:hover, .tree-row:focus-visible {
-            background: rgba(56, 189, 248, 0.06);
-            border-color: rgba(56, 189, 248, 0.12);
-            transform: translateY(-1px);
-            outline: none;
-        }
-        .tree-row:focus-visible { box-shadow: 0 0 0 3px rgba(56,189,248,0.12); }
-
     </style>
 </head>
 <body>
-    <div id="gitTreeInitialLoader" class="loading-overlay" role="alert" aria-live="assertive">
-        <div class="loading-card">
-            <div class="loading-spinner" aria-hidden="true"></div>
-            <p class="loading-title">Preparing Git Log…</p>
-            <p id="gitTreeLoaderLog" class="loading-log">Initializing workspace…</p>
+    <% const showLoadingState = Boolean(errorMessage) && !requestedProjectDir && (!gitCommits || gitCommits.length === 0); %>
+    <div class="container">
+        <div class="top-nav">
+            <div class="top-nav-actions">
+                <a class="nav-button" href="/">Home</a>
+                <button id="gitPullButton" class="nav-button secondary-nav" type="button">Git Pull</button>
+                <span id="gitPullStatus" class="git-pull-status" role="status" aria-live="polite"></span>
+            </div>
         </div>
-    </div>
-    <div class="git-tree-page">
-        <header class="git-tree-header">
-            <div class="header-top">
-                <div>
-                    <h1>Git Log</h1>
-                </div>
-                <div class="meta-grid">
-                    <div class="meta-item">
-                        <span class="label">Repository</span>
-                        <span class="value"><%= repoName || resolvedProjectDir || "Unknown" %></span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="label">Current Branch</span>
-                        <span class="value"><%= gitMeta && gitMeta.branchName ? gitMeta.branchName : "—" %></span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="label">HEAD Revision</span>
-                        <span class="value"><%= gitMeta && gitMeta.rev ? gitMeta.rev : "—" %></span>
-                    </div>
-                </div>
+
+        <h1>Git Log</h1>
+
+        <div class="meta-grid">
+            <% if (repoName) { %>
+                <span><strong>Repo:</strong> <%= repoName %></span>
+            <% } %>
+            <% if (gitMeta && gitMeta.branchName) { %>
+                <span><strong>Branch:</strong> <%= gitMeta.branchName %></span>
+            <% } %>
+            <% if (gitMeta && gitMeta.rev) { %>
+                <span><strong>Revision:</strong> <%= gitMeta.rev %></span>
+            <% } %>
+            <% if (gitMeta && gitMeta.dateStr) { %>
+                <span><strong>Updated:</strong> <%= gitMeta.dateStr %></span>
+            <% } %>
+        </div>
+        <% if (showLoadingState) { %>
+            <div class="loading-panel" role="status" aria-live="polite">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <p class="loading-text">Preparing Git log…</p>
+                <p class="loading-subtext">We’re locating your project and loading commit history.</p>
             </div>
+        <% } else if (errorMessage) { %>
+            <div class="alert"><%= errorMessage %></div>
+        <% } %>
 
-            <div class="header-actions">
-                <div class="header-actions-left">
-                    <button id="gitPullButton" type="button" class="git-action-button">Git Pull</button>
-                    <span id="gitPullStatus" class="git-pull-status" role="status" aria-live="polite"></span>
-                </div>
+        <% if (!showLoadingState) { %>
+            <div class="git-log-layout">
+                <section class="git-log-card">
+                    <h2>Commit history (<%= gitCommitGraph ? gitCommitGraph.length : 0 %> loaded)</h2>
+                    <% if (!gitCommits || gitCommits.length === 0) { %>
+                        <p class="empty-state">No commits yet.</p>
+                    <% } else { %>
+                        <ul id="gitCommitList">
+                            <% gitCommits.forEach(function(commit) { %>
+                                <li><%= commit %></li>
+                            <% }); %>
+                        </ul>
+                    <% } %>
+                    <div class="git-log-actions">
+                        <button
+                            id="gitLoadMoreButton"
+                            class="nav-button secondary-nav"
+                            type="button"
+                            <% if (!hasMoreCommits) { %>style="display:none;"<% } %>
+                        >
+                            Load more commits
+                        </button>
+                        <span id="gitCommitLoadStatus" class="git-pull-status" role="status" aria-live="polite"></span>
+                    </div>
+                </section>
             </div>
-
-        </header>
-
-        <main class="git-tree-layout">
-            <aside class="panel branches-panel">
-                <div class="panel-title">All Branches</div>
-                <div id="branchList" class="branch-list">
-                    <p class="empty-state">Loading branches…</p>
-                </div>
-            </aside>
-
-            <section class="tree-panel">
-                <div class="tree-toolbar">
-                    <input id="commitFilter" type="search" placeholder="Filter commits by message, hash, or author" aria-label="Filter commits" />
-                    <span class="hash-chip" title="Total commits loaded"><%= gitCommitGraph ? gitCommitGraph.length : 0 %> commits</span>
-                </div>
-                <div class="tree-table">
-                    <div class="tree-header-row">
-                        <span>Tree</span>
-                        <span>Commit</span>
-                        <span>Author</span>
-                        <span>Date</span>
-                    </div>
-                    <div id="gitTreeList" class="tree-rows" role="treegrid" aria-label="Git commit tree">
-                        <div id="gitTreePaginationControls" style="display:flex;align-items:center;gap:8px;padding:10px 12px;"></div>
-                        <!-- No server-side commits rendered: client will show loading spinner when appropriate -->
-                    </div>
-                </div>
-            </section>
-
-                <div id="gitTreePaginationControlsBottom" style="display:flex;align-items:center;gap:8px;padding:10px 12px;justify-content:center;"></div>
-        </main>
+        <% } %>
     </div>
-
     <script>
-        window.__GIT_TREE_DATA__ = {
-            gitCommitGraph: <%- JSON.stringify(gitCommitGraph || []) %>,
-            gitBranches: <%- JSON.stringify(gitBranches || []) %>,
-            gitMeta: <%- JSON.stringify(gitMeta || null) %>,
-            resolvedProjectDir: <%- JSON.stringify(resolvedProjectDir || "") %>,
-            repoName: <%- JSON.stringify(repoName || "") %>,
-            sessionId: <%- JSON.stringify(typeof sessionId !== "undefined" ? sessionId : "") %>
-        };
+        window.CODEX_GIT_LOG_DATA = <%- JSON.stringify({
+            gitCommitGraph,
+            repoName,
+            errorMessage,
+            resolvedProjectDir,
+            commitLimit,
+            commitOffset,
+            commitNextOffset,
+            hasMoreCommits,
+        }) %>;
     </script>
-    <script src="/JS/codex_git_tree.js" defer></script>
+    <script src="/JS/codex_git_log.js" defer></script>
 </body>
 </html>

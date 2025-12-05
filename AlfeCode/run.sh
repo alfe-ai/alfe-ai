@@ -12,4 +12,12 @@ git pull
 
 git --no-pager log -n 3
 bash -c "npm install"
+
+# Start local git server daemon if available
+GITHOST_SCRIPT="$(dirname "$0")/githost/git-server.sh"
+if [ -x "$GITHOST_SCRIPT" ]; then
+    echo "Starting local git server daemon..."
+    sudo "$GITHOST_SCRIPT" start-daemon || echo "git-server start-daemon failed or requires sudo"
+fi
+
 node executable/server_webserver.js

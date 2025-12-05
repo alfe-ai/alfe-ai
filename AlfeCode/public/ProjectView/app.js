@@ -8,6 +8,7 @@ const addTaskTopButton = document.getElementById('add-task-top');
 const saveButton = document.getElementById('save-projects');
 const statusMessage = document.getElementById('status-message');
 const archiveProjectButton = document.getElementById('archive-project');
+const renameProjectButton = document.getElementById('rename-project');
 const newProjectButton = document.getElementById('new-project');
 const newProjectDialog = document.getElementById('new-project-dialog');
 const newProjectForm = document.getElementById('new-project-form');
@@ -440,7 +441,7 @@ function ensurePinnedProject(projectList) {
   const pinnedProject = {
     ...pinnedSource,
     id: PINNED_PROJECT.id,
-    name: PINNED_PROJECT.name,
+    name: (pinnedSource && pinnedSource.name) ? pinnedSource.name : PINNED_PROJECT.name,
     isPinned: true,
     archived: false,
     tasks: pinnedTasks,
@@ -688,13 +689,16 @@ function renderTabs() {
     }
   });
 
-  const sterlingHasTabs = renderTabGroup(
+  // Temporarily hide the Sterling Git Projects section
+  // Render the sterling projects into the container but keep the entire
+  // Sterling/Git Projects row hidden for now.
+  renderTabGroup(
     sterlingTabsContainer,
     sterlingProjects,
     'No Sterling Git projects yet.',
   );
   if (sterlingTabsRow) {
-    sterlingTabsRow.hidden = !sterlingHasTabs;
+    sterlingTabsRow.hidden = true;
   }
 
   renderTabGroup(
@@ -1049,6 +1053,33 @@ if (archiveProjectButton) {
     }
 
     archiveProject(activeProjectIndex);
+  });
+}
+
+if (renameProjectButton) {
+  renameProjectButton.addEventListener('click', () => {
+    const project = projects[activeProjectIndex];
+    if (!project) return;
+    const oldName = project.name || '';
+    const newName = window.prompt('Enter new project name', oldName);
+    if (newName === null) return;
+    const trimmed = (newName || '').trim();
+    if (!trimmed) {
+      showStatus('Project name cannot be empty.', 'error');
+      return;
+    }
+    const lower = trimmed.toLowerCase();
+    const conflict = projects.some(p => p && p.name && p.name.trim().toLowerCase() === lower && p.id !== project.id);
+    if (conflict) {
+      showStatus(`A project named ${trimmed} already exists.`, 'error');
+      return;
+    }
+    project.name = trimmed;
+    renderTabs();
+    renderTasks();
+    renderArchivedProjectsList();
+    scheduleSave();
+    showStatus(`Renamed project to ${trimmed}.`, 'success');
   });
 }
 

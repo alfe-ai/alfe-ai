@@ -5,6 +5,7 @@
     const projectDir = typeof data.resolvedProjectDir === "string" ? data.resolvedProjectDir : "";
 
 const repoName = typeof data.repoName === "string" ? data.repoName : "";
+const hasRemotes = !!data.hasRemotes;
 
         const treeListEl = document.getElementById("gitTreeList");
     const branchListEl = document.getElementById("branchList");
@@ -241,12 +242,18 @@ const repoName = typeof data.repoName === "string" ? data.repoName : "";
     // Only hide the initial loader if we actually have commits to show.
     // If there are zero revisions, keep the loading overlay visible so the
     // page presents a loading spinner instead of an immediate "no commits" row.
+    // Hide the initial loader regardless; show an explicit empty state if no commits.
     if (Array.isArray(commitGraph) && commitGraph.length > 0) {
         window.requestAnimationFrame(() => hideInitialLoader());
     } else {
-        if (loaderLogEl) loaderLogEl.textContent = 'Loading revisions…';
-        // Ensure the loader is visible (it may be present by default in the DOM).
-        if (initialLoader) initialLoader.classList.remove('is-hidden');
+        window.requestAnimationFrame(() => hideInitialLoader());
+        // Show friendly message instead of an indefinite loading spinner.
+        if (treeListEl) {
+            const msg = document.createElement('div');
+            msg.className = 'empty-state';
+            msg.textContent = 'No commits found in this repository.';
+            treeListEl.appendChild(msg);
+        }
     }
 
     if (filterInput) {
@@ -257,6 +264,12 @@ const repoName = typeof data.repoName === "string" ? data.repoName : "";
     }
 
     if (gitPullButton) {
+        if (!hasRemotes) {
+            // Disable pull but show a neutral informational message so the page
+            // can still be used for local-only repositories (local commit browsing).
+            gitPullButton.disabled = true;
+            setGitPullStatus('No git remotes configured for this repository — showing local commits only.', 'info');
+        }
         gitPullButton.addEventListener("click", async () => {
             if (!projectDir) {
                 setGitPullStatus("No project directory loaded.", "error");

@@ -16,6 +16,7 @@
             --border-strong: #334155;
             --text: #e5e7eb;
             --muted: #94a3b8;
+            --success: #22c55e;
             --added: rgba(16, 185, 129, 0.12);
             --removed: rgba(248, 113, 113, 0.16);
             --meta: rgba(245, 158, 11, 0.18);
@@ -55,7 +56,7 @@
 
         .header-row {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 12px;
             justify-content: space-between;
             align-items: flex-start;
@@ -195,6 +196,17 @@
             background: rgba(59, 130, 246, 0.15);
             color: #fff;
             border-color: #2563eb;
+        }
+
+        @media (max-width: 960px) {
+            .header-row {
+                flex-wrap: wrap;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
         }
 
         .merge-button-wrapper {
@@ -343,7 +355,7 @@
         }
 
         .file-list button .file-stats .additions {
-            color: var(--success);
+            color: var(--success, #22c55e);
         }
 
         .file-list button .file-stats .deletions {
