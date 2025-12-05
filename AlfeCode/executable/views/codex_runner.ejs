@@ -2749,16 +2749,17 @@
     </div>
 
 
-    <div id="promptModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="User prompt">
+    <div id="promptModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="promptModalHeader">
       <div class="modal-content prompt-modal-content">
         <button class="modal-close" type="button" id="promptModalCloseButton">×</button>
         <div class="prompt-modal-body">
+          <h3 id="promptModalHeader" class="prompt-modal-header">Your Sent Prompt</h3>
           <textarea
             id="promptModalTextarea"
             readonly
             spellcheck="false"
             autocomplete="off"
-            aria-label="User prompt"
+            aria-labelledby="promptModalHeader"
           ></textarea>
         </div>
       </div>
