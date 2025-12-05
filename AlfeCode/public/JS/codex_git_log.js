@@ -280,52 +280,86 @@
 
   updateLoadMoreVisibility();
 
-  const gitPullButton = document.getElementById('gitPullButton');
-  const gitPullStatus = document.getElementById('gitPullStatus');
-  const resolvedDir = resolvedProjectDir || '';
+  const gitPullButton = document.getElementById("gitPullButton");
+  const gitPullStatus = document.getElementById("gitPullStatus");
+  const resolvedDir = resolvedProjectDir || "";
+  const autoPullParam = "skipAutoGitPull";
+  const urlSearchParams = new URLSearchParams(window.location.search);
 
   const showStatus = (text, kind) => {
     if (!gitPullStatus) return;
     gitPullStatus.textContent = text;
-    gitPullStatus.classList.remove('error','success');
+    gitPullStatus.classList.remove("error", "success");
     if (kind) gitPullStatus.classList.add(kind);
   };
 
-  if (gitPullButton) {
-    gitPullButton.addEventListener('click', () => {
-      if (!resolvedDir) {
-        showStatus('No project directory specified', 'error');
-        return;
-      }
-      showStatus('Running git pull...', null);
-      fetch('/agent/git-pull', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectDir: resolvedDir }),
-      })
-        .then((r) => r.json().catch(() => ({})).then((j) => ({ ok: r.ok, status: r.status, body: j })))
-        .then((res) => {
-          if (!res.ok) {
-            const msg = (res.body && res.body.error) || `git pull failed (${res.status})`;
-            showStatus(msg, 'error');
-            return;
-          }
-          const out = res.body && (res.body.output || res.body.message || res.body.stdout) || '';
-          const firstLine = (out || '').split('\n').slice(0,2).join(' ');
-          showStatus(firstLine || 'Git pull completed', 'success');
-          // Auto-refresh the page after successful git pull to show updated logs
-          try {
-            // small delay to allow user to read the status
-            setTimeout(() => { window.location.reload(true); }, 800);
-          } catch (e) {
-            console.error('[DEBUG] reload failed', e);
-          }
+  const reloadWithSkipFlag = () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set(autoPullParam, "1");
+      // Use replace to avoid adding to history and prevent repeated auto pulls
+      window.location.replace(url.toString());
+    } catch (e) {
+      console.error("[DEBUG] reload failed", e);
+      window.location.reload(true);
+    }
+  };
 
-        })
-        .catch((err) => {
-          showStatus('Git pull request failed', 'error');
-          console.error('[ERROR] git-pull:', err);
-        });
+  let isGitPullInFlight = false;
+
+  const triggerGitPull = () => {
+    if (isGitPullInFlight) {
+      return;
+    }
+    if (!resolvedDir) {
+      showStatus("No project directory specified", "error");
+      return;
+    }
+    isGitPullInFlight = true;
+    showStatus("Running git pull...", null);
+    fetch("/agent/git-pull", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectDir: resolvedDir }),
+    })
+      .then((r) =>
+        r
+          .json()
+          .catch(() => ({}))
+          .then((j) => ({ ok: r.ok, status: r.status, body: j }))
+      )
+      .then((res) => {
+        if (!res.ok) {
+          const msg = (res.body && res.body.error) || `git pull failed (${res.status})`;
+          showStatus(msg, "error");
+          return;
+        }
+        const out = (res.body && (res.body.output || res.body.message || res.body.stdout)) || "";
+        const firstLine = (out || "")
+          .split("\n")
+          .slice(0, 2)
+          .join(" ");
+        showStatus(firstLine || "Git pull completed", "success");
+        setTimeout(reloadWithSkipFlag, 800);
+      })
+      .catch((err) => {
+        showStatus("Git pull request failed", "error");
+        console.error("[ERROR] git-pull:", err);
+      })
+      .finally(() => {
+        isGitPullInFlight = false;
+      });
+  };
+
+  if (gitPullButton) {
+    gitPullButton.addEventListener("click", triggerGitPull);
+  }
+
+  const autoPullSkipped = urlSearchParams.get(autoPullParam) === "1";
+  if (!autoPullSkipped && gitPullButton) {
+    // Automatically trigger the same behavior as clicking the Git Pull button on initial load
+    window.addEventListener("load", () => {
+      triggerGitPull();
     });
   }
 
