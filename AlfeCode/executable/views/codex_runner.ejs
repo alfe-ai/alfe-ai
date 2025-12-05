@@ -534,7 +534,8 @@
 
         #runsSidebar .runs-sidebar__header,
         #runsSidebar .runs-sidebar__title-group {
-            padding-right: 64px;
+            padding-right: clamp(12px, 2vw, 20px);
+            overflow: visible;
         }
 
         #runsSidebar .runs-sidebar__new-task {
