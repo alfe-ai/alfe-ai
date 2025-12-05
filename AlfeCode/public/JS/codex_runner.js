@@ -6052,9 +6052,11 @@ const getSidebarBadgeInfo = (run) => {
 
   const readPersistedState = () => {
     try {
-      return window.localStorage.getItem(STORAGE_KEY) === '1';
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw === null) return null;
+      return raw === '1';
     } catch (_err) {
-      return false;
+      return null;
     }
   };
 
@@ -6079,8 +6081,16 @@ const getSidebarBadgeInfo = (run) => {
     try { collapseButton.focus({ preventScroll: true }); } catch (_err) { /* ignore */ }
   };
 
-  if (readPersistedState()) {
+  const persistedState = readPersistedState();
+  const shouldDefaultCollapse = persistedState === null && window.matchMedia('(max-width: 900px)').matches;
+
+  if (persistedState === true || shouldDefaultCollapse) {
     applyState(true);
+    if (shouldDefaultCollapse) {
+      persistState(true);
+    }
+  } else {
+    applyState(false);
   }
 
   collapseButton.addEventListener('click', collapse);
