@@ -182,6 +182,8 @@
     messageEl.textContent = message;
 
     row.appendChild(hashEl);
+    // place timestamp directly after the hash for right-side alignment via CSS grid
+    row.appendChild(timestampEl);
     row.appendChild(meta);
     row.appendChild(messageEl);
 
