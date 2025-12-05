@@ -1068,6 +1068,9 @@ setupGetRoutes({
     DEFAULT_CODEX_MODEL,
     CODEX_MODEL_PATTERN,
     buildSterlingCodexUrl,
+    ensureSessionDefaultRepo,
+    ensureSessionIdCookie,
+    getSessionRepoPath,
     loadCodexRuns,
     upsertCodexRun,
 });

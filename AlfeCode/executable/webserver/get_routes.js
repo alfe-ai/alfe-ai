@@ -37,6 +37,9 @@ function setupGetRoutes(deps) {
         PROJECT_ROOT,
         spawn,
         buildSterlingCodexUrl,
+        ensureSessionDefaultRepo,
+        ensureSessionIdCookie,
+        getSessionRepoPath,
         loadCodexRuns,
         upsertCodexRun,
     } = deps;
@@ -3549,7 +3552,25 @@ ${cleanedFinalOutput}`;
             return;
         }
 
-        res.redirect("/repositories");
+        // No existing default repo path: create a new session repo and redirect to /agent
+        try {
+            const { sessionId: ensuredSessionId } = ensureSessionIdCookie(req, res);
+            // ensureSessionDefaultRepo will create the repo, git init, AGENTS.md and update session config
+            ensureSessionDefaultRepo(ensuredSessionId);
+
+            const repoDir = getSessionRepoPath(ensuredSessionId, NEW_SESSION_REPO_NAME);
+            const params = new URLSearchParams({
+                repo_directory: repoDir,
+                repo_name: NEW_SESSION_REPO_NAME,
+            });
+            res.redirect(`/agent?${params.toString()}`);
+            return;
+        } catch (e) {
+            console.error('[ERROR] Failed to create default session repo:', e?.message || e);
+            // Fallback to repositories view
+            res.redirect("/repositories");
+            return;
+        }
     });
 
     /* ---------- Global instructions ---------- */
