@@ -38,7 +38,35 @@
         .button { display:inline-block; padding:10px 14px; border-radius:999px; background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: #ffffff; border: none; text-decoration:none; font-weight:600; }
         .button.secondary { background: rgba(17,24,39,0.65); border:1px solid var(--nexum-border); color:var(--nexum-text); }
         .button.secondary:hover { background: rgba(17,24,39,0.85); color:#fff; }
-        .button.disabled { opacity: 0.6; pointer-events: none; cursor: default; }
+        .button.disabled { opacity: 0.6; cursor: default; pointer-events: auto; }
+        .tooltip-container { position: relative; display: inline-block; }
+        .tooltip-message {
+            position: absolute;
+            top: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(17, 24, 39, 0.95);
+            color: var(--nexum-text);
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-soft);
+            font-size: 0.92rem;
+            width: 260px;
+            max-width: 80vw;
+            text-align: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s ease, visibility 0.15s ease;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .tooltip-container:hover .tooltip-message,
+        .tooltip-container:focus-within .tooltip-message,
+        .tooltip-message.visible {
+            opacity: 1;
+            visibility: visible;
+        }
 
     </style>
 </head>
@@ -47,7 +75,10 @@
     <div class="page">
         <header>
             <div class="actions">
-                <a class="button disabled" href="javascript:void(0);" role="button" aria-disabled="true" title="Add New Repository (disabled)">Add New Repository</a>
+                <div class="tooltip-container">
+                    <a class="button disabled add-repo-button" href="javascript:void(0);" role="button" aria-disabled="true" title="Ability to add new repositories available soon.">Add New Repository</a>
+                    <div class="tooltip-message" role="status">Ability to add new repositories available soon.</div>
+                </div>
             </div>
         </header>
 
@@ -137,6 +168,27 @@
                 if(isIframeMode){
                     var el=document.querySelector('.how-it-works');
                     if(el) el.style.display='none';
+                }
+
+                var addRepoButton = document.querySelector('.add-repo-button');
+                var tooltipMessage = document.querySelector('.tooltip-message');
+                if (addRepoButton && tooltipMessage) {
+                    var tooltipTimeout;
+                    var showTooltip = function() {
+                        tooltipMessage.classList.add('visible');
+                        if (tooltipTimeout) clearTimeout(tooltipTimeout);
+                        tooltipTimeout = setTimeout(function() {
+                            tooltipMessage.classList.remove('visible');
+                        }, 2000);
+                    };
+
+                    addRepoButton.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        showTooltip();
+                    });
+
+                    addRepoButton.addEventListener('mouseenter', showTooltip);
+                    addRepoButton.addEventListener('focus', showTooltip);
                 }
             })();
         </script>
