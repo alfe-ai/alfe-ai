@@ -1272,6 +1272,26 @@ body {
   font-weight: 500;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
+
+.github-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.github-button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.top-right-buttons .github-button {
+  padding-right: 0.9rem;
+  padding-left: 0.9rem;
+}
 .top-right-buttons .top-btn:hover {
   background: var(--accent-light);
   border-color: var(--accent);
@@ -2573,6 +2593,11 @@ body {
   font-size: 0.85rem;
   text-align: center;
   color: var(--text-muted);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .sidebar-footer a {
@@ -2584,6 +2609,22 @@ body {
 
 .sidebar-footer a:hover {
   color: var(--accent-strong);
+}
+
+.sidebar-footer .github-button {
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  color: var(--text-color);
+  background: rgba(15, 23, 42, 0.65);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sidebar-footer .github-button:hover,
+.sidebar-footer .github-button:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(124, 58, 237, 0.22);
 }
 
 /* Simple toast notification */

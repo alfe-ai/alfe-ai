@@ -194,6 +194,35 @@ button {
     transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
+.github-link-button {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid var(--surface-border);
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(51, 65, 85, 0.16) 100%);
+    color: var(--text-color);
+    font-weight: 700;
+    text-align: left;
+}
+
+.github-link-button:hover,
+.github-link-button:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 10px 24px rgba(124, 58, 237, 0.24);
+    transform: translateY(-1px);
+}
+
+.github-link-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
 .sidebar-action-buttons .sidebar-button:hover {
     background: var(--accent-soft);
     border-color: var(--accent);
