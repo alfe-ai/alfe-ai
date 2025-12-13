@@ -19,9 +19,9 @@ The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has be
 
 <img width="1314" height="1162" alt="image" src="https://github.com/user-attachments/assets/f2011c6e-f1ef-4548-8310-db39ceb2359d" />
 
-<img width="2083" height="749" alt="image" src="https://github.com/user-attachments/assets/d18cb826-4964-4289-9fbb-b42be684c321" />
+<img width="603" height="1178" alt="image" src="https://github.com/user-attachments/assets/0493dece-3756-4ece-9a9f-a8f05df387e3" />
 
-<img width="1281" height="1125" alt="image" src="https://github.com/user-attachments/assets/04b6e210-da6f-49d0-ad38-aaa3d29fb731" />
+<img width="2083" height="749" alt="image" src="https://github.com/user-attachments/assets/d18cb826-4964-4289-9fbb-b42be684c321" />
 
 ---
 
