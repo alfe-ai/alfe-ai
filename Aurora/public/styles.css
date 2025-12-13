@@ -2600,28 +2600,22 @@ body {
   flex-wrap: wrap;
 }
 
-.sidebar-footer a {
-  color: var(--accent);
-  text-decoration: none;
-  margin: 0 0.35rem;
-  transition: color 0.2s ease;
-}
-
-.sidebar-footer a:hover {
-  color: var(--accent-strong);
-}
-
-.sidebar-footer .github-button {
+.sidebar-footer .footer-button {
   border: 1px solid var(--surface-border);
   border-radius: 999px;
   padding: 0.4rem 0.85rem;
   color: var(--text-color);
   background: rgba(15, 23, 42, 0.65);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.sidebar-footer .github-button:hover,
-.sidebar-footer .github-button:focus-visible {
+.sidebar-footer .footer-button:hover,
+.sidebar-footer .footer-button:focus-visible {
   border-color: var(--accent);
   transform: translateY(-1px);
   box-shadow: 0 10px 22px rgba(124, 58, 237, 0.22);
