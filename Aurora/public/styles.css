@@ -2724,8 +2724,8 @@ button:disabled {
 /* Cookie consent banner */
 #cookieBanner {
   position: fixed;
-  left: auto;
-  right: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: 1.25rem;
   width: min(480px, calc(100% - 2.5rem));
   background: var(--bg-alt);
@@ -2735,7 +2735,7 @@ button:disabled {
   border-radius: 14px;
   display: none;
   z-index: 1100;
-  text-align: left;
+  text-align: center;
   box-shadow: var(--shadow);
   align-items: center;
   gap: 0.75rem;
