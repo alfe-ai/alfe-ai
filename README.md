@@ -1,6 +1,6 @@
 # Alfe AI / Beta  
 
-### Alfe AI: Project Management, Image Design, and Software Development Platform
+### Alfe AI: Software Development, Project Management, and Image Design Platform
 
 The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).
 
