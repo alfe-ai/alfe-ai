@@ -1157,7 +1157,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const banner = document.getElementById('cookieBanner');
     if(banner){
-      if(!localStorage.getItem('cookieAccepted')) banner.style.display = 'block';
+      if(!localStorage.getItem('cookieAccepted')) banner.style.display = 'flex';
       document.getElementById('cookieAcceptBtn').addEventListener('click', () => {
         localStorage.setItem('cookieAccepted', 'yes');
         banner.style.display = 'none';

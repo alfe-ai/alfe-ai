@@ -2724,20 +2724,26 @@ button:disabled {
 /* Cookie consent banner */
 #cookieBanner {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 1.25rem;
+  width: min(480px, calc(100% - 2.5rem));
   background: var(--bg-alt);
   color: var(--text-color);
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--surface-border);
+  padding: 0.85rem 1.25rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
   display: none;
   z-index: 1100;
   text-align: center;
+  box-shadow: var(--shadow);
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 #cookieBanner button {
-  margin-left: 1rem;
+  margin-left: 0;
   background: var(--accent);
   color: #fff;
   border: none;
