@@ -1,125 +1,111 @@
-# Alfe AI (Aurora) — Self-Hosting Guide
+# Alfe AI / Beta  
 
-This repository contains the **Aurora** web app and API used by Alfe AI. Follow the steps below to run it end-to-end on your own server.
+### Alfe AI: Software Development, Project Management, and Image Design Platform
 
-## 1) Prerequisites
+The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).
 
-- **Node.js** (LTS recommended)
-- **npm** (ships with Node)
-- **git**
-- Optional (for HTTPS): **Certbot** + a domain name
 
-## 2) Clone the repository
+<img width="1577" height="1135" alt="image" src="https://github.com/user-attachments/assets/f53c3270-4805-4e55-a151-c9ec680ba1f5" />
 
-```bash
-git clone https://github.com/alfe-ai/alfe-ai.git
-cd alfe-ai
-```
+<img width="1687" height="1073" alt="image" src="https://github.com/user-attachments/assets/b03c20cd-5735-4044-9087-ed7b4eec386a" />
 
-## 3) Configure environment variables
+<img width="1530" height="1128" alt="image" src="https://github.com/user-attachments/assets/4a99734b-241a-42cb-b984-8e94f4d76059" />
 
-Aurora reads configuration from `Aurora/.env`.
+<img width="975" height="707" alt="image" src="https://github.com/user-attachments/assets/22d04e1a-0a33-4235-b319-2f1c906e9e87" />
 
-```bash
-cd Aurora
-cp .env.example .env
-```
+<img width="771" height="687" alt="image" src="https://github.com/user-attachments/assets/23d6cab4-4d3a-44c0-a7d0-ac3b1164a4ad" />
 
-Open `Aurora/.env` and set the values you need. Common settings:
+<img width="1355" height="1017" alt="image" src="https://github.com/user-attachments/assets/e5aa1ffa-9f49-4863-aff0-80b1ee627896" />
 
-| Variable | Purpose | Example |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | Enable AI features | `sk-...` |
-| `AI_MODEL` | Default model if DB is empty | `openrouter/qwen/qwen3-30b-a3b-instruct-2507` |
-| `AURORA_PORT` | Web server port | `3000` |
-| `DISABLE_2FA` | Skip TOTP in local testing | `true` |
-| `WHITELIST_IP` | Restrict UI access by IP | `1.2.3.4,5.6.7.8` |
-| `HTTPS_KEY_PATH` | SSL private key path | `/etc/letsencrypt/live/yourdomain/privkey.pem` |
-| `HTTPS_CERT_PATH` | SSL certificate path | `/etc/letsencrypt/live/yourdomain/fullchain.pem` |
-| `SQL_SERVER_PORT` | SQL passthrough server port | `7000` |
+<img width="1314" height="1162" alt="image" src="https://github.com/user-attachments/assets/f2011c6e-f1ef-4548-8310-db39ceb2359d" />
 
-Optional feature flags you may want to toggle:
+<img width="603" height="1178" alt="image" src="https://github.com/user-attachments/assets/0493dece-3756-4ece-9a9f-a8f05df387e3" />
 
-- `ACCOUNTS_ENABLED=true` to enable login/registration.
-- `AURORA_PROJECTVIEW_ENABLED=true` to enable the ProjectView UI.
-- `AURORA_LIMITS_ENABLED=false` to disable image/search limits.
+<img width="2083" height="749" alt="image" src="https://github.com/user-attachments/assets/d18cb826-4964-4289-9fbb-b42be684c321" />
 
-## 4) Install dependencies
+---
 
-From `alfe-ai/Aurora`:
 
-```bash
-npm install
-```
+### Old Beta v2 notes:
 
-## 5) Start the server
 
-```bash
-npm run web
-```
+This initial cloud release includes the image design component of the Alfe AI Platform.
+It now defaults to OpenAI's **gpt-image-1** model for image generation via the built-in API. You
+can change the model globally via the new `image_gen_model` setting which accepts `gptimage1`,
+`dalle2`, or `dalle3`.
+If the model returns a base64 string instead of a URL, the server automatically decodes and saves the image.
+The server also includes an optional color swatch detector that can trim any palette band from the bottom of generated images. This feature is disabled by default and can be enabled via the `remove_color_swatches` setting.
+The software development component is coming soon, and is available now as a Pre-release on GitHub.
 
-Or run the provided script:
+![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)  
 
-```bash
-./run_server.sh
-```
+Alfe AI beta-2.30+ (Image Design): https://github.com/alfe-ai
+Alfe AI beta-0.4x+ (Software Development): https://github.com/alfe-ai
 
-The server listens on `AURORA_PORT` (default `3000`).
-
-Open the UI:
+## Deploying
 
 ```
-http://localhost:3000/
+wget https://raw.githubusercontent.com/alfe-ai/alfe-ai-Aurelix/refs/heads/Aurora/Aurelix/dev/main-rel2/deploy_aurelix.sh && chmod +x deploy_aurelix.sh && ./deploy_aurelix.sh
 ```
 
-## 6) (Optional) Enable HTTPS
+#### 2.0 Beta (Aurora/Aurelix)
 
-If you want HTTPS, you can generate certificates with the helper scripts in the repo root:
+![image](https://github.com/user-attachments/assets/ec47be87-5577-45b2-a3af-17475860df46)
 
-```bash
-cd ..
-./setup_certbot.sh <domain> <email>
-./setup_ssl_permissions.sh <domain> [user]
-```
+### Environment variables
 
-Then set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` in `Aurora/.env`.
+Set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` to the SSL key and certificate files
+to enable HTTPS across the included servers. If the files are missing the
+services fall back to HTTP.
+
+### Third-party components
+
+The platform depends on the `codex-cli` npm package as an external tool. It
+remains under its original Apache 2.0 license and is not redistributed under
+the Alfe AI License. If you vendor or otherwise ship binaries or source that
+bundle `codex-cli`, include its Apache 2.0 LICENSE (and NOTICE file if
+provided) alongside your distribution so the required notices stay intact.
+
+You can quickly obtain free certificates from Let's Encrypt by running the
+`setup_certbot.sh` script. It installs Certbot and generates the key and
+certificate files for the domain you specify.
+
+After obtaining the certificates, run `setup_ssl_permissions.sh <domain> [user]`
+to grant the specified user (default: `admin`) read access to the key and
+certificate so Aurora can run without root privileges.
 
 ### Listening on port 443 without root
 
-Aurora reads `AURORA_PORT` (default `3000`). If you want the service accessible on port `443` without running Node as root, forward port `443` to your chosen `AURORA_PORT`:
+The Aurora server reads its port from the `AURORA_PORT` environment variable
+(default: `3000`). Binding directly to port `443` typically requires root
+privileges. If you prefer to run the server as a regular user, you can forward
+incoming connections from port `443` to your configured `AURORA_PORT`.
+
+Run the helper script with `sudo` to set up the forwarding rule:
 
 ```bash
 sudo ./forward_port_443.sh 3000
 ```
 
-## 7) (Optional) SQL passthrough server
+Replace `3000` with your chosen `AURORA_PORT`. After adding the rule, start the
+server normally and clients can connect using `https://your-domain/` on port
+`443` while the Node.js process continues to run on the higher port.
 
-If you set `SQL_SERVER_PORT`, you can start the SQL server with:
+### Passthrough SQL server
 
-```bash
-npm run sqlserver
-```
-
-Requests are accepted at `/sql` with a JSON body like:
-
-```json
-{ "sql": "select * from issues", "params": [] }
-```
-
-## 8) Updating your deployment
-
-To update Aurora after pulling new changes:
+Set `SQL_SERVER_PORT` in `.env` (see `Aurora/.env.example`) to configure the port
+for a simple HTTP interface to the SQLite database. Start the server with:
 
 ```bash
-git pull
-cd Aurora
-npm install
-npm run web
+npm run sqlserver --prefix Aurora
 ```
 
----
+Send POST requests to `/sql` with a JSON body containing a `sql` string and
+optional `params` array. Select queries return rows while other statements
+return change information.
 
-If you need additional service-specific instructions, see:
+### Reasoning menu configuration
 
-- `RUNNING.md` for UI/Mosaic behavior notes.
-- `Aurora/.env.example` for the full list of supported environment variables.
+The order of models shown in the reasoning tooltip can be customized.
+Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
+`chatModels` and `reasoningModels` arrays to suit your preferences.
