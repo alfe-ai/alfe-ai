@@ -83,6 +83,59 @@ function setupPostRoutes(deps) {
         return next;
     };
 
+    const ensureGithubSshKey = () => {
+        const sshDir = path.join(os.homedir(), ".ssh");
+        const keyName = "sterling_github";
+        const privateKeyPath = path.join(sshDir, keyName);
+        const publicKeyPath = `${privateKeyPath}.pub`;
+        const configPath = path.join(sshDir, "config");
+
+        if (!fs.existsSync(sshDir)) {
+            fs.mkdirSync(sshDir, { recursive: true, mode: 0o700 });
+        }
+
+        let created = false;
+        if (!fs.existsSync(privateKeyPath) || !fs.existsSync(publicKeyPath)) {
+            execSync(`ssh-keygen -t ed25519 -f "${privateKeyPath}" -N "" -C "sterling-github"`);
+            created = true;
+        }
+
+        const publicKey = fs.readFileSync(publicKeyPath, "utf8").trim();
+        const sshConfigEntry = [
+            "Host github.com",
+            "  HostName github.com",
+            `  IdentityFile ${privateKeyPath}`,
+            "  IdentitiesOnly yes",
+            "",
+        ].join("\n");
+        if (!fs.existsSync(configPath)) {
+            fs.writeFileSync(configPath, sshConfigEntry, { mode: 0o600 });
+        } else {
+            const configContents = fs.readFileSync(configPath, "utf8");
+            if (!configContents.includes(privateKeyPath)) {
+                fs.appendFileSync(configPath, `\n${sshConfigEntry}`);
+            }
+        }
+
+        let addedToAgent = false;
+        if (process.env.SSH_AUTH_SOCK) {
+            try {
+                execSync(`ssh-add "${privateKeyPath}"`);
+                addedToAgent = true;
+            } catch (error) {
+                console.warn(`[WARN] Unable to add SSH key to agent: ${error.message}`);
+            }
+        }
+
+        return {
+            publicKey,
+            created,
+            addedToAgent,
+            privateKeyPath,
+            publicKeyPath,
+        };
+    };
+
     const persistMergeOutcomeToRun = ({ sessionId, runId, exitCode, message, stdout, stderr }) => {
         if (typeof upsertCodexRun !== "function") {
             return;
@@ -510,10 +563,35 @@ function setupPostRoutes(deps) {
         cloneRepository(repoName, gitRepoURL, sessionId, (err, localPath) => {
             if (err) {
                 console.error("[ERROR] cloneRepository:", err);
+                if (err.sshKeyRequired) {
+                    return res.status(400).render("add_repository", {
+                        serverCWD: process.cwd(),
+                        cloneError:
+                            "GitHub SSH authentication failed. Add a GitHub SSH key to continue cloning.",
+                        sshKeyRequired: true,
+                        repoNameValue: repoName,
+                        gitRepoURLValue: gitRepoURL,
+                    });
+                }
                 return res.status(500).send("Failed to clone repository.");
             }
             finalize(localPath);
         });
+    });
+
+    /* ---------- /repositories/generate-ssh-key ---------- */
+    app.post("/repositories/generate-ssh-key", (_req, res) => {
+        try {
+            const result = ensureGithubSshKey();
+            return res.json({
+                publicKey: result.publicKey,
+                created: result.created,
+                addedToAgent: result.addedToAgent,
+            });
+        } catch (error) {
+            console.error("[ERROR] generate-ssh-key:", error);
+            return res.status(500).json({ error: "Failed to generate SSH key." });
+        }
     });
 
     /* ---------- /set_chat_model ---------- */

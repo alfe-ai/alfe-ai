@@ -3871,7 +3871,13 @@ ${cleanedFinalOutput}`;
 
     app.get("/repositories/add", (_req, res) => {
         const serverCWD = process.cwd();
-        res.render("add_repository", { serverCWD });
+        res.render("add_repository", {
+            serverCWD,
+            cloneError: null,
+            sshKeyRequired: false,
+            repoNameValue: "",
+            gitRepoURLValue: "",
+        });
     });
 
     app.get("/repositories/new-default", (req, res) => {
