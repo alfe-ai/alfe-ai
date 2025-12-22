@@ -39,6 +39,9 @@ const SESSION_GIT_BASE_PATH = (function(){
 })();
 const NEW_SESSION_REPO_NAME = "New";
 
+// Toggle: when true, the Add New Repository button creates a new blank repo and disables remote cloning/access to the add page.
+const ALLOW_ADD_REPO_AS_NEW = parseBooleanEnv(process.env.ALLOW_ADD_REPO_AS_NEW, false);
+
 const vmPortStartEnv = Number.parseInt(process.env.ALFECODE_VM_PORT_START, 10);
 const vmPortEndEnv = Number.parseInt(process.env.ALFECODE_VM_PORT_END, 10);
 const VM_PORT_START = Number.isFinite(vmPortStartEnv) && vmPortStartEnv > 0 ? vmPortStartEnv : 32000;
