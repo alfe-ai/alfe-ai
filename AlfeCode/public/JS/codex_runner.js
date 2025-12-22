@@ -1,5 +1,12 @@
 (() => {
   const config = window.CODEX_RUNNER_CONFIG || {};
+  // submitOnEnter default (may be overridden by localStorage)
+  // If localStorage has 'submitOnEnter', that value is used; otherwise the server-provided
+  // CODEX_RUNNER_CONFIG.defaultSubmitOnEnter is used (defaults to true).
+  const submitOnEnterFromLocal = (localStorage.getItem('submitOnEnter') !== null) ? (localStorage.getItem('submitOnEnter') === 'true') : undefined;
+  // `config.defaultSubmitOnEnter` will be provided by the server; if absent, treated as true.
+  const submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
+
   const form = document.getElementById("codexForm");
   const projectDirInput = document.getElementById("projectDir");
   const agentInstructionsInput = document.getElementById("agentInstructions");
@@ -5977,11 +5984,28 @@ const getSidebarBadgeInfo = (run) => {
   };
 
   if (promptInput && form) {
-    // Enter submits the form; Shift+Enter inserts a newline.
+    const submitOnEnterCheckbox = document.getElementById('submitOnEnterCheckbox');
+    // If localStorage contains a preference, use it; otherwise fallback to server-provided default
+    if (submitOnEnterCheckbox) {
+      // initialize checkbox state
+      try { submitOnEnterCheckbox.checked = submitOnEnterDefault; } catch (e) { /* ignore */ }
+      submitOnEnterCheckbox.addEventListener('change', () => {
+        try { localStorage.setItem('submitOnEnter', submitOnEnterCheckbox.checked ? 'true' : 'false'); } catch (e) { /* ignore */ }
+      });
+    }
+
+    // Enter submits the form; Shift+Enter inserts a newline when enabled.
     promptInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         if (event.shiftKey) {
           // Allow Shift+Enter to insert a newline in the textarea.
+          return;
+        }
+
+        // Check whether submit-on-enter is currently enabled (checkbox overrides default)
+        const enabled = submitOnEnterCheckbox ? !!submitOnEnterCheckbox.checked : !!submitOnEnterDefault;
+        if (!enabled) {
+          // If disabled, do nothing special and allow newline insertion
           return;
         }
 
