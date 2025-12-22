@@ -3871,6 +3871,11 @@ ${cleanedFinalOutput}`;
 
     app.get("/repositories/add", (_req, res) => {
         const serverCWD = process.cwd();
+        // If ALLOW_ADD_REPO_AS_NEW is enabled, redirect to creating the default repo
+        if (res && res.locals && res.locals.allowAddRepoAsNew) {
+            res.redirect('/repositories');
+            return;
+        }
         res.render("add_repository", {
             serverCWD,
             cloneError: null,
