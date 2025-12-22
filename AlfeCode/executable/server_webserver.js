@@ -272,11 +272,10 @@ function ensureGitRepository(repoDir) {
     }
 }
 
-function ensureSessionDefaultRepo(sessionId) {
+function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_NAME) {
     if (!sessionId) {
         return;
     }
-    const repoName = NEW_SESSION_REPO_NAME;
     const repoDir = getSessionRepoPath(sessionId, repoName);
     if (!repoDir) {
         return;
