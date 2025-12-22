@@ -181,11 +181,32 @@
                 return '';
             }
 
-            const sanitized = trimmed.split('#')[0].split('?')[0].replace(/\/$/, '');
-            const withoutSuffix = sanitized.replace(/\.git$/i, '');
-            const parts = withoutSuffix.split(/[:/]/);
-            return parts.pop() || '';
+            const sanitized = trimmed.split('#')[0].split('?')[0];
+            const patterns = [
+                /^git@[^:\s]+:([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i,
+                /^https?:\/\/[^/\s]+\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i,
+                /^git\+ssh:\/\/git@[^/\s]+\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i,
+            ];
+
+            for (const pattern of patterns) {
+                const match = sanitized.match(pattern);
+                if (match) {
+                    return match[2];
+                }
+            }
+
+            return '';
         };
+
+        const clearFormInputs = () => {
+            repoNameInput.value = '';
+            gitRepoURLInput.value = '';
+            repoNameInput.removeAttribute('aria-invalid');
+        };
+
+        window.addEventListener('pageshow', () => {
+            clearFormInputs();
+        });
 
         repoNameInput.addEventListener('input', () => {
             if (repoNameInput.value.trim()) {
