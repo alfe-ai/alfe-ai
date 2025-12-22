@@ -44,9 +44,10 @@
             </a>
         </p>
         <p class="breadcrumb">
-            <a
+            <button
+                type="button"
                 class="github-link-button"
-                href="<%= githubURL %>" target="_blank" rel="noopener noreferrer"
+                onclick="window.open('<%= githubURL %>', '_blank', 'noopener,noreferrer');"
             >
                 GitHub
                 <span aria-hidden="true" class="github-link-icon">
