@@ -96,7 +96,7 @@ function setupPostRoutes(deps) {
 
         let created = false;
         if (!fs.existsSync(privateKeyPath) || !fs.existsSync(publicKeyPath)) {
-            execSync(`ssh-keygen -t ed25519 -f "${privateKeyPath}" -N "" -C "sterling-github"`);
+            execSync(`ssh-keygen -t ed25519 -f "${privateKeyPath}" -N "" -C "alfe-ai"`);
             created = true;
         }
 
