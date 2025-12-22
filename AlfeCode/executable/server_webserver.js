@@ -37,7 +37,7 @@ const SESSION_GIT_BASE_PATH = (function(){
         return os.tmpdir();
     }
 })();
-const NEW_SESSION_REPO_NAME = "New";
+const NEW_SESSION_REPO_NAME = "Default";
 
 const vmPortStartEnv = Number.parseInt(process.env.ALFECODE_VM_PORT_START, 10);
 const vmPortEndEnv = Number.parseInt(process.env.ALFECODE_VM_PORT_END, 10);
