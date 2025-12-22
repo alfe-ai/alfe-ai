@@ -85,7 +85,7 @@ function setupPostRoutes(deps) {
 
     const ensureGithubSshKey = () => {
         const sshDir = path.join(os.homedir(), ".ssh");
-        const keyName = "sterling_github";
+        const keyName = "alfe-ai";
         const privateKeyPath = path.join(sshDir, keyName);
         const publicKeyPath = `${privateKeyPath}.pub`;
         const configPath = path.join(sshDir, "config");
