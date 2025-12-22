@@ -5,7 +5,7 @@
 The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).
 
 
-<img width="1577" height="1135" alt="image" src="https://github.com/user-attachments/assets/f53c3270-4805-4e55-a151-c9ec680ba1f5" />
+<img width="1692" height="1210" alt="image" src="https://github.com/user-attachments/assets/bf3a6838-3fc4-46fa-ab24-56dbc93df145" />
 
 <img width="1687" height="1073" alt="image" src="https://github.com/user-attachments/assets/b03c20cd-5735-4044-9087-ed7b4eec386a" />
 
