@@ -2338,7 +2338,7 @@ ${cleanedFinalOutput}`;
 
             emit({
                 event: "status",
-                data: `Agent succeeded. Running git_fpush.sh in ${resolvedProjectDir}...`,
+                data: `Agent succeeded. Running git commit & push in ${resolvedProjectDir}...`,
             });
 
             return new Promise((resolve) => {
