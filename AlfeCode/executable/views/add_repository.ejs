@@ -138,13 +138,11 @@
     <%- include('partials/cookie_banner') %>
     <div class="page">
         <header>
-            <h1>Add project</h1>
-            <p>Server working directory: <code><%= serverCWD %></code></p>
-            <p>Please provide an absolute path accessible by the server.</p>
+            <h1>Add repository</h1>
         </header>
 
         <div class="card">
-            <p class="meta">Connect a repository via a URL, or point Sterling to an existing local path.</p>
+            <p class="meta">Connect a repository via a URL.</p>
             <form action="/repositories/add" method="POST" id="addRepoForm">
                 <div class="field">
                     <label for="repoName">Project name:</label>
