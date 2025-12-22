@@ -1000,8 +1000,17 @@ function cloneRepository(repoName, repoURL, sessionId, callback) {
 
     exec(`git clone ${repoURL} "${clonePath}"`, (error, stdout, stderr) => {
         if (error) {
-            console.error("[ERROR] cloneRepository:", stderr);
-            return callback(error, null);
+            const stderrText = typeof stderr === "string" ? stderr : "";
+            const message = stderrText || error.message || "Failed to clone repository.";
+            const permissionDenied =
+                /permission denied \(publickey\)/i.test(stderrText)
+                || /could not read from remote repository/i.test(stderrText);
+            const enhancedError = new Error(message);
+            enhancedError.code = error.code;
+            enhancedError.sshKeyRequired = permissionDenied;
+            enhancedError.stderr = stderrText;
+            console.error("[ERROR] cloneRepository:", message);
+            return callback(enhancedError, null);
         }
         console.log("[DEBUG] Successfully cloned:", repoName);
         callback(null, clonePath);

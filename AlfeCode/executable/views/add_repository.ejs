@@ -82,6 +82,46 @@
             color: var(--nexum-muted);
             font-size: 0.95rem;
         }
+        .alert {
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            background: rgba(127, 29, 29, 0.2);
+            color: #fecaca;
+            margin-bottom: 18px;
+        }
+        .ssh-card {
+            border-radius: 14px;
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            background: rgba(30, 27, 75, 0.35);
+            padding: 16px;
+            margin-bottom: 18px;
+        }
+        .ssh-card h3 {
+            margin: 0 0 8px;
+            font-size: 1.1rem;
+        }
+        .ssh-card p {
+            margin: 0 0 12px;
+            color: var(--nexum-muted);
+        }
+        .ssh-key-output {
+            width: 100%;
+            min-height: 88px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(15, 23, 42, 0.75);
+            color: var(--nexum-text);
+            font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+        .ssh-status {
+            font-size: 0.9rem;
+            color: var(--nexum-muted);
+            margin-top: 8px;
+        }
         form label {
             font-weight: 600;
         }
@@ -168,9 +208,29 @@
                 </div>
             </div>
             <form action="/repositories/add" method="POST" id="addRepoForm">
+                <% if (cloneError) { %>
+                    <div class="alert"><%= cloneError %></div>
+                <% } %>
+                <% if (sshKeyRequired) { %>
+                    <div class="ssh-card">
+                        <h3>Generate a GitHub SSH key</h3>
+                        <p>Create a key, copy the public key into GitHub, then retry the clone.</p>
+                        <div class="button-row">
+                            <button type="button" class="secondary" id="generateSshKey">Generate SSH key</button>
+                            <button type="button" class="secondary" id="copySshKey" disabled>Copy key</button>
+                        </div>
+                        <textarea
+                            class="ssh-key-output"
+                            id="sshPublicKey"
+                            readonly
+                            placeholder="Your public key will appear here after generation."
+                        ></textarea>
+                        <div class="ssh-status" id="sshKeyStatus">Generate a key to continue.</div>
+                    </div>
+                <% } %>
                 <div class="field">
                     <label for="repoName">Project name:</label>
-                    <input type="text" id="repoName" name="repoName" required>
+                    <input type="text" id="repoName" name="repoName" value="<%= repoNameValue || '' %>" required>
                 </div>
 
                 <div class="field">
@@ -180,6 +240,7 @@
                         id="gitRepoURL"
                         name="gitRepoURL"
                         placeholder="git@github.com:example-org/example-repo.git"
+                        value="<%= gitRepoURLValue || '' %>"
                     >
                     <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
                     <div class="button-row">
@@ -198,6 +259,11 @@
         const repoNameInput = document.getElementById('repoName');
         const gitRepoURLInput = document.getElementById('gitRepoURL');
         const addRepoForm = document.getElementById('addRepoForm');
+        const generateSshKeyButton = document.getElementById('generateSshKey');
+        const copySshKeyButton = document.getElementById('copySshKey');
+        const sshPublicKeyField = document.getElementById('sshPublicKey');
+        const sshKeyStatus = document.getElementById('sshKeyStatus');
+        const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
 
         const getRepoNameFromUrl = (url) => {
             const trimmed = url.trim();
@@ -232,10 +298,12 @@
         };
 
         window.addEventListener('pageshow', () => {
-            clearFormInputs();
+            if (shouldResetInputs) {
+                clearFormInputs();
+            }
         });
 
-        let repoNameEdited = false;
+        let repoNameEdited = Boolean(repoNameInput.value.trim());
 
         repoNameInput.addEventListener('input', () => {
             repoNameEdited = repoNameInput.value.trim().length > 0;
@@ -263,6 +331,46 @@
                 repoNameInput.setAttribute('aria-invalid', 'true');
             }
         });
+
+        if (generateSshKeyButton) {
+            generateSshKeyButton.addEventListener('click', async () => {
+                generateSshKeyButton.disabled = true;
+                sshKeyStatus.textContent = 'Generating SSH key...';
+                try {
+                    const response = await fetch('/repositories/generate-ssh-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.error || 'Unable to generate SSH key.');
+                    }
+                    sshPublicKeyField.value = payload.publicKey || '';
+                    copySshKeyButton.disabled = !sshPublicKeyField.value;
+                    sshKeyStatus.textContent = payload.addedToAgent
+                        ? 'SSH key generated and added to the agent. Paste it into GitHub now.'
+                        : 'SSH key generated. Paste it into GitHub now.';
+                } catch (error) {
+                    sshKeyStatus.textContent = error.message;
+                } finally {
+                    generateSshKeyButton.disabled = false;
+                }
+            });
+        }
+
+        if (copySshKeyButton) {
+            copySshKeyButton.addEventListener('click', async () => {
+                if (!sshPublicKeyField.value) {
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(sshPublicKeyField.value);
+                    sshKeyStatus.textContent = 'SSH key copied to clipboard.';
+                } catch (error) {
+                    sshKeyStatus.textContent = 'Copy failed. Select the key text and copy manually.';
+                }
+            });
+        }
     </script>
 </body>
 </html>
