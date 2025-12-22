@@ -64,6 +64,24 @@
             color: var(--nexum-muted);
             font-size: 0.95rem;
         }
+        .meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .meta-row .meta {
+            margin: 0;
+        }
+        .meta-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--nexum-muted);
+            font-size: 0.95rem;
+        }
         form label {
             font-weight: 600;
         }
@@ -142,7 +160,13 @@
         </header>
 
         <div class="card">
-            <p class="meta">Connect a repository via a URL.</p>
+            <div class="meta-row">
+                <p class="meta">Connect a repository via a URL.</p>
+                <div class="meta-action">
+                    <span>Or</span>
+                    <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
+                </div>
+            </div>
             <form action="/repositories/add" method="POST" id="addRepoForm">
                 <div class="field">
                     <label for="repoName">Project name:</label>
