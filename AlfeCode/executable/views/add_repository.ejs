@@ -174,10 +174,35 @@
 
     <script>
         const repoNameInput = document.getElementById('repoName');
+        const gitRepoURLInput = document.getElementById('gitRepoURL');
         const addRepoForm = document.getElementById('addRepoForm');
+
+        const getRepoNameFromUrl = (url) => {
+            const trimmed = url.trim();
+            if (!trimmed) {
+                return '';
+            }
+
+            const sanitized = trimmed.split('#')[0].split('?')[0].replace(/\/$/, '');
+            const withoutSuffix = sanitized.replace(/\.git$/i, '');
+            const parts = withoutSuffix.split(/[:/]/);
+            return parts.pop() || '';
+        };
 
         repoNameInput.addEventListener('input', () => {
             if (repoNameInput.value.trim()) {
+                repoNameInput.removeAttribute('aria-invalid');
+            }
+        });
+
+        gitRepoURLInput.addEventListener('input', () => {
+            if (repoNameInput.value.trim()) {
+                return;
+            }
+
+            const derivedName = getRepoNameFromUrl(gitRepoURLInput.value);
+            if (derivedName) {
+                repoNameInput.value = derivedName;
                 repoNameInput.removeAttribute('aria-invalid');
             }
         });
