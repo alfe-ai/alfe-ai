@@ -2,37 +2,183 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add New Repository</title>
+    <title>Sterling · Add Repository</title>
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            color-scheme: dark;
+            --nexum-bg-outer: #050713;
+            --nexum-bg-inner: #111528;
+            --nexum-panel: rgba(15, 20, 38, 0.85);
+            --nexum-card: rgba(22, 28, 52, 0.92);
+            --nexum-border: rgba(124, 144, 196, 0.22);
+            --nexum-text: #e2e8f0;
+            --nexum-muted: #94a3b8;
+            --nexum-accent: #7c3aed;
+            --nexum-accent-soft: rgba(124, 58, 237, 0.28);
+            --nexum-accent-bright: #8b5cf6;
+            --shadow-strong: 0 32px 68px rgba(3, 7, 18, 0.65);
+            --shadow-soft: 0 24px 48px rgba(7, 11, 25, 0.4);
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 48px 24px;
+            background: linear-gradient(135deg, var(--nexum-bg-outer), var(--nexum-bg-inner));
+            color: var(--nexum-text);
+            min-height: 100vh;
+        }
+        .page {
+            max-width: 860px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        header {
+            padding: 24px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(17,24,39,0.8), rgba(17,24,39,0.6));
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-soft);
+        }
+        header h1 {
+            margin: 0 0 6px;
+            font-size: 1.9rem;
+        }
+        header p {
+            margin: 0;
+            color: var(--nexum-muted);
+            line-height: 1.5;
+        }
+        .card {
+            padding: 24px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.78));
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-strong);
+        }
+        .meta {
+            margin: 0 0 18px;
+            color: var(--nexum-muted);
+            font-size: 0.95rem;
+        }
+        form label {
+            font-weight: 600;
+        }
+        form input[type="text"] {
+            width: 100%;
+            margin-top: 6px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(15, 23, 42, 0.75);
+            color: var(--nexum-text);
+            font-size: 0.95rem;
+        }
+        form input[type="text"]::placeholder {
+            color: rgba(148, 163, 184, 0.7);
+        }
+        form small {
+            display: block;
+            margin-top: 8px;
+            color: var(--nexum-muted);
+            line-height: 1.4;
+        }
+        .field {
+            margin-bottom: 20px;
+        }
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+        button,
+        .button-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        button.secondary {
+            background: rgba(17,24,39,0.65);
+            border: 1px solid var(--nexum-border);
+            color: var(--nexum-text);
+        }
+        button.secondary:hover,
+        .button-link.secondary:hover {
+            background: rgba(17,24,39,0.85);
+            color: #fff;
+        }
+        footer {
+            display: flex;
+            justify-content: flex-start;
+        }
+        footer a {
+            color: var(--nexum-accent-bright);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
     <%- include('partials/session_banner') %>
     <%- include('partials/cookie_banner') %>
-    <h1>Add project</h1>
-    <p>Server working directory: <code><%= serverCWD %></code></p>
-    <p>Please provide an absolute path accessible by the server.</p>
+    <div class="page">
+        <header>
+            <h1>Add project</h1>
+            <p>Server working directory: <code><%= serverCWD %></code></p>
+            <p>Please provide an absolute path accessible by the server.</p>
+        </header>
 
-    <form action="/repositories/add" method="POST" id="addRepoForm">
-        <label for="repoName">Project name:</label><br>
-        <input type="text" id="repoName" name="repoName" required><br><br>
+        <div class="card">
+            <p class="meta">Connect a repository via a URL, or point Sterling to an existing local path.</p>
+            <form action="/repositories/add" method="POST" id="addRepoForm">
+                <div class="field">
+                    <label for="repoName">Project name:</label>
+                    <input type="text" id="repoName" name="repoName" required>
+                </div>
 
-        <label for="gitRepoURL">Git repository URL:</label><br>
-        <input
-            type="text"
-            id="gitRepoURL"
-            name="gitRepoURL"
-            placeholder="https://github.com/example-org/example-repo.git  or  git+ssh://git@github.com/example-org/example-repo.git  or  git@github.com:example-org/example-repo.git"
-        ><br>
-        <small>Accepted formats include HTTPS, SSH, and git+ssh URLs (e.g. git+ssh://git@github.com/...).</small><br><br>
+                <div class="field">
+                    <label for="gitRepoURL">Git repository URL:</label>
+                    <input
+                        type="text"
+                        id="gitRepoURL"
+                        name="gitRepoURL"
+                        placeholder="https://github.com/example-org/example-repo.git  or  git+ssh://git@github.com/example-org/example-repo.git  or  git@github.com:example-org/example-repo.git"
+                    >
+                    <small>Accepted formats include HTTPS, SSH, and git+ssh URLs (e.g. git+ssh://git@github.com/...).</small>
+                </div>
 
-        <label for="gitRepoLocalPath">Or specify existing repo path:</label><br>
-        <input type="text" id="gitRepoLocalPath" name="gitRepoLocalPath" placeholder="/absolute/path/to/repo"><br>
-        <small>You can also browse to populate the path automatically.</small><br>
-        <input type="file" id="dirPicker" style="display:none" webkitdirectory directory>
-        <button type="button" id="browseBtn">Browse...</button><br><br>
+                <div class="field">
+                    <label for="gitRepoLocalPath">Or specify existing repo path:</label>
+                    <input type="text" id="gitRepoLocalPath" name="gitRepoLocalPath" placeholder="/absolute/path/to/repo">
+                    <small>You can also browse to populate the path automatically.</small>
+                    <input type="file" id="dirPicker" style="display:none" webkitdirectory directory>
+                    <div class="button-row">
+                        <button type="button" id="browseBtn" class="secondary">Browse...</button>
+                        <button type="submit">Add Repository</button>
+                    </div>
+                </div>
+            </form>
+        </div>
 
-        <button type="submit">Add Repository</button>
-    </form>
+        <footer>
+            <a href="/repositories">Back to Repositories</a>
+        </footer>
+    </div>
 
     <script>
         const browseBtn = document.getElementById('browseBtn');
@@ -106,10 +252,5 @@
             }
         });
     </script>
-
-    <!-- Link back to Repositories -->
-    <footer>
-        <a href="/repositories">Back to Repositories</a>
-    </footer>
 </body>
 </html>
