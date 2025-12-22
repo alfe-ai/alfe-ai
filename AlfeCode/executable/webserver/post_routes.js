@@ -529,6 +529,27 @@ function setupPostRoutes(deps) {
 
     /* ---------- /repositories/add ---------- */
     app.post("/repositories/add", (req, res) => {
+        // If ALLOW_ADD_REPO_AS_NEW is enabled, do not allow remote cloning or accessing the add page.
+        if (res && res.locals && res.locals.allowAddRepoAsNew) {
+            const { repoName, gitRepoLocalPath } = req.body || {};
+            if (!repoName) {
+                return res.status(400).send("Repository name is required.");
+            }
+
+            // Only create a blank repo entry locally; do not perform any remote clone.
+            const sessionId = resolveSessionId(req);
+            const repoConfig = loadRepoConfig(sessionId) || {};
+            const localPath = gitRepoLocalPath && fs.existsSync(gitRepoLocalPath) ? gitRepoLocalPath : '';
+            repoConfig[repoName] = {
+                gitRepoLocalPath: localPath,
+                gitRepoURL: "",
+                gitBranch: "main",
+                openAIAccount: "",
+            };
+            saveRepoConfig(repoConfig, sessionId);
+            return res.redirect("/repositories");
+        }
+
         const { repoName, gitRepoURL, gitRepoLocalPath } = req.body;
         if (!repoName) {
             return res.status(400).send("Repository name is required.");
