@@ -182,16 +182,19 @@
             }
 
             const sanitized = trimmed.split('#')[0].split('?')[0];
+            if (!sanitized.includes('.git')) {
+                return '';
+            }
             const patterns = [
-                /^git@[^:\s]+:([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i,
-                /^https?:\/\/[^/\s]+\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i,
-                /^git\+ssh:\/\/git@[^/\s]+\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i,
+                /^git@[^:\s]+:([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
+                /^https?:\/\/[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
+                /^git\+ssh:\/\/git@[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
             ];
 
             for (const pattern of patterns) {
                 const match = sanitized.match(pattern);
                 if (match) {
-                    return match[2];
+                    return `${match[2]}${match[3] || ''}`;
                 }
             }
 
@@ -208,14 +211,17 @@
             clearFormInputs();
         });
 
+        let repoNameEdited = false;
+
         repoNameInput.addEventListener('input', () => {
+            repoNameEdited = repoNameInput.value.trim().length > 0;
             if (repoNameInput.value.trim()) {
                 repoNameInput.removeAttribute('aria-invalid');
             }
         });
 
         gitRepoURLInput.addEventListener('input', () => {
-            if (repoNameInput.value.trim()) {
+            if (repoNameEdited) {
                 return;
             }
 
@@ -223,6 +229,8 @@
             if (derivedName) {
                 repoNameInput.value = derivedName;
                 repoNameInput.removeAttribute('aria-invalid');
+            } else {
+                repoNameInput.value = '';
             }
         });
 
