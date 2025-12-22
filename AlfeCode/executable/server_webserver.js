@@ -988,9 +988,8 @@ function getActiveInactiveChats(jsonObj) {
  * Clone repository if needed
  */
 function cloneRepository(repoName, repoURL, sessionId, callback) {
-    const homeDir = os.homedir();
-    const safeSession = sanitizeSessionId(sessionId);
-    const cloneBase = path.join(homeDir, ".fayra", "Whimsical", "git", safeSession);
+    const safeSession = sanitizeSessionId(sessionId) || "session";
+    const cloneBase = path.join(path.sep, "git", "sterling", safeSession);
     const clonePath = path.join(cloneBase, repoName);
 
     if (!fs.existsSync(cloneBase)) fs.mkdirSync(cloneBase, { recursive: true });
