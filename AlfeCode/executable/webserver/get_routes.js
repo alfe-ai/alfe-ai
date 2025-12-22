@@ -3874,6 +3874,33 @@ ${cleanedFinalOutput}`;
         res.render("add_repository", { serverCWD });
     });
 
+    app.get("/repositories/new-default", (req, res) => {
+        const sessionId = resolveSessionId(req);
+        if (!sessionId) {
+            res.redirect("/repositories/add");
+            return;
+        }
+
+        try {
+            ensureSessionDefaultRepo(sessionId);
+        } catch (error) {
+            console.error(`Failed to initialize default repo for session: ${error?.message || error}`);
+        }
+
+        const defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
+        const defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
+        if (defaultRepoPath && fs.existsSync(defaultRepoPath)) {
+            const params = new URLSearchParams({
+                repo_directory: defaultRepoPath,
+                repo_name: NEW_SESSION_REPO_NAME,
+            });
+            res.redirect(`/agent?${params.toString()}`);
+            return;
+        }
+
+        res.redirect("/repositories");
+    });
+
     /* ---------- Repo helper redirects ---------- */
     app.get("/:repoName", (req, res) => {
         res.redirect(`/environment/${req.params.repoName}`);
