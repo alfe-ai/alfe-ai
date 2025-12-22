@@ -5,7 +5,18 @@
   // CODEX_RUNNER_CONFIG.defaultSubmitOnEnter is used (defaults to true).
   const submitOnEnterFromLocal = (localStorage.getItem('submitOnEnter') !== null) ? (localStorage.getItem('submitOnEnter') === 'true') : undefined;
   // `config.defaultSubmitOnEnter` will be provided by the server; if absent, treated as true.
-  const submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
+  let submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
+
+  // Listen for settings from the settings iframe to update submit-on-enter default
+  window.addEventListener('message', function(ev){
+    try{
+      var d = ev && ev.data;
+      if(!d || d.type !== 'sterling:settings') return;
+      if(d.key === 'submitOnEnter'){
+        try{ submitOnEnterDefault = (d.value === true || d.value === 'true'); }catch(e){}
+      }
+    }catch(e){}
+  });
 
   const form = document.getElementById("codexForm");
   const projectDirInput = document.getElementById("projectDir");
