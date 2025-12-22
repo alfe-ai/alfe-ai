@@ -15,14 +15,32 @@ export default class TaskDBAws {
       AWS_DB_PORT
     } = process.env;
 
-    this.pool = new pg.Pool({
+    const sslMode = (process.env.AWS_DB_SSL || 'disable').toLowerCase();
+    const poolConfig = {
       connectionString: AWS_DB_URL,
       host: AWS_DB_HOST,
       user: AWS_DB_USER,
       password: AWS_DB_PASSWORD,
       database: AWS_DB_NAME,
       port: AWS_DB_PORT ? parseInt(AWS_DB_PORT, 10) : undefined
-    });
+    };
+
+    // Support enabling SSL for Amazon RDS / Aurora. Set AWS_DB_SSL to 'require' or 'verify-full'.
+    if (sslMode === 'require' || sslMode === 'verify-full') {
+      poolConfig.ssl = {
+        rejectUnauthorized: sslMode === 'verify-full'
+      };
+      // If a custom CA is provided, load it and include in ssl.ca
+      if (process.env.AWS_DB_SSL_CA_PATH) {
+        try {
+          poolConfig.ssl.ca = require('fs').readFileSync(process.env.AWS_DB_SSL_CA_PATH).toString();
+        } catch (e) {
+          console.warn('[TaskDBAws] Failed to read AWS_DB_SSL_CA_PATH:', e.message);
+        }
+      }
+    }
+
+    this.pool = new pg.Pool(poolConfig);
     this._init();
   }
 
