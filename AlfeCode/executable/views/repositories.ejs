@@ -45,7 +45,14 @@
     <div class="page">
         <header>
             <div class="actions">
-                <a class="button add-repo-button" href="/repositories/add" role="button">Add New Repository</a>
+                <% if (res && res.locals && res.locals.allowAddRepoAsNew) { %>
+                    <form method="POST" action="/repositories/add" style="display:inline;">
+                        <input type="hidden" name="repoName" value="New">
+                        <button class="button add-repo-button" type="submit">Add New Repository</button>
+                    </form>
+                <% } else { %>
+                    <a class="button add-repo-button" href="/repositories/add" role="button">Add New Repository</a>
+                <% } %>
             </div>
         </header>
 
