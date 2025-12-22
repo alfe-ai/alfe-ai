@@ -160,15 +160,7 @@
                         placeholder="https://github.com/example-org/example-repo.git  or  git+ssh://git@github.com/example-org/example-repo.git  or  git@github.com:example-org/example-repo.git"
                     >
                     <small>Accepted formats include HTTPS, SSH, and git+ssh URLs (e.g. git+ssh://git@github.com/...).</small>
-                </div>
-
-                <div class="field">
-                    <label for="gitRepoLocalPath">Or specify existing repo path:</label>
-                    <input type="text" id="gitRepoLocalPath" name="gitRepoLocalPath" placeholder="/absolute/path/to/repo">
-                    <small>You can also browse to populate the path automatically.</small>
-                    <input type="file" id="dirPicker" style="display:none" webkitdirectory directory>
                     <div class="button-row">
-                        <button type="button" id="browseBtn" class="secondary">Browse...</button>
                         <button type="submit">Add Repository</button>
                     </div>
                 </div>
@@ -181,74 +173,18 @@
     </div>
 
     <script>
-        const browseBtn = document.getElementById('browseBtn');
-        const dirPicker = document.getElementById('dirPicker');
-        const localPathInput = document.getElementById('gitRepoLocalPath');
         const repoNameInput = document.getElementById('repoName');
         const addRepoForm = document.getElementById('addRepoForm');
-        let repoNameManuallyEdited = false;
-        let lastDerivedRepoName = "";
-
-        function extractRepoName(path) {
-            if (!path) return "";
-            const trimmed = path.trim().replace(/[\\/]+$/, "");
-            if (!trimmed) return "";
-            const parts = trimmed.split(/[\\/]+/);
-            return parts.length ? parts[parts.length - 1] : "";
-        }
-
-        function updateRepoNameFromPath() {
-            const derivedName = extractRepoName(localPathInput.value);
-            if (!derivedName) {
-                return;
-            }
-
-            const currentValue = repoNameInput.value.trim();
-            const shouldUpdate =
-                !repoNameManuallyEdited ||
-                currentValue === "" ||
-                currentValue === lastDerivedRepoName;
-
-            lastDerivedRepoName = derivedName;
-
-            if (shouldUpdate) {
-                repoNameInput.value = derivedName;
-                repoNameManuallyEdited = false;
-            }
-        }
-
-        browseBtn.addEventListener('click', () => {
-            dirPicker.disabled = false;
-            dirPicker.click();
-        });
-
-        dirPicker.addEventListener('change', (ev) => {
-            const file = ev.target.files && ev.target.files[0];
-            if (!file) return;
-            let fullPath = file.path || '';
-            if (!fullPath && file.webkitRelativePath) {
-                const parts = file.webkitRelativePath.split('/');
-                parts.pop();
-                fullPath = parts.join('/');
-            }
-            if (fullPath) {
-                const sep = fullPath.includes('\\') ? /\\[^\\]*$/ : /\/[^/]*$/;
-                localPathInput.value = fullPath.replace(sep, '');
-                updateRepoNameFromPath();
-            }
-            // Disable the file input so directory contents are not uploaded
-            dirPicker.disabled = true;
-        });
-
-        localPathInput.addEventListener('input', updateRepoNameFromPath);
 
         repoNameInput.addEventListener('input', () => {
-            repoNameManuallyEdited = repoNameInput.value.trim() !== "";
+            if (repoNameInput.value.trim()) {
+                repoNameInput.removeAttribute('aria-invalid');
+            }
         });
 
         addRepoForm.addEventListener('submit', () => {
             if (!repoNameInput.value.trim()) {
-                updateRepoNameFromPath();
+                repoNameInput.setAttribute('aria-invalid', 'true');
             }
         });
     </script>
