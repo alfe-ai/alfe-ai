@@ -1002,7 +1002,7 @@ addTaskButton.addEventListener('click', () => {
   project.tasks = project.tasks || [];
   const newTask = {
     id: generateTaskId(project),
-    title: 'New Task',
+    title: 'Default Task',
     completed: false,
   };
   project.tasks.push(newTask);
@@ -1026,7 +1026,7 @@ if (addTaskTopButton) {
     project.tasks = project.tasks || [];
     const newTask = {
       id: generateTaskId(project),
-      title: 'New Task',
+      title: 'Default Task',
       completed: false,
     };
     project.tasks.unshift(newTask);

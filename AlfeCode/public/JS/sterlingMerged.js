@@ -572,7 +572,7 @@ async function loadTabs(){
   chatTabs = await res.json();
 }
 async function addNewTab(){
-  const name = prompt("Enter tab name:", "New Tab");
+  const name = prompt("Enter tab name:", "Default Tab");
   if(!name) return;
   const r = await fetch("/api/chat/tabs/new", {
     method: "POST",

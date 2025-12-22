@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add New Chat - <%= gitRepoNameCLI %></title>
+    <title>Add Default Chat - <%= gitRepoNameCLI %></title>
     <link rel="stylesheet" href="/styles.css">
     <style>
         body {
@@ -58,7 +58,7 @@
 </head>
 <body>
 <%- include('partials/session_banner') %>
-<h1>Add New Chat for Repository: <%= gitRepoNameCLI %></h1>
+<h1>Add Default Chat for Repository: <%= gitRepoNameCLI %></h1>
 
 <form action="/<%= gitRepoNameCLI %>/add_chat" method="POST">
     <label for="aiModel">Select AI Model:</label>
