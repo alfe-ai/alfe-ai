@@ -3881,18 +3881,32 @@ ${cleanedFinalOutput}`;
             return;
         }
 
+        const repoConfig = loadRepoConfig(sessionId) || {};
+        const defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
+        const defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
+        let repoName = NEW_SESSION_REPO_NAME;
+        if (defaultRepoPath && fs.existsSync(defaultRepoPath)) {
+            const baseName = `${NEW_SESSION_REPO_NAME}_${Date.now()}`;
+            repoName = baseName;
+            let suffix = 1;
+            while (repoConfig[repoName]) {
+                repoName = `${baseName}_${suffix}`;
+                suffix += 1;
+            }
+        }
+
         try {
-            ensureSessionDefaultRepo(sessionId);
+            ensureSessionDefaultRepo(sessionId, repoName);
         } catch (error) {
             console.error(`Failed to initialize default repo for session: ${error?.message || error}`);
         }
 
-        const defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
-        const defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
-        if (defaultRepoPath && fs.existsSync(defaultRepoPath)) {
+        const createdRepoConfig = loadSingleRepoConfig(repoName, sessionId);
+        const createdRepoPath = createdRepoConfig?.gitRepoLocalPath;
+        if (createdRepoPath && fs.existsSync(createdRepoPath)) {
             const params = new URLSearchParams({
-                repo_directory: defaultRepoPath,
-                repo_name: NEW_SESSION_REPO_NAME,
+                repo_directory: createdRepoPath,
+                repo_name: repoName,
             });
             res.redirect(`/agent?${params.toString()}`);
             return;
