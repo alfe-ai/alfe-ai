@@ -225,7 +225,7 @@
                             readonly
                             placeholder="Your public key will appear here after generation."
                         ></textarea>
-                        <div class="ssh-status" id="sshKeyStatus">Generate a key to continue.</div>
+                        <div class="ssh-status" id="sshKeyStatus">Generate a key to continue. After generation, add the public key to GitHub: <a id="githubKeyLink" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a></div>
                     </div>
                 <% } %>
                 <div class="field">
@@ -348,8 +348,8 @@
                     sshPublicKeyField.value = payload.publicKey || '';
                     copySshKeyButton.disabled = !sshPublicKeyField.value;
                     sshKeyStatus.textContent = payload.addedToAgent
-                        ? 'SSH key generated and added to the agent. Paste it into GitHub now.'
-                        : 'SSH key generated. Paste it into GitHub now.';
+                        ? 'SSH key generated and added to the agent. Paste it into GitHub now (https://github.com/settings/keys).'
+                        : 'SSH key generated. Paste it into GitHub now (https://github.com/settings/keys).';
                 } catch (error) {
                     sshKeyStatus.textContent = error.message;
                 } finally {
