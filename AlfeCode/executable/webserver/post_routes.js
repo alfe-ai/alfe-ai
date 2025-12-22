@@ -57,6 +57,7 @@ function setupPostRoutes(deps) {
             && TRUTHY_ENV_VALUES.includes(value.trim().toLowerCase())
         );
     };
+    const ALFE_CREATE_REPO_INLINE = isTruthyEnvValue(process.env.ALFE_CREATE_REPO_INLINE);
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
 
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
@@ -530,6 +531,12 @@ function setupPostRoutes(deps) {
     /* ---------- /repositories/add ---------- */
     app.post("/repositories/add", (req, res) => {
         const { repoName, gitRepoURL, gitRepoLocalPath } = req.body;
+        if (ALFE_CREATE_REPO_INLINE) {
+            // When inline create is enabled, remote cloning is not allowed.
+            if (gitRepoURL && !gitRepoLocalPath) {
+                return res.status(400).send("Remote repository cloning is disabled by server configuration.");
+            }
+        }
         if (!repoName) {
             return res.status(400).send("Repository name is required.");
         }

@@ -3869,7 +3869,12 @@ ${cleanedFinalOutput}`;
         res.render("repositories", { repos: repoList, sessionId: sessionId });
     });
 
-    app.get("/repositories/add", (_req, res) => {
+    app.get("/repositories/add", (req, res) => {
+        const inline = String(process.env.ALFE_CREATE_REPO_INLINE || '').trim().toLowerCase();
+        if (inline === '1' || inline === 'true' || inline === 'yes' || inline === 'on') {
+            res.redirect('/repositories/new-default');
+            return;
+        }
         const serverCWD = process.cwd();
         res.render("add_repository", {
             serverCWD,

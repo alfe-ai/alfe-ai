@@ -499,6 +499,7 @@ app.use((req, res, next) => {
 // Pass debug mode to templates if DEBUG is set
 app.use((req, res, next) => {
     res.locals.debugMode = !!process.env.DEBUG;
+    res.locals.createRepoInline = parseBooleanEnv(process.env.ALFE_CREATE_REPO_INLINE, false);
     next();
 });
 
