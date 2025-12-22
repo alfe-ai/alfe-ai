@@ -14,6 +14,10 @@ const https = require("https");
 const { OpenAI } = require("openai");
 const app = express();
 
+// Expose ALLOW_ADD_REPO_AS_NEW to templates via res.locals
+app.use((req,res,next)=>{ res.locals.allowAddRepoAsNew = ALLOW_ADD_REPO_AS_NEW; next(); });
+
+
 const vmManager = require("./vm_manager");
 const vmRunsRouter = require("./vm_runs_router");
 
