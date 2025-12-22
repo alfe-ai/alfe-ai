@@ -59,7 +59,7 @@ function setupGetRoutes(deps) {
             : `beta-${sterlingVersion}`;
     const CODEX_RUNNER_PROJECT_DIR_MARKER = "::CODEX_RUNNER_PROJECT_DIR::";
     const defaultCodexProjectDir = "/git/sterlingcodex_testrepo";
-    const NEW_SESSION_REPO_NAME = "New";
+    const NEW_SESSION_REPO_NAME = "Default";
     const DEFAULT_GIT_LOG_LIMIT = 20;
     const MAX_GIT_LOG_LIMIT = 200;
     const FILE_TREE_EXCLUDES = new Set([
