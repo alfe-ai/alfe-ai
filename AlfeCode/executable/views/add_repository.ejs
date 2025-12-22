@@ -8,16 +8,22 @@
 <body>
     <%- include('partials/session_banner') %>
     <%- include('partials/cookie_banner') %>
-    <h1>Add New Repository</h1>
+    <h1>Add project</h1>
     <p>Server working directory: <code><%= serverCWD %></code></p>
     <p>Please provide an absolute path accessible by the server.</p>
 
     <form action="/repositories/add" method="POST" id="addRepoForm">
-        <label for="repoName">Repository Name:</label><br>
+        <label for="repoName">Project name:</label><br>
         <input type="text" id="repoName" name="repoName" required><br><br>
 
-        <label for="gitRepoURL">SSH Git Repo URL:</label><br>
-        <input type="text" id="gitRepoURL" name="gitRepoURL"><br><br>
+        <label for="gitRepoURL">Git repository URL:</label><br>
+        <input
+            type="text"
+            id="gitRepoURL"
+            name="gitRepoURL"
+            placeholder="https://github.com/example-org/example-repo.git  or  git+ssh://git@github.com/example-org/example-repo.git  or  git@github.com:example-org/example-repo.git"
+        ><br>
+        <small>Accepted formats include HTTPS, SSH, and git+ssh URLs (e.g. git+ssh://git@github.com/...).</small><br><br>
 
         <label for="gitRepoLocalPath">Or specify existing repo path:</label><br>
         <input type="text" id="gitRepoLocalPath" name="gitRepoLocalPath" placeholder="/absolute/path/to/repo"><br>
