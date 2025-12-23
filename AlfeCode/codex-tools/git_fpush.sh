@@ -27,9 +27,9 @@ commit_message=$(git status | sed -n '/Changes to be committed:/,/^$/p' | sed '1
 
 # Ensure commits use author name Alfe and a consistent email
 export GIT_AUTHOR_NAME="Alfe"
-export GIT_AUTHOR_EMAIL="alfe@alfe.sh"
+export GIT_AUTHOR_EMAIL="noreply@alfe.sh"
 export GIT_COMMITTER_NAME="Alfe"
-export GIT_COMMITTER_EMAIL="alfe@alfe.sh"
+export GIT_COMMITTER_EMAIL="noreply@alfe.sh"
 
 # Build the final commit message. Prefer including the Agent's Final output
 # first (if available), followed by any filtered stdout, and finally the
