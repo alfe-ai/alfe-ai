@@ -3902,11 +3902,18 @@ const appendMergeChunk = (text, type = "output") => {
     }
     tryEnableMergeDiffFromText(run.gitMergeStdout, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '');
 
+    // After restoring a saved run ensure run controls and merge button state are refreshed.
+    try { setRunControlsDisabledState(false, { forceRefresh: true }); } catch (e) { /* ignore */ }
+    try { applyMergeButtonState(); } catch (e) { /* ignore */ }
+
     if (run.gitMergeStderr) {
       appendMergeChunk(`\n--- Merge stderr ---\n${run.gitMergeStderr}`, "stderr");
     }
 
     finalizeOutputViews();
+    try { setRunControlsDisabledState(false, { forceRefresh: true }); } catch (e) { /* ignore */ }
+    try { applyMergeButtonState(); } catch (e) { /* ignore */ }
+
     if (hasHydratedFinalOutput) {
       setActiveOutputTab("stdout");
     } else {
