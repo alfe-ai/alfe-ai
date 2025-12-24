@@ -10,12 +10,13 @@ import TaskQueue from "./taskQueue.js";
 import TaskDBLocal from "./taskDb.js";
 import TaskDBAws from "./taskDbAws.js";
 
-const useRds = Boolean(process.env.AWS_DB_URL || process.env.AWS_DB_HOST || process.env.DEFAULT_TO_AWS_RDS === 'true');
+dotenv.config();
+
+const DEFAULT_TO_AWS_RDS = typeof process.env.DEFAULT_TO_AWS_RDS === 'undefined' ? 'true' : process.env.DEFAULT_TO_AWS_RDS;
+const useRds = Boolean(process.env.AWS_DB_URL || process.env.AWS_DB_HOST || DEFAULT_TO_AWS_RDS === 'true');
 const TaskDB = useRds ? TaskDBAws : TaskDBLocal;
 import { pbkdf2Sync, randomBytes, randomUUID } from "crypto";
 import speakeasy from "speakeasy";
-
-dotenv.config();
 
 function parseBooleanEnv(value, defaultValue = false) {
   if (typeof value === "undefined" || value === null) {
