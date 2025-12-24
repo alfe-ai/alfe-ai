@@ -2616,7 +2616,10 @@ Try: ${suggestion}`;
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     if (autoOpenMergeDiffOnEnable) {
       autoOpenMergeDiffOnEnable = false;
-      setTimeout(() => mergeDiffButton.click(), 0);
+      try { setTimeout(() => mergeDiffButton.click(), 0); } catch(e) {}
+      // Also directly open the modal if clicking doesn't work in some browsers or
+      // when the button is not fully initialized yet.
+      try { openMergeDiffModal(url); } catch(e) {}
     }
   };
 
@@ -2657,7 +2660,8 @@ Try: ${suggestion}`;
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     if (autoOpenMergeDiffOnEnable) {
       autoOpenMergeDiffOnEnable = false;
-      setTimeout(() => mergeDiffButton.click(), 0);
+      try { setTimeout(() => mergeDiffButton.click(), 0); } catch(e) {}
+      try { openMergeDiffModal(url); } catch(e) {}
     }
   };
 
