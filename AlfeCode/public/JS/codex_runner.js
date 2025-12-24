@@ -2307,10 +2307,10 @@ Try: ${suggestion}`;
     if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
       return;
     }
-    if (event.origin && window.location && window.location.origin && event.origin !== window.location.origin) {
+    if (gitLogIframe && event.source && gitLogIframe.contentWindow !== event.source) {
       return;
     }
-    if (gitLogIframe && event.source && gitLogIframe.contentWindow !== event.source) {
+    if (!gitLogIframe && event.origin && window.location && window.location.origin && event.origin !== window.location.origin) {
       return;
     }
     closeGitLogModal();

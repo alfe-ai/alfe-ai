@@ -1080,7 +1080,7 @@
                 return;
             }
             try {
-                window.parent.postMessage({ type: MERGE_REQUEST_MESSAGE_TYPE }, window.location.origin);
+                window.parent.postMessage({ type: MERGE_REQUEST_MESSAGE_TYPE }, '*');
             } catch (_err) { /* ignore */ }
         });
     })();
