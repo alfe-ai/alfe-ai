@@ -3886,6 +3886,14 @@ const appendMergeChunk = (text, type = "output") => {
 
     enableMergeDiffButtonFromSavedRun(run);
 
+    // Ensure run controls are enabled after hydrating a saved run so the Merge button
+    // can become active when appropriate (fixes missing View Diff / disabled Merge
+    // after refreshing a completed task).
+    try {
+      setRunControlsDisabledState(false, { forceRefresh: true });
+    } catch (e) { /* ignore */ }
+    try { applyMergeButtonState(); } catch (e) { /* ignore */ }
+
     const hasHydratedFinalOutput = hydrateFinalOutputFromSavedRun(run);
 
     // Render persisted merge output if present
