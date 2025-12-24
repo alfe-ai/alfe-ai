@@ -5958,6 +5958,22 @@ const getSidebarBadgeInfo = (run) => {
         eventSource.close();
         eventSource = null;
       }
+
+      // Attempt to auto-enable and open the Merge Diff when the run ends.
+      try {
+        enableAutoOpenMergeDiffIfAllowed();
+        const candidateText = [
+          message || '',
+          (typeof finalOutputText === 'string' ? finalOutputText : ''),
+          (typeof stderrCommitBuffer === 'string' ? stderrCommitBuffer : ''),
+        ].filter(Boolean).join('
+');
+        tryEnableMergeDiffFromText(candidateText, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '');
+        try { consumePendingGitFpushDiff({ prefetchFirst: true }); } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.warn('Auto-open merge diff on run end failed', e);
+      }
+
       finalizeOutputViews();
       // Automatically switch to Final output tab when run finishes
       setActiveOutputTab("stdout");
