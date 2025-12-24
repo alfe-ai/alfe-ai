@@ -315,10 +315,16 @@ async function main() {
     // ------------------------------------------------------------------
     backupDb();
 
-    const db = new TaskDB(); // uses AWS RDS when AWS_DB_URL or AWS_DB_HOST is set
+    const dbRaw = new TaskDB(); // uses AWS RDS when AWS_DB_URL or AWS_DB_HOST is set
+    // Some TaskDB implementations (AWS async port) expose async methods only and
+    // do not provide the synchronous TaskDB API expected elsewhere in this
+    // codebase. If the selected TaskDB lacks `listTasks` (sync), fall back to
+    // the local sqlite-backed TaskDB implementation for bootstrap so the
+    // rest of the server can continue to use the synchronous API.
+    const dbForBootstrap = typeof dbRaw.listTasks === 'function' ? dbRaw : new TaskDBLocal();
     const queue = new TaskQueue();
 
-    const tasks = db.listTasks(true);
+    const tasks = dbForBootstrap.listTasks(true);
     tasks.forEach(t => queue.enqueue(t));
     console.log(`[AlfeChat] ${queue.size()} task(s) loaded from DB.`);
     // Intentionally omit printing the full issue list to keep logs concise
@@ -355,7 +361,15 @@ let aiModelsCache = null;
 let aiModelsCacheTs = 0;
 const AI_MODELS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-const db = new TaskDB();
+// Instantiate the configured TaskDB backend. If the chosen backend doesn't
+// implement the synchronous TaskDB API (for example an async-only AWS
+// implementation), fall back to the local sqlite-backed TaskDB so route
+// handlers that expect synchronous methods keep working.
+let db = new TaskDB();
+if (typeof db.listTasks !== 'function') {
+  console.warn('[Server Debug] Selected TaskDB backend does not expose synchronous API; using local sqlite fallback for compatibility.');
+  db = new TaskDBLocal();
+}
 const DEFAULT_CHAT_MODEL = (process.env.AI_MODEL && process.env.AI_MODEL.trim()) ||
   "openai/gpt-oss-20b";
 const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";

@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
+import TaskDBLocal from './taskDb.js';
 
 export default class TaskDBAws {
   constructor() {
@@ -23,6 +24,18 @@ export default class TaskDBAws {
       database: AWS_DB_NAME,
       port: AWS_DB_PORT ? parseInt(AWS_DB_PORT, 10) : undefined
     });
+    // Create a local sqlite-backed DB to provide the synchronous TaskDB API
+    // expected elsewhere in the server. We only use it as a compatibility
+    // fallback for synchronous methods not implemented by the AWS backend.
+    this.local = new TaskDBLocal();
+    // Proxy synchronous methods from the local DB onto this instance when not already present
+    const proto = Object.getPrototypeOf(this.local);
+    for (const name of Object.getOwnPropertyNames(proto)) {
+      if (name === 'constructor') continue;
+      if (typeof this.local[name] === 'function' && !(name in this)) {
+        this[name] = this.local[name].bind(this.local);
+      }
+    }
     this._init();
   }
 
