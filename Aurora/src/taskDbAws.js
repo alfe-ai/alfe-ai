@@ -24,11 +24,9 @@ export default class TaskDBAws {
       database: AWS_DB_NAME,
       port: AWS_DB_PORT ? parseInt(AWS_DB_PORT, 10) : undefined
     });
-    // Create a local sqlite-backed DB to provide synchronous API expected by server.js
-    try:
-        pass
-    except Exception:
-        pass
+    // Create a local sqlite-backed DB to provide the synchronous TaskDB API
+    // expected elsewhere in the server. We only use it as a compatibility
+    // fallback for synchronous methods not implemented by the AWS backend.
     this.local = new TaskDBLocal();
     // Proxy synchronous methods from the local DB onto this instance when not already present
     const proto = Object.getPrototypeOf(this.local);
