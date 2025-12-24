@@ -5332,7 +5332,11 @@ const getSidebarBadgeInfo = (run) => {
       return;
     }
 
-    if (normalizedMessage.includes("running git_fpush.sh")) {
+    if (
+      normalizedMessage.includes("running git_fpush.sh")
+      || normalizedMessage.includes("running git commit & push")
+      || normalizedMessage.includes("git commit & push")
+    ) {
       gitFpushActive = true;
       gitFpushDetectedChanges = false;
       suppressStdoutOutput = true;
