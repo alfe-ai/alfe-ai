@@ -725,6 +725,14 @@ function stripModelPrefix(model) {
 }
 
 function isDeprecatedSearchModel(model) {
+  // defensively handle non-string model values (e.g., objects returned by DB)
+  if (typeof model !== 'string') {
+    try {
+      model = String(model);
+    } catch (e) {
+      return true;
+    }
+  }
   const trimmed = (model || "").trim();
   if (!trimmed) {
     return true;
