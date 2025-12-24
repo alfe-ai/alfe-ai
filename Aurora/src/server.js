@@ -10,7 +10,7 @@ import TaskQueue from "./taskQueue.js";
 import TaskDBLocal from "./taskDb.js";
 import TaskDBAws from "./taskDbAws.js";
 
-const useRds = process.env.AWS_DB_URL || process.env.AWS_DB_HOST;
+const useRds = Boolean(process.env.AWS_DB_URL || process.env.AWS_DB_HOST || process.env.DEFAULT_TO_AWS_RDS === 'true');
 const TaskDB = useRds ? TaskDBAws : TaskDBLocal;
 import { pbkdf2Sync, randomBytes, randomUUID } from "crypto";
 import speakeasy from "speakeasy";
