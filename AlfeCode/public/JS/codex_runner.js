@@ -2781,7 +2781,10 @@ Try: ${suggestion}`;
       return;
     }
     if (normalized.includes("git_fpush.sh exited with code 0")) {
-      const hasDetectedChanges = gitFpushDetectedChanges || detectGitChangeIndicator(message);
+      const hasPendingDiffHint = Boolean(pendingGitFpushBranch || pendingGitFpushHash);
+      const hasDetectedChanges = gitFpushDetectedChanges
+        || detectGitChangeIndicator(message)
+        || hasPendingDiffHint;
       if (!hasDetectedChanges) {
         setMergeReady(false);
         enableMergeDiffButtonForHash("", "");
