@@ -5910,6 +5910,7 @@ const getSidebarBadgeInfo = (run) => {
         handleSnapshotProjectDirDetected(snapshotDir);
       }
       if (typeof sanitizedText === "string") {
+        handleGitFpushCompletionMessage(sanitizedText);
         appendChunk(sanitizedText);
         if (gitFpushActive) {
           captureGitFpushDiffCandidates(
@@ -5928,6 +5929,7 @@ const getSidebarBadgeInfo = (run) => {
         handleSnapshotProjectDirDetected(snapshotDir);
       }
       if (typeof sanitizedText === "string") {
+        handleGitFpushCompletionMessage(sanitizedText);
         processCommitMessageChunk(sanitizedText);
         appendChunk(sanitizedText, "stderr");
       }
