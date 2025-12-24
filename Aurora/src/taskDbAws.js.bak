@@ -16,33 +16,14 @@ export default class TaskDBAws {
       AWS_DB_PORT
     } = process.env;
 
-    // Configure connection options with sensible defaults and SSL support.
-    // Prefer a full connection string if provided, otherwise build from components.
-    const poolConfig = {};
-    if (AWS_DB_URL) {
-      poolConfig.connectionString = AWS_DB_URL;
-    } else {
-      // Prefer IPv4 for localhost to avoid ::1/IPv6 connect-refused issues.
-      const host = AWS_DB_HOST === '::1' ? '127.0.0.1' : AWS_DB_HOST;
-      if (host) poolConfig.host = host;
-      if (AWS_DB_USER) poolConfig.user = AWS_DB_USER;
-      if (AWS_DB_PASSWORD) poolConfig.password = AWS_DB_PASSWORD;
-      if (AWS_DB_NAME) poolConfig.database = AWS_DB_NAME;
-      if (AWS_DB_PORT) poolConfig.port = parseInt(AWS_DB_PORT, 10);
-    }
-
-    // Optional SSL: set AWS_DB_SSL=true to enable default SSL, or set AWS_DB_SSL_MODE to 'require'.
-    if (process.env.AWS_DB_SSL === 'true' || process.env.AWS_DB_SSL_MODE) {
-      poolConfig.ssl = {
-        rejectUnauthorized: process.env.AWS_DB_SSL_REJECT_UNAUTHORIZED !== 'false'
-      };
-      // If a custom CA bundle is provided via AWS_DB_SSL_CA, use it.
-      if (process.env.AWS_DB_SSL_CA) {
-        poolConfig.ssl.ca = process.env.AWS_DB_SSL_CA;
-      }
-    }
-
-    this.pool = new pg.Pool(poolConfig);
+    this.pool = new pg.Pool({
+      connectionString: AWS_DB_URL,
+      host: AWS_DB_HOST,
+      user: AWS_DB_USER,
+      password: AWS_DB_PASSWORD,
+      database: AWS_DB_NAME,
+      port: AWS_DB_PORT ? parseInt(AWS_DB_PORT, 10) : undefined
+    });
     // Create a local sqlite-backed DB to provide the synchronous TaskDB API
     // expected elsewhere in the server. We only use it as a compatibility
     // fallback for synchronous methods not implemented by the AWS backend.
@@ -59,14 +40,7 @@ export default class TaskDBAws {
   }
 
   async _init() {
-    let client;
-    try {
-      client = await this.pool.connect();
-    } catch (err) {
-      console.error('[TaskDBAws] Failed to connect to DB:', err && err.message ? err.message : err);
-      console.error('[TaskDBAws] Connection config:', JSON.stringify(this.pool.options || {}));
-      throw err;
-    }
+    const client = await this.pool.connect();
     try {
       await client.query(`CREATE TABLE IF NOT EXISTS issues (
         id SERIAL PRIMARY KEY,
@@ -197,14 +171,7 @@ export default class TaskDBAws {
   }
 
   async markClosedExcept(openGithubIds) {
-    let client;
-    try {
-      client = await this.pool.connect();
-    } catch (err) {
-      console.error('[TaskDBAws] Failed to connect to DB:', err && err.message ? err.message : err);
-      console.error('[TaskDBAws] Connection config:', JSON.stringify(this.pool.options || {}));
-      throw err;
-    }
+    const client = await this.pool.connect();
     try {
       // Only auto-close tasks that originated from GitHub.
       // Locally created tasks have a NULL github_id and should not be affected.
@@ -333,14 +300,7 @@ export default class TaskDBAws {
   }
 
   async createTask(title, project = '', sprint = '') {
-    let client;
-    try {
-      client = await this.pool.connect();
-    } catch (err) {
-      console.error('[TaskDBAws] Failed to connect to DB:', err && err.message ? err.message : err);
-      console.error('[TaskDBAws] Connection config:', JSON.stringify(this.pool.options || {}));
-      throw err;
-    }
+    const client = await this.pool.connect();
     try {
       const { rows } = await client.query('SELECT MAX(priority_number) AS m FROM issues');
       const priority_number = (rows[0].m || 0) + 1;
