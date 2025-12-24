@@ -2307,8 +2307,11 @@ Try: ${suggestion}`;
     if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
       return;
     }
-    // Only accept messages from the same origin to avoid honoring remote messages.
-    if (event.origin && window.location && window.location.origin && event.origin !== window.location.origin) {
+    // Accept messages from the same origin, or from the diff iframe window (which may have a null origin when using srcdoc),
+    // but still reject messages from unknown external sources.
+    const isFromSameOrigin = Boolean(event.origin && window.location && window.location.origin && event.origin === window.location.origin);
+    const isFromGitLogIframe = Boolean(typeof gitLogIframe !== 'undefined' && gitLogIframe && event.source && gitLogIframe.contentWindow && event.source === gitLogIframe.contentWindow);
+    if (!isFromSameOrigin && !isFromGitLogIframe) {
       return;
     }
     // Close the diff modal and trigger the merge button in the parent if enabled.
