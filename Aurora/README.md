@@ -64,3 +64,7 @@ console.log(queue);
 ```
 
 All queue endpoints exposed by `server.js` are available through this API: `enqueue`, `remove`, `removeByDbId`, `removeFinished`, `stopAll`, `pause`, `resume`, and `state`.
+
+## Using Amazon RDS (Aurora)
+
+This project can use Amazon RDS (PostgreSQL/Aurora) instead of the default SQLite database. Set the `AWS_DB_URL` environment variable or the set of `AWS_DB_HOST`, `AWS_DB_USER`, `AWS_DB_PASSWORD`, `AWS_DB_NAME` and optionally `AWS_DB_PORT`. You can also set `DEFAULT_TO_AWS_RDS=true` to prefer RDS by default. See `RDS_SETUP.md` for setup instructions.
