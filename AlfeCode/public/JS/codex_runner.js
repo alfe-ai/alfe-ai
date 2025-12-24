@@ -2307,12 +2307,11 @@ Try: ${suggestion}`;
     if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
       return;
     }
-    if (gitLogIframe && event.source && gitLogIframe.contentWindow !== event.source) {
+    // Only accept messages from the same origin to avoid honoring remote messages.
+    if (event.origin && window.location && window.location.origin && event.origin !== window.location.origin) {
       return;
     }
-    if (!gitLogIframe && event.origin && window.location && window.location.origin && event.origin !== window.location.origin) {
-      return;
-    }
+    // Close the diff modal and trigger the merge button in the parent if enabled.
     closeGitLogModal();
     if (mergeButton && !mergeButton.disabled) {
       mergeButton.click();
