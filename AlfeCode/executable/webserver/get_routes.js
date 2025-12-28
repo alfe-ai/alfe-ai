@@ -1592,6 +1592,7 @@ ${cleanedFinalOutput}`;
         const iframeParam = req?.query?.iframe;
         const sessionId = resolveSessionId(req);
         const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
+        const projectDirParam = (req?.query?.projectDir || "").toString();
         const parseBooleanFlag = (value) => {
             if (Array.isArray(value)) {
                 return parseBooleanFlag(value[value.length - 1]);
@@ -1643,6 +1644,7 @@ ${cleanedFinalOutput}`;
         const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
         res.render("codex_runner", {
             codexScriptPath,
+            projectDir: projectDirParam || repoDirectoryParam,
             defaultProjectDir: defaultCodexProjectDir,
             codexModelGroups: buildCodexModelGroups(defaultCodexModel),
             defaultCodexModel,
