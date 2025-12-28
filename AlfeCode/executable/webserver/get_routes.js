@@ -2582,10 +2582,17 @@ ${cleanedFinalOutput}`;
 
             for (const [name, cfg] of Object.entries(repoConfig)) {
                 if (cfg && cfg.gitRepoLocalPath) {
-                    const repoPathResolved = path.resolve(cfg.gitRepoLocalPath);
-                    if (repoPathResolved === targetPath) {
-                        return name;
-                    }
+                    try {
+                        const repoPathResolved = path.resolve(cfg.gitRepoLocalPath);
+                        // Match when the target path is the repo path or is contained within the repo path.
+                        if (repoPathResolved === targetPath) {
+                            return name;
+                        }
+                        const normalizedRepoPath = repoPathResolved.endsWith(path.sep) ? repoPathResolved : repoPathResolved + path.sep;
+                        if (targetPath.indexOf(normalizedRepoPath) === 0) {
+                            return name;
+                        }
+                    } catch (_e) { /* ignore invalid paths */ }
                 }
             }
         } catch (err) {
