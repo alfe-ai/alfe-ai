@@ -1228,37 +1228,10 @@ Try: ${suggestion}`;
     if (typeof value !== "string") {
       return "";
     }
-    // Use only the first line and strip any markdown status text
-    const firstLine = value.split(/?
-/, 1)[0];
-    let withoutMarkdownStatus = firstLine.replace(/\s+\*\*.*$/, "").trim();
-    if (!withoutMarkdownStatus) {
-      return "";
-    }
-
-    // Normalize backslashes to forward slashes and collapse multiple slashes
-    let s = withoutMarkdownStatus.replace(/\\/g, '/').replace(/\/+/, '/');
-    try { s = decodeURIComponent(s); } catch (e) { /* ignore */ }
-
-    // If the value looks like a path, extract the most relevant final segment
-    const segments = s.split('/').filter(Boolean);
-    if (segments.length > 1) {
-      // Prefer the last segment containing '.git'
-      for (let i = segments.length - 1; i >= 0; i--) {
-        if (typeof segments[i] === 'string' && segments[i].indexOf('.git') !== -1) {
-          s = segments[i];
-          break;
-        }
-      }
-      // Fallback to the final path segment
-      if (!s || s.indexOf('/') !== -1) {
-        s = segments[segments.length - 1];
-      }
-    }
-
-    return s.trim();
+    const firstLine = value.split(/\r?\n/, 1)[0];
+    const withoutMarkdownStatus = firstLine.replace(/\s+\*\*.*$/, "");
+    return withoutMarkdownStatus.trim();
   };
-;
 
   const projectMetaCache = new Map();
   const projectMetaLastFetch = new Map();
