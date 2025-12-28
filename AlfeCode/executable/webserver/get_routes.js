@@ -2837,14 +2837,6 @@ ${cleanedFinalOutput}`;
                 }
             }
         } catch (_e) { /* ignore */ }
-        // Enforce allowed base: only allow editor for directories under /git/sterling
-        try {
-            const allowedBase = path.resolve('/git/sterling');
-            const resolvedCandidateRoot = path.resolve(resolvedDir);
-            if (!(resolvedCandidateRoot === allowedBase || resolvedCandidateRoot.startsWith(allowedBase + path.sep))) {
-                return null;
-            }
-        } catch (_e) { /* ignore */ }
         const repoName = resolveRepoNameByLocalPath(resolvedDir, sessionId);
         if (!repoName) {
             return null;
