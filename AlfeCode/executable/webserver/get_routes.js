@@ -1652,7 +1652,7 @@ ${cleanedFinalOutput}`;
             isIframeMode,
             editorLaunchConfig: initialEditorLaunchConfig,
 
-            editorEnabled: parseBooleanFlag(process.env.EDITOR_ENABLED),
+            editorEnabled: (typeof process.env.EDITOR_ENABLED==='undefined')?true:parseBooleanFlag(process.env.EDITOR_ENABLED),
             appVersion    : appVersionDisplay,
             enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
             showNewTaskButton,
