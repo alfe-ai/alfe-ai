@@ -2135,9 +2135,47 @@ Try: ${suggestion}`;
           pendingWindow.close();
         }
 
-        showEditorError(
-          "Unable to find an editor page for this project. Ensure the repository has at least one chat configured.",
-        );
+        // Enhanced debug: collect detailed diagnostic info to help troubleshoot why
+        // no editor target could be resolved. This includes candidate project dirs,
+        // cached targets, config.editorLaunchConfig, and last fetch attempt results.
+        try {
+          const candidates = resolveCandidateProjectDirsForEditor();
+          const normalisedCandidates = candidates.map(c => normaliseProjectDir(c)).filter(Boolean);
+          const cachedDump = {};
+          try {
+            for (const [k, v] of cachedEditorTargets.entries()) {
+              cachedDump[k] = v;
+            }
+          } catch (e) { /* ignore */ }
+
+          let editorLaunchConfigDump = null;
+          try { editorLaunchConfigDump = config && config.editorLaunchConfig ? config.editorLaunchConfig : null; } catch (e) { editorLaunchConfigDump = 'error'; }
+
+          const diag = {
+            message: 'Failed to resolve an editor target',
+            candidates: normalisedCandidates,
+            cachedTargets: cachedDump,
+            editorLaunchConfig: editorLaunchConfigDump,
+            currentRunContext: (() => {
+              try { return currentRunContext || null; } catch (e) { return 'error'; }
+            })(),
+            projectDirInput: (() => { try { return projectDirInput && projectDirInput.value; } catch (e) { return null; } })(),
+            currentSnapshotProjectDir: currentSnapshotProjectDir || null,
+            urlSearchParams: (() => { try { return Object.fromEntries(new URLSearchParams(window.location.search)); } catch (e) { return null; } })(),
+          };
+
+          console.warn('[Codex Runner] Editor resolution diagnostics:', diag);
+
+          // Also show a user-visible message with where we looked and a hint to check console.
+          const userMessage = 'Unable to find an editor page for this project. Checked candidate directories: ' + (normalisedCandidates.join(', ') || '(none)') + '. See console for diagnostics.';
+
+          showEditorError(userMessage);
+          return;
+        } catch (diagError) {
+          console.error('[Codex Runner] Failed while reporting editor diagnostics:', diagError);
+          showEditorError('Unable to find an editor page for this project. See console for details.');
+          return;
+        }
       } catch (error) {
         if (pendingWindow) {
           pendingWindow.close();
