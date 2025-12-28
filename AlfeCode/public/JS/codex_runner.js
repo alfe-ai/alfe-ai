@@ -2059,7 +2059,22 @@ Try: ${suggestion}`;
                 // Prefer opening editor for the run's effective/requested project dir so
                 // that the editor `repo_directory` matches the run snapshot path.
                 const runDir = normaliseProjectDir(selectedRun.effectiveProjectDir || selectedRun.requestedProjectDir || selectedRun.projectDir || dir || '');
-                const candidate = runDir ? await fetchEditorTargetForDir(runDir) : await fetchEditorTargetForDir(dir);
+                let candidate = runDir ? await fetchEditorTargetForDir(runDir) : await fetchEditorTargetForDir(dir);
+                if ((!candidate || !candidate.url) && selectedRun && selectedRun.id) {
+                  // Try fetching run details and resolve editor target from the run's dirs
+                  try {
+                    const runResp = await fetch(buildRunsDataUrl(selectedRun.id, dir));
+                    if (runResp && runResp.ok) {
+                      const runJson = await runResp.json().catch(() => ({}));
+                      const runEntries = Array.isArray(runJson?.runs) ? runJson.runs : [];
+                      const detailed = runEntries.length ? (runEntries.find(r => r && r.id === selectedRun.id) || runEntries[0]) : null;
+                      const runDir2 = detailed ? normaliseProjectDir(detailed.effectiveProjectDir || detailed.requestedProjectDir || detailed.projectDir || runDir || dir) : runDir;
+                      if (runDir2) {
+                        candidate = await fetchEditorTargetForDir(runDir2);
+                      }
+                    }
+                  } catch (_err) { /* ignore */ }
+                }
                 if (candidate && candidate.url) {
                   const url = new URL(candidate.url, window.location.origin);
                   url.searchParams.set('run_id', selectedRun.id);
