@@ -2844,7 +2844,44 @@ ${cleanedFinalOutput}`;
                 }
             }
         } catch (_e) { /* ignore */ }
-        const repoName = resolveRepoNameByLocalPath(resolvedDir, sessionId);
+        let repoName = resolveRepoNameByLocalPath(resolvedDir, sessionId);
+        if (!repoName) {
+            try {
+                const repoConfig = (typeof loadRepoConfig === "function" ? loadRepoConfig(sessionId) : {}) || {};
+                const candidateBase = path.basename(resolvedDir || rawDir || "");
+                const baseVariants = new Set([candidateBase]);
+                if (candidateBase.endsWith(".git")) {
+                    baseVariants.add(candidateBase.slice(0, -4));
+                }
+                const gitDashIndex = candidateBase.indexOf(".git-");
+                if (gitDashIndex > 0) {
+                    baseVariants.add(candidateBase.slice(0, gitDashIndex));
+                }
+                for (const [name, cfg] of Object.entries(repoConfig)) {
+                    if (!cfg || !cfg.gitRepoLocalPath) {
+                        continue;
+                    }
+                    try {
+                        const repoPathResolved = path.resolve(cfg.gitRepoLocalPath);
+                        const repoBase = path.basename(repoPathResolved);
+                        const repoBaseVariants = new Set([repoBase]);
+                        if (repoBase.endsWith(".git")) {
+                            repoBaseVariants.add(repoBase.slice(0, -4));
+                        }
+                        for (const variant of baseVariants) {
+                            if (repoBaseVariants.has(variant)) {
+                                repoName = name;
+                                resolvedDir = repoPathResolved;
+                                break;
+                            }
+                        }
+                    } catch (_e) { /* ignore */ }
+                    if (repoName) {
+                        break;
+                    }
+                }
+            } catch (_e) { /* ignore */ }
+        }
         if (!repoName) {
             return null;
         }
