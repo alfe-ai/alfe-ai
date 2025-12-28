@@ -1641,7 +1641,18 @@ Try: ${suggestion}`;
       delete projectInfoButton.dataset.projectDir;
       clearRepoBranchForDir("");
     }
+  }
+  const updateRunDirectoryNotice = (dir) => {
+    try {
+      const el = document.getElementById('runDirectoryCode');
+      if (!el) return;
+      const display = dir || codexDefaultProjectDir || '';
+      if (display) {
+        el.textContent = display;
+      }
+    } catch (e) { /* ignore */ }
   };
+;
 
   const getProjectNameFromDir = (value) => {
     const normalised = normaliseProjectDir(value);
@@ -1889,6 +1900,7 @@ Try: ${suggestion}`;
   let lastRequestedProjectDir = currentRunContext.projectDir;
   updateRunsSidebarHeading(currentRunContext.projectDir);
   updateProjectInfoProjectDir();
+    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
   refreshProjectInfoBranchDisplay();
 
   const cachedEditorTargets = new Map();
@@ -2778,6 +2790,7 @@ Try: ${suggestion}`;
       currentRunContext.effectiveProjectDir = normaliseProjectDir(fallbackDir);
     }
     updateProjectInfoProjectDir();
+    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
   };
 
   const getMergeDisabledReason = () => {
@@ -3830,6 +3843,7 @@ const appendMergeChunk = (text, type = "output") => {
       lastRequestedProjectDir = currentRunContext.projectDir;
       updateRunsSidebarHeading(currentRunContext.projectDir);
       updateProjectInfoProjectDir();
+    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
       refreshProjectInfoBranchDisplay();
 
       setRunsSidebarActiveRun(currentRunContext.runId);
@@ -4904,6 +4918,7 @@ const getSidebarBadgeInfo = (run) => {
 
     updateRunsSidebarHeading(normalizedDir);
     updateProjectInfoProjectDir();
+    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
     refreshProjectInfoBranchDisplay();
     updateGitLogLink();
     updatePageUrlForRun("", normalizedDir);
@@ -5405,6 +5420,7 @@ const getSidebarBadgeInfo = (run) => {
       currentRunContext.effectiveProjectDir = normalisedSnapshot;
     }
     updateProjectInfoProjectDir();
+    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
     updateGitLogLink();
     appendChunk(`Git log link updated to snapshot directory: ${normalisedSnapshot}`, "meta");
   };
@@ -5784,6 +5800,7 @@ const getSidebarBadgeInfo = (run) => {
     });
     updateRunsSidebarHeading(currentRunContext.projectDir);
     updateProjectInfoProjectDir();
+    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
     refreshProjectInfoBranchDisplay();
     resetMergeState();
     clearSnapshotProjectDir();
@@ -5980,6 +5997,7 @@ const getSidebarBadgeInfo = (run) => {
       });
       updateRunsSidebarHeading(currentRunContext.projectDir);
       updateProjectInfoProjectDir();
+    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
       refreshProjectInfoBranchDisplay();
       refreshRepoBranchForCurrentProject({ force: true });
 

@@ -2795,7 +2795,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
         <div id="output" class="log-output" role="log" aria-live="polite"></div>
         <div id="stdoutOutput" class="log-output is-hidden" role="log" aria-live="polite"></div>
         <div id="runDirectoryNotice" style="margin-top:8px;color:var(--text-muted);font-weight:500;font-size:0.78rem;">
-            <small>Run directory: <code><%= projectDir || defaultProjectDir %></code></small>
+            <small>Run directory: <code id="runDirectoryCode"><%= projectDir || defaultProjectDir %></code></small>
         </div>
         <div id="mergeOutputContainer" class="is-hidden">
             <div class="merge-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
