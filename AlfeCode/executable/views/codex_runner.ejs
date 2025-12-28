@@ -1088,6 +1088,17 @@
             color: var(--text-muted);
             gap: 14px;
         }
+        /* Ensure the Editor button is shown fixed at top-right when enabled */
+        #openEditorTopButton {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 1200;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+        }
 
         .top-nav span {
             font-size: 0.95rem;
