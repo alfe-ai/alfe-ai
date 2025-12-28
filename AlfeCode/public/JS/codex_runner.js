@@ -2023,6 +2023,31 @@ Try: ${suggestion}`;
 
   const resolveEditorTarget = async () => {
     const candidates = resolveCandidateProjectDirsForEditor();
+
+    // If a run is selected in the Runs sidebar, try to prefer the run's
+    // snapshot/effective project directory by fetching detailed run info.
+    try {
+      if (runsSidebarSelectedRunId) {
+        const selectedRun = runsSidebarRuns.find((r) => r && normaliseRunId(r.id || "") === runsSidebarSelectedRunId);
+        if (selectedRun && selectedRun.id) {
+          try {
+            const dir = normaliseProjectDir(selectedRun.requestedProjectDir || selectedRun.effectiveProjectDir || selectedRun.projectDir || '');
+            const runResp = await fetch(buildRunsDataUrl(selectedRun.id, dir));
+            if (runResp && runResp.ok) {
+              const runJson = await runResp.json().catch(() => ({}));
+              const runEntries = Array.isArray(runJson?.runs) ? runJson.runs : [];
+              const detailed = runEntries.length ? (runEntries.find(r => r && r.id === selectedRun.id) || runEntries[0]) : null;
+              const runDir2 = detailed ? normaliseProjectDir(detailed.effectiveProjectDir || detailed.requestedProjectDir || detailed.projectDir || dir) : null;
+              if (runDir2) {
+                // Put the run snapshot dir first so it is resolved before other candidates.
+                candidates.unshift(runDir2);
+              }
+            }
+          } catch (_e) { /* ignore */ }
+        }
+      }
+    } catch (_e) { /* ignore */ }
+
     for (const candidate of candidates) {
       const normalised = normaliseProjectDir(candidate);
       if (!normalised) {
