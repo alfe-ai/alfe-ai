@@ -18,9 +18,6 @@
     }catch(e){}
   });
 
-  let currentRunContext = null;
-  let runsSidebarSelectedRunId = "";
-
   const form = document.getElementById("codexForm");
   const projectDirInput = document.getElementById("projectDir");
   const agentInstructionsInput = document.getElementById("agentInstructions");
@@ -498,6 +495,7 @@ Try: ${suggestion}`;
   let runsSidebarShowArchived = (new URLSearchParams(window.location.search).get('archived') === '1') || (window.location.pathname || '').endsWith('/archived');
   // Ensure the initial toggle element reflects the parsed state once it exists.
   const backToCurrentTasksLink = document.getElementById('backToCurrentTasksLink');
+  let currentRunContext = null;
   const updateArchivedUI = () => {
     if (runsSidebarArchiveToggle) {
       runsSidebarArchiveToggle.setAttribute('aria-pressed', runsSidebarShowArchived ? 'true' : 'false');
@@ -1764,7 +1762,7 @@ Try: ${suggestion}`;
 
   const runsPageLink = document.getElementById("runsPageLink");
 
-  runsSidebarSelectedRunId = normaliseRunId(existingRunIdFromHash);
+  const updateRunsPageLink = (projectDirValue, runIdValue) => {
     if (!runsPageLink) {
       updateRunsSidebarNavLink(projectDirValue, runIdValue);
       return;
