@@ -1592,31 +1592,7 @@ ${cleanedFinalOutput}`;
         const iframeParam = req?.query?.iframe;
         const sessionId = resolveSessionId(req);
         const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
-        const parseBooleanFlag = (value) => {
-            if (Array.isArray(value)) {
-                return parseBooleanFlag(value[value.length - 1]);
-            }
-
-            if (typeof value === "boolean") {
-                return value;
-            }
-
-            if (typeof value === "number") {
-                return value === 1;
-            }
-
-            if (typeof value === "string") {
-                const normalized = value.trim().toLowerCase();
-                if (!normalized) {
-                    return false;
-                }
-
-                return ["1", "true", "yes", "y", "on"].includes(normalized);
-            }
-
-            return false;
-        };
-        const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanFlag(iframeParam);
+        const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanParam(iframeParam);
         const defaultAgentInstructions =
             typeof codexConfig?.defaultAgentInstructions === "string"
                 ? codexConfig.defaultAgentInstructions
@@ -1640,7 +1616,7 @@ ${cleanedFinalOutput}`;
         const initialEditorLaunchConfig = resolvedEditorTarget && resolvedEditorTarget.url
             ? resolvedEditorTarget
             : null;
-        const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
+        const showNewTaskButton = parseBooleanParam(process.env.ENABLE_NEW_TASK_BUTTON);
         res.render("codex_runner", {
             codexScriptPath,
             defaultProjectDir: defaultCodexProjectDir,
@@ -1652,11 +1628,11 @@ ${cleanedFinalOutput}`;
             isIframeMode,
             editorLaunchConfig: initialEditorLaunchConfig,
 
-            editorEnabled: parseBooleanFlag(process.env.EDITOR_ENABLED),
+            editorEnabled: parseBooleanParam(process.env.EDITOR_ENABLED),
             appVersion    : appVersionDisplay,
-            enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
+            enableFollowups: parseBooleanParam(process.env.ENABLE_FOLLOWUPS),
             showNewTaskButton,
-        showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
+        showStoreButtons: parseBooleanParam(process.env.SHOW_STORE_BADGES),
         });
     };
 
@@ -4100,12 +4076,15 @@ ${cleanedFinalOutput}`;
             systemInformationText : getSystemInformation(),
             environment     : res.locals.environment,
             
-            editorEnabled: (function(){ let v = process.env.EDITOR_ENABLED; if (Array.isArray(v)) v = v[v.length-1]; if (typeof v === 'boolean') return v; if (typeof v === 'number') return v === 1; if (typeof v === 'string') return ['1','true','yes','y','on'].includes(v.trim().toLowerCase()); return false; })(),
+            editorEnabled: parseBooleanParam(process.env.EDITOR_ENABLED),
         });
     });
 
     /* ---------- Dedicated editor view ---------- */
     app.get("/:repoName/chat/:chatNumber/editor", (req, res) => {
+        if (!parseBooleanParam(process.env.EDITOR_ENABLED)) {
+            return res.status(404).send('Editor page is disabled.');
+        }
         const { repoName, chatNumber } = req.params;
         const sessionId = resolveSessionId(req);
         const dataObj = loadRepoJson(repoName, sessionId);
@@ -4179,6 +4158,9 @@ res.render("editor", {
 
     /* ---------- Fetch file content for editor ---------- */
     app.get("/:repoName/chat/:chatNumber/editor/file", (req, res) => {
+        if (!parseBooleanParam(process.env.EDITOR_ENABLED)) {
+            return res.status(404).json({ error: 'Editor API is disabled.' });
+        }
         const { repoName, chatNumber } = req.params;
         const { repo: targetRepo, path: requestedPath } = req.query;
 
