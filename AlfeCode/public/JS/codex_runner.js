@@ -1971,6 +1971,16 @@ Try: ${suggestion}`;
 
   const resolveCandidateProjectDirsForEditor = () => {
     const candidates = [];
+    // Prefer the project dir for the selected run in the Runs sidebar
+    if (runsSidebarSelectedRunId && Array.isArray(runsSidebarRuns) && runsSidebarRuns.length) {
+      try {
+        const selectedRun = runsSidebarRuns.find((r) => r && normaliseRunId(r.id || "") === runsSidebarSelectedRunId);
+        if (selectedRun) {
+          candidates.push(selectedRun.requestedProjectDir || selectedRun.effectiveProjectDir || selectedRun.projectDir || "");
+        }
+      } catch (e) { /* ignore */ }
+    }
+
     const inputValue = projectDirInput ? projectDirInput.value : "";
     if (inputValue) {
       candidates.push(inputValue);
