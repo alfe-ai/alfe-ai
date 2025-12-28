@@ -1646,10 +1646,10 @@ Try: ${suggestion}`;
     try {
       const el = document.getElementById('runDirectoryCode');
       if (!el) return;
-      const display = dir || codexDefaultProjectDir || '';
-      if (display) {
-        el.textContent = display;
-      }
+      const display = (typeof dir === 'string' && dir !== '') ? dir : (codexDefaultProjectDir || '');
+      // Always update the element immediately so the UI reflects the current run's directory
+      el.textContent = display;
+      try { el.setAttribute('title', display); } catch (e) { /* ignore */ }
     } catch (e) { /* ignore */ }
   };
 ;
