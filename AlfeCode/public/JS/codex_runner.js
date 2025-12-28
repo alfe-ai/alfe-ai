@@ -1978,6 +1978,10 @@ Try: ${suggestion}`;
     if (currentSnapshotProjectDir) {
       candidates.push(currentSnapshotProjectDir);
     }
+    // Prefer the repo branch directory for the currently-selected run (if present)
+    if (currentRunContext && currentRunContext.repoBranchDir) {
+      candidates.push(currentRunContext.repoBranchDir);
+    }
     if (currentRunContext && currentRunContext.effectiveProjectDir) {
       candidates.push(currentRunContext.effectiveProjectDir);
     }
