@@ -772,18 +772,32 @@
             const repoDir = params.get('repo_directory') || (typeof projectDir !== 'undefined' ? (projectDir || '') : '');
             const repoName = '<%= gitRepoNameCLI %>';
             const chatNumber = '<%= chatNumber %>';
-            const editorUrlBase = `/${repoName}/chat/${chatNumber}/editor`;
             const currentUrl = new URL(window.location.href);
-            const marker = `/${repoName}/diff`;
-            let editorPath = '';
-
-            if (currentUrl.pathname.includes(marker)) {
-                editorPath = currentUrl.pathname.replace(marker, editorUrlBase);
+            const pathname = currentUrl.pathname || '';
+            const repoMarker = `/${repoName}/diff`;
+            let newPathname = null;
+            const idx = pathname.indexOf(repoMarker);
+            if (idx !== -1) {
+                // preserve any base prefix before /<repoName>/diff
+                const prefix = pathname.slice(0, idx);
+                newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
+            } else {
+                // fallback: if repoName appears, use prefix up to repoName
+                const repoIdx = pathname.indexOf(`/${repoName}`);
+                if (repoIdx !== -1) {
+                    const prefix = pathname.slice(0, repoIdx);
+                    newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
+                } else {
+                    // final fallback to root-based path
+                    newPathname = `/${repoName}/chat/${chatNumber}/editor`;
+                }
             }
-
-            const url = new URL(editorPath || editorUrlBase, currentUrl.origin);
-            if (repoDir) url.searchParams.set('repo_directory', repoDir);
-            url.searchParams.set('open_file', filePath);
+            const url = new URL(newPathname, currentUrl.origin);
+            // preserve existing query params from current URL
+            const newParams = new URLSearchParams(currentUrl.search);
+            if (repoDir) newParams.set('repo_directory', repoDir);
+            newParams.set('open_file', filePath);
+            url.search = newParams.toString();
             window.open(url.toString(), '_blank', 'noopener');
         } catch (e) {
             try {
@@ -796,6 +810,8 @@
             }
         }
     };
+
+
 
 
     rawDiffData?.remove();
