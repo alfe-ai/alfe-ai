@@ -1643,6 +1643,51 @@ ${cleanedFinalOutput}`;
             ? resolvedEditorTarget
             : null;
         const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
+        // If a `new_task` (or `newTask`) query parameter is present, enqueue it into ProjectView queue
+        try {
+            const newTaskParam = (req?.query?.new_task || req?.query?.newTask || '').toString().trim();
+            if (newTaskParam) {
+                try {
+                    const queueDir = path.join(PROJECT_ROOT, 'data', 'projectView');
+                    if (!fs.existsSync(queueDir)) fs.mkdirSync(queueDir, { recursive: true });
+                    const sessionFile = sessionId ? path.join(queueDir, `${sessionId}.queue.json`) : path.join(queueDir, 'queue.json');
+                    let queue = [];
+                    try {
+                        if (fs.existsSync(sessionFile)) {
+                            const raw = fs.readFileSync(sessionFile, 'utf-8');
+                            queue = raw && raw.trim() ? JSON.parse(raw) : [];
+                        } else {
+                            const globalFile = path.join(queueDir, 'queue.json');
+                            if (fs.existsSync(globalFile)) {
+                                const raw = fs.readFileSync(globalFile, 'utf-8');
+                                queue = raw && raw.trim() ? JSON.parse(raw) : [];
+                            }
+                        }
+                    } catch (e) { queue = []; }
+
+                    const newTask = {
+                        id: randomUUID(),
+                        title: String(newTaskParam),
+                        description: '',
+                        createdAt: new Date().toISOString(),
+                    };
+                    queue.push(newTask);
+                    try { fs.writeFileSync(sessionFile, JSON.stringify(queue, null, 2), 'utf-8'); } catch (e) { /* ignore write errors */ }
+
+                    // Redirect to same /agent URL without the new_task param to avoid duplicates
+                    try {
+                        const params = new URLSearchParams(req.query || {});
+                        params.delete('new_task');
+                        params.delete('newTask');
+                        res.redirect(`/agent${params.toString() ? `?${params.toString()}` : ''}`);
+                        return;
+                    } catch (e) {
+                        // fallback: continue rendering page normally
+                    }
+                } catch (e) { /* ignore whole enqueue errors */ }
+            }
+        } catch (e) { /* ignore */ }
+
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
