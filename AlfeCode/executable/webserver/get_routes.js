@@ -4262,8 +4262,25 @@ ${cleanedFinalOutput}`;
 
         const additionalRepos = chatData.additionalRepos || [];
 
+        // Determine effective project directory: prefer validated query param when provided
+        let effectiveProjectDir = repoCfg.gitRepoLocalPath;
+        try {
+            const projectDirParam = (req.query && req.query.projectDir) ? req.query.projectDir.toString() : '';
+            if (projectDirParam) {
+                const resolved = path.resolve(projectDirParam);
+                const allowedBase = path.resolve('/git/sterling');
+                if (resolved === allowedBase || resolved.startsWith(allowedBase + path.sep)) {
+                    try {
+                        if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+                            effectiveProjectDir = resolved;
+                        }
+                    } catch (e) { /* ignore invalid path */ }
+                }
+            }
+        } catch (e) { /* ignore */ }
+
         const directoryTreeHTML = generateFullDirectoryTree(
-            repoCfg.gitRepoLocalPath,
+            effectiveProjectDir,
             repoName,
             []
         );
@@ -4306,7 +4323,7 @@ ${cleanedFinalOutput}`;
 
 res.render("editor", {
             runTitle: runTitle,
-            projectDir: (req.query && req.query.projectDir) ? req.query.projectDir.toString() : repoCfg.gitRepoLocalPath,
+            projectDir: effectiveProjectDir,
             runBranch: runBranch,
             runIdShort: runIdShort,
             gitRepoNameCLI: repoName,
@@ -4314,7 +4331,7 @@ res.render("editor", {
             directoryTreeHTML,
             additionalReposTrees,
             attachedRepos: additionalRepos,
-            primaryRepoPath: repoCfg.gitRepoLocalPath,
+            primaryRepoPath: effectiveProjectDir,
             environment: res.locals.environment,
         });
     });
