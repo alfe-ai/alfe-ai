@@ -770,13 +770,30 @@
         try {
             const params = new URLSearchParams(window.location.search || '');
             const repoDir = params.get('repo_directory') || (typeof projectDir !== 'undefined' ? (projectDir || '') : '');
-            const editorUrlBase = '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor';
-            const url = new URL(editorUrlBase, window.location.origin);
+            const repoName = '<%= gitRepoNameCLI %>';
+            const chatNumber = '<%= chatNumber %>';
+            const editorUrlBase = `/${repoName}/chat/${chatNumber}/editor`;
+            const currentUrl = new URL(window.location.href);
+            const marker = `/${repoName}/diff`;
+            let editorPath = '';
+
+            if (currentUrl.pathname.includes(marker)) {
+                editorPath = currentUrl.pathname.replace(marker, editorUrlBase);
+            }
+
+            const url = new URL(editorPath || editorUrlBase, currentUrl.origin);
             if (repoDir) url.searchParams.set('repo_directory', repoDir);
             url.searchParams.set('open_file', filePath);
             window.open(url.toString(), '_blank', 'noopener');
         } catch (e) {
-            try { window.open('/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file=' + encodeURIComponent(filePath), '_blank'); } catch (_) { console.error('Failed to open editor', _); }
+            try {
+                window.open(
+                    '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file=' + encodeURIComponent(filePath),
+                    '_blank',
+                );
+            } catch (_) {
+                console.error('Failed to open editor', _);
+            }
         }
     };
 
