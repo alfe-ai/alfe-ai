@@ -2549,7 +2549,7 @@
                     </div>
                 </div>
                 <% if (editorEnabled) { %>
-                <button id="openEditorTopButton" class="nav-button" type="button" title="Open Editor" aria-label="Open Editor" onclick="navigateToEditor(event)">Editor</button>
+                <button id="openEditorTopButton" class="nav-button" type="button" title="Open Editor" aria-label="Open Editor" onclick="(function(){ try{ window.__pendingEditorWindow = window.open('about:blank', '_blank', 'noopener,noreferrer'); }catch(e){} })()">Editor</button>
                 <% } %>
                 <% if (!iframeMode) { %>
                 <button type="button" id="toggleFieldsButton" class="nav-button is-hidden" aria-pressed="false">
