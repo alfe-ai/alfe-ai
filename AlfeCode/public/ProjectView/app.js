@@ -1379,111 +1379,64 @@ document.addEventListener('click', (e) => {
 const downloadCurrentButton = document.getElementById('download-current-json');
 if (downloadCurrentButton) {
   const startDownload = (filename, content, type) => {
-    try {
-      const blob = new Blob([content], {type: type || 'application/json'});
-      const objUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = objUrl;
-      a.download = filename;
-      a.target = '_self';
-      document.body.appendChild(a);
+    const blob = new Blob([content], {type: type || 'application/json'});
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = objUrl;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Delay revoke to increase chance the download starts in all browsers
+    setTimeout(() => URL.revokeObjectURL(objUrl), 1500);
+  };
 
-      try {
-        a.dispatchEvent(new MouseEvent('click'));
-      } catch (e) {
-        try { a.click(); } catch (err) { /* ignore */ }
-      }
-
-      setTimeout(() => {
-        try { if (a && a.parentNode) a.parentNode.removeChild(a); } catch (e) {}
-        try { URL.revokeObjectURL(objUrl); } catch (e) {}
-      }, 3000);
-    } catch (err) {
-      console.error('[Download] startDownload error:', err);
-      throw err;
-    }
-  };;
-
-  downloadCurrentButton.addEventListener('click', async (ev) => {
-    // Attempt to initiate the download immediately (still within the user gesture)
+  downloadCurrentButton.addEventListener('click', async () => {
+    // Prefer downloading the full projects JSON from the API
     try {
       const sessionId = (function(){
         try{ const m = document.cookie.match(/(?:^|;)\s*sessionId=([^;]+)/); return m?decodeURIComponent(m[1]):null }catch(e){return null}
       })();
       const url = '/ProjectView/api/projects' + (sessionId?('?sessionId='+encodeURIComponent(sessionId)): '');
-
-      // Create an anchor pointing to the API endpoint and click it immediately.
-      const immediateAnchor = document.createElement('a');
-      immediateAnchor.style.display = 'none';
-      immediateAnchor.href = url;
-      immediateAnchor.download = 'projectview-projects.json';
-      immediateAnchor.target = '_blank';
-      document.body.appendChild(immediateAnchor);
-      try { immediateAnchor.dispatchEvent(new MouseEvent('click')); } catch(e) { try { immediateAnchor.click(); } catch(_){} }
-      setTimeout(() => { try { if (immediateAnchor && immediateAnchor.parentNode) immediateAnchor.parentNode.removeChild(immediateAnchor); } catch(_){} }, 1000);
-
-      // Give the browser a moment to start the download. If the browser blocks
-      // navigation or download for direct links, fall back to fetching and
-      // creating a blob (which may be blocked by gesture policies in some browsers).
-      setTimeout(async () => {
-        try {
-          const res = await fetch(url);
-          if (res.ok) {
-            const ct = res.headers.get('content-type') || '';
-            if (!ct.toLowerCase().includes('application/json')) {
-              throw new Error('Non-JSON response');
-            }
-            let data;
-            try { data = await res.json(); } catch (err) { throw new Error('Invalid JSON'); }
-            startDownload('projectview-projects.json', JSON.stringify(data, null, 2), 'application/json');
-            showStatus('Download started (full projects).', 'success');
-            return;
-          }
-        } catch (err) {
-          // Ignore - we'll try the fallback single-project download below
-          console.warn('[Download] Full projects download failed during fetch fallback:', err);
+      const res = await fetch(url);
+      if (res.ok) {
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.toLowerCase().includes('application/json')) {
+          throw new Error('Non-JSON response');
         }
-
-        // Fallback: download the currently selected project only
+        let data;
         try {
-          if (!Array.isArray(projects) || projects.length === 0) {
-            showStatus('No project available to download.', 'error');
-            return;
-          }
-          const project = projects[activeProjectIndex] || projects[0];
-          if (!project) {
-            showStatus('No project selected to download.', 'error');
-            return;
-          }
-          const data = JSON.stringify(project, null, 2);
-          const base = (project.id || project.name || 'project').toString().replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
-          startDownload(base + '.json', data, 'application/json');
-          showStatus('Download started (single project).', 'success');
+          data = await res.json();
         } catch (err) {
-          console.error('[Download] Failed to start download', err);
-          showStatus('Failed to start download.', 'error');
+          throw new Error('Invalid JSON');
         }
-      }, 250);
+        startDownload('projectview-projects.json', JSON.stringify(data, null, 2), 'application/json');
+        showStatus('Download started (full projects).', 'success');
+        return;
+      }
     } catch (err) {
-      console.error('[Download] Immediate download attempt failed:', err);
-      // If immediate approach fails, fall back to the original async fetch+blob method.
-      try {
-        const sessionId = (function(){
-          try{ const m = document.cookie.match(/(?:^|;)\s*sessionId=([^;]+)/); return m?decodeURIComponent(m[1]):null }catch(e){return null}
-        })();
-        const url = '/ProjectView/api/projects' + (sessionId?('?sessionId='+encodeURIComponent(sessionId)): '');
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json().catch(()=>null);
-          if (data) {
-            startDownload('projectview-projects.json', JSON.stringify(data, null, 2), 'application/json');
-            showStatus('Download started (full projects).', 'success');
-            return;
-          }
-        }
-      } catch (e) { console.error('[Download] Fallback full fetch failed:', e); }
+      console.warn('[Download] Full projects download failed, falling back to single project:', err);
+    }
 
+    // Fallback: download the currently selected project only
+    try {
+      if (!Array.isArray(projects) || projects.length === 0) {
+        showStatus('No project available to download.', 'error');
+        return;
+      }
+      const project = projects[activeProjectIndex] || projects[0];
+      if (!project) {
+        showStatus('No project selected to download.', 'error');
+        return;
+      }
+      const data = JSON.stringify(project, null, 2);
+      const base = (project.id || project.name || 'project').toString().replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
+      startDownload(base + '.json', data, 'application/json');
+      showStatus('Download started (single project).', 'success');
+    } catch (err) {
+      console.error('[Download] Failed to start download', err);
       showStatus('Failed to start download.', 'error');
     }
   });
