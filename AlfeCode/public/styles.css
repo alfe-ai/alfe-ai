@@ -148,3 +148,7 @@
 .runs-sidebar__item.is-active .runs-sidebar__item-title {
   color: #ede9fe;
 }
+
+/* Copy button style for prompt modal */
+.code-copy-btn{background:transparent;border:0;padding:6px;border-radius:6px;cursor:pointer;font-size:14px}
+.code-copy-btn:hover{background:rgba(0,0,0,0.06)}

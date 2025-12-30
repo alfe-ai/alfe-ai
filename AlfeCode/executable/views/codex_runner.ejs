@@ -2827,8 +2827,9 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     <div id="promptModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="promptModalHeader">
       <div class="modal-content prompt-modal-content">
         <button class="modal-close" type="button" id="promptModalCloseButton">×</button>
-        <div class="prompt-modal-body">
+        <div class="prompt-modal-body" style="position:relative;">
           <h3 id="promptModalHeader" class="prompt-modal-header">Your Sent Prompt</h3>
+          <button id="promptModalCopyButton" type="button" class="code-copy-btn" title="Copy prompt" aria-label="Copy prompt" style="position:absolute;top:12px;right:12px;font-size:16px;line-height:1;padding:6px;border-radius:4px;border:0;background:transparent;cursor:pointer;">⎘</button>
           <textarea
             id="promptModalTextarea"
             readonly
