@@ -796,7 +796,7 @@
                     }
                 }
             } else {
-                newPathname = `/${repoName}/chat/${chatNumber}/editor`;
+                newPathname = '/chat/editor';
             }
             // Safely inject editorBaseUrl as a JSON string to avoid literal URL issues
             const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
@@ -819,7 +819,7 @@
                 const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined') ? editorBaseRaw : fallbackEditorBase;
                 const fallbackPath = (repoLinksEnabled
                     ? '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file='
-                    : '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file=') + encodeURIComponent(filePath);
+                    : '/chat/editor?open_file=') + encodeURIComponent(filePath);
                 const fallbackUrl = editorBase ? (editorBase.replace(/\/$/, '') + fallbackPath) : fallbackPath;
                 window.open(fallbackUrl, '_blank', 'noopener');
             } catch (_) {
