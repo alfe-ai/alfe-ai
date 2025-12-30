@@ -78,12 +78,6 @@ const ENV_STERLING_CODEX_BASE_URL = normalizeBaseUrl(
         || process.env.STERLING_CODEX_URL
         || process.env.STERLING_CODEX_HOST,
 );
-const ENV_EDITOR_BASE_URL = normalizeBaseUrl(
-    process.env.EDITOR_BASE_URL
-        || process.env.STERLING_CODEX_BASE_URL
-        || process.env.STERLING_CODEX_URL
-        || process.env.STERLING_CODEX_HOST,
-);
 
 function resolveSterlingCodexBaseUrl(req) {
     if (ENV_STERLING_CODEX_BASE_URL) {
@@ -105,30 +99,6 @@ function resolveSterlingCodexBaseUrl(req) {
     }
 
     return DEFAULT_STERLING_CODEX_BASE_URL;
-}
-
-function stripAgentPath(baseUrl) {
-    const sanitized = normalizeBaseUrl(baseUrl);
-    if (!sanitized) {
-        return "";
-    }
-    try {
-        const parsed = new URL(sanitized);
-        parsed.search = "";
-        parsed.hash = "";
-        const normalizedPath = parsed.pathname.replace(/\/agent\/?$/, "");
-        parsed.pathname = normalizedPath || "/";
-        return parsed.toString().replace(/\/$/, "");
-    } catch (_err) {
-        return sanitized.replace(/\/agent\/?$/, "");
-    }
-}
-
-function resolveEditorBaseUrl(req) {
-    if (ENV_EDITOR_BASE_URL) {
-        return stripAgentPath(ENV_EDITOR_BASE_URL);
-    }
-    return stripAgentPath(resolveSterlingCodexBaseUrl(req));
 }
 
 function buildSterlingCodexUrl(baseUrl, repoPath) {
@@ -484,7 +454,6 @@ app.use(express.static(path.join(PROJECT_ROOT, "images")));
 
 app.use((req, res, next) => {
     res.locals.sterlingCodexBaseUrl = resolveSterlingCodexBaseUrl(req);
-    res.locals.editorBaseUrl = resolveEditorBaseUrl(req);
     next();
 });
 
