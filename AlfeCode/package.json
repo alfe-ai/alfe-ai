@@ -4,7 +4,8 @@
   "description": "An application for software development with AI models.",
   "main": "executable/server_webserver.js",
   "scripts": {
-    "start": "node executable/server_webserver.js"
+    "start": "node executable/server_webserver.js",
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "body-parser": "^1.20.3",
