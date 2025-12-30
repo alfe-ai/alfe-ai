@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Editor Redirect</title>
+  <style>body{font-family:system-ui,Segoe UI,Roboto,-apple-system,Arial;padding:24px;color:#222}</style>
+</head>
+<body>
+  <h1>Opening Editor…</h1>
+  <p>If your environment supports the AlfeCode editor, you will be redirected shortly.</p>
+  <script>
+    // Redirect to the AlfeCode editor route for this repository
+    (function(){
+      var repo = 'alfe-ai.git-1767101349348';
+      var chat = 1;
+      var url = '/' + encodeURIComponent(repo) + '/chat/' + encodeURIComponent(chat) + '/editor';
+      // Try replacing location so platform loads the editor page
+      window.location.replace(url);
+    })();
+  </script>
+  <noscript>
+    <p>JavaScript is required. Open <a id="link">editor</a> manually.</p>
+    <script>document.getElementById('link').href = '/' + encodeURIComponent('alfe-ai.git-1767101349348') + '/chat/1/editor';</script>
+  </noscript>
+</body>
+</html>
