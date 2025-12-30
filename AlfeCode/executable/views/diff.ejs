@@ -792,7 +792,9 @@
                     newPathname = `/${repoName}/chat/${chatNumber}/editor`;
                 }
             }
-            const url = new URL(newPathname, currentUrl.origin);
+            const editorBaseRaw = '<%= editorBaseUrl || "" %>';
+            const editorBase = editorBaseRaw && editorBaseRaw !== 'undefined' ? editorBaseRaw : '';
+            const url = new URL(newPathname, editorBase || currentUrl.origin);
             // preserve existing query params from current URL
             const newParams = new URLSearchParams(currentUrl.search);
             if (repoDir) newParams.set('repo_directory', repoDir);
@@ -801,10 +803,11 @@
             window.open(url.toString(), '_blank', 'noopener');
         } catch (e) {
             try {
-                window.open(
-                    '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file=' + encodeURIComponent(filePath),
-                    '_blank',
-                );
+                const editorBaseRaw = '<%= editorBaseUrl || "" %>';
+                const editorBase = editorBaseRaw && editorBaseRaw !== 'undefined' ? editorBaseRaw : '';
+                const fallbackPath = '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file=' + encodeURIComponent(filePath);
+                const fallbackUrl = editorBase ? (editorBase.replace(/\\/$/, '') + fallbackPath) : fallbackPath;
+                window.open(fallbackUrl, '_blank', 'noopener');
             } catch (_) {
                 console.error('Failed to open editor', _);
             }
