@@ -1042,6 +1042,18 @@ function setupPostRoutes(deps) {
 
         if (!targetRepo || !filePath) {
             return res.status(400).json({ error: "Missing repo or path." });
+// RequestedPathStripPatch_v1: coerce and strip leading repo prefix from filePath if present.
+try {
+  let fp = (filePath || '');
+  fp = String(fp).replace(/\+/g, '/').replace(/^\/+/, '');
+  const repoPrefix = (targetRepo || '').toString();
+  if (repoPrefix) {
+    if (fp === repoPrefix) { fp = ''; }
+    else if (fp.startsWith(repoPrefix + '/')) { fp = fp.slice(repoPrefix.length).replace(/^\/+/, ''); }
+  }
+  filePath = fp;
+} catch (e) { /* ignore */ }
+
         }
 
         const sessionId = resolveSessionId(req);

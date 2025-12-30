@@ -4351,6 +4351,17 @@ res.render("editor", {
         // Replace backslashes (Windows) and strip any leading slashes so path.resolve
         // will always join against the repo root rather than taking an absolute path.
         requestedPath = requestedPath.replace(/\+/g, '/').replace(/^\/+/, '');
+// RequestedPathStripPatch_v1: if the client included the repo name as a prefix, strip it.
+try {
+  const repoPrefix = (targetRepo || '').toString();
+  if (repoPrefix) {
+    if (requestedPath === repoPrefix) { requestedPath = ''; }
+    else if (requestedPath.startsWith(repoPrefix + '/')) {
+      requestedPath = requestedPath.slice(repoPrefix.length).replace(/^\/+/, '');
+    }
+  }
+} catch (e) { /* ignore */ }
+
 
         const sessionId = resolveSessionId(req);
         const dataObj = loadRepoJson(repoName, sessionId);
