@@ -17,6 +17,7 @@
             <div class="editor-subtitle">
                 Run #<%= runIdShort || chatNumber %> · <%= (runTitle && runTitle.length) ? runTitle : (runBranch || environment) %>
             </div>
+            <div class="editor-subtitle" style="font-size:0.9em;color:#ddd;margin-top:6px;">Project dir: <span id="currentProjectDir"><%= projectDir %></span></div>
         </div>
         <button id="toggleSidebarBtn" type="button" title="Toggle sidebar">☰</button>
         <button id="saveFileButton" disabled>Save</button>
@@ -60,6 +61,7 @@
         window.EDITOR_CONFIG = {
             repoName: "<%= gitRepoNameCLI %>",
             chatNumber: "<%= chatNumber %>",
+            projectDir: "<%= projectDir %>",
             baseFileUrl: "/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor/file"
         };
     </script>

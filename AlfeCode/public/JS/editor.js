@@ -189,9 +189,11 @@
 
     const updatePathDisplay = (tab) => {
         if (!pathDisplay) return;
+        const projectDirEl = document.getElementById('currentProjectDir');
         if (!tab) {
             pathDisplay.textContent = "Select a file from the sidebar";
             pathDisplay.title = "";
+            if (projectDirEl && window.EDITOR_CONFIG && window.EDITOR_CONFIG.projectDir) { projectDirEl.textContent = window.EDITOR_CONFIG.projectDir; }
             return;
         }
         // If we're on the /agent route, do not show the repo path in the sidebar
@@ -199,6 +201,7 @@
         const display = isAgentRoute ? `${tab.path}` : `${tab.repo}/${tab.path}`;
         pathDisplay.textContent = display;
         pathDisplay.title = display;
+        if (projectDirEl && window.EDITOR_CONFIG && window.EDITOR_CONFIG.projectDir) { projectDirEl.textContent = window.EDITOR_CONFIG.projectDir; }
     };
 
     const highlightFileInTree = (repo, filePath) => {
