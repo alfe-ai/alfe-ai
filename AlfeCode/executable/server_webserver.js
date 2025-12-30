@@ -536,11 +536,11 @@ function getOpenAIClient(provider) {
         const refererHeader =
             process.env.OPENROUTER_HTTP_REFERER
             || process.env.HTTP_REFERER
-            || "https://code-s.alfe.sh231";
+            || "https://code-s.alfe.sh";
         const baseRefererHeader =
             typeof refererHeader === "string" && refererHeader.trim()
                 ? refererHeader.trim()
-                : "https://code-s.alfe.sh231";
+                : "https://code-s.alfe.sh";
         const baseTitleHeader =
             process.env.OPENROUTER_APP_TITLE
             || process.env.X_TITLE

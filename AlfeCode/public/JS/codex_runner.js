@@ -3334,7 +3334,7 @@ Try: ${suggestion}`;
     let defaultReferer =
       typeof config.defaultOpenRouterReferer === "string" && config.defaultOpenRouterReferer && config.defaultOpenRouterReferer.trim()
         ? config.defaultOpenRouterReferer
-        : "https://code-s.alfe.sh231";
+        : "https://code-s.alfe.sh";
     // If the input is empty, apply the default referer
     if (!openRouterRefererInput.value || openRouterRefererInput.value.trim() === "") {
       openRouterRefererInput.value = defaultReferer;

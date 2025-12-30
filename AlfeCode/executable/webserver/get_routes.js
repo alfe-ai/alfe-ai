@@ -1628,7 +1628,7 @@ ${cleanedFinalOutput}`;
                 ? codexConfig.openRouterReferer.trim()
                 : process.env.OPENROUTER_HTTP_REFERER
                     || process.env.HTTP_REFERER
-                    || "https://code-s.alfe.sh231";
+                    || "https://code-s.alfe.sh";
         const defaultOpenRouterTitle =
             typeof codexConfig?.openRouterTitle === "string" && codexConfig.openRouterTitle.trim()
                 ? codexConfig.openRouterTitle.trim()
