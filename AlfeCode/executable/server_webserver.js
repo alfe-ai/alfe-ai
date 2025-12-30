@@ -96,9 +96,17 @@ function resolveSterlingCodexBaseUrl(req) {
         || (req && typeof req.protocol === "string" && req.protocol)
         || (req && req.secure ? "https" : "http");
 
-    const hostHeader = (req && typeof req.get === "function" && req.get("host"))
+    // Grab host header but defensively strip any accidental path segments
+    let hostHeaderRaw = (req && typeof req.get === "function" && req.get("host"))
         || (req && req.headers && req.headers.host)
         || "";
+    // Some proxies may incorrectly include path info; only keep the hostname[:port]
+    let hostHeader = "";
+    try {
+        hostHeader = String(hostHeaderRaw || "").split('/')[0].trim();
+    } catch (_e) {
+        hostHeader = String(hostHeaderRaw || "");
+    }
 
     if (hostHeader) {
         return normalizeBaseUrl(`${protocol || "http"}://${hostHeader}/agent`);
