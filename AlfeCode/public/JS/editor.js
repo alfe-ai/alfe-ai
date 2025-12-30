@@ -353,6 +353,26 @@
                 highlightFileInTree(null, null);
                 saveButton.disabled = true;
                 setStatus("Select a file to begin", "info");
+    // Auto-open file if '?open_file=...' is present in the URL
+    try {
+        const sp = new URLSearchParams(window.location.search || '');
+        const fileToOpen = sp.get('open_file') || sp.get('path') || sp.get('file');
+        if (fileToOpen) {
+            const decoded = decodeURIComponent(fileToOpen);
+            const repo = config.repoName || '';
+            if (repo) {
+                setTimeout(() => {
+                    const key = makeTabKey(repo, decoded);
+                    if (openTabs.has(key)) {
+                        activateTab(key);
+                    } else {
+                        openFileFromServer(repo, decoded);
+                    }
+                }, 60);
+            }
+        }
+    } catch (e) { /* ignore */ }
+
             }
         }
         renderTabs();
