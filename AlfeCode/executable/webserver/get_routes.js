@@ -2859,6 +2859,12 @@ ${cleanedFinalOutput}`;
                 if (gitDashIndex > 0) {
                     baseVariants.add(candidateBase.slice(0, gitDashIndex));
                 }
+                // If the dirname ends with a dash followed by digits (e.g. "Default-1767100181808"),
+                // also add the version without the trailing "-<digits>" so it matches repos named "Default".
+                const dashDigitsMatch = candidateBase.match(/^(.*)-[0-9]{6,}$/);
+                if (dashDigitsMatch && dashDigitsMatch[1]) {
+                    baseVariants.add(dashDigitsMatch[1]);
+                }
                 for (const [name, cfg] of Object.entries(repoConfig)) {
                     if (!cfg || !cfg.gitRepoLocalPath) {
                         continue;
