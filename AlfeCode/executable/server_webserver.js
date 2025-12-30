@@ -1052,6 +1052,7 @@ const { setupGetRoutes } = require("./webserver/get_routes");
 setupGetRoutes({
     app,
     loadRepoConfig,
+    saveRepoConfig,
     loadRepoJson,
     saveRepoJson,
     loadSingleRepoConfig,

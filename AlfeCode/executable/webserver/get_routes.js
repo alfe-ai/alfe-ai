@@ -13,6 +13,7 @@ function setupGetRoutes(deps) {
     const {
         app,
         loadRepoConfig,
+        saveRepoConfig,
         loadRepoJson,
         saveRepoJson,
         loadSingleRepoConfig,
@@ -2885,14 +2886,116 @@ ${cleanedFinalOutput}`;
             } catch (_e) { /* ignore */ }
         }
         if (!repoName) {
+            const sanitizeRepoName = (name, fallback = "repo") => {
+                if (typeof name !== "string") {
+                    return fallback;
+                }
+                const trimmed = name.trim();
+                if (!trimmed) {
+                    return fallback;
+                }
+                return trimmed.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 160) || fallback;
+            };
+
+            const normalizeRepoBase = (base) => {
+                if (typeof base !== "string") {
+                    return "";
+                }
+                let normalized = base.trim();
+                if (normalized.endsWith(".git")) {
+                    normalized = normalized.slice(0, -4);
+                }
+                const gitDashIndex = normalized.indexOf(".git-");
+                if (gitDashIndex > 0) {
+                    normalized = normalized.slice(0, gitDashIndex);
+                }
+                return normalized;
+            };
+
+            try {
+                const stats = fs.statSync(resolvedDir);
+                if (stats && stats.isDirectory()) {
+                    const repoConfig = (typeof loadRepoConfig === "function" ? loadRepoConfig(sessionId) : {}) || {};
+                    for (const [name, cfg] of Object.entries(repoConfig)) {
+                        if (!cfg || !cfg.gitRepoLocalPath) {
+                            continue;
+                        }
+                        try {
+                            const repoPathResolved = path.resolve(cfg.gitRepoLocalPath);
+                            const normalizedRepoPath = repoPathResolved.endsWith(path.sep)
+                                ? repoPathResolved
+                                : repoPathResolved + path.sep;
+                            if (repoPathResolved === resolvedDir || resolvedDir.indexOf(normalizedRepoPath) === 0) {
+                                repoName = name;
+                                resolvedDir = repoPathResolved;
+                                break;
+                            }
+                        } catch (_e) { /* ignore */ }
+                        if (repoName) {
+                            break;
+                        }
+                    }
+
+                    if (!repoName) {
+                        const baseName = normalizeRepoBase(path.basename(resolvedDir));
+                        const baseCandidate = sanitizeRepoName(baseName || path.basename(resolvedDir) || "repo");
+                        let candidateName = baseCandidate;
+                        let suffix = 1;
+                        while (repoConfig[candidateName]) {
+                            const existingPath = repoConfig[candidateName]?.gitRepoLocalPath || "";
+                            try {
+                                if (existingPath && path.resolve(existingPath) === resolvedDir) {
+                                    break;
+                                }
+                            } catch (_e) { /* ignore */ }
+                            candidateName = `${baseCandidate}_${suffix}`;
+                            suffix += 1;
+                        }
+                        repoConfig[candidateName] = {
+                            gitRepoLocalPath: resolvedDir,
+                            gitRepoURL: "",
+                            gitBranch: "",
+                            openAIAccount: "",
+                        };
+                        if (typeof saveRepoConfig === "function") {
+                            saveRepoConfig(repoConfig, sessionId);
+                        }
+                        repoName = candidateName;
+                    }
+                }
+            } catch (_err) { /* ignore */ }
+        }
+        if (!repoName) {
             return null;
         }
+
+        let ensuredChatNumber = "";
+        try {
+            const repoData = loadRepoJson(repoName, sessionId);
+            const chatKeys = Object.keys(repoData || {})
+                .map((key) => Number.parseInt(key, 10))
+                .filter((value) => Number.isFinite(value));
+            if (!chatKeys.length) {
+                const newChatNumber = 1;
+                repoData[newChatNumber] = {
+                    status: "ACTIVE",
+                    agentInstructions: loadGlobalInstructions(),
+                    attachedFiles: [],
+                    chatHistory: [],
+                    aiProvider: "openrouter",
+                    aiModel: DEFAULT_AIMODEL,
+                    pushAfterCommit: true,
+                };
+                saveRepoJson(repoName, repoData, sessionId);
+                ensuredChatNumber = String(newChatNumber);
+            }
+        } catch (_err) { /* ignore */ }
 
         const chatNumber = pickDefaultChatNumber(repoName, sessionId);
         if (!chatNumber) {
             return {
                 repoName,
-                chatNumber: "",
+                chatNumber: ensuredChatNumber || "",
                 projectDir: resolvedDir,
                 url: "",
             };
