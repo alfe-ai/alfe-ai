@@ -281,6 +281,19 @@
             color: #fed7aa;
         }
 
+        .open-in-editor-button {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .open-in-editor-button:hover { color: #fff; background: rgba(255,255,255,0.03); }
+
         .diff-shell {
             display: grid;
             grid-template-columns: 260px 1fr;
@@ -752,6 +765,22 @@
     }
 
     structuredDiffData?.remove();
+    // Open this file in the editor (opens new tab)
+    const openEditorForFile = (filePath) => {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const repoDir = params.get('repo_directory') || (typeof projectDir !== 'undefined' ? (projectDir || '') : '');
+            const editorUrlBase = '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor';
+            const url = new URL(editorUrlBase, window.location.origin);
+            if (repoDir) url.searchParams.set('repo_directory', repoDir);
+            url.searchParams.set('open_file', filePath);
+            window.open(url.toString(), '_blank', 'noopener');
+        } catch (e) {
+            try { window.open('/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file=' + encodeURIComponent(filePath), '_blank'); } catch (_) { console.error('Failed to open editor', _); }
+        }
+    };
+
+
     rawDiffData?.remove();
 
     const normalizeRows = (file) => {
@@ -936,6 +965,17 @@
             title.className = 'diff-file-title';
             title.textContent = file.label;
             header.appendChild(title);
+
+            // add edit-in-editor button
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'open-in-editor-button';
+            editBtn.title = 'Open in editor';
+            editBtn.setAttribute('aria-label', 'Open file in editor');
+            editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 21v-3.75L14.81 5.44a1.5 1.5 0 012.12 0l1.63 1.63a1.5 1.5 0 010 2.12L6.75 21H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+            editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openEditorForFile(file.label); });
+            header.appendChild(editBtn);
+
 
             const rowCount = normalizedRowCount(file.rows);
             section.appendChild(header);
