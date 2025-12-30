@@ -2,62 +2,19 @@
 function navigateToEditor(ev){
   try{ ev && ev.preventDefault && ev.preventDefault(); }catch(e){}
   try{
-    // Prefer explicit config values
-    let repo = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.repoNameCLI ? window.CODEX_RUNNER_CONFIG.repoNameCLI : '';
-    let chat = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.chatNumber ? window.CODEX_RUNNER_CONFIG.chatNumber : '';
-
-    // Fallback: derive from current path (supports /agent/:repo and /:repo/chat/:chat)
-    try{
-      const segs = (window.location.pathname || '').split('/').filter(Boolean);
-      if (!repo) {
-        if (segs[0] === 'agent' && segs[1]) repo = decodeURIComponent(segs[1]);
-        else if (segs[1] === 'chat' && segs[0]) repo = decodeURIComponent(segs[0]);
-      }
-      if (!chat) {
-        const chatIdx = segs.indexOf('chat');
-        if (chatIdx !== -1 && segs[chatIdx+1]) chat = decodeURIComponent(segs[chatIdx+1]);
-      }
-    }catch(_e){}
-
-    // If we have both repo and chat, use the full editor path
-    if (repo && chat) {
-      const path = '/' + encodeURIComponent(repo) + '/chat/' + encodeURIComponent(chat) + '/editor';
-      window.location.href = path;
-      return;
-    }
-
-    // Try to find a project dir to pass through
-    let projectDir = '';
-    try{
-      const input = document.getElementById('projectDir');
-      if (input && input.value) projectDir = input.value;
-      if (!projectDir) {
-        const params = new URLSearchParams(window.location.search || '');
-        if (params.get('repo_directory')) projectDir = params.get('repo_directory');
-      }
-    }catch(_e){}
-
-    // If we found a project dir, include it as a query param to the editor
-    if (projectDir) {
-      const url = '/chat/editor' + '?repo_directory=' + encodeURIComponent(projectDir);
-      window.location.href = url;
-      return;
-    }
-
-    // If we at least have a repo name, try to open editor under that repo
-    if (repo) {
-      const url = '/' + encodeURIComponent(repo) + '/chat/editor';
-      window.location.href = url;
-      return;
-    }
-
-    // Fallback
-    window.location.href = '/chat/editor';
+    const repo = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.repoNameCLI ? encodeURIComponent(window.CODEX_RUNNER_CONFIG.repoNameCLI) : '';
+    const chat = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.chatNumber ? encodeURIComponent(window.CODEX_RUNNER_CONFIG.chatNumber) : '';
+    const segments = [];
+    if (repo) segments.push(repo);
+    segments.push('chat');
+    if (chat) segments.push(chat);
+    segments.push('editor');
+    const path = '/' + segments.join('/');
+    window.location.href = path;
   }catch(e){
     try{ window.location.href = '/chat/editor'; }catch(ee){}
   }
 }
-
 (() => {
   const config = window.CODEX_RUNNER_CONFIG || {};
   // submitOnEnter default (may be overridden by localStorage)
