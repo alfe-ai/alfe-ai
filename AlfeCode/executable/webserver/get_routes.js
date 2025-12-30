@@ -4339,11 +4339,18 @@ res.render("editor", {
     /* ---------- Fetch file content for editor ---------- */
     app.get("/:repoName/chat/:chatNumber/editor/file", (req, res) => {
         const { repoName, chatNumber } = req.params;
-        const { repo: targetRepo, path: requestedPath } = req.query;
+        const { repo: targetRepo } = req.query;
+        let requestedPath = (req.query && req.query.path) || (req.query && req.query.file) || '';
 
         if (!targetRepo || !requestedPath) {
             return res.status(400).json({ error: "Missing repo or path." });
         }
+
+        // coerce to string and sanitize common URL-encoding artifacts
+        try { requestedPath = String(requestedPath); } catch (e) { requestedPath = ''; }
+        // Replace backslashes (Windows) and strip any leading slashes so path.resolve
+        // will always join against the repo root rather than taking an absolute path.
+        requestedPath = requestedPath.replace(/\+/g, '/').replace(/^\/+/, '');
 
         const sessionId = resolveSessionId(req);
         const dataObj = loadRepoJson(repoName, sessionId);
@@ -4373,7 +4380,13 @@ res.render("editor", {
 
         const repoRoot = path.resolve(repoCfg.gitRepoLocalPath);
         const normalizedRelative = path.normalize(requestedPath);
-        const absolutePath = path.resolve(repoRoot, normalizedRelative);
+        // Reject obvious traversal attempts early
+        if (normalizedRelative.split(path.sep).some(segment => segment === '..')) {
+            return res.status(400).json({ error: "Invalid file path." });
+        }
+
+        // Ensure we join against repoRoot without allowing absolute overrides
+        const absolutePath = path.resolve(repoRoot, '.', normalizedRelative);
         const relativeToRoot = path.relative(repoRoot, absolutePath);
         if (relativeToRoot.startsWith("..") || path.isAbsolute(relativeToRoot)) {
             return res.status(400).json({ error: "Invalid file path." });
@@ -4392,7 +4405,7 @@ res.render("editor", {
                 lastModified: stat.mtimeMs,
             });
         } catch (err) {
-            console.error("[ERROR] Failed to load file for editor:", err);
+            console.error("[ERROR] Failed to load file for editor:", err, { repoRoot, requestedPath });
             return res.status(500).json({ error: "Failed to read file." });
         }
     });
