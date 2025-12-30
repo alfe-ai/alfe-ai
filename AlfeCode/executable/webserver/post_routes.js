@@ -1038,7 +1038,7 @@ function setupPostRoutes(deps) {
     /* ---------- Save file from editor ---------- */
     app.post("/:repoName/chat/:chatNumber/editor/file", (req, res) => {
         const { repoName, chatNumber } = req.params;
-        const { repo: targetRepo, path: filePath, content } = req.body || {};
+        const { repo: targetRepo, path: filePath, content, projectDir } = req.body || {};
 
         if (!targetRepo || !filePath) {
             return res.status(400).json({ error: "Missing repo or path." });
@@ -1061,16 +1061,32 @@ function setupPostRoutes(deps) {
             return res.status(400).json({ error: "Repository configuration missing." });
         }
 
+        let effectiveRepoRoot = repoCfg.gitRepoLocalPath;
+        if (targetRepo === repoName) {
+            try {
+                const projectDirParam = projectDir ? projectDir.toString() : '';
+                if (projectDirParam) {
+                    const resolvedProjectDir = path.resolve(projectDirParam);
+                    const allowedBase = path.resolve('/git/sterling');
+                    if (resolvedProjectDir === allowedBase || resolvedProjectDir.startsWith(allowedBase + path.sep)) {
+                        if (fs.existsSync(resolvedProjectDir) && fs.statSync(resolvedProjectDir).isDirectory()) {
+                            effectiveRepoRoot = resolvedProjectDir;
+                        }
+                    }
+                }
+            } catch (_e) { /* ignore */ }
+        }
+
         // Enforce allowed base (only allow repos under /git/sterling)
         try {
             const allowedBase = path.resolve('/git/sterling');
-            const repoRootResolved = path.resolve(repoCfg.gitRepoLocalPath || '');
+            const repoRootResolved = path.resolve(effectiveRepoRoot || '');
             if (!(repoRootResolved === allowedBase || repoRootResolved.startsWith(allowedBase + path.sep))) {
                 return res.status(403).json({ error: 'Repository path not permitted for editor.' });
             }
         } catch (_e) { /* ignore */ }
 
-        const repoRoot = path.resolve(repoCfg.gitRepoLocalPath);
+        const repoRoot = path.resolve(effectiveRepoRoot || '');
         const normalizedRelative = path.normalize(filePath);
         const absolutePath = path.resolve(repoRoot, normalizedRelative);
         const relativeToRoot = path.relative(repoRoot, absolutePath);

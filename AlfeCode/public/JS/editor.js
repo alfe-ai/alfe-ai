@@ -294,9 +294,14 @@
         saveButton.disabled = true;
 
         try {
-            const response = await fetch(
-                `${config.baseFileUrl}?repo=${encodeURIComponent(repo)}&path=${encodeURIComponent(filePath)}`
-            );
+            const params = new URLSearchParams({
+                repo,
+                path: filePath,
+            });
+            if (config.projectDir) {
+                params.set("projectDir", config.projectDir);
+            }
+            const response = await fetch(`${config.baseFileUrl}?${params.toString()}`);
             if (!response.ok) {
                 throw new Error(`Failed to load file (${response.status})`);
             }
@@ -423,6 +428,7 @@
                     repo: tab.repo,
                     path: tab.path,
                     content: tab.content,
+                    projectDir: config.projectDir,
                 }),
             });
             if (!response.ok) {

@@ -4369,16 +4369,32 @@ res.render("editor", {
             return res.status(400).json({ error: "Repository configuration missing." });
         }
 
+        let effectiveRepoRoot = repoCfg.gitRepoLocalPath;
+        if (targetRepo === repoName) {
+            try {
+                const projectDirParam = (req.query && req.query.projectDir) ? req.query.projectDir.toString() : '';
+                if (projectDirParam) {
+                    const resolvedProjectDir = path.resolve(projectDirParam);
+                    const allowedBase = path.resolve('/git/sterling');
+                    if (resolvedProjectDir === allowedBase || resolvedProjectDir.startsWith(allowedBase + path.sep)) {
+                        if (fs.existsSync(resolvedProjectDir) && fs.statSync(resolvedProjectDir).isDirectory()) {
+                            effectiveRepoRoot = resolvedProjectDir;
+                        }
+                    }
+                }
+            } catch (_e) { /* ignore */ }
+        }
+
         // Enforce allowed base (only allow repos under /git/sterling)
         try {
             const allowedBase = path.resolve('/git/sterling');
-            const repoRootResolved = path.resolve(repoCfg.gitRepoLocalPath || '');
+            const repoRootResolved = path.resolve(effectiveRepoRoot || '');
             if (!(repoRootResolved === allowedBase || repoRootResolved.startsWith(allowedBase + path.sep))) {
                 return res.status(403).json({ error: 'Repository path not permitted for editor.' });
             }
         } catch (_e) { /* ignore */ }
 
-        const repoRoot = path.resolve(repoCfg.gitRepoLocalPath);
+        const repoRoot = path.resolve(effectiveRepoRoot || '');
         const normalizedRelative = path.normalize(requestedPath);
         // Reject obvious traversal attempts early
         if (normalizedRelative.split(path.sep).some(segment => segment === '..')) {
