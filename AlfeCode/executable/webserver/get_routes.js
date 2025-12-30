@@ -4735,8 +4735,12 @@ ${err}`;
 
             storeMergeDiffCache(cacheKey, { diffOutput, structuredDiff, baseRev, compRev, projectDir: resolvedProjectDir });
 
-            const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
+            const editorTarget = resolveEditorTargetForProjectDir(resolvedProjectDir, sessionId);
+            const repoName = (editorTarget && editorTarget.repoName)
+                ? editorTarget.repoName
+                : resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
             const repoLinksEnabled = !!repoName;
+            const chatNumber = editorTarget && editorTarget.chatNumber ? editorTarget.chatNumber : '';
 
             const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
             const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
@@ -4758,7 +4762,7 @@ ${err}`;
                 compMeta,
                 mergeReady,
                 comparisonPromptLine,
-                            chatNumber: '',
+                chatNumber,
 });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
@@ -4917,8 +4921,12 @@ app.get("/agent/git-diff", (req, res) => {
             return res.status(400).json({ error: errorMessage });
         }
 
-        const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
+        const editorTarget = resolveEditorTargetForProjectDir(resolvedProjectDir, sessionId);
+        const repoName = (editorTarget && editorTarget.repoName)
+            ? editorTarget.repoName
+            : resolveRepoNameByLocalPath(resolvedProjectDir, sessionId);
         const repoLinksEnabled = !!repoName;
+        const chatNumber = editorTarget && editorTarget.chatNumber ? editorTarget.chatNumber : "";
 
         const statusCode = errorMessage ? 400 : 200;
 
@@ -4942,6 +4950,7 @@ app.get("/agent/git-diff", (req, res) => {
             compMeta,
             mergeReady,
             comparisonPromptLine,
+            chatNumber,
         });
     });
 
@@ -4992,6 +5001,9 @@ app.get("/agent/git-diff", (req, res) => {
 
         const mergeReady = isTruthyFlag(req.query.mergeReady);
 
+        const editorTarget = resolveEditorTargetForProjectDir(gitRepoLocalPath, sessionId);
+        const chatNumber = editorTarget && editorTarget.chatNumber ? editorTarget.chatNumber : "";
+
         res.render("diff", {
             gitRepoNameCLI: repoName,
             baseRev: baseRev || "",
@@ -5009,6 +5021,7 @@ app.get("/agent/git-diff", (req, res) => {
             compMeta,
             mergeReady,
             comparisonPromptLine,
+            chatNumber,
         });
     });
 }
