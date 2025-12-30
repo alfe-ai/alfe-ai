@@ -1097,6 +1097,35 @@ function setupPostRoutes(deps) {
         try {
             fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
             fs.writeFileSync(absolutePath, content ?? "", "utf-8");
+
+            // Attempt to commit & push the single-file change
+            try {
+                const commitUserName = process.env.GIT_COMMIT_USER_NAME || "alfe-ai";
+                const commitUserEmail = process.env.GIT_COMMIT_USER_EMAIL || "alfe-ai@example.invalid";
+                try {
+                    execSync(`git config user.name "${commitUserName}"`, { cwd: repoRoot });
+                    execSync(`git config user.email "${commitUserEmail}"`, { cwd: repoRoot });
+                } catch(_e) { /* ignore git config errors */ }
+
+                try {
+                    // Stage only the edited file (relative path to repo root)
+                    execSync(`git add -- "${relativeToRoot}"`, { cwd: repoRoot });
+                    const commitMsg = `Edited ${relativeToRoot}`;
+                    // Try to commit; if no changes to commit this will throw — ignore in that case
+                    try {
+                        execSync(`git commit -m "${commitMsg.replace(/"/g, '\"')}"`, { cwd: repoRoot });
+                        // Push the commit if remotes are configured
+                        try { execSync("git push", { cwd: repoRoot }); } catch (_pushErr) { /* ignore push failures */ }
+                    } catch (_commitErr) {
+                        // No changes to commit or commit failed; ignore
+                    }
+                } catch (gitErr) {
+                    console.error("[WARN] Git add/commit failed:", gitErr);
+                }
+            } catch (e) {
+                console.error("[WARN] Git commit/push attempt failed:", e);
+            }
+
             const stat = fs.statSync(absolutePath);
             return res.json({
                 success: true,
