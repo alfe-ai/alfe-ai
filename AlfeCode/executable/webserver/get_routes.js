@@ -4306,6 +4306,7 @@ ${cleanedFinalOutput}`;
 
 res.render("editor", {
             runTitle: runTitle,
+            projectDir: (req.query && req.query.projectDir) ? req.query.projectDir.toString() : repoCfg.gitRepoLocalPath,
             runBranch: runBranch,
             runIdShort: runIdShort,
             gitRepoNameCLI: repoName,
