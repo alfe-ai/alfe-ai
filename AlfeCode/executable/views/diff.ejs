@@ -806,7 +806,7 @@
                 const editorBaseRaw = '<%= editorBaseUrl || "" %>';
                 const editorBase = editorBaseRaw && editorBaseRaw !== 'undefined' ? editorBaseRaw : '';
                 const fallbackPath = '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file=' + encodeURIComponent(filePath);
-                const fallbackUrl = editorBase ? (editorBase.replace(/\\/$/, '') + fallbackPath) : fallbackPath;
+                const fallbackUrl = editorBase ? (editorBase.replace(/\/$/, '') + fallbackPath) : fallbackPath;
                 window.open(fallbackUrl, '_blank', 'noopener');
             } catch (_) {
                 console.error('Failed to open editor', _);
