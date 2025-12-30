@@ -2,8 +2,8 @@
 function navigateToEditor(ev){
   try{ ev && ev.preventDefault && ev.preventDefault(); }catch(e){}
   try{
-    const repo = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.repoNameCLI ? encodeURIComponent(window.CODEX_RUNNER_CONFIG.repoNameCLI) : '';
-    const chat = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.chatNumber ? encodeURIComponent(window.CODEX_RUNNER_CONFIG.chatNumber) : '';
+    const repo = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.repoNameCLI ? encodeURIComponent(window.CODEX_RUNNER_CONFIG.repoNameCLI) : '<%= gitRepoNameCLI %>';
+    const chat = window.CODEX_RUNNER_CONFIG && window.CODEX_RUNNER_CONFIG.chatNumber ? encodeURIComponent(window.CODEX_RUNNER_CONFIG.chatNumber) : '<%= chatNumber %>';
     const path = `/${repo}/chat/${chat}/editor`;
     window.location.href = path;
   }catch(e){
