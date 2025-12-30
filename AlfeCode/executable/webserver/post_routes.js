@@ -1101,7 +1101,7 @@ function setupPostRoutes(deps) {
             // Attempt to commit & push the single-file change
             try {
                 const commitUserName = process.env.GIT_COMMIT_USER_NAME || "alfe-ai";
-                const commitUserEmail = process.env.GIT_COMMIT_USER_EMAIL || "alfe-ai@example.invalid";
+                const commitUserEmail = process.env.GIT_COMMIT_USER_EMAIL || "noreply@alfe.sh";
                 try {
                     execSync(`git config user.name "${commitUserName}"`, { cwd: repoRoot });
                     execSync(`git config user.email "${commitUserEmail}"`, { cwd: repoRoot });
