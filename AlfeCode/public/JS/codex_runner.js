@@ -3045,6 +3045,20 @@ Try: ${suggestion}`;
     return { sanitizedText: remainingLines.join("\n"), snapshotDir: detectedDir };
   };
 
+  const extractSnapshotDirFromRunDirectoryText = (text) => {
+    if (typeof text !== "string") {
+      return "";
+    }
+    const lines = text.split(/\r?\n/);
+    for (const line of lines) {
+      const match = line.match(/run directory:\s*(.+)$/i);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    return "";
+  };
+
   const getFileTreeStatusDisplayMessage = (message) => message || "";
 
   const setFileTreeStatus = (message, variant = "info") => {
@@ -6043,6 +6057,10 @@ const getSidebarBadgeInfo = (run) => {
       if (snapshotDir) {
         handleSnapshotProjectDirDetected(snapshotDir);
       }
+      const runDirectory = extractSnapshotDirFromRunDirectoryText(sanitizedText);
+      if (runDirectory) {
+        handleSnapshotProjectDirDetected(runDirectory);
+      }
       if (typeof sanitizedText === "string") {
         handleGitFpushCompletionMessage(sanitizedText);
         appendChunk(sanitizedText);
@@ -6061,6 +6079,10 @@ const getSidebarBadgeInfo = (run) => {
       const { sanitizedText, snapshotDir } = stripSnapshotMarkerFromText(event.data);
       if (snapshotDir) {
         handleSnapshotProjectDirDetected(snapshotDir);
+      }
+      const runDirectory = extractSnapshotDirFromRunDirectoryText(sanitizedText);
+      if (runDirectory) {
+        handleSnapshotProjectDirDetected(runDirectory);
       }
       if (typeof sanitizedText === "string") {
         handleGitFpushCompletionMessage(sanitizedText);
