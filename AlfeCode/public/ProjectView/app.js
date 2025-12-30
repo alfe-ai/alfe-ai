@@ -1378,21 +1378,6 @@ document.addEventListener('click', (e) => {
 // Download current project JSON (attempt to download full projects array)
 const downloadCurrentButton = document.getElementById('download-current-json');
 if (downloadCurrentButton) {
-  const startDownload = (filename, content, type) => {
-    const blob = new Blob([content], {type: type || 'application/json'});
-    const objUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = objUrl;
-    a.download = filename;
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    // Delay revoke to increase chance the download starts in all browsers
-    setTimeout(() => URL.revokeObjectURL(objUrl), 1500);
-  };
-
   downloadCurrentButton.addEventListener('click', async () => {
     // Prefer downloading the full projects JSON from the API
     try {
@@ -1402,17 +1387,16 @@ if (downloadCurrentButton) {
       const url = '/ProjectView/api/projects' + (sessionId?('?sessionId='+encodeURIComponent(sessionId)): '');
       const res = await fetch(url);
       if (res.ok) {
-        const ct = res.headers.get('content-type') || '';
-        if (!ct.toLowerCase().includes('application/json')) {
-          throw new Error('Non-JSON response');
-        }
-        let data;
-        try {
-          data = await res.json();
-        } catch (err) {
-          throw new Error('Invalid JSON');
-        }
-        startDownload('projectview-projects.json', JSON.stringify(data, null, 2), 'application/json');
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objUrl;
+        a.download = 'projectview-projects.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
         showStatus('Download started (full projects).', 'success');
         return;
       }
@@ -1432,8 +1416,16 @@ if (downloadCurrentButton) {
         return;
       }
       const data = JSON.stringify(project, null, 2);
+      const blob = new Blob([data], {type: 'application/json'});
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
       const base = (project.id || project.name || 'project').toString().replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
-      startDownload(base + '.json', data, 'application/json');
+      a.download = base + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
       showStatus('Download started (single project).', 'success');
     } catch (err) {
       console.error('[Download] Failed to start download', err);
@@ -1441,4 +1433,5 @@ if (downloadCurrentButton) {
     }
   });
 }
+
 document.addEventListener('DOMContentLoaded', loadProjects);
