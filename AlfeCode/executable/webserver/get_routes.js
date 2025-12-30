@@ -4526,13 +4526,13 @@ res.render("editor", {
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
 
         if (!branchParam) {
-            return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
+            return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
                         comparisonPromptLine });
         }
 
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
         if (!resolvedProjectDir) {
-            return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
+            return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
                         comparisonPromptLine });
         }
 
@@ -4671,6 +4671,7 @@ res.render("editor", {
                         structuredDiff: [],
                         debugMode: !!process.env.DEBUG,
                         environment: res.locals.environment,
+                        editorBaseUrl: res.locals.editorBaseUrl,
                         diffFormAction: "/agent/git-diff",
                         repoLinksEnabled: false,
                         projectDir: resolvedProjectDir,
@@ -4748,6 +4749,7 @@ ${err}`;
                 structuredDiff,
                 debugMode: !!process.env.DEBUG,
                 environment: res.locals.environment,
+                editorBaseUrl: res.locals.editorBaseUrl,
                 diffFormAction: repoLinksEnabled ? `/${repoName}/diff` : "/agent/git-diff",
                 repoLinksEnabled,
                 projectDir: resolvedProjectDir,
@@ -4760,7 +4762,7 @@ ${err}`;
 });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
-            return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
+            return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
                 comparisonPromptLine });
         }
     });
@@ -4931,6 +4933,7 @@ app.get("/agent/git-diff", (req, res) => {
             structuredDiff,
             debugMode: !!process.env.DEBUG,
             environment: res.locals.environment,
+            editorBaseUrl: res.locals.editorBaseUrl,
             diffFormAction: repoLinksEnabled ? `/${repoName}/diff` : "/agent/git-diff",
             repoLinksEnabled,
             projectDir: resolvedProjectDir,
@@ -4997,6 +5000,7 @@ app.get("/agent/git-diff", (req, res) => {
             structuredDiff,
             debugMode: !!process.env.DEBUG,
             environment: res.locals.environment,
+            editorBaseUrl: res.locals.editorBaseUrl,
             diffFormAction: `/${repoName}/diff`,
             repoLinksEnabled: true,
             projectDir: gitRepoLocalPath,
