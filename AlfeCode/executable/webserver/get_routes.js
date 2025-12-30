@@ -4756,7 +4756,8 @@ ${err}`;
                 compMeta,
                 mergeReady,
                 comparisonPromptLine,
-            });
+                            chatNumber: '',
+});
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
             return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
