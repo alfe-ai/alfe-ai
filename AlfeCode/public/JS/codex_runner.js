@@ -1709,21 +1709,38 @@ Try: ${suggestion}`;
 
   const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
 
-  const parseRunIdFromHash = (hashValue) => {
+  const parseHashParams = (hashValue) => {
     if (!hashValue) {
-      return "";
+      return {};
     }
-    const trimmed = hashValue.replace(/^#/, "");
+    const trimmed = (hashValue || "").replace(/^#/, "");
     if (!trimmed) {
-      return "";
+      return {};
     }
-    if (trimmed.startsWith("run=")) {
-      return normaliseRunId(decodeURIComponent(trimmed.slice(4)));
+    // If the hash looks like key=value pairs (contains '=' or '&' or starts with 'run='),
+    // parse it as query parameters. Otherwise treat the whole trimmed string as a run id.
+    if (trimmed.indexOf('=') !== -1 || trimmed.indexOf('&') !== -1 || trimmed.startsWith('run=')) {
+      try {
+        const params = new URLSearchParams(trimmed);
+        const out = {};
+        for (const [k, v] of params.entries()) {
+          out[k] = v;
+        }
+        // Support legacy "run/ID" style
+        if (!out.run && trimmed.startsWith('run/')) {
+          out.run = decodeURIComponent(trimmed.slice(4));
+        }
+        return out;
+      } catch (e) {
+        return { run: decodeURIComponent(trimmed) };
+      }
     }
-    if (trimmed.startsWith("run/")) {
-      return normaliseRunId(decodeURIComponent(trimmed.slice(4)));
-    }
-    return normaliseRunId(decodeURIComponent(trimmed));
+    return { run: decodeURIComponent(trimmed) };
+  };
+
+const parseRunIdFromHash = (hashValue) => {
+    const params = parseHashParams(hashValue);
+    return normaliseRunId(params.run || "");
   };
 
   const buildRunsPageHref = (projectDirValue, _runIdValue) => {
@@ -6239,12 +6256,28 @@ const getSidebarBadgeInfo = (run) => {
     });
   }
 
-  if (currentRunContext.runId) {
-    maybeLoadRunFromHash(window.location.hash || "");
-  }
+  const handleHashChange = () => {
+    const hash = window.location.hash || "";
+    const params = parseHashParams(hash);
+    // If a new_task parameter is present, prepare a new task and prefill the prompt input
+    try {
+      const newTask = params.new_task || params.newTask || "";
+      if (newTask && typeof prepareNewTask === 'function') {
+        prepareNewTask();
+        try { if (promptInput) { promptInput.value = newTask; promptInput.focus(); } } catch (e) {}
+      }
+    } catch (e) { /* ignore */ }
+    if (currentRunContext.runId) {
+      maybeLoadRunFromHash(hash);
+    } else {
+      maybeLoadRunFromHash(hash);
+    }
+  };
 
+  // Handle hash on load and on change so URLs like `#run=...&new_task=...` work
+  handleHashChange();
   window.addEventListener("hashchange", () => {
-    maybeLoadRunFromHash(window.location.hash || "");
+    handleHashChange();
   });
 })();
 
