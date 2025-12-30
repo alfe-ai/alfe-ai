@@ -526,6 +526,7 @@ Try: ${suggestion}`;
   const promptPreviewTextEl = document.getElementById("userPromptPreviewText");
   const promptModalEl = document.getElementById("promptModal");
   const promptModalTextarea = document.getElementById("promptModalTextarea");
+  const promptModalCopyButton = document.getElementById("promptModalCopyButton");
   const promptModalCloseButton = document.getElementById("promptModalCloseButton");
   let runsSidebarRuns = [];
   let runsSidebarFilter = "";
@@ -972,6 +973,28 @@ Try: ${suggestion}`;
     promptModalEl.addEventListener("click", (event) => {
       if (event.target === promptModalEl) {
         closePromptModal();
+      }
+    });
+  }
+
+  if (promptModalCopyButton) {
+    promptModalCopyButton.addEventListener('click', () => {
+      try {
+        if (promptModalTextarea) {
+          navigator.clipboard.writeText(promptModalTextarea.value);
+          // provide simple feedback by changing button text briefly
+          const prev = promptModalCopyButton.textContent;
+          promptModalCopyButton.textContent = '✓';
+          setTimeout(() => { promptModalCopyButton.textContent = '\u2398'; }, 1200);
+        }
+      } catch (e) {
+        // fallback: select and execCopy
+        try {
+          if (promptModalTextarea) {
+            promptModalTextarea.select();
+            document.execCommand('copy');
+          }
+        } catch(e){}
       }
     });
   }
