@@ -2830,6 +2830,7 @@ Try: ${suggestion}`;
   };
 
   const DIFF_MODAL_BACK_MESSAGE_TYPE = "codex:diff-modal-back";
+  const DIFF_MODAL_FOLLOWUP_MESSAGE_TYPE = "codex:diff-modal-followup";
 
   const isTrustedDiffModalMessage = (event) => {
     const isFromSameOrigin = Boolean(event.origin && window.location && window.location.origin && event.origin === window.location.origin);
@@ -2880,8 +2881,28 @@ Try: ${suggestion}`;
     }
   };
 
+  const handleDiffModalFollowupRequest = (event) => {
+    if (!event || !event.data || event.data.type !== DIFF_MODAL_FOLLOWUP_MESSAGE_TYPE) {
+      return;
+    }
+    if (!isTrustedDiffModalMessage(event)) {
+      return;
+    }
+    const prompt = typeof event.data.prompt === "string" ? event.data.prompt.trim() : "";
+    if (!prompt) {
+      return;
+    }
+    closeGitLogModal();
+    const projectDir =
+      (currentRunContext && (currentRunContext.effectiveProjectDir || currentRunContext.projectDir))
+      || "";
+    const agentInstructions = agentInstructionsInput ? agentInstructionsInput.value : "";
+    startStream(projectDir, prompt, agentInstructions);
+  };
+
   window.addEventListener("message", handleDiffModalMergeRequest, false);
   window.addEventListener("message", handleDiffModalBackRequest, false);
+  window.addEventListener("message", handleDiffModalFollowupRequest, false);
 
   const looksLikeHtmlDocument = (text) => {
     if (!text || typeof text !== 'string') return false;
