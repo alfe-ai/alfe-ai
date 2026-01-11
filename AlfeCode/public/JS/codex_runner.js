@@ -29,6 +29,8 @@
   const fileTreeToggleButton = document.getElementById("fileTreeToggleButton");
   const gitFpushField = document.getElementById("gitFpushField");
   const gitFpushToggleButton = document.getElementById("gitFpushToggleButton");
+  const gitFpushRevisionNotice = document.getElementById("gitFpushRevisionNotice");
+  const gitFpushRevisionCode = document.getElementById("gitFpushRevisionCode");
   const promptInput = document.getElementById("prompt");
   const updatePromptPlaceholder = () => {
     try {
@@ -1400,6 +1402,8 @@ Try: ${suggestion}`;
   let pythonTestInFlight = false;
   let gitFpushActive = false;
   let gitFpushDetectedChanges = false;
+  let gitFpushCommitRevision = "";
+  let gitFpushLogCaptureActive = false;
   let mergeDiffLockedAfterMerge = false;
   let autoOpenMergeDiffOnEnable = false;
   let hydratingRunFromHistory = false;
@@ -2074,6 +2078,52 @@ Try: ${suggestion}`;
     } catch (e) { /* ignore */ }
   };
 ;
+
+  const updateGitFpushRevisionNotice = (revision) => {
+    if (!gitFpushRevisionNotice || !gitFpushRevisionCode) {
+      return;
+    }
+    const displayValue = typeof revision === "string" ? revision.trim() : "";
+    gitFpushCommitRevision = displayValue;
+    if (displayValue) {
+      gitFpushRevisionCode.textContent = displayValue;
+      try { gitFpushRevisionCode.setAttribute("title", displayValue); } catch (e) { /* ignore */ }
+      gitFpushRevisionNotice.classList.remove("is-hidden");
+    } else {
+      gitFpushRevisionCode.textContent = "";
+      gitFpushRevisionNotice.classList.add("is-hidden");
+    }
+  };
+
+  const resetGitFpushRevisionNotice = () => {
+    gitFpushLogCaptureActive = false;
+    updateGitFpushRevisionNotice("");
+  };
+
+  const captureGitFpushRevisionFromText = (text) => {
+    if (typeof text !== "string" || !text) {
+      return;
+    }
+    const lines = text.replace(/\r/g, "").split("\n");
+    for (const line of lines) {
+      if (!line) {
+        continue;
+      }
+      if (/git log:/i.test(line)) {
+        gitFpushLogCaptureActive = true;
+        continue;
+      }
+      if (!gitFpushLogCaptureActive) {
+        continue;
+      }
+      const match = line.match(/^([0-9a-f]{7,40})\s+\d{4}-\d{2}-\d{2}\b/i);
+      if (match) {
+        updateGitFpushRevisionNotice(match[1]);
+        gitFpushLogCaptureActive = false;
+        return;
+      }
+    }
+  };
 
   const getProjectNameFromDir = (value) => {
     const normalised = normaliseProjectDir(value);
@@ -4603,6 +4653,7 @@ const appendMergeChunk = (text, type = "output") => {
 
     if (run.stdout) {
       appendChunk(run.stdout, "output");
+      captureGitFpushRevisionFromText(run.stdout);
       if (run.stdoutTruncated) {
         appendChunk("Stored stdout truncated for history view.", "status");
       }
@@ -4610,6 +4661,7 @@ const appendMergeChunk = (text, type = "output") => {
 
     if (run.stderr) {
       appendChunk(run.stderr, "stderr");
+      captureGitFpushRevisionFromText(run.stderr);
       if (run.stderrTruncated) {
         appendChunk("Stored stderr truncated for history view.", "status");
       }
@@ -5658,6 +5710,7 @@ const appendMergeChunk = (text, type = "output") => {
     resetStdoutPromptTracking();
     suppressStdoutOutput = false;
     hideStdoutTab();
+    resetGitFpushRevisionNotice();
   };
 
   const toggleButtons = (disabled) => {
@@ -6771,6 +6824,7 @@ const appendMergeChunk = (text, type = "output") => {
       }
       if (typeof sanitizedText === "string") {
         handleGitFpushCompletionMessage(sanitizedText);
+        captureGitFpushRevisionFromText(sanitizedText);
         appendChunk(sanitizedText);
         if (gitFpushActive) {
           captureGitFpushDiffCandidates(
@@ -6794,6 +6848,7 @@ const appendMergeChunk = (text, type = "output") => {
       }
       if (typeof sanitizedText === "string") {
         handleGitFpushCompletionMessage(sanitizedText);
+        captureGitFpushRevisionFromText(sanitizedText);
         processCommitMessageChunk(sanitizedText);
         appendChunk(sanitizedText, "stderr");
       }
