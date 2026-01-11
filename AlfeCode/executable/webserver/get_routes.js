@@ -5113,23 +5113,86 @@ app.get("/agent/git-diff", (req, res) => {
     const getCommitList = (cwd, baseRev, compRev) => {
         if (!baseRev || !compRev) return [];
         try {
+            const parseCommitLines = (logOutput) => {
+                const lines = logOutput.split(/\r?\n/).filter(Boolean);
+                return lines.map((line) => {
+                    const [hash = '', parentsRaw = '', message = ''] = line.split('\x1f');
+                    const parents = parentsRaw ? parentsRaw.split(' ').filter(Boolean) : [];
+                    return { hash, parents, message };
+                }).filter((commit) => commit.hash);
+            };
+
+            const resolveBranchForCommit = (commitHash) => {
+                if (!commitHash) {
+                    return "";
+                }
+                try {
+                    const branchOut = execSync(`git branch -a --contains ${commitHash}`, {
+                        cwd,
+                        maxBuffer: 1024 * 1024,
+                    }).toString();
+                    const branches = branchOut
+                        .split(/\r?\n/)
+                        .map((line) => line.replace(/^\*?\s*/, "").trim())
+                        .filter(Boolean)
+                        .filter((line) => !line.includes("->"))
+                        .filter((line) => !line.toLowerCase().includes("detached"));
+                    if (!branches.length) {
+                        return "";
+                    }
+                    const preferred =
+                        branches.find((branch) => /^alfe\//.test(branch))
+                        || branches.find((branch) => /^remotes\/origin\/alfe\//.test(branch))
+                        || branches.find((branch) => /^origin\/alfe\//.test(branch))
+                        || branches[0];
+                    return preferred || "";
+                } catch (err) {
+                    return "";
+                }
+            };
+
             const out = execSync(`git log --format=%H%x1f%P%x1f%s ${baseRev}..${compRev}`, {
                 cwd,
                 maxBuffer: 1024 * 1024,
             }).toString();
-            const lines = out.split(/\r?\n/).filter(Boolean);
-            const commits = lines.map((line) => {
-                const [hash = '', parentsRaw = '', message = ''] = line.split('\x1f');
-                const parents = parentsRaw ? parentsRaw.split(' ').filter(Boolean) : [];
-                return { hash, parents, message };
-            }).filter((commit) => commit.hash);
-            if (!commits.length && compRev) {
-                const fallback = getCommitMeta(cwd, compRev);
-                if (fallback.hash) {
-                    commits.push({ hash: fallback.hash, parents: [], message: fallback.message || '' });
+            const commits = parseCommitLines(out);
+            if (commits.length > 1) {
+                return commits;
+            }
+
+            let fallbackCommits = commits;
+            const branchRef = resolveBranchForCommit(compRev);
+            if (branchRef) {
+                try {
+                    const rangeRef = baseRev ? `${baseRev}..${branchRef}` : branchRef;
+                    const branchOut = execSync(`git log --format=%H%x1f%P%x1f%s ${rangeRef}`, {
+                        cwd,
+                        maxBuffer: 1024 * 1024,
+                    }).toString();
+                    const branchCommits = parseCommitLines(branchOut);
+                    if (branchCommits.length) {
+                        return branchCommits;
+                    }
+                } catch (err) {
+                    // Continue to fallback commits.
                 }
             }
-            return commits;
+            if (compRev) {
+                const fallbackOut = execSync(`git log --format=%H%x1f%P%x1f%s -n 20 ${compRev}`, {
+                    cwd,
+                    maxBuffer: 1024 * 1024,
+                }).toString();
+                fallbackCommits = parseCommitLines(fallbackOut);
+            }
+
+            if (!fallbackCommits.length && compRev) {
+                const fallback = getCommitMeta(cwd, compRev);
+                if (fallback.hash) {
+                    fallbackCommits.push({ hash: fallback.hash, parents: [], message: fallback.message || '' });
+                }
+            }
+
+            return fallbackCommits;
         } catch (err) {
             return [];
         }
