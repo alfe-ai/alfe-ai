@@ -2702,13 +2702,22 @@
                             <span class="sr-only">Open Sterling settings</span>
                         </button>
                         <button
-                            id="signUpLogInBtn"
+                            id="logInBtn"
                             class="nav-button icon-tone"
                             type="button"
-                            title="Sign Up or Log In"
-                            aria-label="Sign up or log in"
+                            title="Log In"
+                            aria-label="Log in"
                         >
-                            Sign Up / Log In
+                            Log In
+                        </button>
+                        <button
+                            id="signUpBtn"
+                            class="nav-button icon-tone"
+                            type="button"
+                            title="Sign Up"
+                            aria-label="Sign up"
+                        >
+                            Sign Up
                         </button>
                     </div>
                 </div>
@@ -3002,13 +3011,9 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       </div>
     </div>
 
-    <div id="authModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Sign Up or Log In">
+    <div id="loginModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Log In">
       <div class="modal-content">
-        <button class="modal-close" type="button" id="authModalCloseButton">×</button>
-        <div id="authTabs" style="display:flex; gap:0.5rem; margin-bottom:1rem;">
-          <button id="loginTab" class="view-tab active">Login</button>
-          <button id="signupTab" class="view-tab">Sign Up</button>
-        </div>
+        <button class="modal-close" type="button" id="loginModalCloseButton">×</button>
         <div id="loginForm">
           <label>Email:<br/>
             <input type="email" id="loginEmail" />
@@ -3025,7 +3030,13 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             <button id="loginCancelBtn">Cancel</button>
           </div>
         </div>
-        <div id="signupForm" style="display:none;">
+      </div>
+    </div>
+
+    <div id="signupModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Sign Up">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="signupModalCloseButton">×</button>
+        <div id="signupForm">
           <label>Email:<br/>
             <input type="email" id="signupEmail" />
           </label>
@@ -3047,7 +3058,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
           </div>
           <div class="modal-buttons">
             <button id="signupSubmitBtn">Register</button>
-            <button id="showLoginBtn">Back to Login</button>
+            <button id="showLoginBtn">Log In</button>
           </div>
         </div>
       </div>
