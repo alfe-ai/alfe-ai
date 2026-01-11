@@ -6096,7 +6096,6 @@ const appendMergeChunk = (text, type = "output") => {
         }
         setFollowupActiveTab(session, "combined");
       }
-      hideStdoutTab();
     } else {
       followupRunActive = false;
       clearOutput();
