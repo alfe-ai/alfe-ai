@@ -59,48 +59,10 @@
             border: 1px solid var(--nexum-border);
             box-shadow: var(--shadow-strong);
         }
-        .card + .card {
-            margin-top: 8px;
-        }
         .meta {
             margin: 0 0 18px;
             color: var(--nexum-muted);
             font-size: 0.95rem;
-        }
-        .method-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin-top: 18px;
-        }
-        .method-card {
-            padding: 18px 20px;
-            border-radius: 16px;
-            border: 1px solid rgba(124, 144, 196, 0.25);
-            background: rgba(15, 23, 42, 0.72);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .method-card h3 {
-            margin: 0;
-            font-size: 1.1rem;
-        }
-        .method-card p {
-            margin: 0;
-            color: var(--nexum-muted);
-            line-height: 1.5;
-        }
-        .method-card .button-row {
-            margin-top: 4px;
-        }
-        .button-link.tertiary {
-            background: rgba(30, 41, 59, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            color: var(--nexum-text);
-        }
-        .button-link.tertiary:hover {
-            background: rgba(51, 65, 85, 0.75);
         }
         .meta-row {
             display: flex;
@@ -238,36 +200,12 @@
         </header>
 
         <div class="card">
-            <h2>Choose a linking method</h2>
-            <p class="meta">Select how you want to connect or create a repository. You can always switch methods later.</p>
-            <div class="method-list">
-                <div class="method-card">
-                    <h3>Git URL</h3>
-                    <p>Paste an SSH, HTTPS, or git+ssh URL to clone an existing repository.</p>
-                    <div class="button-row">
-                        <a class="button-link" href="#git-url-form">Use Git URL</a>
-                    </div>
-                </div>
-                <div class="method-card">
-                    <h3>GitHub Link</h3>
-                    <p>Open GitHub to choose a repository and grab the URL or access settings for linking.</p>
-                    <div class="button-row">
-                        <a class="button-link tertiary" href="https://github.com" target="_blank" rel="noopener noreferrer">Open GitHub</a>
-                    </div>
-                </div>
-                <div class="method-card">
-                    <h3>Create New Repository</h3>
-                    <p>Start with a fresh repository on the server and jump into the agent workflow.</p>
-                    <div class="button-row">
-                        <a class="button-link secondary" href="/repositories/new-default">Create New Repository</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card" id="git-url-form">
             <div class="meta-row">
-                <p class="meta">Use a Git URL to clone an existing repository.</p>
+                <p class="meta">Connect a repository via a URL.</p>
+                <div class="meta-action">
+                    <span>Or</span>
+                    <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
+                </div>
             </div>
             <form action="/repositories/add" method="POST" id="addRepoForm">
                 <% if (cloneError) { %>
