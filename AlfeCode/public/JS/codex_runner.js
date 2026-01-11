@@ -6757,124 +6757,113 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
-  const signUpLogInBtn = document.getElementById("signUpLogInBtn");
-  const authModal = document.getElementById("authModal");
-  const authModalCloseButton = document.getElementById("authModalCloseButton");
-  const loginForm = document.getElementById("loginForm");
-  const signupForm = document.getElementById("signupForm");
-  const loginTab = document.getElementById("loginTab");
-  const signupTab = document.getElementById("signupTab");
+  const logInBtn = document.getElementById("logInBtn");
+  const signUpBtn = document.getElementById("signUpBtn");
+  const loginModal = document.getElementById("loginModal");
+  const signupModal = document.getElementById("signupModal");
+  const loginModalCloseButton = document.getElementById("loginModalCloseButton");
+  const signupModalCloseButton = document.getElementById("signupModalCloseButton");
   const showSignupBtn = document.getElementById("showSignupBtn");
   const showLoginBtn = document.getElementById("showLoginBtn");
   const loginCancelBtn = document.getElementById("loginCancelBtn");
 
-  const showAuthModal = () => {
-    if (!authModal) {
-      return;
-    }
-    authModal.classList.remove("is-hidden");
-    document.body.style.overflow = "hidden";
-  };
+  const isModalOpen = (modal) => modal && !modal.classList.contains("is-hidden");
 
-  const hideAuthModal = () => {
-    if (!authModal) {
+  const syncBodyScroll = () => {
+    if (isModalOpen(loginModal) || isModalOpen(signupModal)) {
+      document.body.style.overflow = "hidden";
       return;
     }
-    authModal.classList.add("is-hidden");
     document.body.style.overflow = "";
   };
 
-  const showLoginForm = () => {
-    if (loginForm) {
-      loginForm.style.display = "block";
+  const showModal = (modalToShow, modalToHide) => {
+    if (modalToHide) {
+      modalToHide.classList.add("is-hidden");
     }
-    if (signupForm) {
-      signupForm.style.display = "none";
+    if (modalToShow) {
+      modalToShow.classList.remove("is-hidden");
     }
-    if (loginTab) {
-      loginTab.classList.add("active");
-    }
-    if (signupTab) {
-      signupTab.classList.remove("active");
-    }
+    syncBodyScroll();
   };
 
-  const showSignupForm = () => {
-    if (loginForm) {
-      loginForm.style.display = "none";
+  const hideModal = (modal) => {
+    if (!modal) {
+      return;
     }
-    if (signupForm) {
-      signupForm.style.display = "block";
-    }
-    if (loginTab) {
-      loginTab.classList.remove("active");
-    }
-    if (signupTab) {
-      signupTab.classList.add("active");
-    }
+    modal.classList.add("is-hidden");
+    syncBodyScroll();
   };
 
-  if (signUpLogInBtn) {
-    signUpLogInBtn.addEventListener("click", (event) => {
+  if (logInBtn) {
+    logInBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      showLoginForm();
-      showAuthModal();
+      showModal(loginModal, signupModal);
     });
   }
 
-  if (loginTab) {
-    loginTab.addEventListener("click", (event) => {
+  if (signUpBtn) {
+    signUpBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      showLoginForm();
-    });
-  }
-
-  if (signupTab) {
-    signupTab.addEventListener("click", (event) => {
-      event.preventDefault();
-      showSignupForm();
+      showModal(signupModal, loginModal);
     });
   }
 
   if (showSignupBtn) {
     showSignupBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      showSignupForm();
+      showModal(signupModal, loginModal);
     });
   }
 
   if (showLoginBtn) {
     showLoginBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      showLoginForm();
+      showModal(loginModal, signupModal);
     });
   }
 
   if (loginCancelBtn) {
     loginCancelBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      hideAuthModal();
+      hideModal(loginModal);
     });
   }
 
-  if (authModalCloseButton) {
-    authModalCloseButton.addEventListener("click", (event) => {
+  if (loginModalCloseButton) {
+    loginModalCloseButton.addEventListener("click", (event) => {
       event.preventDefault();
-      hideAuthModal();
+      hideModal(loginModal);
     });
   }
 
-  if (authModal) {
-    authModal.addEventListener("click", (event) => {
-      if (event.target === authModal) {
-        hideAuthModal();
+  if (signupModalCloseButton) {
+    signupModalCloseButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideModal(signupModal);
+    });
+  }
+
+  if (loginModal) {
+    loginModal.addEventListener("click", (event) => {
+      if (event.target === loginModal) {
+        hideModal(loginModal);
+      }
+    });
+  }
+
+  if (signupModal) {
+    signupModal.addEventListener("click", (event) => {
+      if (event.target === signupModal) {
+        hideModal(signupModal);
       }
     });
   }
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && authModal && !authModal.classList.contains("is-hidden")) {
-      hideAuthModal();
+    if (event.key === "Escape" && (isModalOpen(loginModal) || isModalOpen(signupModal))) {
+      hideModal(loginModal);
+      hideModal(signupModal);
     }
   });
 
