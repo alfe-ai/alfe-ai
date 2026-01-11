@@ -1934,6 +1934,89 @@
             right: 10px;
         }
 
+        #switchBranchModal {
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        #switchBranchModal .modal-content {
+            max-width: 520px;
+            width: 92%;
+            height: auto;
+            max-height: 90vh;
+            margin: auto;
+            padding: 26px 28px 24px;
+            border-radius: 20px;
+            overflow: auto;
+            position: relative;
+        }
+
+        #switchBranchModal h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+        }
+
+        #switchBranchModal .switch-branch-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        #switchBranchModal .switch-branch-create {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            text-decoration: underline;
+        }
+
+        #switchBranchModal .switch-branch-create:hover,
+        #switchBranchModal .switch-branch-create:focus-visible {
+            color: var(--accent-strong);
+        }
+
+        #switchBranchModal label {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
+        #switchBranchModal select,
+        #switchBranchModal input[type="text"] {
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+
+        #switchBranchModal select:focus,
+        #switchBranchModal input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+        }
+
+        #switchBranchModal .switch-branch-actions {
+            margin-top: 18px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        #switchBranchModal .switch-branch-message {
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
         .auth-modal label {
             font-size: 0.9rem;
             letter-spacing: 0.01em;
@@ -2521,9 +2604,9 @@
                         type="button"
                         id="projectInfo"
                         class="project-info"
-                        aria-haspopup="true"
+                        aria-haspopup="dialog"
                         aria-expanded="false"
-                        aria-controls="branchesDropdown"
+                        aria-controls="switchBranchModal"
                     >
                         <span id="projectInfoCaret" class="project-info__caret" aria-hidden="true">▾</span>
                         <span id="projectInfoText" class="project-info__text">Branch</span>
@@ -3053,6 +3136,24 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       </div>
     </div>
 
+    <div id="switchBranchModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="switchBranchModalTitle">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="switchBranchModalCloseButton">×</button>
+        <div class="switch-branch-header">
+          <h2 id="switchBranchModalTitle">Switch Branch</h2>
+          <button type="button" class="switch-branch-create" id="switchBranchCreateButton">Or Create a New Branch</button>
+        </div>
+        <div id="branchSelectContainer">
+          <label for="branchSelect">Select existing branch:</label>
+          <select id="branchSelect"></select>
+          <div class="switch-branch-actions">
+            <button type="button" class="nav-button" id="switchBranchSubmitButton">Switch</button>
+          </div>
+          <div id="switchBranchMessage" class="switch-branch-message" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="gitTreeModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Git Log">
       <div class="modal-content">
         <button class="modal-close" type="button" onclick="(function(){ const modal=document.getElementById('gitTreeModal'); const iframe=document.getElementById('gitTreeIframe'); if(iframe) iframe.src=''; if(modal) modal.classList.add('is-hidden'); document.body.style.overflow=''; })()">×</button>
@@ -3232,53 +3333,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     branchesIframe.dataset.currentSrc = nextSrc;
     branchesIframe.src = nextSrc;
   };
-
-  if(projectInfo && branchesDropdown) {
-    const showBranchComingSoonTooltip = (ev) => {
-      ev.stopPropagation();
-      try {
-        let tip = document.getElementById('branchComingSoonTooltip');
-        if(!tip) {
-          tip = document.createElement('div');
-          tip.id = 'branchComingSoonTooltip';
-          tip.textContent = 'Ability to switch branches available soon.';
-          document.body.appendChild(tip);
-        }
-        tip.style.position = 'absolute';
-        tip.style.pointerEvents = 'none';
-        tip.style.opacity = '0';
-        tip.style.zIndex = 10000;
-        tip.style.maxWidth = '320px';
-        tip.style.padding = '8px 12px';
-        tip.style.borderRadius = '8px';
-        tip.style.background = 'rgba(0,0,0,0.86)';
-        tip.style.color = '#fff';
-        tip.style.fontSize = '0.9rem';
-        tip.style.boxShadow = '0 8px 24px rgba(0,0,0,0.6)';
-
-        // Position centered under the button
-        const rect = projectInfo.getBoundingClientRect();
-        document.body.appendChild(tip); // ensure in DOM for measurements
-        const left = Math.max(8, Math.round(rect.left + (rect.width - tip.offsetWidth)/2));
-        const top = Math.round(rect.bottom + 8 + window.scrollY);
-        tip.style.left = left + 'px';
-        tip.style.top = top + 'px';
-
-        // show
-        requestAnimationFrame(() => { tip.style.opacity = '1'; });
-
-        if(tip._timeout) clearTimeout(tip._timeout);
-        tip._timeout = setTimeout(()=>{
-          tip.style.opacity = '0';
-          setTimeout(()=>{ try{ tip.remove(); }catch(_e){} }, 220);
-        }, 2800);
-      } catch(e) {
-        // noop
-      }
-    };
-
-    projectInfo.addEventListener('click', showBranchComingSoonTooltip);
-  }
 
   if(branchesDropdown) {
     branchesDropdown.addEventListener('click', (ev) => ev.stopPropagation());
