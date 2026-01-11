@@ -807,6 +807,8 @@
                 newParams.set('projectDir', templateProjectDir);
             }
             newParams.set('open_file', filePath);
+            newParams.set('from_diff', '1');
+            newParams.set('diff_url', currentUrl.toString());
             url.search = newParams.toString();
             const finalUrl = url.toString();
 
