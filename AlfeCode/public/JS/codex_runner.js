@@ -344,6 +344,66 @@ Try: ${suggestion}`;
     }
   };
 
+  const getPromptPreviewSummary = (promptText) => {
+    const normalised = sanitisePromptText(promptText);
+    const trimmed = normalised.trim();
+    if (!trimmed) {
+      return { trimmed: "", summary: "" };
+    }
+    const firstLine = trimmed.split(/\r?\n/, 1)[0] || trimmed;
+    const summary = firstLine.length > 200 ? `${firstLine.slice(0, 197)}…` : firstLine;
+    return { trimmed, summary };
+  };
+
+  const buildPromptPreviewElement = (promptText) => {
+    const previewEl = document.createElement("div");
+    previewEl.className = "status status-idle prompt-preview";
+    previewEl.setAttribute("role", "button");
+    previewEl.setAttribute("tabindex", "0");
+    previewEl.setAttribute("aria-haspopup", "dialog");
+    previewEl.setAttribute("aria-expanded", "false");
+
+    const previewTextEl = document.createElement("span");
+    previewTextEl.className = "status-text prompt-preview-text";
+    previewEl.appendChild(previewTextEl);
+
+    const iconWrapper = document.createElement("span");
+    iconWrapper.className = "prompt-preview-icon";
+    iconWrapper.setAttribute("aria-hidden", "true");
+    iconWrapper.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 5h10v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M5 19l14-14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    `;
+    previewEl.appendChild(iconWrapper);
+
+    const { trimmed, summary } = getPromptPreviewSummary(promptText);
+    previewTextEl.textContent = summary;
+    const labelPreview = summary || "View full prompt";
+    previewEl.setAttribute("aria-label", `View full prompt: ${labelPreview}`);
+    previewEl.setAttribute("title", "Click to view full prompt");
+
+    const openFollowupPromptModal = () => {
+      if (!trimmed) {
+        return;
+      }
+      openPromptModal(trimmed, previewEl);
+    };
+    previewEl.addEventListener("click", openFollowupPromptModal);
+    previewEl.addEventListener("keydown", (event) => {
+      if (!trimmed) {
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openFollowupPromptModal();
+      }
+    });
+
+    return previewEl;
+  };
+
   const startFollowupSession = (promptText) => {
     if (!followupSectionEl) {
       return null;
@@ -361,17 +421,8 @@ Try: ${suggestion}`;
     statusEl.textContent = `Follow-up ${followupSessionCounter} — Running`;
     sessionEl.appendChild(statusEl);
 
-    const promptLabel = document.createElement("label");
-    const promptTextareaId = `followupPrompt${followupSessionCounter}`;
-    promptLabel.setAttribute("for", promptTextareaId);
-    promptLabel.textContent = "Prompt";
-    sessionEl.appendChild(promptLabel);
-
-    const promptTextarea = document.createElement("textarea");
-    promptTextarea.id = promptTextareaId;
-    promptTextarea.setAttribute("readonly", "readonly");
-    promptTextarea.value = typeof promptText === "string" ? promptText : "";
-    sessionEl.appendChild(promptTextarea);
+    const promptPreview = buildPromptPreviewElement(promptText);
+    sessionEl.appendChild(promptPreview);
 
     const outputLabel = document.createElement("label");
     const outputLabelId = `followupOutputLabel${followupSessionCounter}`;
@@ -430,7 +481,7 @@ Try: ${suggestion}`;
       index: followupSessionCounter,
       container: sessionEl,
       statusText: statusEl,
-      promptTextarea,
+      promptPreview,
       combinedTabButton: combinedButton,
       finalTabButton: finalButton,
       outputTabsContainer: tabsContainer,
@@ -443,7 +494,6 @@ Try: ${suggestion}`;
 
     followupSessions.push(session);
     setFollowupSessionStatus(session, "running");
-    autoResizeTextarea(promptTextarea);
     combinedButton.addEventListener("click", () => {
       setFollowupActiveTab(session, "combined");
     });
@@ -543,6 +593,7 @@ Try: ${suggestion}`;
   let pythonTestEnabled = false;
   let lastUserPrompt = "";
   let promptModalPreviouslyFocusedElement = null;
+  let activePromptPreviewEl = null;
   const collapsibleSections = [
     document.getElementById("pageTitle"),
     document.getElementById("pageDescription"),
@@ -842,8 +893,9 @@ Try: ${suggestion}`;
       return;
     }
     promptModalEl.classList.add("is-hidden");
-    if (promptPreviewEl) {
-      promptPreviewEl.setAttribute("aria-expanded", "false");
+    const previewTarget = activePromptPreviewEl || promptPreviewEl;
+    if (previewTarget) {
+      previewTarget.setAttribute("aria-expanded", "false");
     }
     if (promptModalTextarea) {
       try {
@@ -867,34 +919,39 @@ Try: ${suggestion}`;
       } catch (_error) {
         focusTarget.focus();
       }
+      activePromptPreviewEl = null;
       return;
     }
-    if (promptPreviewEl && !promptPreviewEl.classList.contains("is-hidden")) {
+    if (previewTarget && !previewTarget.classList.contains("is-hidden")) {
       try {
-        promptPreviewEl.focus({ preventScroll: true });
+        previewTarget.focus({ preventScroll: true });
       } catch (_err) {
-        promptPreviewEl.focus();
+        previewTarget.focus();
       }
     }
+    activePromptPreviewEl = null;
   };
 
-  const openPromptModal = () => {
-    if (!promptModalEl || !promptModalTextarea || !lastUserPrompt) {
+  const openPromptModal = (promptText, triggerEl) => {
+    const normalised = sanitisePromptText(promptText);
+    const trimmed = normalised.trim();
+    if (!promptModalEl || !promptModalTextarea || !trimmed) {
       return;
     }
     if (typeof document !== "undefined") {
-      const active = document.activeElement;
+      const active = triggerEl || document.activeElement;
       if (active && typeof active.focus === "function") {
         promptModalPreviouslyFocusedElement = active;
       } else {
         promptModalPreviouslyFocusedElement = null;
       }
     }
-    promptModalTextarea.value = lastUserPrompt;
+    activePromptPreviewEl = triggerEl || promptPreviewEl || null;
+    promptModalTextarea.value = trimmed;
     promptModalTextarea.scrollTop = 0;
     promptModalEl.classList.remove("is-hidden");
-    if (promptPreviewEl) {
-      promptPreviewEl.setAttribute("aria-expanded", "true");
+    if (activePromptPreviewEl) {
+      activePromptPreviewEl.setAttribute("aria-expanded", "true");
     }
     if (typeof document !== "undefined" && document.body) {
       document.body.style.overflow = "hidden";
@@ -961,7 +1018,7 @@ Try: ${suggestion}`;
       if (!lastUserPrompt) {
         return;
       }
-      openPromptModal();
+      openPromptModal(lastUserPrompt, promptPreviewEl);
     });
     promptPreviewEl.addEventListener("keydown", (event) => {
       if (!lastUserPrompt) {
@@ -969,7 +1026,7 @@ Try: ${suggestion}`;
       }
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        openPromptModal();
+        openPromptModal(lastUserPrompt, promptPreviewEl);
       }
     });
   }
