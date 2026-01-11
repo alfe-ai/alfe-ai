@@ -209,7 +209,6 @@
       <button id="chatSettingsBtn" class="top-btn" title="Chat Settings" style="display:none;">⚙️</button>
       <button id="globalAiSettingsBtn" class="top-btn" title="Global AI Settings" style="display:none;">🤖</button>
       <button id="aiFavoritesBtn" class="top-btn" title="AI Favorites" style="color: gold; display:none;">⭐</button>
-      <button id="signupBtn" class="top-btn" style="display:none;">Sign Up / Login</button>
       <a
         id="googlePlayBadge"
         class="store-badge disabled"
@@ -234,15 +233,8 @@
       >
         <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" width="135" height="40" loading="lazy" />
       </a>
-      <a id="githubBtn" href="https://github.com/alfe-ai" target="_blank" class="top-btn github-button">
-        GitHub
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" focusable="false" aria-hidden="true">
-          <g weight="bold">
-            <path d="M212.62,75.17A63.7,63.7,0,0,0,206.39,26,12,12,0,0,0,196,20a63.71,63.71,0,0,0-50,24H126A63.71,63.71,0,0,0,76,20a12,12,0,0,0-10.39,6,63.7,63.7,0,0,0-6.23,49.17A61.5,61.5,0,0,0,52,104v8a60.1,60.1,0,0,0,45.76,58.28A43.66,43.66,0,0,0,92,192v4H76a20,20,0,0,1-20-20,44.05,44.05,0,0,0-44-44,12,12,0,0,0,0,24,20,20,0,0,1,20,20,44.05,44.05,0,0,0,44,44H92v12a12,12,0,0,0,24,0V192a20,20,0,0,1,40,0v40a12,12,0,0,0,24,0V192a43.66,43.66,0,0,0-5.76-21.72A60.1,60.1,0,0,0,220,112v-8A61.5,61.5,0,0,0,212.62,75.17ZM196,112a36,36,0,0,1-36,36H112a36,36,0,0,1-36-36v-8a37.87,37.87,0,0,1,6.13-20.12,11.65,11.65,0,0,0,1.58-11.49,39.9,39.9,0,0,1-.4-27.72,39.87,39.87,0,0,1,26.41,17.8A12,12,0,0,0,119.82,68h32.35a12,12,0,0,0,10.11-5.53,39.84,39.84,0,0,1,26.41-17.8,39.9,39.9,0,0,1-.4,27.72,12,12,0,0,0,1.61,11.53A37.85,37.85,0,0,1,196,104Z"></path>
-          </g>
-        </svg>
-      </a>
       <button id="settingsBtn" class="top-btn" title="Settings">⚙️</button>
+      <button id="signupBtn" class="top-btn" style="display:none;">Sign Up / Log In</button>
 <!--    <a id="changelogBtn" href="/changelog.html" class="top-btn" target="_blank">Changelog</a>-->
     </div>
 
@@ -882,14 +874,18 @@
 <!-- Login/Signup modal -->
 <div id="authModal" class="modal">
   <div class="modal-content">
-    <div id="authTabs" style="display:flex; gap:0.5rem; margin-bottom:1rem;">
-      <button id="loginTab" class="view-tab active">Login</button>
-      <button id="signupTab" class="view-tab">Sign Up</button>
-    </div>
-    <div id="loginForm">
+    <div id="authEmailStep">
       <label>Email:<br/>
-        <input type="email" id="loginEmail" style="width:100%;" />
+        <input type="email" id="authEmailInput" style="width:100%;" />
       </label>
+      <div class="modal-buttons">
+        <button id="authEmailContinueBtn">Continue</button>
+        <button id="authEmailCancelBtn">Cancel</button>
+      </div>
+    </div>
+    <div id="loginForm" style="display:none;">
+      <p>Email: <span id="authEmailDisplayLogin"></span></p>
+      <input type="hidden" id="loginEmail" />
       <label style="margin-top:8px;">Password:<br/>
         <input type="password" id="loginPassword" style="width:100%;" />
       </label>
@@ -898,14 +894,13 @@
       </label>
       <div class="modal-buttons">
         <button id="loginSubmitBtn">Login</button>
-        <button id="showSignupBtn">Sign Up</button>
+        <button id="loginChangeEmailBtn">Use different email</button>
         <button id="loginCancelBtn">Cancel</button>
       </div>
     </div>
     <div id="signupForm" style="display:none;">
-      <label>Email:<br/>
-        <input type="email" id="signupEmail" style="width:100%;" />
-      </label>
+      <p>Email: <span id="authEmailDisplaySignup"></span></p>
+      <input type="hidden" id="signupEmail" />
       <label style="margin-top:8px;">Password:<br/>
         <input type="password" id="signupPassword" style="width:100%;" />
       </label>
@@ -924,7 +919,7 @@
       </div>
       <div class="modal-buttons">
         <button id="signupSubmitBtn">Register</button>
-        <button id="showLoginBtn">Back to Login</button>
+        <button id="signupChangeEmailBtn">Use different email</button>
       </div>
     </div>
   </div>
@@ -1166,5 +1161,3 @@
 </script>
 </body>
 </html>
-
-

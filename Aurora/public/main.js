@@ -1492,32 +1492,73 @@ function hidePageLoader(){
   if(loader) loader.classList.remove("show");
 }
 
+let authEmailValue = "";
+
+function setAuthEmailValue(email){
+  authEmailValue = email;
+  const loginEmail = document.getElementById("loginEmail");
+  if(loginEmail) loginEmail.value = email;
+  const signupEmail = document.getElementById("signupEmail");
+  if(signupEmail) signupEmail.value = email;
+  const emailInput = document.getElementById("authEmailInput");
+  if(emailInput) emailInput.value = email;
+  const loginDisplay = document.getElementById("authEmailDisplayLogin");
+  if(loginDisplay) loginDisplay.textContent = email;
+  const signupDisplay = document.getElementById("authEmailDisplaySignup");
+  if(signupDisplay) signupDisplay.textContent = email;
+}
+
+function showAuthEmailStep({ keepEmail = true } = {}){
+  if(!accountsEnabled){
+    return;
+  }
+  if(!keepEmail){
+    setAuthEmailValue("");
+  }
+  const login = document.getElementById("loginForm");
+  const signup = document.getElementById("signupForm");
+  const emailStep = document.getElementById("authEmailStep");
+  if(login) login.style.display = "none";
+  if(signup) signup.style.display = "none";
+  if(emailStep) emailStep.style.display = "block";
+  const totpLabel = document.getElementById("totpLoginLabel");
+  if(totpLabel) totpLabel.style.display = "none";
+  const emailInput = document.getElementById("authEmailInput");
+  if(emailInput) emailInput.focus();
+}
+
 function showSignupForm(){
   if(!accountsEnabled){
     return;
   }
+  if(!authEmailValue){
+    showAuthEmailStep({ keepEmail: false });
+    return;
+  }
+  const emailStep = document.getElementById("authEmailStep");
+  if(emailStep) emailStep.style.display = "none";
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
   if(login) login.style.display = 'none';
   if(signup) signup.style.display = 'block';
-  const loginTab = document.getElementById('loginTab');
-  const signupTab = document.getElementById('signupTab');
-  if(loginTab) loginTab.classList.remove('active');
-  if(signupTab) signupTab.classList.add('active');
 }
 
 function showLoginForm(){
   if(!accountsEnabled){
     return;
   }
+  if(!authEmailValue){
+    showAuthEmailStep({ keepEmail: false });
+    return;
+  }
+  const emailStep = document.getElementById("authEmailStep");
+  if(emailStep) emailStep.style.display = "none";
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
   if(signup) signup.style.display = 'none';
   if(login) login.style.display = 'block';
-  const loginTab = document.getElementById('loginTab');
-  const signupTab = document.getElementById('signupTab');
-  if(signupTab) signupTab.classList.remove('active');
-  if(loginTab) loginTab.classList.add('active');
+  const totpLabel = document.getElementById("totpLoginLabel");
+  if(totpLabel) totpLabel.style.display = "none";
 }
 
 function openSignupModal(e){
@@ -1525,7 +1566,7 @@ function openSignupModal(e){
   if(!ensureAccountsEnabled()){
     return;
   }
-  showSignupForm();
+  showAuthEmailStep({ keepEmail: false });
   showModal(document.getElementById("authModal"));
 }
 
@@ -1534,8 +1575,41 @@ function openLoginModal(e){
   if(!ensureAccountsEnabled()){
     return;
   }
-  showLoginForm();
+  showAuthEmailStep({ keepEmail: false });
   showModal(document.getElementById("authModal"));
+}
+
+async function checkAuthEmailAndContinue(){
+  if(!ensureAccountsEnabled()){
+    return;
+  }
+  const emailInput = document.getElementById("authEmailInput");
+  const email = emailInput ? emailInput.value.trim() : "";
+  if(!email){
+    showToast("Email required");
+    return;
+  }
+  try {
+    const resp = await fetch("/api/account/exists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const data = await resp.json().catch(() => null);
+    if(resp.ok && data){
+      setAuthEmailValue(email);
+      if(data.exists){
+        showLoginForm();
+      } else {
+        showSignupForm();
+      }
+    } else {
+      showToast(data?.error || "Unable to check email");
+    }
+  } catch(err){
+    console.error("Email lookup failed", err);
+    showToast("Unable to check email");
+  }
 }
 
 function openAccountModal(e){
@@ -1624,7 +1698,7 @@ function updateAccountButton(info){
     toggleDesignTabs(info.plan === 'Pro' || info.plan === 'Ultimate');
   } else {
     accountInfo = null;
-    btn.textContent = "Sign Up / Login";
+    btn.textContent = "Sign Up / Log In";
     btn?.addEventListener("click", openSignupModal);
     togglePortfolioMenu(false);
     toggleImageIdColumn();
@@ -4849,6 +4923,26 @@ const signupBtn = document.getElementById("signupBtn");
 if (signupBtn) {
   signupBtn?.addEventListener("click", openSignupModal);
 }
+const authEmailContinueBtn = document.getElementById("authEmailContinueBtn");
+if(authEmailContinueBtn){
+  authEmailContinueBtn?.addEventListener("click", checkAuthEmailAndContinue);
+}
+const authEmailInput = document.getElementById("authEmailInput");
+if(authEmailInput){
+  authEmailInput?.addEventListener("keydown", (event) => {
+    if(event.key === "Enter"){
+      event.preventDefault();
+      checkAuthEmailAndContinue();
+    }
+  });
+}
+const authEmailCancelBtn = document.getElementById("authEmailCancelBtn");
+if(authEmailCancelBtn){
+  authEmailCancelBtn?.addEventListener("click", () => {
+    setAuthEmailValue("");
+    hideModal(document.getElementById("authModal"));
+  });
+}
 const signupSubmitBtn = document.getElementById("signupSubmitBtn");
 if (signupSubmitBtn) {
   signupSubmitBtn?.addEventListener("click", async () => {
@@ -4897,24 +4991,13 @@ if (loginCancelBtn) {
   );
 }
 
-const showSignupBtn = document.getElementById("showSignupBtn");
-if (showSignupBtn) {
-  showSignupBtn?.addEventListener("click", showSignupForm);
+const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
+if(loginChangeEmailBtn){
+  loginChangeEmailBtn?.addEventListener("click", () => showAuthEmailStep({ keepEmail: true }));
 }
-
-const showLoginBtn = document.getElementById("showLoginBtn");
-if (showLoginBtn) {
-  showLoginBtn?.addEventListener("click", showLoginForm);
-}
-
-const loginTabBtn = document.getElementById("loginTab");
-if (loginTabBtn) {
-  loginTabBtn?.addEventListener("click", showLoginForm);
-}
-
-const signupTabBtn = document.getElementById("signupTab");
-if (signupTabBtn) {
-  signupTabBtn?.addEventListener("click", showSignupForm);
+const signupChangeEmailBtn = document.getElementById("signupChangeEmailBtn");
+if(signupChangeEmailBtn){
+  signupChangeEmailBtn?.addEventListener("click", () => showAuthEmailStep({ keepEmail: true }));
 }
 
 const loginSubmitBtn = document.getElementById("loginSubmitBtn");
