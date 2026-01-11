@@ -5112,6 +5112,47 @@ app.get("/agent/git-diff", (req, res) => {
         }
     };
 
+    const resolveRefCandidates = (cwd, candidates) => {
+        if (!Array.isArray(candidates)) {
+            return null;
+        }
+        for (const cand of candidates) {
+            if (!cand) continue;
+            try {
+                const sha = execSync(`git rev-parse --verify ${cand}`, { cwd, stdio: ['pipe','pipe','pipe'] })
+                    .toString()
+                    .trim();
+                if (sha) {
+                    return { sha, ref: cand };
+                }
+            } catch (_e) {
+                // try next candidate
+            }
+        }
+        return null;
+    };
+
+    const normalizeBranchShortName = (branchRef) => {
+        if (!branchRef) return '';
+        let cleaned = branchRef.replace(/^refs\/heads\//, '');
+        cleaned = cleaned.replace(/^refs\/remotes\//, '');
+        cleaned = cleaned.replace(/^remotes\//, '');
+        cleaned = cleaned.replace(/^origin\//, '');
+        return cleaned;
+    };
+
+    const getParentCandidatesForBranch = (cwd, branchShort) => {
+        const candidates = [];
+        if (branchShort) {
+            try {
+                const cfg = execSync(`git config branch."${branchShort}".sterlingParent`, { cwd, stdio: ['pipe','pipe','ignore'] }).toString().trim();
+                if (cfg) candidates.push(cfg);
+            } catch (_err) {}
+        }
+        candidates.push('main', 'master', 'origin/main', 'origin/master');
+        return candidates;
+    };
+
     const getCommitList = (cwd, baseRev, compRev) => {
         if (!baseRev || !compRev) return [];
         try {
@@ -5156,7 +5197,26 @@ app.get("/agent/git-diff", (req, res) => {
             const branchRef = resolveBranchForCommit(compRev);
             if (branchRef) {
                 try {
-                    const rangeRef = baseRev ? `${baseRev}..${branchRef}` : branchRef;
+                    let rangeRef = baseRev ? `${baseRev}..${branchRef}` : branchRef;
+                    const shouldExpandRange = baseRev === `${compRev}^`;
+                    if (shouldExpandRange) {
+                        const branchShort = normalizeBranchShortName(branchRef);
+                        const parentCandidates = getParentCandidatesForBranch(cwd, branchShort);
+                        const resolvedParent = resolveRefCandidates(cwd, parentCandidates);
+                        if (resolvedParent) {
+                            let mergeBase = '';
+                            try {
+                                mergeBase = execSync(`git merge-base ${resolvedParent.ref} ${branchRef}`, { cwd, stdio: ['pipe','pipe','pipe'] })
+                                    .toString()
+                                    .trim();
+                            } catch (_e) {
+                                mergeBase = '';
+                            }
+                            if (mergeBase) {
+                                rangeRef = `${mergeBase}..${branchRef}`;
+                            }
+                        }
+                    }
                     const branchOut = execSync(`git log --format=%H%x1f%P%x1f%s ${rangeRef}`, {
                         cwd,
                         maxBuffer: 1024 * 1024,
