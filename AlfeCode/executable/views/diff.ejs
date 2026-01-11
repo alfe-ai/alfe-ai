@@ -765,7 +765,7 @@
     }
 
     structuredDiffData?.remove();
-    // Open this file in the editor (opens new tab)
+    // Open this file in the editor within the modal.
     const openEditorForFile = (filePath) => {
         const currentUrl = new URL(window.location.href);
         try {
@@ -810,11 +810,7 @@
             url.search = newParams.toString();
             const finalUrl = url.toString();
 
-            // try to open in new tab; if blocked, navigate in same tab
-            const opened = window.open(finalUrl, '_blank', 'noopener,noreferrer');
-            if (!opened) {
-                window.location.href = finalUrl;
-            }
+            window.location.href = finalUrl;
         } catch (e) {
             try {
                 const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
@@ -824,8 +820,7 @@
                     ? '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file='
                     : '/chat/editor?open_file=') + encodeURIComponent(filePath);
                 const fallbackUrl = editorBase ? (editorBase.replace(/\/$/, '') + fallbackPath) : fallbackPath;
-                const opened2 = window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-                if (!opened2) window.location.href = fallbackUrl;
+                window.location.href = fallbackUrl;
             } catch (err2) {
                 console.error('Failed to open editor', err2);
             }
