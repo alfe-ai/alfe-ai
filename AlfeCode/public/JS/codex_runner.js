@@ -6425,6 +6425,127 @@ const getSidebarBadgeInfo = (run) => {
     }
   };
 
+  const signUpLogInBtn = document.getElementById("signUpLogInBtn");
+  const authModal = document.getElementById("authModal");
+  const authModalCloseButton = document.getElementById("authModalCloseButton");
+  const loginForm = document.getElementById("loginForm");
+  const signupForm = document.getElementById("signupForm");
+  const loginTab = document.getElementById("loginTab");
+  const signupTab = document.getElementById("signupTab");
+  const showSignupBtn = document.getElementById("showSignupBtn");
+  const showLoginBtn = document.getElementById("showLoginBtn");
+  const loginCancelBtn = document.getElementById("loginCancelBtn");
+
+  const showAuthModal = () => {
+    if (!authModal) {
+      return;
+    }
+    authModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+  };
+
+  const hideAuthModal = () => {
+    if (!authModal) {
+      return;
+    }
+    authModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
+  const showLoginForm = () => {
+    if (loginForm) {
+      loginForm.style.display = "block";
+    }
+    if (signupForm) {
+      signupForm.style.display = "none";
+    }
+    if (loginTab) {
+      loginTab.classList.add("active");
+    }
+    if (signupTab) {
+      signupTab.classList.remove("active");
+    }
+  };
+
+  const showSignupForm = () => {
+    if (loginForm) {
+      loginForm.style.display = "none";
+    }
+    if (signupForm) {
+      signupForm.style.display = "block";
+    }
+    if (loginTab) {
+      loginTab.classList.remove("active");
+    }
+    if (signupTab) {
+      signupTab.classList.add("active");
+    }
+  };
+
+  if (signUpLogInBtn) {
+    signUpLogInBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      showLoginForm();
+      showAuthModal();
+    });
+  }
+
+  if (loginTab) {
+    loginTab.addEventListener("click", (event) => {
+      event.preventDefault();
+      showLoginForm();
+    });
+  }
+
+  if (signupTab) {
+    signupTab.addEventListener("click", (event) => {
+      event.preventDefault();
+      showSignupForm();
+    });
+  }
+
+  if (showSignupBtn) {
+    showSignupBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      showSignupForm();
+    });
+  }
+
+  if (showLoginBtn) {
+    showLoginBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      showLoginForm();
+    });
+  }
+
+  if (loginCancelBtn) {
+    loginCancelBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideAuthModal();
+    });
+  }
+
+  if (authModalCloseButton) {
+    authModalCloseButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideAuthModal();
+    });
+  }
+
+  if (authModal) {
+    authModal.addEventListener("click", (event) => {
+      if (event.target === authModal) {
+        hideAuthModal();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && authModal && !authModal.classList.contains("is-hidden")) {
+      hideAuthModal();
+    }
+  });
+
   const stopDragging = (shouldPersist = true) => {
     if (!dragging) {
       return;
