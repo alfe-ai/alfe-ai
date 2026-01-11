@@ -1698,7 +1698,7 @@ function updateAccountButton(info){
     toggleDesignTabs(info.plan === 'Pro' || info.plan === 'Ultimate');
   } else {
     accountInfo = null;
-    btn.textContent = "Sign Up / Login";
+    btn.textContent = "Sign Up / Log In";
     btn?.addEventListener("click", openSignupModal);
     togglePortfolioMenu(false);
     toggleImageIdColumn();
