@@ -668,13 +668,20 @@
             padding: 12px 16px;
             font-size: 0.82rem;
             color: rgba(203, 213, 225, 0.7);
-            text-align: center;
+            text-align: left;
             border-top: 1px solid rgba(148, 163, 184, 0.12);
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            align-self: flex-start;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.88) 100%);
+            z-index: 3;
         }
         .runs-sidebar__footer-links {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 10px;
             flex-wrap: wrap;
         }
