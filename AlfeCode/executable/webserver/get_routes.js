@@ -5028,6 +5028,7 @@ app.get("/agent/git-diff", (req, res) => {
 
         const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
+        const commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
 
         res.status(statusCode).render("diff", {
             gitRepoNameCLI: repoName || resolvedProjectDir,
@@ -5044,6 +5045,7 @@ app.get("/agent/git-diff", (req, res) => {
             errorMessage,
             baseMeta,
             compMeta,
+            commitList,
             mergeReady,
             comparisonPromptLine,
             chatNumber,
@@ -5063,6 +5065,30 @@ app.get("/agent/git-diff", (req, res) => {
             return { hash, authorName, authorEmail, message: subject, fullMessage };
         } catch (err) {
             return { hash: '', authorName: '', authorEmail: '', message: '', fullMessage: '' };
+        }
+    };
+
+    const getCommitList = (cwd, baseRev, compRev) => {
+        if (!baseRev || !compRev) return [];
+        try {
+            const out = execSync(`git log --format=%H%x1f%s ${baseRev}..${compRev}`, {
+                cwd,
+                maxBuffer: 1024 * 1024,
+            }).toString();
+            const lines = out.split(/\r?\n/).filter(Boolean);
+            const commits = lines.map((line) => {
+                const [hash = '', message = ''] = line.split('\x1f');
+                return { hash, message };
+            }).filter((commit) => commit.hash);
+            if (!commits.length && compRev) {
+                const fallback = getCommitMeta(cwd, compRev);
+                if (fallback.hash) {
+                    commits.push({ hash: fallback.hash, message: fallback.message || '' });
+                }
+            }
+            return commits;
+        } catch (err) {
+            return [];
         }
     };
 
@@ -5094,6 +5120,7 @@ app.get("/agent/git-diff", (req, res) => {
 
         const baseMeta = baseRev ? getCommitMeta(gitRepoLocalPath, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const compMeta = compRev ? getCommitMeta(gitRepoLocalPath, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
+        const commitList = getCommitList(gitRepoLocalPath, baseRev, compRev);
 
         const mergeReady = isTruthyFlag(req.query.mergeReady);
 
@@ -5115,6 +5142,7 @@ app.get("/agent/git-diff", (req, res) => {
             errorMessage: "",
             baseMeta,
             compMeta,
+            commitList,
             mergeReady,
             comparisonPromptLine,
             chatNumber,
