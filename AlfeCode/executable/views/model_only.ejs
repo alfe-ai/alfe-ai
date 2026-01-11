@@ -98,6 +98,12 @@
         <span>Enter/Return submits prompt</span>
       </label>
     </div>
+    <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+      <label style="font-weight:600;display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="allowFreeProvidersCheckbox" name="allowFreeProviders">
+        <span>Allow Free AI Providers that may use your data for training.</span>
+      </label>
+    </div>
           </div>
     <footer class="footer">
       <a href="/about.html" target="_blank" rel="noopener noreferrer">About</a>
@@ -145,6 +151,22 @@
           if (checkbox) checkbox.checked = (cur === 'true');
           send(checkbox ? checkbox.checked : (cur === 'true'));
           if (checkbox) checkbox.addEventListener('change', function(){ try{ localStorage.setItem(STORAGE_KEY_SUBMIT, checkbox.checked ? 'true' : 'false'); }catch(e){} send(checkbox.checked); });
+        }catch(e){ /* noop */ }
+      }catch(e){ /* noop */ }
+    })();
+    </script>
+    <script>
+    (function(){
+      try{
+        const STORAGE_KEY_ALLOW_FREE = 'allowFreeProviders';
+        const checkbox = document.getElementById('allowFreeProvidersCheckbox');
+        function send(val){ try{ window.parent.postMessage({type:'sterling:settings', key:'allowFreeProviders', value:val}, '*'); }catch(e){} }
+        try{
+          let cur = (function(){ try{ return localStorage.getItem(STORAGE_KEY_ALLOW_FREE); }catch(e){ return null; } })();
+          if (cur === null) { cur = 'true'; }
+          if (checkbox) checkbox.checked = (cur === 'true');
+          send(checkbox ? checkbox.checked : (cur === 'true'));
+          if (checkbox) checkbox.addEventListener('change', function(){ try{ localStorage.setItem(STORAGE_KEY_ALLOW_FREE, checkbox.checked ? 'true' : 'false'); }catch(e){} send(checkbox.checked); });
         }catch(e){ /* noop */ }
       }catch(e){ /* noop */ }
     })();
