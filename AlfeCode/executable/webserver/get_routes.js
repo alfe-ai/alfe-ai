@@ -2602,6 +2602,16 @@ ${cleanedFinalOutput}`;
             return "";
         }
 
+        const targetBase = path.basename(targetPath);
+        const targetBaseVariants = new Set([targetBase]);
+        if (targetBase.endsWith(".git")) {
+            targetBaseVariants.add(targetBase.slice(0, -4));
+        }
+        const targetGitDashIndex = targetBase.indexOf(".git-");
+        if (targetGitDashIndex > 0) {
+            targetBaseVariants.add(targetBase.slice(0, targetGitDashIndex));
+        }
+
         try {
             const repoConfig = (typeof loadRepoConfig === "function"
                 ? loadRepoConfig(sessionId)
@@ -2618,6 +2628,16 @@ ${cleanedFinalOutput}`;
                         const normalizedRepoPath = repoPathResolved.endsWith(path.sep) ? repoPathResolved : repoPathResolved + path.sep;
                         if (targetPath.indexOf(normalizedRepoPath) === 0) {
                             return name;
+                        }
+                        const repoBase = path.basename(repoPathResolved);
+                        const repoBaseVariants = new Set([repoBase]);
+                        if (repoBase.endsWith(".git")) {
+                            repoBaseVariants.add(repoBase.slice(0, -4));
+                        }
+                        for (const variant of targetBaseVariants) {
+                            if (repoBaseVariants.has(variant)) {
+                                return name;
+                            }
                         }
                     } catch (_e) { /* ignore invalid paths */ }
                 }

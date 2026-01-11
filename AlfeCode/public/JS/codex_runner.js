@@ -1429,6 +1429,7 @@ Try: ${suggestion}`;
         ? pickCanonicalProjectDir(previousContext.repoBranchDir, normalizedProjectDir)
         : "",
       repoPrimaryBranch: shouldCarryRepoMeta ? previousContext.repoPrimaryBranch || "" : "",
+      repoLocalPath: shouldCarryRepoMeta ? previousContext.repoLocalPath || "" : "",
       repoName: shouldCarryRepoMeta ? previousContext.repoName || "" : "",
     };
   }
@@ -1469,6 +1470,7 @@ Try: ${suggestion}`;
     currentRunContext.repoBranchName = "";
     currentRunContext.repoPrimaryBranch = "";
     currentRunContext.repoBranchDir = targetDir || contextDir || "";
+    currentRunContext.repoLocalPath = "";
     forgetRepoBranchHistory(targetDir || contextDir || targetDirInfo.trimmed || "");
     if (typeof refreshProjectInfoBranchDisplay === "function") {
       refreshProjectInfoBranchDisplay();
@@ -1480,7 +1482,11 @@ Try: ${suggestion}`;
       return;
     }
 
-    const targetCandidates = [projectDirValue, meta && meta.resolvedProjectDir, meta && meta.projectDir];
+    const targetCandidates = [
+      projectDirValue,
+      meta && meta.resolvedProjectDir,
+      meta && meta.projectDir,
+    ];
     let normalizedTargetInfo = {
       trimmed: "",
       canonical: "",
@@ -1551,6 +1557,11 @@ Try: ${suggestion}`;
       currentRunContext.repoBranchDir = resolvedRepoDir;
     }
 
+    const repoLocalPath = meta && typeof meta.gitRepoLocalPath === "string"
+      ? normaliseProjectDir(meta.gitRepoLocalPath)
+      : "";
+    currentRunContext.repoLocalPath = repoLocalPath;
+
     const historyDirKey = resolvedRepoDir
       || normalizedTargetDir
       || (contextDirInfo && contextDirInfo.canonicalKey)
@@ -1567,6 +1578,16 @@ Try: ${suggestion}`;
 
     if (typeof refreshProjectInfoBranchDisplay === "function") {
       refreshProjectInfoBranchDisplay();
+    }
+
+    if (projectInfoButton) {
+      const projectDirForBranches = repoLocalPath
+        || normaliseProjectDir(currentRunContext.effectiveProjectDir || currentRunContext.projectDir || "");
+      if (projectDirForBranches) {
+        projectInfoButton.dataset.projectDir = projectDirForBranches;
+      } else {
+        delete projectInfoButton.dataset.projectDir;
+      }
     }
   }
 
@@ -1659,7 +1680,12 @@ Try: ${suggestion}`;
       return;
     }
     const effectiveDir = currentRunContext && typeof currentRunContext === "object"
-      ? normaliseProjectDir(currentRunContext.effectiveProjectDir || currentRunContext.projectDir || "")
+      ? normaliseProjectDir(
+        currentRunContext.repoLocalPath
+          || currentRunContext.effectiveProjectDir
+          || currentRunContext.projectDir
+          || "",
+      )
       : "";
     if (effectiveDir) {
       projectInfoButton.dataset.projectDir = effectiveDir;
@@ -1869,6 +1895,7 @@ Try: ${suggestion}`;
       currentRunContext.branchName = runBranch;
       const dirInfo = buildComparableProjectDir(
         currentRunContext.repoBranchDir
+        || currentRunContext.repoLocalPath
         || currentRunContext.effectiveProjectDir
         || currentRunContext.projectDir
         || "",
