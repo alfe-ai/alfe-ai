@@ -4085,16 +4085,19 @@ ${cleanedFinalOutput}`;
         );
 
         let currentBranchName = "";
-        try {
-            const gitMeta = repoCfg.gitRepoLocalPath ? getGitMetaData(repoCfg.gitRepoLocalPath) : null;
-            if (gitMeta && typeof gitMeta.branchName === "string") {
-                currentBranchName = gitMeta.branchName;
+        const configuredBranch =
+            typeof repoCfg.gitBranch === "string" ? repoCfg.gitBranch.trim() : "";
+        if (configuredBranch) {
+            currentBranchName = configuredBranch;
+        } else {
+            try {
+                const gitMeta = repoCfg.gitRepoLocalPath ? getGitMetaData(repoCfg.gitRepoLocalPath) : null;
+                if (gitMeta && typeof gitMeta.branchName === "string") {
+                    currentBranchName = gitMeta.branchName;
+                }
+            } catch (err) {
+                console.warn("[WARN] Unable to resolve active branch for", repoName, err && err.message ? err.message : err);
             }
-        } catch (err) {
-            console.warn("[WARN] Unable to resolve active branch for", repoName, err && err.message ? err.message : err);
-        }
-        if (!currentBranchName && typeof repoCfg.gitBranch === "string") {
-            currentBranchName = repoCfg.gitBranch;
         }
 
         res.render("chats", {
