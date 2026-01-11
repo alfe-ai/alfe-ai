@@ -18,27 +18,6 @@
     }catch(e){}
   });
 
-
-
-  // Helper to open editor URL inside modal iframe instead of a new tab
-  const openEditorInModal = (url) => {
-    try {
-      const modal = document.getElementById('editorModal');
-      const iframe = document.getElementById('editorIframe');
-      if (iframe) {
-        iframe.src = url;
-      }
-      if (modal) {
-        modal.classList.remove('is-hidden');
-        try { document.body.style.overflow = 'hidden'; } catch (e) {}
-      } else {
-        // fallback to navigating in same tab
-        window.location.href = url;
-      }
-    } catch (e) {
-      try { window.location.href = url; } catch (_) {}
-    }
-  };
   const form = document.getElementById("codexForm");
   const projectDirInput = document.getElementById("projectDir");
   const agentInstructionsInput = document.getElementById("agentInstructions");
@@ -2169,7 +2148,14 @@ Try: ${suggestion}`;
                 if (candidate && candidate.url) {
                   const url = new URL(candidate.url, window.location.origin);
                   url.searchParams.set('run_id', selectedRun.id);
-                  openEditorInModal(resolved.url, '_blank', 'noopener,noreferrer')
+                  if (pendingWindow) { pendingWindow.location.href = url.toString(); } else { window.open(url.toString(), '_blank', 'noopener,noreferrer'); }
+                  return;
+                }
+              }
+
+              const resolved = await fetchEditorTargetForDir(dir);
+              if (resolved && resolved.url) {
+                if (pendingWindow) { pendingWindow.location.href = resolved.url; } else { window.open(resolved.url, '_blank', 'noopener,noreferrer'); }
                 return;
               }
             } catch (_e) { /* Ignore and fallback */ }
@@ -2185,17 +2171,33 @@ Try: ${suggestion}`;
         }
         const cached = cachedEditorTargets.get(normalised);
         if (cached && cached.url) {
-          openEditorInModal(cached.url);
+          window.open(cached.url, "_blank", "noopener,noreferrer");
           return;
         }
       }
 
-            }
+      let pendingWindow = null;
+      if (window.__pendingEditorWindow) {
+        try { pendingWindow = window.__pendingEditorWindow; delete window.__pendingEditorWindow; } catch (e) { pendingWindow = window.__pendingEditorWindow; }
+      } else {
+        pendingWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+      }
+      if (pendingWindow) {
+        try {
+          pendingWindow.document.title = "Loading editor…";
+        } catch (_err) {
+          /* Ignore cross-origin write errors */
+        }
+      }
 
       try {
         const target = await resolveEditorTarget();
         if (target && target.url) {
-          openEditorInModal(target.url, "_blank", "noopener,noreferrer")
+          if (pendingWindow) {
+            pendingWindow.location.href = target.url;
+          } else {
+            window.open(target.url, "_blank", "noopener,noreferrer");
+          }
           return;
         }
 
