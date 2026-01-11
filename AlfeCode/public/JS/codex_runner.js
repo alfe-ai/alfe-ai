@@ -155,6 +155,7 @@ Try: ${suggestion}`;
   const gitLogModal = document.getElementById("gitLogModal");
   const gitLogIframe = document.getElementById("gitLogIframe");
   const VIEW_DIFF_MERGE_MESSAGE_TYPE = "STERLING_VIEW_DIFF_MODAL_MERGE_REQUEST";
+  const VIEW_DIFF_FOLLOWUP_MESSAGE_TYPE = "STERLING_VIEW_DIFF_MODAL_FOLLOWUP_REQUEST";
   const cancelButton = document.getElementById("cancelButton");
   const runButton = document.getElementById("runButton");
   const mergeButton = document.getElementById("mergeButton");
@@ -2461,15 +2462,22 @@ Try: ${suggestion}`;
     } catch (_err) { /* ignore */ }
   };
 
-  const handleDiffModalMergeRequest = (event) => {
-    if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
-      return;
+  const isDiffModalMessage = (event) => {
+    if (!event) {
+      return false;
     }
     // Accept messages from the same origin, or from the diff iframe window (which may have a null origin when using srcdoc),
     // but still reject messages from unknown external sources.
     const isFromSameOrigin = Boolean(event.origin && window.location && window.location.origin && event.origin === window.location.origin);
     const isFromGitLogIframe = Boolean(typeof gitLogIframe !== 'undefined' && gitLogIframe && event.source && gitLogIframe.contentWindow && event.source === gitLogIframe.contentWindow);
-    if (!isFromSameOrigin && !isFromGitLogIframe) {
+    return isFromSameOrigin || isFromGitLogIframe;
+  };
+
+  const handleDiffModalMergeRequest = (event) => {
+    if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
+      return;
+    }
+    if (!isDiffModalMessage(event)) {
       return;
     }
     // Close the diff modal and trigger the merge button in the parent if enabled.
@@ -2479,7 +2487,29 @@ Try: ${suggestion}`;
     }
   };
 
+  const handleDiffModalFollowupRequest = (event) => {
+    if (!event || !event.data || event.data.type !== VIEW_DIFF_FOLLOWUP_MESSAGE_TYPE) {
+      return;
+    }
+    if (!isDiffModalMessage(event)) {
+      return;
+    }
+    const prompt = typeof event.data.prompt === "string" ? event.data.prompt.trim() : "";
+    if (!prompt) {
+      return;
+    }
+    closeGitLogModal();
+    if (runButton && runButton.disabled) {
+      setStatus("Wait for the current run to finish before submitting a follow-up.", "error");
+      return;
+    }
+    const projectDir = projectDirInput ? projectDirInput.value.trim() : "";
+    const agentInstructions = agentInstructionsInput ? agentInstructionsInput.value : "";
+    startStream(projectDir, prompt, agentInstructions);
+  };
+
   window.addEventListener("message", handleDiffModalMergeRequest, false);
+  window.addEventListener("message", handleDiffModalFollowupRequest, false);
 
   const looksLikeHtmlDocument = (text) => {
     if (!text || typeof text !== 'string') return false;
