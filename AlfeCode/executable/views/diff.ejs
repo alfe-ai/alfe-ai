@@ -310,6 +310,7 @@
             flex-direction: column;
             gap: 12px;
             align-self: flex-start;
+            min-width: 0;
         }
 
         .commit-list {
@@ -322,7 +323,9 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            align-self: flex-start;
+            align-self: stretch;
+            width: 100%;
+            min-width: 0;
         }
 
         .commit-list h4 {
@@ -354,6 +357,7 @@
             flex-direction: column;
             gap: 4px;
             min-width: 0;
+            overflow: hidden;
         }
 
         .commit-list button:hover {
