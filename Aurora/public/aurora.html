@@ -882,14 +882,22 @@
 <!-- Login/Signup modal -->
 <div id="authModal" class="modal">
   <div class="modal-content">
-    <div id="authTabs" style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+    <div id="authEmailStep">
+      <label>Email:<br/>
+        <input type="email" id="authEmailInput" style="width:100%;" />
+      </label>
+      <div class="modal-buttons">
+        <button id="authEmailContinueBtn">Continue</button>
+        <button id="authEmailCancelBtn">Cancel</button>
+      </div>
+    </div>
+    <div id="authTabs" style="display:none; gap:0.5rem; margin-bottom:1rem;">
       <button id="loginTab" class="view-tab active">Login</button>
       <button id="signupTab" class="view-tab">Sign Up</button>
     </div>
-    <div id="loginForm">
-      <label>Email:<br/>
-        <input type="email" id="loginEmail" style="width:100%;" />
-      </label>
+    <div id="loginForm" style="display:none;">
+      <p>Email: <span id="authEmailDisplayLogin"></span></p>
+      <input type="hidden" id="loginEmail" />
       <label style="margin-top:8px;">Password:<br/>
         <input type="password" id="loginPassword" style="width:100%;" />
       </label>
@@ -899,13 +907,13 @@
       <div class="modal-buttons">
         <button id="loginSubmitBtn">Login</button>
         <button id="showSignupBtn">Sign Up</button>
+        <button id="loginChangeEmailBtn">Use different email</button>
         <button id="loginCancelBtn">Cancel</button>
       </div>
     </div>
     <div id="signupForm" style="display:none;">
-      <label>Email:<br/>
-        <input type="email" id="signupEmail" style="width:100%;" />
-      </label>
+      <p>Email: <span id="authEmailDisplaySignup"></span></p>
+      <input type="hidden" id="signupEmail" />
       <label style="margin-top:8px;">Password:<br/>
         <input type="password" id="signupPassword" style="width:100%;" />
       </label>
@@ -925,6 +933,7 @@
       <div class="modal-buttons">
         <button id="signupSubmitBtn">Register</button>
         <button id="showLoginBtn">Back to Login</button>
+        <button id="signupChangeEmailBtn">Use different email</button>
       </div>
     </div>
   </div>
@@ -1166,5 +1175,4 @@
 </script>
 </body>
 </html>
-
 

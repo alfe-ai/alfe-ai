@@ -1745,6 +1745,24 @@ app.post("/api/register", (req, res) => {
   }
 });
 
+app.post("/api/account/exists", (req, res) => {
+  console.debug("[Server Debug] POST /api/account/exists =>", req.body);
+  try {
+    if (!accountsEnabled) {
+      return res.status(404).json({ error: "not found" });
+    }
+    const { email } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ error: "email required" });
+    }
+    const exists = !!db.getAccountByEmail(email);
+    res.json({ success: true, accountsEnabled, exists });
+  } catch (err) {
+    console.error("[AlfeChat] POST /api/account/exists failed:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/login", (req, res) => {
   console.debug("[Server Debug] POST /api/login =>", req.body);
   try {
