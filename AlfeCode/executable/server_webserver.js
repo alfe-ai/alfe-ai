@@ -226,6 +226,12 @@ const {
 } = require("../server_defs");
 
 console.log("[DEBUG] Starting server_webserver.js => CWD:", process.cwd());
+try {
+    const defaultCodexModel = getDefaultCodexModel();
+    console.log(`[INFO] Default Codex model resolved at startup: "${defaultCodexModel}"`);
+} catch (err) {
+    console.error(`[ERROR] Failed to resolve default Codex model at startup: ${err.message}`);
+}
 
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
