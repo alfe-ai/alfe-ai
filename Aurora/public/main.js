@@ -1515,8 +1515,6 @@ function showAuthEmailStep({ keepEmail = true } = {}){
   if(!keepEmail){
     setAuthEmailValue("");
   }
-  const authTabs = document.getElementById("authTabs");
-  if(authTabs) authTabs.style.display = "none";
   const login = document.getElementById("loginForm");
   const signup = document.getElementById("signupForm");
   const emailStep = document.getElementById("authEmailStep");
@@ -1539,16 +1537,10 @@ function showSignupForm(){
   }
   const emailStep = document.getElementById("authEmailStep");
   if(emailStep) emailStep.style.display = "none";
-  const authTabs = document.getElementById("authTabs");
-  if(authTabs) authTabs.style.display = "flex";
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
   if(login) login.style.display = 'none';
   if(signup) signup.style.display = 'block';
-  const loginTab = document.getElementById('loginTab');
-  const signupTab = document.getElementById('signupTab');
-  if(loginTab) loginTab.classList.remove('active');
-  if(signupTab) signupTab.classList.add('active');
 }
 
 function showLoginForm(){
@@ -1561,18 +1553,12 @@ function showLoginForm(){
   }
   const emailStep = document.getElementById("authEmailStep");
   if(emailStep) emailStep.style.display = "none";
-  const authTabs = document.getElementById("authTabs");
-  if(authTabs) authTabs.style.display = "flex";
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
   if(signup) signup.style.display = 'none';
   if(login) login.style.display = 'block';
   const totpLabel = document.getElementById("totpLoginLabel");
   if(totpLabel) totpLabel.style.display = "none";
-  const loginTab = document.getElementById('loginTab');
-  const signupTab = document.getElementById('signupTab');
-  if(signupTab) signupTab.classList.remove('active');
-  if(loginTab) loginTab.classList.add('active');
 }
 
 function openSignupModal(e){
@@ -5005,16 +4991,6 @@ if (loginCancelBtn) {
   );
 }
 
-const showSignupBtn = document.getElementById("showSignupBtn");
-if (showSignupBtn) {
-  showSignupBtn?.addEventListener("click", showSignupForm);
-}
-
-const showLoginBtn = document.getElementById("showLoginBtn");
-if (showLoginBtn) {
-  showLoginBtn?.addEventListener("click", showLoginForm);
-}
-
 const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
 if(loginChangeEmailBtn){
   loginChangeEmailBtn?.addEventListener("click", () => showAuthEmailStep({ keepEmail: true }));
@@ -5022,16 +4998,6 @@ if(loginChangeEmailBtn){
 const signupChangeEmailBtn = document.getElementById("signupChangeEmailBtn");
 if(signupChangeEmailBtn){
   signupChangeEmailBtn?.addEventListener("click", () => showAuthEmailStep({ keepEmail: true }));
-}
-
-const loginTabBtn = document.getElementById("loginTab");
-if (loginTabBtn) {
-  loginTabBtn?.addEventListener("click", showLoginForm);
-}
-
-const signupTabBtn = document.getElementById("signupTab");
-if (signupTabBtn) {
-  signupTabBtn?.addEventListener("click", showSignupForm);
 }
 
 const loginSubmitBtn = document.getElementById("loginSubmitBtn");
