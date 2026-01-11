@@ -882,6 +882,20 @@
     if (!Array.isArray(commitList)) {
         commitList = [];
     }
+
+    commitList = commitList.map((commit) => {
+        if (!commit || typeof commit !== 'object') return null;
+        const parents = Array.isArray(commit.parents)
+            ? commit.parents.filter(Boolean)
+            : (typeof commit.parents === 'string' && commit.parents.trim()
+                ? commit.parents.split(' ').filter(Boolean)
+                : []);
+        return {
+            hash: typeof commit.hash === 'string' ? commit.hash.trim() : '',
+            message: typeof commit.message === 'string' ? commit.message : '',
+            parents,
+        };
+    }).filter((commit) => commit && commit.hash);
     // Open this file in the editor within the modal.
     const openEditorForFile = (filePath) => {
         const currentUrl = new URL(window.location.href);
@@ -1242,12 +1256,18 @@
         return `${trimmed.slice(0, 57)}…`;
     };
 
-    const switchToCommit = (hash) => {
-        if (!hash || hash === currentCompRev) return;
+    const switchToCommit = (hash, parentHash) => {
+        if (!hash) return;
+        if (hash === currentCompRev && (!parentHash || parentHash === currentBaseRev)) {
+            return;
+        }
         const url = new URL(window.location.href);
         const params = new URLSearchParams(url.search);
-        if (currentBaseRev) {
-            params.set('baseRev', currentBaseRev);
+        const nextBaseRev = parentHash || currentBaseRev;
+        if (nextBaseRev) {
+            params.set('baseRev', nextBaseRev);
+        } else {
+            params.delete('baseRev');
         }
         params.set('compRev', hash);
         url.search = params.toString();
@@ -1281,7 +1301,8 @@
             messageEl.textContent = condenseMessage(commit.message || '');
             btn.appendChild(messageEl);
 
-            btn.addEventListener('click', () => switchToCommit(commit.hash));
+            const parentHash = Array.isArray(commit.parents) ? commit.parents[0] : '';
+            btn.addEventListener('click', () => switchToCommit(commit.hash, parentHash));
             li.appendChild(btn);
             commitListEl.appendChild(li);
         });
