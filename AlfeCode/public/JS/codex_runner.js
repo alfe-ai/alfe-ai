@@ -3983,7 +3983,148 @@ const appendMergeChunk = (text, type = "output") => {
     return "Run finished.";
   };
 
-  const renderRunFromHistory = (run) => {
+  const resolveFollowupSessionState = (run) => {
+    if (!run || typeof run !== "object") {
+      return "running";
+    }
+    if (run.error) {
+      return "error";
+    }
+    if (run.finishedAt) {
+      return "complete";
+    }
+    return "running";
+  };
+
+  const hydrateFollowupSessionFromRun = (run) => {
+    if (!run || typeof run !== "object") {
+      return null;
+    }
+
+    const promptText =
+      (typeof run.userPrompt === "string" && run.userPrompt)
+        || (typeof run.effectivePrompt === "string" && run.effectivePrompt)
+        || "";
+    const session = startFollowupSession(promptText);
+    if (!session) {
+      return null;
+    }
+
+    if (session.outputLogEl) {
+      session.outputLogEl.innerHTML = "";
+    }
+    if (session.finalLogEl) {
+      session.finalLogEl.innerHTML = "";
+    }
+    session.outputValue = "";
+    session.finalValue = "";
+
+    const statusHistory = Array.isArray(run.statusHistory) ? run.statusHistory : [];
+    statusHistory.forEach((entry) => {
+      if (entry) {
+        appendLinesToElement(session.outputLogEl, entry, "status");
+      }
+    });
+
+    const metaMessages = Array.isArray(run.metaMessages) ? run.metaMessages : [];
+    metaMessages.forEach((entry) => {
+      if (entry) {
+        appendLinesToElement(session.outputLogEl, entry, "meta");
+      }
+    });
+
+    if (run.stdout) {
+      appendLinesToElement(session.outputLogEl, run.stdout, "output");
+    }
+
+    if (run.stderr) {
+      appendLinesToElement(session.outputLogEl, run.stderr, "stderr");
+    }
+
+    if (run.finalMessage && !run.error) {
+      appendLinesToElement(session.outputLogEl, run.finalMessage, "status");
+    }
+
+    if (run.error) {
+      appendLinesToElement(session.outputLogEl, run.error, "stderr");
+    }
+
+    const finalOutput = resolveFinalOutputForSavedRun(run);
+    if (finalOutput) {
+      session.finalValue = finalOutput;
+      appendLinesToElement(session.finalLogEl, finalOutput, "output");
+    }
+
+    if (session.outputTabsContainer) {
+      const hasFinalOutput = Boolean(session.finalValue && session.finalValue.trim());
+      session.outputTabsContainer.classList.toggle("is-hidden", !hasFinalOutput);
+    }
+
+    setFollowupActiveTab(session, "combined");
+    setFollowupSessionStatus(session, resolveFollowupSessionState(run));
+    return session;
+  };
+
+  const loadFollowupRunsForParent = async (run) => {
+    const parentId = normaliseRunId(run?.id || "");
+    if (!parentId) {
+      return [];
+    }
+    const runs = Array.isArray(runsSidebarRuns) ? runsSidebarRuns : [];
+    const matchesFromSidebar = runs.filter((entry) => getFollowupParentId(entry) === parentId);
+    if (matchesFromSidebar.length) {
+      return matchesFromSidebar;
+    }
+
+    const projectDirHint = normaliseProjectDir(
+      run?.requestedProjectDir || run?.projectDir || run?.effectiveProjectDir || "",
+    );
+    try {
+      const url = buildRunsDataUrl("", projectDirHint);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to load follow-up runs (status ${response.status})`);
+      }
+      const payload = await response.json().catch(() => ({}));
+      const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
+      return loadedRuns.filter((entry) => getFollowupParentId(entry) === parentId);
+    } catch (error) {
+      console.error("[Codex Runner] Failed to load follow-up runs", error);
+    }
+    return [];
+  };
+
+  const sortFollowupRuns = (runs) => {
+    const list = Array.isArray(runs) ? runs.slice() : [];
+    const getTimestamp = (run) => {
+      const candidate =
+        run?.startedAt
+        || run?.createdAt
+        || run?.updatedAt
+        || run?.finishedAt
+        || "";
+      const timestamp = candidate ? new Date(candidate).getTime() : 0;
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+    list.sort((a, b) => getTimestamp(a) - getTimestamp(b));
+    return list;
+  };
+
+  const renderFollowupSessionsFromHistory = async (run) => {
+    const followups = await loadFollowupRunsForParent(run);
+    if (!followups.length) {
+      return;
+    }
+
+    const ordered = sortFollowupRuns(followups);
+    ordered.forEach((followupRun) => {
+      hydrateFollowupSessionFromRun(followupRun);
+    });
+    activeFollowupSession = null;
+    followupRunActive = false;
+  };
+
+  const renderRunFromHistory = async (run) => {
     if (!run || typeof run !== "object") {
       setStatus("Saved run not found.", "error");
       finalizeOutputViews();
@@ -4185,6 +4326,8 @@ const appendMergeChunk = (text, type = "output") => {
     finalizeOutputViews();
     try { setRunControlsDisabledState(false, { forceRefresh: true }); } catch (e) { /* ignore */ }
     try { applyMergeButtonState(); } catch (e) { /* ignore */ }
+
+    await renderFollowupSessionsFromHistory(run);
 
     if (hasHydratedFinalOutput) {
       setActiveOutputTab("stdout");
@@ -4841,7 +4984,7 @@ const appendMergeChunk = (text, type = "output") => {
         finalizeOutputViews();
         return;
       }
-      renderRunFromHistory(run);
+      await renderRunFromHistory(run);
     } catch (error) {
       console.error("[Codex Runner] Failed to load saved run", error);
       setStatus("Failed to load saved run.", "error");
