@@ -5885,23 +5885,26 @@ const getSidebarBadgeInfo = (run) => {
       || codexDefaultProjectDir
       || "";
     lastRequestedProjectDir = effectiveProjectDirForRun;
-    currentRunContext = buildRunContext({
-      projectDir: effectiveProjectDirForRun,
-      runId: "",
-      effectiveProjectDir: effectiveProjectDirForRun,
-      branchName: "",
-    });
-    updateRunsSidebarHeading(currentRunContext.projectDir);
-    updateProjectInfoProjectDir();
-    try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
-    refreshProjectInfoBranchDisplay();
-    resetMergeState();
-    clearSnapshotProjectDir();
-    updateGitLogLink();
-    updatePageUrlForRun("", effectiveProjectDirForRun);
-    updateRunsPageLink(effectiveProjectDirForRun, "");
-    setRunsSidebarActiveRun("");
-    renderRunsSidebar(runsSidebarRuns, { preserveScroll: true });
+    const preserveRunSelection = Boolean(continuingExistingRun);
+    if (!preserveRunSelection) {
+      currentRunContext = buildRunContext({
+        projectDir: effectiveProjectDirForRun,
+        runId: "",
+        effectiveProjectDir: effectiveProjectDirForRun,
+        branchName: "",
+      });
+      updateRunsSidebarHeading(currentRunContext.projectDir);
+      updateProjectInfoProjectDir();
+      try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
+      refreshProjectInfoBranchDisplay();
+      resetMergeState();
+      clearSnapshotProjectDir();
+      updateGitLogLink();
+      updatePageUrlForRun("", effectiveProjectDirForRun);
+      updateRunsPageLink(effectiveProjectDirForRun, "");
+      setRunsSidebarActiveRun("");
+      renderRunsSidebar(runsSidebarRuns, { preserveScroll: true });
+    }
     const selectedModel =
       (modelSelect && modelSelect.value)
         ? modelSelect.value
@@ -6094,7 +6097,9 @@ const getSidebarBadgeInfo = (run) => {
       refreshProjectInfoBranchDisplay();
       refreshRepoBranchForCurrentProject({ force: true });
 
-      setRunsSidebarActiveRun(runIdValue);
+      if (!preserveRunSelection) {
+        setRunsSidebarActiveRun(runIdValue);
+      }
       loadRunsSidebar({ projectDir: projectDirForUrl, force: true });
 
       if (effectiveDirFromPayload && effectiveDirFromPayload !== projectDirForUrl) {
@@ -6102,8 +6107,10 @@ const getSidebarBadgeInfo = (run) => {
         updateGitLogLink();
       }
 
-      updatePageUrlForRun(runIdValue, projectDirForUrl);
-      updateRunsPageLink(projectDirForUrl, runIdValue);
+      if (!preserveRunSelection) {
+        updatePageUrlForRun(runIdValue, projectDirForUrl);
+        updateRunsPageLink(projectDirForUrl, runIdValue);
+      }
     });
 
     eventSource.addEventListener("output", (event) => {
