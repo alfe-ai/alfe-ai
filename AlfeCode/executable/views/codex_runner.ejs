@@ -2521,6 +2521,9 @@
                             </svg>
                             <span class="sr-only">Open Sterling Agent help</span>
                         </button>
+                        <% if (editorEnabled) { %>
+                        <button id="openEditorTopButton" class="nav-button" type="button" title="Open Editor" aria-label="Open Editor" onclick="(function(){ try{ window.__pendingEditorWindow = window.open('about:blank', '_blank', 'noopener,noreferrer'); }catch(e){} })()">Editor</button>
+                        <% } %>
                         <button
                             id="sterlingSettingsBtn"
                             class="nav-button icon-only"
@@ -2548,9 +2551,6 @@
                         </button>
                     </div>
                 </div>
-                <% if (editorEnabled) { %>
-                <button id="openEditorTopButton" class="nav-button" type="button" title="Open Editor" aria-label="Open Editor" onclick="(function(){ try{ window.__pendingEditorWindow = window.open('about:blank', '_blank', 'noopener,noreferrer'); }catch(e){} })()">Editor</button>
-                <% } %>
                 <% if (!iframeMode) { %>
                 <button type="button" id="toggleFieldsButton" class="nav-button is-hidden" aria-pressed="false">
                     Toggle Fields
