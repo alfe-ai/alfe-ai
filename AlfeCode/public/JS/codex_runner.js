@@ -462,7 +462,7 @@ Try: ${suggestion}`;
       return;
     }
 
-    activeFollowupSession.finalValue = typeof finalOutputText === "string" ? finalOutputText : "";
+    activeFollowupSession.finalValue = typeof followupFinalOutputText === "string" ? followupFinalOutputText : "";
     if (activeFollowupSession.finalLogEl) {
       activeFollowupSession.finalLogEl.innerHTML = "";
       if (activeFollowupSession.finalValue) {
@@ -486,6 +486,7 @@ Try: ${suggestion}`;
 
     setFollowupSessionStatus(activeFollowupSession, state);
     activeFollowupSession = null;
+    followupRunActive = false;
   };
   const runsSidebarFilterInput = document.getElementById("runsSidebarFilter");
   const runsSidebarOpenRunsButton = document.getElementById("runsSidebarOpenRunsButton");
@@ -3424,6 +3425,7 @@ Try: ${suggestion}`;
   let stdoutPromptPendingBuffer = "";
   let suppressStdoutOutput = false;
   let skippingGitPullStdoutBlock = false;
+  let followupRunActive = false;
 
   const gitPullUpdatingRegex = /^updating\s+[0-9a-f]+\.\.[0-9a-f]+/i;
   const gitPullRangeLineRegex = /^\s*[0-9a-f]{7,}\.\.[0-9a-f]{7,}\s+\S+\s+->\s+\S+/i;
@@ -3823,6 +3825,9 @@ const appendMergeChunk = (text, type = "output") => {
     }
 
     updateFinalOutputDisplay();
+    if (followupRunActive) {
+      return;
+    }
     setActiveOutputTab(activeOutputTab || "combined");
   };
 
@@ -5206,7 +5211,9 @@ const appendMergeChunk = (text, type = "output") => {
       return;
     }
 
-    appendLinesToElement(outputEl, text, type);
+    if (!followupRunActive) {
+      appendLinesToElement(outputEl, text, type);
+    }
     appendToActiveFollowupSession(text, type);
   };
 
@@ -5298,10 +5305,22 @@ const appendMergeChunk = (text, type = "output") => {
   /// Tracks stderr output to extract the post-"codex" commit message for the Final output tab.
   let stderrCommitBuffer = "";
   let finalOutputText = "";
+  let followupFinalOutputText = "";
+
+  const getActiveFinalOutputText = () => (followupRunActive ? followupFinalOutputText : finalOutputText);
+
+  const setActiveFinalOutputText = (value) => {
+    if (followupRunActive) {
+      followupFinalOutputText = value;
+    } else {
+      finalOutputText = value;
+    }
+  };
 
   const resetFinalOutput = () => {
     stderrCommitBuffer = "";
     finalOutputText = "";
+    followupFinalOutputText = "";
     if (stdoutOutputEl) {
       stdoutOutputEl.innerHTML = "";
     }
@@ -5442,7 +5461,7 @@ const appendMergeChunk = (text, type = "output") => {
       return false;
     }
 
-    finalOutputText = resolved;
+    setActiveFinalOutputText(resolved);
     return true;
   };
 
@@ -5458,14 +5477,18 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const updateFinalOutputDisplay = () => {
+    updateActiveFollowupFinalOutput();
+
+    if (followupRunActive) {
+      return;
+    }
+
     if (stdoutOutputEl) {
       stdoutOutputEl.innerHTML = "";
       if (finalOutputText) {
         appendLinesToElement(stdoutOutputEl, finalOutputText, "output");
       }
     }
-
-    updateActiveFollowupFinalOutput();
 
     if (outputTabsContainer) {
       // Hide final output tabs while Agent is running (statusText === 'Running...').
@@ -5510,8 +5533,9 @@ const appendMergeChunk = (text, type = "output") => {
     const normalisedCommitMessage = commitMessage.trimEnd();
     const cleanedCommitMessage = stripInitialHeaders(normalisedCommitMessage);
 
-    if (cleanedCommitMessage !== finalOutputText) {
-      finalOutputText = cleanedCommitMessage;
+    const currentFinalOutput = getActiveFinalOutputText();
+    if (cleanedCommitMessage !== currentFinalOutput) {
+      setActiveFinalOutputText(cleanedCommitMessage);
     }
 
     updateFinalOutputDisplay();
@@ -6023,9 +6047,10 @@ const appendMergeChunk = (text, type = "output") => {
     closeExistingStream();
     if (continuingExistingRun) {
       const session = startFollowupSession(prompt);
+      followupRunActive = Boolean(session);
       suppressStdoutOutput = false;
       stderrCommitBuffer = "";
-      finalOutputText = "";
+      setActiveFinalOutputText("");
       if (session) {
         session.outputValue = "";
         session.finalValue = "";
@@ -6039,6 +6064,7 @@ const appendMergeChunk = (text, type = "output") => {
       }
       hideStdoutTab();
     } else {
+      followupRunActive = false;
       clearOutput();
     }
     if (!continuingExistingRun) {
@@ -6219,7 +6245,9 @@ const appendMergeChunk = (text, type = "output") => {
       }
       finalizeOutputViews();
       // Automatically switch to Final output tab when run finishes
-      setActiveOutputTab("stdout");
+      if (!followupRunActive) {
+        setActiveOutputTab("stdout");
+      }
       toggleButtons(false);
       loadRunsSidebar({ projectDir: currentRunContext.projectDir, force: true });
       if (!awaitingGitFpushCompletion) {
