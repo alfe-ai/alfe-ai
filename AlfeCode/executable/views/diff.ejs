@@ -781,24 +781,21 @@
                 const repoMarker = `/${repoName}/diff`;
                 const idx = pathname.indexOf(repoMarker);
                 if (idx !== -1) {
-                    // preserve any base prefix before /<repoName>/diff
                     const prefix = pathname.slice(0, idx);
                     newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
                 } else {
-                    // fallback: if repoName appears, use prefix up to repoName
                     const repoIdx = pathname.indexOf(`/${repoName}`);
                     if (repoIdx !== -1) {
                         const prefix = pathname.slice(0, repoIdx);
                         newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
                     } else {
-                        // final fallback to root-based path
                         newPathname = `/${repoName}/chat/${chatNumber}/editor`;
                     }
                 }
             } else {
                 newPathname = '/chat/editor';
             }
-            // Safely inject editorBaseUrl as a JSON string to avoid literal URL issues
+
             const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
             const fallbackEditorBase = currentUrl.hostname === 'git' ? 'https://code-s.alfe.sh' : '';
             const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined') ? editorBaseRaw : fallbackEditorBase;
@@ -811,7 +808,13 @@
             }
             newParams.set('open_file', filePath);
             url.search = newParams.toString();
-            window.open(url.toString(), '_blank', 'noopener');
+            const finalUrl = url.toString();
+
+            // try to open in new tab; if blocked, navigate in same tab
+            const opened = window.open(finalUrl, '_blank', 'noopener,noreferrer');
+            if (!opened) {
+                window.location.href = finalUrl;
+            }
         } catch (e) {
             try {
                 const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
@@ -821,14 +824,13 @@
                     ? '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file='
                     : '/chat/editor?open_file=') + encodeURIComponent(filePath);
                 const fallbackUrl = editorBase ? (editorBase.replace(/\/$/, '') + fallbackPath) : fallbackPath;
-                window.open(fallbackUrl, '_blank', 'noopener');
-            } catch (_) {
-                console.error('Failed to open editor', _);
+                const opened2 = window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+                if (!opened2) window.location.href = fallbackUrl;
+            } catch (err2) {
+                console.error('Failed to open editor', err2);
             }
         }
     };
-
-
 
 
     rawDiffData?.remove();
