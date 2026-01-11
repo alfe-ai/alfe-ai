@@ -232,22 +232,34 @@
         }
 
         .diff-followup-submit {
-            background: rgba(37, 99, 235, 0.18);
-            border: 1px solid rgba(37, 99, 235, 0.4);
+            margin-left: auto;
+            padding: 10px;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
             color: #fff;
-            font-size: 12px;
-            padding: 6px 12px;
-            border-radius: 8px;
+            border: none;
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.35);
             cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .diff-followup-submit svg {
+            width: 20px;
+            height: 20px;
         }
 
         .diff-followup-submit:hover {
-            background: rgba(37, 99, 235, 0.35);
-            border-color: rgba(37, 99, 235, 0.75);
+            transform: translateY(-2px);
+            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.38);
         }
 
         .diff-followup-status {
+            flex: 1;
             font-size: 12px;
             color: var(--muted);
         }
@@ -822,8 +834,13 @@
                         rows="2"
                     ></textarea>
                     <div class="diff-followup-actions">
-                        <button type="submit" class="diff-followup-submit">Submit follow-up</button>
                         <span class="diff-followup-status" id="diffFollowupStatus" aria-live="polite"></span>
+                        <button type="submit" class="diff-followup-submit" aria-label="Send follow-up">
+                            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
+                            </svg>
+                        </button>
                     </div>
                 </form>
             </div>
