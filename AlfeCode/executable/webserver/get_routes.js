@@ -5151,6 +5151,21 @@ app.get("/agent/git-diff", (req, res) => {
                 }
             };
 
+            const branchRef = resolveBranchForCommit(compRev);
+            if (branchRef) {
+                try {
+                    const rangeRef = baseRev ? `${baseRev}..${branchRef}` : branchRef;
+                    const branchOut = execSync(`git log --format=%H%x1f%P%x1f%s ${rangeRef}`, {
+                        cwd,
+                        maxBuffer: 1024 * 1024,
+                    }).toString();
+                    const branchCommits = parseCommitLines(branchOut);
+                    return branchCommits;
+                } catch (err) {
+                    return [];
+                }
+            }
+
             const out = execSync(`git log --format=%H%x1f%P%x1f%s ${baseRev}..${compRev}`, {
                 cwd,
                 maxBuffer: 1024 * 1024,
@@ -5161,22 +5176,6 @@ app.get("/agent/git-diff", (req, res) => {
             }
 
             let fallbackCommits = commits;
-            const branchRef = resolveBranchForCommit(compRev);
-            if (branchRef) {
-                try {
-                    const rangeRef = baseRev ? `${baseRev}..${branchRef}` : branchRef;
-                    const branchOut = execSync(`git log --format=%H%x1f%P%x1f%s ${rangeRef}`, {
-                        cwd,
-                        maxBuffer: 1024 * 1024,
-                    }).toString();
-                    const branchCommits = parseCommitLines(branchOut);
-                    if (branchCommits.length) {
-                        return branchCommits;
-                    }
-                } catch (err) {
-                    // Continue to fallback commits.
-                }
-            }
             if (compRev) {
                 const fallbackOut = execSync(`git log --format=%H%x1f%P%x1f%s -n 20 ${compRev}`, {
                     cwd,
