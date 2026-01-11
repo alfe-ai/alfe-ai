@@ -5876,6 +5876,9 @@ const getSidebarBadgeInfo = (run) => {
     );
     const continuingExistingRun = Boolean(config.enableFollowups) && hadExistingRun && hasExistingOutput;
 
+    // Only clear the main prompt input when starting a new run; for follow-ups preserve the original read-only prompt.
+    try { if (promptInput && !continuingExistingRun) { promptInput.value = ""; } } catch (e) { /* ignore */ }
+
     const normalizedProjectDir = normaliseProjectDir(projectDir);
     const effectiveProjectDirForRun =
       normalizedProjectDir
@@ -6003,7 +6006,9 @@ const getSidebarBadgeInfo = (run) => {
     } else {
       clearOutput();
     }
-    updatePromptPreview(prompt);
+    if (!continuingExistingRun) {
+      updatePromptPreview(prompt);
+    }
     prepareStdoutPromptTracking(effectivePrompt);
     setStatus("Starting Agent…");
     if (trimmedInstructions) {
@@ -6264,9 +6269,6 @@ const getSidebarBadgeInfo = (run) => {
       const projectDir = projectDirInput ? projectDirInput.value.trim() : "";
       const prompt = promptInput ? promptInput.value.trim() : "";
       const agentInstructions = agentInstructionsInput ? agentInstructionsInput.value : "";
-
-      // Clear the prompt input after handing off the request
-      try { if (promptInput) { promptInput.value = ""; } } catch (e) { /* ignore */ }
 
       if (!prompt) {
         setStatus("Prompt is required.", "error");
