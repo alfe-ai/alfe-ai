@@ -299,77 +299,10 @@
 
         .diff-shell {
             display: grid;
-            grid-template-columns: 220px 260px 1fr;
+            grid-template-columns: 260px 1fr;
             gap: 12px;
             min-height: 360px;
             min-width: 0;
-        }
-
-        .commit-list {
-            background: var(--panel-soft);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .commit-list h4 {
-            margin: 0;
-            font-size: 14px;
-        }
-
-        .commit-list ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .commit-list button {
-            width: 100%;
-            text-align: left;
-            background: #0b1324;
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-size: 12px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s ease, transform 0.15s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .commit-list button:hover {
-            background: rgba(59, 130, 246, 0.18);
-            transform: translateX(2px);
-        }
-
-        .commit-list button.active {
-            background: rgba(59, 130, 246, 0.3);
-            border-color: #2563eb;
-        }
-
-        .commit-list .commit-hash {
-            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        .commit-list .commit-message {
-            font-size: 12px;
-            color: var(--text);
-            line-height: 1.3;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .file-list {
@@ -693,10 +626,6 @@
                 grid-template-columns: 1fr;
             }
 
-            .commit-list {
-                order: -2;
-            }
-
             .file-list {
                 order: -1;
             }
@@ -783,10 +712,6 @@
     <% if (diffOutput) { %>
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
-        <aside class="commit-list" aria-label="Commits">
-            <h4>Commits</h4>
-            <ul id="commit-list"></ul>
-        </aside>
         <aside class="file-list" aria-label="Changed files">
             <h4>Files</h4>
             <ul id="file-list"></ul>
@@ -816,19 +741,11 @@
         .replace(/<\//g, '<\\\\/')
         .replace(/\u2028|\u2029/g, '')
 %></script>
-<script id="commit-list-data" type="application/json"><%-
-    JSON.stringify(commitList || [])
-        .replace(/</g, '\u003c')
-        .replace(/<\//g, '<\\\\/')
-        .replace(/\u2028|\u2029/g, '')
-%></script>
 <script>
     const structuredDiffData = document.getElementById('structured-diff-data');
     const rawDiffData = document.getElementById('raw-diff-data');
-    const commitListData = document.getElementById('commit-list-data');
     let structuredDiff = [];
     let rawDiffText = '';
-    let commitList = [];
 
     try {
         structuredDiff = JSON.parse(structuredDiffData?.textContent || '[]');
@@ -853,17 +770,6 @@
     }
 
     structuredDiffData?.remove();
-
-    try {
-        commitList = JSON.parse(commitListData?.textContent || '[]');
-    } catch (err) {
-        console.error('Failed to parse commit list payload', err);
-        commitList = [];
-    }
-
-    if (!Array.isArray(commitList)) {
-        commitList = [];
-    }
     // Open this file in the editor within the modal.
     const openEditorForFile = (filePath) => {
         const currentUrl = new URL(window.location.href);
@@ -930,7 +836,6 @@
 
 
     rawDiffData?.remove();
-    commitListData?.remove();
 
     const normalizeRows = (file) => {
         if (file.isBinary) {
@@ -986,12 +891,9 @@
 
     const diffEl = document.getElementById('diff');
     const diffInner = diffEl?.querySelector('.diff-inner');
-    const commitListEl = document.getElementById('commit-list');
     const fileListEl = document.getElementById('file-list');
     const fileLabelEl = document.getElementById('current-file-label');
     let focusedFileIndex = 0;
-    const currentCompRev = '<%= compRev || "" %>';
-    const currentBaseRev = '<%= baseRev || "" %>';
 
     const createDiffLine = (lineNumber, codeText, className) => {
         const line = document.createElement('div');
@@ -1216,59 +1118,6 @@
         });
     };
 
-    const condenseHash = (hash) => (hash ? hash.slice(0, 7) : '');
-    const condenseMessage = (message) => {
-        if (!message) return '';
-        const trimmed = message.trim();
-        if (trimmed.length <= 60) return trimmed;
-        return `${trimmed.slice(0, 57)}…`;
-    };
-
-    const switchToCommit = (hash) => {
-        if (!hash || hash === currentCompRev) return;
-        const url = new URL(window.location.href);
-        const params = new URLSearchParams(url.search);
-        if (currentBaseRev) {
-            params.set('baseRev', currentBaseRev);
-        }
-        params.set('compRev', hash);
-        url.search = params.toString();
-        window.location.href = url.toString();
-    };
-
-    const renderCommitList = () => {
-        if (!commitListEl) return;
-        commitListEl.innerHTML = '';
-        if (!commitList.length) {
-            const empty = document.createElement('li');
-            empty.textContent = 'No commits.';
-            commitListEl.appendChild(empty);
-            return;
-        }
-        commitList.forEach((commit) => {
-            if (!commit || !commit.hash) return;
-            const li = document.createElement('li');
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = commit.hash === currentCompRev ? 'active' : '';
-            btn.setAttribute('aria-current', commit.hash === currentCompRev ? 'true' : 'false');
-
-            const hashEl = document.createElement('span');
-            hashEl.className = 'commit-hash';
-            hashEl.textContent = condenseHash(commit.hash);
-            btn.appendChild(hashEl);
-
-            const messageEl = document.createElement('span');
-            messageEl.className = 'commit-message';
-            messageEl.textContent = condenseMessage(commit.message || '');
-            btn.appendChild(messageEl);
-
-            btn.addEventListener('click', () => switchToCommit(commit.hash));
-            li.appendChild(btn);
-            commitListEl.appendChild(li);
-        });
-    };
-
     if (hasStructuredDiff) {
         renderStructuredSections();
         updateSummary();
@@ -1277,7 +1126,6 @@
     }
 
     renderFileList();
-    renderCommitList();
 </script>
 <% } %>
 <script>
