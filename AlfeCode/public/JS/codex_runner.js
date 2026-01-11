@@ -579,6 +579,12 @@ Try: ${suggestion}`;
   const promptModalTextarea = document.getElementById("promptModalTextarea");
   const promptModalCopyButton = document.getElementById("promptModalCopyButton");
   const promptModalCloseButton = document.getElementById("promptModalCloseButton");
+  const switchBranchModal = document.getElementById("switchBranchModal");
+  const switchBranchModalCloseButton = document.getElementById("switchBranchModalCloseButton");
+  const switchBranchCreateButton = document.getElementById("switchBranchCreateButton");
+  const branchSelect = document.getElementById("branchSelect");
+  const switchBranchSubmitButton = document.getElementById("switchBranchSubmitButton");
+  const switchBranchMessage = document.getElementById("switchBranchMessage");
   let runsSidebarRuns = [];
   let runsSidebarFilter = "";
   let runsSidebarIsLoading = false;
@@ -628,6 +634,158 @@ Try: ${suggestion}`;
       return `#${candidate}`;
     }
     return candidate || trimmed;
+  };
+
+  const resolveActiveRepoName = () => {
+    const contextRepoName =
+      currentRunContext && typeof currentRunContext.repoName === "string"
+        ? currentRunContext.repoName.trim()
+        : "";
+    if (contextRepoName) {
+      return contextRepoName;
+    }
+    const datasetRepoName =
+      projectInfoButton && projectInfoButton.dataset && typeof projectInfoButton.dataset.repoName === "string"
+        ? projectInfoButton.dataset.repoName.trim()
+        : "";
+    if (datasetRepoName) {
+      return datasetRepoName;
+    }
+    if (repoNameEl && typeof repoNameEl.textContent === "string") {
+      const candidate = repoNameEl.textContent.trim();
+      if (candidate && candidate !== "Select a repository") {
+        return candidate;
+      }
+    }
+    return "";
+  };
+
+  const resolveActiveBranchName = () => {
+    const datasetBranch =
+      projectInfoButton && projectInfoButton.dataset && typeof projectInfoButton.dataset.branch === "string"
+        ? projectInfoButton.dataset.branch.trim()
+        : "";
+    if (datasetBranch) {
+      return datasetBranch;
+    }
+    const contextBranch =
+      currentRunContext && typeof currentRunContext.repoBranchName === "string"
+        ? currentRunContext.repoBranchName.trim()
+        : "";
+    if (contextBranch) {
+      return contextBranch;
+    }
+    const runBranch =
+      currentRunContext && typeof currentRunContext.branchName === "string"
+        ? currentRunContext.branchName.trim()
+        : "";
+    return runBranch;
+  };
+
+  const resetSwitchBranchForm = () => {
+    if (branchSelect) {
+      branchSelect.innerHTML = "";
+      branchSelect.disabled = false;
+    }
+    if (switchBranchMessage) {
+      switchBranchMessage.textContent = "";
+      switchBranchMessage.style.color = "";
+    }
+  };
+
+  const closeSwitchBranchModal = () => {
+    if (!switchBranchModal || switchBranchModal.classList.contains("is-hidden")) {
+      return;
+    }
+    switchBranchModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+    if (projectInfoButton) {
+      projectInfoButton.classList.remove("is-open");
+      projectInfoButton.setAttribute("aria-expanded", "false");
+    }
+  };
+
+  const openSwitchBranchModal = async () => {
+    if (!switchBranchModal) {
+      return;
+    }
+    switchBranchModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+    if (projectInfoButton) {
+      projectInfoButton.classList.add("is-open");
+      projectInfoButton.setAttribute("aria-expanded", "true");
+    }
+    resetSwitchBranchForm();
+
+    const repoName = resolveActiveRepoName();
+    if (!repoName) {
+      if (switchBranchMessage) {
+        switchBranchMessage.textContent = "Select a repository to switch branches.";
+        switchBranchMessage.style.color = "#fca5a5";
+      }
+      if (branchSelect) {
+        branchSelect.disabled = true;
+      }
+      return;
+    }
+
+    if (switchBranchMessage) {
+      switchBranchMessage.textContent = "Loading branches…";
+      switchBranchMessage.style.color = "";
+    }
+
+    try {
+      const response = await fetch(`/${encodeURIComponent(repoName)}/git_branches`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch branches (${response.status})`);
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!data || !Array.isArray(data.branches)) {
+        throw new Error("Invalid branch data");
+      }
+      if (branchSelect) {
+        branchSelect.innerHTML = "";
+        const fragment = document.createDocumentFragment();
+        data.branches.forEach((branch) => {
+          if (typeof branch !== "string" || !branch.trim()) {
+            return;
+          }
+          const option = document.createElement("option");
+          option.value = branch;
+          option.textContent = formatBranchDisplayName(branch) || branch;
+          fragment.appendChild(option);
+        });
+        branchSelect.appendChild(fragment);
+        const currentBranch = resolveActiveBranchName();
+        if (currentBranch) {
+          const matchingOption = Array.from(branchSelect.options).find(
+            (option) => option.value === currentBranch,
+          );
+          if (matchingOption) {
+            branchSelect.value = matchingOption.value;
+          }
+        }
+        if (!branchSelect.options.length) {
+          branchSelect.disabled = true;
+          if (switchBranchMessage) {
+            switchBranchMessage.textContent = "No branches available.";
+          }
+        } else if (switchBranchMessage) {
+          switchBranchMessage.textContent = "";
+        }
+      }
+    } catch (error) {
+      console.error("[Codex Runner] Failed to load branches:", error);
+      if (switchBranchMessage) {
+        switchBranchMessage.textContent = "Unable to load branches.";
+        switchBranchMessage.style.color = "#fca5a5";
+      }
+      if (branchSelect) {
+        branchSelect.disabled = true;
+      }
+    }
   };
 
 
@@ -1067,9 +1225,156 @@ Try: ${suggestion}`;
     });
   }
 
+  if (projectInfoButton && switchBranchModal) {
+    projectInfoButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openSwitchBranchModal();
+    });
+  }
+
+  if (switchBranchModalCloseButton) {
+    switchBranchModalCloseButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      closeSwitchBranchModal();
+    });
+  }
+
+  if (switchBranchModal) {
+    switchBranchModal.addEventListener("click", (event) => {
+      if (event.target === switchBranchModal) {
+        closeSwitchBranchModal();
+      }
+    });
+  }
+
+  if (switchBranchCreateButton) {
+    switchBranchCreateButton.addEventListener("click", async () => {
+      const repoName = resolveActiveRepoName();
+      if (!repoName) {
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "Select a repository to create a branch.";
+          switchBranchMessage.style.color = "#fca5a5";
+        }
+        return;
+      }
+      const newBranchName = window.prompt("Enter a new branch name:");
+      if (!newBranchName || !newBranchName.trim()) {
+        return;
+      }
+      if (switchBranchMessage) {
+        switchBranchMessage.textContent = "Creating branch…";
+        switchBranchMessage.style.color = "";
+      }
+      try {
+        const response = await fetch(`/${encodeURIComponent(repoName)}/git_switch_branch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            createNew: true,
+            branchName: "",
+            newBranchName: newBranchName.trim(),
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || (data && data.error)) {
+          const errorMessage = data && data.error ? data.error : "Failed to create branch.";
+          if (switchBranchMessage) {
+            switchBranchMessage.textContent = errorMessage;
+            switchBranchMessage.style.color = "#fca5a5";
+          }
+          return;
+        }
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "Branch created successfully.";
+          switchBranchMessage.style.color = "#34d399";
+        }
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        console.error("[Codex Runner] Branch create failed:", error);
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "Error creating branch.";
+          switchBranchMessage.style.color = "#fca5a5";
+        }
+      }
+    });
+  }
+
+  if (switchBranchSubmitButton) {
+    switchBranchSubmitButton.addEventListener("click", async () => {
+      const repoName = resolveActiveRepoName();
+      if (!repoName) {
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "Select a repository to switch branches.";
+          switchBranchMessage.style.color = "#fca5a5";
+        }
+        return;
+      }
+
+      const selectedBranch = branchSelect && typeof branchSelect.value === "string"
+        ? branchSelect.value.trim()
+        : "";
+
+      if (!selectedBranch) {
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "Select a branch to switch.";
+          switchBranchMessage.style.color = "#fca5a5";
+        }
+        return;
+      }
+
+      if (switchBranchMessage) {
+        switchBranchMessage.textContent = "Switching branches…";
+        switchBranchMessage.style.color = "";
+      }
+
+      try {
+        const response = await fetch(`/${encodeURIComponent(repoName)}/git_switch_branch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            createNew: false,
+            branchName: selectedBranch,
+            newBranchName: "",
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || (data && data.error)) {
+          const errorMessage = data && data.error ? data.error : "Failed to switch branch.";
+          if (switchBranchMessage) {
+            switchBranchMessage.textContent = errorMessage;
+            switchBranchMessage.style.color = "#fca5a5";
+          }
+          return;
+        }
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "Branch switched successfully.";
+          switchBranchMessage.style.color = "#34d399";
+        }
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        console.error("[Codex Runner] Branch switch failed:", error);
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "Error switching branch.";
+          switchBranchMessage.style.color = "#fca5a5";
+        }
+      }
+    });
+  }
+
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && promptModalEl && !promptModalEl.classList.contains("is-hidden")) {
+    if (event.key !== "Escape") {
+      return;
+    }
+    if (promptModalEl && !promptModalEl.classList.contains("is-hidden")) {
       closePromptModal();
+      return;
+    }
+    if (switchBranchModal && !switchBranchModal.classList.contains("is-hidden")) {
+      closeSwitchBranchModal();
     }
   });
 
@@ -1645,6 +1950,11 @@ Try: ${suggestion}`;
         projectInfoButton.dataset.projectDir = projectDirForBranches;
       } else {
         delete projectInfoButton.dataset.projectDir;
+      }
+      if (currentRunContext.repoName) {
+        projectInfoButton.dataset.repoName = currentRunContext.repoName;
+      } else {
+        delete projectInfoButton.dataset.repoName;
       }
     }
   }
