@@ -1866,6 +1866,11 @@ ${cleanedFinalOutput}`;
                 invalidModelReason = `Requested model \"${requestedModel}\" contains unsupported characters.`;
             }
         }
+        const requestedModelLabel = requestedModel || "none";
+        const invalidModelLabel = invalidModelReason || "none";
+        console.log(
+            `[INFO] Codex model resolved for run ${sessionId}: final="${model}" requested="${requestedModelLabel}" default="${defaultCodexModel}" invalidReason="${invalidModelLabel}"`,
+        );
 
         const runRecord = {
             id: randomUUID(),
