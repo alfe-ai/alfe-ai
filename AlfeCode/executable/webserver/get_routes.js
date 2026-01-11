@@ -4737,6 +4737,7 @@ res.render("editor", {
             let baseRev = "";
             let compRev = "";
             let diffCommand = "";
+            let resolvedBranchForList = null;
 
             if (!foundMergeCommit) {
                 // No merge commit found on parent candidates. Try to compare the branch
@@ -4780,6 +4781,7 @@ res.render("editor", {
                 }
 
                 compRev = resolvedBranch.sha;
+                resolvedBranchForList = resolvedBranch;
 
                 if (resolvedParent) {
                     let mergeBase = "";
@@ -4802,6 +4804,7 @@ res.render("editor", {
                 baseRev = `${foundMergeCommit}^`;
                 compRev = foundMergeCommit;
                 diffCommand = `git diff ${baseRev} ${compRev}`;
+                resolvedBranchForList = resolveRefCandidates(buildBranchCandidates());
             }
 
             const cacheKey = buildMergeDiffCacheKey(sessionId, resolvedProjectDir, baseRev, compRev);
@@ -4842,6 +4845,14 @@ ${err}`;
 
             const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
             const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "" };
+            let commitList = [];
+            if (resolvedBranchForList && resolvedBranchForList.ref) {
+                const rangeRef = baseRev ? `${baseRev}..${resolvedBranchForList.ref}` : resolvedBranchForList.ref;
+                commitList = getCommitListForRange(resolvedProjectDir, rangeRef);
+            }
+            if (!commitList.length) {
+                commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
+            }
 
             res.render("diff", {
                 gitRepoNameCLI: repoName || resolvedProjectDir,
@@ -4858,6 +4869,7 @@ ${err}`;
                 errorMessage: '',
                 baseMeta,
                 compMeta,
+                commitList,
                 mergeReady,
                 comparisonPromptLine,
                 chatNumber,
@@ -5089,6 +5101,23 @@ app.get("/agent/git-diff", (req, res) => {
                 }
             }
             return commits;
+        } catch (err) {
+            return [];
+        }
+    };
+
+    const getCommitListForRange = (cwd, rangeRef) => {
+        if (!rangeRef) return [];
+        try {
+            const out = execSync(`git log --format=%H%x1f%s ${rangeRef}`, {
+                cwd,
+                maxBuffer: 1024 * 1024,
+            }).toString();
+            const lines = out.split(/\r?\n/).filter(Boolean);
+            return lines.map((line) => {
+                const [hash = '', message = ''] = line.split('\x1f');
+                return { hash, message };
+            }).filter((commit) => commit.hash);
         } catch (err) {
             return [];
         }
