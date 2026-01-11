@@ -4113,7 +4113,7 @@ const appendMergeChunk = (text, type = "output") => {
   const renderFollowupSessionsFromHistory = async (run) => {
     const followups = await loadFollowupRunsForParent(run);
     if (!followups.length) {
-      return;
+      return [];
     }
 
     const ordered = sortFollowupRuns(followups);
@@ -4122,6 +4122,7 @@ const appendMergeChunk = (text, type = "output") => {
     });
     activeFollowupSession = null;
     followupRunActive = false;
+    return ordered;
   };
 
   const renderRunFromHistory = async (run) => {
@@ -4327,7 +4328,16 @@ const appendMergeChunk = (text, type = "output") => {
     try { setRunControlsDisabledState(false, { forceRefresh: true }); } catch (e) { /* ignore */ }
     try { applyMergeButtonState(); } catch (e) { /* ignore */ }
 
-    await renderFollowupSessionsFromHistory(run);
+    const followupRuns = await renderFollowupSessionsFromHistory(run);
+    if (Array.isArray(followupRuns) && followupRuns.length) {
+      const latestFollowup = followupRuns[followupRuns.length - 1];
+      const latestBranch = extractBranchFromRun(latestFollowup);
+      const currentHref = mergeDiffButton ? mergeDiffButton.getAttribute('data-href') : '';
+      const hasBranchDiff = typeof currentHref === 'string' && currentHref.includes('branch=');
+      if (latestBranch && (!hasActiveMergeDiffLink() || !hasBranchDiff)) {
+        enableMergeDiffButtonFromSavedRun(latestFollowup);
+      }
+    }
 
     if (hasHydratedFinalOutput) {
       setActiveOutputTab("stdout");
