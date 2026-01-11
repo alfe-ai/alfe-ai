@@ -1916,6 +1916,147 @@
             display: block;
             background: white;
         }
+
+        .auth-modal .modal-content {
+            max-width: 520px;
+            width: 92%;
+            height: auto;
+            max-height: 90vh;
+            margin: auto;
+            padding: 28px 28px 24px;
+            border-radius: 20px;
+            overflow: auto;
+            position: relative;
+        }
+
+        .auth-modal .modal-close {
+            top: 10px;
+            right: 10px;
+        }
+
+        .auth-modal label {
+            font-size: 0.9rem;
+            letter-spacing: 0.01em;
+        }
+
+        .auth-modal input[type="email"],
+        .auth-modal input[type="password"],
+        .auth-modal input[type="text"] {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-color);
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .auth-modal input[type="email"]:focus,
+        .auth-modal input[type="password"]:focus,
+        .auth-modal input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+        }
+
+        .modal-buttons {
+            margin-top: 1rem;
+            text-align: right;
+        }
+
+        .modal-buttons button {
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid var(--surface-border);
+            color: var(--text-color);
+            margin-left: 4px;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 0.45rem 0.75rem;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .modal-buttons button:hover {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .modal-buttons button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #f8fafc;
+        }
+
+        .modal-buttons button.primary:hover {
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+        }
+
+        .view-tab {
+            background: var(--surface);
+            color: var(--text-color);
+            border: 1px solid var(--surface-border);
+            padding: 0.45rem 0.85rem;
+            cursor: pointer;
+            border-radius: 999px;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .view-tab.active {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .password-requirements {
+            margin-top: 12px;
+            padding: 16px 18px;
+            border-radius: 16px;
+            background: #f4f2ff;
+            color: #1b1d29;
+        }
+
+        .password-requirements__title {
+            margin: 0;
+            font-weight: 600;
+            color: #3f2b96;
+        }
+
+        .password-requirements__subtitle {
+            margin: 8px 0 0;
+            font-size: 0.9rem;
+            color: #4d4f63;
+        }
+
+        .password-requirements__list {
+            margin: 12px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .password-requirements__item {
+            position: relative;
+            padding-left: 24px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            color: #1b1d29;
+        }
+
+        .password-requirements__item + .password-requirements__item {
+            margin-top: 6px;
+        }
+
+        .password-requirements__item::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            border: 2px solid #6d4bff;
+            border-radius: 50%;
+        }
         /* Git Log modal loader */
         .git-log-loader {
             position: absolute;
@@ -2857,6 +2998,57 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             autocomplete="off"
             aria-labelledby="promptModalHeader"
           ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="authModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Sign Up or Log In">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="authModalCloseButton">×</button>
+        <div id="authTabs" style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+          <button id="loginTab" class="view-tab active">Login</button>
+          <button id="signupTab" class="view-tab">Sign Up</button>
+        </div>
+        <div id="loginForm">
+          <label>Email:<br/>
+            <input type="email" id="loginEmail" />
+          </label>
+          <label style="margin-top:8px;">Password:<br/>
+            <input type="password" id="loginPassword" />
+          </label>
+          <label id="totpLoginLabel" style="margin-top:8px; display:none;">Auth Code:<br/>
+            <input type="text" id="loginTotp" />
+          </label>
+          <div class="modal-buttons">
+            <button id="loginSubmitBtn">Login</button>
+            <button id="showSignupBtn">Sign Up</button>
+            <button id="loginCancelBtn">Cancel</button>
+          </div>
+        </div>
+        <div id="signupForm" style="display:none;">
+          <label>Email:<br/>
+            <input type="email" id="signupEmail" />
+          </label>
+          <label style="margin-top:8px;">Password:<br/>
+            <input type="password" id="signupPassword" />
+          </label>
+          <label style="margin-top:8px;">Confirm Password:<br/>
+            <input type="password" id="signupConfirm" />
+          </label>
+          <div class="password-requirements" aria-live="polite">
+            <p class="password-requirements__title">Must have at least 8 characters</p>
+            <p class="password-requirements__subtitle">It's best to have:</p>
+            <ul class="password-requirements__list">
+              <li class="password-requirements__item">At least 12 characters</li>
+              <li class="password-requirements__item">Uppercase and lowercase letters</li>
+              <li class="password-requirements__item">Numbers</li>
+              <li class="password-requirements__item">Symbols (#$&amp;)</li>
+            </ul>
+          </div>
+          <div class="modal-buttons">
+            <button id="signupSubmitBtn">Register</button>
+            <button id="showLoginBtn">Back to Login</button>
+          </div>
         </div>
       </div>
     </div>
