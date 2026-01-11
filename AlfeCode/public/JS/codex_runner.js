@@ -4247,8 +4247,6 @@ const appendMergeChunk = (text, type = "output") => {
     return "Run";
   };
 
-  
-
   const MERGE_SUCCESS_PATTERNS = [
     /git_merge_parent\.sh exited with code 0/i,
     /branch merged/i,
@@ -4318,7 +4316,23 @@ const appendMergeChunk = (text, type = "output") => {
     });
   };
 
-const getSidebarBadgeInfo = (run) => {
+  const getFollowupParentId = (run) => {
+    if (!run || typeof run !== "object") {
+      return "";
+    }
+    return normaliseRunId(
+      run.followupParentId
+      || run.followupParentRunId
+      || run.followup_parent_id
+      || run.followup_parent
+      || "",
+    );
+  };
+
+  const getSidebarBadgeInfo = (run, { hasActiveFollowup = false } = {}) => {
+    if (hasActiveFollowup) {
+      return { text: "Running", variant: "running" };
+    }
 
     // determine a latest status text candidate for merge-detection
     let latestStatusText = '';
@@ -4429,9 +4443,22 @@ const getSidebarBadgeInfo = (run) => {
     };
 
     const filterValue = runsSidebarFilter ? runsSidebarFilter.trim().toLowerCase() : "";
+    const activeFollowupParents = new Set();
+    const followupFilteredRuns = Array.isArray(runs)
+      ? runs.filter((run) => {
+        const followupParentId = getFollowupParentId(run);
+        if (followupParentId) {
+          if (!run?.finishedAt) {
+            activeFollowupParents.add(followupParentId);
+          }
+          return false;
+        }
+        return true;
+      })
+      : [];
     // Filter by archived state depending on archive view toggle
-    const afterMatch = Array.isArray(runs)
-      ? runs.filter((run) => doesRunMatchFilter(run, filterValue))
+    const afterMatch = Array.isArray(followupFilteredRuns)
+      ? followupFilteredRuns.filter((run) => doesRunMatchFilter(run, filterValue))
       : [];
     const filteredByArchiveState = afterMatch.filter((run) => runsSidebarShowArchived ? Boolean(run && run.archived) : !Boolean(run && run.archived));
     const filteredRuns = filteredByArchiveState;
@@ -4605,7 +4632,9 @@ const getSidebarBadgeInfo = (run) => {
       const metaEl = button.querySelector('.runs-sidebar__item-meta');
       if (metaEl) {
         // badge
-        const badgeInfo = getSidebarBadgeInfo(run);
+        const badgeInfo = getSidebarBadgeInfo(run, {
+          hasActiveFollowup: Boolean(normalizedRunId && activeFollowupParents.has(normalizedRunId)),
+        });
         let badge = metaEl.querySelector('.runs-sidebar__badge');
         if (badgeInfo) {
           if (!badge) { badge = document.createElement('span'); badge.className = `runs-sidebar__badge runs-sidebar__badge--${badgeInfo.variant}`; metaEl.appendChild(badge); }
@@ -5947,6 +5976,12 @@ const getSidebarBadgeInfo = (run) => {
       params.append("projectDir", normalizedProjectDir);
     } else if (effectiveProjectDirForRun) {
       params.append("projectDir", effectiveProjectDirForRun);
+    }
+    const followupParentId = continuingExistingRun
+      ? normaliseRunId(currentRunContext && currentRunContext.runId ? currentRunContext.runId : "")
+      : "";
+    if (followupParentId) {
+      params.append("followupParentId", followupParentId);
     }
     if (effectivePrompt) {
       params.append("prompt", effectivePrompt);

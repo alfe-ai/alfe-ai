@@ -1851,6 +1851,7 @@ ${cleanedFinalOutput}`;
         const gitFpushEnabled = gitFpushParam === "1" || gitFpushParam === "true";
         const userPromptRaw = (req.query.userPrompt || "").toString();
         const agentInstructionsRaw = (req.query.agentInstructions || "").toString();
+        const followupParentIdRaw = (req.query.followupParentId || "").toString().trim();
 
         const scriptPath = codexScriptPath;
         const defaultCodexModel = resolveDefaultCodexModel();
@@ -1880,6 +1881,7 @@ ${cleanedFinalOutput}`;
             gitFpushEnabled,
             openRouterReferer,
             openRouterTitle,
+            followupParentId: followupParentIdRaw,
             statusHistory: [],
             metaMessages: [],
             stdout: "",
