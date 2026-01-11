@@ -2461,15 +2461,21 @@ Try: ${suggestion}`;
     } catch (_err) { /* ignore */ }
   };
 
+  const DIFF_MODAL_BACK_MESSAGE_TYPE = "codex:diff-modal-back";
+
+  const isTrustedDiffModalMessage = (event) => {
+    const isFromSameOrigin = Boolean(event.origin && window.location && window.location.origin && event.origin === window.location.origin);
+    const isFromGitLogIframe = Boolean(typeof gitLogIframe !== 'undefined' && gitLogIframe && event.source && gitLogIframe.contentWindow && event.source === gitLogIframe.contentWindow);
+    return isFromSameOrigin || isFromGitLogIframe;
+  };
+
   const handleDiffModalMergeRequest = (event) => {
     if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
       return;
     }
     // Accept messages from the same origin, or from the diff iframe window (which may have a null origin when using srcdoc),
     // but still reject messages from unknown external sources.
-    const isFromSameOrigin = Boolean(event.origin && window.location && window.location.origin && event.origin === window.location.origin);
-    const isFromGitLogIframe = Boolean(typeof gitLogIframe !== 'undefined' && gitLogIframe && event.source && gitLogIframe.contentWindow && event.source === gitLogIframe.contentWindow);
-    if (!isFromSameOrigin && !isFromGitLogIframe) {
+    if (!isTrustedDiffModalMessage(event)) {
       return;
     }
     // Close the diff modal and trigger the merge button in the parent if enabled.
@@ -2479,7 +2485,35 @@ Try: ${suggestion}`;
     }
   };
 
+  const handleDiffModalBackRequest = (event) => {
+    if (!event || !event.data || event.data.type !== DIFF_MODAL_BACK_MESSAGE_TYPE) {
+      return;
+    }
+    if (!isTrustedDiffModalMessage(event)) {
+      return;
+    }
+    const diffUrl = typeof event.data.diffUrl === "string" ? event.data.diffUrl : "";
+    if (!diffUrl) {
+      return;
+    }
+    if (gitLogModal) {
+      gitLogModal.classList.remove("is-hidden");
+    }
+    if (document && document.body) {
+      document.body.style.overflow = "hidden";
+    }
+    if (gitLogIframe) {
+      showGitLogLoader();
+      gitLogIframe.onload = () => { hideGitLogLoader(); };
+      gitLogIframe.onerror = () => { hideGitLogLoader(); };
+      gitLogIframe.src = diffUrl;
+    } else {
+      window.open(diffUrl, "_blank", "noopener");
+    }
+  };
+
   window.addEventListener("message", handleDiffModalMergeRequest, false);
+  window.addEventListener("message", handleDiffModalBackRequest, false);
 
   const looksLikeHtmlDocument = (text) => {
     if (!text || typeof text !== 'string') return false;
