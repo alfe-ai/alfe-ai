@@ -10,6 +10,31 @@ abort() {
   exit 1
 }
 
+resolve_default_remote() {
+  local remotes
+  remotes="$(git remote 2>/dev/null || true)"
+  if [[ -z "$remotes" ]]; then
+    return 1
+  fi
+  if echo "$remotes" | grep -qx "origin"; then
+    printf '%s\n' "origin"
+    return 0
+  fi
+  printf '%s\n' "$(echo "$remotes" | head -n 1)"
+}
+
+push_with_upstream_setup() {
+  local branch="$1"
+  local remote
+  remote="$(resolve_default_remote || true)"
+  if [[ -z "$remote" ]]; then
+    echo "No remotes configured; unable to set upstream for '$branch'." >&2
+    return 1
+  fi
+  log "Setting upstream for '$branch' to '$remote/$branch'..."
+  git push --set-upstream "$remote" "$branch"
+}
+
 infer_parent_from_reflog() {
   local branch="$1"
   local reflog_output
@@ -194,7 +219,15 @@ if [[ -n "$child_remote_branch" ]]; then
     log "Pushing '$current_branch'..."
     if ! push_output="$(git push 2>&1)"; then
       printf '%s\n' "$push_output" >&2
-      if echo "$push_output" | grep -qi 'non-fast-forward'; then
+      upstream_set=0
+      if echo "$push_output" | grep -qi 'no upstream branch'; then
+        if push_with_upstream_setup "$current_branch"; then
+          upstream_set=1
+        fi
+      fi
+      if [[ "$upstream_set" -eq 1 ]]; then
+        printf '%s\n' "Upstream configured for '$current_branch'."
+      elif echo "$push_output" | grep -qi 'non-fast-forward'; then
         log "Detected that '$current_branch' is behind its upstream. Pulling latest changes..."
         if git pull; then
           log "Retrying push after pulling latest changes..."
@@ -268,7 +301,15 @@ else
     log "Pushing '$parent_branch'..."
     if ! push_output="$(git push 2>&1)"; then
     printf '%s\n' "$push_output" >&2
-    if echo "$push_output" | grep -qi 'non-fast-forward'; then
+    upstream_set=0
+    if echo "$push_output" | grep -qi 'no upstream branch'; then
+      if push_with_upstream_setup "$parent_branch"; then
+        upstream_set=1
+      fi
+    fi
+    if [[ "$upstream_set" -eq 1 ]]; then
+      printf '%s\n' "Upstream configured for '$parent_branch'."
+    elif echo "$push_output" | grep -qi 'non-fast-forward'; then
       log "Detected that '$parent_branch' is behind its upstream. Pulling latest changes..."
       if git pull; then
         log "Retrying push after pulling latest changes..."
