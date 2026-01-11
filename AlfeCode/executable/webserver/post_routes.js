@@ -1225,7 +1225,29 @@ function setupPostRoutes(deps) {
                 if (!targetBranch) {
                     return res.status(400).json({ error: "Branch name cannot be empty." });
                 }
-                execSync(`git checkout "${targetBranch}"`, { cwd: gitRepoLocalPath, stdio: "pipe" });
+                try {
+                    execSync(`git checkout "${targetBranch}"`, { cwd: gitRepoLocalPath, stdio: "pipe" });
+                } catch (checkoutErr) {
+                    let remoteTarget = "";
+                    try {
+                        const remotesRaw = execSync(
+                            "git for-each-ref --format='%(refname:short)' refs/remotes",
+                            { cwd: gitRepoLocalPath, stdio: "pipe" },
+                        )
+                            .toString()
+                            .trim()
+                            .split("\n");
+                        const matchingRemote = remotesRaw.find((ref) => ref.endsWith(`/${targetBranch}`));
+                        if (matchingRemote) {
+                            const remoteName = matchingRemote.split("/")[0];
+                            remoteTarget = `${remoteName}/${targetBranch}`;
+                        }
+                    } catch (remoteErr) {
+                        remoteTarget = "";
+                    }
+                    const fallbackRemote = remoteTarget || `origin/${targetBranch}`;
+                    execSync(`git checkout -t "${fallbackRemote}"`, { cwd: gitRepoLocalPath, stdio: "pipe" });
+                }
                 repoCfg.gitBranch = targetBranch;
                 let configuredParent =
                     typeof branchParents[targetBranch] === "string" ? branchParents[targetBranch] : "";

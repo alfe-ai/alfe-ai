@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fetch branches
             const pathParts = window.location.pathname.split('/');
             const repoName = pathParts[1] || "WhimsicalPuppet";
-            fetch(`/${repoName}/git_branches`)
+            fetch(`/${repoName}/git_branches?refresh=1`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
