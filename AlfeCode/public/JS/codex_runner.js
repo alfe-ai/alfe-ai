@@ -5611,26 +5611,26 @@ const appendMergeChunk = (text, type = "output") => {
   if (cancelButton) {
     cancelButton.addEventListener("click", () => {
       try {
-        if (
-          typeof window !== 'undefined'
-          && window.location
-          && typeof window.location.pathname === 'string'
-          && /(^|\/)agent(\/|$)/.test(window.location.pathname)
-        ) {
-          try {
-            const reloadRunId = currentRunContext && currentRunContext.runId ? currentRunContext.runId : "";
-            const reloadProjectDir =
-              (currentRunContext && currentRunContext.projectDir)
-              || (currentRunContext && currentRunContext.effectiveProjectDir)
-              || "";
-            updatePageUrlForRun(reloadRunId, reloadProjectDir);
-          } catch (_innerErr) { /* ignore */ }
+        if (typeof window !== 'undefined' && window.location && typeof window.location.pathname === 'string' && /(^|\/)agent(\/|$)/.test(window.location.pathname)) {
           window.location.reload();
           return;
         }
       } catch (_e) { /* ignore */ }
 
-      cancelCurrentRun();
+      if (!eventSource) {
+        setStatus("Nothing to cancel.", "idle");
+        return;
+      }
+
+      closeExistingStream(true);
+      flushPendingStdoutPromptBuffer();
+      setStatus("Run cancelled.", "idle");
+      appendChunk("\nRun cancelled by user.", "status");
+      finalizeOutputViews();
+      toggleButtons(false);
+      runInFlight = false;
+      awaitingGitFpushCompletion = false;
+      setRunControlsDisabledState(false);
     });
   }
 
