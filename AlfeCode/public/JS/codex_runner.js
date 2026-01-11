@@ -5633,6 +5633,13 @@ const appendMergeChunk = (text, type = "output") => {
       runsSidebarListEl.scrollTop = 0;
     }
 
+    if (modelSelect) {
+      const fallbackModel = config.defaultModel || config.defaultCodexModel || "";
+      if (fallbackModel) {
+        modelSelect.value = fallbackModel;
+      }
+    }
+
     try {
       if (promptInput) {
         promptInput.value = "";
