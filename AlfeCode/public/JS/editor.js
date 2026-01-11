@@ -505,20 +505,6 @@
         });
     }
 
-    document.querySelectorAll(".collapsible-header").forEach((header) => {
-        header.addEventListener("click", () => {
-            const section = header.closest(".collapsible-section");
-            if (!section) return;
-            if (section.classList.contains("collapsed")) {
-                section.classList.remove("collapsed");
-                section.classList.add("expanded");
-            } else {
-                section.classList.add("collapsed");
-                section.classList.remove("expanded");
-            }
-        });
-    });
-
     document.querySelectorAll(".directory-tree").forEach((tree) => {
         tree.addEventListener("click", (event) => {
             if (!(event.target instanceof HTMLElement)) {
@@ -581,7 +567,7 @@
 (function installDividerDragEditor(){
   const divider = document.getElementById('divider');
   const sidebar = document.querySelector('.editor-sidebar');
-  const toggleBtn = document.getElementById('toggleSidebarBtn');
+  const toggleBtn = document.getElementById('sidebarToggleBtn');
   const expandBtn = document.getElementById('expandSidebarBtn');
   if(!divider || !sidebar) return;
 
