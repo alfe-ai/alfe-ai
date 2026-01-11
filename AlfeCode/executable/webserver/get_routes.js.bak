@@ -1660,7 +1660,6 @@ ${cleanedFinalOutput}`;
             enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
             showNewTaskButton,
         showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
-        showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
         });
     };
 
