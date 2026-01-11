@@ -5085,19 +5085,20 @@ app.get("/agent/git-diff", (req, res) => {
     const getCommitList = (cwd, baseRev, compRev) => {
         if (!baseRev || !compRev) return [];
         try {
-            const out = execSync(`git log --format=%H%x1f%s ${baseRev}..${compRev}`, {
+            const out = execSync(`git log --format=%H%x1f%P%x1f%s ${baseRev}..${compRev}`, {
                 cwd,
                 maxBuffer: 1024 * 1024,
             }).toString();
             const lines = out.split(/\r?\n/).filter(Boolean);
             const commits = lines.map((line) => {
-                const [hash = '', message = ''] = line.split('\x1f');
-                return { hash, message };
+                const [hash = '', parentsRaw = '', message = ''] = line.split('\x1f');
+                const parents = parentsRaw ? parentsRaw.split(' ').filter(Boolean) : [];
+                return { hash, parents, message };
             }).filter((commit) => commit.hash);
             if (!commits.length && compRev) {
                 const fallback = getCommitMeta(cwd, compRev);
                 if (fallback.hash) {
-                    commits.push({ hash: fallback.hash, message: fallback.message || '' });
+                    commits.push({ hash: fallback.hash, parents: [], message: fallback.message || '' });
                 }
             }
             return commits;
@@ -5109,14 +5110,15 @@ app.get("/agent/git-diff", (req, res) => {
     const getCommitListForRange = (cwd, rangeRef) => {
         if (!rangeRef) return [];
         try {
-            const out = execSync(`git log --format=%H%x1f%s ${rangeRef}`, {
+            const out = execSync(`git log --format=%H%x1f%P%x1f%s ${rangeRef}`, {
                 cwd,
                 maxBuffer: 1024 * 1024,
             }).toString();
             const lines = out.split(/\r?\n/).filter(Boolean);
             return lines.map((line) => {
-                const [hash = '', message = ''] = line.split('\x1f');
-                return { hash, message };
+                const [hash = '', parentsRaw = '', message = ''] = line.split('\x1f');
+                const parents = parentsRaw ? parentsRaw.split(' ').filter(Boolean) : [];
+                return { hash, parents, message };
             }).filter((commit) => commit.hash);
         } catch (err) {
             return [];
