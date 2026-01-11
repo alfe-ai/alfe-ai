@@ -4547,11 +4547,39 @@ res.render("editor", {
         const { gitRepoLocalPath } = repoCfg;
         let branchData = [];
         try {
-            const branchRaw = execSync("git branch --format='%(refname:short)'", { cwd: gitRepoLocalPath })
+            const refreshRaw = (req.query && req.query.refresh) ? String(req.query.refresh).toLowerCase() : "";
+            const shouldRefresh = refreshRaw === "1" || refreshRaw === "true" || refreshRaw === "yes";
+            if (shouldRefresh) {
+                try {
+                    execSync("git fetch --prune --all", { cwd: gitRepoLocalPath, stdio: "pipe" });
+                } catch (fetchErr) {
+                    console.warn("[WARN] Unable to refresh branches:", fetchErr);
+                }
+            }
+
+            const branchRaw = execSync(
+                "git for-each-ref --format='%(refname:short)' refs/heads refs/remotes",
+                { cwd: gitRepoLocalPath },
+            )
                 .toString()
                 .trim()
                 .split("\n");
-            branchData = branchRaw.map(b => b.replace(/^\*\s*/, ""));
+            const branchSet = new Set();
+            branchRaw.forEach((branch) => {
+                const cleaned = branch.replace(/^\*\s*/, "").trim();
+                if (!cleaned || cleaned === "HEAD" || cleaned.endsWith("/HEAD")) {
+                    return;
+                }
+                if (cleaned.includes("/")) {
+                    const [remoteName, ...rest] = cleaned.split("/");
+                    if (remoteName && rest.length > 0) {
+                        branchSet.add(rest.join("/"));
+                        return;
+                    }
+                }
+                branchSet.add(cleaned);
+            });
+            branchData = Array.from(branchSet).sort((a, b) => a.localeCompare(b));
         } catch (err) {
             console.error("[ERROR] getBranches =>", err);
             return res.status(500).json({ error: "Failed to list branches." });

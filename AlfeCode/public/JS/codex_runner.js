@@ -735,7 +735,7 @@ Try: ${suggestion}`;
     }
 
     try {
-      const response = await fetch(`/${encodeURIComponent(repoName)}/git_branches`, {
+      const response = await fetch(`/${encodeURIComponent(repoName)}/git_branches?refresh=1`, {
         headers: { Accept: "application/json" },
       });
       if (!response.ok) {

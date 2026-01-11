@@ -105,7 +105,7 @@ const formatBranchDisplayName = (branchName) => {
                 resetModal();
                 showModal();
 
-                fetch(`/${encodeURIComponent(repoName)}/git_branches`)
+                fetch(`/${encodeURIComponent(repoName)}/git_branches?refresh=1`)
                     .then((res) => res.json())
                     .then((data) => {
                         if (data && Array.isArray(data.branches)) {
