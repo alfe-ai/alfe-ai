@@ -2512,6 +2512,9 @@
                               Git Log
                           </button>
                       </div>
+                      <% if (editorEnabled) { %>
+                      <button id="openEditorTopButton" class="nav-button" type="button" title="Open Editor" aria-label="Open Editor" onclick="(function(){ try{ window.__pendingEditorWindow = window.open('about:blank', '_blank', 'noopener,noreferrer'); }catch(e){} })()">Editor</button>
+                      <% } %>
                       <div class="top-nav-utility">
                           <button id="agentHelpBtn" style="display:none;" class="nav-button icon-only" type="button" title="Help" aria-label="Open agent help" onclick="(function(){ try{ window.open('/agent/help', '_blank', 'noopener,noreferrer'); }catch(e){} })()">
                               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
