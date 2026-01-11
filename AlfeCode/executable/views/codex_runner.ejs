@@ -2687,6 +2687,15 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     autocomplete="off"
                     spellcheck="false"
                     rows="6"
+            <div id="followupRunField" class="followup-run-field" style="margin-top:8px;">
+                <label for="enableFollowupsForRun">Allow follow-up chats for this run</label>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                    <input type="checkbox" id="enableFollowupsForRun" name="enableFollowupsForRun">
+                    <span style="color:var(--text-muted);font-size:0.9rem;">Enable follow-up sessions even when follow-ups are disabled globally.</span>
+                </div>
+            </div>
+
+            
                 ></textarea>
             </div>
 

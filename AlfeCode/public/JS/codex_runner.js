@@ -34,7 +34,9 @@
     try {
       const promptEl = promptInput;
       if (!promptEl) return;
-      const hasSelectedRun = Boolean(config.enableFollowups && (Boolean(runsSidebarSelectedRunId) || (currentRunContext && currentRunContext.runId)));
+      const _followupsCheckboxEl = document.getElementById('enableFollowupsForRun');
+    const _followupsAllowed = Boolean(config.enableFollowups || (_followupsCheckboxEl && _followupsCheckboxEl.checked));
+    const hasSelectedRun = Boolean(_followupsAllowed && (Boolean(runsSidebarSelectedRunId) || (currentRunContext && currentRunContext.runId)));
       const suggestions = [
   'Make a snake game.',
   'Create a to-do app.',
@@ -5843,7 +5845,9 @@ const getSidebarBadgeInfo = (run) => {
       && typeof outputEl.textContent === "string"
       && outputEl.textContent.trim()
     );
-    const continuingExistingRun = Boolean(config.enableFollowups) && hadExistingRun && hasExistingOutput;
+        const _followupsCheckboxEl2 = document.getElementById('enableFollowupsForRun');
+    const _followupsAllowed2 = Boolean(config.enableFollowups || (_followupsCheckboxEl2 && _followupsCheckboxEl2.checked));
+    const continuingExistingRun = _followupsAllowed2 && hadExistingRun && hasExistingOutput;
 
     const normalizedProjectDir = normaliseProjectDir(projectDir);
     const effectiveProjectDirForRun =
