@@ -46,6 +46,7 @@
   'Prototype a drawing app.',
   'Build a markdown previewer.',
   'Create a CLI tool.',
+  'Create a second tool.',
   'Create a weather widget.',
   'Build a countdown timer.',
   'Make a tip calculator.',
