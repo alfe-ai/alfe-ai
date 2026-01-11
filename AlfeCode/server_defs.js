@@ -31,6 +31,44 @@ const CODEX_MODEL_PATTERN = /^[A-Za-z0-9._:+-]+(?:\/[A-Za-z0-9._:+-]+)*$/;
 const SESSION_DATA_ROOT = path.join(__dirname, 'data', 'sessions');
 const SESSION_FALLBACK_KEY = 'default';
 const CODEX_RUN_HISTORY_FILENAME = 'codex_runs.json';
+let hasLoggedModelValidationDisabled = false;
+
+function parseBooleanEnv(value, defaultValue = false) {
+    if (typeof value === 'undefined' || value === null) {
+        return defaultValue;
+    }
+    const normalized = String(value).trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(normalized)) {
+        return true;
+    }
+    if (['false', '0', 'no', 'off'].includes(normalized)) {
+        return false;
+    }
+    return defaultValue;
+}
+
+function isCodexModelValidationDisabled() {
+    const disabled = parseBooleanEnv(process.env.STERLING_CODEX_DISABLE_MODEL_VALIDATION, false);
+    if (disabled && !hasLoggedModelValidationDisabled) {
+        console.warn('[WARN] Codex model validation disabled via STERLING_CODEX_DISABLE_MODEL_VALIDATION.');
+        hasLoggedModelValidationDisabled = true;
+    }
+    return disabled;
+}
+
+function isCodexModelValid(model) {
+    if (typeof model !== 'string') {
+        return false;
+    }
+    const trimmed = model.trim();
+    if (!trimmed) {
+        return false;
+    }
+    if (isCodexModelValidationDisabled()) {
+        return true;
+    }
+    return CODEX_MODEL_PATTERN.test(trimmed);
+}
 
 function sanitizeSessionId(sessionId) {
     if (typeof sessionId !== 'string') {
@@ -141,7 +179,10 @@ function loadCodexConfig() {
         let mutated = false;
 
         const rawModel = typeof safeConfig.defaultModel === 'string' ? safeConfig.defaultModel.trim() : '';
-        if (!rawModel || !CODEX_MODEL_PATTERN.test(rawModel)) {
+        if (!rawModel || !isCodexModelValid(rawModel)) {
+            if (rawModel) {
+                console.warn(`[WARN] Invalid codex defaultModel "${rawModel}". Falling back to ${DEFAULT_CODEX_MODEL}.`);
+            }
             safeConfig.defaultModel = DEFAULT_CODEX_MODEL;
             mutated = true;
         } else {
@@ -178,7 +219,10 @@ function saveCodexConfig(config) {
     const safeConfig = config && typeof config === 'object' ? { ...config } : {};
 
     const rawModel = typeof safeConfig.defaultModel === 'string' ? safeConfig.defaultModel.trim() : '';
-    safeConfig.defaultModel = rawModel && CODEX_MODEL_PATTERN.test(rawModel)
+    if (rawModel && !isCodexModelValid(rawModel)) {
+        console.warn(`[WARN] Invalid codex defaultModel "${rawModel}" when saving. Falling back to ${DEFAULT_CODEX_MODEL}.`);
+    }
+    safeConfig.defaultModel = rawModel && isCodexModelValid(rawModel)
         ? rawModel
         : DEFAULT_CODEX_MODEL;
 
@@ -194,8 +238,11 @@ function getDefaultCodexModel() {
     const envModelRaw = typeof process !== 'undefined' && process.env && process.env.STERLING_CODEX_DEFAULT_MODEL
         ? String(process.env.STERLING_CODEX_DEFAULT_MODEL).trim()
         : '';
-    if (envModelRaw && CODEX_MODEL_PATTERN.test(envModelRaw)) {
+    if (envModelRaw && isCodexModelValid(envModelRaw)) {
         return envModelRaw;
+    }
+    if (envModelRaw) {
+        console.warn(`[WARN] Invalid STERLING_CODEX_DEFAULT_MODEL "${envModelRaw}". Falling back to config/default.`);
     }
 
     const config = loadCodexConfig();
@@ -203,8 +250,11 @@ function getDefaultCodexModel() {
         ? config.defaultModel.trim()
         : '';
 
-    if (candidate && CODEX_MODEL_PATTERN.test(candidate)) {
+    if (candidate && isCodexModelValid(candidate)) {
         return candidate;
+    }
+    if (candidate) {
+        console.warn(`[WARN] Invalid codex config defaultModel "${candidate}". Falling back to ${DEFAULT_CODEX_MODEL}.`);
     }
 
     return DEFAULT_CODEX_MODEL;
