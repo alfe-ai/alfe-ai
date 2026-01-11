@@ -817,7 +817,7 @@
         .replace(/\u2028|\u2029/g, '')
 %></script>
 <script id="commit-list-data" type="application/json"><%-
-    JSON.stringify(commitList || [])
+    JSON.stringify(typeof commitList !== 'undefined' ? commitList : [])
         .replace(/</g, '\u003c')
         .replace(/<\//g, '<\\\\/')
         .replace(/\u2028|\u2029/g, '')
