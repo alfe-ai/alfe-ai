@@ -196,6 +196,29 @@ function setupGetRoutes(deps) {
         return date.toISOString().replace("T", " ").replace(/Z$/, " UTC");
     };
 
+    const resolveSnapshotParentPath = (repoPath) => {
+        if (typeof repoPath !== "string" || !repoPath.trim()) {
+            return "";
+        }
+        const trimmed = repoPath.trim();
+        const suffixMatch = trimmed.match(/-\d{6,}$/);
+        if (!suffixMatch) {
+            return "";
+        }
+        const candidate = trimmed.slice(0, -suffixMatch[0].length);
+        if (!candidate) {
+            return "";
+        }
+        try {
+            if (fs.existsSync(path.join(candidate, ".git"))) {
+                return candidate;
+            }
+        } catch (_err) {
+            return "";
+        }
+        return "";
+    };
+
     const resolveSterlingStorageRoot = () => {
         const normaliseResult = (candidatePath, exists, usingFallback) => ({
             path: candidatePath,
@@ -4085,16 +4108,21 @@ ${cleanedFinalOutput}`;
         );
 
         let currentBranchName = "";
-        try {
-            const gitMeta = repoCfg.gitRepoLocalPath ? getGitMetaData(repoCfg.gitRepoLocalPath) : null;
-            if (gitMeta && typeof gitMeta.branchName === "string") {
-                currentBranchName = gitMeta.branchName;
+        const configuredBranch =
+            typeof repoCfg.gitBranch === "string" ? repoCfg.gitBranch.trim() : "";
+        if (configuredBranch) {
+            currentBranchName = configuredBranch;
+        } else {
+            const repoPathForBranch = resolveSnapshotParentPath(repoCfg.gitRepoLocalPath)
+                || repoCfg.gitRepoLocalPath;
+            try {
+                const gitMeta = repoPathForBranch ? getGitMetaData(repoPathForBranch) : null;
+                if (gitMeta && typeof gitMeta.branchName === "string") {
+                    currentBranchName = gitMeta.branchName;
+                }
+            } catch (err) {
+                console.warn("[WARN] Unable to resolve active branch for", repoName, err && err.message ? err.message : err);
             }
-        } catch (err) {
-            console.warn("[WARN] Unable to resolve active branch for", repoName, err && err.message ? err.message : err);
-        }
-        if (!currentBranchName && typeof repoCfg.gitBranch === "string") {
-            currentBranchName = repoCfg.gitBranch;
         }
 
         res.render("chats", {
