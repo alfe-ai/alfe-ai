@@ -17,6 +17,13 @@
             backToDiffButton.addEventListener("click", (event) => {
                 event.preventDefault();
                 if (diffUrl) {
+                    try {
+                        if (window.parent && window.parent !== window) {
+                            window.parent.postMessage({ type: "codex:diff-modal-back", diffUrl }, "*");
+                        }
+                    } catch (_err) {
+                        // ignore
+                    }
                     window.location.href = diffUrl;
                 } else if (window.history.length > 1) {
                     window.history.back();
