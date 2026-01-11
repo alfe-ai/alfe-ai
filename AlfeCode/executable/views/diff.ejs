@@ -299,10 +299,17 @@
 
         .diff-shell {
             display: grid;
-            grid-template-columns: 220px 260px 1fr;
+            grid-template-columns: 260px 1fr;
             gap: 12px;
             min-height: 360px;
             min-width: 0;
+        }
+
+        .diff-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-self: flex-start;
         }
 
         .commit-list {
@@ -315,6 +322,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            align-self: flex-start;
         }
 
         .commit-list h4 {
@@ -379,6 +387,7 @@
             padding: 12px;
             overflow: hidden;
             box-shadow: var(--shadow);
+            flex: 1;
         }
 
         .file-list h4 {
@@ -783,14 +792,16 @@
     <% if (diffOutput) { %>
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
-        <aside class="commit-list" aria-label="Commits">
-            <h4>Commits</h4>
-            <ul id="commit-list"></ul>
-        </aside>
-        <aside class="file-list" aria-label="Changed files">
-            <h4>Files</h4>
-            <ul id="file-list"></ul>
-        </aside>
+        <div class="diff-sidebar" aria-label="Commits and files">
+            <aside class="commit-list" aria-label="Commits">
+                <h4>Commits</h4>
+                <ul id="commit-list"></ul>
+            </aside>
+            <aside class="file-list" aria-label="Changed files">
+                <h4>Files</h4>
+                <ul id="file-list"></ul>
+            </aside>
+        </div>
         <section id="diff" class="viewer-panel diff-view stacked" aria-label="Diff viewer">
             <div class="file-meta" aria-live="polite">
                 <span id="current-file-label">Select a file</span>
