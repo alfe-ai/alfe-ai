@@ -763,7 +763,11 @@ Try: ${suggestion}`;
     const displayName = formatBranchDisplayName(displayBranchCandidate);
     const childDisplayName = normalizedChild ? formatBranchDisplayName(normalizedChild) : "";
     const childLabelDisplay = childDisplayName ? (normalizedChildLabel || "current") : "";
-    projectInfoText.textContent = "Branch";
+    if (displayName) {
+      projectInfoText.textContent = `Branch: ${displayName}`;
+    } else {
+      projectInfoText.textContent = "Branch";
+    }
     projectInfoButton.setAttribute("aria-label", "Open branch menu");
     projectInfoButton.title = "Open branch menu";
 
