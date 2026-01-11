@@ -6,6 +6,24 @@
     const saveButton = document.getElementById("saveFileButton");
     const textArea = document.getElementById("codeEditor");
     const tabsContainer = document.getElementById("editorTabs");
+    const backToDiffButton = document.getElementById("backToDiffButton");
+
+    if (backToDiffButton) {
+        const params = new URLSearchParams(window.location.search || "");
+        const fromDiff = params.get("from_diff") === "1";
+        const diffUrl = params.get("diff_url");
+        if (fromDiff) {
+            backToDiffButton.classList.add("is-visible");
+            backToDiffButton.addEventListener("click", (event) => {
+                event.preventDefault();
+                if (diffUrl) {
+                    window.location.href = diffUrl;
+                } else if (window.history.length > 1) {
+                    window.history.back();
+                }
+            });
+        }
+    }
 
     if (!textArea || !saveButton) {
         console.error("[editor] Missing required editor elements");

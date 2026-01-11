@@ -12,12 +12,18 @@
 <body>
     <%- include('partials/session_banner') %>
     <header class="editor-header">
-        <div>
-            <h1>Editor for <%= gitRepoNameCLI %></h1>
-            <div class="editor-subtitle">
-                Run #<%= runIdShort || chatNumber %> · <%= (runTitle && runTitle.length) ? runTitle : (runBranch || environment) %>
+        <div class="editor-header-left">
+            <button id="backToDiffButton" class="back-to-diff-button" type="button" title="Back to diff">
+                <span aria-hidden="true">←</span>
+                <span>Back to diff</span>
+            </button>
+            <div>
+                <h1>Editor for <%= gitRepoNameCLI %></h1>
+                <div class="editor-subtitle">
+                    Run #<%= runIdShort || chatNumber %> · <%= (runTitle && runTitle.length) ? runTitle : (runBranch || environment) %>
+                </div>
+                <div class="editor-subtitle" style="font-size:0.9em;color:#ddd;margin-top:6px;">Project dir: <span id="currentProjectDir"><%= projectDir %></span></div>
             </div>
-            <div class="editor-subtitle" style="font-size:0.9em;color:#ddd;margin-top:6px;">Project dir: <span id="currentProjectDir"><%= projectDir %></span></div>
         </div>
         <button id="toggleSidebarBtn" type="button" title="Toggle sidebar">☰</button>
         <button id="saveFileButton" disabled>Save</button>
