@@ -99,6 +99,16 @@
       }
     },
     {
+      "id": "google/gemini-2.0-flash-001",
+      "label": "Xiaomi: MiMo V2 Flash",
+      "disabled": false,
+      "contextTokens": 1048576,
+      "pricing": {
+        "inputPerMTokens": 0.1,
+        "outputPerMTokens": 0.4
+      }
+    },
+    {
       "id": "openrouter/kwaipilot/kat-coder-pro",
       "label": "KwaiPilot: KAT Coder Pro",
       "disabled": false,
