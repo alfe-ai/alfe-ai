@@ -1270,6 +1270,14 @@ ${cleanedFinalOutput}`;
     }
 
     const modelOnlyConfigPath = path.join(PROJECT_ROOT, "data", "config", "model_only_models.json");
+    const modelOnlyConfigFallbackPath = path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "data",
+        "config",
+        "model_only_models.json",
+    );
 
     function normaliseModelOnlyEntry(entry) {
         if (!entry) return null;
@@ -1319,10 +1327,13 @@ ${cleanedFinalOutput}`;
 
     function loadModelOnlyModels() {
         try {
-            if (!fs.existsSync(modelOnlyConfigPath)) {
+            const resolvedPath = fs.existsSync(modelOnlyConfigPath)
+                ? modelOnlyConfigPath
+                : modelOnlyConfigFallbackPath;
+            if (!fs.existsSync(resolvedPath)) {
                 return [];
             }
-            const raw = fs.readFileSync(modelOnlyConfigPath, "utf-8");
+            const raw = fs.readFileSync(resolvedPath, "utf-8");
             const parsed = JSON.parse(raw);
             const models = Array.isArray(parsed)
                 ? parsed
