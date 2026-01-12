@@ -197,6 +197,15 @@ console.log(keyInfo);</code></pre>
 };</code></pre>
     </section>
 
+    <section class="section" id="live-rate-limits">
+        <h2>Live Key Snapshot</h2>
+        <p class="muted">This panel fetches the latest key metadata from OpenRouter.</p>
+        <div class="callout">
+            <p id="rate-limit-status" class="muted">Fetching latest key info…</p>
+            <pre><code id="rate-limit-output">{}</code></pre>
+        </div>
+    </section>
+
     <section class="section">
         <h2>Limits</h2>
         <p>
@@ -220,5 +229,42 @@ console.log(keyInfo);</code></pre>
         </p>
     </section>
 </div>
+<script>
+    const statusEl = document.getElementById("rate-limit-status");
+    const outputEl = document.getElementById("rate-limit-output");
+
+    const setStatus = (message, isError = false) => {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? "#fda4af" : "";
+    };
+
+    const fetchRateLimits = async () => {
+        try {
+            const response = await fetch("/openrouter/rate-limits/fetch", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            const payload = await response.json().catch(() => null);
+
+            if (!response.ok || !payload || !payload.success) {
+                const message = payload?.error || `Request failed with status ${response.status}.`;
+                setStatus(message, true);
+                outputEl.textContent = JSON.stringify(payload ?? {}, null, 2);
+                return;
+            }
+
+            setStatus("Latest key info loaded.");
+            outputEl.textContent = JSON.stringify(payload.payload, null, 2);
+        } catch (err) {
+            setStatus(err instanceof Error ? err.message : "Failed to load key info.", true);
+            outputEl.textContent = "{}";
+        }
+    };
+
+    fetchRateLimits();
+</script>
 </body>
 </html>
