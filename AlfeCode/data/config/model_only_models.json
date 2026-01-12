@@ -131,7 +131,7 @@
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
       "label": "Z.ai: GLM 4.5 Air (Free)",
-      "disabled": false
+      "disabled": true
     },
     {
       "id": "openrouter/mistralai/mistral-7b-instruct:free",
