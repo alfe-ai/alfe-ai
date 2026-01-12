@@ -4064,6 +4064,10 @@ ${cleanedFinalOutput}`;
         });
     });
 
+    app.get("/openrouter/rate-limits", (_req, res) => {
+        res.render("openrouter_rate_limits");
+    });
+
     app.post("/openrouter/transactions/fetch", async (_req, res) => {
         const provisioningKey = process.env.OPENROUTER_PROVISIONING_KEY;
         if (!provisioningKey) {
