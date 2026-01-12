@@ -542,7 +542,7 @@ function setupPostRoutes(deps) {
                 defaultModel: rawModel,
                 previousDefaultModel: previousDefault,
                 fallbackDefaultModel: DEFAULT_CODEX_MODEL || "",
-                message: "Agent default model updated.",
+                message: "Model updated",
             });
         } catch (error) {
             console.error("[ERROR] /agent/default-model:", error);
