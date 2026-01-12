@@ -7970,6 +7970,7 @@ const btnTasks = document.getElementById("navTasksBtn");
 const btnProjectViewIcon = null;
 
 const btnUploader = document.getElementById("navUploaderBtn");
+const btnGame = document.getElementById("navGameBtn");
 const btnChatTabs = document.getElementById("navChatTabsBtn");
 const btnArchiveTabs = document.getElementById("navArchiveTabsBtn");
 const btnCodeTasks = document.getElementById("navCodeTasksBtn");
@@ -7997,6 +7998,7 @@ const btnNexumTabs = document.getElementById("navNexumTabsBtn");
 // Icon buttons for collapsed sidebar
 const btnTasksIcon = document.getElementById("navTasksIcon");
 const btnUploaderIcon = document.getElementById("navUploaderIcon");
+const btnGameIcon = document.getElementById("navGameIcon");
 const btnChatTabsIcon = document.getElementById("navChatTabsIcon");
 const btnArchiveTabsIcon = document.getElementById("navArchiveTabsIcon");
 const btnCodeTasksIcon = document.getElementById("navCodeTasksIcon");
@@ -8155,6 +8157,7 @@ function closePrintifyQueueModal(){
 
 btnTasks?.addEventListener("click", showTasksPanel);
 btnUploader?.addEventListener("click", () => { void showUploaderPanel(); });
+btnGame?.addEventListener("click", () => { window.location.href = "/game.html"; });
 navFileTreeBtn?.addEventListener("click", showFileTreePanel);
 btnChatTabs?.addEventListener("click", () => { void showChatTabsPanel(); });
 btnArchiveTabs?.addEventListener("click", showArchiveTabsPanel);
@@ -8229,6 +8232,7 @@ async function openPanelWithSidebar(fn){
 }
 btnTasksIcon?.addEventListener("click", () => { void openPanelWithSidebar(showTasksPanel); });
 btnUploaderIcon?.addEventListener("click", () => { void openPanelWithSidebar(showUploaderPanel); });
+btnGameIcon?.addEventListener("click", () => { window.location.href = "/game.html"; });
 btnChatTabsIcon?.addEventListener("click", () => { void openPanelWithSidebar(showChatTabsPanel); });
 btnArchiveTabsIcon?.addEventListener("click", () => { void openPanelWithSidebar(showArchiveTabsPanel); });
 btnCodeTasksIcon?.addEventListener("click", () => { void handleCodeNavClick(true); });
