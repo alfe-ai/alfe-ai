@@ -60,7 +60,7 @@
       "label": "OpenAI: gpt-oss-120b (free)",
       "created": "2025-08-05",
       "contextTokens": 131072,
-      "disabled": true,
+      "disabled": false,
       "pricing": {
         "inputPerMTokens": 0,
         "outputPerMTokens": 0
@@ -71,7 +71,18 @@
       "label": "OpenAI: gpt-oss-20b (free)",
       "created": "2025-08-05",
       "contextTokens": 131072,
-      "disabled": true,
+      "disabled": false,
+      "pricing": {
+        "inputPerMTokens": 0.02,
+        "outputPerMTokens": 0.1
+      }
+    },
+    {
+      "id": "openrouter/openai/gpt-oss-20b",
+      "label": "OpenAI: gpt-oss-20b",
+      "created": "2025-08-05",
+      "contextTokens": 131072,
+      "disabled": false,
       "pricing": {
         "inputPerMTokens": 0.02,
         "outputPerMTokens": 0.1
