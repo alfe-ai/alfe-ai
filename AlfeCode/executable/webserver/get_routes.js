@@ -5754,12 +5754,8 @@ app.get("/agent/git-diff", (req, res) => {
             mergeReady,
             comparisonPromptLine,
             chatNumber,
-        ,
             showCommitList: SHOW_COMMIT_LIST
-        \}\);
-    ,
-            showCommitList: SHOW_COMMIT_LIST
-        \}\);
+        });
 }
 
 module.exports = { setupGetRoutes };
