@@ -92,7 +92,11 @@
       "id": "openrouter/xiaomi/mimo-v2-flash:free",
       "label": "Xiaomi: MiMo V2 Flash (Free)",
       "disabled": false,
-      "contextTokens": 262144
+      "contextTokens": 262144,
+      "pricing": {
+        "inputPerMTokens": 0.1,
+        "outputPerMTokens": 0.3
+      }
     },
     {
       "id": "openrouter/kwaipilot/kat-coder-pro",
