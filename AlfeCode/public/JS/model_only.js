@@ -49,9 +49,45 @@
       return;
     }
     list.forEach(m => {
+      const normalized = (function normalizeModel(model){
+        if (!model) return null;
+        if (typeof model === 'string') {
+          const trimmed = model.trim();
+          return trimmed ? { id: trimmed, label: trimmed } : null;
+        }
+        if (typeof model !== 'object') return null;
+        const id = typeof model.id === 'string'
+          ? model.id.trim()
+          : typeof model.model === 'string'
+            ? model.model.trim()
+            : typeof model.value === 'string'
+              ? model.value.trim()
+              : '';
+        if (!id) return null;
+        return {
+          id,
+          label: (typeof model.label === 'string' && model.label.trim())
+            ? model.label.trim()
+            : (typeof model.name === 'string' && model.name.trim())
+              ? model.name.trim()
+              : id,
+          context: (typeof model.context === 'string' && model.context.trim()) ? model.context.trim() : '',
+          inputCost: (typeof model.inputCost === 'string' && model.inputCost.trim()) ? model.inputCost.trim() : '',
+          outputCost: (typeof model.outputCost === 'string' && model.outputCost.trim()) ? model.outputCost.trim() : '',
+        };
+      })(m);
+      if (!normalized) return;
       const o = document.createElement('option');
-      o.value = m;
-      o.textContent = m;
+      o.value = normalized.id;
+      const metaParts = [];
+      if (normalized.context) metaParts.push(`${normalized.context} context`);
+      if (normalized.inputCost) metaParts.push(normalized.inputCost);
+      if (normalized.outputCost) metaParts.push(normalized.outputCost);
+      const metaText = metaParts.length ? ` — ${metaParts.join(' · ')}` : '';
+      const labelText = normalized.label === normalized.id
+        ? normalized.label
+        : `${normalized.label} (${normalized.id})`;
+      o.textContent = `${labelText}${metaText}`;
       modelSelect.appendChild(o);
     });
     modelSelect.disabled = false;

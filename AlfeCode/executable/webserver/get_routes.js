@@ -1271,15 +1271,79 @@ ${cleanedFinalOutput}`;
 
     const modelOnlyConfigPath = path.join(PROJECT_ROOT, "data", "config", "model_only_models.json");
     const defaultModelOnlyList = [
-        "openrouter/openai/gpt-5-mini",
-        "openrouter/qwen/qwen3-coder:free",
-        "openrouter/nex-agi/deepseek-v3.1-nex-n1",
+        {
+            id: "openrouter/openai/gpt-5-mini",
+            label: "OpenAI: GPT-5 Mini",
+            created: "Aug 7, 2025",
+            context: "400,000",
+            inputCost: "$0.25/M input tokens",
+            outputCost: "$2/M output tokens",
+        },
+        {
+            id: "openrouter/qwen/qwen3-coder:free",
+            label: "Qwen 3 Coder (free)",
+        },
+        {
+            id: "openrouter/nex-agi/deepseek-v3.1-nex-n1",
+            label: "Nex AGI: DeepSeek V3.1 Nex N1",
+            created: "Dec 8, 2025",
+            context: "131,072",
+            inputCost: "$0.27/M input tokens",
+            outputCost: "$1/M output tokens",
+        },
     ];
+
+    function normalizeModelOnlyEntry(entry) {
+        if (typeof entry === "string") {
+            const trimmed = entry.trim();
+            if (!trimmed) {
+                return null;
+            }
+            return { id: trimmed, label: trimmed };
+        }
+        if (!entry || typeof entry !== "object") {
+            return null;
+        }
+        const id = typeof entry.id === "string"
+            ? entry.id.trim()
+            : typeof entry.model === "string"
+                ? entry.model.trim()
+                : typeof entry.value === "string"
+                    ? entry.value.trim()
+                    : "";
+        if (!id) {
+            return null;
+        }
+        const label = typeof entry.label === "string" && entry.label.trim()
+            ? entry.label.trim()
+            : typeof entry.name === "string" && entry.name.trim()
+                ? entry.name.trim()
+                : id;
+        const normalized = {
+            id,
+            label,
+        };
+        if (typeof entry.created === "string" && entry.created.trim()) {
+            normalized.created = entry.created.trim();
+        }
+        if (typeof entry.context === "string" && entry.context.trim()) {
+            normalized.context = entry.context.trim();
+        }
+        if (typeof entry.inputCost === "string" && entry.inputCost.trim()) {
+            normalized.inputCost = entry.inputCost.trim();
+        }
+        if (typeof entry.outputCost === "string" && entry.outputCost.trim()) {
+            normalized.outputCost = entry.outputCost.trim();
+        }
+        return normalized;
+    }
 
     function loadModelOnlyModels() {
         try {
             if (!fs.existsSync(modelOnlyConfigPath)) {
-                return [...defaultModelOnlyList];
+                return defaultModelOnlyList
+                    .map((model) => normalizeModelOnlyEntry(model))
+                    .filter((model) => model && model.id);
             }
             const raw = fs.readFileSync(modelOnlyConfigPath, "utf-8");
             const parsed = JSON.parse(raw);
@@ -1288,10 +1352,14 @@ ${cleanedFinalOutput}`;
                 : Array.isArray(parsed?.models)
                     ? parsed.models
                     : [];
-            return models.filter((model) => typeof model === "string" && model.trim().length > 0);
+            return models
+                .map((model) => normalizeModelOnlyEntry(model))
+                .filter((model) => model && model.id);
         } catch (err) {
             console.error("[ERROR] Failed to load model-only config:", err);
-            return [...defaultModelOnlyList];
+            return defaultModelOnlyList
+                .map((model) => normalizeModelOnlyEntry(model))
+                .filter((model) => model && model.id);
         }
     }
     const baseCodexModelGroups = [
@@ -3874,8 +3942,16 @@ ${cleanedFinalOutput}`;
         };
         const defaultProvider = "openrouter";
         const resolvedDefaultModel = resolveDefaultCodexModel();
-        if (resolvedDefaultModel && !providerModels.openrouter.includes(resolvedDefaultModel)) {
-            providerModels.openrouter.push(resolvedDefaultModel);
+        if (resolvedDefaultModel) {
+            const hasDefault = providerModels.openrouter.some(
+                (model) => model && model.id === resolvedDefaultModel,
+            );
+            if (!hasDefault) {
+                providerModels.openrouter.push({
+                    id: resolvedDefaultModel,
+                    label: resolvedDefaultModel,
+                });
+            }
         }
 
         res.json({
