@@ -27,7 +27,7 @@
       "label": "Qwen: Qwen3 Coder 480B A35B",
       "created": "2025-07-23",
       "contextTokens": 262144,
-      "disabled": false,
+      "disabled": true,
       "pricing": {
         "inputPerMTokens": 0.22,
         "outputPerMTokens": 0.95
