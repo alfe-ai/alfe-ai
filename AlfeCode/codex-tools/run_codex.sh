@@ -267,7 +267,8 @@ if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
     -c 'model_providers.openrouter.name="OpenRouter"'
     -c 'model_providers.openrouter.base_url="https://openrouter.ai/api/v1"'
     -c 'model_providers.openrouter.env_key="OPENROUTER_API_KEY"'
-    -c 'model_providers.openrouter.wire_api="chat"'
+    -c 'model_providers.openrouter.wire_api="responses"'
+    -c 'tools.shell.parameters.additionalProperties=false'
     -c "model_providers.openrouter.http_headers={ HTTP-Referer = \"${referer_config}\", X-Title = \"${title_config}\" }"
     -c 'model_provider="openrouter"'
   )
