@@ -1,10 +1,9 @@
 (function(){
   const modelSelect = document.getElementById('modelSelect');
   const info = document.getElementById('info');
-  const defaultModelSaveButton = document.getElementById('defaultModelSaveButton');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
 
-  const MODEL_HELP_TEXT = 'Choose a model and save to update the default.';
+  const MODEL_HELP_TEXT = 'Choose a model to update the default automatically.';
   let activeProvider = '';
 
   function coerceNumber(value) {
@@ -73,12 +72,6 @@
     }
   }
 
-  function setSaveEnabled(enabled){
-    if (defaultModelSaveButton) {
-      defaultModelSaveButton.disabled = !enabled;
-    }
-  }
-
   function populateModels(){
     const models = (window.__providerModels = (window.__providerModels || {}));
     const list = models[activeProvider];
@@ -103,7 +96,6 @@
       o.textContent = 'No models available';
       modelSelect.appendChild(o);
       modelSelect.disabled = true;
-      setSaveEnabled(false);
       return;
     }
     let added = 0;
@@ -124,11 +116,40 @@
       o.textContent = 'No models available';
       modelSelect.appendChild(o);
       modelSelect.disabled = true;
-      setSaveEnabled(false);
       return;
     }
     modelSelect.disabled = false;
-    setSaveEnabled(Boolean(modelSelect.value));
+  }
+
+  async function saveDefaultModel(newModel) {
+    if (!newModel) {
+      showDefaultModelFeedback('Default model cannot be empty.', 'error');
+      return;
+    }
+
+    showDefaultModelFeedback('Saving default model…');
+    modelSelect.disabled = true;
+
+    try {
+      const response = await fetch('/agent/default-model', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defaultModel: newModel }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to save default model (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+
+      showDefaultModelFeedback(payload?.message || 'Default model saved.', 'success');
+    } catch (error) {
+      console.error('Failed to save default Agent model:', error);
+      showDefaultModelFeedback(error.message || 'Failed to save default model.', 'error');
+    } finally {
+      modelSelect.disabled = false;
+    }
   }
 
   async function load(){
@@ -142,7 +163,6 @@
       if (!activeProvider) {
         if (info) info.textContent = 'No providers configured.';
         modelSelect.disabled = true;
-        setSaveEnabled(false);
         return;
       }
       populateModels();
@@ -150,49 +170,15 @@
         modelSelect.value = data.defaultModel;
       }
       if (info) info.textContent = MODEL_HELP_TEXT;
-      setSaveEnabled(Boolean(modelSelect && modelSelect.value));
     } catch (e) {
       if (info) info.textContent = 'Error loading models: ' + e.message;
     }
   }
 
   modelSelect.addEventListener('change', function(){
-    setSaveEnabled(Boolean(modelSelect.value));
+    const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
+    void saveDefaultModel(newModel);
   });
-
-  if (defaultModelSaveButton) {
-    defaultModelSaveButton.addEventListener('click', async () => {
-      const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
-      if (!newModel) {
-        showDefaultModelFeedback('Default model cannot be empty.', 'error');
-        return;
-      }
-
-      showDefaultModelFeedback('Saving default model…');
-      defaultModelSaveButton.disabled = true;
-
-      try {
-        const response = await fetch('/agent/default-model', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ defaultModel: newModel }),
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const errorMessage = payload?.error || `Failed to save default model (status ${response.status}).`;
-          throw new Error(errorMessage);
-        }
-
-        showDefaultModelFeedback(payload?.message || 'Default model saved.', 'success');
-      } catch (error) {
-        console.error('Failed to save default Agent model:', error);
-        showDefaultModelFeedback(error.message || 'Failed to save default model.', 'error');
-      } finally {
-        setSaveEnabled(Boolean(modelSelect && modelSelect.value));
-      }
-    });
-  }
 
   load();
 })();
