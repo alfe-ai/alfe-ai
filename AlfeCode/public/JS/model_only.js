@@ -47,15 +47,17 @@
     if (typeof entry === 'string') {
       const trimmed = entry.trim();
       if (!trimmed) return null;
-      return { id: trimmed, label: trimmed };
+      return { id: trimmed, label: trimmed, disabled: false };
     }
     if (typeof entry !== 'object') return null;
     const id = typeof entry.id === 'string' ? entry.id.trim() : '';
     if (!id) return null;
     const label = typeof entry.label === 'string' && entry.label.trim().length ? entry.label.trim() : id;
+    const disabled = Boolean(entry.disabled);
     return {
       id,
       label,
+      disabled,
       pricing: entry.pricing || null,
     };
   }
@@ -108,6 +110,7 @@
     list.forEach(raw => {
       const model = normaliseModelEntry(raw);
       if (!model) return;
+      if (model.disabled) return;
       const o = document.createElement('option');
       o.value = model.id;
       const pricingText = formatPricing(model.pricing);
