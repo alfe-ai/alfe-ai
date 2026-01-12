@@ -67,8 +67,8 @@
       }
     },
     {
-      "id": "openrouter/openai/gpt-oss-20b",
-      "label": "OpenAI: gpt-oss-20b",
+      "id": "openrouter/openai/gpt-oss-20b:free",
+      "label": "OpenAI: gpt-oss-20b (free)",
       "created": "2025-08-05",
       "contextTokens": 131072,
       "disabled": false,
