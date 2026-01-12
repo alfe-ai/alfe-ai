@@ -4064,6 +4064,77 @@ ${cleanedFinalOutput}`;
         });
     });
 
+    /* ---------- OpenRouter free tool models ---------- */
+    app.get("/openrouter/free-tool-models", (_req, res) => {
+        res.render("openrouter_free_tool_models");
+    });
+
+    app.get("/openrouter/free-tool-models/data", async (_req, res) => {
+        const apiKey = process.env.OPENROUTER_API_KEY;
+        if (!apiKey) {
+            res.status(400).json({
+                success: false,
+                error: "Set OPENROUTER_API_KEY to load the free tool model list.",
+            });
+            return;
+        }
+
+        const refererHeader =
+            process.env.OPENROUTER_HTTP_REFERER
+            || process.env.HTTP_REFERER
+            || "https://alfe.sh";
+        const titleHeader =
+            process.env.OPENROUTER_APP_TITLE
+            || process.env.X_TITLE
+            || "Alfe AI";
+        const modelsUrl =
+            "https://openrouter.ai/api/v1/models?category=free&supported_parameters=tools";
+
+        try {
+            const response = await ensureFetch(modelsUrl, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    Accept: "application/json",
+                    "HTTP-Referer": refererHeader,
+                    "X-Title": titleHeader,
+                },
+            });
+
+            if (!response.ok) {
+                const responseText = await response.text().catch(() => "");
+                const errorMessage = responseText
+                    ? `OpenRouter responded with ${response.status}: ${responseText}`
+                    : `OpenRouter responded with ${response.status}`;
+                throw new Error(errorMessage);
+            }
+
+            const payload = await response.json();
+            const models = Array.isArray(payload?.data)
+                ? payload.data
+                    .filter((model) => model && typeof model.id === "string")
+                    .map((model) => ({
+                        id: model.id,
+                        name: model.name || model.id,
+                        contextLength: model.context_length || null,
+                    }))
+                    .filter((model) => model.id.includes(":free"))
+                    .sort((a, b) => a.id.localeCompare(b.id))
+                : [];
+
+            res.json({
+                success: true,
+                models,
+                fetchedAt: new Date().toISOString(),
+            });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                error: err?.message || "Failed to load OpenRouter model list.",
+            });
+        }
+    });
+
     app.post("/openrouter/transactions/fetch", async (_req, res) => {
         const provisioningKey = process.env.OPENROUTER_PROVISIONING_KEY;
         if (!provisioningKey) {
