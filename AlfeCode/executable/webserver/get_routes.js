@@ -107,6 +107,12 @@ function setupGetRoutes(deps) {
 
     const isGitPullDiffStatLine = (line) => gitDiffStatLineRegex.test(line || "");
 
+    // Serve Snake game page at /snake
+    // Note: static serving already exposes public/snake.html at /snake.html; this adds a cleaner route.
+    app.get("/snake", (req, res) => {
+        res.sendFile(path.join(PROJECT_ROOT, "public", "snake.html"));
+    });
+
     const isGitPullBlockLine = (line, trimmed, trimmedLower) => {
         if (!trimmed) {
             return true;
