@@ -7,6 +7,8 @@
   // `config.defaultSubmitOnEnter` will be provided by the server; if absent, treated as true.
   let submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
 
+  let modelSelect;
+  let defaultModelInput;
   // Listen for settings from the settings iframe to update submit-on-enter default
   window.addEventListener('message', function(ev){
     try{
@@ -14,6 +16,19 @@
       if(!d || d.type !== 'sterling:settings') return;
       if(d.key === 'submitOnEnter'){
         try{ submitOnEnterDefault = (d.value === true || d.value === 'true'); }catch(e){}
+      }
+      if(d.key === 'defaultModel'){
+        var newDefaultModel = typeof d.value === 'string' ? d.value.trim() : '';
+        if(newDefaultModel){
+          var previousDefault = config.defaultModel || '';
+          config.defaultModel = newDefaultModel;
+          if(modelSelect && (!modelSelect.value || modelSelect.value === previousDefault)){
+            modelSelect.value = newDefaultModel;
+          }
+          if(defaultModelInput){
+            defaultModelInput.value = newDefaultModel;
+          }
+        }
       }
     }catch(e){}
   });
@@ -135,7 +150,7 @@ Try: ${suggestion}`;
   // Update initial placeholder and whenever selection/context changes
   updatePromptPlaceholder();
 
-  const modelSelect = document.getElementById("model");
+  modelSelect = document.getElementById("model");
   const statusEl = document.getElementById("status");
   const statusTextEl = document.getElementById("statusText");
   const outputEl = document.getElementById("output");
@@ -167,7 +182,7 @@ Try: ${suggestion}`;
   const mergeDisabledTooltip = document.getElementById("mergeDisabledTooltip");
   const mergeDiffButton = document.getElementById("openMergeDiffButton");
   const openEditorTopButton = document.getElementById("openEditorTopButton");
-  const defaultModelInput = document.getElementById("defaultModelInput");
+  defaultModelInput = document.getElementById("defaultModelInput");
   const defaultModelSaveButton = document.getElementById("defaultModelSaveButton");
   const defaultModelFeedback = document.getElementById("defaultModelFeedback");
   const saveAgentInstructionsButton = document.getElementById("saveAgentInstructionsButton");
