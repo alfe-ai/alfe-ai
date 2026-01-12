@@ -203,7 +203,7 @@ MODEL="${MODEL:-$CODEX_MODEL_DEFAULT}"
 REQUESTED_PROVIDER="$(infer_codex_provider "$MODEL")"
 
 if [[ "$MODEL" == openai/* || "$MODEL" == openrouter/openai/* ]]; then
-  if [[ -n "$CODEX_DIR_53" ]]; then
+  if [[ -n "$CODEX_DIR_53" && "$MODEL" != *"openai/gpt-oss-"* ]]; then
     CODEX_DIR="$CODEX_DIR_53"
   fi
 fi
