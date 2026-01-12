@@ -16,7 +16,7 @@
       "label": "Nex AGI: DeepSeek V3.1 Nex N1",
       "created": "2025-12-08",
       "contextTokens": 131072,
-      "disabled": false,
+      "disabled": true,
       "pricing": {
         "inputPerMTokens": 0.27,
         "outputPerMTokens": 1
