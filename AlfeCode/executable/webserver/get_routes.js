@@ -1279,6 +1279,18 @@ ${cleanedFinalOutput}`;
             return { id: trimmed, label: trimmed };
         }
         if (typeof entry !== "object") return null;
+        const coerceNumber = (value) => {
+            if (Number.isFinite(value)) {
+                return value;
+            }
+            if (typeof value === "string") {
+                const trimmed = value.trim();
+                if (!trimmed) return null;
+                const parsed = Number(trimmed);
+                return Number.isFinite(parsed) ? parsed : null;
+            }
+            return null;
+        };
         const id = typeof entry.id === "string"
             ? entry.id.trim()
             : typeof entry.model === "string"
@@ -1292,12 +1304,8 @@ ${cleanedFinalOutput}`;
         const contextTokens = Number.isFinite(entry.contextTokens) ? entry.contextTokens : null;
         const pricing = entry.pricing && typeof entry.pricing === "object"
             ? {
-                inputPerMTokens: Number.isFinite(entry.pricing.inputPerMTokens)
-                    ? entry.pricing.inputPerMTokens
-                    : null,
-                outputPerMTokens: Number.isFinite(entry.pricing.outputPerMTokens)
-                    ? entry.pricing.outputPerMTokens
-                    : null,
+                inputPerMTokens: coerceNumber(entry.pricing.inputPerMTokens),
+                outputPerMTokens: coerceNumber(entry.pricing.outputPerMTokens),
             }
             : null;
         return {
@@ -1320,7 +1328,11 @@ ${cleanedFinalOutput}`;
                 ? parsed
                 : Array.isArray(parsed?.models)
                     ? parsed.models
-                    : [];
+                    : parsed?.models && typeof parsed.models === "object"
+                        ? Object.values(parsed.models)
+                        : parsed && typeof parsed === "object"
+                            ? Object.values(parsed)
+                            : [];
             return models
                 .map((model) => normaliseModelOnlyEntry(model))
                 .filter(Boolean);
