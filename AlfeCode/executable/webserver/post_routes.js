@@ -61,6 +61,17 @@ function setupPostRoutes(deps) {
 
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
 
+    const normalizeProviderName = (value) => {
+        const normalized = (value || "").toString().trim().toLowerCase();
+        if (!normalized) {
+            return "openrouter";
+        }
+        if (normalized === "openai") {
+            return "openrouter";
+        }
+        return normalized;
+    };
+
     const appendStatusEntries = (history, entries, limit) => {
         const next = Array.isArray(history) ? [...history] : [];
         if (!Array.isArray(entries)) {
@@ -258,7 +269,7 @@ function setupPostRoutes(deps) {
             return res.status(400).json({ error: "Please upload a file to summarize." });
         }
 
-        const providerRaw = (req.body.aiProvider || "openrouter").toString().trim();
+        const providerRaw = normalizeProviderName(req.body.aiProvider || "openrouter");
         const modelRaw = (req.body.aiModel || DEFAULT_AIMODEL || "").toString().trim();
         if (!modelRaw) {
             return res.status(400).json({ error: "A model selection is required." });
@@ -606,11 +617,11 @@ function setupPostRoutes(deps) {
                 .send(`Chat #${chatNumber} not found in repo '${gitRepoNameCLI}'.`);
         }
         chatData.aiModel = aiModel;
-        chatData.aiProvider = aiProvider;
+        const provider = normalizeProviderName(aiProvider);
+        chatData.aiProvider = provider;
         dataObj[chatNumber] = chatData;
         saveRepoJson(gitRepoNameCLI, dataObj, sessionId);
 
-        const provider = aiProvider.toLowerCase();
         if (!AIModels[provider]) {
             fetchAndSortModels(provider);
         }
@@ -728,7 +739,7 @@ function setupPostRoutes(deps) {
             }
 
             chatData.aiModel = (chatData.aiModel || DEFAULT_AIMODEL).toLowerCase();
-            chatData.aiProvider = chatData.aiProvider || "openrouter";
+            chatData.aiProvider = normalizeProviderName(chatData.aiProvider || "openrouter");
 
             const repoCfg = loadSingleRepoConfig(repoName, sessionId);
             if (!repoCfg) {
