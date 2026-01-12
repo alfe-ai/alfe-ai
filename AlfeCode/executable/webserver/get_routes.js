@@ -1268,6 +1268,32 @@ ${cleanedFinalOutput}`;
             return false;
         }
     }
+
+    const modelOnlyConfigPath = path.join(PROJECT_ROOT, "data", "config", "model_only_models.json");
+    const defaultModelOnlyList = [
+        "openrouter/openai/gpt-5-mini",
+        "openrouter/qwen/qwen3-coder:free",
+        "openrouter/nex-agi/deepseek-v3.1-nex-n1",
+    ];
+
+    function loadModelOnlyModels() {
+        try {
+            if (!fs.existsSync(modelOnlyConfigPath)) {
+                return [...defaultModelOnlyList];
+            }
+            const raw = fs.readFileSync(modelOnlyConfigPath, "utf-8");
+            const parsed = JSON.parse(raw);
+            const models = Array.isArray(parsed)
+                ? parsed
+                : Array.isArray(parsed?.models)
+                    ? parsed.models
+                    : [];
+            return models.filter((model) => typeof model === "string" && model.trim().length > 0);
+        } catch (err) {
+            console.error("[ERROR] Failed to load model-only config:", err);
+            return [...defaultModelOnlyList];
+        }
+    }
     const baseCodexModelGroups = [
         {
             label: "OpenRouter (OpenAI-compatible IDs)",
@@ -3838,6 +3864,24 @@ ${cleanedFinalOutput}`;
             providers: filteredProviders,
             defaultProvider,
             defaultModel: (DEFAULT_AIMODEL && DEFAULT_AIMODEL.toLowerCase().includes('gpt-5')) ? DEFAULT_AIMODEL : "",
+        });
+    });
+
+    app.get("/agent/model-only/models", (_req, res) => {
+        const models = loadModelOnlyModels();
+        const providerModels = {
+            openrouter: models,
+        };
+        const defaultProvider = "openrouter";
+        const resolvedDefaultModel = resolveDefaultCodexModel();
+        if (resolvedDefaultModel && !providerModels.openrouter.includes(resolvedDefaultModel)) {
+            providerModels.openrouter.push(resolvedDefaultModel);
+        }
+
+        res.json({
+            providers: providerModels,
+            defaultProvider,
+            defaultModel: resolvedDefaultModel,
         });
     });
 
