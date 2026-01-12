@@ -123,6 +123,36 @@
       "id": "openrouter/google/gemini-2.0-flash-exp:free",
       "label": "Google: Gemini 2.0 Flash Exp (Free)",
       "disabled": true
+    },
+    {
+      "id": "openrouter/z-ai/glm-4.5-air:free",
+      "label": "Z.ai: GLM 4.5 Air (Free)",
+      "disabled": true
+    },
+    {
+      "id": "openrouter/mistralai/mistral-7b-instruct:free",
+      "label": "Mistral AI: Mistral 7B Instruct (Free)",
+      "disabled": true
+    },
+    {
+      "id": "openrouter/google/gemma-3-27b-it:free",
+      "label": "Google: Gemma 3 27B (Free)",
+      "disabled": true
+    },
+    {
+      "id": "openrouter/nvidia/nemotron-nano-9b-v2:free",
+      "label": "NVIDIA: Nemotron Nano 9B V2 (Free)",
+      "disabled": true
+    },
+    {
+      "id": "openrouter/arcee-ai/trinity-mini:free",
+      "label": "Arcee AI: Trinity Mini (Free)",
+      "disabled": true
+    },
+    {
+      "id": "openrouter/qwen/qwen3-4b:free",
+      "label": "Qwen: Qwen3 4B (Free)",
+      "disabled": true
     }
   ]
 }
