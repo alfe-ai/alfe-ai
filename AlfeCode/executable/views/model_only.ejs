@@ -112,19 +112,21 @@
     </div>
     </div>
     <p id="info" style="color:#94a3b8;margin:2px 0 8px 0;"></p>
+    <% if (showGitLogButtonTarget) { %>
     <div style="margin-top:8px;">
       <label for="gitButtonSelect">Git Log Button Target</label>
       <select id="gitButtonSelect" style="width:100%;padding:10px;margin-top:6px;">
         <option value="git-log">Git Log</option>
         <option value="git-tree">Git Tree</option>
       </select>
+    </div>
+    <% } %>
     <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
       <label style="font-weight:600;display:flex;align-items:center;gap:8px;">
         <input type="checkbox" id="submitOnEnterCheckbox" name="submitOnEnter">
         <span>Enter/Return submits prompt</span>
       </label>
     </div>
-          </div>
     <div class="support-ticket" aria-live="polite">
       <p>You must be a paid subscriber to send a support ticket.</p>
       <button type="button" class="subscribe-button">Subscribe Now</button>
@@ -150,6 +152,7 @@
   </div>
   </div>
   <script src="/JS/model_only.js"></script>
+    <% if (showGitLogButtonTarget) { %>
     <script>
     (function(){
       try{
@@ -163,6 +166,7 @@
       }catch(e){ /* noop */ }
     })();
     </script>
+    <% } %>
     <script>
     (function(){
       try{

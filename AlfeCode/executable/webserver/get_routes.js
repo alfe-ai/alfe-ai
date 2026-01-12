@@ -120,6 +120,30 @@ function setupGetRoutes(deps) {
         /^unable to switch to /i,
         /^agent run aborted/i,
     ];
+    const parseBooleanFlag = (value) => {
+        if (Array.isArray(value)) {
+            return parseBooleanFlag(value[value.length - 1]);
+        }
+
+        if (typeof value === "boolean") {
+            return value;
+        }
+
+        if (typeof value === "number") {
+            return value === 1;
+        }
+
+        if (typeof value === "string") {
+            const normalized = value.trim().toLowerCase();
+            if (!normalized) {
+                return false;
+            }
+
+            return ["1", "true", "yes", "y", "on"].includes(normalized);
+        }
+
+        return false;
+    };
 
     const isGitPullDiffStatLine = (line) => gitDiffStatLineRegex.test(line || "");
 
@@ -1917,30 +1941,6 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req);
         const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
         const projectDirParam = (req?.query?.projectDir || "").toString();
-        const parseBooleanFlag = (value) => {
-            if (Array.isArray(value)) {
-                return parseBooleanFlag(value[value.length - 1]);
-            }
-
-            if (typeof value === "boolean") {
-                return value;
-            }
-
-            if (typeof value === "number") {
-                return value === 1;
-            }
-
-            if (typeof value === "string") {
-                const normalized = value.trim().toLowerCase();
-                if (!normalized) {
-                    return false;
-                }
-
-                return ["1", "true", "yes", "y", "on"].includes(normalized);
-            }
-
-            return false;
-        };
         const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanFlag(iframeParam);
         const defaultAgentInstructions =
             typeof codexConfig?.defaultAgentInstructions === "string"
@@ -1991,7 +1991,10 @@ ${cleanedFinalOutput}`;
 
     app.get("/agent", renderCodexRunner);
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
-    app.get('/agent/model-only', (req, res) => { res.render('model_only'); });
+    app.get('/agent/model-only', (req, res) => {
+        const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
+        res.render('model_only', { showGitLogButtonTarget: !hideGitLogButtonTarget });
+    });
 
 
 
