@@ -59,6 +59,7 @@ function setupGetRoutes(deps) {
             ? process.env.ALFE_APP_VERSION.trim()
             : `beta-${sterlingVersion}`;
     const SHOW_MODEL_ONLY_COSTS = /^true$/i.test(process.env.MODEL_ONLY_SHOW_COSTS || "");
+    const SHOW_COMMIT_LIST = !(String(process.env.SHOW_COMMIT_LIST || "").toLowerCase() in {"false":1, "0":1});
     const CODEX_RUNNER_PROJECT_DIR_MARKER = "::CODEX_RUNNER_PROJECT_DIR::";
     const defaultCodexProjectDir = "/git/sterlingcodex_testrepo";
     const NEW_SESSION_REPO_NAME = "Default";
@@ -5314,7 +5315,8 @@ ${err}`;
                 debugMode: !!process.env.DEBUG,
                 environment: res.locals.environment,
                 editorBaseUrl: res.locals.editorBaseUrl,
-                diffFormAction: repoLinksEnabled ? `/${repoName}/diff` : "/agent/git-diff",
+                diffFormAction: repoLinksEnabled ? `/${repoName,
+            showCommitList: SHOW_COMMIT_LIST}/diff` : "/agent/git-diff",
                 repoLinksEnabled,
                 projectDir: resolvedProjectDir,
                 errorMessage: '',
@@ -5324,7 +5326,9 @@ ${err}`;
                 mergeReady,
                 comparisonPromptLine,
                 chatNumber,
-});
+,
+            showCommitList: SHOW_COMMIT_LIST
+        \}\);
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
             return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
@@ -5752,8 +5756,12 @@ app.get("/agent/git-diff", (req, res) => {
             mergeReady,
             comparisonPromptLine,
             chatNumber,
-        });
-    });
+        ,
+            showCommitList: SHOW_COMMIT_LIST
+        \}\);
+    ,
+            showCommitList: SHOW_COMMIT_LIST
+        \}\);
 }
 
 module.exports = { setupGetRoutes };

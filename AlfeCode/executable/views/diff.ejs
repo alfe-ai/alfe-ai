@@ -885,11 +885,11 @@
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
         <div class="diff-sidebar" aria-label="Commits and files">
-            <aside class="commit-list" aria-label="Commits">
+            <% if (showCommitList) { %><aside class="commit-list" aria-label="Commits">
                 <h4>Commits</h4>
                 <ul id="commit-list"></ul>
             </aside>
-            <aside class="file-list" aria-label="Changed files">
+            <% } %><aside class="file-list" aria-label="Changed files">
                 <h4>Files</h4>
                 <ul id="file-list"></ul>
             </aside>
@@ -919,12 +919,12 @@
         .replace(/<\//g, '<\\\\/')
         .replace(/\u2028|\u2029/g, '')
 %></script>
-<script id="commit-list-data" type="application/json"><%-
+<% if (showCommitList) { %><script id="commit-list-data" type="application/json"><%-
     JSON.stringify(typeof commitList !== 'undefined' ? commitList : [])
         .replace(/</g, '\u003c')
         .replace(/<\//g, '<\\\\/')
         .replace(/\u2028|\u2029/g, '')
-%></script>
+%></script><% } %>
 <script>
     const structuredDiffData = document.getElementById('structured-diff-data');
     const rawDiffData = document.getElementById('raw-diff-data');
@@ -1401,7 +1401,7 @@
     }
 
     renderFileList();
-    renderCommitList();
+    <% if (showCommitList) { %>renderCommitList();<% } %>
 </script>
 <% } %>
 <script>
