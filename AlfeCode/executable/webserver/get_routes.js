@@ -4056,8 +4056,17 @@ ${cleanedFinalOutput}`;
         });
     });
 
+    const isOpenRouterRateLimitsEnabled = () => {
+        const flag = (process.env.OPENROUTER_RATE_LIMITS_PAGE_ENABLED || "").toLowerCase();
+        return flag === "1" || flag === "true" || flag === "yes";
+    };
+
     /* ---------- OpenRouter transactions ---------- */
     app.get("/openrouter/transactions", (_req, res) => {
+        if (!isOpenRouterRateLimitsEnabled()) {
+            res.status(404).send("Not found");
+            return;
+        }
         const transactions = loadOpenRouterTransactions();
 
         const summary = transactions.reduce(
@@ -4084,10 +4093,21 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/openrouter/rate-limits", (_req, res) => {
+        if (!isOpenRouterRateLimitsEnabled()) {
+            res.status(404).send("Not found");
+            return;
+        }
         res.render("openrouter_rate_limits");
     });
 
     app.post("/openrouter/rate-limits/fetch", async (_req, res) => {
+        if (!isOpenRouterRateLimitsEnabled()) {
+            res.status(404).json({
+                success: false,
+                error: "Rate limit page disabled.",
+            });
+            return;
+        }
         const apiKey = process.env.OPENROUTER_API_KEY;
         if (!apiKey) {
             res.status(400).json({
