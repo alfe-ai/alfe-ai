@@ -49,6 +49,36 @@
         "inputPerMTokens": 0.05,
         "outputPerMTokens": 0.4
       }
+    },
+    {
+      "id": "openai/gpt-oss-120b:free",
+      "label": "OpenAI: gpt-oss-120b (free)",
+      "created": "2025-08-05",
+      "contextTokens": 131072,
+      "pricing": {
+        "inputPerMTokens": 0,
+        "outputPerMTokens": 0
+      }
+    },
+    {
+      "id": "openai/gpt-oss-20b",
+      "label": "OpenAI: gpt-oss-20b",
+      "created": "2025-08-05",
+      "contextTokens": 131072,
+      "pricing": {
+        "inputPerMTokens": 0.02,
+        "outputPerMTokens": 0.1
+      }
+    },
+    {
+      "id": "qwen/qwen3-coder-30b-a3b-instruct",
+      "label": "Qwen: Qwen3 Coder 30B A3B Instruct",
+      "created": "2025-07-31",
+      "contextTokens": 160000,
+      "pricing": {
+        "inputPerMTokens": 0.07,
+        "outputPerMTokens": 0.27
+      }
     }
   ]
 }
