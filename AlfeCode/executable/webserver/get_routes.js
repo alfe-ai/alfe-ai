@@ -1270,16 +1270,49 @@ ${cleanedFinalOutput}`;
     }
 
     const modelOnlyConfigPath = path.join(PROJECT_ROOT, "data", "config", "model_only_models.json");
-    const defaultModelOnlyList = [
-        "openrouter/openai/gpt-5-mini",
-        "openrouter/qwen/qwen3-coder:free",
-        "openrouter/nex-agi/deepseek-v3.1-nex-n1",
-    ];
+
+    function normaliseModelOnlyEntry(entry) {
+        if (!entry) return null;
+        if (typeof entry === "string") {
+            const trimmed = entry.trim();
+            if (!trimmed) return null;
+            return { id: trimmed, label: trimmed };
+        }
+        if (typeof entry !== "object") return null;
+        const id = typeof entry.id === "string"
+            ? entry.id.trim()
+            : typeof entry.model === "string"
+                ? entry.model.trim()
+                : "";
+        if (!id) return null;
+        const label = typeof entry.label === "string" && entry.label.trim().length > 0
+            ? entry.label.trim()
+            : id;
+        const created = typeof entry.created === "string" ? entry.created : null;
+        const contextTokens = Number.isFinite(entry.contextTokens) ? entry.contextTokens : null;
+        const pricing = entry.pricing && typeof entry.pricing === "object"
+            ? {
+                inputPerMTokens: Number.isFinite(entry.pricing.inputPerMTokens)
+                    ? entry.pricing.inputPerMTokens
+                    : null,
+                outputPerMTokens: Number.isFinite(entry.pricing.outputPerMTokens)
+                    ? entry.pricing.outputPerMTokens
+                    : null,
+            }
+            : null;
+        return {
+            id,
+            label,
+            created,
+            contextTokens,
+            pricing,
+        };
+    }
 
     function loadModelOnlyModels() {
         try {
             if (!fs.existsSync(modelOnlyConfigPath)) {
-                return [...defaultModelOnlyList];
+                return [];
             }
             const raw = fs.readFileSync(modelOnlyConfigPath, "utf-8");
             const parsed = JSON.parse(raw);
@@ -1288,10 +1321,12 @@ ${cleanedFinalOutput}`;
                 : Array.isArray(parsed?.models)
                     ? parsed.models
                     : [];
-            return models.filter((model) => typeof model === "string" && model.trim().length > 0);
+            return models
+                .map((model) => normaliseModelOnlyEntry(model))
+                .filter(Boolean);
         } catch (err) {
             console.error("[ERROR] Failed to load model-only config:", err);
-            return [...defaultModelOnlyList];
+            return [];
         }
     }
     const baseCodexModelGroups = [
@@ -3874,8 +3909,14 @@ ${cleanedFinalOutput}`;
         };
         const defaultProvider = "openrouter";
         const resolvedDefaultModel = resolveDefaultCodexModel();
-        if (resolvedDefaultModel && !providerModels.openrouter.includes(resolvedDefaultModel)) {
-            providerModels.openrouter.push(resolvedDefaultModel);
+        if (resolvedDefaultModel) {
+            const hasDefault = providerModels.openrouter.some((model) => model && model.id === resolvedDefaultModel);
+            if (!hasDefault) {
+                providerModels.openrouter.push({
+                    id: resolvedDefaultModel,
+                    label: resolvedDefaultModel,
+                });
+            }
         }
 
         res.json({
