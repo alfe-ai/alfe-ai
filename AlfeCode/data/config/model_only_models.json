@@ -90,7 +90,7 @@
     },
     {
       "id": "openrouter/xiaomi/mimo-v2-flash:free",
-      "label": "Xiaomi: MiMo V2 Flash (Free)",
+      "label": "Xiaomi: MiMo V2 Flash",
       "disabled": false,
       "contextTokens": 262144,
       "pricing": {
