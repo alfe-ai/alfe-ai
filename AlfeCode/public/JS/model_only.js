@@ -7,10 +7,22 @@
 
   const MODEL_HELP_TEXT = 'Choose a model and save to update the default.';
 
+  function coerceNumber(value) {
+    if (typeof value === 'number' && !Number.isNaN(value)) return value;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      const parsed = Number(trimmed);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+    return null;
+  }
+
   function formatPrice(value) {
-    if (typeof value !== 'number' || Number.isNaN(value)) return '';
-    if (Number.isInteger(value)) return value.toString();
-    const fixed = value.toFixed(2);
+    const numericValue = coerceNumber(value);
+    if (numericValue === null) return '';
+    if (Number.isInteger(numericValue)) return numericValue.toString();
+    const fixed = numericValue.toFixed(2);
     return fixed.replace(/\.?0+$/, '');
   }
 
@@ -19,11 +31,13 @@
       return '';
     }
     const parts = [];
-    if (typeof pricing.inputPerMTokens === 'number') {
-      parts.push(`$${formatPrice(pricing.inputPerMTokens)}/M in`);
+    if (pricing.inputPerMTokens != null) {
+      const formatted = formatPrice(pricing.inputPerMTokens);
+      if (formatted) parts.push(`$${formatted}/M in`);
     }
-    if (typeof pricing.outputPerMTokens === 'number') {
-      parts.push(`$${formatPrice(pricing.outputPerMTokens)}/M out`);
+    if (pricing.outputPerMTokens != null) {
+      const formatted = formatPrice(pricing.outputPerMTokens);
+      if (formatted) parts.push(`$${formatted}/M out`);
     }
     return parts.join(', ');
   }
