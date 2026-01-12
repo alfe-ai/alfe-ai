@@ -89,6 +89,10 @@ function setupGetRoutes(deps) {
         }
         return normalized;
     };
+    const QWEN_CODEX_PATCH_MODELS = new Set([
+        "openrouter/qwen/qwen3-coder",
+        "qwen/qwen3-coder",
+    ]);
     const MAX_FILE_TREE_ENTRIES = 400;
     const MAX_RUN_OUTPUT_LENGTH = 50000;
     const MAX_STATUS_HISTORY = 200;
@@ -828,6 +832,67 @@ ${cleanedFinalOutput}`;
         } catch (err) {
             console.error("[WARN] Failed to call OpenRouter for final output generation:", err?.message || err);
             return cleanedFinalOutput;
+        }
+    };
+    const shouldApplyCodexPatch = (model) => {
+        const normalized = typeof model === "string" ? model.trim().toLowerCase() : "";
+        return QWEN_CODEX_PATCH_MODELS.has(normalized);
+    };
+
+    const extractApplyPatchBlock = (text) => {
+        if (typeof text !== "string" || !text.trim()) {
+            return "";
+        }
+        const patchRegex = /\*\*\* Begin Patch[\s\S]*?\*\*\* End Patch/gi;
+        let match;
+        let lastMatch = null;
+        while ((match = patchRegex.exec(text)) !== null) {
+            lastMatch = match;
+        }
+        if (!lastMatch) {
+            return "";
+        }
+        const tail = text.slice(lastMatch.index + lastMatch[0].length);
+        if (tail.trim()) {
+            return "";
+        }
+        return `${lastMatch[0].trimEnd()}\n`;
+    };
+
+    const applyPatchFromCodexOutput = (record, projectDir, emit) => {
+        if (!shouldApplyCodexPatch(record?.model)) {
+            return { attempted: false, applied: false, patchText: "" };
+        }
+        const stdoutText = typeof record?.stdout === "string" ? record.stdout : "";
+        const stderrText = typeof record?.stderr === "string" ? record.stderr : "";
+        const patchText = extractApplyPatchBlock(stdoutText) || extractApplyPatchBlock(stderrText);
+        if (!patchText) {
+            return { attempted: true, applied: false, patchText: "" };
+        }
+        if (emit) {
+            emit({ event: "status", data: "Applying patch from Agent output..." });
+        }
+        try {
+            execSync("apply_patch", {
+                cwd: projectDir,
+                input: patchText,
+                stdio: ["pipe", "pipe", "pipe"],
+            });
+            if (emit) {
+                emit({ event: "status", data: "Patch applied successfully." });
+            }
+            return { attempted: true, applied: true, patchText };
+        } catch (err) {
+            const stderr = err?.stderr ? err.stderr.toString() : "";
+            const stdout = err?.stdout ? err.stdout.toString() : "";
+            const details = [stderr.trim(), stdout.trim()].filter(Boolean).join("\n");
+            const message = details
+                ? `Failed to apply patch from Agent output: ${details}`
+                : `Failed to apply patch from Agent output: ${err?.message || err}`;
+            if (emit) {
+                emit({ event: "stream-error", data: message });
+            }
+            return { attempted: true, applied: false, patchText, error: message };
         }
     };
     const openRouterTransactionsPath = path.join(
@@ -2466,6 +2531,13 @@ ${cleanedFinalOutput}`;
                     data: `git_fpush.sh skipped: script not found at ${gitFpushScript}.`,
                 });
                 finalizeStream(exitMessage);
+                return Promise.resolve();
+            }
+
+            const patchResult = applyPatchFromCodexOutput(runRecord, resolvedProjectDir, emit);
+            if (patchResult.error) {
+                runRecord.error = patchResult.error;
+                finalizeStream(`${exitMessage} Failed to apply patch from Agent output.`);
                 return Promise.resolve();
             }
 
