@@ -159,7 +159,7 @@
     {
       "id": "openrouter/z-ai/glm-4-32b",
       "label": "Z.ai: GLM 4 32B",
-      "disabled": false,
+      "disabled": true,
       "pricing": {
         "inputPerMTokens": 0.1,
         "outputPerMTokens": 0.1
