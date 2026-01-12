@@ -234,17 +234,6 @@ function saveCodexConfig(config) {
 }
 
 function getDefaultCodexModel() {
-    // Environment variable override takes precedence over UI/config values.
-    const envModelRaw = typeof process !== 'undefined' && process.env && process.env.STERLING_CODEX_DEFAULT_MODEL
-        ? String(process.env.STERLING_CODEX_DEFAULT_MODEL).trim()
-        : '';
-    if (envModelRaw && isCodexModelValid(envModelRaw)) {
-        return envModelRaw;
-    }
-    if (envModelRaw) {
-        console.warn(`[WARN] Invalid STERLING_CODEX_DEFAULT_MODEL "${envModelRaw}". Falling back to config/default.`);
-    }
-
     const config = loadCodexConfig();
     const candidate = config && typeof config.defaultModel === 'string'
         ? config.defaultModel.trim()
@@ -255,6 +244,17 @@ function getDefaultCodexModel() {
     }
     if (candidate) {
         console.warn(`[WARN] Invalid codex config defaultModel "${candidate}". Falling back to ${DEFAULT_CODEX_MODEL}.`);
+    }
+
+    // Environment variable is a fallback when the UI/config has not set a valid value.
+    const envModelRaw = typeof process !== 'undefined' && process.env && process.env.STERLING_CODEX_DEFAULT_MODEL
+        ? String(process.env.STERLING_CODEX_DEFAULT_MODEL).trim()
+        : '';
+    if (envModelRaw && isCodexModelValid(envModelRaw)) {
+        return envModelRaw;
+    }
+    if (envModelRaw) {
+        console.warn(`[WARN] Invalid STERLING_CODEX_DEFAULT_MODEL "${envModelRaw}". Falling back to default.`);
     }
 
     return DEFAULT_CODEX_MODEL;
