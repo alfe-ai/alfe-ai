@@ -141,7 +141,7 @@
     {
       "id": "openrouter/google/gemma-3-27b-it:free",
       "label": "Google: Gemma 3 27B (Free)",
-      "disabled": false
+      "disabled": true
     },
     {
       "id": "openrouter/nvidia/nemotron-nano-9b-v2:free",
