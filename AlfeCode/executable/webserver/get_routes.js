@@ -4068,6 +4068,58 @@ ${cleanedFinalOutput}`;
         res.render("openrouter_rate_limits");
     });
 
+    app.post("/openrouter/rate-limits/fetch", async (_req, res) => {
+        const apiKey = process.env.OPENROUTER_API_KEY;
+        if (!apiKey) {
+            res.status(400).json({
+                success: false,
+                error: "Set OPENROUTER_API_KEY to fetch rate limits.",
+            });
+            return;
+        }
+
+        const refererHeader =
+            process.env.OPENROUTER_HTTP_REFERER
+            || process.env.HTTP_REFERER
+            || "https://alfe.sh";
+        const titleHeader =
+            process.env.OPENROUTER_APP_TITLE
+            || process.env.X_TITLE
+            || "Alfe AI";
+
+        const keyUrl = "https://openrouter.ai/api/v1/key";
+
+        try {
+            const response = await ensureFetch(keyUrl, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    Accept: "application/json",
+                    "HTTP-Referer": refererHeader,
+                    "X-Title": titleHeader,
+                },
+            });
+
+            if (!response.ok) {
+                const responseText = await response.text().catch(() => "");
+                res.status(response.status).json({
+                    success: false,
+                    error: responseText || response.statusText,
+                    status: response.status,
+                });
+                return;
+            }
+
+            const payload = await response.json();
+            res.json({ success: true, payload });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                error: err instanceof Error ? err.message : "Failed to fetch rate limits.",
+            });
+        }
+    });
+
     app.post("/openrouter/transactions/fetch", async (_req, res) => {
         const provisioningKey = process.env.OPENROUTER_PROVISIONING_KEY;
         if (!provisioningKey) {
