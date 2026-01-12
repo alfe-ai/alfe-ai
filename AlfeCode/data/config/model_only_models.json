@@ -124,7 +124,7 @@
     {
       "id": "openrouter/kwaipilot/kat-coder-pro",
       "label": "[Plus] KwaiPilot: KAT Coder Pro",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 256000,
       "pricing": {
         "inputPerMTokens": 0.207,
