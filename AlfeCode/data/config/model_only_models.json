@@ -94,14 +94,19 @@
       "disabled": false
     },
     {
-      "id": "openrouter/kwaipilot/kat-coder-pro:free",
+      "id": "openrouter/kwaipilot/kat-coder-pro",
       "label": "KwaiPilot: KAT Coder Pro (Free)",
-      "disabled": false
+      "disabled": false,
+      "contextTokens": 256000,
+      "pricing": {
+        "inputPerMTokens": 0.207,
+        "outputPerMTokens": 0.828
+      }
     },
     {
       "id": "openrouter/mistralai/devstral-2512:free",
       "label": "Mistral AI: Devstral 2512 (Free)",
-      "disabled": false
+      "disabled": true
     },
     {
       "id": "openrouter/mistralai/mistral-small-3.1-24b-instruct:free",
