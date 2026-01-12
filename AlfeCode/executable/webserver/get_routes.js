@@ -875,6 +875,124 @@ ${cleanedFinalOutput}`;
         return `${lastMatch[0].trimEnd()}\n`;
     };
 
+    const commandExists = (command) => {
+        try {
+            execSync(`command -v ${command}`, { stdio: "ignore" });
+            return true;
+        } catch (err) {
+            return false;
+        }
+    };
+
+    const buildGitApplyDiff = (patchText) => {
+        const lines = patchText.replace(/\r\n/g, "\n").split("\n");
+        const diffs = [];
+        const deletions = [];
+        const moves = [];
+        let i = 0;
+        if (lines[i]?.trim() === "*** Begin Patch") {
+            i += 1;
+        }
+        while (i < lines.length) {
+            const line = lines[i];
+            if (!line) {
+                i += 1;
+                continue;
+            }
+            if (line.startsWith("*** End Patch")) {
+                break;
+            }
+            if (line.startsWith("*** Add File: ")) {
+                const filePath = line.replace("*** Add File: ", "").trim();
+                const contentLines = [];
+                i += 1;
+                while (i < lines.length && !lines[i].startsWith("*** ")) {
+                    const contentLine = lines[i];
+                    if (contentLine.startsWith("+")) {
+                        contentLines.push(contentLine.slice(1));
+                    } else {
+                        contentLines.push(contentLine);
+                    }
+                    i += 1;
+                }
+                const header = [
+                    `diff --git a/${filePath} b/${filePath}`,
+                    "new file mode 100644",
+                    "--- /dev/null",
+                    `+++ b/${filePath}`,
+                    `@@ -0,0 +1,${contentLines.length} @@`,
+                ];
+                diffs.push([...header, ...contentLines.map((value) => `+${value}`)].join("\n"));
+                continue;
+            }
+            if (line.startsWith("*** Delete File: ")) {
+                const filePath = line.replace("*** Delete File: ", "").trim();
+                deletions.push(filePath);
+                i += 1;
+                continue;
+            }
+            if (line.startsWith("*** Update File: ")) {
+                const filePath = line.replace("*** Update File: ", "").trim();
+                let moveTo = null;
+                i += 1;
+                if (lines[i]?.startsWith("*** Move to: ")) {
+                    moveTo = lines[i].replace("*** Move to: ", "").trim();
+                    i += 1;
+                }
+                const hunkLines = [];
+                while (i < lines.length && !lines[i].startsWith("*** ")) {
+                    const hunkLine = lines[i];
+                    if (hunkLine === "*** End of File") {
+                        i += 1;
+                        continue;
+                    }
+                    hunkLines.push(hunkLine);
+                    i += 1;
+                }
+                const header = [
+                    `diff --git a/${filePath} b/${filePath}`,
+                    `--- a/${filePath}`,
+                    `+++ b/${filePath}`,
+                ];
+                diffs.push([...header, ...hunkLines].join("\n"));
+                if (moveTo) {
+                    moves.push({ from: filePath, to: moveTo });
+                }
+                continue;
+            }
+            i += 1;
+        }
+        return {
+            diffText: diffs.length ? `${diffs.join("\n")}\n` : "",
+            deletions,
+            moves,
+        };
+    };
+
+    const applyPatchWithGit = (patchText, projectDir) => {
+        const { diffText, deletions, moves } = buildGitApplyDiff(patchText);
+        if (diffText) {
+            execSync("git apply --whitespace=nowarn --unsafe-paths -", {
+                cwd: projectDir,
+                input: diffText,
+                stdio: ["pipe", "pipe", "pipe"],
+            });
+        }
+        deletions.forEach((filePath) => {
+            const absolutePath = path.join(projectDir, filePath);
+            if (fs.existsSync(absolutePath)) {
+                fs.rmSync(absolutePath);
+            }
+        });
+        moves.forEach(({ from, to }) => {
+            const fromPath = path.join(projectDir, from);
+            const toPath = path.join(projectDir, to);
+            if (fs.existsSync(fromPath)) {
+                fs.renameSync(fromPath, toPath);
+            }
+        });
+    };
+
     const applyPatchFromCodexOutput = (record, projectDir, emit) => {
         if (!shouldApplyCodexPatch(record?.model)) {
             return { attempted: false, applied: false, patchText: "" };
@@ -889,11 +1007,15 @@ ${cleanedFinalOutput}`;
             emit({ event: "status", data: "Applying patch from Agent output..." });
         }
         try {
-            execSync("apply_patch", {
-                cwd: projectDir,
-                input: patchText,
-                stdio: ["pipe", "pipe", "pipe"],
-            });
+            if (commandExists("apply_patch")) {
+                execSync("apply_patch", {
+                    cwd: projectDir,
+                    input: patchText,
+                    stdio: ["pipe", "pipe", "pipe"],
+                });
+            } else {
+                applyPatchWithGit(patchText, projectDir);
+            }
             if (emit) {
                 emit({ event: "status", data: "Patch applied successfully." });
             }
