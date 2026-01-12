@@ -5756,6 +5756,7 @@ app.get("/agent/git-diff", (req, res) => {
             chatNumber,
             showCommitList: SHOW_COMMIT_LIST
         });
+    });
 }
 
 module.exports = { setupGetRoutes };
