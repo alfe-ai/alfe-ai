@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pie Game</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0f172a; color:#e2e8f0; margin:0; padding:16px; display:flex; flex-direction:column; align-items:center; }
+  h1 { margin:0 0 8px; }
+  .wrap { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  canvas { background:#111827; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.3); }
+  .controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; margin:8px 0; }
+  button, input { background:#1f2937; color:#e5e7eb; border:1px solid #374151; border-radius:8px; padding:8px 12px; font-size:14px; }
+  input { width:80px; text-align:center; }
+  button:hover { background:#374151; cursor:pointer; }
+  .stats { font-size:14px; opacity:0.85; }
+</style>
+</head>
+<body>
+  <h1>Pie Game</h1>
+  <div class="stats">Slice the pie into equal pieces by adjusting the count, then click to cut!</div>
+  <div class="controls">
+    <label>Slices: <input type="number" id="slices" min="1" max="36" value="8"></label>
+    <button id="btnSpin">Spin</button>
+    <button id="btnCut">Cut</button>
+    <button id="btnReset">Reset</button>
+  </div>
+  <div class="wrap">
+    <canvas id="pie" width="300" height="300"></canvas>
+    <canvas id="board" width="300" height="300"></canvas>
+  </div>
+<script>
+const pieCanvas = document.getElementById('pie');
+const boardCanvas = document.getElementById('board');
+const pctx = pieCanvas.getContext('2d');
+const bctx = boardCanvas.getContext('2d');
+const slicesInput = document.getElementById('slices');
+const btnSpin = document.getElementById('btnSpin');
+const btnCut = document.getElementById('btnCut');
+const btnReset = document.getElementById('btnReset');
+
+let angleOffset = 0;
+let lastSliceCount = parseInt(slicesInput.value, 10);
+let pieces = []; // computed pieces after cutting
+
+function drawPie(offset=0) {
+  const w = pieCanvas.width, h = pieCanvas.height;
+  const cx = w/2, cy = h/2, r = Math.min(cx, cy) - 6;
+  pctx.clearRect(0,0,w,h);
+  const n = Math.max(1, parseInt(slicesInput.value, 10) || 1);
+  for (let i=0; i<n; i++) {
+    const start = offset + i * (2*Math.PI / n);
+    const end = start + (2*Math.PI / n);
+    pctx.beginPath();
+    pctx.moveTo(cx, cy);
+    pctx.arc(cx, cy, r, start, end);
+    pctx.closePath();
+    pctx.fillStyle = `hsl(${(i*360/n + 40) % 360}, 80%, ${40 + (i%2)*10}%)`;
+    pctx.fill();
+    pctx.strokeStyle = '#111827';
+    pctx.lineWidth = 2;
+    pctx.stroke();
+  }
+  // center dot
+  pctx.beginPath();
+  pctx.arc(cx, cy, 4, 0, 2*Math.PI);
+  pctx.fillStyle = '#0f172a';
+  pctx.fill();
+  pctx.strokeStyle = '#94a3b8';
+  pctx.lineWidth = 1;
+  pctx.stroke();
+}
+
+function cutPie() {
+  const w = boardCanvas.width, h = boardCanvas.height;
+  bctx.clearRect(0,0,w,h);
+  const n = Math.max(1, parseInt(slicesInput.value, 10) || 1);
+  const cx = w/2, cy = h/2, r = Math.min(cx, cy) - 6;
+  pieces = [];
+  // Place pieces around the board like a jumble
+  for (let i=0; i<n; i++) {
+    const start = angleOffset + i * (2*Math.PI / n);
+    const end = start + (2*Math.PI / n);
+    const mid = (start + end) / 2;
+    const dist = r * (0.5 + 0.45 * Math.random());
+    const tx = cx + Math.cos(mid) * dist;
+    const ty = cy + Math.sin(mid) * dist;
+    const rot = mid + Math.PI/2;
+    const rad = r * (0.7 + 0.3*Math.random());
+    bctx.save();
+    bctx.translate(tx, ty);
+    bctx.rotate(rot);
+    bctx.beginPath();
+    bctx.moveTo(0, 0);
+    bctx.arc(0, 0, rad, -Math.PI/(n*1.2), Math.PI/(n*1.2));
+    bctx.closePath();
+    bctx.fillStyle = `hsl(${(i*360/n + 200) % 360}, 85%, ${40 + (i%3)*10}%)`;
+    bctx.fill();
+    bctx.restore();
+    pieces.push({i, rot, tx, ty});
+  }
+  lastSliceCount = n;
+  // Set a simple message
+  bctx.save();
+  bctx.font = '16px system-ui';
+  bctx.fillStyle = '#94a3b8';
+  bctx.textAlign = 'center';
+  bctx.fillText(`You cut ${n} equal slices!`, cx, h - 14);
+  bctx.restore();
+}
+
+function resetBoard() {
+  bctx.clearRect(0,0,boardCanvas.width,boardCanvas.height);
+  pieces = [];
+}
+
+function shuffleClick(e) {
+  if (!pieces.length) return;
+  const w = boardCanvas.width, h = boardCanvas.height;
+  pieces.forEach((p, idx) => {
+    const jitter = (idx+1) * 0.1;
+    p.tx = ((p.tx + (Math.random()-0.5)*10) + w) % w;
+    p.ty = ((p.ty + (Math.random()-0.5)*10) + h) % h;
+    p.rot += (Math.random()-0.5) * 0.3;
+  });
+  bctx.clearRect(0,0,w,h);
+  pieces.forEach((p) => {
+    const rad = 40 + 10*Math.random();
+    bctx.save();
+    bctx.translate(p.tx, p.ty);
+    bctx.rotate(p.rot);
+    bctx.beginPath();
+    bctx.moveTo(0, 0);
+    bctx.arc(0, 0, rad, -Math.PI/(lastSliceCount*1.2), Math.PI/(lastSliceCount*1.2));
+    bctx.closePath();
+    bctx.fillStyle = `hsl(${(p.i*360/lastSliceCount + 180) % 360}, 85%, ${40 + (p.i%3)*10}%)`;
+    bctx.fill();
+    bctx.restore();
+  });
+  bctx.save();
+  bctx.font = '16px system-ui';
+  bctx.fillStyle = '#94a3b8';
+  bctx.textAlign = 'center';
+  bctx.fillText('Shuffled pieces! Try re-cutting after changing count.', w/2, h - 14);
+  bctx.restore();
+}
+
+btnSpin.addEventListener('click', () => {
+  angleOffset += 0.15;
+  drawPie(angleOffset);
+});
+btnCut.addEventListener('click', cutPie);
+btnReset.addEventListener('click', resetBoard);
+pieCanvas.addEventListener('click', shuffleClick);
+boardCanvas.addEventListener('click', shuffleClick);
+slicesInput.addEventListener('change', () => drawPie(angleOffset));
+
+// Initial draw
+drawPie(angleOffset);
+</script>
+</body>
+</html>

@@ -37,6 +37,7 @@
       const hasSelectedRun = Boolean(config.enableFollowups && (Boolean(runsSidebarSelectedRunId) || (currentRunContext && currentRunContext.runId)));
       const suggestions = [
   'Make a snake game.',
+  'Make a pie game.',
   'Create a to-do app.',
   'Build a calculator.',
   'Implement a chat UI.',
