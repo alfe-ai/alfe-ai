@@ -31,6 +31,16 @@
       }
     },
     {
+      "id": "qwen/qwen3-coder:free",
+      "label": "Qwen: Qwen3 Coder (Free)",
+      "created": "2025-07-23",
+      "contextTokens": 262144,
+      "pricing": {
+        "inputPerMTokens": 0,
+        "outputPerMTokens": 0
+      }
+    },
+    {
       "id": "openai/gpt-5-nano",
       "label": "OpenAI: GPT-5 Nano",
       "created": "2025-08-07",
