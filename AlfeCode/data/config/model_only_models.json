@@ -117,12 +117,12 @@
     {
       "id": "openrouter/meta-llama/llama-3.3-70b-instruct:free",
       "label": "Meta Llama: Llama 3.3 70B Instruct (Free)",
-      "disabled": false
+      "disabled": true
     },
     {
       "id": "openrouter/google/gemini-2.0-flash-exp:free",
       "label": "Google: Gemini 2.0 Flash Exp (Free)",
-      "disabled": false
+      "disabled": true
     }
   ]
 }
