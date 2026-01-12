@@ -840,6 +840,21 @@ ${cleanedFinalOutput}`;
         return QWEN_CODEX_PATCH_MODELS.has(normalized);
     };
 
+    const isIgnorablePatchTail = (tail) => {
+        if (!tail || !tail.trim()) {
+            return true;
+        }
+        const stripped = tail
+            .replace(/<\/?tool_call[^>]*>/gi, "")
+            .replace(/<\/?function[^>]*>/gi, "")
+            .replace(/<\/?parameter[^>]*>/gi, "")
+            .replace(/<\/?arguments[^>]*>/gi, "")
+            .replace(/<\/?result[^>]*>/gi, "")
+            .replace(/<\/?tool[^>]*>/gi, "")
+            .replace(/[\s\[\]",:]+/g, "");
+        return stripped.length === 0;
+    };
+
     const extractApplyPatchBlock = (text) => {
         if (typeof text !== "string" || !text.trim()) {
             return "";
@@ -854,7 +869,7 @@ ${cleanedFinalOutput}`;
             return "";
         }
         const tail = text.slice(lastMatch.index + lastMatch[0].length);
-        if (tail.trim()) {
+        if (!isIgnorablePatchTail(tail)) {
             return "";
         }
         return `${lastMatch[0].trimEnd()}\n`;
