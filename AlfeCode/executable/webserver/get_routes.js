@@ -58,6 +58,7 @@ function setupGetRoutes(deps) {
         typeof process.env.ALFE_APP_VERSION === "string" && process.env.ALFE_APP_VERSION.trim()
             ? process.env.ALFE_APP_VERSION.trim()
             : `beta-${sterlingVersion}`;
+    const SHOW_MODEL_ONLY_COSTS = /^true$/i.test(process.env.MODEL_ONLY_SHOW_COSTS || "");
     const CODEX_RUNNER_PROJECT_DIR_MARKER = "::CODEX_RUNNER_PROJECT_DIR::";
     const defaultCodexProjectDir = "/git/sterlingcodex_testrepo";
     const NEW_SESSION_REPO_NAME = "Default";
@@ -4012,11 +4013,14 @@ ${cleanedFinalOutput}`;
 
     app.get("/agent/model-only/models", (_req, res) => {
         const models = loadModelOnlyModels();
+        const modelEntries = SHOW_MODEL_ONLY_COSTS
+            ? models
+            : models.map((model) => (model ? { ...model, pricing: null } : model));
         const disabledModelIds = new Set(
-            models.filter((model) => model && model.disabled).map((model) => model.id),
+            modelEntries.filter((model) => model && model.disabled).map((model) => model.id),
         );
         const providerModels = {
-            openrouter: models,
+            openrouter: modelEntries,
         };
         const defaultProvider = "openrouter";
         const resolvedDefaultModel = resolveDefaultCodexModel();
