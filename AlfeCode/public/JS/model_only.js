@@ -120,6 +120,20 @@
     modelSelect.disabled = false;
   }
 
+  function notifyDefaultModelChange(model) {
+    if (!model) return;
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage(
+          { type: 'sterling:settings', key: 'defaultModel', value: model },
+          window.location.origin,
+        );
+      } catch (error) {
+        console.warn('Failed to notify parent of default model change.', error);
+      }
+    }
+  }
+
   async function saveDefaultModel(newModel) {
     if (!newModel) {
       showDefaultModelFeedback('Default model cannot be empty.', 'error');
@@ -143,6 +157,7 @@
       }
 
       showDefaultModelFeedback(payload?.message || 'Default model saved.', 'success');
+      notifyDefaultModelChange(newModel);
     } catch (error) {
       console.error('Failed to save default Agent model:', error);
       showDefaultModelFeedback(error.message || 'Failed to save default model.', 'error');
