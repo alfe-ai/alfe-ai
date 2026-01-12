@@ -1321,6 +1321,7 @@ ${cleanedFinalOutput}`;
             : id;
         const created = typeof entry.created === "string" ? entry.created : null;
         const contextTokens = Number.isFinite(entry.contextTokens) ? entry.contextTokens : null;
+        const disabled = Boolean(entry.disabled);
         const pricing = entry.pricing && typeof entry.pricing === "object"
             ? {
                 inputPerMTokens: coerceNumber(entry.pricing.inputPerMTokens),
@@ -1332,6 +1333,7 @@ ${cleanedFinalOutput}`;
             label,
             created,
             contextTokens,
+            disabled,
             pricing,
         };
     }
@@ -3938,6 +3940,9 @@ ${cleanedFinalOutput}`;
 
     app.get("/agent/model-only/models", (_req, res) => {
         const models = loadModelOnlyModels();
+        const disabledModelIds = new Set(
+            models.filter((model) => model && model.disabled).map((model) => model.id),
+        );
         const providerModels = {
             openrouter: models,
         };
@@ -3945,7 +3950,7 @@ ${cleanedFinalOutput}`;
         const resolvedDefaultModel = resolveDefaultCodexModel();
         if (resolvedDefaultModel) {
             const hasDefault = providerModels.openrouter.some((model) => model && model.id === resolvedDefaultModel);
-            if (!hasDefault) {
+            if (!hasDefault && !disabledModelIds.has(resolvedDefaultModel)) {
                 providerModels.openrouter.push({
                     id: resolvedDefaultModel,
                     label: resolvedDefaultModel,
@@ -3956,7 +3961,7 @@ ${cleanedFinalOutput}`;
         res.json({
             providers: providerModels,
             defaultProvider,
-            defaultModel: resolvedDefaultModel,
+            defaultModel: disabledModelIds.has(resolvedDefaultModel) ? "" : resolvedDefaultModel,
         });
     });
 
