@@ -7,6 +7,45 @@
 
   const MODEL_HELP_TEXT = 'Choose a model and save to update the default.';
 
+  function formatPrice(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '';
+    if (Number.isInteger(value)) return value.toString();
+    const fixed = value.toFixed(2);
+    return fixed.replace(/\.?0+$/, '');
+  }
+
+  function formatPricing(pricing) {
+    if (!pricing || (pricing.inputPerMTokens == null && pricing.outputPerMTokens == null)) {
+      return '';
+    }
+    const parts = [];
+    if (typeof pricing.inputPerMTokens === 'number') {
+      parts.push(`$${formatPrice(pricing.inputPerMTokens)}/M in`);
+    }
+    if (typeof pricing.outputPerMTokens === 'number') {
+      parts.push(`$${formatPrice(pricing.outputPerMTokens)}/M out`);
+    }
+    return parts.join(', ');
+  }
+
+  function normaliseModelEntry(entry) {
+    if (!entry) return null;
+    if (typeof entry === 'string') {
+      const trimmed = entry.trim();
+      if (!trimmed) return null;
+      return { id: trimmed, label: trimmed };
+    }
+    if (typeof entry !== 'object') return null;
+    const id = typeof entry.id === 'string' ? entry.id.trim() : '';
+    if (!id) return null;
+    const label = typeof entry.label === 'string' && entry.label.trim().length ? entry.label.trim() : id;
+    return {
+      id,
+      label,
+      pricing: entry.pricing || null,
+    };
+  }
+
   function showDefaultModelFeedback(message, type){
     if (!defaultModelFeedback) return;
     defaultModelFeedback.textContent = message;
@@ -48,12 +87,26 @@
       setSaveEnabled(false);
       return;
     }
-    list.forEach(m => {
+    let added = 0;
+    list.forEach(raw => {
+      const model = normaliseModelEntry(raw);
+      if (!model) return;
       const o = document.createElement('option');
-      o.value = m;
-      o.textContent = m;
+      o.value = model.id;
+      const pricingText = formatPricing(model.pricing);
+      o.textContent = pricingText ? `${model.label} — ${pricingText}` : model.label;
       modelSelect.appendChild(o);
+      added += 1;
     });
+    if (!added) {
+      const o = document.createElement('option');
+      o.value = '';
+      o.textContent = 'No models available';
+      modelSelect.appendChild(o);
+      modelSelect.disabled = true;
+      setSaveEnabled(false);
+      return;
+    }
     modelSelect.disabled = false;
     setSaveEnabled(Boolean(modelSelect.value));
   }
