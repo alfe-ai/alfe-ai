@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OpenRouter · Free Tool Models</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            color-scheme: dark;
+            --nexum-bg-outer: #050713;
+            --nexum-bg-inner: #111528;
+            --nexum-panel: rgba(15, 20, 38, 0.85);
+            --nexum-card: rgba(22, 28, 52, 0.92);
+            --nexum-border: rgba(124, 144, 196, 0.22);
+            --nexum-text: #e2e8f0;
+            --nexum-muted: #94a3b8;
+            --nexum-accent: #8a2be2;
+            --nexum-accent-soft: rgba(138, 43, 226, 0.32);
+            --nexum-accent-bright: #7dd3fc;
+            --shadow-strong: 0 32px 68px rgba(3, 7, 18, 0.65);
+            --shadow-soft: 0 24px 48px rgba(7, 11, 25, 0.4);
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 52px 32px 72px;
+            background: radial-gradient(circle at top left, rgba(138, 43, 226, 0.22), transparent 55%),
+                radial-gradient(circle at 20% 120%, rgba(125, 211, 252, 0.22), transparent 55%),
+                linear-gradient(135deg, var(--nexum-bg-outer), var(--nexum-bg-inner));
+            color: var(--nexum-text);
+            min-height: 100vh;
+        }
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-bottom: 32px;
+            padding: 28px;
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(17, 24, 39, 0.8), rgba(17, 24, 39, 0.6));
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(12px);
+        }
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0;
+            color: #f8fafc;
+        }
+        header p {
+            margin: 0;
+            color: var(--nexum-muted);
+            font-size: 1rem;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .primary-button {
+            border: 1px solid rgba(125, 211, 252, 0.6);
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.25), rgba(138, 43, 226, 0.25));
+            color: #f8fafc;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, border 0.2s ease;
+        }
+        .primary-button:hover {
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.35), rgba(138, 43, 226, 0.35));
+            border-color: rgba(125, 211, 252, 0.8);
+        }
+        .primary-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .status {
+            color: var(--nexum-muted);
+            font-size: 0.95rem;
+        }
+        .card {
+            padding: 22px;
+            border-radius: 20px;
+            background: var(--nexum-card);
+            border: 1px solid var(--nexum-border);
+            box-shadow: var(--shadow-soft);
+        }
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .model {
+            padding: 16px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+        }
+        .model h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            color: #f8fafc;
+        }
+        .model .id {
+            font-size: 0.9rem;
+            color: var(--nexum-accent-bright);
+            word-break: break-all;
+        }
+        .meta {
+            margin-top: 6px;
+            color: var(--nexum-muted);
+            font-size: 0.85rem;
+        }
+        .hint {
+            margin-top: 16px;
+            color: var(--nexum-muted);
+            font-size: 0.9rem;
+        }
+        code {
+            background: rgba(15, 23, 42, 0.7);
+            padding: 2px 6px;
+            border-radius: 6px;
+            color: var(--nexum-accent-bright);
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header>
+            <h1>Free OpenRouter Models with Tool Support</h1>
+            <p>Live list of OpenRouter models that are both free and tool-capable. Refresh anytime to pull the latest list.</p>
+            <div class="actions">
+                <button class="primary-button" id="refreshButton">Refresh list</button>
+                <span class="status" id="statusText">Idle.</span>
+            </div>
+            <p class="hint">Powered by <code>GET /models?category=free&supported_parameters=tools</code>.</p>
+        </header>
+
+        <div class="card">
+            <div class="status" id="summaryText">No data loaded yet.</div>
+            <div class="model-grid" id="modelGrid" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <script>
+        const refreshButton = document.getElementById('refreshButton');
+        const statusText = document.getElementById('statusText');
+        const summaryText = document.getElementById('summaryText');
+        const modelGrid = document.getElementById('modelGrid');
+
+        const setStatus = (message) => {
+            statusText.textContent = message;
+        };
+
+        const renderModels = (models, fetchedAt) => {
+            modelGrid.innerHTML = '';
+            if (!models.length) {
+                summaryText.textContent = 'No free tool-capable models returned.';
+                return;
+            }
+            const readableTime = fetchedAt ? new Date(fetchedAt).toLocaleString() : 'Unknown time';
+            summaryText.textContent = `${models.length} models · Updated ${readableTime}`;
+
+            for (const model of models) {
+                const card = document.createElement('div');
+                card.className = 'model';
+
+                const title = document.createElement('h3');
+                title.textContent = model.name || model.id;
+                card.appendChild(title);
+
+                const id = document.createElement('div');
+                id.className = 'id';
+                id.textContent = model.id;
+                card.appendChild(id);
+
+                if (model.contextLength) {
+                    const meta = document.createElement('div');
+                    meta.className = 'meta';
+                    meta.textContent = `Context length: ${model.contextLength.toLocaleString()}`;
+                    card.appendChild(meta);
+                }
+
+                modelGrid.appendChild(card);
+            }
+        };
+
+        const loadModels = async () => {
+            setStatus('Loading…');
+            refreshButton.disabled = true;
+            summaryText.textContent = 'Loading models from OpenRouter…';
+            try {
+                const response = await fetch('/openrouter/free-tool-models/data');
+                const payload = await response.json();
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.error || 'Failed to load models.');
+                }
+                renderModels(payload.models || [], payload.fetchedAt);
+                setStatus('Up to date.');
+            } catch (error) {
+                modelGrid.innerHTML = '';
+                summaryText.textContent = 'Unable to load models. Check OPENROUTER_API_KEY in the server environment.';
+                setStatus(error.message || 'Error fetching data.');
+            } finally {
+                refreshButton.disabled = false;
+            }
+        };
+
+        refreshButton.addEventListener('click', loadModels);
+        loadModels();
+    </script>
+</body>
+</html>
