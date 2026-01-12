@@ -14,6 +14,7 @@ set -euo pipefail
 
 CODEX_DIR_DEFAULT='/git/codex'
 CODEX_DIR="${CODEX_DIR:-$CODEX_DIR_DEFAULT}"
+CODEX_DIR_53="${CODEX_DIR_53:-}"
 PROJECT_DIR="${PROJECT_DIR:-}"
 CODEX_MODEL_DEFAULT='openrouter/openai/gpt-5-mini'
 MODEL="${MODEL:-${CODEX_MODEL:-$CODEX_MODEL_DEFAULT}}"
@@ -161,12 +162,6 @@ ensure_codex_api_key() {
   return 1
 }
 
-# Basic validations
-if [[ ! -d "$CODEX_DIR" ]]; then
-  echo "Error: CODEX_DIR does not exist: $CODEX_DIR" >&2
-  exit 1
-fi
-
 API_KEY_MODE=true
 
 # Parse flags
@@ -206,6 +201,18 @@ TASK="$*"
 
 MODEL="${MODEL:-$CODEX_MODEL_DEFAULT}"
 REQUESTED_PROVIDER="$(infer_codex_provider "$MODEL")"
+
+if [[ "$MODEL" == openai/* || "$MODEL" == openrouter/openai/* ]]; then
+  if [[ -n "$CODEX_DIR_53" ]]; then
+    CODEX_DIR="$CODEX_DIR_53"
+  fi
+fi
+
+# Basic validations
+if [[ ! -d "$CODEX_DIR" ]]; then
+  echo "Error: CODEX_DIR does not exist: $CODEX_DIR" >&2
+  exit 1
+fi
 
 EFFECTIVE_MODEL="$MODEL"
 if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
@@ -268,7 +275,6 @@ if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
     -c 'model_providers.openrouter.base_url="https://openrouter.ai/api/v1"'
     -c 'model_providers.openrouter.env_key="OPENROUTER_API_KEY"'
     -c 'model_providers.openrouter.wire_api="chat"'
-    -c 'tools.shell.parameters.additionalProperties=false'
     -c "model_providers.openrouter.http_headers={ HTTP-Referer = \"${referer_config}\", X-Title = \"${title_config}\" }"
     -c 'model_provider="openrouter"'
   )
