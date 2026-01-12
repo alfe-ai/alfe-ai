@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "💡 Take a short break if you need it. We can resume when ready."
 # Check if the file 'data/config/repo_config.json' exists; if not, create a blank file.
 if [ ! -f "data/config/repo_config.json" ]; then
     mkdir -p data/config
