@@ -1,11 +1,11 @@
 (function(){
-  const providerSelect = document.getElementById('providerSelect');
   const modelSelect = document.getElementById('modelSelect');
   const info = document.getElementById('info');
   const defaultModelSaveButton = document.getElementById('defaultModelSaveButton');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
 
   const MODEL_HELP_TEXT = 'Choose a model and save to update the default.';
+  let activeProvider = '';
 
   function coerceNumber(value) {
     if (typeof value === 'number' && !Number.isNaN(value)) return value;
@@ -78,14 +78,17 @@
   }
 
   function populateModels(){
-    const prov = providerSelect.value;
     const models = (window.__providerModels = (window.__providerModels || {}));
-    const list = models[prov];
+    const list = models[activeProvider];
     if (!list) {
       fetch('/agent/model-only/models')
         .then(r => r.json())
         .then(d => {
           window.__providerModels = d.providers || {};
+          const providers = Object.keys(window.__providerModels);
+          if (!activeProvider) {
+            activeProvider = d.defaultProvider || providers[0] || '';
+          }
           populateModels();
         })
         .catch(e => { if (info) info.textContent = 'Error: ' + e.message; });
@@ -132,15 +135,13 @@
       const data = await res.json();
       const providers = Object.keys(data.providers || {});
       window.__providerModels = data.providers || {};
-      providerSelect.innerHTML = '';
-      providers.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        providerSelect.appendChild(opt);
-      });
-      const defaultProvider = data.defaultProvider || providers[0] || '';
-      if (defaultProvider) providerSelect.value = defaultProvider;
+      activeProvider = data.defaultProvider || providers[0] || '';
+      if (!activeProvider) {
+        if (info) info.textContent = 'No providers configured.';
+        modelSelect.disabled = true;
+        setSaveEnabled(false);
+        return;
+      }
       populateModels();
       if (data.defaultModel && modelSelect) {
         modelSelect.value = data.defaultModel;
@@ -152,7 +153,6 @@
     }
   }
 
-  providerSelect.addEventListener('change', populateModels);
   modelSelect.addEventListener('change', function(){
     setSaveEnabled(Boolean(modelSelect.value));
   });
