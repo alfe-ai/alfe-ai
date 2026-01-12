@@ -136,7 +136,7 @@
     {
       "id": "openrouter/mistralai/mistral-7b-instruct:free",
       "label": "Mistral AI: Mistral 7B Instruct (Free)",
-      "disabled": false
+      "disabled": true
     },
     {
       "id": "openrouter/google/gemma-3-27b-it:free",
@@ -146,17 +146,17 @@
     {
       "id": "openrouter/nvidia/nemotron-nano-9b-v2:free",
       "label": "NVIDIA: Nemotron Nano 9B V2 (Free)",
-      "disabled": false
+      "disabled": true
     },
     {
       "id": "openrouter/arcee-ai/trinity-mini:free",
       "label": "Arcee AI: Trinity Mini (Free)",
-      "disabled": false
+      "disabled": true
     },
     {
       "id": "openrouter/qwen/qwen3-4b:free",
       "label": "Qwen: Qwen3 4B (Free)",
-      "disabled": false
+      "disabled": true
     }
   ]
 }
