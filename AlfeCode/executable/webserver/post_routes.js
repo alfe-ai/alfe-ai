@@ -60,6 +60,48 @@ function setupPostRoutes(deps) {
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
 
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
+    const normalizeRepoUrlForClone = (value) => {
+        const trimmed = typeof value === "string" ? value.trim() : "";
+        if (!trimmed) {
+            return trimmed;
+        }
+
+        if (/^(?:git@|git\+ssh:\/\/git@|ssh:\/\/)/i.test(trimmed)) {
+            return trimmed;
+        }
+
+        let candidate = trimmed;
+        if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(candidate)
+            && /^(?:www\.)?github\.com\//i.test(candidate)) {
+            candidate = `https://${candidate}`;
+        }
+
+        try {
+            const parsed = new URL(candidate);
+            let hostname = parsed.hostname.toLowerCase();
+            if (hostname === "www.github.com") {
+                hostname = "github.com";
+            }
+            if (hostname !== "github.com") {
+                return trimmed;
+            }
+
+            const segments = parsed.pathname.split("/").filter(Boolean);
+            if (segments.length < 2) {
+                return trimmed;
+            }
+
+            const owner = segments[0];
+            const repo = segments[1].replace(/\.git$/i, "");
+            if (!owner || !repo) {
+                return trimmed;
+            }
+
+            return `https://github.com/${owner}/${repo}.git`;
+        } catch (error) {
+            return trimmed;
+        }
+    };
 
     const normalizeProviderName = (value) => {
         const normalized = (value || "").toString().trim().toLowerCase();
@@ -547,11 +589,12 @@ function setupPostRoutes(deps) {
 
         const sessionId = resolveSessionId(req);
         const repoConfig = loadRepoConfig(sessionId) || {};
+        const normalizedGitRepoURL = normalizeRepoUrlForClone(gitRepoURL);
 
         function finalize(localPath) {
             repoConfig[repoName] = {
                 gitRepoLocalPath: localPath,
-                gitRepoURL: gitRepoURL || "",
+                gitRepoURL: normalizedGitRepoURL || gitRepoURL || "",
                 gitBranch: "main",
                 openAIAccount: "",
             };
@@ -571,7 +614,7 @@ function setupPostRoutes(deps) {
             return res.status(400).send("Either repository URL or local path is required.");
         }
 
-        cloneRepository(repoName, gitRepoURL, sessionId, (err, localPath) => {
+        cloneRepository(repoName, normalizedGitRepoURL || gitRepoURL, sessionId, (err, localPath) => {
             if (err) {
                 console.error("[ERROR] cloneRepository:", err);
                 if (err.sshKeyRequired) {
@@ -581,7 +624,7 @@ function setupPostRoutes(deps) {
                             "GitHub SSH authentication failed. Add a GitHub SSH key to continue cloning.",
                         sshKeyRequired: true,
                         repoNameValue: repoName,
-                        gitRepoURLValue: gitRepoURL,
+                        gitRepoURLValue: normalizedGitRepoURL || gitRepoURL,
                     });
                 }
                 return res.status(500).send("Failed to clone repository.");

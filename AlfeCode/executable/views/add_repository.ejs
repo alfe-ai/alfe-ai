@@ -273,13 +273,11 @@
             }
 
             const sanitized = trimmed.split('#')[0].split('?')[0];
-            if (!sanitized.includes('.git')) {
-                return '';
-            }
             const patterns = [
                 /^git@[^:\s]+:([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
                 /^https?:\/\/[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
                 /^git\+ssh:\/\/git@[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
+                /^(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
             ];
 
             for (const pattern of patterns) {

@@ -188,20 +188,46 @@ function saveGlobalInstructions(newInstructions) {
  */
 function convertGitUrlToHttps(url) {
     if (!url) return "#";
+    const trimmed = typeof url === "string" ? url.trim() : "";
+    if (!trimmed) return "#";
 
     // SSH form: git@github.com:user/repo(.git)
-    if (url.startsWith("git@github.com:")) {
-        let repo = url.slice("git@github.com:".length);
+    if (trimmed.startsWith("git@github.com:")) {
+        let repo = trimmed.slice("git@github.com:".length);
         if (repo.endsWith(".git")) repo = repo.slice(0, -4);
         return `https://github.com/${repo}`;
     }
 
-    // HTTPS with .git suffix
-    if (url.startsWith("https://github.com/") && url.endsWith(".git")) {
-        return url.slice(0, -4);
+    let candidate = trimmed;
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(candidate)
+        && /^(?:www\.)?github\.com\//i.test(candidate)) {
+        candidate = `https://${candidate}`;
     }
 
-    return url;
+    try {
+        const parsed = new URL(candidate);
+        let hostname = parsed.hostname.toLowerCase();
+        if (hostname === "www.github.com") {
+            hostname = "github.com";
+        }
+        if (hostname === "github.com") {
+            const segments = parsed.pathname.split("/").filter(Boolean);
+            if (segments.length >= 2) {
+                const owner = segments[0];
+                const repo = segments[1].replace(/\.git$/i, "");
+                return `https://github.com/${owner}/${repo}`;
+            }
+        }
+    } catch (error) {
+        // fall through
+    }
+
+    // HTTPS with .git suffix
+    if (candidate.startsWith("https://github.com/") && candidate.endsWith(".git")) {
+        return candidate.slice(0, -4);
+    }
+
+    return trimmed;
 }
 
 /**
