@@ -519,13 +519,16 @@ Try: ${suggestion}`;
       activeFollowupSession.finalLogEl.innerHTML = "";
       if (activeFollowupSession.finalValue) {
         appendLinesToElement(activeFollowupSession.finalLogEl, activeFollowupSession.finalValue, "output");
+      } else if (followupRunActive) {
+        appendLinesToElement(activeFollowupSession.finalLogEl, FINAL_OUTPUT_LOADING_MESSAGE, "status");
       }
     }
 
     if (activeFollowupSession.outputTabsContainer) {
       const hasFinalOutput = Boolean(activeFollowupSession.finalValue && activeFollowupSession.finalValue.trim());
-      activeFollowupSession.outputTabsContainer.classList.toggle("is-hidden", !hasFinalOutput);
-      if (!hasFinalOutput && activeFollowupSession.activeTab === "stdout") {
+      const shouldShowFinalOutput = hasFinalOutput || followupRunActive;
+      activeFollowupSession.outputTabsContainer.classList.toggle("is-hidden", !shouldShowFinalOutput);
+      if (!shouldShowFinalOutput && activeFollowupSession.activeTab === "stdout") {
         setFollowupActiveTab(activeFollowupSession, "combined");
       }
     }
@@ -5634,6 +5637,12 @@ const appendMergeChunk = (text, type = "output") => {
         statusTextEl.classList.add("status-text-merged");
       }
     }
+
+    try {
+      updateFinalOutputDisplay();
+    } catch (_error) {
+      /* ignore final output refresh errors */
+    }
   };
 
   const prepareNewTask = () => {
@@ -5939,6 +5948,7 @@ const appendMergeChunk = (text, type = "output") => {
   let stderrCommitBuffer = "";
   let finalOutputText = "";
   let followupFinalOutputText = "";
+  const FINAL_OUTPUT_LOADING_MESSAGE = "Final output is still generating…";
 
   const getActiveFinalOutputText = () => (followupRunActive ? followupFinalOutputText : finalOutputText);
 
@@ -6120,18 +6130,16 @@ const appendMergeChunk = (text, type = "output") => {
       stdoutOutputEl.innerHTML = "";
       if (finalOutputText) {
         appendLinesToElement(stdoutOutputEl, finalOutputText, "output");
+      } else if (runInFlight) {
+        appendLinesToElement(stdoutOutputEl, FINAL_OUTPUT_LOADING_MESSAGE, "status");
       }
     }
 
     if (outputTabsContainer) {
-      // Hide final output tabs while Agent is running (statusText === 'Running...').
-      // Previously this hid tabs only while git_fpush.sh was active; change to hide
-      // while the Agent run is in progress so Final Output is not shown prematurely.
-      const statusText = (statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || '';
-      const isRunning = typeof statusText === 'string' && statusText.trim().toLowerCase() === 'running...';
-      const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "" && !isRunning;
-      outputTabsContainer.classList.toggle("is-hidden", !hasFinalOutput);
-      if (!hasFinalOutput && activeOutputTab === "stdout") {
+      const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "";
+      const shouldShowFinalOutput = hasFinalOutput || runInFlight;
+      outputTabsContainer.classList.toggle("is-hidden", !shouldShowFinalOutput);
+      if (!shouldShowFinalOutput && activeOutputTab === "stdout") {
         setActiveOutputTab("combined");
       }
     }
