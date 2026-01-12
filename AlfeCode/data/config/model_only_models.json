@@ -116,7 +116,9 @@
       "contextTokens": 1048576,
       "pricing": {
         "inputPerMTokens": 0.1,
-        "outputPerMTokens": 0.4
+        "outputPerMTokens": 0.4,
+        "cacheReadPerMTokens": 0.025,
+        "cacheWritePerMTokens": 0.1833
       }
     },
     {
