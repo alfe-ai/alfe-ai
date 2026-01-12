@@ -78,6 +78,17 @@ function setupGetRoutes(deps) {
         ".venv",
     ]);
     const MAX_FILE_TREE_DEPTH = 5;
+
+    const normalizeProviderName = (value) => {
+        const normalized = (value || "").toString().trim().toLowerCase();
+        if (!normalized) {
+            return "openrouter";
+        }
+        if (normalized === "openai") {
+            return "openrouter";
+        }
+        return normalized;
+    };
     const MAX_FILE_TREE_ENTRIES = 400;
     const MAX_RUN_OUTPUT_LENGTH = 50000;
     const MAX_STATUS_HISTORY = 200;
@@ -4316,7 +4327,7 @@ ${cleanedFinalOutput}`;
 
         /* defaults */
         chatData.aiModel = (chatData.aiModel || DEFAULT_AIMODEL).toLowerCase();
-        chatData.aiProvider = chatData.aiProvider || "openrouter";
+        chatData.aiProvider = normalizeProviderName(chatData.aiProvider || "openrouter");
         chatData.additionalRepos = chatData.additionalRepos || [];
 
         const {

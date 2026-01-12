@@ -552,24 +552,25 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 /**
+ * Normalize provider names to ensure OpenRouter usage.
+ */
+function normalizeProviderName(provider) {
+    const normalized = (provider || "").toString().trim().toLowerCase();
+    if (!normalized) {
+        return "";
+    }
+    if (normalized === "openai") {
+        return "openrouter";
+    }
+    return normalized;
+}
+
+/**
  * Create OpenAI-compatible client for chosen provider
  */
 function getOpenAIClient(provider) {
-    provider = provider.toLowerCase();
+    provider = normalizeProviderName(provider);
 
-    if (provider === "openai") {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            console.warn(
-                "[WARN] getOpenAIClient: OPENAI_API_KEY missing; OpenAI provider unavailable."
-            );
-            return null;
-        }
-        return new OpenAI({
-            apiKey,
-            dangerouslyAllowBrowser: true,
-        });
-    }
     if (provider === "openrouter") {
         const apiKey = process.env.OPENROUTER_API_KEY;
         if (!apiKey) {
@@ -654,31 +655,38 @@ let AIModels = {};
  * Fetch & cache model list
  */
 async function fetchAndSortModels(provider) {
+    const normalizedProvider = normalizeProviderName(provider);
     try {
-        console.log(`[DEBUG] Fetching model list for provider: ${provider}`);
-        const client = getOpenAIClient(provider);
+        if (!normalizedProvider) {
+            console.warn("[WARN] fetchAndSortModels: Provider name missing.");
+            return;
+        }
+        console.log(`[DEBUG] Fetching model list for provider: ${normalizedProvider}`);
+        const client = getOpenAIClient(normalizedProvider);
         if (!client) {
             console.warn(
-                `[WARN] fetchAndSortModels: Skipping provider '${provider}' because it is not configured.`
+                `[WARN] fetchAndSortModels: Skipping provider '${normalizedProvider}' because it is not configured.`
             );
-            AIModels[provider] = [];
+            AIModels[normalizedProvider] = [];
             return;
         }
         const models = await client.models.list();
-        AIModels[provider] = models.data
+        AIModels[normalizedProvider] = models.data
             .map((m) => m.id)
             .sort((a, b) => a.localeCompare(b));
         console.log(
-            `[DEBUG] Loaded ${AIModels[provider].length} models for provider: ${provider}`
+            `[DEBUG] Loaded ${AIModels[normalizedProvider].length} models for provider: ${normalizedProvider}`
         );
     } catch (err) {
         console.error("[ERROR] fetchAndSortModels:", err);
-        AIModels[provider] = [];
+        if (normalizedProvider) {
+            AIModels[normalizedProvider] = [];
+        }
     }
 }
-["openai", "openrouter"].forEach(fetchAndSortModels);
+["openrouter"].forEach(fetchAndSortModels);
 cron.schedule("0 0 * * *", () =>
-    ["openai", "openrouter"].forEach(fetchAndSortModels)
+    ["openrouter"].forEach(fetchAndSortModels)
 );
 
 /**
