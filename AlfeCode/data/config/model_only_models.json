@@ -87,6 +87,36 @@
         "inputPerMTokens": 0.07,
         "outputPerMTokens": 0.27
       }
+    },
+    {
+      "id": "openrouter/xiaomi/mimo-v2-flash:free",
+      "label": "Xiaomi: MiMo V2 Flash (Free)",
+      "disabled": false
+    },
+    {
+      "id": "openrouter/kwaipilot/kat-coder-pro:free",
+      "label": "KwaiPilot: KAT Coder Pro (Free)",
+      "disabled": false
+    },
+    {
+      "id": "openrouter/mistralai/devstral-2512:free",
+      "label": "Mistral AI: Devstral 2512 (Free)",
+      "disabled": false
+    },
+    {
+      "id": "openrouter/mistralai/mistral-small-3.1-24b-instruct:free",
+      "label": "Mistral AI: Mistral Small 3.1 24B Instruct (Free)",
+      "disabled": false
+    },
+    {
+      "id": "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+      "label": "Meta Llama: Llama 3.3 70B Instruct (Free)",
+      "disabled": false
+    },
+    {
+      "id": "openrouter/google/gemini-2.0-flash-exp:free",
+      "label": "Google: Gemini 2.0 Flash Exp (Free)",
+      "disabled": false
     }
   ]
 }
