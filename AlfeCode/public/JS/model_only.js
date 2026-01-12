@@ -3,7 +3,6 @@
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
 
-  const MODEL_HELP_TEXT = 'Choose a model to update the default automatically.';
   let activeProvider = '';
 
   function coerceNumber(value) {
@@ -169,7 +168,7 @@
       if (data.defaultModel && modelSelect) {
         modelSelect.value = data.defaultModel;
       }
-      if (info) info.textContent = MODEL_HELP_TEXT;
+      if (info) info.textContent = '';
     } catch (e) {
       if (info) info.textContent = 'Error loading models: ' + e.message;
     }
