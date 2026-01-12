@@ -490,10 +490,20 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(PROJECT_ROOT, "public")));
 app.use(express.static(path.join(PROJECT_ROOT, "images")));
 
+// Quick route for Snake game demo
+app.get("/snake", (req, res) => {
+  const filePath = path.join(PROJECT_ROOT, "public", "snake.html");
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send("Snake game not found. Please ensure snake.html exists in public.");
+  }
+});
+
 app.use((req, res, next) => {
-    res.locals.sterlingCodexBaseUrl = resolveSterlingCodexBaseUrl(req);
-    res.locals.editorBaseUrl = resolveEditorBaseUrl(req);
-    next();
+  res.locals.sterlingCodexBaseUrl = resolveSterlingCodexBaseUrl(req);
+  res.locals.editorBaseUrl = resolveEditorBaseUrl(req);
+  next();
 });
 
 // Middleware
