@@ -988,12 +988,16 @@
             const params = new URLSearchParams(window.location.search || '');
             const repoDir = params.get('repo_directory') || (typeof projectDir !== 'undefined' ? (projectDir || '') : '');
             const repoName = '<%= gitRepoNameCLI %>';
-            const chatNumber = '<%= chatNumber %>';
+            const chatNumber = params.get('chatNumber')
+                || params.get('chat_number')
+                || '<%= chatNumber %>';
             const repoLinksEnabled = <%- JSON.stringify(!!repoLinksEnabled) %>;
             const templateProjectDir = <%- JSON.stringify(projectDir || '') %>;
             const pathname = currentUrl.pathname || '';
             let newPathname = null;
-            if (repoLinksEnabled) {
+            const repoNameLooksLikePath = repoName.includes('/') || repoName.includes('\\');
+            const canUseRepoName = repoLinksEnabled || (repoName && !repoNameLooksLikePath);
+            if (canUseRepoName) {
                 const repoMarker = `/${repoName}/diff`;
                 const idx = pathname.indexOf(repoMarker);
                 if (idx !== -1) {
@@ -1034,8 +1038,8 @@
                 const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
                 const fallbackEditorBase = currentUrl.hostname === 'git' ? 'https://code-s.alfe.sh' : '';
                 const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined') ? editorBaseRaw : fallbackEditorBase;
-                const fallbackPath = (repoLinksEnabled
-                    ? '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file='
+                const fallbackPath = (canUseRepoName
+                    ? `/${repoName}/chat/${chatNumber || ''}/editor?open_file=`
                     : '/chat/editor?open_file=') + encodeURIComponent(filePath);
                 const fallbackUrl = editorBase ? (editorBase.replace(/\/$/, '') + fallbackPath) : fallbackPath;
                 window.location.href = fallbackUrl;
