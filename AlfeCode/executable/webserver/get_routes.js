@@ -40,6 +40,7 @@ function setupGetRoutes(deps) {
         buildSterlingCodexUrl,
         loadCodexRuns,
         upsertCodexRun,
+        vmManager,
         ensureSessionDefaultRepo,
         buildSessionCookie,
         normalizeHostname,
@@ -2208,6 +2209,27 @@ ${cleanedFinalOutput}`;
             error: "",
             invalidModelReason,
         };
+        // Optional: spawn per-task QEMU VM if ?vm=1
+        const wantVM = parseBooleanFlag(req.query.vm);
+        let vmSession = null;
+        let vmHostPort = null;
+        if (wantVM && typeof vmManager?.startVm === 'function') {
+          const result = vmManager.startVm();
+          if (result?.ok) {
+            vmSession = result.session;
+            vmHostPort = result.session.assignedPort;
+            emit({ event: 'meta', data: `Spinning up QEMU VM (session ${vmSession.sessionId}) on host port ${vmHostPort}` });
+          } else {
+            emit({ event: 'meta', data: `VM spawn failed: ${result?.error || 'unknown error'}` });
+          }
+        }
+
+        // If VM is ready, re-route agent run to it via SSH. For now, capture host port for downstream use.
+        const envOverrides = {};
+        if (vmHostPort) {
+          envOverrides.ALFECODE_VM_HOST_PORT = String(vmHostPort);
+          envOverrides.ALFECODE_VM_SESSION_ID = vmSession.sessionId;
+        }
         let effectiveProjectDir = projectDir;
         let runPersisted = false;
         let codexStreamTerminated = false;
@@ -2449,7 +2471,7 @@ ${cleanedFinalOutput}`;
 
         const baseSpawnOptions = {
             cwd: codexToolsDir,
-            env: { ...process.env },
+            env: { ...process.env, ...envOverrides },
             stdio: ["ignore", "pipe", "pipe"],
         };
 
