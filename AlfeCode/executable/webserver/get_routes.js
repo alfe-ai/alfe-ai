@@ -2209,8 +2209,9 @@ ${cleanedFinalOutput}`;
             error: "",
             invalidModelReason,
         };
-        // Optional: spawn per-task QEMU VM if ?vm=1 and env ALFECODE_SPAWN_VM_PER_TASK=true
-        const wantVM = parseBooleanFlag(process.env.ALFECODE_SPAWN_VM_PER_TASK) && parseBooleanFlag(req.query.vm);
+        // Optional: spawn per-task QEMU VM if env ALFECODE_SPAWN_VM_PER_TASK=true or ?vm=1
+        const spawnVmByEnv = parseBooleanFlag(process.env.ALFECODE_SPAWN_VM_PER_TASK);
+        const wantVM = spawnVmByEnv || parseBooleanFlag(req.query.vm);
         let vmSession = null;
         let vmHostPort = null;
         if (wantVM && typeof vmManager?.startVm === 'function') {
