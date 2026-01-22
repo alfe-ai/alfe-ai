@@ -4709,6 +4709,12 @@ app.get("/aurora-config.js", (_req, res) => {
     .send(`${script}\n`);
 });
 
+app.get("/code/how-it-works.html", (_req, res) => {
+  res.sendFile(
+    path.join(__dirname, "..", "..", "AlfeCode", "public", "how-it-works.html")
+  );
+});
+
 const staticCacheSeconds = parseInt(process.env.STATIC_CACHE_SECONDS || "900", 10);
 app.use(
   express.static(path.join(__dirname, "../public"), {
