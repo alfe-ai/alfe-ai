@@ -403,6 +403,9 @@ run_codex_in_vm() {
   local -a ssh_args=(
     -o StrictHostKeyChecking=no
     -o UserKnownHostsFile=/dev/null
+    -o BatchMode=yes
+    -o ConnectTimeout=10
+    -o ConnectionAttempts=1
     -p "${ALFECODE_VM_SSH_PORT}"
   )
 
@@ -593,70 +596,40 @@ PY2
 }
 
 
-filter_stdout_for_openrouter_notice() {
-  local stdout_path="$1"
+stream_filtered_stdout() {
+  local should_filter_openrouter="$1"
 
-  if grep -qF "$OPENROUTER_UNSET_NOTICE" "$stdout_path"; then
-    awk -v notice="$OPENROUTER_UNSET_NOTICE" '
-      BEGIN {seen_notice = 0}
-      {
-        if (!seen_notice) {
-          if (index($0, notice)) {
-            seen_notice = 1
-          }
-          next
-        }
-        print
-      }
-    ' "$stdout_path"
-  else
-    cat "$stdout_path"
+  if [[ "$should_filter_openrouter" == "1" ]]; then
+    if should_show_meta; then
+      awk -v notice="$OPENROUTER_UNSET_NOTICE" 'index($0, notice) == 0'
+    else
+      awk -v notice="$OPENROUTER_UNSET_NOTICE" 'index($0, notice) == 0 && index($0, "[meta]") == 0'
+    fi
+    return 0
   fi
-}
 
-filter_stdout_for_meta_lines() {
-  local stdout_path="$1"
   if should_show_meta; then
-    cat "$stdout_path"
+    cat
   else
-    awk 'index($0, "[meta]") == 0' "$stdout_path"
-  fi
-}
-
-emit_filtered_stdout() {
-  local stdout_path="$1"
-  local processed_path="$stdout_path"
-  local tmp_file=""
-
-  if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
-    tmp_file="$(mktemp)"
-    filter_stdout_for_openrouter_notice "$processed_path" >"$tmp_file"
-    processed_path="$tmp_file"
-  fi
-
-  filter_stdout_for_meta_lines "$processed_path"
-
-  if [[ -n "$tmp_file" ]]; then
-    rm -f "$tmp_file"
+    awk 'index($0, "[meta]") == 0'
   fi
 }
 
 run_with_filtered_streams() {
-  local stdout_tmp
-  stdout_tmp="$(mktemp)"
-
   local status
+  local filter_openrouter=0
+  if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+    filter_openrouter=1
+  fi
+
   if run_here_or_in_project "$@" \
-      >"$stdout_tmp" \
+      > >(stream_filtered_stdout "$filter_openrouter") \
       2> >(grep --line-buffered -v "dconf-CRITICAL" >&2); then
     status=0
   else
     status=$?
   fi
 
-  emit_filtered_stdout "$stdout_tmp"
-
-  rm -f "$stdout_tmp"
   return $status
 }
 
