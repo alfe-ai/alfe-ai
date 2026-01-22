@@ -207,8 +207,8 @@
             <select name="aiModel" id="aiModel" onchange="this.form.submit()">
                 <% if (AIModels && AIModels.length > 0) { %>
                     <% AIModels.forEach(function(model) { %>
-                        <option value="<%= model %>" <%= model === aiModel ? 'selected' : '' %>>
-                            <%= model %>
+                        <option value="<%= model.id %>" <%= model.id === aiModel ? 'selected' : '' %>>
+                            <%= model.name || model.id %><% if (model.contextLimitLabel && model.contextLimitLabel !== 'N/A') { %> (<span class="context-limit"><%= model.contextLimitLabel %></span>)<% } %>
                         </option>
                     <% }); %>
                 <% } else { %>

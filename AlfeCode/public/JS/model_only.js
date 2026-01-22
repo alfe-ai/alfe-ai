@@ -45,18 +45,25 @@
     if (typeof entry === 'string') {
       const trimmed = entry.trim();
       if (!trimmed) return null;
-      return { id: trimmed, label: trimmed, disabled: false };
+      return {
+        id: trimmed,
+        label: trimmed,
+        disabled: false,
+        contextLimitLabel: '',
+      };
     }
     if (typeof entry !== 'object') return null;
     const id = typeof entry.id === 'string' ? entry.id.trim() : '';
     if (!id) return null;
     const label = typeof entry.label === 'string' && entry.label.trim().length ? entry.label.trim() : id;
     const disabled = Boolean(entry.disabled);
+    const contextLimitLabel = typeof entry.contextLimitLabel === 'string' ? entry.contextLimitLabel.trim() : '';
     return {
       id,
       label,
       disabled,
       pricing: entry.pricing || null,
+      contextLimitLabel,
     };
   }
 
@@ -105,7 +112,17 @@
       const o = document.createElement('option');
       o.value = model.id;
       const pricingText = formatPricing(model.pricing);
+      const contextLimit = model.contextLimitLabel && model.contextLimitLabel !== 'N/A'
+        ? model.contextLimitLabel
+        : '';
       o.textContent = pricingText ? `${model.label} — ${pricingText}` : model.label;
+      if (contextLimit) {
+        o.appendChild(document.createTextNode(' '));
+        const limitSpan = document.createElement('span');
+        limitSpan.className = 'context-limit';
+        limitSpan.textContent = `(${contextLimit})`;
+        o.appendChild(limitSpan);
+      }
       modelSelect.appendChild(o);
       added += 1;
     });

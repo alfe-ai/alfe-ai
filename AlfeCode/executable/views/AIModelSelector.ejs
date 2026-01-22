@@ -7,18 +7,19 @@
     </select>
     <select name="aiModel" id="aiModel" onchange="this.form.submit()">
         <% 
-            const filtered = (AIModels || []).filter(m => typeof m === 'string' && m.toLowerCase().includes('gpt-5'));
-            const ctxLimits = AIModelContextLimits || {};
+            const filtered = (AIModels || []).filter(m => {
+                const id = m && typeof m.id === 'string' ? m.id : '';
+                return id.toLowerCase().includes('gpt-5');
+            });
         %>
         <% if (filtered && filtered.length > 0) { %>
             <% filtered.forEach(function(model) { %>
-                <option value="<%= model %>" <%= model === aiModel ? 'selected' : '' %>>
-                    <%= model %><% if (ctxLimits[model]) { %> (<%= ctxLimits[model] %>)<% } %>
+                <option value="<%= model.id %>" <%= model.id === aiModel ? 'selected' : '' %>>
+                    <%= model.name || model.id %><% if (model.contextLimitLabel && model.contextLimitLabel !== 'N/A') { %> (<span class="context-limit"><%= model.contextLimitLabel %></span>)<% } %>
                 </option>
             <% }); %>
         <% } else { %>
-            <% const limit = ctxLimits[aiModel]; %>
-            <option value="<%= aiModel %>" selected><%= aiModel %><% if (limit) { %> (<%= limit %>)<% } %></option>
+            <option value="<%= aiModel %>" selected><%= aiModel %></option>
         <% } %>
     </select>
 </div>

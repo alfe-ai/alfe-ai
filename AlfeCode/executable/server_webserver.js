@@ -703,8 +703,11 @@ async function fetchAndSortModels(provider) {
         const models = await client.models.list();
         const modelList = models.data || [];
         const limitsMap = {};
-        modelList.forEach((m) => {
-            if (m && typeof m.id === 'string') {
+        const normalizedModels = modelList
+            .map((m) => {
+                if (!m || typeof m.id !== "string") {
+                    return null;
+                }
                 const id = m.id;
                 let limit = null;
                 // Prefer explicit provider fields if available
@@ -716,24 +719,32 @@ async function fetchAndSortModels(provider) {
                 // Heuristics by model family/name if still null
                 if (limit == null || Number.isNaN(limit)) {
                     const lower = id.toLowerCase();
-                    if (lower.includes('gpt-5')) limit = 200000;
-                    else if (lower.includes('gpt-4-turbo') || lower.includes('gpt-4o')) limit = 128000;
-                    else if (lower.includes('gpt-4')) limit = 8192;
-                    else if (lower.includes('claude-3')) limit = 200000;
-                    else if (lower.includes('claude-2')) limit = 100000;
-                    else if (lower.includes('mistral-large')) limit = 128000;
-                    else if (lower.includes('llama-3')) limit = 128000;
+                    if (lower.includes("gpt-5")) limit = 200000;
+                    else if (lower.includes("gpt-4-turbo") || lower.includes("gpt-4o")) limit = 128000;
+                    else if (lower.includes("gpt-4")) limit = 8192;
+                    else if (lower.includes("claude-3")) limit = 200000;
+                    else if (lower.includes("claude-2")) limit = 100000;
+                    else if (lower.includes("mistral-large")) limit = 128000;
+                    else if (lower.includes("llama-3")) limit = 128000;
                 }
 
+                const normalized = {
+                    ...m,
+                    id,
+                };
+                if (!normalized.name) {
+                    normalized.name = id;
+                }
                 if (limit != null && !Number.isNaN(limit)) {
+                    normalized.max_tokens = limit;
                     limitsMap[id] = limit;
                 }
-            }
-        });
+                return normalized;
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.id.localeCompare(b.id));
         AIModelContextLimits[normalizedProvider] = limitsMap;
-        AIModels[normalizedProvider] = modelList
-            .map((m) => m.id)
-            .sort((a, b) => a.localeCompare(b));
+        AIModels[normalizedProvider] = normalizedModels;
         console.log(
             `[DEBUG] Loaded ${AIModels[normalizedProvider].length} models for provider: ${normalizedProvider}`
         );
