@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
+const { formatTokenLimit } = require("./utils");
 
 /**
  * setupGetRoutes attaches all GET (and some auxiliary) routes to the Express
@@ -30,6 +31,7 @@ function setupGetRoutes(deps) {
         analyzeProject,
         analyzeCodeFlow,
         AIModels,
+        AIModelContextLimits,
         DEFAULT_AIMODEL,
         getDefaultCodexModel,
         DEFAULT_CODEX_MODEL,
@@ -1519,7 +1521,57 @@ ${cleanedFinalOutput}`;
         "model_only_models.json",
     );
 
-    function normaliseModelOnlyEntry(entry) {
+    const getModelId = (model) => {
+        if (!model) return "";
+        if (typeof model === "string") return model.trim();
+        if (typeof model === "object" && typeof model.id === "string") return model.id.trim();
+        return "";
+    };
+
+    const normaliseModelEntry = (model, contextLimitMap = {}) => {
+        if (!model) return null;
+        if (typeof model === "string") {
+            const trimmed = model.trim();
+            if (!trimmed) return null;
+            const limit = contextLimitMap[trimmed];
+            return {
+                id: trimmed,
+                name: trimmed,
+                max_tokens: Number.isFinite(limit) ? limit : null,
+                contextLimitLabel: formatTokenLimit(limit),
+            };
+        }
+        if (typeof model !== "object") return null;
+        const id = getModelId(model);
+        if (!id) return null;
+        const maxTokens = Number.isFinite(model.max_tokens)
+            ? model.max_tokens
+            : Number.isFinite(model.context_length)
+                ? model.context_length
+                : Number.isFinite(model.max_context_length)
+                    ? model.max_context_length
+                    : Number.isFinite(model.max_request_tokens)
+                        ? model.max_request_tokens
+                        : Number.isFinite(contextLimitMap[id])
+                            ? contextLimitMap[id]
+                            : null;
+        return {
+            ...model,
+            id,
+            name: typeof model.name === "string" && model.name.trim().length ? model.name.trim() : id,
+            max_tokens: Number.isFinite(maxTokens) ? maxTokens : null,
+            contextLimitLabel: formatTokenLimit(maxTokens),
+        };
+    };
+
+    const normaliseModelList = (models = [], contextLimitMap = {}) => {
+        if (!Array.isArray(models)) return [];
+        return models
+            .map((model) => normaliseModelEntry(model, contextLimitMap))
+            .filter(Boolean);
+    };
+
+    function normaliseModelOnlyEntry(entry, modelLookup = {}) {
         if (!entry) return null;
         if (typeof entry === "string") {
             const trimmed = entry.trim();
@@ -1550,6 +1602,14 @@ ${cleanedFinalOutput}`;
             : id;
         const created = typeof entry.created === "string" ? entry.created : null;
         const contextTokens = Number.isFinite(entry.contextTokens) ? entry.contextTokens : null;
+        const fallbackModel = modelLookup[id];
+        const resolvedMaxTokens = Number.isFinite(entry.max_tokens)
+            ? entry.max_tokens
+            : Number.isFinite(contextTokens)
+                ? contextTokens
+                : Number.isFinite(fallbackModel?.max_tokens)
+                    ? fallbackModel.max_tokens
+                    : null;
         const disabled = Boolean(entry.disabled);
         const pricing = entry.pricing && typeof entry.pricing === "object"
             ? {
@@ -1562,6 +1622,8 @@ ${cleanedFinalOutput}`;
             label,
             created,
             contextTokens,
+            max_tokens: Number.isFinite(resolvedMaxTokens) ? resolvedMaxTokens : null,
+            contextLimitLabel: formatTokenLimit(resolvedMaxTokens),
             disabled,
             pricing,
         };
@@ -1586,8 +1648,13 @@ ${cleanedFinalOutput}`;
                         : parsed && typeof parsed === "object"
                             ? Object.values(parsed)
                             : [];
+            const openRouterModels = normaliseModelList(AIModels?.openrouter || [], AIModelContextLimits?.openrouter || {});
+            const modelLookup = openRouterModels.reduce((acc, model) => {
+                acc[model.id] = model;
+                return acc;
+            }, {});
             return models
-                .map((model) => normaliseModelOnlyEntry(model))
+                .map((model) => normaliseModelOnlyEntry(model, modelLookup))
                 .filter(Boolean);
         } catch (err) {
             console.error("[ERROR] Failed to load model-only config:", err);
@@ -1665,15 +1732,9 @@ ${cleanedFinalOutput}`;
             ? AIModels.openrouter
             : [];
         const openRouterModels = openRouterSource
-            .filter(
-                (model) => typeof model === "string" && model.trim().length > 0,
-            )
-            .map((model) => {
-                const trimmedModel = model.trim();
-                return trimmedModel.startsWith("openrouter/")
-                    ? trimmedModel
-                    : `openrouter/${trimmedModel}`;
-            });
+            .map((model) => getModelId(model))
+            .filter((model) => model)
+            .map((model) => (model.startsWith("openrouter/") ? model : `openrouter/${model}`));
 
         if (openRouterModels.length > 0) {
             const uniqueModels = [...new Set(openRouterModels)];
@@ -4130,7 +4191,9 @@ ${cleanedFinalOutput}`;
         const rawProviders = Object.fromEntries(
             Object.entries(AIModels || {}).map(([provider, models]) => [
                 provider,
-                Array.isArray(models) ? [...models] : [],
+                Array.isArray(models)
+                    ? models.map((model) => getModelId(model)).filter(Boolean)
+                    : [],
             ])
         );
 
@@ -4181,6 +4244,13 @@ ${cleanedFinalOutput}`;
 
     app.get("/agent/model-only/models", (_req, res) => {
         const models = loadModelOnlyModels();
+        const openRouterLookup = normaliseModelList(
+            AIModels?.openrouter || [],
+            AIModelContextLimits?.openrouter || {},
+        ).reduce((acc, model) => {
+            acc[model.id] = model;
+            return acc;
+        }, {});
         const modelEntries = SHOW_MODEL_ONLY_COSTS
             ? models
             : models.map((model) => (model ? { ...model, pricing: null } : model));
@@ -4195,9 +4265,12 @@ ${cleanedFinalOutput}`;
         if (resolvedDefaultModel) {
             const hasDefault = providerModels.openrouter.some((model) => model && model.id === resolvedDefaultModel);
             if (!hasDefault && !disabledModelIds.has(resolvedDefaultModel)) {
+                const fallbackModel = openRouterLookup[resolvedDefaultModel];
                 providerModels.openrouter.push({
                     id: resolvedDefaultModel,
                     label: resolvedDefaultModel,
+                    max_tokens: Number.isFinite(fallbackModel?.max_tokens) ? fallbackModel.max_tokens : null,
+                    contextLimitLabel: formatTokenLimit(fallbackModel?.max_tokens),
                 });
             }
         }
@@ -4715,9 +4788,11 @@ ${cleanedFinalOutput}`;
             return output;
         }
 
-        const aiModelsForProvider = AIModels[chatData.aiProvider.toLowerCase()] || [];
-        // Provide context limits for dropdown display if available
-        const contextLimitsForProvider = (AIModelContextLimits && AIModelContextLimits[chatData.aiProvider.toLowerCase()]) || {};
+        const providerKey = chatData.aiProvider.toLowerCase();
+        const aiModelsForProvider = normaliseModelList(
+            AIModels[providerKey] || [],
+            (AIModelContextLimits && AIModelContextLimits[providerKey]) || {},
+        );
 
         res.render("chat", {
             gitRepoNameCLI : repoName,
@@ -4727,7 +4802,6 @@ ${cleanedFinalOutput}`;
             possibleReposToAdd,
             chatData,
             AIModels        : aiModelsForProvider,
-            AIModelContextLimits : contextLimitsForProvider,
             aiModel         : chatData.aiModel,
             status,
             gitRepoLocalPath,

@@ -152,3 +152,8 @@
 /* Copy button style for prompt modal */
 .code-copy-btn{background:transparent;border:0;padding:6px;border-radius:6px;cursor:pointer;font-size:14px}
 .code-copy-btn:hover{background:rgba(0,0,0,0.06)}
+
+.context-limit {
+  color: rgba(148, 163, 184, 0.85);
+  font-size: 0.9em;
+}
