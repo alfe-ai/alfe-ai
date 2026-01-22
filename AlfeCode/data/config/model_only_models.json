@@ -1,13 +1,13 @@
 {
   "models": [
     {
-      "id": "openrouter/xiaomi/mimo-v2-flash:free",
+      "id": "openrouter/xiaomi/mimo-v2-flash",
       "label": "[Free] Xiaomi: MiMo V2 Flash",
       "disabled": false,
       "contextTokens": 262144,
       "pricing": {
-        "inputPerMTokens": 0.1,
-        "outputPerMTokens": 0.3
+        "inputPerMTokens": 0.09,
+        "outputPerMTokens": 0.29
       }
     },
     {
