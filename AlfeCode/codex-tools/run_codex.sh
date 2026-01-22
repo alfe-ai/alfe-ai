@@ -403,6 +403,9 @@ run_codex_in_vm() {
   local -a ssh_args=(
     -o StrictHostKeyChecking=no
     -o UserKnownHostsFile=/dev/null
+    -o BatchMode=yes
+    -o ConnectTimeout=10
+    -o ConnectionAttempts=1
     -p "${ALFECODE_VM_SSH_PORT}"
   )
 
