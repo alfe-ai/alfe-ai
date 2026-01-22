@@ -8,13 +8,17 @@
     <select name="aiModel" id="aiModel" onchange="this.form.submit()">
         <% 
             const filtered = (AIModels || []).filter(m => typeof m === 'string' && m.toLowerCase().includes('gpt-5'));
+            const ctxLimits = AIModelContextLimits || {};
         %>
         <% if (filtered && filtered.length > 0) { %>
             <% filtered.forEach(function(model) { %>
-                <option value="<%= model %>" <%= model === aiModel ? 'selected' : '' %>><%= model %></option>
+                <option value="<%= model %>" <%= model === aiModel ? 'selected' : '' %>>
+                    <%= model %><% if (ctxLimits[model]) { %> (<%= ctxLimits[model] %>)<% } %>
+                </option>
             <% }); %>
         <% } else { %>
-            <option value="<%= aiModel %>" selected><%= aiModel %></option>
+            <% const limit = ctxLimits[aiModel]; %>
+            <option value="<%= aiModel %>" selected><%= aiModel %><% if (limit) { %> (<%= limit %>)<% } %></option>
         <% } %>
     </select>
 </div>
