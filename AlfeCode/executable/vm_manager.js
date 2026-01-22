@@ -18,6 +18,13 @@ const MAX_PORT_RANGE = 1000;
 
 const vmSessions = [];
 
+function collectUsedPorts() {
+    return vmSessions
+        .flatMap((session) => [session.assignedPort, session.sshPort])
+        .map((port) => Number(port))
+        .filter((port) => Number.isInteger(port) && port > 0);
+}
+
 function ensureLogDir() {
     if (!fs.existsSync(VM_LOG_DIR)) {
         fs.mkdirSync(VM_LOG_DIR, { recursive: true });
@@ -31,12 +38,8 @@ function createSessionId() {
     return `vm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function allocatePort() {
-    const used = new Set(
-        vmSessions
-            .map((session) => Number(session.assignedPort))
-            .filter((port) => Number.isInteger(port) && port > 0),
-    );
+function allocatePort(reservedPorts = []) {
+    const used = new Set([...collectUsedPorts(), ...reservedPorts]);
     for (let candidate = VM_PORT_START; candidate <= VM_PORT_END && candidate < VM_PORT_START + MAX_PORT_RANGE; candidate += 1) {
         if (!used.has(candidate)) {
             return candidate;
@@ -49,10 +52,23 @@ function serializeSession(session) {
     if (!session) {
         return null;
     }
-    const { sessionId, assignedPort, status, qemuStatus, startTimestamp, lastUsedTimestamp, endTimestamp, qemuPid, qemuLog, errorMessage } = session;
+    const {
+        sessionId,
+        assignedPort,
+        sshPort,
+        status,
+        qemuStatus,
+        startTimestamp,
+        lastUsedTimestamp,
+        endTimestamp,
+        qemuPid,
+        qemuLog,
+        errorMessage,
+    } = session;
     return {
         sessionId,
         assignedPort,
+        sshPort,
         status,
         qemuStatus,
         startTimestamp,
@@ -83,11 +99,12 @@ function getSessionById(sessionId) {
     return vmSessions.find((session) => session.sessionId === sessionId) || null;
 }
 
-function buildSessionRecord(port) {
+function buildSessionRecord(port, sshPort) {
     const now = new Date().toISOString();
     return {
         sessionId: createSessionId(),
         assignedPort: port,
+        sshPort,
         startTimestamp: now,
         lastUsedTimestamp: now,
         endTimestamp: null,
@@ -123,7 +140,7 @@ function spawnQemuForSession(session) {
         const qemuArgs = [
             '-m', '1024',
             '-drive', `file=${VM_IMAGE_PATH},if=virtio,format=qcow2`,
-            '-net', `user,hostfwd=tcp::${session.assignedPort}-:443`,
+            '-net', `user,hostfwd=tcp::${session.assignedPort}-:443,hostfwd=tcp::${session.sshPort}-:22`,
             '-net', 'nic',
             '-nographic',
             '-display', 'none',
@@ -173,7 +190,11 @@ function startVm() {
     if (!assignedPort) {
         return { ok: false, error: 'No available ports in the configured range', code: 'NoPorts' };
     }
-    const session = buildSessionRecord(assignedPort);
+    const sshPort = allocatePort([assignedPort]);
+    if (!sshPort) {
+        return { ok: false, error: 'No available ports for SSH forwarding', code: 'NoPorts' };
+    }
+    const session = buildSessionRecord(assignedPort, sshPort);
     vmSessions.push(session);
     spawnQemuForSession(session);
     return { ok: true, session: serializeSession(session) };
