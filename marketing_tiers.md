@@ -8,7 +8,8 @@
 ## Alfe AI Plus ($14.99 monthly)
 
 - Unlimited* Code with Qwen 3 Coder 480B A35B
-- Limited Image Design/Generation
-- Limited Web Search
+- Image Design/Generation
+- Web Search
+- Access to Support
 
 *May be rate-limited; “unlimited” may change in the future.
