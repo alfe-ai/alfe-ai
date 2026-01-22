@@ -25,6 +25,9 @@ DETECTED_API_KEY_VAR=""
 CODEX_SHOW_META="${CODEX_SHOW_META:-0}"
 OPENROUTER_HTTP_REFERER_OVERRIDE=""
 OPENROUTER_TITLE_OVERRIDE=""
+ALFECODE_VM_HOST="${ALFECODE_VM_HOST:-127.0.0.1}"
+ALFECODE_VM_SSH_PORT="${ALFECODE_VM_SSH_PORT:-}"
+ALFECODE_VM_USER="${ALFECODE_VM_USER:-root}"
 
 escape_config_value() {
   local value="$1"
@@ -52,6 +55,27 @@ log_meta() {
   if should_show_meta; then
     printf '%s\n' "$(meta_line_text "$1")" >&2
   fi
+}
+
+should_use_vm() {
+  [[ -n "${ALFECODE_VM_SSH_PORT:-}" ]]
+}
+
+escape_shell_arg() {
+  printf '%q' "$1"
+}
+
+build_shell_command() {
+  local output=""
+  local arg
+  for arg in "$@"; do
+    if [[ -z "$output" ]]; then
+      output="$(escape_shell_arg "$arg")"
+    else
+      output+=" $(escape_shell_arg "$arg")"
+    fi
+  done
+  printf '%s' "$output"
 }
 
 log_meta "Agent runner context: user=$(id -un 2>/dev/null || whoami) (uid=$(id -u 2>/dev/null || echo "?") gid=$(id -g 2>/dev/null || echo "?")) pwd=$(pwd)"
@@ -316,6 +340,67 @@ run_codex() {
   "${cmd[@]}"
 }
 
+run_codex_in_vm() {
+  local source_dir="$1"
+  shift
+
+  if ! should_use_vm; then
+    run_codex "$@"
+    return $?
+  fi
+
+  if [[ ! -d "$source_dir" ]]; then
+    echo "Error: VM source directory not found: $source_dir" >&2
+    return 2
+  fi
+
+  if ! command -v ssh >/dev/null 2>&1; then
+    echo "Error: ssh not available; cannot run Agent in VM." >&2
+    return 1
+  fi
+
+  if ! command -v tar >/dev/null 2>&1; then
+    echo "Error: tar not available; cannot stage project for VM run." >&2
+    return 1
+  fi
+
+  local remote_dir="/tmp/alfecode-run-$(date +%s)-${RANDOM}"
+  local -a ssh_args=(
+    -o StrictHostKeyChecking=no
+    -o UserKnownHostsFile=/dev/null
+    -p "${ALFECODE_VM_SSH_PORT}"
+  )
+
+  log_meta "Syncing project to VM at ${ALFECODE_VM_HOST}:${ALFECODE_VM_SSH_PORT} -> ${remote_dir}"
+  tar -C "$source_dir" -cf - . \
+    | ssh "${ssh_args[@]}" "${ALFECODE_VM_USER}@${ALFECODE_VM_HOST}" "mkdir -p $(escape_shell_arg "$remote_dir") && tar -C $(escape_shell_arg "$remote_dir") -xf -"
+
+  local -a remote_env=( "CODEX_DIR=${CODEX_DIR}" "CODEX_SHOW_META=${CODEX_SHOW_META}" )
+  if [[ -n "${OPENAI_API_KEY:-}" ]]; then
+    remote_env+=( "OPENAI_API_KEY=${OPENAI_API_KEY}" )
+  fi
+  if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
+    remote_env+=( "OPENROUTER_API_KEY=${OPENROUTER_API_KEY}" )
+  fi
+  if [[ -n "${MODEL:-}" ]]; then
+    remote_env+=( "MODEL=${MODEL}" )
+  fi
+
+  local -a remote_exec=(npm exec --prefix "$CODEX_DIR" codex -- "$@")
+  local -a remote_cmd=(env)
+  if [[ "$REQUESTED_PROVIDER" == "openrouter" && "$DETECTED_API_KEY_VAR" == "OPENROUTER_API_KEY" ]]; then
+    remote_cmd+=(-u OPENAI_API_KEY)
+  fi
+  remote_cmd+=("${remote_env[@]}" "${remote_exec[@]}")
+
+  local remote_command
+  remote_command="$(build_shell_command "${remote_cmd[@]}")"
+
+  log_meta "Launching Agent in VM (remote dir: ${remote_dir})"
+  ssh "${ssh_args[@]}" "${ALFECODE_VM_USER}@${ALFECODE_VM_HOST}" \
+    "cd $(escape_shell_arg "$remote_dir") && ${remote_command}"
+}
+
 maybe_git_pull() {
   local dir="$1"
 
@@ -450,11 +535,19 @@ PY2
       export CODEX_ORIGINAL_PROJECT_DIR="$PROJECT_DIR"
       export CODEX_EFFECTIVE_PROJECT_DIR="$snapshot_dir"
       export PROJECT_DIR="$snapshot_dir"
-      cd "$snapshot_dir" && run_codex "$@"
+      if should_use_vm; then
+        run_codex_in_vm "$snapshot_dir" "$@"
+      else
+        cd "$snapshot_dir" && run_codex "$@"
+      fi
     )
   else
     maybe_git_pull "$(pwd)"
-    run_codex "$@"
+    if should_use_vm; then
+      run_codex_in_vm "$(pwd)" "$@"
+    else
+      run_codex "$@"
+    fi
   fi
 }
 

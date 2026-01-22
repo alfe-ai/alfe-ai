@@ -2452,6 +2452,9 @@ ${cleanedFinalOutput}`;
         if (vmHostPort) {
             envOverrides.ALFECODE_VM_HOST_PORT = String(vmHostPort);
             envOverrides.ALFECODE_VM_SESSION_ID = vmSession.sessionId;
+            if (vmSession.sshPort) {
+                envOverrides.ALFECODE_VM_SSH_PORT = String(vmSession.sshPort);
+            }
         }
 
         emit({
