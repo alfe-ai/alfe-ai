@@ -4711,6 +4711,8 @@ ${cleanedFinalOutput}`;
         }
 
         const aiModelsForProvider = AIModels[chatData.aiProvider.toLowerCase()] || [];
+        // Provide context limits for dropdown display if available
+        const contextLimitsForProvider = (AIModelContextLimits && AIModelContextLimits[chatData.aiProvider.toLowerCase()]) || {};
 
         res.render("chat", {
             gitRepoNameCLI : repoName,
@@ -4720,6 +4722,7 @@ ${cleanedFinalOutput}`;
             possibleReposToAdd,
             chatData,
             AIModels        : aiModelsForProvider,
+            AIModelContextLimits : contextLimitsForProvider,
             aiModel         : chatData.aiModel,
             status,
             gitRepoLocalPath,

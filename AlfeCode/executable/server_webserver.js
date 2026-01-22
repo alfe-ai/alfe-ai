@@ -676,6 +676,10 @@ function getOpenAIClient(provider) {
  * Cache of available models per provider
  */
 let AIModels = {};
+/**
+ * Cache of context limits (max tokens) per provider -> model id.
+ */
+let AIModelContextLimits = {};
 
 /**
  * Fetch & cache model list
@@ -697,7 +701,37 @@ async function fetchAndSortModels(provider) {
             return;
         }
         const models = await client.models.list();
-        AIModels[normalizedProvider] = models.data
+        const modelList = models.data || [];
+        const limitsMap = {};
+        modelList.forEach((m) => {
+            if (m && typeof m.id === 'string') {
+                const id = m.id;
+                let limit = null;
+                // Prefer explicit provider fields if available
+                if (m.max_tokens != null) limit = Number(m.max_tokens);
+                if (limit == null && m.context_length != null) limit = Number(m.context_length);
+                if (limit == null && m.max_context_length != null) limit = Number(m.max_context_length);
+                if (limit == null && m.max_request_tokens != null) limit = Number(m.max_request_tokens);
+
+                // Heuristics by model family/name if still null
+                if (limit == null || Number.isNaN(limit)) {
+                    const lower = id.toLowerCase();
+                    if (lower.includes('gpt-5')) limit = 200000;
+                    else if (lower.includes('gpt-4-turbo') || lower.includes('gpt-4o')) limit = 128000;
+                    else if (lower.includes('gpt-4')) limit = 8192;
+                    else if (lower.includes('claude-3')) limit = 200000;
+                    else if (lower.includes('claude-2')) limit = 100000;
+                    else if (lower.includes('mistral-large')) limit = 128000;
+                    else if (lower.includes('llama-3')) limit = 128000;
+                }
+
+                if (limit != null && !Number.isNaN(limit)) {
+                    limitsMap[id] = limit;
+                }
+            }
+        });
+        AIModelContextLimits[normalizedProvider] = limitsMap;
+        AIModels[normalizedProvider] = modelList
             .map((m) => m.id)
             .sort((a, b) => a.localeCompare(b));
         console.log(
@@ -707,6 +741,7 @@ async function fetchAndSortModels(provider) {
         console.error("[ERROR] fetchAndSortModels:", err);
         if (normalizedProvider) {
             AIModels[normalizedProvider] = [];
+            AIModelContextLimits[normalizedProvider] = {};
         }
     }
 }
@@ -1112,6 +1147,7 @@ setupPostRoutes({
     getOpenAIClient,
     fetchAndSortModels,
     AIModels,
+    AIModelContextLimits,
     DEFAULT_AIMODEL,
     PROJECT_ROOT,
     loadCodexConfig,
@@ -1147,6 +1183,7 @@ setupGetRoutes({
     analyzeProject,
     analyzeCodeFlow,
     AIModels,
+    AIModelContextLimits,
     DEFAULT_AIMODEL,
     execSync,
     PROJECT_ROOT,
