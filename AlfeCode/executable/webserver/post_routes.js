@@ -599,6 +599,15 @@ function setupPostRoutes(deps) {
                 openAIAccount: "",
             };
             saveRepoConfig(repoConfig, sessionId);
+            const resolvedPath = typeof localPath === "string" ? localPath.trim() : "";
+            if (resolvedPath) {
+                const params = new URLSearchParams({
+                    repo_directory: resolvedPath,
+                    repo_name: repoName,
+                });
+                res.redirect(`/agent?${params.toString()}`);
+                return;
+            }
             res.redirect("/repositories");
         }
 
