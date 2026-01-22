@@ -61,6 +61,41 @@ should_use_vm() {
   [[ -n "${ALFECODE_VM_SSH_PORT:-}" ]]
 }
 
+probe_port() {
+  local host="$1"
+  local port="$2"
+
+  if command -v nc >/dev/null 2>&1; then
+    nc -z -w 2 "$host" "$port" >/dev/null 2>&1
+    return $?
+  fi
+
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 2 bash -c "cat < /dev/null > /dev/tcp/${host}/${port}" >/dev/null 2>&1
+    return $?
+  fi
+
+  bash -c "cat < /dev/null > /dev/tcp/${host}/${port}" >/dev/null 2>&1
+}
+
+wait_for_port() {
+  local host="$1"
+  local port="$2"
+  local max_wait="${3:-60}"
+  local interval="${4:-2}"
+  local elapsed=0
+
+  while (( elapsed < max_wait )); do
+    if probe_port "$host" "$port"; then
+      return 0
+    fi
+    sleep "$interval"
+    elapsed=$((elapsed + interval))
+  done
+
+  return 1
+}
+
 escape_shell_arg() {
   printf '%q' "$1"
 }
@@ -370,6 +405,12 @@ run_codex_in_vm() {
     -o UserKnownHostsFile=/dev/null
     -p "${ALFECODE_VM_SSH_PORT}"
   )
+
+  log_meta "Waiting for VM SSH to accept connections at ${ALFECODE_VM_HOST}:${ALFECODE_VM_SSH_PORT}"
+  if ! wait_for_port "${ALFECODE_VM_HOST}" "${ALFECODE_VM_SSH_PORT}" 90 2; then
+    echo "Error: VM SSH did not become ready at ${ALFECODE_VM_HOST}:${ALFECODE_VM_SSH_PORT}." >&2
+    return 1
+  fi
 
   log_meta "Syncing project to VM at ${ALFECODE_VM_HOST}:${ALFECODE_VM_SSH_PORT} -> ${remote_dir}"
   tar -C "$source_dir" -cf - . \
