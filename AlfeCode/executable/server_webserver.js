@@ -1157,6 +1157,7 @@ setupGetRoutes({
     buildSterlingCodexUrl,
     loadCodexRuns,
     upsertCodexRun,
+    vmManager,
     ensureSessionDefaultRepo,
     buildSessionCookie,
     normalizeHostname,
