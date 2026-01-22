@@ -23,17 +23,21 @@
   <hr>
 
   <div style="margin-top:18px;">
-        <h3>How it works</h3>
-    <p>Alfe AI's code module works with the following steps:</p>
-    <ol>
-      <li>Creating a temporary copy of your git repository on our server.</li>
-      <li>Establishing a new branch named <code>alfe/&lt;branch number&gt;</code> for the run.</li>
-      <li>Executing the AI coding agent with your prompt to implement the requested updates.</li>
-      <li>Committing the modifications and pushing the branch to your git remote.</li>
-    </ol>
-
-    <p>After this is complete, you can view the diff of the changes and have the option to merge the changes into the parent branch on the remote.</p>
-Read our <a href="https://app.alfe.sh/terms.html" target="_blank">Terms of Service</a>, <a href="https://app.alfe.sh/privacy.html" target="_blank">Privacy Policy</a>, and <a href="https://app.alfe.sh/cookies.html" target="_blank">Cookies Policy</a>.</p>
+    <div data-how-it-works></div>
+    <script>
+      (function(){
+        var container = document.querySelector('[data-how-it-works]');
+        if (!container) return;
+        fetch('/code/how-it-works.html')
+          .then(function(response){
+            return response.ok ? response.text() : '';
+          })
+          .then(function(html){
+            if (html) container.innerHTML = html;
+          });
+      })();
+    </script>
+    <p>Read our <a href="https://app.alfe.sh/terms.html" target="_blank">Terms of Service</a>, <a href="https://app.alfe.sh/privacy.html" target="_blank">Privacy Policy</a>, and <a href="https://app.alfe.sh/cookies.html" target="_blank">Cookies Policy</a>.</p>
   <p class="muted">Copyright (c) 2022-2025</p>
   </div>
 </body>
