@@ -18,6 +18,14 @@ const MAX_PORT_RANGE = 1000;
 
 const vmSessions = [];
 
+function logVmEvent(message) {
+    console.log(`[vm-manager] ${message}`);
+}
+
+function logVmError(message) {
+    console.error(`[vm-manager] ${message}`);
+}
+
 function collectUsedPorts() {
     return vmSessions
         .flatMap((session) => [session.assignedPort, session.sshPort])
@@ -127,6 +135,7 @@ function spawnQemuForSession(session) {
         session.status = 'ImgMissing';
         session.errorMessage = `QEMU image missing at ${VM_IMAGE_PATH}`;
         session.lastUsedTimestamp = new Date().toISOString();
+        logVmError(`Session ${session.sessionId} failed: ${session.errorMessage}`);
         return;
     }
 
@@ -137,6 +146,9 @@ function spawnQemuForSession(session) {
         ensureLogDir();
         const logPath = path.join(VM_LOG_DIR, `alfecode-vm-${session.sessionId}.log`);
         const logFd = fs.openSync(logPath, 'a');
+        logVmEvent(
+            `Starting QEMU session ${session.sessionId} (host ports https=${session.assignedPort} ssh=${session.sshPort}) log=${logPath}`,
+        );
         const qemuArgs = [
             '-m', '1024',
             '-drive', `file=${VM_IMAGE_PATH},if=virtio,format=qcow2`,
@@ -156,12 +168,14 @@ function spawnQemuForSession(session) {
         session.qemuLog = path.basename(logPath);
         session.logPath = logPath;
         session.lastUsedTimestamp = new Date().toISOString();
+        logVmEvent(`Session ${session.sessionId} started (pid=${session.qemuPid ?? 'unknown'}).`);
 
         child.on('error', (error) => {
             session.qemuStatus = 'Failed';
             session.status = 'Failed';
             session.errorMessage = error ? String(error.message || error) : 'Unknown error';
             session.lastUsedTimestamp = new Date().toISOString();
+            logVmError(`Session ${session.sessionId} failed: ${session.errorMessage}`);
         });
 
         child.on('exit', (code) => {
@@ -169,6 +183,7 @@ function spawnQemuForSession(session) {
             session.status = 'Stopped';
             session.endTimestamp = new Date().toISOString();
             session.lastUsedTimestamp = new Date().toISOString();
+            logVmEvent(`Session ${session.sessionId} exited with code ${code ?? 'unknown'}.`);
         });
 
         child.unref();
@@ -182,6 +197,7 @@ function spawnQemuForSession(session) {
         session.status = 'Failed';
         session.errorMessage = error ? String(error.message || error) : 'Failed to start QEMU';
         session.lastUsedTimestamp = new Date().toISOString();
+        logVmError(`Session ${session.sessionId} failed: ${session.errorMessage}`);
     }
 }
 
@@ -196,6 +212,7 @@ function startVm() {
     }
     const session = buildSessionRecord(assignedPort, sshPort);
     vmSessions.push(session);
+    logVmEvent(`Allocated session ${session.sessionId} (https=${assignedPort}, ssh=${sshPort}).`);
     spawnQemuForSession(session);
     return { ok: true, session: serializeSession(session) };
 }
