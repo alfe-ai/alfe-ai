@@ -311,6 +311,24 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.modal-content--auth .auth-benefits {
+  margin-bottom: 1rem;
+}
+
+.modal-content--auth .auth-benefits p {
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+}
+
+.modal-content--auth .auth-benefits ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.modal-content--auth .auth-benefits li + li {
+  margin-top: 0.25rem;
+}
+
 .modal-content--iframe {
   display: flex;
   flex-direction: column;
