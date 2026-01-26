@@ -4844,6 +4844,7 @@ app.get("/aurora-config.js", (_req, res) => {
     imageUpload: {
       enabled: IMAGE_UPLOAD_ENABLED,
     },
+    hideThemeOption: hideThemeOption,
   };
   const script = `window.AURORA_FLAGS = Object.assign({}, window.AURORA_FLAGS || {}, ${JSON.stringify(
     flags
