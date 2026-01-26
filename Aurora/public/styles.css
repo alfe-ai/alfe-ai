@@ -302,6 +302,15 @@ body {
   backdrop-filter: blur(12px);
 }
 
+.modal-content--auth {
+  width: min(92vw, 560px);
+  max-width: 560px;
+}
+
+.modal-content--auth .modal-title-row {
+  margin-bottom: 0.75rem;
+}
+
 .modal-content--iframe {
   display: flex;
   flex-direction: column;
