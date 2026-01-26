@@ -1630,7 +1630,31 @@ function hidePageLoader(){
   if(loader) loader.classList.remove("show");
 }
 
+const AUTH_MODAL_STATE_KEY = "aurora.authModalState";
 let authEmailValue = "";
+let authModalStep = "email";
+
+function persistAuthModalState(){
+  try {
+    sessionStorage.setItem(
+      AUTH_MODAL_STATE_KEY,
+      JSON.stringify({ email: authEmailValue, step: authModalStep })
+    );
+  } catch(err){
+    console.debug("Auth modal state persistence unavailable", err);
+  }
+}
+
+function loadAuthModalState(){
+  try {
+    const raw = sessionStorage.getItem(AUTH_MODAL_STATE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch(err){
+    return null;
+  }
+}
 
 function isBasicEmailValid(email){
   if(!email){
@@ -1655,6 +1679,7 @@ function setAuthEmailValue(email){
   if(loginDisplay) loginDisplay.textContent = email;
   const signupDisplay = document.getElementById("authEmailDisplaySignup");
   if(signupDisplay) signupDisplay.textContent = email;
+  persistAuthModalState();
 }
 
 function showAuthEmailStep({ keepEmail = true } = {}){
@@ -1664,6 +1689,8 @@ function showAuthEmailStep({ keepEmail = true } = {}){
   if(!keepEmail){
     setAuthEmailValue("");
   }
+  authModalStep = "email";
+  persistAuthModalState();
   const login = document.getElementById("loginForm");
   const signup = document.getElementById("signupForm");
   const emailStep = document.getElementById("authEmailStep");
@@ -1687,6 +1714,8 @@ function showSignupForm(){
     showAuthEmailStep({ keepEmail: false });
     return;
   }
+  authModalStep = "signup";
+  persistAuthModalState();
   const emailStep = document.getElementById("authEmailStep");
   if(emailStep) emailStep.style.display = "none";
   const login = document.getElementById('loginForm');
@@ -1706,6 +1735,8 @@ function showLoginForm(){
     showAuthEmailStep({ keepEmail: false });
     return;
   }
+  authModalStep = "login";
+  persistAuthModalState();
   const emailStep = document.getElementById("authEmailStep");
   if(emailStep) emailStep.style.display = "none";
   const login = document.getElementById('loginForm');
@@ -1716,22 +1747,33 @@ function showLoginForm(){
   if(totpLabel) totpLabel.style.display = "none";
 }
 
-function openSignupModal(e){
-  if(e) e.preventDefault();
+function openAuthModal({ preferredStep } = {}){
   if(!ensureAccountsEnabled()){
     return;
   }
-  showAuthEmailStep({ keepEmail: false });
+  const saved = loadAuthModalState();
+  if(saved?.email){
+    setAuthEmailValue(saved.email);
+  }
+  const step = saved?.step || preferredStep || "email";
+  if(step === "login"){
+    showLoginForm();
+  } else if(step === "signup"){
+    showSignupForm();
+  } else {
+    showAuthEmailStep({ keepEmail: true });
+  }
   showModal(document.getElementById("authModal"));
+}
+
+function openSignupModal(e){
+  if(e) e.preventDefault();
+  openAuthModal({ preferredStep: "signup" });
 }
 
 function openLoginModal(e){
   if(e) e.preventDefault();
-  if(!ensureAccountsEnabled()){
-    return;
-  }
-  showAuthEmailStep({ keepEmail: false });
-  showModal(document.getElementById("authModal"));
+  openAuthModal({ preferredStep: "login" });
 }
 
 async function checkAuthEmailAndContinue(){
@@ -5097,6 +5139,9 @@ if(authEmailInput){
       event.preventDefault();
       checkAuthEmailAndContinue();
     }
+  });
+  authEmailInput?.addEventListener("input", (event) => {
+    setAuthEmailValue(event.target.value);
   });
 }
 const signupSubmitBtn = document.getElementById("signupSubmitBtn");
