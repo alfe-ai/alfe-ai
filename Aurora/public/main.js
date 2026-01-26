@@ -946,20 +946,20 @@ function splitReasoningContent(text, model) {
   if(!separatorMatch || typeof separatorMatch.index !== "number"){
     return { reasoning: "", content: cleaned };
   }
-  const separatorIndex = separatorMatch.index;
+  const separatorMatchIndex = separatorMatch.index;
   const separatorLength = separatorMatch[0].length;
-  const reasoning = normalized.slice(0, separatorIndex).trim();
-  const content = normalized.slice(separatorIndex + separatorLength).trim();
+  const reasoning = normalized.slice(0, separatorMatchIndex).trim();
+  const content = normalized.slice(separatorMatchIndex + separatorLength).trim();
   if(!reasoning || !content) return { reasoning: "", content: cleaned };
   return { reasoning, content };
 }
 
-function renderAssistantContent(container, text, model) {
+function renderAssistantContentParts(container, reasoning, content) {
   if(!container) return;
-  const { reasoning, content } = splitReasoningContent(text, model);
+  const hasReasoning = Boolean(reasoning);
   container.innerHTML = "";
 
-  if(reasoning){
+  if(hasReasoning){
     const reasoningSection = document.createElement("div");
     reasoningSection.className = "reasoning-section";
     const reasoningHeader = document.createElement("div");
@@ -967,7 +967,7 @@ function renderAssistantContent(container, text, model) {
     reasoningHeader.textContent = "Reasoning";
     const reasoningBody = document.createElement("div");
     reasoningBody.className = "reasoning-section-body";
-    reasoningBody.innerHTML = formatCodeBlocks(reasoning);
+    reasoningBody.innerHTML = formatCodeBlocks(reasoning || "");
     addCodeCopyButtons(reasoningBody);
     reasoningSection.appendChild(reasoningHeader);
     reasoningSection.appendChild(reasoningBody);
@@ -976,10 +976,16 @@ function renderAssistantContent(container, text, model) {
 
   const contentBody = document.createElement("div");
   contentBody.className = "assistant-message-content";
-  const contentText = reasoning ? content : stripPlaceholderImageLines(text || "");
-  contentBody.innerHTML = formatCodeBlocks(contentText);
+  const contentText = content || "";
+  contentBody.innerHTML = formatCodeBlocks(contentText || "");
   addCodeCopyButtons(contentBody);
   container.appendChild(contentBody);
+}
+
+function renderAssistantContent(container, text, model) {
+  if(!container) return;
+  const { reasoning, content } = splitReasoningContent(text, model);
+  renderAssistantContentParts(container, reasoning, content);
 }
 
 function addCodeCopyButtons(root){
@@ -5840,6 +5846,11 @@ chatSendBtnEl?.addEventListener("click", async () => {
   }
 
   let partialText = "";
+  let reasoningText = "";
+  let contentText = "";
+  let streamBuffer = "";
+  let isReasoningStream = false;
+  let finalResponseText = "";
   let waitTime=0;
   waitingElem.textContent = "Waiting: 0.0s";
   const waitInterval = setInterval(()=>{
@@ -5896,6 +5907,9 @@ chatSendBtnEl?.addEventListener("click", async () => {
       }
       throw Object.assign(new Error(message), { usageLimitType, usageLimitMessage: message });
     }
+    const contentType = resp.headers.get("content-type") || "";
+    isReasoningStream = contentType.includes("application/x-ndjson");
+    const decoder = new TextDecoder();
     const reader = resp.body && typeof resp.body.getReader === 'function'
       ? resp.body.getReader()
       : null;
@@ -5905,11 +5919,63 @@ chatSendBtnEl?.addEventListener("click", async () => {
     while(true){
       const { value, done } = await reader.read();
       if(done) break;
-      partialText += new TextDecoder().decode(value);
+      const chunkText = decoder.decode(value, { stream: true });
+      if(isReasoningStream){
+        streamBuffer += chunkText;
+        const lines = streamBuffer.split("\n");
+        streamBuffer = lines.pop() || "";
+        lines.forEach(line => {
+          if(!line.trim()) return;
+          let parsed = null;
+          try {
+            parsed = JSON.parse(line);
+          } catch (err) {
+            contentText += line;
+            renderAssistantContentParts(botBody, reasoningText, contentText);
+            return;
+          }
+          if(parsed?.type === "reasoning"){
+            reasoningText += parsed.text || "";
+          } else if(parsed?.type === "content"){
+            contentText += parsed.text || "";
+          } else if(parsed?.type === "final"){
+            reasoningText += parsed.reasoning || "";
+            contentText += parsed.content || "";
+          } else if(typeof parsed?.text === "string") {
+            contentText += parsed.text;
+          }
+          renderAssistantContentParts(botBody, reasoningText, contentText);
+        });
+      } else {
+        partialText += chunkText;
+        renderAssistantContent(botBody, partialText, modelName);
+      }
     }
     // Update once more without the loader after streaming finishes
-    renderAssistantContent(botBody, partialText, modelName);
-    addFilesFromCodeBlocks(partialText);
+    if(isReasoningStream){
+      if(streamBuffer.trim()){
+        try {
+          const parsed = JSON.parse(streamBuffer);
+          if(parsed?.type === "reasoning"){
+            reasoningText += parsed.text || "";
+          } else if(parsed?.type === "content"){
+            contentText += parsed.text || "";
+          } else if(parsed?.type === "final"){
+            reasoningText += parsed.reasoning || "";
+            contentText += parsed.content || "";
+          }
+        } catch (err) {
+          contentText += streamBuffer;
+        }
+      }
+      renderAssistantContentParts(botBody, reasoningText, contentText);
+      addFilesFromCodeBlocks(contentText);
+      finalResponseText = contentText;
+    } else {
+      renderAssistantContent(botBody, partialText, modelName);
+      addFilesFromCodeBlocks(partialText);
+      finalResponseText = partialText;
+    }
     if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
     clearInterval(ellipsisInterval);
     botHead.querySelector("span").textContent = formatTimestamp(new Date().toISOString());
@@ -5951,10 +6017,10 @@ chatSendBtnEl?.addEventListener("click", async () => {
   renderSidebarTabs();
   renderArchivedSidebarTabs();
   updatePageTitle();
-  if(partialText){
+  if(finalResponseText){
     actionHooks.forEach(h => {
       if(typeof h.fn === "function"){
-        try { h.fn({type:"afterSend", message: combinedUserText, response: partialText}); }
+        try { h.fn({type:"afterSend", message: combinedUserText, response: finalResponseText}); }
         catch(err){ console.error("Action hook error:", err); }
       }
     });
