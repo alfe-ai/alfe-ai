@@ -942,6 +942,11 @@ body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  width: 100%;
+  text-align: left;
   margin-bottom: 6px;
   cursor: pointer;
   user-select: none;

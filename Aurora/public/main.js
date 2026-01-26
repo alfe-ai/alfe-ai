@@ -970,10 +970,16 @@ function splitReasoningContent(text, model) {
   return { reasoning, content };
 }
 
+let reasoningSectionCounter = 0;
+
 function renderAssistantContentParts(container, reasoning, content, options = {}) {
   if(!container) return;
   const hasReasoning = Boolean(reasoning);
   const defaultReasoningCollapsed = options.defaultReasoningCollapsed ?? false;
+  const resetReasoningExpanded = options.resetReasoningExpanded ?? false;
+  if(resetReasoningExpanded){
+    delete container.dataset.reasoningExpanded;
+  }
   const storedExpanded = container.dataset.reasoningExpanded;
   const isExpanded = storedExpanded === "true"
     ? true
@@ -988,14 +994,17 @@ function renderAssistantContentParts(container, reasoning, content, options = {}
     if(!isExpanded){
       reasoningSection.classList.add("collapsed");
     }
-    const reasoningHeader = document.createElement("div");
+    const reasoningHeader = document.createElement("button");
     reasoningHeader.className = "reasoning-section-header";
+    reasoningHeader.type = "button";
     reasoningHeader.textContent = "Reasoning";
     reasoningHeader.setAttribute("role", "button");
-    reasoningHeader.setAttribute("tabindex", "0");
+    const reasoningBodyId = `reasoning-section-body-${reasoningSectionCounter++}`;
+    reasoningHeader.setAttribute("aria-controls", reasoningBodyId);
     reasoningHeader.setAttribute("aria-expanded", String(isExpanded));
     const reasoningBody = document.createElement("div");
     reasoningBody.className = "reasoning-section-body";
+    reasoningBody.id = reasoningBodyId;
     reasoningBody.innerHTML = formatCodeBlocks(reasoning || "");
     addCodeCopyButtons(reasoningBody);
     const toggleReasoningSection = () => {
@@ -1005,12 +1014,6 @@ function renderAssistantContentParts(container, reasoning, content, options = {}
       container.dataset.reasoningExpanded = String(nextExpanded);
     };
     reasoningHeader.addEventListener("click", toggleReasoningSection);
-    reasoningHeader.addEventListener("keydown", (event) => {
-      if(event.key === "Enter" || event.key === " "){
-        event.preventDefault();
-        toggleReasoningSection();
-      }
-    });
     reasoningSection.appendChild(reasoningHeader);
     reasoningSection.appendChild(reasoningBody);
     container.appendChild(reasoningSection);
@@ -1024,10 +1027,13 @@ function renderAssistantContentParts(container, reasoning, content, options = {}
   container.appendChild(contentBody);
 }
 
-function renderAssistantContent(container, text, model) {
+function renderAssistantContent(container, text, model, options = {}) {
   if(!container) return;
   const { reasoning, content } = splitReasoningContent(text, model);
-  renderAssistantContentParts(container, reasoning, content, { defaultReasoningCollapsed: true });
+  renderAssistantContentParts(container, reasoning, content, {
+    defaultReasoningCollapsed: true,
+    resetReasoningExpanded: options.resetReasoningExpanded
+  });
 }
 
 function addCodeCopyButtons(root){
@@ -6043,11 +6049,14 @@ chatSendBtnEl?.addEventListener("click", async () => {
           contentText += streamBuffer;
         }
       }
-      renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: true });
+      renderAssistantContentParts(botBody, reasoningText, contentText, {
+        defaultReasoningCollapsed: true,
+        resetReasoningExpanded: true
+      });
       addFilesFromCodeBlocks(contentText);
       finalResponseText = contentText;
     } else {
-      renderAssistantContent(botBody, partialText, modelName);
+      renderAssistantContent(botBody, partialText, modelName, { resetReasoningExpanded: true });
       addFilesFromCodeBlocks(partialText);
       finalResponseText = partialText;
     }
