@@ -4405,7 +4405,7 @@ app.all("/index.html", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  const sessionId = getSessionIdFromRequest(req);
+  let sessionId = getSessionIdFromRequest(req);
   if (req.hostname === "dev.alfe.sh") {
     try {
       const { uuid } = db.createChatTab(
@@ -4446,14 +4446,40 @@ app.get("/", (req, res) => {
   }
   try {
     if (!sessionId) {
-      console.debug("[Server Debug] GET / => Redirecting to alfe.sh");
-      return res.redirect("https://alfe.sh");
+      const ensured = ensureSessionIdCookie(req, res);
+      sessionId = ensured.sessionId;
+      const { id: tabId, uuid } = db.createChatTab(
+        "Untitled",
+        0,
+        "",
+        "",
+        "",
+        0,
+        "chat",
+        sessionId,
+        0
+      );
+      writeSessionAwareSetting(sessionId, "last_chat_tab", tabId);
+      console.debug("[Server Debug] GET / => Created new chat tab");
+      return res.redirect(`/chat/${uuid}`);
     }
 
     const tabs = db.listChatTabs(null, false, sessionId);
     if (tabs.length === 0) {
-      console.debug("[Server Debug] GET / => Redirecting to alfe.sh");
-      return res.redirect("https://alfe.sh");
+      const { id: tabId, uuid } = db.createChatTab(
+        "Untitled",
+        0,
+        "",
+        "",
+        "",
+        0,
+        "chat",
+        sessionId,
+        0
+      );
+      writeSessionAwareSetting(sessionId, "last_chat_tab", tabId);
+      console.debug("[Server Debug] GET / => Created new chat tab");
+      return res.redirect(`/chat/${uuid}`);
     }
 
     const lastTabId = readSessionAwareSetting(sessionId, "last_chat_tab");
