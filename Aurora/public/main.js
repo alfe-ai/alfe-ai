@@ -1632,6 +1632,21 @@ function hidePageLoader(){
 
 let authEmailValue = "";
 
+function isBasicEmailValid(email){
+  if(!email){
+    return false;
+  }
+  const atIndex = email.indexOf("@");
+  if(atIndex <= 0){
+    return false;
+  }
+  const dotIndex = email.indexOf(".", atIndex + 1);
+  if(dotIndex <= atIndex + 1){
+    return false;
+  }
+  return dotIndex < email.length - 1;
+}
+
 function setAuthEmailValue(email){
   authEmailValue = email;
   const loginEmail = document.getElementById("loginEmail");
@@ -1725,6 +1740,10 @@ async function checkAuthEmailAndContinue(){
   const email = emailInput ? emailInput.value.trim() : "";
   if(!email){
     showToast("Email required");
+    return;
+  }
+  if(!isBasicEmailValid(email)){
+    showToast("Enter a valid email address");
     return;
   }
   try {
@@ -5094,6 +5113,10 @@ if (signupSubmitBtn) {
       showToast("Email and password required");
       return;
     }
+    if(!isBasicEmailValid(email)){
+      showToast("Enter a valid email address");
+      return;
+    }
     if(confirm !== undefined && password !== confirm){
       showToast("Passwords do not match");
       return;
@@ -5149,6 +5172,10 @@ if (loginSubmitBtn) {
     const token = document.getElementById("loginTotp")?.value.trim();
     if(!email || !password){
       showToast("Email and password required");
+      return;
+    }
+    if(!isBasicEmailValid(email)){
+      showToast("Enter a valid email address");
       return;
     }
     try {
