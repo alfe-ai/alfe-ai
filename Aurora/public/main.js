@@ -93,6 +93,16 @@ const imageUploadConfig = (() => {
     enabledValue === '1';
   return { enabled };
 })();
+const themeVisibilityConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const hiddenValue = flags.hideThemeOption;
+  const hidden =
+    hiddenValue === true ||
+    hiddenValue === 'true' ||
+    hiddenValue === 1 ||
+    hiddenValue === '1';
+  return { hidden };
+})();
 
 const DEFAULT_CODE_REDIRECT_TARGET = 'https://code.alfe.sh';
 const codeRedirectConfig = (() => {
@@ -292,8 +302,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  if (themeVisibilityConfig.hidden) {
+    const themeSection = document.getElementById('themeSection');
+    if (themeSection) {
+      themeSection.style.display = 'none';
+    }
+  }
+
   const themeSelect = document.getElementById('themeSelect');
-  if(themeSelect){
+  if(themeSelect && !themeVisibilityConfig.hidden){
     themeSelect.value = getStoredTheme();
     themeSelect?.addEventListener('change', (event) => {
       setTheme(event.target.value);
