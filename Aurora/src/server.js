@@ -2609,8 +2609,9 @@ app.post("/api/chat", async (req, res) => {
       console.debug("[Server Debug] AI streaming started...");
       res.flushHeaders();
 
-      let reasoningText = "";
-      let contentText = "";
+      let reasoningSeen = false;
+      let contentSeen = false;
+      let insertedSeparator = false;
       for await (const part of stream) {
         const delta = part.choices?.[0]?.delta || {};
         const reasoningChunk =
@@ -2629,19 +2630,22 @@ app.post("/api/chat", async (req, res) => {
         }
         if (reasoningChunk) {
           const cleanChunk = stripUtmSource(reasoningChunk);
-          reasoningText += cleanChunk;
+          reasoningSeen = true;
+          assistantMessage += cleanChunk;
           writeReasoningChunk("reasoning", cleanChunk);
         }
         if (contentChunk) {
           const cleanChunk = stripUtmSource(contentChunk);
-          contentText += cleanChunk;
+          if (reasoningSeen && !contentSeen && !insertedSeparator) {
+            assistantMessage += "\n\n";
+            insertedSeparator = true;
+          }
+          assistantMessage += cleanChunk;
           writeReasoningChunk("content", cleanChunk);
+          contentSeen = true;
         }
         if (res.flush) res.flush();
       }
-      assistantMessage = reasoningText
-        ? `${reasoningText}\n\n${contentText}`.trim()
-        : contentText;
       res.end();
       console.debug("[Server Debug] AI streaming finished, total length =>", assistantMessage.length);
 
