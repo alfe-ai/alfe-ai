@@ -1693,6 +1693,10 @@ function showSignupForm(){
   const signup = document.getElementById('signupForm');
   if(login) login.style.display = 'none';
   if(signup) signup.style.display = 'block';
+  const signupPassword = document.getElementById("signupPassword");
+  if(signupPassword){
+    updateSignupPasswordRequirements(signupPassword.value);
+  }
 }
 
 function showLoginForm(){
@@ -1732,6 +1736,23 @@ function openLoginModal(e){
   }
   showAuthEmailStep({ keepEmail: false });
   showModal(document.getElementById("authModal"));
+}
+
+function updateSignupPasswordRequirements(password = ""){
+  const normalized = `${password ?? ""}`;
+  const requirements = {
+    "length-8": normalized.length >= 8,
+    "length-12": normalized.length >= 12,
+    "upper-lower": /[a-z]/.test(normalized) && /[A-Z]/.test(normalized),
+    "number": /\d/.test(normalized),
+    "symbol": /[#$&]/.test(normalized)
+  };
+  document.querySelectorAll(".password-requirements__checkbox").forEach((checkbox) => {
+    const key = checkbox.dataset.requirement;
+    if(key && key in requirements){
+      checkbox.checked = requirements[key];
+    }
+  });
 }
 
 async function checkAuthEmailAndContinue(){
@@ -5142,6 +5163,14 @@ if (signupSubmitBtn) {
       showToast("Registration failed");
     }
   });
+}
+
+const signupPasswordInput = document.getElementById("signupPassword");
+if(signupPasswordInput){
+  const updateSignupRequirements = () =>
+    updateSignupPasswordRequirements(signupPasswordInput.value);
+  signupPasswordInput.addEventListener("input", updateSignupRequirements);
+  updateSignupRequirements();
 }
 
 const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
