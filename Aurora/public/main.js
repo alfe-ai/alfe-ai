@@ -970,21 +970,47 @@ function splitReasoningContent(text, model) {
   return { reasoning, content };
 }
 
-function renderAssistantContentParts(container, reasoning, content) {
+function renderAssistantContentParts(container, reasoning, content, options = {}) {
   if(!container) return;
   const hasReasoning = Boolean(reasoning);
+  const defaultReasoningCollapsed = options.defaultReasoningCollapsed ?? false;
+  const storedExpanded = container.dataset.reasoningExpanded;
+  const isExpanded = storedExpanded === "true"
+    ? true
+    : storedExpanded === "false"
+      ? false
+      : !defaultReasoningCollapsed;
   container.innerHTML = "";
 
   if(hasReasoning){
     const reasoningSection = document.createElement("div");
     reasoningSection.className = "reasoning-section";
+    if(!isExpanded){
+      reasoningSection.classList.add("collapsed");
+    }
     const reasoningHeader = document.createElement("div");
     reasoningHeader.className = "reasoning-section-header";
     reasoningHeader.textContent = "Reasoning";
+    reasoningHeader.setAttribute("role", "button");
+    reasoningHeader.setAttribute("tabindex", "0");
+    reasoningHeader.setAttribute("aria-expanded", String(isExpanded));
     const reasoningBody = document.createElement("div");
     reasoningBody.className = "reasoning-section-body";
     reasoningBody.innerHTML = formatCodeBlocks(reasoning || "");
     addCodeCopyButtons(reasoningBody);
+    const toggleReasoningSection = () => {
+      const nextExpanded = reasoningSection.classList.contains("collapsed");
+      reasoningSection.classList.toggle("collapsed", !nextExpanded);
+      reasoningHeader.setAttribute("aria-expanded", String(nextExpanded));
+      container.dataset.reasoningExpanded = String(nextExpanded);
+    };
+    reasoningHeader.addEventListener("click", toggleReasoningSection);
+    reasoningHeader.addEventListener("keydown", (event) => {
+      if(event.key === "Enter" || event.key === " "){
+        event.preventDefault();
+        toggleReasoningSection();
+      }
+    });
     reasoningSection.appendChild(reasoningHeader);
     reasoningSection.appendChild(reasoningBody);
     container.appendChild(reasoningSection);
@@ -1001,7 +1027,7 @@ function renderAssistantContentParts(container, reasoning, content) {
 function renderAssistantContent(container, text, model) {
   if(!container) return;
   const { reasoning, content } = splitReasoningContent(text, model);
-  renderAssistantContentParts(container, reasoning, content);
+  renderAssistantContentParts(container, reasoning, content, { defaultReasoningCollapsed: true });
 }
 
 function addCodeCopyButtons(root){
@@ -5969,7 +5995,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
         streamBuffer = lines.pop() || "";
         lines.forEach(line => {
           handleReasoningLine(line);
-          renderAssistantContentParts(botBody, reasoningText, contentText);
+          renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: false });
         });
       } else {
         rawResponseText += chunkText;
@@ -5991,7 +6017,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
             contentText = "";
             botBody.innerHTML = "";
             lines.forEach(line => handleReasoningLine(line));
-            renderAssistantContentParts(botBody, reasoningText, contentText);
+            renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: false });
             continue;
           }
           rawResponseText = lines.concat(remainder).join("\n");
@@ -6017,7 +6043,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
           contentText += streamBuffer;
         }
       }
-      renderAssistantContentParts(botBody, reasoningText, contentText);
+      renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: true });
       addFilesFromCodeBlocks(contentText);
       finalResponseText = contentText;
     } else {
