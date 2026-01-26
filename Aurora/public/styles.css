@@ -925,6 +925,27 @@ body {
   box-shadow: 0 22px 44px rgba(15, 23, 42, 0.55);
 }
 
+.reasoning-section {
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin: 6px 0 12px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.reasoning-section-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.reasoning-section-body {
+  color: var(--text-color);
+}
+
 .chat-bot.has-model-info {
   padding-bottom: 12px;
 }
