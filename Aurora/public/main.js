@@ -848,11 +848,13 @@ function isoDateWithDay(d) {
   return `${day} ${short}`;
 }
 
-const REASONING_SEPARATOR = "\n\n[[AURORA_REASONING]]\n\n";
+const REASONING_MARKER = "[[AURORA_REASONING]]";
+const REASONING_SEPARATOR = `\n\n${REASONING_MARKER}\n\n`;
 
 function stripPlaceholderImageLines(text){
   if(!text) return text;
-  const withoutReasoningMarker = text.split(REASONING_SEPARATOR).join("\n\n");
+  const withoutReasoningMarker = text
+    .replace(/\s*\[\[AURORA_REASONING\]\]\s*/g, "\n");
   return withoutReasoningMarker
     .split("\n")
     // Strip any Alfe placeholder images (abstract calm, puzzle borders, etc.)
@@ -942,28 +944,28 @@ function isReasoningModel(model) {
 
 function splitReasoningContent(text, model) {
   const rawText = text || "";
-  const markerIndex = rawText.indexOf(REASONING_SEPARATOR);
+  const normalizedText = rawText.replace(/\r\n/g, "\n");
+  const markerIndex = normalizedText.indexOf(REASONING_MARKER);
   if(markerIndex !== -1){
-    const reasoningRaw = rawText.slice(0, markerIndex);
-    const contentRaw = rawText.slice(markerIndex + REASONING_SEPARATOR.length);
+    const reasoningRaw = normalizedText.slice(0, markerIndex);
+    const contentRaw = normalizedText.slice(markerIndex + REASONING_MARKER.length);
     const reasoning = stripPlaceholderImageLines(reasoningRaw).trim();
     const content = stripPlaceholderImageLines(contentRaw).trim();
     if(reasoning || content){
       return { reasoning, content };
     }
   }
-  const cleaned = stripPlaceholderImageLines(rawText);
+  const cleaned = stripPlaceholderImageLines(normalizedText);
   if(!cleaned) return { reasoning: "", content: "" };
   if(!isReasoningModel(model)) return { reasoning: "", content: cleaned };
-  const normalized = cleaned.replace(/\r\n/g, "\n");
-  const separatorMatch = normalized.match(/\n\s*\n/);
+  const separatorMatch = cleaned.match(/\n\s*\n/);
   if(!separatorMatch || typeof separatorMatch.index !== "number"){
     return { reasoning: "", content: cleaned };
   }
   const separatorMatchIndex = separatorMatch.index;
   const separatorLength = separatorMatch[0].length;
-  const reasoning = normalized.slice(0, separatorMatchIndex).trim();
-  const content = normalized.slice(separatorMatchIndex + separatorLength).trim();
+  const reasoning = cleaned.slice(0, separatorMatchIndex).trim();
+  const content = cleaned.slice(separatorMatchIndex + separatorLength).trim();
   if(!reasoning || !content) return { reasoning: "", content: cleaned };
   return { reasoning, content };
 }
