@@ -5144,38 +5144,6 @@ if (signupSubmitBtn) {
   });
 }
 
-const signupPasswordInput = document.getElementById("signupPassword");
-const passwordRequirementItems = signupPasswordInput
-  ? document.querySelectorAll(".password-requirements [data-requirement]")
-  : [];
-
-const updatePasswordRequirements = (value = "") => {
-  if(!passwordRequirementItems.length){
-    return;
-  }
-  const requirements = {
-    "min-8": value.length >= 8,
-    "min-12": value.length >= 12,
-    "case": /[a-z]/.test(value) && /[A-Z]/.test(value),
-    "number": /\d/.test(value),
-    "symbol": /[#$&]/.test(value)
-  };
-
-  passwordRequirementItems.forEach((item) => {
-    const requirement = item.dataset.requirement;
-    const met = Boolean(requirements[requirement]);
-    item.classList.toggle("is-met", met);
-    item.setAttribute("aria-checked", met ? "true" : "false");
-  });
-};
-
-if(signupPasswordInput){
-  updatePasswordRequirements(signupPasswordInput.value);
-  signupPasswordInput.addEventListener("input", (event) => {
-    updatePasswordRequirements(event.target.value);
-  });
-}
-
 const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
 if(loginChangeEmailBtn){
   loginChangeEmailBtn?.addEventListener("click", () => showAuthEmailStep({ keepEmail: true }));
