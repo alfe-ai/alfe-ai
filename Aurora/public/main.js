@@ -941,10 +941,15 @@ function splitReasoningContent(text, model) {
   const cleaned = stripPlaceholderImageLines(text || "");
   if(!cleaned) return { reasoning: "", content: "" };
   if(!isReasoningModel(model)) return { reasoning: "", content: cleaned };
-  const separatorIndex = cleaned.indexOf("\n\n");
-  if(separatorIndex === -1) return { reasoning: "", content: cleaned };
-  const reasoning = cleaned.slice(0, separatorIndex).trim();
-  const content = cleaned.slice(separatorIndex + 2).trim();
+  const normalized = cleaned.replace(/\r\n/g, "\n");
+  const separatorMatch = normalized.match(/\n\s*\n/);
+  if(!separatorMatch || typeof separatorMatch.index !== "number"){
+    return { reasoning: "", content: cleaned };
+  }
+  const separatorIndex = separatorMatch.index;
+  const separatorLength = separatorMatch[0].length;
+  const reasoning = normalized.slice(0, separatorIndex).trim();
+  const content = normalized.slice(separatorIndex + separatorLength).trim();
   if(!reasoning || !content) return { reasoning: "", content: cleaned };
   return { reasoning, content };
 }
