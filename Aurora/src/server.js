@@ -787,7 +787,13 @@ function stripUtmSource(text) {
 }
 
 async function callOpenAiModel(client, model, opts = {}) {
-  const { messages = [], max_tokens, temperature, stream = false } = opts;
+  const {
+    messages = [],
+    max_tokens,
+    temperature,
+    stream = false,
+    ...extraOptions
+  } = opts;
 
   // All chat-style models—including codex-mini-latest and openrouter/openai/codex-mini—use the chat endpoint
   return client.chat.completions.create({
@@ -795,7 +801,8 @@ async function callOpenAiModel(client, model, opts = {}) {
     messages,
     max_tokens,
     temperature,
-    stream
+    stream,
+    ...extraOptions
   });
 }
 
@@ -2546,26 +2553,53 @@ app.post("/api/chat", async (req, res) => {
     const useStreaming = (streamingSetting === false) ? false : true;
 
     const citations = [];
+    const includeReasoning = provider === "openrouter";
     if (useStreaming) {
       const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
-        stream: true
+        stream: true,
+        include_reasoning: includeReasoning
       });
 
       console.debug("[Server Debug] AI streaming started...");
       res.flushHeaders();
 
+      let reasoningSeen = false;
+      let contentSeen = false;
+      let insertedSeparator = false;
       for await (const part of stream) {
-        const chunk =
-          part.choices?.[0]?.delta?.content ||
-          part.choices?.[0]?.delta?.text ||
-          part.choices?.[0]?.text || "";
-        if (chunk.includes("[DONE]")) {
+        const delta = part.choices?.[0]?.delta || {};
+        const reasoningChunk =
+          delta.reasoning ||
+          delta.reasoning_content ||
+          delta.thoughts ||
+          "";
+        const contentChunk =
+          delta.content ||
+          delta.text ||
+          part.choices?.[0]?.text ||
+          "";
+        if ((reasoningChunk || contentChunk).includes("[DONE]")) {
           break;
         }
-        const cleanChunk = stripUtmSource(chunk);
-        assistantMessage += cleanChunk;
-        res.write(cleanChunk);
+        if (reasoningChunk) {
+          const cleanChunk = stripUtmSource(reasoningChunk);
+          reasoningSeen = true;
+          assistantMessage += cleanChunk;
+          res.write(cleanChunk);
+        }
+        if (contentChunk) {
+          const cleanChunk = stripUtmSource(contentChunk);
+          if (reasoningSeen && !contentSeen && !insertedSeparator) {
+            const separator = "\n\n";
+            assistantMessage += separator;
+            res.write(separator);
+            insertedSeparator = true;
+          }
+          assistantMessage += cleanChunk;
+          res.write(cleanChunk);
+          contentSeen = true;
+        }
         if (res.flush) res.flush();
       }
       res.end();
@@ -2573,11 +2607,21 @@ app.post("/api/chat", async (req, res) => {
 
     } else {
       const completion = await callOpenAiModel(openaiClient, modelForOpenAI, {
-        messages: truncatedConversation
+        messages: truncatedConversation,
+        include_reasoning: includeReasoning
       });
-      assistantMessage =
+      const reasoningText =
+        completion.choices?.[0]?.message?.reasoning ||
+        completion.choices?.[0]?.message?.reasoning_content ||
+        completion.choices?.[0]?.message?.thoughts ||
+        "";
+      const contentText =
         completion.choices?.[0]?.message?.content ||
-        completion.choices?.[0]?.text || "";
+        completion.choices?.[0]?.text ||
+        "";
+      assistantMessage = reasoningText
+        ? `${reasoningText}\n\n${contentText}`.trim()
+        : contentText;
       assistantMessage = stripUtmSource(assistantMessage);
       res.write(assistantMessage);
       res.end();
