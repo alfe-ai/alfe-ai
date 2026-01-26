@@ -940,16 +940,24 @@ function isReasoningModel(model) {
 function splitReasoningContent(text, model) {
   const cleaned = stripPlaceholderImageLines(text || "");
   if(!cleaned) return { reasoning: "", content: "" };
+  const reasoningSeparator = "\u001F";
+  const separatorIndex = cleaned.indexOf(reasoningSeparator);
+  if(separatorIndex !== -1){
+    const reasoning = cleaned.slice(0, separatorIndex).trim();
+    const content = cleaned.slice(separatorIndex + reasoningSeparator.length).trim();
+    if(reasoning && content) return { reasoning, content };
+    return { reasoning: "", content: cleaned.replace(reasoningSeparator, "").trim() };
+  }
   if(!isReasoningModel(model)) return { reasoning: "", content: cleaned };
   const normalized = cleaned.replace(/\r\n/g, "\n");
   const separatorMatch = normalized.match(/\n\s*\n/);
   if(!separatorMatch || typeof separatorMatch.index !== "number"){
     return { reasoning: "", content: cleaned };
   }
-  const separatorIndex = separatorMatch.index;
+  const separatorMatchIndex = separatorMatch.index;
   const separatorLength = separatorMatch[0].length;
-  const reasoning = normalized.slice(0, separatorIndex).trim();
-  const content = normalized.slice(separatorIndex + separatorLength).trim();
+  const reasoning = normalized.slice(0, separatorMatchIndex).trim();
+  const content = normalized.slice(separatorMatchIndex + separatorLength).trim();
   if(!reasoning || !content) return { reasoning: "", content: cleaned };
   return { reasoning, content };
 }

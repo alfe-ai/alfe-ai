@@ -2588,6 +2588,7 @@ app.post("/api/chat", async (req, res) => {
 
     const citations = [];
     const includeReasoning = provider === "openrouter";
+    const reasoningSeparator = "\u001F";
     if (useStreaming) {
       const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
@@ -2626,9 +2627,8 @@ app.post("/api/chat", async (req, res) => {
         if (contentChunk) {
           const cleanChunk = stripUtmSource(contentChunk);
           if (reasoningSeen && !contentSeen && !insertedSeparator) {
-            const separator = "\n\n";
-            assistantMessage += separator;
-            res.write(separator);
+            assistantMessage += reasoningSeparator;
+            res.write(reasoningSeparator);
             insertedSeparator = true;
           }
           assistantMessage += cleanChunk;
@@ -2655,9 +2655,11 @@ app.post("/api/chat", async (req, res) => {
         completion.choices?.[0]?.message?.content ||
         completion.choices?.[0]?.text ||
         "";
-      assistantMessage = reasoningText
-        ? `${reasoningText}\n\n${contentText}`.trim()
-        : contentText;
+      if (reasoningText && contentText) {
+        assistantMessage = `${reasoningText}${reasoningSeparator}${contentText}`.trim();
+      } else {
+        assistantMessage = reasoningText || contentText;
+      }
       assistantMessage = stripUtmSource(assistantMessage);
       res.write(assistantMessage);
       res.end();
