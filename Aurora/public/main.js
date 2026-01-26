@@ -5849,6 +5849,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
   let reasoningText = "";
   let contentText = "";
   let streamBuffer = "";
+  let rawResponseText = "";
   let isReasoningStream = false;
   let finalResponseText = "";
   let waitTime=0;
@@ -5916,6 +5917,32 @@ chatSendBtnEl?.addEventListener("click", async () => {
     if(!reader){
       throw new Error('Readable stream missing from response.');
     }
+    const isReasoningNdjsonPayload = (parsed) => {
+      if(!parsed) return false;
+      if(["reasoning", "content", "final"].includes(parsed.type)) return true;
+      return typeof parsed.reasoning === "string" || typeof parsed.content === "string";
+    };
+    const handleReasoningLine = (line) => {
+      if(!line.trim()) return;
+      let parsed = null;
+      try {
+        parsed = JSON.parse(line);
+      } catch (err) {
+        contentText += line;
+        return;
+      }
+      if(parsed?.type === "reasoning"){
+        reasoningText += parsed.text || "";
+      } else if(parsed?.type === "content"){
+        contentText += parsed.text || "";
+      } else if(parsed?.type === "final"){
+        reasoningText += parsed.reasoning || "";
+        contentText += parsed.content || "";
+      } else if(typeof parsed?.text === "string") {
+        contentText += parsed.text;
+      }
+    };
+
     while(true){
       const { value, done } = await reader.read();
       if(done) break;
@@ -5925,29 +5952,35 @@ chatSendBtnEl?.addEventListener("click", async () => {
         const lines = streamBuffer.split("\n");
         streamBuffer = lines.pop() || "";
         lines.forEach(line => {
-          if(!line.trim()) return;
-          let parsed = null;
-          try {
-            parsed = JSON.parse(line);
-          } catch (err) {
-            contentText += line;
-            renderAssistantContentParts(botBody, reasoningText, contentText);
-            return;
-          }
-          if(parsed?.type === "reasoning"){
-            reasoningText += parsed.text || "";
-          } else if(parsed?.type === "content"){
-            contentText += parsed.text || "";
-          } else if(parsed?.type === "final"){
-            reasoningText += parsed.reasoning || "";
-            contentText += parsed.content || "";
-          } else if(typeof parsed?.text === "string") {
-            contentText += parsed.text;
-          }
+          handleReasoningLine(line);
           renderAssistantContentParts(botBody, reasoningText, contentText);
         });
       } else {
-        partialText += chunkText;
+        rawResponseText += chunkText;
+        if(rawResponseText.includes("\n")){
+          const lines = rawResponseText.split("\n");
+          const remainder = lines.pop() || "";
+          const detected = lines.some(line => {
+            if(!line.trim()) return false;
+            try {
+              return isReasoningNdjsonPayload(JSON.parse(line));
+            } catch (err) {
+              return false;
+            }
+          });
+          if(detected){
+            isReasoningStream = true;
+            streamBuffer = remainder;
+            reasoningText = "";
+            contentText = "";
+            botBody.innerHTML = "";
+            lines.forEach(line => handleReasoningLine(line));
+            renderAssistantContentParts(botBody, reasoningText, contentText);
+            continue;
+          }
+          rawResponseText = lines.concat(remainder).join("\n");
+        }
+        partialText = rawResponseText;
         renderAssistantContent(botBody, partialText, modelName);
       }
     }
