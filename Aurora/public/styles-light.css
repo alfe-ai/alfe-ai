@@ -207,6 +207,11 @@ select {
   color: #1e293b;
 }
 
+#settingsBtn,
+#signupBtn {
+  font-size: 1.15rem;
+}
+
 .top-right-buttons .top-btn:hover {
   background: rgba(124, 58, 237, 0.16);
   border-color: var(--accent);
