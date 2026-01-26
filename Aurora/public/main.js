@@ -5099,13 +5099,6 @@ if(authEmailInput){
     }
   });
 }
-const authEmailCancelBtn = document.getElementById("authEmailCancelBtn");
-if(authEmailCancelBtn){
-  authEmailCancelBtn?.addEventListener("click", () => {
-    setAuthEmailValue("");
-    hideModal(document.getElementById("authModal"));
-  });
-}
 const signupSubmitBtn = document.getElementById("signupSubmitBtn");
 if (signupSubmitBtn) {
   signupSubmitBtn?.addEventListener("click", async () => {
@@ -5149,13 +5142,6 @@ if (signupSubmitBtn) {
       showToast("Registration failed");
     }
   });
-}
-
-const loginCancelBtn = document.getElementById("loginCancelBtn");
-if (loginCancelBtn) {
-  loginCancelBtn?.addEventListener("click", () =>
-    hideModal(document.getElementById("authModal"))
-  );
 }
 
 const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
