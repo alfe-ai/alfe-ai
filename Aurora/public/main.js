@@ -1259,6 +1259,9 @@ function getDisplayModelName(model){
   if(displayName.startsWith('openai/')){
     displayName = displayName.slice('openai/'.length);
   }
+  if(displayName.endsWith(':free')){
+    displayName = displayName.slice(0, -':free'.length);
+  }
   return displayName;
 }
 
