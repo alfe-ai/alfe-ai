@@ -5150,6 +5150,7 @@ if(authEmailInput){
     setAuthEmailValue(event.target.value);
   });
 }
+const MIN_PASSWORD_LENGTH = 8;
 const signupSubmitBtn = document.getElementById("signupSubmitBtn");
 if (signupSubmitBtn) {
   signupSubmitBtn?.addEventListener("click", async () => {
@@ -5165,6 +5166,10 @@ if (signupSubmitBtn) {
     }
     if(!isBasicEmailValid(email)){
       showToast("Enter a valid email address");
+      return;
+    }
+    if(password.length < MIN_PASSWORD_LENGTH){
+      showToast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
     if(confirm !== undefined && password !== confirm){
@@ -5406,6 +5411,10 @@ if(changePasswordBtn){
     const confirm = document.getElementById('confirmPassword').value;
     if(!current || !pw){
       showToast('All fields required');
+      return;
+    }
+    if(pw.length < MIN_PASSWORD_LENGTH){
+      showToast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
     if(pw !== confirm){

@@ -34,6 +34,7 @@ function parseBooleanEnv(value, defaultValue = false) {
 
 const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
 const IMAGE_UPLOAD_ENABLED = parseBooleanEnv(process.env.IMAGE_UPLOAD_ENABLED, false);
+const MIN_PASSWORD_LENGTH = 8;
 
 const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
 const codeAlfeRedirectEnabled = parseBooleanEnv(
@@ -1798,6 +1799,9 @@ app.post("/api/register", (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: "email and password required" });
     }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
     if (db.getAccountByEmail(email)) {
       return res.status(400).json({ error: "account exists" });
     }
@@ -1964,6 +1968,9 @@ app.post("/api/account/password", (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: "current and new password required" });
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
   }
   if (!verifyPassword(currentPassword, account.password_hash)) {
     return res.status(400).json({ error: "incorrect password" });
