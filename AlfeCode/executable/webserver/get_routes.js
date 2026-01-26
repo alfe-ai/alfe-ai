@@ -94,6 +94,16 @@ function setupGetRoutes(deps) {
         }
         return normalized;
     };
+    const normalizeBaseUrl = (value) => {
+        if (typeof value !== "string") {
+            return "";
+        }
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return "";
+        }
+        return trimmed.replace(/\/+$/, "");
+    };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
@@ -2021,6 +2031,10 @@ ${cleanedFinalOutput}`;
                 : process.env.OPENROUTER_APP_TITLE
                     || process.env.X_TITLE
                     || "Agent via OpenRouter";
+        const chatBaseUrl = normalizeBaseUrl(
+            process.env.ALFE_CHAT_BASE_URL || process.env.ALFE_CHAT_HOST
+        ) || "https://app.alfe.sh";
+        const chatDesignUrl = `${chatBaseUrl}/chat/design`;
         const resolvedEditorTarget = resolveEditorTargetForProjectDir(
             repoDirectoryParam,
             sessionId,
@@ -2041,6 +2055,8 @@ ${cleanedFinalOutput}`;
             defaultOpenRouterTitle,
             isIframeMode,
             editorLaunchConfig: initialEditorLaunchConfig,
+            chatBaseUrl,
+            chatDesignUrl,
 
             editorEnabled: parseBooleanFlag(process.env.EDITOR_ENABLED),
             appVersion    : appVersionDisplay,
