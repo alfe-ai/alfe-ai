@@ -462,6 +462,11 @@ button[aria-disabled='true']:hover {
   color: var(--color-muted);
 }
 
+#status-message:empty {
+  min-height: 0;
+  margin-top: 0;
+}
+
 #status-message.success {
   color: #15803d;
 }
