@@ -9728,7 +9728,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         }
 
         const botBody = document.createElement("div");
-        renderAssistantContent(botBody, p.ai_text || "", p.model);
+        renderAssistantContent(botBody, p.ai_text || "", p.model, { resetReasoningExpanded: true });
         botDiv.appendChild(botBody);
         addFilesFromCodeBlocks(p.ai_text || "");
         appendModelInfoIcon(botDiv, p.model);
@@ -9956,7 +9956,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   }
 
   const botBody = document.createElement("div");
-  renderAssistantContent(botBody, aiText || "", model);
+  renderAssistantContent(botBody, aiText || "", model, { resetReasoningExpanded: true });
   botDiv.appendChild(botBody);
   addFilesFromCodeBlocks(aiText || "");
 
