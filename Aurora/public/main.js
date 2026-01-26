@@ -918,6 +918,70 @@ function formatCodeBlocks(text){
   }).join("");
 }
 
+function getReasoningModelNames() {
+  const models = window.REASONING_TOOLTIP_CONFIG?.reasoningModels || [];
+  return models
+    .map(model => (typeof model === "string" ? model : model?.name))
+    .filter(Boolean);
+}
+
+function isReasoningModel(model) {
+  if(!model) return false;
+  const { shortModel } = parseProviderModel(model);
+  const reasoningModels = getReasoningModelNames();
+  if(settingsCache?.ai_reasoning_model){
+    if(model === settingsCache.ai_reasoning_model || shortModel === settingsCache.ai_reasoning_model){
+      return true;
+    }
+  }
+  return reasoningModels.includes(model) || reasoningModels.includes(shortModel);
+}
+
+function splitReasoningContent(text, model) {
+  const cleaned = stripPlaceholderImageLines(text || "");
+  if(!cleaned) return { reasoning: "", content: "" };
+  if(!isReasoningModel(model)) return { reasoning: "", content: cleaned };
+  const normalized = cleaned.replace(/\r\n/g, "\n");
+  const separatorMatch = normalized.match(/\n\s*\n/);
+  if(!separatorMatch || typeof separatorMatch.index !== "number"){
+    return { reasoning: "", content: cleaned };
+  }
+  const separatorIndex = separatorMatch.index;
+  const separatorLength = separatorMatch[0].length;
+  const reasoning = normalized.slice(0, separatorIndex).trim();
+  const content = normalized.slice(separatorIndex + separatorLength).trim();
+  if(!reasoning || !content) return { reasoning: "", content: cleaned };
+  return { reasoning, content };
+}
+
+function renderAssistantContent(container, text, model) {
+  if(!container) return;
+  const { reasoning, content } = splitReasoningContent(text, model);
+  container.innerHTML = "";
+
+  if(reasoning){
+    const reasoningSection = document.createElement("div");
+    reasoningSection.className = "reasoning-section";
+    const reasoningHeader = document.createElement("div");
+    reasoningHeader.className = "reasoning-section-header";
+    reasoningHeader.textContent = "Reasoning";
+    const reasoningBody = document.createElement("div");
+    reasoningBody.className = "reasoning-section-body";
+    reasoningBody.innerHTML = formatCodeBlocks(reasoning);
+    addCodeCopyButtons(reasoningBody);
+    reasoningSection.appendChild(reasoningHeader);
+    reasoningSection.appendChild(reasoningBody);
+    container.appendChild(reasoningSection);
+  }
+
+  const contentBody = document.createElement("div");
+  contentBody.className = "assistant-message-content";
+  const contentText = reasoning ? content : stripPlaceholderImageLines(text || "");
+  contentBody.innerHTML = formatCodeBlocks(contentText);
+  addCodeCopyButtons(contentBody);
+  container.appendChild(contentBody);
+}
+
 function addCodeCopyButtons(root){
   if(!root) return;
   root.querySelectorAll('pre').forEach(pre => {
@@ -1258,6 +1322,9 @@ function getDisplayModelName(model){
   // Also strip common provider prefixes like `openai/` so UI doesn't show provider prefix
   if(displayName.startsWith('openai/')){
     displayName = displayName.slice('openai/'.length);
+  }
+  if(displayName.endsWith(':free')){
+    displayName = displayName.slice(0, -':free'.length);
   }
   return displayName;
 }
@@ -5841,8 +5908,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
       partialText += new TextDecoder().decode(value);
     }
     // Update once more without the loader after streaming finishes
-    botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(partialText));
-    addCodeCopyButtons(botBody);
+    renderAssistantContent(botBody, partialText, modelName);
     addFilesFromCodeBlocks(partialText);
     if(chatAutoScroll) chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
     clearInterval(ellipsisInterval);
@@ -9512,8 +9578,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         }
 
         const botBody = document.createElement("div");
-        botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(p.ai_text || ""));
-        addCodeCopyButtons(botBody);
+        renderAssistantContent(botBody, p.ai_text || "", p.model);
         botDiv.appendChild(botBody);
         addFilesFromCodeBlocks(p.ai_text || "");
         appendModelInfoIcon(botDiv, p.model);
@@ -9741,8 +9806,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   }
 
   const botBody = document.createElement("div");
-  botBody.innerHTML = formatCodeBlocks(stripPlaceholderImageLines(aiText || ""));
-  addCodeCopyButtons(botBody);
+  renderAssistantContent(botBody, aiText || "", model);
   botDiv.appendChild(botBody);
   addFilesFromCodeBlocks(aiText || "");
 

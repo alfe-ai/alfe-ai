@@ -786,8 +786,48 @@ function stripUtmSource(text) {
   });
 }
 
+function normalizeReasoningDetails(details) {
+  if (!details) return "";
+  if (typeof details === "string") return details;
+  if (!Array.isArray(details)) {
+    if (typeof details === "object") {
+      return (
+        details.text ||
+        details.summary ||
+        details.reasoning ||
+        details.content ||
+        ""
+      );
+    }
+    return "";
+  }
+  return details
+    .map((item) => {
+      if (!item) return "";
+      if (typeof item === "string") return item;
+      if (typeof item === "object") {
+        return (
+          item.text ||
+          item.summary ||
+          item.reasoning ||
+          item.content ||
+          ""
+        );
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 async function callOpenAiModel(client, model, opts = {}) {
-  const { messages = [], max_tokens, temperature, stream = false } = opts;
+  const {
+    messages = [],
+    max_tokens,
+    temperature,
+    stream = false,
+    ...extraOptions
+  } = opts;
 
   // All chat-style models—including codex-mini-latest and openrouter/openai/codex-mini—use the chat endpoint
   return client.chat.completions.create({
@@ -795,7 +835,8 @@ async function callOpenAiModel(client, model, opts = {}) {
     messages,
     max_tokens,
     temperature,
-    stream
+    stream,
+    ...extraOptions
   });
 }
 
@@ -2546,26 +2587,54 @@ app.post("/api/chat", async (req, res) => {
     const useStreaming = (streamingSetting === false) ? false : true;
 
     const citations = [];
+    const includeReasoning = provider === "openrouter";
     if (useStreaming) {
       const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
-        stream: true
+        stream: true,
+        ...(includeReasoning ? { reasoning: {} } : {})
       });
 
       console.debug("[Server Debug] AI streaming started...");
       res.flushHeaders();
 
+      let reasoningSeen = false;
+      let contentSeen = false;
+      let insertedSeparator = false;
       for await (const part of stream) {
-        const chunk =
-          part.choices?.[0]?.delta?.content ||
-          part.choices?.[0]?.delta?.text ||
-          part.choices?.[0]?.text || "";
-        if (chunk.includes("[DONE]")) {
+        const delta = part.choices?.[0]?.delta || {};
+        const reasoningChunk =
+          delta.reasoning ||
+          normalizeReasoningDetails(delta.reasoning_details) ||
+          delta.reasoning_content ||
+          delta.thoughts ||
+          "";
+        const contentChunk =
+          delta.content ||
+          delta.text ||
+          part.choices?.[0]?.text ||
+          "";
+        if ((reasoningChunk || contentChunk).includes("[DONE]")) {
           break;
         }
-        const cleanChunk = stripUtmSource(chunk);
-        assistantMessage += cleanChunk;
-        res.write(cleanChunk);
+        if (reasoningChunk) {
+          const cleanChunk = stripUtmSource(reasoningChunk);
+          reasoningSeen = true;
+          assistantMessage += cleanChunk;
+          res.write(cleanChunk);
+        }
+        if (contentChunk) {
+          const cleanChunk = stripUtmSource(contentChunk);
+          if (reasoningSeen && !contentSeen && !insertedSeparator) {
+            const separator = "\n\n";
+            assistantMessage += separator;
+            res.write(separator);
+            insertedSeparator = true;
+          }
+          assistantMessage += cleanChunk;
+          res.write(cleanChunk);
+          contentSeen = true;
+        }
         if (res.flush) res.flush();
       }
       res.end();
@@ -2573,11 +2642,22 @@ app.post("/api/chat", async (req, res) => {
 
     } else {
       const completion = await callOpenAiModel(openaiClient, modelForOpenAI, {
-        messages: truncatedConversation
+        messages: truncatedConversation,
+        ...(includeReasoning ? { reasoning: {} } : {})
       });
-      assistantMessage =
+      const reasoningText =
+        completion.choices?.[0]?.message?.reasoning ||
+        normalizeReasoningDetails(completion.choices?.[0]?.message?.reasoning_details) ||
+        completion.choices?.[0]?.message?.reasoning_content ||
+        completion.choices?.[0]?.message?.thoughts ||
+        "";
+      const contentText =
         completion.choices?.[0]?.message?.content ||
-        completion.choices?.[0]?.text || "";
+        completion.choices?.[0]?.text ||
+        "";
+      assistantMessage = reasoningText
+        ? `${reasoningText}\n\n${contentText}`.trim()
+        : contentText;
       assistantMessage = stripUtmSource(assistantMessage);
       res.write(assistantMessage);
       res.end();
@@ -4405,7 +4485,7 @@ app.all("/index.html", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  const sessionId = getSessionIdFromRequest(req);
+  let sessionId = getSessionIdFromRequest(req);
   if (req.hostname === "dev.alfe.sh") {
     try {
       const { uuid } = db.createChatTab(
@@ -4446,14 +4526,40 @@ app.get("/", (req, res) => {
   }
   try {
     if (!sessionId) {
-      console.debug("[Server Debug] GET / => Redirecting to alfe.sh");
-      return res.redirect("https://alfe.sh");
+      const ensured = ensureSessionIdCookie(req, res);
+      sessionId = ensured.sessionId;
+      const { id: tabId, uuid } = db.createChatTab(
+        "Untitled",
+        0,
+        "",
+        "",
+        "",
+        0,
+        "chat",
+        sessionId,
+        0
+      );
+      writeSessionAwareSetting(sessionId, "last_chat_tab", tabId);
+      console.debug("[Server Debug] GET / => Created new chat tab");
+      return res.redirect(`/chat/${uuid}`);
     }
 
     const tabs = db.listChatTabs(null, false, sessionId);
     if (tabs.length === 0) {
-      console.debug("[Server Debug] GET / => Redirecting to alfe.sh");
-      return res.redirect("https://alfe.sh");
+      const { id: tabId, uuid } = db.createChatTab(
+        "Untitled",
+        0,
+        "",
+        "",
+        "",
+        0,
+        "chat",
+        sessionId,
+        0
+      );
+      writeSessionAwareSetting(sessionId, "last_chat_tab", tabId);
+      console.debug("[Server Debug] GET / => Created new chat tab");
+      return res.redirect(`/chat/${uuid}`);
     }
 
     const lastTabId = readSessionAwareSetting(sessionId, "last_chat_tab");
