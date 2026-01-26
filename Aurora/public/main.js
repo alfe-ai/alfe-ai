@@ -7990,6 +7990,10 @@ function showTasksPanel(){
 }
 
 async function showUploaderPanel(){
+  if(!accountInfo){
+    openSignupModal();
+    return;
+  }
   sidebarViewTasks.style.display = "none";
   sidebarViewUploader.style.display = "";
   sidebarViewFileTree.style.display = "none";
@@ -11330,6 +11334,10 @@ if(searchToggleBtn){
   searchToggleBtn?.addEventListener("click", async () => {
     searchToggleBtn.disabled = true;
     try {
+      if(!searchEnabled && !accountInfo){
+        openSignupModal();
+        return;
+      }
       await toggleSearch();
     } finally {
       searchToggleBtn.disabled = false;
