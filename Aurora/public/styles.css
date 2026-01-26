@@ -311,6 +311,11 @@ body {
   margin-bottom: 0.75rem;
 }
 
+.modal-content--auth .modal-title-row h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
 .modal-content--auth .auth-benefits {
   margin-bottom: 1rem;
 }
