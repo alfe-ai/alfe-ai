@@ -567,7 +567,7 @@ if (db.getSetting("new_tab_opens_search") === undefined) {
 const app = express();
 
 // Auto-hide cookie banner when requested via env var HIDE_COOKIE_BANNER=true
-const _hideCookieBanner = (typeof process !== 'undefined' && (process.env.HIDE_COOKIE_BANNER === 'true' || process.env.HIDE_COOKIE_BANNER === '1'));
+const _hideCookieBanner = parseBooleanEnv(process.env.HIDE_COOKIE_BANNER, false);
 if (_hideCookieBanner) {
   app.use((req, res, next) => {
     const _send = res.send.bind(res);
@@ -579,6 +579,30 @@ if (_hideCookieBanner) {
             body = body.replace('</head>', inject + '</head>');
           } else if (body.includes('</body>')) {
             body = body.replace('</body>', inject + '</body>');
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      return _send(body);
+    };
+    next();
+  });
+}
+
+// Auto-hide theme selector when requested via env var HIDE_THEME_OPTION=true
+const hideThemeOption = parseBooleanEnv(process.env.HIDE_THEME_OPTION, false);
+if (hideThemeOption) {
+  app.use((req, res, next) => {
+    const _send = res.send.bind(res);
+    res.send = function (body) {
+      try {
+        if (typeof body === 'string') {
+          const inject = "<script>try{window.addEventListener('DOMContentLoaded',()=>{const el=document.getElementById('themeSection');if(el){el.style.display='none';}});}catch(e){};</script>";
+          if (body.includes('</body>')) {
+            body = body.replace('</body>', inject + '</body>');
+          } else if (body.includes('</head>')) {
+            body = body.replace('</head>', inject + '</head>');
           }
         }
       } catch (e) {
