@@ -1333,6 +1333,11 @@ body {
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
+#settingsBtn,
+#signupBtn {
+  font-size: 1.15rem;
+}
+
 .github-button {
   display: inline-flex;
   align-items: center;
