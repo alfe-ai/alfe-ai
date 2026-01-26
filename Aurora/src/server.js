@@ -2548,7 +2548,12 @@ app.post("/api/chat", async (req, res) => {
       }
     }
 
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    const includeReasoning = provider === "openrouter";
+    if (includeReasoning) {
+      res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+    } else {
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    }
     res.setHeader("Transfer-Encoding", "chunked");
     res.setHeader("Cache-Control", "no-cache");
 
@@ -2587,8 +2592,13 @@ app.post("/api/chat", async (req, res) => {
     const useStreaming = (streamingSetting === false) ? false : true;
 
     const citations = [];
-    const includeReasoning = provider === "openrouter";
-    const reasoningSeparator = "\u001F";
+    const writeReasoningChunk = (type, text) => {
+      if (!includeReasoning) {
+        res.write(text);
+        return;
+      }
+      res.write(`${JSON.stringify({ type, text })}\n`);
+    };
     if (useStreaming) {
       const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
@@ -2622,17 +2632,16 @@ app.post("/api/chat", async (req, res) => {
           const cleanChunk = stripUtmSource(reasoningChunk);
           reasoningSeen = true;
           assistantMessage += cleanChunk;
-          res.write(cleanChunk);
+          writeReasoningChunk("reasoning", cleanChunk);
         }
         if (contentChunk) {
           const cleanChunk = stripUtmSource(contentChunk);
           if (reasoningSeen && !contentSeen && !insertedSeparator) {
-            assistantMessage += reasoningSeparator;
-            res.write(reasoningSeparator);
+            assistantMessage += "\n\n";
             insertedSeparator = true;
           }
           assistantMessage += cleanChunk;
-          res.write(cleanChunk);
+          writeReasoningChunk("content", cleanChunk);
           contentSeen = true;
         }
         if (res.flush) res.flush();
@@ -2655,13 +2664,16 @@ app.post("/api/chat", async (req, res) => {
         completion.choices?.[0]?.message?.content ||
         completion.choices?.[0]?.text ||
         "";
-      if (reasoningText && contentText) {
-        assistantMessage = `${reasoningText}${reasoningSeparator}${contentText}`.trim();
-      } else {
-        assistantMessage = reasoningText || contentText;
-      }
+      assistantMessage = reasoningText
+        ? `${reasoningText}\n\n${contentText}`.trim()
+        : contentText;
       assistantMessage = stripUtmSource(assistantMessage);
-      res.write(assistantMessage);
+      if (reasoningText) {
+        writeReasoningChunk("reasoning", stripUtmSource(reasoningText));
+      }
+      if (contentText) {
+        writeReasoningChunk("content", stripUtmSource(contentText));
+      }
       res.end();
       console.debug("[Server Debug] AI non-streaming completed, length =>", assistantMessage.length);
     }
