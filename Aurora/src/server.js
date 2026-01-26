@@ -786,6 +786,40 @@ function stripUtmSource(text) {
   });
 }
 
+function normalizeReasoningDetails(details) {
+  if (!details) return "";
+  if (typeof details === "string") return details;
+  if (!Array.isArray(details)) {
+    if (typeof details === "object") {
+      return (
+        details.text ||
+        details.summary ||
+        details.reasoning ||
+        details.content ||
+        ""
+      );
+    }
+    return "";
+  }
+  return details
+    .map((item) => {
+      if (!item) return "";
+      if (typeof item === "string") return item;
+      if (typeof item === "object") {
+        return (
+          item.text ||
+          item.summary ||
+          item.reasoning ||
+          item.content ||
+          ""
+        );
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 async function callOpenAiModel(client, model, opts = {}) {
   const {
     messages = [],
@@ -2558,7 +2592,7 @@ app.post("/api/chat", async (req, res) => {
       const stream = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
         stream: true,
-        include_reasoning: includeReasoning
+        ...(includeReasoning ? { reasoning: {} } : {})
       });
 
       console.debug("[Server Debug] AI streaming started...");
@@ -2571,6 +2605,7 @@ app.post("/api/chat", async (req, res) => {
         const delta = part.choices?.[0]?.delta || {};
         const reasoningChunk =
           delta.reasoning ||
+          normalizeReasoningDetails(delta.reasoning_details) ||
           delta.reasoning_content ||
           delta.thoughts ||
           "";
@@ -2608,10 +2643,11 @@ app.post("/api/chat", async (req, res) => {
     } else {
       const completion = await callOpenAiModel(openaiClient, modelForOpenAI, {
         messages: truncatedConversation,
-        include_reasoning: includeReasoning
+        ...(includeReasoning ? { reasoning: {} } : {})
       });
       const reasoningText =
         completion.choices?.[0]?.message?.reasoning ||
+        normalizeReasoningDetails(completion.choices?.[0]?.message?.reasoning_details) ||
         completion.choices?.[0]?.message?.reasoning_content ||
         completion.choices?.[0]?.message?.thoughts ||
         "";
