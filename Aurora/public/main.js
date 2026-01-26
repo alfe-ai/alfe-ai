@@ -1691,9 +1691,11 @@ function showAuthEmailStep({ keepEmail = true } = {}){
   }
   authModalStep = "email";
   persistAuthModalState();
+  const benefits = document.querySelector("#authModal .auth-benefits");
   const login = document.getElementById("loginForm");
   const signup = document.getElementById("signupForm");
   const emailStep = document.getElementById("authEmailStep");
+  if(benefits) benefits.style.display = "block";
   if(login) login.style.display = "none";
   if(signup) signup.style.display = "none";
   if(emailStep) emailStep.style.display = "block";
@@ -1716,10 +1718,12 @@ function showSignupForm(){
   }
   authModalStep = "signup";
   persistAuthModalState();
+  const benefits = document.querySelector("#authModal .auth-benefits");
   const emailStep = document.getElementById("authEmailStep");
   if(emailStep) emailStep.style.display = "none";
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
+  if(benefits) benefits.style.display = "none";
   if(login) login.style.display = 'none';
   if(signup) signup.style.display = 'block';
 }
@@ -1737,10 +1741,12 @@ function showLoginForm(){
   }
   authModalStep = "login";
   persistAuthModalState();
+  const benefits = document.querySelector("#authModal .auth-benefits");
   const emailStep = document.getElementById("authEmailStep");
   if(emailStep) emailStep.style.display = "none";
   const login = document.getElementById('loginForm');
   const signup = document.getElementById('signupForm');
+  if(benefits) benefits.style.display = "none";
   if(signup) signup.style.display = 'none';
   if(login) login.style.display = 'block';
   const totpLabel = document.getElementById("totpLoginLabel");
