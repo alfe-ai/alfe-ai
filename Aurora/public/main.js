@@ -7990,6 +7990,10 @@ function showTasksPanel(){
 }
 
 async function showUploaderPanel(){
+  if(!accountInfo){
+    openSignupModal();
+    return;
+  }
   sidebarViewTasks.style.display = "none";
   sidebarViewUploader.style.display = "";
   sidebarViewFileTree.style.display = "none";
