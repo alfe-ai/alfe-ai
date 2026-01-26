@@ -848,9 +848,12 @@ function isoDateWithDay(d) {
   return `${day} ${short}`;
 }
 
+const REASONING_SEPARATOR = "\n\n[[AURORA_REASONING]]\n\n";
+
 function stripPlaceholderImageLines(text){
   if(!text) return text;
-  return text
+  const withoutReasoningMarker = text.split(REASONING_SEPARATOR).join("\n\n");
+  return withoutReasoningMarker
     .split("\n")
     // Strip any Alfe placeholder images (abstract calm, puzzle borders, etc.)
     .filter(line => !/!\[[^\]]*\]\(https?:\/\/alfe\.sh\/[^)]+\)/.test(line.trim()))
@@ -938,7 +941,18 @@ function isReasoningModel(model) {
 }
 
 function splitReasoningContent(text, model) {
-  const cleaned = stripPlaceholderImageLines(text || "");
+  const rawText = text || "";
+  const markerIndex = rawText.indexOf(REASONING_SEPARATOR);
+  if(markerIndex !== -1){
+    const reasoningRaw = rawText.slice(0, markerIndex);
+    const contentRaw = rawText.slice(markerIndex + REASONING_SEPARATOR.length);
+    const reasoning = stripPlaceholderImageLines(reasoningRaw).trim();
+    const content = stripPlaceholderImageLines(contentRaw).trim();
+    if(reasoning || content){
+      return { reasoning, content };
+    }
+  }
+  const cleaned = stripPlaceholderImageLines(rawText);
   if(!cleaned) return { reasoning: "", content: "" };
   if(!isReasoningModel(model)) return { reasoning: "", content: cleaned };
   const normalized = cleaned.replace(/\r\n/g, "\n");
