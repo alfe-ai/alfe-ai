@@ -329,6 +329,11 @@ body {
   margin-top: 0.25rem;
 }
 
+.modal-content--auth .auth-email-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
 .modal-content--iframe {
   display: flex;
   flex-direction: column;
