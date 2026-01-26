@@ -848,9 +848,14 @@ function isoDateWithDay(d) {
   return `${day} ${short}`;
 }
 
+const REASONING_MARKER = "[[AURORA_REASONING]]";
+const REASONING_SEPARATOR = `\n\n${REASONING_MARKER}\n\n`;
+
 function stripPlaceholderImageLines(text){
   if(!text) return text;
-  return text
+  const withoutReasoningMarker = text
+    .replace(/\s*\[\[AURORA_REASONING\]\]\s*/g, "\n");
+  return withoutReasoningMarker
     .split("\n")
     // Strip any Alfe placeholder images (abstract calm, puzzle borders, etc.)
     .filter(line => !/!\[[^\]]*\]\(https?:\/\/alfe\.sh\/[^)]+\)/.test(line.trim()))
@@ -938,37 +943,74 @@ function isReasoningModel(model) {
 }
 
 function splitReasoningContent(text, model) {
-  const cleaned = stripPlaceholderImageLines(text || "");
+  const rawText = text || "";
+  const normalizedText = rawText.replace(/\r\n/g, "\n");
+  const markerIndex = normalizedText.indexOf(REASONING_MARKER);
+  if(markerIndex !== -1){
+    const reasoningRaw = normalizedText.slice(0, markerIndex);
+    const contentRaw = normalizedText.slice(markerIndex + REASONING_MARKER.length);
+    const reasoning = stripPlaceholderImageLines(reasoningRaw).trim();
+    const content = stripPlaceholderImageLines(contentRaw).trim();
+    if(reasoning || content){
+      return { reasoning, content };
+    }
+  }
+  const cleaned = stripPlaceholderImageLines(normalizedText);
   if(!cleaned) return { reasoning: "", content: "" };
   if(!isReasoningModel(model)) return { reasoning: "", content: cleaned };
-  const normalized = cleaned.replace(/\r\n/g, "\n");
-  const separatorMatch = normalized.match(/\n\s*\n/);
+  const separatorMatch = cleaned.match(/\n\s*\n/);
   if(!separatorMatch || typeof separatorMatch.index !== "number"){
     return { reasoning: "", content: cleaned };
   }
   const separatorMatchIndex = separatorMatch.index;
   const separatorLength = separatorMatch[0].length;
-  const reasoning = normalized.slice(0, separatorMatchIndex).trim();
-  const content = normalized.slice(separatorMatchIndex + separatorLength).trim();
+  const reasoning = cleaned.slice(0, separatorMatchIndex).trim();
+  const content = cleaned.slice(separatorMatchIndex + separatorLength).trim();
   if(!reasoning || !content) return { reasoning: "", content: cleaned };
   return { reasoning, content };
 }
 
-function renderAssistantContentParts(container, reasoning, content) {
+function renderAssistantContentParts(container, reasoning, content, options = {}) {
   if(!container) return;
   const hasReasoning = Boolean(reasoning);
+  const defaultReasoningCollapsed = options.defaultReasoningCollapsed ?? false;
+  const storedExpanded = container.dataset.reasoningExpanded;
+  const isExpanded = storedExpanded === "true"
+    ? true
+    : storedExpanded === "false"
+      ? false
+      : !defaultReasoningCollapsed;
   container.innerHTML = "";
 
   if(hasReasoning){
     const reasoningSection = document.createElement("div");
     reasoningSection.className = "reasoning-section";
+    if(!isExpanded){
+      reasoningSection.classList.add("collapsed");
+    }
     const reasoningHeader = document.createElement("div");
     reasoningHeader.className = "reasoning-section-header";
     reasoningHeader.textContent = "Reasoning";
+    reasoningHeader.setAttribute("role", "button");
+    reasoningHeader.setAttribute("tabindex", "0");
+    reasoningHeader.setAttribute("aria-expanded", String(isExpanded));
     const reasoningBody = document.createElement("div");
     reasoningBody.className = "reasoning-section-body";
     reasoningBody.innerHTML = formatCodeBlocks(reasoning || "");
     addCodeCopyButtons(reasoningBody);
+    const toggleReasoningSection = () => {
+      const nextExpanded = reasoningSection.classList.contains("collapsed");
+      reasoningSection.classList.toggle("collapsed", !nextExpanded);
+      reasoningHeader.setAttribute("aria-expanded", String(nextExpanded));
+      container.dataset.reasoningExpanded = String(nextExpanded);
+    };
+    reasoningHeader.addEventListener("click", toggleReasoningSection);
+    reasoningHeader.addEventListener("keydown", (event) => {
+      if(event.key === "Enter" || event.key === " "){
+        event.preventDefault();
+        toggleReasoningSection();
+      }
+    });
     reasoningSection.appendChild(reasoningHeader);
     reasoningSection.appendChild(reasoningBody);
     container.appendChild(reasoningSection);
@@ -985,7 +1027,7 @@ function renderAssistantContentParts(container, reasoning, content) {
 function renderAssistantContent(container, text, model) {
   if(!container) return;
   const { reasoning, content } = splitReasoningContent(text, model);
-  renderAssistantContentParts(container, reasoning, content);
+  renderAssistantContentParts(container, reasoning, content, { defaultReasoningCollapsed: true });
 }
 
 function addCodeCopyButtons(root){
@@ -5953,7 +5995,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
         streamBuffer = lines.pop() || "";
         lines.forEach(line => {
           handleReasoningLine(line);
-          renderAssistantContentParts(botBody, reasoningText, contentText);
+          renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: false });
         });
       } else {
         rawResponseText += chunkText;
@@ -5975,7 +6017,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
             contentText = "";
             botBody.innerHTML = "";
             lines.forEach(line => handleReasoningLine(line));
-            renderAssistantContentParts(botBody, reasoningText, contentText);
+            renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: false });
             continue;
           }
           rawResponseText = lines.concat(remainder).join("\n");
@@ -6001,7 +6043,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
           contentText += streamBuffer;
         }
       }
-      renderAssistantContentParts(botBody, reasoningText, contentText);
+      renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: true });
       addFilesFromCodeBlocks(contentText);
       finalResponseText = contentText;
     } else {

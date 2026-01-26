@@ -934,16 +934,40 @@ body {
 }
 
 .reasoning-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .reasoning-section-body {
   color: var(--text-color);
+}
+
+.reasoning-section-header::after {
+  content: "▾";
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.reasoning-section.collapsed .reasoning-section-header {
+  margin-bottom: 0;
+}
+
+.reasoning-section.collapsed .reasoning-section-header::after {
+  transform: rotate(-90deg);
+}
+
+.reasoning-section.collapsed .reasoning-section-body {
+  display: none;
 }
 
 .chat-bot.has-model-info {

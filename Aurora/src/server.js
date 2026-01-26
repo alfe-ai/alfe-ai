@@ -2592,6 +2592,7 @@ app.post("/api/chat", async (req, res) => {
     const useStreaming = (streamingSetting === false) ? false : true;
 
     const citations = [];
+    const REASONING_SEPARATOR = "\n\n[[AURORA_REASONING]]\n\n";
     const writeReasoningChunk = (type, text) => {
       if (!includeReasoning) {
         res.write(text);
@@ -2637,7 +2638,7 @@ app.post("/api/chat", async (req, res) => {
         if (contentChunk) {
           const cleanChunk = stripUtmSource(contentChunk);
           if (reasoningSeen && !contentSeen && !insertedSeparator) {
-            assistantMessage += "\n\n";
+            assistantMessage += REASONING_SEPARATOR;
             insertedSeparator = true;
           }
           assistantMessage += cleanChunk;
@@ -2665,7 +2666,7 @@ app.post("/api/chat", async (req, res) => {
         completion.choices?.[0]?.text ||
         "";
       assistantMessage = reasoningText
-        ? `${reasoningText}\n\n${contentText}`.trim()
+        ? `${reasoningText}${REASONING_SEPARATOR}${contentText}`.trim()
         : contentText;
       assistantMessage = stripUtmSource(assistantMessage);
       if (reasoningText) {
