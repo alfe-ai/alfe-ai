@@ -1636,15 +1636,11 @@ function isBasicEmailValid(email){
   if(!email){
     return false;
   }
-  const atIndex = email.indexOf("@");
-  if(atIndex <= 0){
+  const normalized = email.trim();
+  if(!normalized){
     return false;
   }
-  const dotIndex = email.indexOf(".", atIndex + 1);
-  if(dotIndex <= atIndex + 1){
-    return false;
-  }
-  return dotIndex < email.length - 1;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
 }
 
 function setAuthEmailValue(email){
@@ -1684,7 +1680,10 @@ function showSignupForm(){
   if(!accountsEnabled){
     return;
   }
-  if(!authEmailValue){
+  if(!authEmailValue || !isBasicEmailValid(authEmailValue)){
+    if(authEmailValue){
+      showToast("Enter a valid email address");
+    }
     showAuthEmailStep({ keepEmail: false });
     return;
   }
@@ -1700,7 +1699,10 @@ function showLoginForm(){
   if(!accountsEnabled){
     return;
   }
-  if(!authEmailValue){
+  if(!authEmailValue || !isBasicEmailValid(authEmailValue)){
+    if(authEmailValue){
+      showToast("Enter a valid email address");
+    }
     showAuthEmailStep({ keepEmail: false });
     return;
   }
@@ -1740,6 +1742,10 @@ async function checkAuthEmailAndContinue(){
   const email = emailInput ? emailInput.value.trim() : "";
   if(!email){
     showToast("Email required");
+    return;
+  }
+  if(emailInput && typeof emailInput.checkValidity === "function" && !emailInput.checkValidity()){
+    showToast("Enter a valid email address");
     return;
   }
   if(!isBasicEmailValid(email)){
