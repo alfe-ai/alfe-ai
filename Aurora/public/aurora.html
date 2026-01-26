@@ -909,13 +909,13 @@
         <input type="password" id="signupConfirm" style="width:100%;" />
       </label>
       <div class="password-requirements" aria-live="polite">
-        <p class="password-requirements__title">Must have at least 8 characters</p>
+        <p class="password-requirements__title password-requirements__check" data-requirement="min-8" role="checkbox" aria-checked="false">Must have at least 8 characters</p>
         <p class="password-requirements__subtitle">It's best to have:</p>
         <ul class="password-requirements__list">
-          <li class="password-requirements__item">At least 12 characters</li>
-          <li class="password-requirements__item">Uppercase and lowercase letters</li>
-          <li class="password-requirements__item">Numbers</li>
-          <li class="password-requirements__item">Symbols (#$&amp;)</li>
+          <li class="password-requirements__item password-requirements__check" data-requirement="min-12" role="checkbox" aria-checked="false">At least 12 characters</li>
+          <li class="password-requirements__item password-requirements__check" data-requirement="case" role="checkbox" aria-checked="false">Uppercase and lowercase letters</li>
+          <li class="password-requirements__item password-requirements__check" data-requirement="number" role="checkbox" aria-checked="false">Numbers</li>
+          <li class="password-requirements__item password-requirements__check" data-requirement="symbol" role="checkbox" aria-checked="false">Symbols (#$&amp;)</li>
         </ul>
       </div>
       <div class="modal-buttons">
