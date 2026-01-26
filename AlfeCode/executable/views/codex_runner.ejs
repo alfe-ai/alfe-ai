@@ -220,23 +220,9 @@
         /* Aurora-inspired agent nav */
         .aurora-nav {
             margin: 6px 0 12px;
-            padding: 10px;
-            background: linear-gradient(145deg, rgba(16, 25, 44, 0.96), rgba(12, 19, 34, 0.92));
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            box-shadow: 0 16px 32px rgba(6, 10, 20, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            width: 100%;
-        }
-
-        .aurora-nav__inner {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            padding: 8px 10px;
-            background: radial-gradient(circle at 20% 14%, rgba(124, 58, 237, 0.16), rgba(12, 15, 28, 0.95));
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 14px;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
             width: 100%;
         }
 
@@ -2530,22 +2516,19 @@
             <div class="runs-sidebar__title-group">
 
                 <nav class="sidebar-nav aurora-nav" aria-label="Agent primary tabs">
-                    <div class="aurora-nav__inner">
-                        <a href="javascript:void(0)" class="sidebar-nav-item" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
-                            <span class="sidebar-nav-item__icon" aria-hidden="true">&lt;/&gt;</span>
-                            <span class="sidebar-nav-item__label">Code</span>
-                        </a>
-                        <a href="<%= chatBaseUrl %>" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="chat" aria-label="Chat tab">
-                            <span class="sidebar-nav-item__icon" aria-hidden="true">💬</span>
-                            <span class="sidebar-nav-item__label">Chat</span>
-                        </a>
-                        <a href="<%= chatDesignUrl %>" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="design" aria-label="Image Design tab">
-                            <span class="sidebar-nav-item__icon" aria-hidden="true">🎨</span>
-                            <span class="sidebar-nav-item__label">Image Design</span>
-                        </a>
-                    </div>
+                    <a href="javascript:void(0)" class="sidebar-nav-item" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
+                        <span class="sidebar-nav-item__icon" aria-hidden="true">&lt;/&gt;</span>
+                        <span class="sidebar-nav-item__label">Code</span>
+                    </a>
+                    <a href="<%= chatBaseUrl %>" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="chat" aria-label="Chat tab">
+                        <span class="sidebar-nav-item__icon" aria-hidden="true">💬</span>
+                        <span class="sidebar-nav-item__label">Chat</span>
+                    </a>
+                    <a href="<%= chatDesignUrl %>" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="design" aria-label="Image Design tab">
+                        <span class="sidebar-nav-item__icon" aria-hidden="true">🎨</span>
+                        <span class="sidebar-nav-item__label">Image Design</span>
+                    </a>
                 </nav>
-</nav>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         try {
