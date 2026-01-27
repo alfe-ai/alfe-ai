@@ -2451,7 +2451,12 @@ app.get("/api/ai/models", async (req, res) => {
     ...deepseekModelData
   ].sort((a, b) => a.id.localeCompare(b.id));
 
-  const favorites = db.getSetting("favorite_ai_models") || [];
+  const favoritesSetting = db.getSetting("favorite_ai_models");
+  const favorites = Array.isArray(favoritesSetting)
+    ? favoritesSetting
+    : favoritesSetting
+        ? [favoritesSetting]
+        : [];
   for (const m of combinedModels) {
     m.favorite = favorites.includes(m.id);
   }
@@ -5175,7 +5180,12 @@ app.post("/api/ai/favorites", (req, res) => {
     if (!modelId || typeof favorite !== "boolean") {
       return res.status(400).json({ error: "Missing modelId or favorite boolean" });
     }
-    let favList = db.getSetting("favorite_ai_models") || [];
+    const favoritesSetting = db.getSetting("favorite_ai_models");
+    let favList = Array.isArray(favoritesSetting)
+      ? favoritesSetting
+      : favoritesSetting
+          ? [favoritesSetting]
+          : [];
     const index = favList.indexOf(modelId);
 
     if (favorite) {
