@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Database Tables</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: #f6f7f9;
+      color: #111;
+    }
+    header {
+      padding: 1.5rem 2rem 0.5rem;
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+    }
+    .layout {
+      display: flex;
+      gap: 1.5rem;
+      padding: 0 2rem 2rem;
+      min-height: calc(100vh - 80px);
+      box-sizing: border-box;
+    }
+    aside {
+      width: 240px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    aside h2 {
+      font-size: 1rem;
+      margin: 0;
+      color: #334155;
+    }
+    .table-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .table-list button {
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 0.45rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.15s ease, border 0.15s ease;
+    }
+    .table-list button:hover,
+    .table-list button:focus {
+      background: #e2e8f0;
+      border-color: #cbd5f5;
+      outline: none;
+    }
+    .table-list button.active {
+      background: #0f172a;
+      color: #fff;
+    }
+    main {
+      flex: 1;
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem 1.5rem 1.5rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toolbar span {
+      color: #475569;
+      font-size: 0.95rem;
+    }
+    .status {
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 600px;
+    }
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.9rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+    }
+    .empty {
+      padding: 1.5rem;
+      color: #94a3b8;
+      text-align: center;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #0b1120;
+        color: #e2e8f0;
+      }
+      aside,
+      main {
+        background: #0f172a;
+        box-shadow: none;
+        border: 1px solid #1e293b;
+      }
+      .table-list button {
+        background: #1e293b;
+        color: #e2e8f0;
+      }
+      .table-list button:hover,
+      .table-list button:focus {
+        background: #334155;
+        border-color: #475569;
+      }
+      .table-list button.active {
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      th {
+        background: #1e293b;
+      }
+      td,
+      th {
+        border-bottom-color: #1f2937;
+      }
+      tbody tr:nth-child(even) {
+        background: #0b1224;
+      }
+      .status,
+      .toolbar span {
+        color: #94a3b8;
+      }
+      .table-wrap {
+        border-color: #1f2937;
+      }
+      a {
+        color: #38bdf8;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Database</h1>
+    <a href="/">← Back</a>
+  </header>
+  <section class="layout">
+    <aside>
+      <h2>Tables</h2>
+      <div class="status" id="tableStatus">Loading tables…</div>
+      <ul class="table-list" id="tableList"></ul>
+    </aside>
+    <main>
+      <div class="toolbar">
+        <span id="activeTable">Select a table to view its contents.</span>
+        <span id="rowMeta"></span>
+      </div>
+      <div class="status" id="dataStatus"></div>
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty">No table selected.</div>
+      </div>
+    </main>
+  </section>
+
+  <script>
+    const tableList = document.getElementById("tableList");
+    const tableStatus = document.getElementById("tableStatus");
+    const activeTable = document.getElementById("activeTable");
+    const rowMeta = document.getElementById("rowMeta");
+    const dataStatus = document.getElementById("dataStatus");
+    const tableWrap = document.getElementById("tableWrap");
+
+    function setActiveButton(name) {
+      document.querySelectorAll(".table-list button").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.table === name);
+      });
+    }
+
+    function renderTable(columns, rows) {
+      if (!columns.length) {
+        tableWrap.innerHTML = "<div class='empty'>No columns found.</div>";
+        return;
+      }
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      columns.forEach((col) => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      if (!rows.length) {
+        const emptyRow = document.createElement("tr");
+        const emptyCell = document.createElement("td");
+        emptyCell.colSpan = columns.length;
+        emptyCell.className = "empty";
+        emptyCell.textContent = "No rows found.";
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+      } else {
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          columns.forEach((col) => {
+            const td = document.createElement("td");
+            const value = row[col];
+            if (value && typeof value === "object") {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(value, null, 2);
+              td.appendChild(pre);
+            } else {
+              td.textContent = value === null || typeof value === "undefined" ? "" : String(value);
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+      table.appendChild(tbody);
+      tableWrap.innerHTML = "";
+      tableWrap.appendChild(table);
+    }
+
+    async function loadTables() {
+      try {
+        const res = await fetch("/api/db/tables");
+        if (!res.ok) throw new Error("Failed to load tables");
+        const data = await res.json();
+        const tables = data.tables || [];
+        tableStatus.textContent = tables.length ? "" : "No tables found.";
+        tableList.innerHTML = "";
+        tables.forEach((name) => {
+          const li = document.createElement("li");
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = name;
+          btn.dataset.table = name;
+          btn.addEventListener("click", () => loadTableData(name));
+          li.appendChild(btn);
+          tableList.appendChild(li);
+        });
+        if (tables.length) {
+          loadTableData(tables[0]);
+        }
+      } catch (err) {
+        tableStatus.textContent = "Unable to load tables.";
+        console.error(err);
+      }
+    }
+
+    async function loadTableData(name) {
+      try {
+        setActiveButton(name);
+        activeTable.textContent = `Table: ${name}`;
+        dataStatus.textContent = "Loading data…";
+        rowMeta.textContent = "";
+        tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
+
+        const res = await fetch(`/api/db/table/${encodeURIComponent(name)}`);
+        if (!res.ok) {
+          throw new Error(`Failed to load table ${name}`);
+        }
+        const data = await res.json();
+        const columns = data.columns || [];
+        const rows = data.rows || [];
+        dataStatus.textContent = "";
+        rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"} (limit ${data.limit || 0})`;
+        renderTable(columns, rows);
+      } catch (err) {
+        dataStatus.textContent = "Unable to load table data.";
+        tableWrap.innerHTML = "<div class='empty'>No data available.</div>";
+        console.error(err);
+      }
+    }
+
+    loadTables();
+  </script>
+</body>
+</html>
