@@ -2376,7 +2376,8 @@ async function toggleMarkdownPanel(){
 
 async function toggleSubroutinePanel(){
   subroutinePanelVisible = !subroutinePanelVisible;
-  $("#chatSubroutinesPanel").style.display = subroutinePanelVisible ? "" : "none";
+  const subPanel = document.getElementById("chatSubroutinesPanel");
+  if(subPanel) subPanel.style.display = subroutinePanelVisible ? "" : "none";
   await setSetting("subroutine_panel_visible", subroutinePanelVisible);
 }
 
@@ -2731,7 +2732,8 @@ async function loadSettings(){
   if(typeof map.subroutine_panel_visible !== "undefined"){
     subroutinePanelVisible = !!map.subroutine_panel_visible;
   }
-  $("#chatSubroutinesPanel").style.display = subroutinePanelVisible ? "" : "none";
+  const subPanel = document.getElementById("chatSubroutinesPanel");
+  if(subPanel) subPanel.style.display = subroutinePanelVisible ? "" : "none";
 
   if(typeof map.sidebar_visible !== "undefined" && !isEmbedded){
     sidebarVisible = !!map.sidebar_visible;
@@ -5098,14 +5100,14 @@ if(addModelModalCancelBtn){
     hideModal(document.getElementById("addModelModal"));
   });
 }
-document.getElementById("newSubroutineBtn").addEventListener("click", addNewSubroutine);
-document.getElementById("viewActionHooksBtn").addEventListener("click", () => {
+document.getElementById("newSubroutineBtn")?.addEventListener("click", addNewSubroutine);
+document.getElementById("viewActionHooksBtn")?.addEventListener("click", () => {
   renderActionHooks();
   showModal(document.getElementById("actionHooksModal"));
 });
-document.getElementById("actionHooksCloseBtn").addEventListener("click", () => hideModal(document.getElementById("actionHooksModal")));
-document.getElementById("subroutineSaveBtn").addEventListener("click", saveSubroutine);
-document.getElementById("subroutineCancelBtn").addEventListener("click", () => {
+document.getElementById("actionHooksCloseBtn")?.addEventListener("click", () => hideModal(document.getElementById("actionHooksModal")));
+document.getElementById("subroutineSaveBtn")?.addEventListener("click", saveSubroutine);
+document.getElementById("subroutineCancelBtn")?.addEventListener("click", () => {
   editingSubroutineId = null;
   hideModal(document.getElementById("subroutineModal"));
 });
@@ -6405,9 +6407,11 @@ async function openChatSettings(){
       }
     }
   }
-  $("#showMarkdownTasksCheck").checked = markdownPanelVisible;
+  const markdownCheck = document.getElementById("showMarkdownTasksCheck");
+  if(markdownCheck) markdownCheck.checked = markdownPanelVisible;
   $("#showDependenciesColumnCheck").checked = showDependenciesColumn;
-  $("#showSubroutinePanelCheck").checked = subroutinePanelVisible;
+  const subroutineCheck = document.getElementById("showSubroutinePanelCheck");
+  if(subroutineCheck) subroutineCheck.checked = subroutinePanelVisible;
   $("#showMosaicPanelCheck").checked = mosaicPanelVisible;
   updateMosaicPanelVisibility();
   $("#enterSubmitCheck").checked = enterSubmitsMessage;
@@ -6557,9 +6561,11 @@ async function chatSettingsSaveFlow() {
   projectInfoBarVisible = $("#showProjectInfoCheck").checked;
   auroraProjectBarVisible = FORCE_HIDE_PROJECT_BAR ? false : $("#showAuroraProjectBarCheck").checked;
   chatStreaming = $("#chatStreamingCheck").checked;
-  markdownPanelVisible = $("#showMarkdownTasksCheck").checked;
+  const markdownCheck = document.getElementById("showMarkdownTasksCheck");
+  if(markdownCheck) markdownPanelVisible = markdownCheck.checked;
   showDependenciesColumn = $("#showDependenciesColumnCheck").checked;
-  subroutinePanelVisible = $("#showSubroutinePanelCheck").checked;
+  const subroutineCheck = document.getElementById("showSubroutinePanelCheck");
+  if(subroutineCheck) subroutinePanelVisible = subroutineCheck.checked;
   mosaicPanelVisible = $("#showMosaicPanelCheck").checked;
   updateMosaicPanelVisibility();
   enterSubmitsMessage = $("#enterSubmitCheck").checked;
@@ -9554,9 +9560,11 @@ thinImagesIcon?.addEventListener("touchstart", ev => {
   if(subbubbleTokenCheckEl2) subbubbleTokenCheckEl2.checked = showSubbubbleToken;
   $("#sterlingUrlCheck").checked = sterlingChatUrlVisible;
   $("#chatStreamingCheck").checked = chatStreaming;
-  $("#showMarkdownTasksCheck").checked = markdownPanelVisible;
+  const markdownCheck = document.getElementById("showMarkdownTasksCheck");
+  if(markdownCheck) markdownCheck.checked = markdownPanelVisible;
   $("#showDependenciesColumnCheck").checked = showDependenciesColumn;
-  $("#showSubroutinePanelCheck").checked = subroutinePanelVisible;
+  const subroutineCheck = document.getElementById("showSubroutinePanelCheck");
+  if(subroutineCheck) subroutineCheck.checked = subroutinePanelVisible;
   $("#enterSubmitCheck").checked = enterSubmitsMessage;
   $("#showNavMenuCheck").checked = navMenuVisible;
   const imgSvcInitSel = document.getElementById("imageServiceSelect");
@@ -9611,7 +9619,8 @@ thinImagesIcon?.addEventListener("touchstart", ev => {
     const mdResp = await fetch("/api/markdown");
     if(mdResp.ok){
       const mdData = await mdResp.json();
-      $("#markdownInput").value = mdData.content || "";
+      const markdownInput = document.getElementById("markdownInput");
+      if(markdownInput) markdownInput.value = mdData.content || "";
     }
   } catch(e) {
     console.error("Error loading markdown content:", e);
@@ -10609,40 +10618,47 @@ if(saveBtnSterling) saveBtnSterling?.addEventListener("click", async () => {
 // ----------------------------------------------------------------------
 // Added click events for the “Markdown Menu” gear icon
 // ----------------------------------------------------------------------
-document.getElementById("markdownGearIcon").addEventListener("click", async () => {
+document.getElementById("markdownGearIcon")?.addEventListener("click", async () => {
   try {
     const r = await fetch("/api/settings/taskList_git_ssh_url");
     if(r.ok){
       const { value } = await r.json();
-      document.getElementById("mdMenuRepoInput").value = value || "";
+      const repoInput = document.getElementById("mdMenuRepoInput");
+      if(repoInput) repoInput.value = value || "";
     }
     const rp = await fetch("/api/tasklist/repo-path");
     if(rp.ok){
       const { path } = await rp.json();
-      document.getElementById("mdMenuRepoPath").textContent = path ? `Local repo: ${path}` : "Repo not cloned";
+      const repoPath = document.getElementById("mdMenuRepoPath");
+      if(repoPath){
+        repoPath.textContent = path ? `Local repo: ${path}` : "Repo not cloned";
+      }
     } else {
-      document.getElementById("mdMenuRepoPath").textContent = "Repo not cloned";
+      const repoPath = document.getElementById("mdMenuRepoPath");
+      if(repoPath) repoPath.textContent = "Repo not cloned";
     }
   } catch(e){
     console.error("Error loading taskList_git_ssh_url:", e);
   }
   showModal(document.getElementById("mdMenuModal"));
 });
-document.getElementById("mdMenuSaveBtn").addEventListener("click", async () => {
+document.getElementById("mdMenuSaveBtn")?.addEventListener("click", async () => {
   try {
+    const repoInput = document.getElementById("mdMenuRepoInput");
     await fetch("/api/settings", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({key: "taskList_git_ssh_url", value: document.getElementById("mdMenuRepoInput").value})
+      body: JSON.stringify({key: "taskList_git_ssh_url", value: repoInput ? repoInput.value : ""})
     });
   } catch(e){
     console.error("Error saving taskList_git_ssh_url:", e);
   }
   hideModal(document.getElementById("mdMenuModal"));
 });
-document.getElementById("mdMenuUpdateBtn").addEventListener("click", async () => {
+document.getElementById("mdMenuUpdateBtn")?.addEventListener("click", async () => {
   try {
-    const content = document.getElementById("markdownInput").value;
+    const markdownInput = document.getElementById("markdownInput");
+    const content = markdownInput ? markdownInput.value : "";
     const resp = await fetch("/api/markdown", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
@@ -10658,17 +10674,17 @@ document.getElementById("mdMenuUpdateBtn").addEventListener("click", async () =>
     alert("Unable to update markdown.");
   }
 });
-document.getElementById("mdMenuCloseBtn").addEventListener("click", () => {
+document.getElementById("mdMenuCloseBtn")?.addEventListener("click", () => {
   hideModal(document.getElementById("mdMenuModal"));
 });
 
 // ----------------------------------------------------------------------
 // New Task List Configuration modal
 // ----------------------------------------------------------------------
-document.getElementById("gearBtn").addEventListener("click", () => {
+document.getElementById("gearBtn")?.addEventListener("click", () => {
   showModal(document.getElementById("taskListConfigModal"));
 });
-document.getElementById("taskListConfigCloseBtn").addEventListener("click", () => {
+document.getElementById("taskListConfigCloseBtn")?.addEventListener("click", () => {
   hideModal(document.getElementById("taskListConfigModal"));
 });
 
@@ -11100,9 +11116,10 @@ document.getElementById("mosaicInitGitBtn").addEventListener("click", async () =
 // ----------------------------------------------------------------------
 // Handling the global markdown save button
 // ----------------------------------------------------------------------
-document.getElementById("saveMdBtn").addEventListener("click", async () => {
+document.getElementById("saveMdBtn")?.addEventListener("click", async () => {
   try {
-    const content = $("#markdownInput").value;
+    const markdownInput = document.getElementById("markdownInput");
+    const content = markdownInput ? markdownInput.value : "";
     const resp = await fetch("/api/markdown", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
