@@ -1921,7 +1921,7 @@ app.post("/api/feedback", (req, res) => {
   }
 });
 
-app.post("/api/register", (req, res) => {
+app.post("/api/register", async (req, res) => {
   console.debug("[Server Debug] POST /api/register =>", req.body);
   try {
     if (!accountsEnabled) {
@@ -1935,11 +1935,11 @@ app.post("/api/register", (req, res) => {
     if (password.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
-    if (db.getAccountByEmail(email)) {
+    if (await db.getAccountByEmail(email)) {
       return res.status(400).json({ error: "account exists" });
     }
     const hash = hashPassword(password);
-    const id = db.createAccount(email, hash, sessionId);
+    const id = await db.createAccount(email, hash, sessionId);
     res.json({ success: true, id, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/register failed:", err);
@@ -1947,7 +1947,7 @@ app.post("/api/register", (req, res) => {
   }
 });
 
-app.post("/api/account/exists", (req, res) => {
+app.post("/api/account/exists", async (req, res) => {
   console.debug("[Server Debug] POST /api/account/exists =>", req.body);
   try {
     if (!accountsEnabled) {
@@ -1957,7 +1957,7 @@ app.post("/api/account/exists", (req, res) => {
     if (!email) {
       return res.status(400).json({ error: "email required" });
     }
-    const exists = !!db.getAccountByEmail(email);
+    const exists = !!(await db.getAccountByEmail(email));
     res.json({ success: true, accountsEnabled, exists });
   } catch (err) {
     console.error("[AlfeChat] POST /api/account/exists failed:", err);
@@ -1965,7 +1965,7 @@ app.post("/api/account/exists", (req, res) => {
   }
 });
 
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
   console.debug("[Server Debug] POST /api/login =>", req.body);
   try {
     if (!accountsEnabled) {
@@ -1976,7 +1976,7 @@ app.post("/api/login", (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: "email and password required" });
     }
-    const account = db.getAccountByEmail(email);
+    const account = await db.getAccountByEmail(email);
     if (!account || !verifyPassword(password, account.password_hash)) {
       return res.status(400).json({ error: "invalid credentials" });
     }
@@ -1993,11 +1993,11 @@ app.post("/api/login", (req, res) => {
     }
 
     if (account.session_id && account.session_id !== sessionId) {
-      db.mergeSessions(account.session_id, sessionId);
+      await db.mergeSessions(account.session_id, sessionId);
       sessionId = account.session_id;
     }
 
-    db.setAccountSession(account.id, sessionId);
+    await db.setAccountSession(account.id, sessionId);
     res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/login failed:", err);
@@ -2005,23 +2005,23 @@ app.post("/api/login", (req, res) => {
   }
 });
 
-app.get("/api/totp/generate", (req, res) => {
+app.get("/api/totp/generate", async (req, res) => {
   if (!accountsEnabled) {
     return res.status(404).json({ error: "not found" });
   }
   const sessionId = getSessionIdFromRequest(req);
-  const account = sessionId ? db.getAccountBySession(sessionId) : null;
+  const account = sessionId ? await db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
   const secret = speakeasy.generateSecret({ name: "Aurora" });
   res.json({ secret: secret.base32, otpauth_url: secret.otpauth_url });
 });
 
-app.post("/api/totp/enable", (req, res) => {
+app.post("/api/totp/enable", async (req, res) => {
   if (!accountsEnabled) {
     return res.status(404).json({ error: "not found" });
   }
   const sessionId = getSessionIdFromRequest(req);
-  const account = sessionId ? db.getAccountBySession(sessionId) : null;
+  const account = sessionId ? await db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
   const { secret, token } = req.body || {};
   if (!secret || !token) {
@@ -2031,18 +2031,18 @@ app.post("/api/totp/enable", (req, res) => {
   if (!ok) {
     return res.status(400).json({ error: "invalid token" });
   }
-  db.setAccountTotpSecret(account.id, secret);
+  await db.setAccountTotpSecret(account.id, secret);
   res.json({ success: true });
 });
 
-app.get("/api/account", (req, res) => {
+app.get("/api/account", async (req, res) => {
   console.debug("[Server Debug] GET /api/account");
   try {
     if (!accountsEnabled) {
       return res.json({ accountsEnabled: false, exists: false });
     }
     const sessionId = getSessionIdFromRequest(req);
-    const account = sessionId ? db.getAccountBySession(sessionId) : null;
+    const account = sessionId ? await db.getAccountBySession(sessionId) : null;
     if (!account) {
       return res.json({ accountsEnabled: true, exists: false });
     }
@@ -2061,42 +2061,42 @@ app.get("/api/account", (req, res) => {
   }
 });
 
-app.post("/api/account/timezone", (req, res) => {
+app.post("/api/account/timezone", async (req, res) => {
   if (!accountsEnabled) {
     return res.status(404).json({ error: "not found" });
   }
   const sessionId = getSessionIdFromRequest(req);
-  const account = sessionId ? db.getAccountBySession(sessionId) : null;
+  const account = sessionId ? await db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
   const { timezone } = req.body || {};
   if (typeof timezone !== 'string') {
     return res.status(400).json({ error: "timezone required" });
   }
-  db.setAccountTimezone(account.id, timezone);
+  await db.setAccountTimezone(account.id, timezone);
   res.json({ success: true });
 });
 
-app.post("/api/account/plan", (req, res) => {
+app.post("/api/account/plan", async (req, res) => {
   if (!accountsEnabled) {
     return res.status(404).json({ error: "not found" });
   }
   const sessionId = getSessionIdFromRequest(req);
-  const account = sessionId ? db.getAccountBySession(sessionId) : null;
+  const account = sessionId ? await db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
   const { plan } = req.body || {};
   if (typeof plan !== 'string') {
     return res.status(400).json({ error: "plan required" });
   }
-  db.setAccountPlan(account.id, plan);
+  await db.setAccountPlan(account.id, plan);
   res.json({ success: true });
 });
 
-app.post("/api/account/password", (req, res) => {
+app.post("/api/account/password", async (req, res) => {
   if (!accountsEnabled) {
     return res.status(404).json({ error: "not found" });
   }
   const sessionId = getSessionIdFromRequest(req);
-  const account = sessionId ? db.getAccountBySession(sessionId) : null;
+  const account = sessionId ? await db.getAccountBySession(sessionId) : null;
   if (!account) return res.status(401).json({ error: "not logged in" });
   const { currentPassword, newPassword } = req.body || {};
   if (!currentPassword || !newPassword) {
@@ -2109,16 +2109,16 @@ app.post("/api/account/password", (req, res) => {
     return res.status(400).json({ error: "incorrect password" });
   }
   const hash = hashPassword(newPassword);
-  db.setAccountPassword(account.id, hash);
+  await db.setAccountPassword(account.id, hash);
   res.json({ success: true });
 });
 
-app.post("/api/logout", (req, res) => {
+app.post("/api/logout", async (req, res) => {
   console.debug("[Server Debug] POST /api/logout");
   try {
     const sessionId = getSessionIdFromRequest(req);
     if (sessionId) {
-      const account = db.getAccountBySession(sessionId);
+      const account = await db.getAccountBySession(sessionId);
       if (account) console.debug("[Server Debug] Keeping session", sessionId, "for account", account.id);
     }
     res.json({ success: true });
@@ -3667,7 +3667,7 @@ app.post("/api/upscale", async (req, res) => {
     }
 
     const sessionId = getSessionIdFromRequest(req);
-    const account = sessionId ? db.getAccountBySession(sessionId) : null;
+    const account = sessionId ? await db.getAccountBySession(sessionId) : null;
     if (!account) {
       return res.status(401).json({ error: "not logged in" });
     }
@@ -5310,10 +5310,10 @@ app.post("/api/projects/archive", (req, res) => {
   }
 });
 
-app.post("/api/ai/favorites", (req, res) => {
+app.post("/api/ai/favorites", async (req, res) => {
   try {
     const sessionId = getSessionIdFromRequest(req);
-    const account = sessionId ? db.getAccountBySession(sessionId) : null;
+    const account = sessionId ? await db.getAccountBySession(sessionId) : null;
     if (!account) {
       return res.status(401).json({ error: "not logged in" });
     }
