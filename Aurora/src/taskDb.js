@@ -1737,6 +1737,28 @@ export default class TaskDB {
     const row = this.db.prepare('SELECT asin FROM amazon_skus WHERE sku=?').get(sku);
     return row ? row.asin : null;
   }
-}
 
+  listTables() {
+    return this.db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+      )
+      .all()
+      .map((row) => row.name);
+  }
+
+  getTableData(tableName, limit = 200) {
+    const tables = this.listTables();
+    if (!tables.includes(tableName)) {
+      throw new Error(`Unknown table: ${tableName}`);
+    }
+    const safeName = `"${tableName.replace(/"/g, "\"\"")}"`;
+    const columnInfo = this.db.prepare(`PRAGMA table_info(${safeName})`).all();
+    const columns = columnInfo.map((col) => col.name);
+    const rows = this.db
+      .prepare(`SELECT * FROM ${safeName} LIMIT ?`)
+      .all(limit);
+    return { columns, rows, limit, rowCount: rows.length };
+  }
+}
 
