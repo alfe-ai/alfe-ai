@@ -1342,7 +1342,7 @@ function getRequestIp(req) {
 
 function isIpAllowed(ip, whitelist) {
   if (whitelist.size === 0) {
-    return true;
+    return false;
   }
   if (!ip) {
     return false;
