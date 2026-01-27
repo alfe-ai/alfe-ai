@@ -1316,6 +1316,41 @@ if (whitelistIps.size > 0) {
   });
 }
 
+const configIpWhitelist = new Set();
+const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+if (configIpWhitelistEnv) {
+  configIpWhitelistEnv
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean)
+    .forEach((ip) => {
+      configIpWhitelist.add(ip);
+      configIpWhitelist.add(`::ffff:${ip}`);
+    });
+}
+
+function getRequestIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const forwardedIp = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  const ip =
+    (forwardedIp ? String(forwardedIp).split(",")[0].trim() : "") ||
+    req.ip ||
+    req.connection?.remoteAddress ||
+    "";
+  return ip.trim();
+}
+
+function isIpAllowed(ip, whitelist) {
+  if (whitelist.size === 0) {
+    return true;
+  }
+  if (!ip) {
+    return false;
+  }
+  const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+  return whitelist.has(ip) || whitelist.has(normalized);
+}
+
 // Determine uploads directory
 const uploadsDir = path.join(__dirname, "../uploads");
 try {
@@ -5028,6 +5063,10 @@ app.get("/activity", (req, res) => {
 });
 
 app.get("/db", (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /db blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).send("Forbidden");
+  }
   console.debug("[Server Debug] GET /db => Serving db.html");
   res.sendFile(path.join(__dirname, "../public/db.html"));
 });
