@@ -1,5 +1,4 @@
 import pg from 'pg';
-import TaskDBLocal from './taskDb.js';
 
 export default class TaskDBAws {
   constructor() {
@@ -39,18 +38,6 @@ export default class TaskDBAws {
     }
 
     this.pool = new pg.Pool(poolConfig);
-    // Create a local sqlite-backed DB to provide the synchronous TaskDB API
-    // expected elsewhere in the server. We only use it as a compatibility
-    // fallback for synchronous methods not implemented by the AWS backend.
-    this.local = new TaskDBLocal();
-    // Proxy synchronous methods from the local DB onto this instance when not already present
-    const proto = Object.getPrototypeOf(this.local);
-    for (const name of Object.getOwnPropertyNames(proto)) {
-      if (name === 'constructor') continue;
-      if (typeof this.local[name] === 'function' && !(name in this)) {
-        this[name] = this.local[name].bind(this.local);
-      }
-    }
     this._initPromise = this._init().catch((err) => {
       console.error(
         '[TaskDBAws] Initialization failed, continuing without DB:',
@@ -115,6 +102,47 @@ export default class TaskDBAws {
         plan TEXT DEFAULT 'Free'
       );`);
 
+    } finally {
+      client.release();
+    }
+  }
+
+  async listTables() {
+    await this._initPromise;
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name"
+      );
+      return result.rows.map((row) => row.table_name);
+    } finally {
+      client.release();
+    }
+  }
+
+  async getTableData(tableName, limit = 200) {
+    const tables = await this.listTables();
+    if (!tables.includes(tableName)) {
+      throw new Error(`Unknown table: ${tableName}`);
+    }
+    const client = await this.pool.connect();
+    try {
+      const columnResult = await client.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position",
+        [tableName]
+      );
+      const columns = columnResult.rows.map((row) => row.column_name);
+      const safeName = `"${tableName.replace(/"/g, '""')}"`;
+      const dataResult = await client.query(
+        `SELECT * FROM ${safeName} LIMIT $1`,
+        [limit]
+      );
+      return {
+        columns,
+        rows: dataResult.rows,
+        limit,
+        rowCount: dataResult.rows.length
+      };
     } finally {
       client.release();
     }
