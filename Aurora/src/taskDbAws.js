@@ -108,10 +108,27 @@ export default class TaskDBAws {
         PRIMARY KEY (session_id, key)
       );`);
 
+      await client.query(`CREATE TABLE IF NOT EXISTS accounts (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        session_id TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        totp_secret TEXT DEFAULT '',
+        timezone TEXT DEFAULT '',
+        plan TEXT DEFAULT 'Free'
+      );`);
+
       const { rows } = await client.query('SELECT COUNT(*) AS count FROM issues');
       const issueCount = parseInt(rows[0].count, 10);
       if (issueCount === 0) {
         await this._importFromSqlite(client);
+      }
+
+      const { rows: accountRows } = await client.query('SELECT COUNT(*) AS count FROM accounts');
+      const accountCount = parseInt(accountRows[0].count, 10);
+      if (accountCount === 0) {
+        await this._importAccountsFromSqlite(client);
       }
     } finally {
       client.release();
@@ -390,6 +407,90 @@ export default class TaskDBAws {
     } finally {
       sqlite.close();
     }
+  }
+
+  async _importAccountsFromSqlite(client) {
+    const sqlitePath = path.resolve('issues.sqlite');
+    if (!fs.existsSync(sqlitePath)) {
+      console.log('[TaskDBAws] SQLite DB not found, skipping accounts import.');
+      return;
+    }
+
+    console.log('[TaskDBAws] Importing accounts from SQLite…');
+    const sqlite = new Database(sqlitePath);
+    try {
+      const accounts = sqlite.prepare('SELECT * FROM accounts').all();
+      for (const row of accounts) {
+        await client.query(
+          `INSERT INTO accounts (
+            id, email, password_hash, session_id, created_at, totp_secret, timezone, plan
+          ) VALUES (
+            $1,$2,$3,$4,$5,$6,$7,$8
+          )
+          ON CONFLICT (email) DO NOTHING`,
+          [
+            row.id,
+            row.email,
+            row.password_hash,
+            row.session_id,
+            row.created_at,
+            row.totp_secret,
+            row.timezone,
+            row.plan
+          ]
+        );
+      }
+
+      const { rows: maxRows } = await client.query('SELECT MAX(id) AS max FROM accounts');
+      const maxId = maxRows[0]?.max;
+      if (maxId) {
+        await client.query("SELECT setval(pg_get_serial_sequence('accounts','id'), $1)", [maxId]);
+      }
+    } finally {
+      sqlite.close();
+    }
+  }
+
+  async createAccount(email, passwordHash, sessionId = '', timezone = '', plan = 'Free') {
+    const ts = new Date().toISOString();
+    const { rows } = await this.pool.query(
+      `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [email, passwordHash, sessionId, ts, timezone, plan]
+    );
+    return rows[0]?.id;
+  }
+
+  async getAccountByEmail(email) {
+    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE email = $1', [email]);
+    return rows[0] || null;
+  }
+
+  async setAccountSession(id, sessionId) {
+    await this.pool.query('UPDATE accounts SET session_id = $1 WHERE id = $2', [sessionId, id]);
+  }
+
+  async setAccountTotpSecret(id, secret) {
+    await this.pool.query('UPDATE accounts SET totp_secret = $1 WHERE id = $2', [secret, id]);
+  }
+
+  async setAccountTimezone(id, timezone) {
+    await this.pool.query('UPDATE accounts SET timezone = $1 WHERE id = $2', [timezone, id]);
+  }
+
+  async setAccountPlan(id, plan) {
+    await this.pool.query('UPDATE accounts SET plan = $1 WHERE id = $2', [plan, id]);
+  }
+
+  async setAccountPassword(id, passwordHash) {
+    await this.pool.query('UPDATE accounts SET password_hash = $1 WHERE id = $2', [passwordHash, id]);
+  }
+
+  async getAccountBySession(sessionId) {
+    if (!sessionId) return null;
+    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE session_id = $1', [sessionId]);
+    return rows[0] || null;
   }
 
   async createTask(title, project = '', sprint = '') {
