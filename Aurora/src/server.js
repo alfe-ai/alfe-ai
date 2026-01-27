@@ -330,7 +330,7 @@ async function main() {
     const db = new TaskDB(); // uses AWS RDS
     const queue = new TaskQueue();
 
-    const tasks = db.listTasks(true);
+    const tasks = await db.listTasks(true);
     tasks.forEach(t => queue.enqueue(t));
     console.log(`[AlfeChat] ${queue.size()} task(s) loaded from DB.`);
     // Intentionally omit printing the full issue list to keep logs concise
@@ -1396,18 +1396,20 @@ app.use((req, res, next) => {
 
 // Database calls and API routes
 
-app.get("/api/tasks", (req, res) => {
+app.get("/api/tasks", async (req, res) => {
   console.debug("[Server Debug] GET /api/tasks called.");
   try {
     const includeHidden =
       req.query.includeHidden === "1" ||
       req.query.includeHidden === "true";
     console.debug("[Server Debug] includeHidden =", includeHidden);
-    const tasks = db.listTasks(includeHidden);
-    tasks.forEach(t => {
-      const uuid = db.getChatTabUuidByTaskId(t.id);
-      if (uuid) t.chat_sha = uuid;
-    });
+    const tasks = await db.listTasks(includeHidden);
+    if (typeof db.getChatTabUuidByTaskId === "function") {
+      for (const task of tasks) {
+        const uuid = await db.getChatTabUuidByTaskId(task.id);
+        if (uuid) task.chat_sha = uuid;
+      }
+    }
     console.debug("[Server Debug] Found tasks =>", tasks.length);
     res.json(tasks);
   } catch (err) {
@@ -1660,11 +1662,11 @@ app.post("/api/tasks/sprint", (req, res) => {
   }
 });
 
-app.post("/api/tasks/priority", (req, res) => {
+app.post("/api/tasks/priority", async (req, res) => {
   console.debug("[Server Debug] POST /api/tasks/priority => body:", req.body);
   try {
     const { id, priority } = req.body;
-    const oldTask = db.getTaskById(id);
+    const oldTask = await db.getTaskById(id);
     const oldPriority = oldTask?.priority || null;
 
     db.setPriority(id, priority);
@@ -2080,14 +2082,14 @@ app.post("/api/logout", async (req, res) => {
   }
 });
 
-app.get("/api/tasks/:id", (req, res) => {
+app.get("/api/tasks/:id", async (req, res) => {
   console.debug("[Server Debug] GET /api/tasks/:id =>", req.params.id);
   try {
     const taskId = parseInt(req.params.id, 10);
     if (Number.isNaN(taskId)) {
       return res.status(400).json({ error: "Invalid task ID" });
     }
-    const t = db.getTaskById(taskId);
+    const t = await db.getTaskById(taskId);
     if (!t) {
       return res.status(404).json({ error: "Task not found" });
     }
@@ -2098,10 +2100,10 @@ app.get("/api/tasks/:id", (req, res) => {
   }
 });
 
-app.get("/api/projects/:project", (req, res) => {
+app.get("/api/projects/:project", async (req, res) => {
   console.debug("[Server Debug] GET /api/projects/:project =>", req.params.project);
   try {
-    const tasks = db.listTasksByProject(req.params.project);
+    const tasks = await db.listTasksByProject(req.params.project);
     res.json(tasks);
   } catch (err) {
     console.error("[AlfeChat] /api/projects/:project failed:", err);
@@ -2109,10 +2111,10 @@ app.get("/api/projects/:project", (req, res) => {
   }
 });
 
-app.get("/api/sprints/:sprint", (req, res) => {
+app.get("/api/sprints/:sprint", async (req, res) => {
   console.debug("[Server Debug] GET /api/sprints/:sprint =>", req.params.sprint);
   try {
-    const tasks = db.listTasksBySprint(req.params.sprint);
+    const tasks = await db.listTasksBySprint(req.params.sprint);
     res.json(tasks);
   } catch (err) {
     console.error("[AlfeChat] /api/sprints/:sprint failed:", err);
@@ -2127,7 +2129,7 @@ app.post("/api/tasks/rename", async (req, res) => {
     if (!id || !newTitle) {
       return res.status(400).json({ error: "Missing id or newTitle" });
     }
-    const task = db.getTaskById(id);
+    const task = await db.getTaskById(id);
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
     }
@@ -2933,7 +2935,7 @@ app.get("/api/model", (req, res) => {
   res.json({ model });
 });
 
-app.get("/api/chat/tabs", (req, res) => {
+app.get("/api/chat/tabs", async (req, res) => {
   const nexumParam = req.query.nexum;
   const showArchivedParam = req.query.showArchived;
   const sessionId = req.query.sessionId || "";
@@ -2945,17 +2947,17 @@ app.get("/api/chat/tabs", (req, res) => {
     const includeArchived =
       showArchivedParam === "1" || showArchivedParam === "true";
     if (nexumParam === undefined) {
-      tabs = db.listChatTabs(null, includeArchived, sessionId);
+      tabs = await db.listChatTabs(null, includeArchived, sessionId);
     } else {
       const flag = parseInt(nexumParam, 10);
-      tabs = db.listChatTabs(flag ? 1 : 0, includeArchived, sessionId);
+      tabs = await db.listChatTabs(flag ? 1 : 0, includeArchived, sessionId);
     }
-    tabs.forEach(t => {
-      if (t.task_id) {
-        const task = db.getTaskById(t.task_id);
-        if (task) t.priority = task.priority;
+    for (const tab of tabs) {
+      if (tab.task_id) {
+        const task = await db.getTaskById(tab.task_id);
+        if (task) tab.priority = task.priority;
       }
-    });
+    }
     res.json(tabs);
   } catch (err) {
     console.error("[AlfeChat] GET /api/chat/tabs error:", err);
