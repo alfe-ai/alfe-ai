@@ -222,7 +222,62 @@ export default class TaskDBAws {
     }
   }
 
-  async getSetting(key) {
+  getSetting(key) {
+    const localValue = this.local.getSetting(key);
+    if (typeof localValue !== 'undefined') {
+      return localValue;
+    }
+    void this.getSettingAsync(key)
+        .then((value) => {
+          if (typeof value !== 'undefined') {
+            this.local.setSetting(key, value);
+          }
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to refresh setting from RDS:', err);
+        });
+    return undefined;
+  }
+
+  setSetting(key, value) {
+    this.local.setSetting(key, value);
+    void this.setSettingAsync(key, value).catch((err) => {
+      console.warn('[TaskDBAws] Failed to persist setting to RDS:', err);
+    });
+  }
+
+  getSessionSetting(sessionId, key) {
+    if (!sessionId) {
+      return this.getSetting(key);
+    }
+    const localValue = this.local.getSessionSetting(sessionId, key);
+    if (typeof localValue !== 'undefined') {
+      return localValue;
+    }
+    void this.getSessionSettingAsync(sessionId, key)
+        .then((value) => {
+          if (typeof value !== 'undefined') {
+            this.local.setSessionSetting(sessionId, key, value);
+          }
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to refresh session setting from RDS:', err);
+        });
+    return undefined;
+  }
+
+  setSessionSetting(sessionId, key, value) {
+    if (!sessionId) {
+      this.setSetting(key, value);
+      return;
+    }
+    this.local.setSessionSetting(sessionId, key, value);
+    void this.setSessionSettingAsync(sessionId, key, value).catch((err) => {
+      console.warn('[TaskDBAws] Failed to persist session setting to RDS:', err);
+    });
+  }
+
+  async getSettingAsync(key) {
     const { rows } = await this.pool.query('SELECT value FROM settings WHERE key = $1', [key]);
     if (!rows.length) return undefined;
     try {
@@ -232,7 +287,7 @@ export default class TaskDBAws {
     }
   }
 
-  async setSetting(key, value) {
+  async setSettingAsync(key, value) {
     const val = JSON.stringify(value);
     await this.pool.query(
       'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
@@ -240,9 +295,9 @@ export default class TaskDBAws {
     );
   }
 
-  async getSessionSetting(sessionId, key) {
+  async getSessionSettingAsync(sessionId, key) {
     if (!sessionId) {
-      return this.getSetting(key);
+      return this.getSettingAsync(key);
     }
     const { rows } = await this.pool.query(
       'SELECT value FROM session_settings WHERE session_id = $1 AND key = $2',
@@ -256,9 +311,9 @@ export default class TaskDBAws {
     }
   }
 
-  async setSessionSetting(sessionId, key, value) {
+  async setSessionSettingAsync(sessionId, key, value) {
     if (!sessionId) {
-      await this.setSetting(key, value);
+      await this.setSettingAsync(key, value);
       return;
     }
     const val = JSON.stringify(value);
