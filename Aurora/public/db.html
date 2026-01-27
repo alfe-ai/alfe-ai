@@ -101,6 +101,32 @@
       border: 1px solid #e2e8f0;
       border-radius: 10px;
     }
+    .db-info {
+      padding: 0 2rem 2rem;
+    }
+    .db-info-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+    .db-info-card h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      color: #334155;
+    }
+    .db-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.5rem 1.5rem;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    .db-info-grid span {
+      color: #0f172a;
+      font-weight: 600;
+    }
     table {
       border-collapse: collapse;
       width: 100%;
@@ -180,6 +206,20 @@
       .table-wrap {
         border-color: #1f2937;
       }
+      .db-info-card {
+        background: #0f172a;
+        border-color: #1e293b;
+        box-shadow: none;
+      }
+      .db-info-card h2 {
+        color: #e2e8f0;
+      }
+      .db-info-grid {
+        color: #94a3b8;
+      }
+      .db-info-grid span {
+        color: #f8fafc;
+      }
       a {
         color: #38bdf8;
       }
@@ -208,6 +248,12 @@
       </div>
     </main>
   </section>
+  <footer class="db-info">
+    <div class="db-info-card" id="dbInfo">
+      <h2>Connection Info</h2>
+      <div class="status">Loading database connection info…</div>
+    </div>
+  </footer>
 
   <script>
     const tableList = document.getElementById("tableList");
@@ -216,6 +262,7 @@
     const rowMeta = document.getElementById("rowMeta");
     const dataStatus = document.getElementById("dataStatus");
     const tableWrap = document.getElementById("tableWrap");
+    const dbInfo = document.getElementById("dbInfo");
 
     function setActiveButton(name) {
       document.querySelectorAll(".table-list button").forEach((btn) => {
@@ -324,6 +371,43 @@
     }
 
     loadTables();
+
+    async function loadDbInfo() {
+      try {
+        const res = await fetch("/api/db/info");
+        if (!res.ok) throw new Error("Failed to load db info");
+        const info = await res.json();
+        const grid = document.createElement("div");
+        grid.className = "db-info-grid";
+
+        const addItem = (label, value) => {
+          const div = document.createElement("div");
+          div.innerHTML = `${label}: <span>${value || "—"}</span>`;
+          grid.appendChild(div);
+        };
+
+        if (info.type === "sqlite") {
+          addItem("Type", "SQLite (local)");
+          addItem("Path", info.path || "—");
+          addItem("File exists", info.exists ? "Yes" : "No");
+        } else {
+          addItem("Type", info.type ? `${info.type.toUpperCase()} (${info.source || "Remote"})` : "Remote DB");
+          addItem("Host", info.host || "—");
+          addItem("Port", info.port || "—");
+          addItem("Database", info.database || "—");
+          addItem("User", info.user || "—");
+          addItem("SSL", info.ssl ? "Enabled" : "Disabled");
+        }
+
+        dbInfo.innerHTML = "<h2>Connection Info</h2>";
+        dbInfo.appendChild(grid);
+      } catch (err) {
+        dbInfo.innerHTML = "<h2>Connection Info</h2><div class='status'>Unable to load connection info.</div>";
+        console.error(err);
+      }
+    }
+
+    loadDbInfo();
   </script>
 </body>
 </html>
