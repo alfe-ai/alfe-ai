@@ -25,6 +25,13 @@ Follow these steps to create an Amazon RDS (Aurora PostgreSQL) instance and conf
 
 10. (Optional) If you want the app to prefer RDS by default, set `DEFAULT_TO_AWS_RDS=true`.
 
+Using AWS Secrets Manager
+
+- If you store your RDS credentials in AWS Secrets Manager, set the secret id and region before starting Aurora:
+  - `AWS_SECRETS_MANAGER_SECRET_ID`=your-secret-id
+  - `AWS_SECRETS_MANAGER_REGION`=us-west-2 (optional; defaults to `AWS_REGION` or `us-west-2`)
+- The secret can be a JSON document with keys like `username`, `password`, `host`, `dbname`, and `port`, or a full connection string under `url`/`connectionString`.
+
 Migrating existing SQLite data
 
 - If you have an existing `issues.sqlite` from a prior local run, copy it to the Aurora working directory and then start the app with RDS configured. On first connection, the `TaskDBAws` implementation will import rows from `issues.sqlite` into the RDS tables automatically if the RDS `issues` table is empty.
@@ -37,4 +44,3 @@ Security notes
 Troubleshooting
 
 - If you see connection errors, verify network connectivity (ping/traceroute not always allowed), that the port is open, and that the DB is accepting connections. Check the RDS logs in the AWS console.
-
