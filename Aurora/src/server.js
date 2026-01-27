@@ -1501,7 +1501,11 @@ app.get("/api/db/table/:name", (req, res) => {
   }
 });
 
-app.get("/api/db/info", (_req, res) => {
+app.get("/api/db/info", (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /api/db/info blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
   console.debug("[Server Debug] GET /api/db/info called.");
   try {
     const info = getDbConnectionInfo();
