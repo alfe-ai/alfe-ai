@@ -1418,35 +1418,39 @@ app.get("/api/tasks", (req, res) => {
 
 app.get("/api/db/tables", (_req, res) => {
   console.debug("[Server Debug] GET /api/db/tables called.");
-  try {
-    if (typeof db.listTables !== "function") {
-      return res.status(501).json({ error: "Database table listing not supported." });
+  (async () => {
+    try {
+      if (typeof db.listTables !== "function") {
+        return res.status(501).json({ error: "Database table listing not supported." });
+      }
+      const tables = await Promise.resolve(db.listTables());
+      res.json({ tables });
+    } catch (err) {
+      console.error("[Server Debug] GET /api/db/tables error:", err);
+      res.status(500).json({ error: "Internal server error" });
     }
-    const tables = db.listTables();
-    res.json({ tables });
-  } catch (err) {
-    console.error("[Server Debug] GET /api/db/tables error:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+  })();
 });
 
 app.get("/api/db/table/:name", (req, res) => {
   const tableName = req.params.name;
   console.debug("[Server Debug] GET /api/db/table =>", tableName);
-  try {
-    if (typeof db.getTableData !== "function") {
-      return res.status(501).json({ error: "Database table read not supported." });
+  (async () => {
+    try {
+      if (typeof db.getTableData !== "function") {
+        return res.status(501).json({ error: "Database table read not supported." });
+      }
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 200, 1000));
+      const data = await Promise.resolve(db.getTableData(tableName, limit));
+      res.json(data);
+    } catch (err) {
+      console.error("[Server Debug] GET /api/db/table error:", err);
+      const message = err?.message?.startsWith("Unknown table")
+        ? err.message
+        : "Internal server error";
+      res.status(message === err?.message ? 404 : 500).json({ error: message });
     }
-    const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 200, 1000));
-    const data = db.getTableData(tableName, limit);
-    res.json(data);
-  } catch (err) {
-    console.error("[Server Debug] GET /api/db/table error:", err);
-    const message = err?.message?.startsWith("Unknown table")
-      ? err.message
-      : "Internal server error";
-    res.status(message === err?.message ? 404 : 500).json({ error: message });
-  }
+  })();
 });
 
 app.get("/api/db/info", (req, res) => {

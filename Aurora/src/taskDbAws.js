@@ -120,6 +120,47 @@ export default class TaskDBAws {
     }
   }
 
+  async listTables() {
+    await this._initPromise;
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name"
+      );
+      return result.rows.map((row) => row.table_name);
+    } finally {
+      client.release();
+    }
+  }
+
+  async getTableData(tableName, limit = 200) {
+    const tables = await this.listTables();
+    if (!tables.includes(tableName)) {
+      throw new Error(`Unknown table: ${tableName}`);
+    }
+    const client = await this.pool.connect();
+    try {
+      const columnResult = await client.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position",
+        [tableName]
+      );
+      const columns = columnResult.rows.map((row) => row.column_name);
+      const safeName = `"${tableName.replace(/"/g, '""')}"`;
+      const dataResult = await client.query(
+        `SELECT * FROM ${safeName} LIMIT $1`,
+        [limit]
+      );
+      return {
+        columns,
+        rows: dataResult.rows,
+        limit,
+        rowCount: dataResult.rows.length
+      };
+    } finally {
+      client.release();
+    }
+  }
+
   async upsertIssue(issue, repositorySlug) {
     const { rows } = await this.pool.query(
       'SELECT priority_number, priority, project, sprint, status, dependencies, blocking, codex_url FROM issues WHERE github_id = $1',
