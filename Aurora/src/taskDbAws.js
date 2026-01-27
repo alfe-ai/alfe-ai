@@ -55,7 +55,12 @@ export default class TaskDBAws {
         this[name] = this.local[name].bind(this.local);
       }
     }
-    this._init();
+    this._initPromise = this._init().catch((err) => {
+      console.error(
+        '[TaskDBAws] Initialization failed, continuing without DB:',
+        err && err.message ? err.message : err
+      );
+    });
   }
 
   async _init() {
@@ -65,7 +70,7 @@ export default class TaskDBAws {
     } catch (err) {
       console.error('[TaskDBAws] Failed to connect to DB:', err && err.message ? err.message : err);
       console.error('[TaskDBAws] Connection config:', JSON.stringify(this.pool.options || {}));
-      throw err;
+      return;
     }
     try {
       await client.query(`CREATE TABLE IF NOT EXISTS issues (
