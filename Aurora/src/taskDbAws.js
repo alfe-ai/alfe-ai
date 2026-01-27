@@ -127,15 +127,11 @@ export default class TaskDBAws {
         PRIMARY KEY (session_id, key)
       );`);
 
-      await client.query(`CREATE TABLE IF NOT EXISTS accounts (
+      await client.query(`CREATE TABLE IF NOT EXISTS activity_timeline (
         id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        session_id TEXT DEFAULT '',
-        created_at TEXT NOT NULL,
-        totp_secret TEXT DEFAULT '',
-        timezone TEXT DEFAULT '',
-        plan TEXT DEFAULT 'Free'
+        timestamp TEXT NOT NULL,
+        action TEXT NOT NULL,
+        details TEXT
       );`);
 
       await client.query(`CREATE TABLE IF NOT EXISTS chat_tabs (
@@ -161,6 +157,154 @@ export default class TaskDBAws {
         favorite INTEGER DEFAULT 0,
         path_alias TEXT DEFAULT ''
       );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS chat_pairs (
+        id SERIAL PRIMARY KEY,
+        user_text TEXT NOT NULL,
+        ai_text TEXT,
+        model TEXT,
+        timestamp TEXT NOT NULL,
+        ai_timestamp TEXT,
+        chat_tab_id INTEGER DEFAULT 1,
+        system_context TEXT,
+        project_context TEXT,
+        token_info TEXT,
+        citations_json TEXT,
+        image_url TEXT,
+        image_alt TEXT DEFAULT '',
+        image_title TEXT DEFAULT '',
+        image_status TEXT DEFAULT '',
+        session_id TEXT DEFAULT '',
+        ip_address TEXT DEFAULT '',
+        image_uuid TEXT DEFAULT '',
+        publish_portfolio INTEGER DEFAULT 0,
+        product_url TEXT DEFAULT '',
+        ebay_url TEXT DEFAULT '',
+        image_hidden INTEGER DEFAULT 0
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS chat_subroutines (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        trigger_text TEXT DEFAULT '',
+        action_text TEXT DEFAULT '',
+        action_hook TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS image_sessions (
+        session_id TEXT PRIMARY KEY,
+        start_time TEXT NOT NULL
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS upscaled_images (
+        original TEXT PRIMARY KEY,
+        upscaled TEXT NOT NULL
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS feedback (
+        id SERIAL PRIMARY KEY,
+        message TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'misc',
+        timestamp TEXT NOT NULL
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS project_branches (
+        project TEXT PRIMARY KEY,
+        base_branch TEXT DEFAULT ''
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS project_meta (
+        project TEXT PRIMARY KEY,
+        archived INTEGER DEFAULT 0
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS accounts (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        session_id TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        totp_secret TEXT DEFAULT '',
+        timezone TEXT DEFAULT '',
+        plan TEXT DEFAULT 'Free'
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS upwork_jobs (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        link TEXT DEFAULT '',
+        bid TEXT DEFAULT '',
+        status TEXT DEFAULT 'Bidding',
+        notes TEXT DEFAULT ''
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS amazon_skus (
+        id SERIAL PRIMARY KEY,
+        sku TEXT UNIQUE,
+        asin TEXT,
+        title TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS sterlingproxy (
+        id SERIAL PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        ip_address TEXT DEFAULT '',
+        start_timestamp TEXT NOT NULL,
+        last_used_timestamp TEXT NOT NULL,
+        status TEXT DEFAULT 'Running',
+        assigned_port INTEGER DEFAULT NULL,
+        runs INTEGER DEFAULT 0
+      );`);
+
+      await client.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_github ON issues(github_id);');
+      await client.query('CREATE INDEX IF NOT EXISTS idx_issues_priority ON issues(priority_number);');
+      await client.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_tabs_uuid ON chat_tabs(tab_uuid);');
+
+      await client.query("ALTER TABLE issues ADD COLUMN IF NOT EXISTS codex_url TEXT;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS archived INTEGER DEFAULT 0;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS archived_at TEXT;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS generate_images INTEGER DEFAULT 1;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS nexum INTEGER DEFAULT 0;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS project_name TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS repo_ssh_url TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS extra_projects TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS task_id INTEGER DEFAULT 0;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS parent_id INTEGER DEFAULT 0;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS model_override TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS tab_type TEXT DEFAULT 'chat';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS send_project_context INTEGER DEFAULT 1;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS session_id TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS tab_uuid TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS chatgpt_url TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS show_in_sidebar INTEGER DEFAULT 1;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS favorite INTEGER DEFAULT 0;");
+      await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS path_alias TEXT DEFAULT '';");
+
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS citations_json TEXT;");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_url TEXT;");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_alt TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_title TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_status TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS session_id TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS ip_address TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_uuid TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS publish_portfolio INTEGER DEFAULT 0;");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS product_url TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS ebay_url TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS project_context TEXT;");
+      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_hidden INTEGER DEFAULT 0;");
+
+      await client.query("ALTER TABLE chat_subroutines ADD COLUMN IF NOT EXISTS trigger_text TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_subroutines ADD COLUMN IF NOT EXISTS action_text TEXT DEFAULT '';");
+      await client.query("ALTER TABLE chat_subroutines ADD COLUMN IF NOT EXISTS action_hook TEXT DEFAULT '';");
+
+      await client.query("ALTER TABLE feedback ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'misc';");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS totp_secret TEXT DEFAULT '';");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT '';");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Free';");
+      await client.query("ALTER TABLE sterlingproxy ADD COLUMN IF NOT EXISTS runs INTEGER DEFAULT 0;");
 
     } finally {
       client.release();
