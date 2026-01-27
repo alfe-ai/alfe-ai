@@ -1,5 +1,40 @@
 import pg from 'pg';
 
+class LocalSettingsCache {
+  constructor() {
+    this.settings = new Map();
+    this.sessionSettings = new Map();
+  }
+
+  getSetting(key) {
+    return this.settings.get(key);
+  }
+
+  setSetting(key, value) {
+    this.settings.set(key, value);
+  }
+
+  getSessionSetting(sessionId, key) {
+    if (!sessionId) {
+      return this.getSetting(key);
+    }
+    return this.sessionSettings.get(sessionId)?.get(key);
+  }
+
+  setSessionSetting(sessionId, key, value) {
+    if (!sessionId) {
+      this.setSetting(key, value);
+      return;
+    }
+    let store = this.sessionSettings.get(sessionId);
+    if (!store) {
+      store = new Map();
+      this.sessionSettings.set(sessionId, store);
+    }
+    store.set(key, value);
+  }
+}
+
 export default class TaskDBAws {
   constructor() {
     const {
@@ -38,6 +73,7 @@ export default class TaskDBAws {
     }
 
     this.pool = new pg.Pool(poolConfig);
+    this.local = new LocalSettingsCache();
     this._initPromise = this._init().catch((err) => {
       console.error(
         '[TaskDBAws] Initialization failed, continuing without DB:',
@@ -100,6 +136,30 @@ export default class TaskDBAws {
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free'
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS chat_tabs (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        archived INTEGER DEFAULT 0,
+        archived_at TEXT,
+        generate_images INTEGER DEFAULT 1,
+        nexum INTEGER DEFAULT 0,
+        project_name TEXT DEFAULT '',
+        repo_ssh_url TEXT DEFAULT '',
+        extra_projects TEXT DEFAULT '',
+        task_id INTEGER DEFAULT 0,
+        parent_id INTEGER DEFAULT 0,
+        model_override TEXT DEFAULT '',
+        tab_type TEXT DEFAULT 'chat',
+        send_project_context INTEGER DEFAULT 1,
+        session_id TEXT DEFAULT '',
+        tab_uuid TEXT DEFAULT '',
+        chatgpt_url TEXT DEFAULT '',
+        show_in_sidebar INTEGER DEFAULT 1,
+        favorite INTEGER DEFAULT 0,
+        path_alias TEXT DEFAULT ''
       );`);
 
     } finally {
@@ -255,6 +315,76 @@ export default class TaskDBAws {
     } finally {
       client.release();
     }
+  }
+
+  async listTasks(includeHidden = false) {
+    await this._initPromise;
+    const baseSql = includeHidden
+      ? 'SELECT * FROM issues WHERE closed = 0 ORDER BY priority_number'
+      : 'SELECT * FROM issues WHERE closed = 0 AND hidden = 0 ORDER BY priority_number';
+    const { rows } = await this.pool.query(baseSql);
+    return rows;
+  }
+
+  async getTaskById(id) {
+    await this._initPromise;
+    const { rows } = await this.pool.query('SELECT * FROM issues WHERE id = $1', [id]);
+    return rows[0];
+  }
+
+  async listTasksByProject(project) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT * FROM issues WHERE project = $1 AND closed = 0 ORDER BY priority_number',
+      [project]
+    );
+    return rows;
+  }
+
+  async listTasksBySprint(sprint) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT * FROM issues WHERE sprint = $1 AND closed = 0 ORDER BY priority_number',
+      [sprint]
+    );
+    return rows;
+  }
+
+  async listChatTabs(nexum = null, includeArchived = true, sessionId = '') {
+    await this._initPromise;
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (sessionId) {
+      conditions.push(`session_id = $${paramIndex++}`);
+      params.push(sessionId);
+    }
+    if (nexum !== null) {
+      conditions.push(`nexum = $${paramIndex++}`);
+      params.push(nexum ? 1 : 0);
+    }
+    if (!includeArchived) {
+      conditions.push('archived = 0');
+    }
+
+    let query = 'SELECT * FROM chat_tabs';
+    if (conditions.length) {
+      query += ` WHERE ${conditions.join(' AND ')}`;
+    }
+    query += ' ORDER BY id DESC';
+
+    const { rows } = await this.pool.query(query, params);
+    return rows;
+  }
+
+  async getChatTabUuidByTaskId(taskId) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT tab_uuid FROM chat_tabs WHERE task_id = $1',
+      [taskId]
+    );
+    return rows[0]?.tab_uuid || null;
   }
 
   getSetting(key) {
