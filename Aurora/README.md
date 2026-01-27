@@ -1,6 +1,6 @@
 # TaskQueue
 
-Small Node.js utility that stores tasks in a local SQLite database.
+Small Node.js utility that stores tasks in Amazon RDS (Aurora PostgreSQL).
 
 ## Quick start
 ```bash
@@ -29,12 +29,12 @@ npm start
 | `HTTPS_CERT_PATH` | (Optional) Path to SSL certificate for HTTPS |
 | `AURORA_PORT` | (Optional) Port for the web server (default: 3000) |
 | `DISABLE_2FA` | (Optional) Set to `true` to skip TOTP verification during login |
-| `AWS_DB_URL` | (Optional) PostgreSQL connection string for AWS RDS. If set, the local SQLite DB is ignored |
-| `AWS_DB_HOST` | (Optional) Hostname for AWS RDS. If set (with other credentials), enables the RDS integration |
-| `AWS_DB_USER` | (Optional) Username for AWS RDS |
-| `AWS_DB_PASSWORD` | (Optional) Password for AWS RDS |
-| `AWS_DB_NAME` | (Optional) Database name for AWS RDS |
-| `AWS_DB_PORT` | (Optional) Port for AWS RDS (default: 5432) |
+| `AWS_DB_URL` | PostgreSQL connection string for AWS RDS (Aurora) |
+| `AWS_DB_HOST` | Hostname for AWS RDS (used with the credentials below when `AWS_DB_URL` is not set) |
+| `AWS_DB_USER` | Username for AWS RDS |
+| `AWS_DB_PASSWORD` | Password for AWS RDS |
+| `AWS_DB_NAME` | Database name for AWS RDS |
+| `AWS_DB_PORT` | Port for AWS RDS (default: 5432) |
 | `WHITELIST_IP` | (Optional) Comma-separated list of IP addresses allowed to access the UI. Requests from `localhost` are always permitted |
 
 Run `../setup_certbot.sh <domain> <email>` to quickly generate these files with
@@ -67,4 +67,4 @@ All queue endpoints exposed by `server.js` are available through this API: `enqu
 
 ## Using Amazon RDS (Aurora)
 
-This project can use Amazon RDS (PostgreSQL/Aurora) instead of the default SQLite database. Set the `AWS_DB_URL` environment variable or the set of `AWS_DB_HOST`, `AWS_DB_USER`, `AWS_DB_PASSWORD`, `AWS_DB_NAME` and optionally `AWS_DB_PORT`. You can also set `DEFAULT_TO_AWS_RDS=true` to prefer RDS by default. See `RDS_SETUP.md` for setup instructions.
+Aurora requires Amazon RDS (PostgreSQL/Aurora). Set `AWS_DB_URL` or the set of `AWS_DB_HOST`, `AWS_DB_USER`, `AWS_DB_PASSWORD`, `AWS_DB_NAME` and optionally `AWS_DB_PORT`. See `RDS_SETUP.md` for setup instructions.

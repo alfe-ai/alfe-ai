@@ -7,14 +7,11 @@ import { URL, fileURLToPath } from "url";
 import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
-import TaskDBLocal from "./taskDb.js";
 import TaskDBAws from "./taskDbAws.js";
 
 dotenv.config();
 
-const DEFAULT_TO_AWS_RDS = typeof process.env.DEFAULT_TO_AWS_RDS === 'undefined' ? 'true' : process.env.DEFAULT_TO_AWS_RDS;
-const useRds = Boolean(process.env.AWS_DB_URL || process.env.AWS_DB_HOST || DEFAULT_TO_AWS_RDS === 'true');
-const TaskDB = useRds ? TaskDBAws : TaskDBLocal;
+const TaskDB = TaskDBAws;
 import { pbkdf2Sync, randomBytes, randomUUID } from "crypto";
 import speakeasy from "speakeasy";
 
@@ -94,53 +91,43 @@ const legacyProjectViewDataFile = path.join(
 let projectViewDataMigrationPromise = null;
 
 function getDbConnectionInfo() {
-  if (useRds) {
-    const {
-      AWS_DB_URL,
-      AWS_DB_HOST,
-      AWS_DB_USER,
-      AWS_DB_NAME,
-      AWS_DB_PORT,
-      AWS_DB_SSL,
-      AWS_DB_SSL_MODE
-    } = process.env;
-    const info = {
-      type: "postgres",
-      source: "AWS RDS",
-      host: "",
-      port: "",
-      database: "",
-      user: "",
-      ssl: Boolean(AWS_DB_SSL === "true" || AWS_DB_SSL_MODE)
-    };
+  const {
+    AWS_DB_URL,
+    AWS_DB_HOST,
+    AWS_DB_USER,
+    AWS_DB_NAME,
+    AWS_DB_PORT,
+    AWS_DB_SSL,
+    AWS_DB_SSL_MODE
+  } = process.env;
+  const info = {
+    type: "postgres",
+    source: "AWS RDS",
+    host: "",
+    port: "",
+    database: "",
+    user: "",
+    ssl: Boolean(AWS_DB_SSL === "true" || AWS_DB_SSL_MODE)
+  };
 
-    if (AWS_DB_URL) {
-      try {
-        const parsed = new URL(AWS_DB_URL);
-        info.host = parsed.hostname;
-        info.port = parsed.port || "5432";
-        info.database = parsed.pathname?.replace(/^\/+/, "") || "";
-        info.user = parsed.username || "";
-      } catch (err) {
-        console.error("[Server Debug] Failed to parse AWS_DB_URL:", err);
-      }
-    } else {
-      info.host = AWS_DB_HOST || "";
-      info.port = AWS_DB_PORT || "5432";
-      info.database = AWS_DB_NAME || "";
-      info.user = AWS_DB_USER || "";
+  if (AWS_DB_URL) {
+    try {
+      const parsed = new URL(AWS_DB_URL);
+      info.host = parsed.hostname;
+      info.port = parsed.port || "5432";
+      info.database = parsed.pathname?.replace(/^\/+/, "") || "";
+      info.user = parsed.username || "";
+    } catch (err) {
+      console.error("[Server Debug] Failed to parse AWS_DB_URL:", err);
     }
-
-    return info;
+  } else {
+    info.host = AWS_DB_HOST || "";
+    info.port = AWS_DB_PORT || "5432";
+    info.database = AWS_DB_NAME || "";
+    info.user = AWS_DB_USER || "";
   }
 
-  const sqlitePath = path.resolve("issues.sqlite");
-  return {
-    type: "sqlite",
-    source: "Local",
-    path: sqlitePath,
-    exists: fs.existsSync(sqlitePath)
-  };
+  return info;
 }
 
 async function migrateLegacyProjectViewDataIfNeeded() {
@@ -338,44 +325,12 @@ async function writeProjectViewQueue(queue, sessionId) {
 }
 
 
-/**
- * Create a timestamped backup of issues.sqlite (if it exists).
- */
-function backupDb() {
-  if (useRds) return; // RDS is managed separately
-  const dbPath = path.resolve("issues.sqlite");
-  if (!fs.existsSync(dbPath)) {
-    console.log("[AlfeChat] No existing DB to backup (first run).");
-    return;
-  }
-
-  const backupsDir = path.resolve("backups");
-  fs.mkdirSync(backupsDir, { recursive: true });
-
-  const ts = new Date().toISOString().replace(/[:.]/g, "-");
-  const backupPath = path.join(backupsDir, `issues-${ts}.sqlite`);
-
-  fs.copyFileSync(dbPath, backupPath);
-  console.log(`[AlfeChat] Backup created: ${backupPath}`);
-}
-
 async function main() {
   try {
-    // ------------------------------------------------------------------
-    // 0. Safety first – create backup
-    // ------------------------------------------------------------------
-    backupDb();
-
-    const dbRaw = new TaskDB(); // uses AWS RDS when AWS_DB_URL or AWS_DB_HOST is set
-    // Some TaskDB implementations (AWS async port) expose async methods only and
-    // do not provide the synchronous TaskDB API expected elsewhere in this
-    // codebase. If the selected TaskDB lacks `listTasks` (sync), fall back to
-    // the local sqlite-backed TaskDB implementation for bootstrap so the
-    // rest of the server can continue to use the synchronous API.
-    const dbForBootstrap = typeof dbRaw.listTasks === 'function' ? dbRaw : new TaskDBLocal();
+    const db = new TaskDB(); // uses AWS RDS
     const queue = new TaskQueue();
 
-    const tasks = dbForBootstrap.listTasks(true);
+    const tasks = db.listTasks(true);
     tasks.forEach(t => queue.enqueue(t));
     console.log(`[AlfeChat] ${queue.size()} task(s) loaded from DB.`);
     // Intentionally omit printing the full issue list to keep logs concise
@@ -412,15 +367,8 @@ let aiModelsCache = null;
 let aiModelsCacheTs = 0;
 const AI_MODELS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-// Instantiate the configured TaskDB backend. If the chosen backend doesn't
-// implement the synchronous TaskDB API (for example an async-only AWS
-// implementation), fall back to the local sqlite-backed TaskDB so route
-// handlers that expect synchronous methods keep working.
-let db = new TaskDB();
-if (typeof db.listTasks !== 'function') {
-  console.warn('[Server Debug] Selected TaskDB backend does not expose synchronous API; using local sqlite fallback for compatibility.');
-  db = new TaskDBLocal();
-}
+// Instantiate the configured TaskDB backend.
+const db = new TaskDB();
 const DEFAULT_CHAT_MODEL = (process.env.AI_MODEL && process.env.AI_MODEL.trim()) ||
   "openai/gpt-oss-20b";
 const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";

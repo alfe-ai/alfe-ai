@@ -1,8 +1,4 @@
 import pg from 'pg';
-import { randomUUID } from 'crypto';
-import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
 import TaskDBLocal from './taskDb.js';
 
 export default class TaskDBAws {
@@ -119,17 +115,6 @@ export default class TaskDBAws {
         plan TEXT DEFAULT 'Free'
       );`);
 
-      const { rows } = await client.query('SELECT COUNT(*) AS count FROM issues');
-      const issueCount = parseInt(rows[0].count, 10);
-      if (issueCount === 0) {
-        await this._importFromSqlite(client);
-      }
-
-      const { rows: accountRows } = await client.query('SELECT COUNT(*) AS count FROM accounts');
-      const accountCount = parseInt(accountRows[0].count, 10);
-      if (accountCount === 0) {
-        await this._importAccountsFromSqlite(client);
-      }
     } finally {
       client.release();
     }
@@ -345,110 +330,6 @@ export default class TaskDBAws {
        ON CONFLICT (session_id, key) DO UPDATE SET value = EXCLUDED.value`,
       [sessionId, key, val]
     );
-  }
-
-  async _importFromSqlite(client) {
-    const sqlitePath = path.resolve('issues.sqlite');
-    if (!fs.existsSync(sqlitePath)) {
-      console.log('[TaskDBAws] SQLite DB not found, skipping import.');
-      return;
-    }
-
-    console.log('[TaskDBAws] Importing data from SQLite…');
-    const sqlite = new Database(sqlitePath);
-    try {
-      const issues = sqlite.prepare('SELECT * FROM issues').all();
-      for (const row of issues) {
-        await client.query(
-          `INSERT INTO issues (
-            github_id, repository, number, title, html_url, codex_url,
-            task_id_slug, priority_number, priority, hidden,
-            project, sprint, fib_points, assignee, created_at,
-            closed, status, dependencies, blocking
-          ) VALUES (
-            $1,$2,$3,$4,$5,$6,
-            $7,$8,$9,$10,
-            $11,$12,$13,$14,$15,
-            $16,$17,$18,$19
-          )
-          ON CONFLICT(github_id) DO NOTHING`,
-          [
-            row.github_id,
-            row.repository,
-            row.number,
-            row.title,
-            row.html_url,
-            row.codex_url,
-            row.task_id_slug,
-            row.priority_number,
-            row.priority,
-            row.hidden,
-            row.project,
-            row.sprint,
-            row.fib_points,
-            row.assignee,
-            row.created_at,
-            row.closed,
-            row.status,
-            row.dependencies,
-            row.blocking
-          ]
-        );
-      }
-
-      const settings = sqlite.prepare('SELECT key, value FROM settings').all();
-      for (const s of settings) {
-        await client.query(
-          `INSERT INTO settings (key, value) VALUES ($1, $2)
-           ON CONFLICT (key) DO UPDATE SET value = excluded.value`,
-          [s.key, s.value]
-        );
-      }
-    } finally {
-      sqlite.close();
-    }
-  }
-
-  async _importAccountsFromSqlite(client) {
-    const sqlitePath = path.resolve('issues.sqlite');
-    if (!fs.existsSync(sqlitePath)) {
-      console.log('[TaskDBAws] SQLite DB not found, skipping accounts import.');
-      return;
-    }
-
-    console.log('[TaskDBAws] Importing accounts from SQLite…');
-    const sqlite = new Database(sqlitePath);
-    try {
-      const accounts = sqlite.prepare('SELECT * FROM accounts').all();
-      for (const row of accounts) {
-        await client.query(
-          `INSERT INTO accounts (
-            id, email, password_hash, session_id, created_at, totp_secret, timezone, plan
-          ) VALUES (
-            $1,$2,$3,$4,$5,$6,$7,$8
-          )
-          ON CONFLICT (email) DO NOTHING`,
-          [
-            row.id,
-            row.email,
-            row.password_hash,
-            row.session_id,
-            row.created_at,
-            row.totp_secret,
-            row.timezone,
-            row.plan
-          ]
-        );
-      }
-
-      const { rows: maxRows } = await client.query('SELECT MAX(id) AS max FROM accounts');
-      const maxId = maxRows[0]?.max;
-      if (maxId) {
-        await client.query("SELECT setval(pg_get_serial_sequence('accounts','id'), $1)", [maxId]);
-      }
-    } finally {
-      sqlite.close();
-    }
   }
 
   async createAccount(email, passwordHash, sessionId = '', timezone = '', plan = 'Free') {
