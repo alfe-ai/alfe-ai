@@ -1,53 +1,21 @@
 import dotenv from "dotenv";
-import fs from "fs";
-import path from "path";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
-import TaskDBLocal from "./taskDb.js";
 import TaskDBAws from "./taskDbAws.js";
 
 dotenv.config();
 
-const DEFAULT_TO_AWS_RDS = typeof process.env.DEFAULT_TO_AWS_RDS === 'undefined' ? 'true' : process.env.DEFAULT_TO_AWS_RDS;
-const useRds = Boolean(process.env.AWS_DB_URL || process.env.AWS_DB_HOST || DEFAULT_TO_AWS_RDS === 'true');
-const TaskDB = useRds ? TaskDBAws : TaskDBLocal;
-
-/**
- * Create a timestamped backup of issues.sqlite (if it exists).
- */
-function backupDb() {
-  if (useRds) return; // RDS is managed separately
-  const dbPath = path.resolve("issues.sqlite");
-  if (!fs.existsSync(dbPath)) {
-    console.log("[AlfeChat] No existing DB to backup (first run).");
-    return;
-  }
-
-  const backupsDir = path.resolve("backups");
-  fs.mkdirSync(backupsDir, { recursive: true });
-
-  // ISO string is filesystem-friendly after removing colon/period characters.
-  const ts = new Date().toISOString().replace(/[:.]/g, "-");
-  const backupPath = path.join(backupsDir, `issues-${ts}.sqlite`);
-
-  fs.copyFileSync(dbPath, backupPath);
-  console.log(`[AlfeChat] Backup created: ${backupPath}`);
-}
+const TaskDB = TaskDBAws;
 
 async function main() {
   try {
-    // ------------------------------------------------------------------
-    // 0. Safety first – create backup
-    // ------------------------------------------------------------------
-    backupDb();
-
     const client = new GitHubClient({
       token: process.env.GITHUB_TOKEN,
       owner: process.env.GITHUB_OWNER,
       repo: process.env.GITHUB_REPO
     });
 
-    const db = new TaskDB(); // uses AWS RDS when AWS_DB_URL or AWS_DB_HOST is set
+    const db = new TaskDB(); // uses AWS RDS
     const queue = new TaskQueue();
 
     const label = process.env.GITHUB_LABEL;
@@ -90,5 +58,3 @@ async function main() {
 }
 
 main();
-
-

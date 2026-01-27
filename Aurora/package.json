@@ -1,14 +1,13 @@
 {
   "name": "task-queue",
   "version": "0.1.2",
-  "description": "Simple queue that tracks GitHub tasks for Alfe AI (now persisted to SQLite)",
+  "description": "Simple queue that tracks GitHub tasks for Alfe AI (persisted to AWS RDS)",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "web": "node src/bootstrapSecretsManager.js",
-    "lint": "echo \"(no linter configured)\"",
-    "sqlserver": "node src/sqlServer.js"
+    "lint": "echo \"(no linter configured)\""
   },
   "author": "Alfe AI",
   "license": "MIT",
