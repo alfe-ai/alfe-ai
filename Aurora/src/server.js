@@ -93,6 +93,56 @@ const legacyProjectViewDataFile = path.join(
 
 let projectViewDataMigrationPromise = null;
 
+function getDbConnectionInfo() {
+  if (useRds) {
+    const {
+      AWS_DB_URL,
+      AWS_DB_HOST,
+      AWS_DB_USER,
+      AWS_DB_NAME,
+      AWS_DB_PORT,
+      AWS_DB_SSL,
+      AWS_DB_SSL_MODE
+    } = process.env;
+    const info = {
+      type: "postgres",
+      source: "AWS RDS",
+      host: "",
+      port: "",
+      database: "",
+      user: "",
+      ssl: Boolean(AWS_DB_SSL === "true" || AWS_DB_SSL_MODE)
+    };
+
+    if (AWS_DB_URL) {
+      try {
+        const parsed = new URL(AWS_DB_URL);
+        info.host = parsed.hostname;
+        info.port = parsed.port || "5432";
+        info.database = parsed.pathname?.replace(/^\/+/, "") || "";
+        info.user = parsed.username || "";
+      } catch (err) {
+        console.error("[Server Debug] Failed to parse AWS_DB_URL:", err);
+      }
+    } else {
+      info.host = AWS_DB_HOST || "";
+      info.port = AWS_DB_PORT || "5432";
+      info.database = AWS_DB_NAME || "";
+      info.user = AWS_DB_USER || "";
+    }
+
+    return info;
+  }
+
+  const sqlitePath = path.resolve("issues.sqlite");
+  return {
+    type: "sqlite",
+    source: "Local",
+    path: sqlitePath,
+    exists: fs.existsSync(sqlitePath)
+  };
+}
+
 async function migrateLegacyProjectViewDataIfNeeded() {
   if (!projectViewDataMigrationPromise) {
     projectViewDataMigrationPromise = (async () => {
@@ -1413,6 +1463,17 @@ app.get("/api/db/table/:name", (req, res) => {
       ? err.message
       : "Internal server error";
     res.status(message === err?.message ? 404 : 500).json({ error: message });
+  }
+});
+
+app.get("/api/db/info", (_req, res) => {
+  console.debug("[Server Debug] GET /api/db/info called.");
+  try {
+    const info = getDbConnectionInfo();
+    res.json(info);
+  } catch (err) {
+    console.error("[Server Debug] GET /api/db/info error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
