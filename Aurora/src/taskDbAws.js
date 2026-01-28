@@ -73,7 +73,9 @@ export default class TaskDBAws {
       }
     }
 
+    this._dbPrintsEnabled = process.env.DB_PRINTS === 'true';
     this.pool = new pg.Pool(poolConfig);
+    this._enableDbLogging();
     this.local = new LocalSettingsCache();
     this.projectCache = new Map();
     this.activityCache = [];
@@ -98,6 +100,48 @@ export default class TaskDBAws {
         err && err.message ? err.message : err
       );
     });
+  }
+
+  _enableDbLogging() {
+    if (!this._dbPrintsEnabled) return;
+    const originalPoolQuery = this.pool.query.bind(this.pool);
+    this.pool.query = (...args) => {
+      this._logDbQuery('pool.query', args);
+      return originalPoolQuery(...args);
+    };
+
+    const originalConnect = this.pool.connect.bind(this.pool);
+    this.pool.connect = async (...args) => {
+      const client = await originalConnect(...args);
+      this._wrapClientForLogging(client);
+      return client;
+    };
+  }
+
+  _wrapClientForLogging(client) {
+    if (!this._dbPrintsEnabled || client.__dbPrintsWrapped) return;
+    const originalClientQuery = client.query.bind(client);
+    client.query = (...args) => {
+      this._logDbQuery('client.query', args);
+      return originalClientQuery(...args);
+    };
+    client.__dbPrintsWrapped = true;
+  }
+
+  _logDbQuery(source, args) {
+    if (!this._dbPrintsEnabled) return;
+    const [text, params] = args;
+    if (typeof text === 'string') {
+      console.log(`[TaskDBAws DB_PRINTS] ${source}`, text, Array.isArray(params) ? params : []);
+      return;
+    }
+    if (text && typeof text.text === 'string') {
+      console.log(
+        `[TaskDBAws DB_PRINTS] ${source}`,
+        text.text,
+        Array.isArray(text.values) ? text.values : []
+      );
+    }
   }
 
   async _init() {

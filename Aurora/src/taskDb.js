@@ -4,12 +4,45 @@ import { randomUUID } from "crypto";
 export default class TaskDB {
   constructor(dbPath = "issues.sqlite") {
     this.db = new Database(dbPath);
+    this._enableDbLogging();
     this._init();
   }
 
   /* ------------------------------------------------------------------ */
   /*  Schema bootstrap & migrations                                     */
   /* ------------------------------------------------------------------ */
+  _enableDbLogging() {
+    if (process.env.DB_PRINTS !== "true") return;
+    const originalExec = this.db.exec.bind(this.db);
+    this.db.exec = (sql) => {
+      console.log("[TaskDB DB_PRINTS] exec", sql);
+      return originalExec(sql);
+    };
+
+    const originalPrepare = this.db.prepare.bind(this.db);
+    this.db.prepare = (sql) => {
+      console.log("[TaskDB DB_PRINTS] prepare", sql);
+      const statement = originalPrepare(sql);
+      return this._wrapStatementForLogging(statement, sql);
+    };
+  }
+
+  _wrapStatementForLogging(statement, sql) {
+    const methodsToLog = new Set(["run", "get", "all", "iterate"]);
+    return new Proxy(statement, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (typeof value === "function" && methodsToLog.has(prop)) {
+          return (...args) => {
+            console.log(`[TaskDB DB_PRINTS] ${String(prop)}`, sql, args);
+            return value.apply(target, args);
+          };
+        }
+        return value;
+      }
+    });
+  }
+
   _init() {
     console.debug("[TaskDB Debug] Initializing DB schema…");
 
