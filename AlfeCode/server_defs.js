@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const rdsStore = require('./rds_store');
 
 const DEFAULT_CODEX_MODEL = 'openrouter/openai/gpt-5-mini';
 const DEFAULT_CODEX_CONFIG_PATH = path.join(__dirname, 'data', 'config', 'codex_runner.json');
@@ -31,6 +32,9 @@ const CODEX_MODEL_PATTERN = /^[A-Za-z0-9._:+-]+(?:\/[A-Za-z0-9._:+-]+)*$/;
 const SESSION_DATA_ROOT = path.join(__dirname, 'data', 'sessions');
 const SESSION_FALLBACK_KEY = 'default';
 const CODEX_RUN_HISTORY_FILENAME = 'codex_runs.json';
+const CODEX_RUNS_SESSION_KEY = 'codex_runs';
+const CODEX_SETTINGS_MODEL_KEY = 'codex_default_model';
+const CODEX_SETTINGS_INSTRUCTIONS_KEY = 'codex_default_agent_instructions';
 let hasLoggedModelValidationDisabled = false;
 
 function parseBooleanEnv(value, defaultValue = false) {
@@ -131,6 +135,9 @@ function ensureCodexConfigDir() {
 }
 
 function ensureCodexConfigFile() {
+    if (rdsStore.enabled) {
+        return;
+    }
     ensureCodexConfigDir();
     if (!fs.existsSync(CODEX_CONFIG_PATH)) {
         const initialConfig = {
@@ -169,12 +176,42 @@ function ensureCodexConfigFile() {
     }
 }
 
+function loadCodexConfigFromFile() {
+    ensureCodexConfigFile();
+    if (!fs.existsSync(CODEX_CONFIG_PATH)) {
+        return {};
+    }
+    const raw = fs.readFileSync(CODEX_CONFIG_PATH, 'utf-8');
+    const parsed = JSON.parse(raw || '{}');
+    return parsed && typeof parsed === 'object' ? { ...parsed } : {};
+}
+
 function loadCodexConfig() {
     try {
-        ensureCodexConfigFile();
-        const raw = fs.readFileSync(CODEX_CONFIG_PATH, 'utf-8');
-        const parsed = JSON.parse(raw || '{}');
-        const safeConfig = parsed && typeof parsed === 'object' ? { ...parsed } : {};
+        let safeConfig = {};
+
+        if (rdsStore.enabled) {
+            const storedModel = rdsStore.getSetting(CODEX_SETTINGS_MODEL_KEY);
+            const storedInstructions = rdsStore.getSetting(CODEX_SETTINGS_INSTRUCTIONS_KEY);
+            if (typeof storedModel === 'string') {
+                safeConfig.defaultModel = storedModel;
+            }
+            if (typeof storedInstructions === 'string') {
+                safeConfig.defaultAgentInstructions = storedInstructions;
+            }
+
+            if (typeof storedModel !== 'string' || typeof storedInstructions !== 'string') {
+                const fileConfig = loadCodexConfigFromFile();
+                if (typeof storedModel !== 'string' && typeof fileConfig.defaultModel === 'string') {
+                    safeConfig.defaultModel = fileConfig.defaultModel;
+                }
+                if (typeof storedInstructions !== 'string' && typeof fileConfig.defaultAgentInstructions === 'string') {
+                    safeConfig.defaultAgentInstructions = fileConfig.defaultAgentInstructions;
+                }
+            }
+        } else {
+            safeConfig = loadCodexConfigFromFile();
+        }
 
         let mutated = false;
 
@@ -198,6 +235,11 @@ function loadCodexConfig() {
             saveCodexConfig(safeConfig);
         }
 
+        if (rdsStore.enabled) {
+            rdsStore.setSetting(CODEX_SETTINGS_MODEL_KEY, safeConfig.defaultModel);
+            rdsStore.setSetting(CODEX_SETTINGS_INSTRUCTIONS_KEY, safeConfig.defaultAgentInstructions);
+        }
+
         return safeConfig;
     } catch (error) {
         console.error(`[ERROR] loadCodexConfig: ${error.message}`);
@@ -215,7 +257,6 @@ function loadCodexConfig() {
 }
 
 function saveCodexConfig(config) {
-    ensureCodexConfigDir();
     const safeConfig = config && typeof config === 'object' ? { ...config } : {};
 
     const rawModel = typeof safeConfig.defaultModel === 'string' ? safeConfig.defaultModel.trim() : '';
@@ -230,6 +271,13 @@ function saveCodexConfig(config) {
         safeConfig.defaultAgentInstructions = DEFAULT_AGENT_INSTRUCTIONS;
     }
 
+    if (rdsStore.enabled) {
+        rdsStore.setSetting(CODEX_SETTINGS_MODEL_KEY, safeConfig.defaultModel);
+        rdsStore.setSetting(CODEX_SETTINGS_INSTRUCTIONS_KEY, safeConfig.defaultAgentInstructions);
+        return;
+    }
+
+    ensureCodexConfigDir();
     fs.writeFileSync(CODEX_CONFIG_PATH, JSON.stringify(safeConfig, null, 2), 'utf-8');
 }
 
@@ -455,7 +503,7 @@ function getCodexRunsPath(sessionId) {
     return path.join(sessionRoot, CODEX_RUN_HISTORY_FILENAME);
 }
 
-function loadCodexRuns(sessionId) {
+function loadCodexRunsFromFile(sessionId) {
     const filePath = getCodexRunsPath(sessionId);
     if (fs.existsSync(filePath)) {
         try {
@@ -508,7 +556,45 @@ function loadCodexRuns(sessionId) {
     return [];
 }
 
+function loadCodexRuns(sessionId) {
+    const safeSessionId = sanitizeSessionId(sessionId);
+    if (rdsStore.enabled) {
+        const stored = rdsStore.getSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY);
+        if (typeof stored === 'string' && stored.trim()) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                }
+            } catch (error) {
+                console.error(`[ERROR] loadCodexRuns: ${error.message}`);
+            }
+        }
+        if (stored === undefined) {
+            rdsStore.prefetchSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY);
+            const fallback = loadCodexRunsFromFile(sessionId);
+            if (fallback.length) {
+                rdsStore.setSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY, JSON.stringify(fallback));
+            }
+            return fallback;
+        }
+        return [];
+    }
+
+    return loadCodexRunsFromFile(sessionId);
+}
+
 function saveCodexRuns(sessionId, runs) {
+    const safeSessionId = sanitizeSessionId(sessionId);
+    if (rdsStore.enabled) {
+        try {
+            rdsStore.setSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY, JSON.stringify(runs));
+            return;
+        } catch (error) {
+            console.error(`[ERROR] saveCodexRuns: ${error.message}`);
+        }
+    }
+
     const filePath = getCodexRunsPath(sessionId);
     try {
         fs.writeFileSync(filePath, JSON.stringify(runs, null, 2), 'utf-8');

@@ -12,6 +12,7 @@ const cron = require("node-cron");
 const http = require("http");
 const https = require("https");
 const { OpenAI } = require("openai");
+const rdsStore = require("../rds_store");
 const app = express();
 
 const vmManager = require("./vm_manager");
@@ -160,9 +161,16 @@ const GLOBAL_INSTRUCTIONS_PATH = path.join(
     "config",
     "global_agent_instructions.txt"
 );
+const GLOBAL_INSTRUCTIONS_KEY = "codex_global_instructions";
 function loadGlobalInstructions() {
     console.log(`[DEBUG] loadGlobalInstructions() => Entered function.`);
     try {
+        if (rdsStore.enabled) {
+            const stored = rdsStore.getSetting(GLOBAL_INSTRUCTIONS_KEY);
+            if (typeof stored === "string") {
+                return stored;
+            }
+        }
         if (!fs.existsSync(GLOBAL_INSTRUCTIONS_PATH)) {
             console.log(`[DEBUG] loadGlobalInstructions => File does not exist at ${GLOBAL_INSTRUCTIONS_PATH}`);
             return "";
@@ -170,6 +178,9 @@ function loadGlobalInstructions() {
         console.log(`[DEBUG] loadGlobalInstructions => Found file at ${GLOBAL_INSTRUCTIONS_PATH}, reading...`);
         const content = fs.readFileSync(GLOBAL_INSTRUCTIONS_PATH, "utf-8");
         console.log(`[DEBUG] loadGlobalInstructions => Successfully read instructions. Length: ${content.length}`);
+        if (rdsStore.enabled && content) {
+            rdsStore.setSetting(GLOBAL_INSTRUCTIONS_KEY, content);
+        }
         return content;
     } catch (e) {
         console.error("Error reading global instructions:", e);
@@ -177,6 +188,10 @@ function loadGlobalInstructions() {
     }
 }
 function saveGlobalInstructions(newInstructions) {
+    if (rdsStore.enabled) {
+        rdsStore.setSetting(GLOBAL_INSTRUCTIONS_KEY, newInstructions);
+        return;
+    }
     fs.writeFileSync(GLOBAL_INSTRUCTIONS_PATH, newInstructions, "utf-8");
 }
 
