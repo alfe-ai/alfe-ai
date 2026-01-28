@@ -2478,14 +2478,14 @@
 
                 <button type="button" id="expandRunsSidebarArrow" class="expand-runs-sidebar-arrow" aria-label="Expand sidebar">»</button>
                 <div class="runs-sidebar__collapsed-nav" role="navigation" aria-label="Agent quick links">
-                    <a href="javascript:void(0)" class="runs-sidebar__collapsed-nav-link" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
-                        <span aria-hidden="true">&lt;/&gt;</span>
-                    </a>
                     <a href="<%= chatBaseUrl %>" target="_blank" rel="noopener noreferrer" class="runs-sidebar__collapsed-nav-link" data-tab="chat" aria-label="Chat tab">
                         <span aria-hidden="true">💬</span>
                     </a>
                     <a href="<%= chatDesignUrl %>" target="_blank" rel="noopener noreferrer" class="runs-sidebar__collapsed-nav-link" data-tab="design" aria-label="Image Design tab">
                         <span aria-hidden="true">🎨</span>
+                    </a>
+                    <a href="javascript:void(0)" class="runs-sidebar__collapsed-nav-link" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
+                        <span aria-hidden="true">&lt;/&gt;</span>
                     </a>
                 </div>
                 <button type="button" id="collapsedNewTaskBtn" class="runs-sidebar__collapsed-newtask" aria-label="New Task" title="New Task">
@@ -2516,10 +2516,6 @@
             <div class="runs-sidebar__title-group">
 
                 <nav class="sidebar-nav aurora-nav" aria-label="Agent primary tabs">
-                    <a href="javascript:void(0)" class="sidebar-nav-item" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
-                        <span class="sidebar-nav-item__icon" aria-hidden="true">&lt;/&gt;</span>
-                        <span class="sidebar-nav-item__label">Code</span>
-                    </a>
                     <a href="<%= chatBaseUrl %>" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="chat" aria-label="Chat tab">
                         <span class="sidebar-nav-item__icon" aria-hidden="true">💬</span>
                         <span class="sidebar-nav-item__label">Chat</span>
@@ -2527,6 +2523,10 @@
                     <a href="<%= chatDesignUrl %>" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="design" aria-label="Image Design tab">
                         <span class="sidebar-nav-item__icon" aria-hidden="true">🎨</span>
                         <span class="sidebar-nav-item__label">Image Design</span>
+                    </a>
+                    <a href="javascript:void(0)" class="sidebar-nav-item" data-tab="code" aria-label="Code tab" onclick="if(event){event.preventDefault();}">
+                        <span class="sidebar-nav-item__icon" aria-hidden="true">&lt;/&gt;</span>
+                        <span class="sidebar-nav-item__label">Code</span>
                     </a>
                 </nav>
                 <script>
