@@ -7184,13 +7184,88 @@ const appendMergeChunk = (text, type = "output") => {
   const signUpLogInBtn = document.getElementById("signUpLogInBtn");
   const authModal = document.getElementById("authModal");
   const authModalCloseButton = document.getElementById("authModalCloseButton");
+  const authEmailInput = document.getElementById("authEmailInput");
+  const authEmailContinueBtn = document.getElementById("authEmailContinueBtn");
   const loginForm = document.getElementById("loginForm");
   const signupForm = document.getElementById("signupForm");
-  const loginTab = document.getElementById("loginTab");
-  const signupTab = document.getElementById("signupTab");
-  const showSignupBtn = document.getElementById("showSignupBtn");
-  const showLoginBtn = document.getElementById("showLoginBtn");
-  const loginCancelBtn = document.getElementById("loginCancelBtn");
+  const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
+  const signupChangeEmailBtn = document.getElementById("signupChangeEmailBtn");
+  const toastEl = document.getElementById("toast");
+
+  const AUTH_MODAL_STATE_KEY = "alfe.authModalState";
+  let authEmailValue = "";
+  let authModalStep = "email";
+
+  const showToast = (msg, duration = 1500) => {
+    if (!toastEl) {
+      return;
+    }
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    window.clearTimeout(showToast.timeoutId);
+    showToast.timeoutId = window.setTimeout(() => {
+      toastEl.classList.remove("show");
+    }, duration);
+  };
+
+  const persistAuthModalState = () => {
+    try {
+      sessionStorage.setItem(
+        AUTH_MODAL_STATE_KEY,
+        JSON.stringify({ email: authEmailValue, step: authModalStep })
+      );
+    } catch (_err) {
+      /* ignore storage errors */
+    }
+  };
+
+  const loadAuthModalState = () => {
+    try {
+      const raw = sessionStorage.getItem(AUTH_MODAL_STATE_KEY);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (_err) {
+      return null;
+    }
+  };
+
+  const isBasicEmailValid = (email) => {
+    if (!email) {
+      return false;
+    }
+    const normalized = email.trim();
+    if (!normalized) {
+      return false;
+    }
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+  };
+
+  const setAuthEmailValue = (email) => {
+    authEmailValue = email;
+    const loginEmail = document.getElementById("loginEmail");
+    if (loginEmail) {
+      loginEmail.value = email;
+    }
+    const signupEmail = document.getElementById("signupEmail");
+    if (signupEmail) {
+      signupEmail.value = email;
+    }
+    if (authEmailInput) {
+      authEmailInput.value = email;
+    }
+    const loginDisplay = document.getElementById("authEmailDisplayLogin");
+    if (loginDisplay) {
+      loginDisplay.textContent = email;
+    }
+    const signupDisplay = document.getElementById("authEmailDisplaySignup");
+    if (signupDisplay) {
+      signupDisplay.textContent = email;
+    }
+    persistAuthModalState();
+  };
 
   const showAuthModal = () => {
     if (!authModal) {
@@ -7208,77 +7283,190 @@ const appendMergeChunk = (text, type = "output") => {
     document.body.style.overflow = "";
   };
 
-  const showLoginForm = () => {
-    if (loginForm) {
-      loginForm.style.display = "block";
+  const showAuthEmailStep = ({ keepEmail = true } = {}) => {
+    if (!keepEmail) {
+      setAuthEmailValue("");
     }
-    if (signupForm) {
-      signupForm.style.display = "none";
+    authModalStep = "email";
+    persistAuthModalState();
+    const benefits = document.querySelector("#authModal .auth-benefits");
+    const login = document.getElementById("loginForm");
+    const signup = document.getElementById("signupForm");
+    const emailStep = document.getElementById("authEmailStep");
+    if (benefits) {
+      benefits.style.display = "block";
     }
-    if (loginTab) {
-      loginTab.classList.add("active");
+    if (login) {
+      login.style.display = "none";
     }
-    if (signupTab) {
-      signupTab.classList.remove("active");
+    if (signup) {
+      signup.style.display = "none";
+    }
+    if (emailStep) {
+      emailStep.style.display = "block";
+    }
+    const totpLabel = document.getElementById("totpLoginLabel");
+    if (totpLabel) {
+      totpLabel.style.display = "none";
+    }
+    if (authEmailInput) {
+      authEmailInput.focus();
     }
   };
 
   const showSignupForm = () => {
-    if (loginForm) {
-      loginForm.style.display = "none";
+    if (!authEmailValue || !isBasicEmailValid(authEmailValue)) {
+      if (authEmailValue) {
+        showToast("Enter a valid email address");
+      }
+      showAuthEmailStep({ keepEmail: false });
+      return;
     }
-    if (signupForm) {
-      signupForm.style.display = "block";
+    authModalStep = "signup";
+    persistAuthModalState();
+    const benefits = document.querySelector("#authModal .auth-benefits");
+    const emailStep = document.getElementById("authEmailStep");
+    if (emailStep) {
+      emailStep.style.display = "none";
     }
-    if (loginTab) {
-      loginTab.classList.remove("active");
+    const login = document.getElementById("loginForm");
+    const signup = document.getElementById("signupForm");
+    if (benefits) {
+      benefits.style.display = "none";
     }
-    if (signupTab) {
-      signupTab.classList.add("active");
+    if (login) {
+      login.style.display = "none";
+    }
+    if (signup) {
+      signup.style.display = "block";
+    }
+  };
+
+  const showLoginForm = () => {
+    if (!authEmailValue || !isBasicEmailValid(authEmailValue)) {
+      if (authEmailValue) {
+        showToast("Enter a valid email address");
+      }
+      showAuthEmailStep({ keepEmail: false });
+      return;
+    }
+    authModalStep = "login";
+    persistAuthModalState();
+    const benefits = document.querySelector("#authModal .auth-benefits");
+    const emailStep = document.getElementById("authEmailStep");
+    if (emailStep) {
+      emailStep.style.display = "none";
+    }
+    const login = document.getElementById("loginForm");
+    const signup = document.getElementById("signupForm");
+    if (benefits) {
+      benefits.style.display = "none";
+    }
+    if (signup) {
+      signup.style.display = "none";
+    }
+    if (login) {
+      login.style.display = "block";
+    }
+    const totpLabel = document.getElementById("totpLoginLabel");
+    if (totpLabel) {
+      totpLabel.style.display = "none";
+    }
+  };
+
+  const openAuthModal = ({ preferredStep } = {}) => {
+    const saved = loadAuthModalState();
+    if (saved?.email) {
+      setAuthEmailValue(saved.email);
+    }
+    const step = saved?.step || preferredStep || "email";
+    if (step === "login") {
+      showLoginForm();
+    } else if (step === "signup") {
+      showSignupForm();
+    } else {
+      showAuthEmailStep({ keepEmail: true });
+    }
+    showAuthModal();
+  };
+
+  const openSignupModal = (event) => {
+    if (event) {
+      event.preventDefault();
+    }
+    openAuthModal({ preferredStep: "signup" });
+  };
+
+  const openLoginModal = (event) => {
+    if (event) {
+      event.preventDefault();
+    }
+    openAuthModal({ preferredStep: "login" });
+  };
+
+  const checkAuthEmailAndContinue = async () => {
+    const email = authEmailInput ? authEmailInput.value.trim() : "";
+    if (!email) {
+      showToast("Email required");
+      return;
+    }
+    if (authEmailInput && typeof authEmailInput.checkValidity === "function" && !authEmailInput.checkValidity()) {
+      showToast("Enter a valid email address");
+      return;
+    }
+    if (!isBasicEmailValid(email)) {
+      showToast("Enter a valid email address");
+      return;
+    }
+    try {
+      const resp = await fetch("/api/account/exists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = await resp.json().catch(() => null);
+      if (resp.ok && data) {
+        setAuthEmailValue(email);
+        if (data.exists) {
+          showLoginForm();
+        } else {
+          showSignupForm();
+        }
+      } else {
+        showToast(data?.error || "Unable to check email");
+      }
+    } catch (err) {
+      console.error("Email lookup failed", err);
+      showToast("Unable to check email");
     }
   };
 
   if (signUpLogInBtn) {
-    signUpLogInBtn.addEventListener("click", (event) => {
+    signUpLogInBtn.addEventListener("click", openSignupModal);
+  }
+
+  if (authEmailContinueBtn) {
+    authEmailContinueBtn.addEventListener("click", (event) => {
       event.preventDefault();
-      showLoginForm();
-      showAuthModal();
+      checkAuthEmailAndContinue();
     });
   }
 
-  if (loginTab) {
-    loginTab.addEventListener("click", (event) => {
-      event.preventDefault();
-      showLoginForm();
+  if (authEmailInput) {
+    authEmailInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        checkAuthEmailAndContinue();
+      }
     });
   }
 
-  if (signupTab) {
-    signupTab.addEventListener("click", (event) => {
-      event.preventDefault();
-      showSignupForm();
-    });
+  if (loginChangeEmailBtn) {
+    loginChangeEmailBtn.addEventListener("click", () => showAuthEmailStep({ keepEmail: true }));
   }
 
-  if (showSignupBtn) {
-    showSignupBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      showSignupForm();
-    });
-  }
-
-  if (showLoginBtn) {
-    showLoginBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      showLoginForm();
-    });
-  }
-
-  if (loginCancelBtn) {
-    loginCancelBtn.addEventListener("click", (event) => {
-      event.preventDefault();
-      hideAuthModal();
-    });
+  if (signupChangeEmailBtn) {
+    signupChangeEmailBtn.addEventListener("click", () => showAuthEmailStep({ keepEmail: true }));
   }
 
   if (authModalCloseButton) {
@@ -7301,6 +7489,141 @@ const appendMergeChunk = (text, type = "output") => {
       hideAuthModal();
     }
   });
+
+  const signupPasswordInput = document.getElementById("signupPassword");
+  const passwordRequirementItems = signupPasswordInput
+    ? document.querySelectorAll(".password-requirements [data-requirement]")
+    : [];
+
+  const updatePasswordRequirements = (value = "") => {
+    if (!passwordRequirementItems.length) {
+      return;
+    }
+    const requirements = {
+      "min-8": value.length >= 8,
+      "min-12": value.length >= 12,
+      "case": /[a-z]/.test(value) && /[A-Z]/.test(value),
+      "number": /\d/.test(value),
+      "symbol": /[#$&]/.test(value)
+    };
+
+    passwordRequirementItems.forEach((item) => {
+      const requirement = item.dataset.requirement;
+      const met = Boolean(requirements[requirement]);
+      item.classList.toggle("is-met", met);
+      item.setAttribute("aria-checked", met ? "true" : "false");
+    });
+  };
+
+  if (signupPasswordInput) {
+    updatePasswordRequirements(signupPasswordInput.value);
+    signupPasswordInput.addEventListener("input", (event) => {
+      updatePasswordRequirements(event.target.value);
+    });
+  }
+
+  const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+  if (loginSubmitBtn) {
+    loginSubmitBtn.addEventListener("click", async () => {
+      const email = document.getElementById("loginEmail")?.value.trim();
+      const password = document.getElementById("loginPassword")?.value;
+      const token = document.getElementById("loginTotp")?.value.trim();
+      if (!email || !password) {
+        showToast("Email and password required");
+        return;
+      }
+      if (!isBasicEmailValid(email)) {
+        showToast("Enter a valid email address");
+        return;
+      }
+      try {
+        const resp = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password,
+            token,
+            ...(currentSessionId ? { sessionId: currentSessionId } : {})
+          })
+        });
+        const data = await resp.json().catch(() => null);
+        if (resp.ok && data && data.success) {
+          showToast("Logged in!");
+          hideAuthModal();
+          const lbl = document.getElementById("totpLoginLabel");
+          if (lbl) {
+            lbl.style.display = "none";
+          }
+          if (data.sessionId && data.sessionId !== currentSessionId) {
+            setTimeout(() => window.location.reload(), 500);
+          }
+        } else {
+          if (data?.error === "totp required" || data?.error === "invalid totp") {
+            const lbl = document.getElementById("totpLoginLabel");
+            if (lbl) {
+              lbl.style.display = "block";
+            }
+          }
+          showToast(data?.error || "Login failed");
+        }
+      } catch (err) {
+        console.error("Login failed", err);
+        showToast("Login failed");
+      }
+    });
+  }
+
+  const signupSubmitBtn = document.getElementById("signupSubmitBtn");
+  if (signupSubmitBtn) {
+    signupSubmitBtn.addEventListener("click", async () => {
+      const email = document.getElementById("signupEmail")?.value.trim();
+      const password = document.getElementById("signupPassword")?.value;
+      const confirm = document.getElementById("signupConfirm")?.value;
+      const MIN_PASSWORD_LENGTH = 8;
+      if (!email) {
+        showToast("Email required");
+        return;
+      }
+      if (!isBasicEmailValid(email)) {
+        showToast("Enter a valid email address");
+        return;
+      }
+      if (!password) {
+        showToast("Password required");
+        return;
+      }
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        showToast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+        return;
+      }
+      if (confirm !== undefined && password !== confirm) {
+        showToast("Passwords do not match");
+        return;
+      }
+      try {
+        const resp = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            password,
+            ...(currentSessionId ? { sessionId: currentSessionId } : {})
+          })
+        });
+        const data = await resp.json().catch(() => null);
+        if (resp.ok && data && data.success) {
+          showToast("Registered!");
+          hideAuthModal();
+        } else {
+          showToast(data?.error || "Registration failed");
+        }
+      } catch (err) {
+        console.error("Registration failed", err);
+        showToast("Registration failed");
+      }
+    });
+  }
 
   const stopDragging = (shouldPersist = true) => {
     if (!dragging) {
