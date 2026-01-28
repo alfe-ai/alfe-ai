@@ -2597,7 +2597,7 @@ app.post("/api/chat", async (req, res) => {
     }
 
     const priorPairsAll = await db.getAllChatPairs(chatTabId);
-    const isFirstMessage = !db.hasUserMessages(chatTabId);
+    const isFirstMessage = !(await db.hasUserMessages(chatTabId));
     let model = tabInfo && tabInfo.model_override
       ? tabInfo.model_override
       : DEFAULT_CHAT_MODEL;
