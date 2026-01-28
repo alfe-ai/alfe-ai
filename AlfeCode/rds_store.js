@@ -1,5 +1,7 @@
 let pg = null;
 
+const REQUIRE_RDS = process.env.ALFECODE_REQUIRE_RDS !== "false";
+
 const SETTINGS_TABLE = "settings";
 const SESSION_SETTINGS_TABLE = "session_settings";
 
@@ -53,6 +55,12 @@ class RdsStore {
     this.sessionSettings = new Map();
     this.ready = false;
     this.initPromise = null;
+
+    if (REQUIRE_RDS && !this.enabled) {
+      throw new Error(
+        "[RdsStore] AWS RDS configuration is required. Set AWS_DB_URL or AWS_DB_HOST (or set ALFECODE_REQUIRE_RDS=false to allow local storage)."
+      );
+    }
 
     if (this.enabled) {
       pg = require("pg");

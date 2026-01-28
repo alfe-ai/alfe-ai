@@ -170,6 +170,7 @@ function loadGlobalInstructions() {
             if (typeof stored === "string") {
                 return stored;
             }
+            return "";
         }
         if (!fs.existsSync(GLOBAL_INSTRUCTIONS_PATH)) {
             console.log(`[DEBUG] loadGlobalInstructions => File does not exist at ${GLOBAL_INSTRUCTIONS_PATH}`);
@@ -178,9 +179,6 @@ function loadGlobalInstructions() {
         console.log(`[DEBUG] loadGlobalInstructions => Found file at ${GLOBAL_INSTRUCTIONS_PATH}, reading...`);
         const content = fs.readFileSync(GLOBAL_INSTRUCTIONS_PATH, "utf-8");
         console.log(`[DEBUG] loadGlobalInstructions => Successfully read instructions. Length: ${content.length}`);
-        if (rdsStore.enabled && content) {
-            rdsStore.setSetting(GLOBAL_INSTRUCTIONS_KEY, content);
-        }
         return content;
     } catch (e) {
         console.error("Error reading global instructions:", e);
