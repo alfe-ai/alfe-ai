@@ -2988,7 +2988,7 @@ app.get("/api/chat/design_tab", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/new", (req, res) => {
+app.post("/api/chat/tabs/new", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/new =>", req.body);
   try {
     let name = req.body.name || (req.body.type === 'search' ? 'Search' : 'Untitled');
@@ -3024,7 +3024,7 @@ app.post("/api/chat/tabs/new", (req, res) => {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(
+    const { id: tabId, uuid } = await db.createChatTab(
       name,
       nexum,
       project,
@@ -3224,10 +3224,10 @@ app.post("/api/chat/tabs/parent", (req, res) => {
   }
 });
 
-app.get("/api/chat/subroutines", (req, res) => {
+app.get("/api/chat/subroutines", async (req, res) => {
   console.debug("[Server Debug] GET /api/chat/subroutines");
   try {
-    const subs = db.listChatSubroutines();
+    const subs = await db.listChatSubroutines();
     res.json(subs);
   } catch (err) {
     console.error("[AlfeChat] GET /api/chat/subroutines error:", err);
@@ -3372,7 +3372,7 @@ app.post("/api/upload", upload.single("myfile"), (req, res) => {
   res.json({ success: true, file: req.file });
 });
 
-app.get("/api/upload/list", (req, res) => {
+app.get("/api/upload/list", async (req, res) => {
   console.debug("[Server Debug] GET /api/upload/list => listing files.", req.query);
   try {
     const sessionId = req.query.sessionId || "";
@@ -3382,7 +3382,7 @@ app.get("/api/upload/list", (req, res) => {
     const fileNames = fs.readdirSync(uploadsDir);
     const files = [];
     for (const name of fileNames) {
-      const imgSession = db.getImageSessionForUrl(`/uploads/${name}`);
+      const imgSession = await db.getImageSessionForUrl(`/uploads/${name}`);
       // Some legacy images were created without a recorded session. When the
       // user filters by session, keep showing those session-less entries so the
       // table isn’t empty even though images exist for the current visit.
@@ -4622,11 +4622,11 @@ app.all("/index.html", (req, res) => {
   return res.redirect("https://alfe.sh");
 });
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   let sessionId = getSessionIdFromRequest(req);
   if (req.hostname === "dev.alfe.sh") {
     try {
-      const { uuid } = db.createChatTab(
+      const { uuid } = await db.createChatTab(
         "Untitled",
         0,
         "",
@@ -4646,7 +4646,7 @@ app.get("/", (req, res) => {
   if (["mvp2.alfe.sh", "app.alfe.sh"].includes(req.hostname)) {
     try {
       const { sessionId } = ensureSessionIdCookie(req, res);
-      const { uuid } = db.createChatTab(
+      const { uuid } = await db.createChatTab(
         "Untitled",
         0,
         "",
@@ -4666,7 +4666,7 @@ app.get("/", (req, res) => {
     if (!sessionId) {
       const ensured = ensureSessionIdCookie(req, res);
       sessionId = ensured.sessionId;
-      const { id: tabId, uuid } = db.createChatTab(
+      const { id: tabId, uuid } = await db.createChatTab(
         "Untitled",
         0,
         "",
@@ -4682,9 +4682,9 @@ app.get("/", (req, res) => {
       return res.redirect(`/chat/${uuid}`);
     }
 
-    const tabs = db.listChatTabs(null, false, sessionId);
+    const tabs = await db.listChatTabs(null, false, sessionId);
     if (tabs.length === 0) {
-      const { id: tabId, uuid } = db.createChatTab(
+      const { id: tabId, uuid } = await db.createChatTab(
         "Untitled",
         0,
         "",
@@ -4722,11 +4722,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/aurora.html"));
 });
 
-app.get("/search", (req, res) => {
+app.get("/search", async (req, res) => {
   try {
     const q = String(req.query.q || "");
     const sessionId = getSessionIdFromRequest(req);
-    const { id: tabId, uuid } = db.createChatTab(
+    const { id: tabId, uuid } = await db.createChatTab(
       "Search",
       0,
       "",
@@ -4748,7 +4748,7 @@ app.get("/search", (req, res) => {
   }
 });
 
-app.get("/new", (req, res) => {
+app.get("/new", async (req, res) => {
   try {
     const { sessionId, created } = ensureSessionIdCookie(req, res);
 
@@ -4759,7 +4759,7 @@ app.get("/new", (req, res) => {
       name = `${projectName}: ${name}`;
     }
 
-    const { id: tabId, uuid } = db.createChatTab(
+    const { id: tabId, uuid } = await db.createChatTab(
       name,
       0,
       "",
