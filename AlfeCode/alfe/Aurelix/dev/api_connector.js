@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const rdsStore = require('../../../rds_store');
+
+const GLOBAL_INSTRUCTIONS_KEY = 'codex_global_instructions';
 
 // Import helpers for loading/saving the repo JSON
 const {
@@ -19,6 +22,12 @@ const DEFAULT_AIMODEL = 'deepseek/deepseek-chat';
 function loadGlobalInstructions() {
   console.log('[DEBUG] loadGlobalInstructions() => invoked in api_connector.');
   try {
+    if (rdsStore.enabled) {
+      const stored = rdsStore.getSetting(GLOBAL_INSTRUCTIONS_KEY);
+      if (typeof stored === 'string') {
+        return stored;
+      }
+    }
     const PROJECT_ROOT = path.resolve(__dirname, '../../../');
     console.log(`[DEBUG] Using PROJECT_ROOT => ${PROJECT_ROOT}`);
     const GLOBAL_INSTRUCTIONS_PATH = path.join(
@@ -34,6 +43,9 @@ function loadGlobalInstructions() {
     }
     const instructions = fs.readFileSync(GLOBAL_INSTRUCTIONS_PATH, 'utf-8');
     console.log(`[DEBUG] loadGlobalInstructions => read file successfully, length: ${instructions.length}`);
+    if (rdsStore.enabled && instructions) {
+      rdsStore.setSetting(GLOBAL_INSTRUCTIONS_KEY, instructions);
+    }
     return instructions;
   } catch (e) {
     console.error('[ERROR] reading global_agent_instructions:', e);
