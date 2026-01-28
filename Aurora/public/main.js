@@ -640,8 +640,24 @@ let newTabSelectedType = 'chat';
 
 const CODE_CHAT_GREETING = 'Start a new task or ask a question';
 
-const $  = (sel, ctx=document) => ctx.querySelector(sel);
-const $$ = (sel, ctx=document) => [...ctx.querySelectorAll(sel)];
+const normalizeSelector = (sel, ctx) => {
+  if (!sel || /^[#.:\[]/.test(sel)) {
+    return sel;
+  }
+  const match = sel.match(/^([A-Za-z][\w-]*)/);
+  if (!match) {
+    return sel;
+  }
+  const id = match[1];
+  const rest = sel.slice(id.length);
+  const escaped = typeof CSS !== "undefined" && CSS.escape ? CSS.escape(id) : id;
+  if (ctx.querySelector(`#${escaped}`)) {
+    return `#${escaped}${rest}`;
+  }
+  return sel;
+};
+const $ = (sel, ctx = document) => ctx.querySelector(normalizeSelector(sel, ctx));
+const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(normalizeSelector(sel, ctx))];
 
 function mosaicKey(tabId){
   return `mosaic_panel_visible_tab_${tabId}`;
