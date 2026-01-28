@@ -82,6 +82,15 @@ export default class TaskDBAws {
     this.ipImageCountCache = new Map();
     this.searchCountCache = new Map();
     this.ipSearchCountCache = new Map();
+    this.imageTitleCache = new Map();
+    this.imageStatusCache = new Map();
+    this.imagePortfolioCache = new Map();
+    this.imageIdCache = new Map();
+    this.imageModelCache = new Map();
+    this.imageUuidCache = new Map();
+    this.imageGeneratedCache = new Map();
+    this.productUrlCache = new Map();
+    this.ebayUrlCache = new Map();
     this.sprintCache = null;
     this._initPromise = this._init().catch((err) => {
       console.error(
@@ -1011,6 +1020,240 @@ export default class TaskDBAws {
       [url]
     );
     return rows[0] ? !!rows[0].image_hidden : false;
+  }
+
+  getImageTitleForUrl(url) {
+    if (!url) return '';
+    const cached = this.imageTitleCache.get(url);
+    if (typeof cached === 'string') {
+      return cached;
+    }
+    void this.getImageTitleForUrlAsync(url)
+        .then((title) => {
+          this.imageTitleCache.set(url, title);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load image title:', err);
+        });
+    return '';
+  }
+
+  async getImageTitleForUrlAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT image_title FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0]?.image_title ?? '';
+  }
+
+  getImageStatusForUrl(url) {
+    if (!url) return '';
+    const cached = this.imageStatusCache.get(url);
+    if (typeof cached === 'string') {
+      return cached;
+    }
+    void this.getImageStatusForUrlAsync(url)
+        .then((status) => {
+          this.imageStatusCache.set(url, status);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load image status:', err);
+        });
+    return '';
+  }
+
+  async getImageStatusForUrlAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT image_status FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0]?.image_status ?? '';
+  }
+
+  getImagePortfolioForUrl(url) {
+    if (!url) return false;
+    const cached = this.imagePortfolioCache.get(url);
+    if (typeof cached === 'boolean') {
+      return cached;
+    }
+    void this.getImagePortfolioForUrlAsync(url)
+        .then((flag) => {
+          this.imagePortfolioCache.set(url, flag);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load image portfolio flag:', err);
+        });
+    return false;
+  }
+
+  async getImagePortfolioForUrlAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT publish_portfolio FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0] ? !!rows[0].publish_portfolio : false;
+  }
+
+  getImageIdForUrl(url) {
+    if (!url) return null;
+    if (this.imageIdCache.has(url)) {
+      return this.imageIdCache.get(url);
+    }
+    void this.getImageIdForUrlAsync(url)
+        .then((id) => {
+          this.imageIdCache.set(url, id);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load image id:', err);
+        });
+    return null;
+  }
+
+  async getImageIdForUrlAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT id FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0]?.id ?? null;
+  }
+
+  getImageModelForUrl(url) {
+    if (!url) return '';
+    const cached = this.imageModelCache.get(url);
+    if (typeof cached === 'string') {
+      return cached;
+    }
+    void this.getImageModelForUrlAsync(url)
+        .then((model) => {
+          this.imageModelCache.set(url, model);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load image model:', err);
+        });
+    return '';
+  }
+
+  async getImageModelForUrlAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT model FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0]?.model ?? '';
+  }
+
+  getImageUuidForUrl(url) {
+    if (!url) return null;
+    if (this.imageUuidCache.has(url)) {
+      return this.imageUuidCache.get(url);
+    }
+    void this.getImageUuidForUrlAsync(url)
+        .then((uuid) => {
+          this.imageUuidCache.set(url, uuid);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load image uuid:', err);
+        });
+    return null;
+  }
+
+  async getImageUuidForUrlAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT id, image_uuid FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    if (!rows[0]) {
+      return null;
+    }
+    if (!rows[0].image_uuid) {
+      const uuid = randomUUID().split('-')[0];
+      await this.pool.query(
+        'UPDATE chat_pairs SET image_uuid = $1 WHERE id = $2',
+        [uuid, rows[0].id]
+      );
+      return uuid;
+    }
+    return rows[0].image_uuid;
+  }
+
+  isGeneratedImage(url) {
+    if (!url) return false;
+    const cached = this.imageGeneratedCache.get(url);
+    if (typeof cached === 'boolean') {
+      return cached;
+    }
+    void this.isGeneratedImageAsync(url)
+        .then((generated) => {
+          this.imageGeneratedCache.set(url, generated);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to check image generation:', err);
+        });
+    return false;
+  }
+
+  async isGeneratedImageAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT 1 FROM chat_pairs WHERE image_url = $1 LIMIT 1',
+      [url]
+    );
+    return !!rows[0];
+  }
+
+  getProductUrlForImage(url) {
+    if (!url) return '';
+    const cached = this.productUrlCache.get(url);
+    if (typeof cached === 'string') {
+      return cached;
+    }
+    void this.getProductUrlForImageAsync(url)
+        .then((productUrl) => {
+          this.productUrlCache.set(url, productUrl);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load product url:', err);
+        });
+    return '';
+  }
+
+  async getProductUrlForImageAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT product_url FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0]?.product_url ?? '';
+  }
+
+  getEbayUrlForImage(url) {
+    if (!url) return '';
+    const cached = this.ebayUrlCache.get(url);
+    if (typeof cached === 'string') {
+      return cached;
+    }
+    void this.getEbayUrlForImageAsync(url)
+        .then((ebayUrl) => {
+          this.ebayUrlCache.set(url, ebayUrl);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load ebay url:', err);
+        });
+    return '';
+  }
+
+  async getEbayUrlForImageAsync(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT ebay_url FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0]?.ebay_url ?? '';
   }
 
   hoursSinceImageSessionStart(sessionId) {
