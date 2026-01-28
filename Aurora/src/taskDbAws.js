@@ -119,7 +119,7 @@ export default class TaskDBAws {
   }
 
   _wrapClientForLogging(client) {
-    if (!this._dbPrintsEnabled || client.__dbPrintsWrapped) return;
+    if (!client || !this._dbPrintsEnabled || client.__dbPrintsWrapped) return;
     const originalClientQuery = client.query.bind(client);
     client.query = (...args) => {
       this._logDbQuery('client.query', args);
