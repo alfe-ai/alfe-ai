@@ -71,6 +71,55 @@ function setupPostRoutes(deps) {
         return res.json({ exists: false });
     });
 
+    app.post("/api/register", (req, res) => {
+        console.log("[AlfeCode][register] request received", {
+            hasBody: !!req.body,
+            bodyKeys: req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
+        });
+
+        const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+        const password = typeof req.body?.password === "string" ? req.body.password : "";
+
+        console.log("[AlfeCode][register] parsed payload", {
+            emailProvided: !!email,
+            passwordProvided: !!password,
+            passwordLength: password ? password.length : 0,
+            hasSessionId: typeof req.body?.sessionId === "string" && req.body.sessionId.trim().length > 0,
+        });
+
+        if (!email) {
+            console.log("[AlfeCode][register] validation failed: email missing");
+            return res.status(400).json({ error: "Email required." });
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            console.log("[AlfeCode][register] validation failed: invalid email format", { email });
+            return res.status(400).json({ error: "Enter a valid email address." });
+        }
+
+        if (!password) {
+            console.log("[AlfeCode][register] validation failed: password missing");
+            return res.status(400).json({ error: "Password required." });
+        }
+
+        const MIN_PASSWORD_LENGTH = 8;
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            console.log("[AlfeCode][register] validation failed: password too short", {
+                length: password.length,
+                required: MIN_PASSWORD_LENGTH,
+            });
+            return res.status(400).json({
+                error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+            });
+        }
+
+        console.log("[AlfeCode][register] registration not implemented in AlfeCode backend.");
+        return res.status(501).json({
+            error: "Registration is not configured on this server.",
+            success: false,
+        });
+    });
+
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
     const normalizeRepoUrlForClone = (value) => {
         const trimmed = typeof value === "string" ? value.trim() : "";
