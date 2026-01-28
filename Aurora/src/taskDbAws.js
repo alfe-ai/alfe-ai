@@ -766,6 +766,15 @@ export default class TaskDBAws {
     return rows;
   }
 
+  async hasUserMessages(tabId = 1) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      "SELECT 1 FROM chat_pairs WHERE chat_tab_id = $1 AND user_text <> '' LIMIT 1",
+      [tabId]
+    );
+    return rows.length > 0;
+  }
+
   async getChatTabUuidByTaskId(taskId) {
     await this._initPromise;
     const { rows } = await this.pool.query(
