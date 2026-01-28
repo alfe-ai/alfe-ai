@@ -203,10 +203,12 @@
         <div class="card">
             <div class="meta-row">
                 <p class="meta">Connect a repository via a URL.</p>
-                <div class="meta-action">
-                    <span>Or</span>
-                    <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
-                </div>
+                <% if (showCreateRepoLink) { %>
+                    <div class="meta-action">
+                        <span>Or</span>
+                        <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
+                    </div>
+                <% } %>
             </div>
             <form action="/repositories/add" method="POST" id="addRepoForm">
                 <% if (cloneError) { %>
