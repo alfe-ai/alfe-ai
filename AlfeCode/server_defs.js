@@ -199,16 +199,6 @@ function loadCodexConfig() {
             if (typeof storedInstructions === 'string') {
                 safeConfig.defaultAgentInstructions = storedInstructions;
             }
-
-            if (typeof storedModel !== 'string' || typeof storedInstructions !== 'string') {
-                const fileConfig = loadCodexConfigFromFile();
-                if (typeof storedModel !== 'string' && typeof fileConfig.defaultModel === 'string') {
-                    safeConfig.defaultModel = fileConfig.defaultModel;
-                }
-                if (typeof storedInstructions !== 'string' && typeof fileConfig.defaultAgentInstructions === 'string') {
-                    safeConfig.defaultAgentInstructions = fileConfig.defaultAgentInstructions;
-                }
-            }
         } else {
             safeConfig = loadCodexConfigFromFile();
         }

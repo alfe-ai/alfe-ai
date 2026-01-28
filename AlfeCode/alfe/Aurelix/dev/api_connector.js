@@ -27,6 +27,7 @@ function loadGlobalInstructions() {
       if (typeof stored === 'string') {
         return stored;
       }
+      return '';
     }
     const PROJECT_ROOT = path.resolve(__dirname, '../../../');
     console.log(`[DEBUG] Using PROJECT_ROOT => ${PROJECT_ROOT}`);
@@ -43,9 +44,6 @@ function loadGlobalInstructions() {
     }
     const instructions = fs.readFileSync(GLOBAL_INSTRUCTIONS_PATH, 'utf-8');
     console.log(`[DEBUG] loadGlobalInstructions => read file successfully, length: ${instructions.length}`);
-    if (rdsStore.enabled && instructions) {
-      rdsStore.setSetting(GLOBAL_INSTRUCTIONS_KEY, instructions);
-    }
     return instructions;
   } catch (e) {
     console.error('[ERROR] reading global_agent_instructions:', e);
