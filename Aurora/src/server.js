@@ -2596,7 +2596,7 @@ app.post("/api/chat", async (req, res) => {
       return res.status(400).send("Missing message");
     }
 
-    const priorPairsAll = db.getAllChatPairs(chatTabId);
+    const priorPairsAll = await db.getAllChatPairs(chatTabId);
     const isFirstMessage = !db.hasUserMessages(chatTabId);
     let model = tabInfo && tabInfo.model_override
       ? tabInfo.model_override
@@ -2649,7 +2649,7 @@ app.post("/api/chat", async (req, res) => {
       }
     }
 
-    const chatPairId = db.createChatPair(
+    const chatPairId = await db.createChatPair(
         userMessage,
         chatTabId,
         systemContext,
@@ -2832,7 +2832,7 @@ app.post("/api/chat", async (req, res) => {
       responseTime
     };
 
-    db.finalizeChatPair(chatPairId, assistantMessage, model, new Date().toISOString(), JSON.stringify(tokenInfo), JSON.stringify(citations));
+    await db.finalizeChatPair(chatPairId, assistantMessage, model, new Date().toISOString(), JSON.stringify(tokenInfo), JSON.stringify(citations));
     db.logActivity("AI chat", JSON.stringify({ tabId: chatTabId, response: assistantMessage, tokenInfo }));
   } catch (err) {
     console.error("[Server Debug] /api/chat error:", err);
@@ -2866,12 +2866,12 @@ app.post("/api/chat/pairs/prefab", async (req, res) => {
     }
 
     const { systemContext, projectContext } = await buildContextsForTab(tabInfo);
-    const pairId = db.createChatPair('', chatTabId, systemContext, projectContext, sessionId, ipAddress);
+    const pairId = await db.createChatPair('', chatTabId, systemContext, projectContext, sessionId, ipAddress);
     const modelLabel = kind === 'greeting' ? 'prefab/greeting' : 'prefab/manual';
-    db.finalizeChatPair(pairId, text, modelLabel, new Date().toISOString());
+    await db.finalizeChatPair(pairId, text, modelLabel, new Date().toISOString());
     db.logActivity("AI chat (prefab)", JSON.stringify({ tabId: chatTabId, response: text, kind }));
 
-    const pair = db.getPairById(pairId);
+    const pair = await db.getPairById(pairId);
     res.json({ pair });
   } catch (err) {
     console.error("[Server Debug] POST /api/chat/pairs/prefab error:", err);
@@ -3304,9 +3304,9 @@ app.get("/pair/:id", async (req, res) => {
   console.debug("[Server Debug] GET /pair/:id =>", req.params.id);
   const pairId = parseInt(req.params.id, 10);
   if (Number.isNaN(pairId)) return res.status(400).send("Invalid pair ID");
-  const pair = db.getPairById(pairId);
+  const pair = await db.getPairById(pairId);
   if (!pair) return res.status(404).send("Pair not found");
-  const allPairs = db.getAllChatPairs(pair.chat_tab_id);
+  const allPairs = await db.getAllChatPairs(pair.chat_tab_id);
   const tabInfo = await db.getChatTab(pair.chat_tab_id);
   const project = tabInfo ? tabInfo.project_name || "" : "";
   const extras = tabInfo && tabInfo.extra_projects ? tabInfo.extra_projects.split(',').map(p=>p.trim()).filter(Boolean) : [];
@@ -3451,11 +3451,11 @@ app.get("/api/image/counts", (req, res) => {
   }
 });
 
-app.get("/api/upload/byId", (req, res) => {
+app.get("/api/upload/byId", async (req, res) => {
   try {
     const id = parseInt(req.query.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid id" });
-    const pair = db.getPairById(id);
+    const pair = await db.getPairById(id);
     if (!pair || !pair.image_url) return res.status(404).json({ error: "Not found" });
     const name = pair.image_url.replace(/^\/?uploads\//, "");
     res.json({ file: name });

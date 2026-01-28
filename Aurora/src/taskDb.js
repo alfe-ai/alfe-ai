@@ -899,7 +899,7 @@ export default class TaskDB {
         .run(message, type, new Date().toISOString());
   }
 
-  createChatPair(
+  async createChatPair(
       userText,
       chatTabId = 1,
       systemContext = "",
@@ -932,7 +932,7 @@ export default class TaskDB {
     return lastInsertRowid;
   }
 
-  finalizeChatPair(id, aiText, model, aiTimestamp, tokenInfo=null, citationsJson=null) {
+  async finalizeChatPair(id, aiText, model, aiTimestamp, tokenInfo=null, citationsJson=null) {
     this.db.prepare(`
       UPDATE chat_pairs
       SET ai_text = @ai_text,
@@ -964,7 +964,7 @@ export default class TaskDB {
     return lastInsertRowid;
   }
 
-  getAllChatPairs(tabId = 1) {
+  async getAllChatPairs(tabId = 1) {
     return this.db
         .prepare("SELECT * FROM chat_pairs WHERE chat_tab_id=? ORDER BY id ASC")
         .all(tabId);
@@ -1001,7 +1001,7 @@ export default class TaskDB {
     `).all(tabId, limit, offset);
   }
 
-  getPairById(id) {
+  async getPairById(id) {
     return this.db
         .prepare("SELECT * FROM chat_pairs WHERE id = ?")
         .get(id);
@@ -1761,4 +1761,3 @@ export default class TaskDB {
     return { columns, rows, limit, rowCount: rows.length };
   }
 }
-
