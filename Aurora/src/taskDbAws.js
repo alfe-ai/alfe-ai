@@ -625,6 +625,73 @@ export default class TaskDBAws {
     }
   }
 
+  async createChatPair(
+      userText,
+      chatTabId = 1,
+      systemContext = "",
+      projectContext = "",
+      sessionId = "",
+      ipAddress = ""
+  ) {
+    await this._initPromise;
+    const timestamp = new Date().toISOString();
+    const { rows } = await this.pool.query(
+      `INSERT INTO chat_pairs (
+         user_text, ai_text, model, timestamp, ai_timestamp,
+         chat_tab_id, system_context, project_context, token_info,
+         citations_json, image_url, image_alt, image_title, session_id, ip_address
+       )
+       VALUES (
+         $1, '', '', $2, NULL,
+         $3, $4, $5, NULL,
+         NULL, NULL, '', '', $6, $7
+       )
+       RETURNING id`,
+      [
+        userText,
+        timestamp,
+        chatTabId,
+        systemContext,
+        projectContext,
+        sessionId,
+        ipAddress
+      ]
+    );
+    return rows[0]?.id ?? null;
+  }
+
+  async finalizeChatPair(id, aiText, model, aiTimestamp, tokenInfo = null, citationsJson = null) {
+    await this._initPromise;
+    await this.pool.query(
+      `UPDATE chat_pairs
+       SET ai_text = $1,
+           model = $2,
+           ai_timestamp = $3,
+           token_info = $4,
+           citations_json = $5
+       WHERE id = $6`,
+      [aiText, model, aiTimestamp, tokenInfo, citationsJson, id]
+    );
+  }
+
+  async getPairById(id) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT * FROM chat_pairs WHERE id = $1',
+      [id]
+    );
+    return rows[0] || null;
+  }
+
+  async getAllChatPairs(tabId = 1) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT * FROM chat_pairs WHERE chat_tab_id = $1 ORDER BY id ASC',
+      [tabId]
+    );
+    return rows;
+  }
+
   async getChatTabUuidByTaskId(taskId) {
     await this._initPromise;
     const { rows } = await this.pool.query(
