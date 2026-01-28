@@ -582,6 +582,22 @@ export default class TaskDBAws {
     return rows;
   }
 
+  async getChatTab(tabId, sessionId = null) {
+    await this._initPromise;
+    if (sessionId) {
+      const { rows } = await this.pool.query(
+        'SELECT * FROM chat_tabs WHERE id = $1 AND session_id = $2',
+        [tabId, sessionId]
+      );
+      return rows[0] || null;
+    }
+    const { rows } = await this.pool.query(
+      'SELECT * FROM chat_tabs WHERE id = $1',
+      [tabId]
+    );
+    return rows[0] || null;
+  }
+
   async getChatTabUuidByTaskId(taskId) {
     await this._initPromise;
     const { rows } = await this.pool.query(
@@ -968,6 +984,15 @@ export default class TaskDBAws {
       [url]
     );
     return rows[0]?.session_id ?? '';
+  }
+
+  async getImageHiddenForUrl(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT image_hidden FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0] ? !!rows[0].image_hidden : false;
   }
 
   hoursSinceImageSessionStart(sessionId) {

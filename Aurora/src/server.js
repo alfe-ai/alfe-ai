@@ -425,7 +425,7 @@ function writeSessionAwareSetting(sessionId, key, value) {
   }
 }
 
-function buildContextsForTab(tabInfo) {
+async function buildContextsForTab(tabInfo) {
   const savedInstructions = db.getSetting("agent_instructions") || "";
   let systemContext = `System Context:\n${savedInstructions}`;
   let projectContext = '';
@@ -447,7 +447,7 @@ function buildContextsForTab(tabInfo) {
       const projectPairs = db.getChatPairsByProject(pr);
       const pairsByTab = {};
       for (const p of projectPairs) {
-        const tab = db.getChatTab(p.chat_tab_id);
+        const tab = await db.getChatTab(p.chat_tab_id);
         const tName = (tab && tab.name) ? tab.name : `Chat ${p.chat_tab_id}`;
         if (!pairsByTab[tName]) pairsByTab[tName] = [];
         pairsByTab[tName].push(p);
@@ -2563,7 +2563,7 @@ app.post("/api/chat", async (req, res) => {
     const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
         .split(",")[0]
         .trim();
-    const tabInfo = db.getChatTab(chatTabId, sessionId || null);
+    const tabInfo = await db.getChatTab(chatTabId, sessionId || null);
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -2634,7 +2634,7 @@ app.post("/api/chat", async (req, res) => {
       finalUserMessage = `${prependInstr}\n\n${userMessage}`;
     }
 
-    const { systemContext, projectContext } = buildContextsForTab(tabInfo);
+    const { systemContext, projectContext } = await buildContextsForTab(tabInfo);
     const fullContext = projectContext ?
       `${systemContext}\n${projectContext}` : systemContext;
     const { provider } = parseProviderModel(model);
@@ -2842,7 +2842,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-app.post("/api/chat/pairs/prefab", (req, res) => {
+app.post("/api/chat/pairs/prefab", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/pairs/prefab =>", req.body);
   try {
     const chatTabId = parseInt(req.body.tabId || "1", 10);
@@ -2860,12 +2860,12 @@ app.post("/api/chat/pairs/prefab", (req, res) => {
       return res.status(400).json({ error: "Invalid tab" });
     }
 
-    const tabInfo = db.getChatTab(chatTabId, sessionId || null);
+    const tabInfo = await db.getChatTab(chatTabId, sessionId || null);
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const { systemContext, projectContext } = buildContextsForTab(tabInfo);
+    const { systemContext, projectContext } = await buildContextsForTab(tabInfo);
     const pairId = db.createChatPair('', chatTabId, systemContext, projectContext, sessionId, ipAddress);
     const modelLabel = kind === 'greeting' ? 'prefab/greeting' : 'prefab/manual';
     db.finalizeChatPair(pairId, text, modelLabel, new Date().toISOString());
@@ -2879,7 +2879,7 @@ app.post("/api/chat/pairs/prefab", (req, res) => {
   }
 });
 
-app.get("/api/chat/history", (req, res) => {
+app.get("/api/chat/history", async (req, res) => {
   console.debug("[Server Debug] GET /api/chat/history =>", req.query);
   try {
     const tabId = parseInt(req.query.tabId || "1", 10);
@@ -2887,7 +2887,7 @@ app.get("/api/chat/history", (req, res) => {
     const limit = parseInt(req.query.limit || "10", 10);
     const offset = parseInt(req.query.offset || "0", 10);
 
-    const tabInfo = db.getChatTab(tabId, sessionId || null);
+    const tabInfo = await db.getChatTab(tabId, sessionId || null);
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -3057,14 +3057,14 @@ app.post("/api/chat/tabs/new", async (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/rename", (req, res) => {
+app.post("/api/chat/tabs/rename", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/rename =>", req.body);
   try {
     const { tabId, newName, sessionId = '' } = req.body;
     if (!tabId || !newName) {
       return res.status(400).json({ error: "Missing tabId or newName" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3076,14 +3076,14 @@ app.post("/api/chat/tabs/rename", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/duplicate", (req, res) => {
+app.post("/api/chat/tabs/duplicate", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/duplicate =>", req.body);
   try {
     const { tabId, name = null, sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3095,14 +3095,14 @@ app.post("/api/chat/tabs/duplicate", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/archive", (req, res) => {
+app.post("/api/chat/tabs/archive", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/archive =>", req.body);
   try {
     const { tabId, archived = true, sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3114,14 +3114,14 @@ app.post("/api/chat/tabs/archive", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/favorite", (req, res) => {
+app.post("/api/chat/tabs/favorite", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/favorite =>", req.body);
   try {
     const { tabId, favorite = false, sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
-    const tab = sessionId ? db.getChatTab(tabId, sessionId) : db.getChatTab(tabId);
+    const tab = sessionId ? await db.getChatTab(tabId, sessionId) : await db.getChatTab(tabId);
     if (!tab) {
       return res.status(404).json({ error: "Chat tab not found" });
     }
@@ -3133,14 +3133,14 @@ app.post("/api/chat/tabs/favorite", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/generate_images", (req, res) => {
+app.post("/api/chat/tabs/generate_images", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/generate_images =>", req.body);
   try {
     const { tabId, enabled = true, sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3152,7 +3152,7 @@ app.post("/api/chat/tabs/generate_images", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/config", (req, res) => {
+app.post("/api/chat/tabs/config", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/config =>", req.body);
   try {
     const {
@@ -3174,7 +3174,7 @@ app.post("/api/chat/tabs/config", (req, res) => {
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3186,14 +3186,14 @@ app.post("/api/chat/tabs/config", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/model", (req, res) => {
+app.post("/api/chat/tabs/model", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/model =>", req.body);
   try {
     const { tabId, model = '', sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3205,14 +3205,14 @@ app.post("/api/chat/tabs/model", (req, res) => {
   }
 });
 
-app.post("/api/chat/tabs/parent", (req, res) => {
+app.post("/api/chat/tabs/parent", async (req, res) => {
   console.debug("[Server Debug] POST /api/chat/tabs/parent =>", req.body);
   try {
     const { tabId, parentId = 0, sessionId = '' } = req.body;
     if (!tabId) {
       return res.status(400).json({ error: "Missing tabId" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3280,7 +3280,7 @@ app.post("/api/chat/subroutines/update", (req, res) => {
   }
 });
 
-app.delete("/api/chat/tabs/:id", (req, res) => {
+app.delete("/api/chat/tabs/:id", async (req, res) => {
   console.debug("[Server Debug] DELETE /api/chat/tabs =>", req.params.id);
   try {
     const tabId = parseInt(req.params.id, 10);
@@ -3288,7 +3288,7 @@ app.delete("/api/chat/tabs/:id", (req, res) => {
     if (!tabId) {
       return res.status(400).json({ error: "Invalid tabId" });
     }
-    const tab = db.getChatTab(tabId, sessionId || null);
+    const tab = await db.getChatTab(tabId, sessionId || null);
     if (!tab) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -3300,14 +3300,14 @@ app.delete("/api/chat/tabs/:id", (req, res) => {
   }
 });
 
-app.get("/pair/:id", (req, res) => {
+app.get("/pair/:id", async (req, res) => {
   console.debug("[Server Debug] GET /pair/:id =>", req.params.id);
   const pairId = parseInt(req.params.id, 10);
   if (Number.isNaN(pairId)) return res.status(400).send("Invalid pair ID");
   const pair = db.getPairById(pairId);
   if (!pair) return res.status(404).send("Pair not found");
   const allPairs = db.getAllChatPairs(pair.chat_tab_id);
-  const tabInfo = db.getChatTab(pair.chat_tab_id);
+  const tabInfo = await db.getChatTab(pair.chat_tab_id);
   const project = tabInfo ? tabInfo.project_name || "" : "";
   const extras = tabInfo && tabInfo.extra_projects ? tabInfo.extra_projects.split(',').map(p=>p.trim()).filter(Boolean) : [];
   if ((project || extras.length) && (!('project_context' in pair) || !pair.project_context)) {
@@ -3387,7 +3387,7 @@ app.get("/api/upload/list", async (req, res) => {
       // user filters by session, keep showing those session-less entries so the
       // table isn’t empty even though images exist for the current visit.
       if (sessionId && imgSession && imgSession !== sessionId) continue;
-      const hidden = db.getImageHiddenForUrl(`/uploads/${name}`) ? 1 : 0;
+      const hidden = (await db.getImageHiddenForUrl(`/uploads/${name}`)) ? 1 : 0;
       if(!showHidden && hidden) continue;
       const { size, mtime } = fs.statSync(path.join(uploadsDir, name));
       const title = db.getImageTitleForUrl(`/uploads/${name}`);
@@ -4396,7 +4396,7 @@ app.post("/api/image/generate", async (req, res) => {
     let tabRecord = null;
     let isDesignTab = false;
     if (tabId) {
-      tabRecord = db.getChatTab(parseInt(tabId, 10), sessionId || null);
+      tabRecord = await db.getChatTab(parseInt(tabId, 10), sessionId || null);
       if (!tabRecord) {
         return res.status(403).json({ error: 'Forbidden' });
       }
@@ -4703,7 +4703,7 @@ app.get("/", async (req, res) => {
     const lastTabId = readSessionAwareSetting(sessionId, "last_chat_tab");
     let target = null;
     if (typeof lastTabId !== "undefined") {
-      target = db.getChatTab(lastTabId, sessionId);
+      target = await db.getChatTab(lastTabId, sessionId);
     }
     if (!target) {
       target = tabs[0];
