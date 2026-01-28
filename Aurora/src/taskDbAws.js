@@ -74,6 +74,12 @@ export default class TaskDBAws {
 
     this.pool = new pg.Pool(poolConfig);
     this.local = new LocalSettingsCache();
+    this.projectCache = new Map();
+    this.activityCache = [];
+    this.imageSessionStartCache = new Map();
+    this.imageCountCache = new Map();
+    this.ipImageCountCache = new Map();
+    this.searchCountCache = new Map();
     this._initPromise = this._init().catch((err) => {
       console.error(
         '[TaskDBAws] Initialization failed, continuing without DB:',
@@ -717,6 +723,254 @@ export default class TaskDBAws {
 
   async setCodexUrl(id, url) {
     await this.pool.query('UPDATE issues SET codex_url=$1 WHERE id=$2', [url, id]);
+  }
+
+  listProjects(includeArchived = false) {
+    const cacheKey = includeArchived ? 'all' : 'active';
+    const cached = this.projectCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    void this.listProjectsAsync(includeArchived)
+        .then((rows) => {
+          this.projectCache.set(cacheKey, rows);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load projects:', err);
+        });
+    return [];
+  }
+
+  async listProjectsAsync(includeArchived = false) {
+    await this._initPromise;
+    const query = `
+      SELECT p.project,
+             COALESCE(c.count, 0) AS count,
+             COALESCE(pm.archived, 0) AS archived
+      FROM (
+        SELECT project FROM project_meta
+        UNION
+        SELECT project FROM issues WHERE project <> ''
+      ) p
+      LEFT JOIN (
+        SELECT project, COUNT(*) AS count
+        FROM issues
+        WHERE closed = 0 AND hidden = 0
+        GROUP BY project
+      ) c ON c.project = p.project
+      LEFT JOIN project_meta pm ON pm.project = p.project
+      ${includeArchived ? '' : 'WHERE COALESCE(pm.archived, 0) = 0'}
+      ORDER BY count DESC, p.project ASC;
+    `;
+    const { rows } = await this.pool.query(query);
+    return rows;
+  }
+
+  logActivity(action, details) {
+    void this.logActivityAsync(action, details).catch((err) => {
+      console.warn('[TaskDBAws] Failed to log activity:', err);
+    });
+  }
+
+  async logActivityAsync(action, details) {
+    await this._initPromise;
+    const timestamp = new Date().toISOString();
+    await this.pool.query(
+      'INSERT INTO activity_timeline (timestamp, action, details) VALUES ($1, $2, $3)',
+      [timestamp, action, details ?? '']
+    );
+    const cached = this.activityCache;
+    if (cached?.length) {
+      cached.unshift({
+        id: null,
+        timestamp,
+        action,
+        details: details ?? ''
+      });
+    }
+  }
+
+  getActivity() {
+    if (this.activityCache.length) {
+      return this.activityCache;
+    }
+    void this.getActivityAsync()
+        .then((rows) => {
+          this.activityCache = rows;
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load activity timeline:', err);
+        });
+    return [];
+  }
+
+  async getActivityAsync() {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT * FROM activity_timeline ORDER BY id DESC'
+    );
+    return rows;
+  }
+
+  ensureImageSession(sessionId) {
+    if (!sessionId) return;
+    if (this.imageSessionStartCache.has(sessionId)) {
+      return;
+    }
+    void this.ensureImageSessionAsync(sessionId)
+        .then((start) => {
+          if (start) {
+            this.imageSessionStartCache.set(sessionId, start);
+          }
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to ensure image session:', err);
+        });
+  }
+
+  async ensureImageSessionAsync(sessionId) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT start_time FROM image_sessions WHERE session_id = $1',
+      [sessionId]
+    );
+    if (rows[0]?.start_time) {
+      return rows[0].start_time;
+    }
+    const start = new Date().toISOString();
+    await this.pool.query(
+      'INSERT INTO image_sessions (session_id, start_time) VALUES ($1, $2) ON CONFLICT (session_id) DO NOTHING',
+      [sessionId, start]
+    );
+    return start;
+  }
+
+  getImageSessionStart(sessionId) {
+    if (!sessionId) return null;
+    const cached = this.imageSessionStartCache.get(sessionId);
+    if (cached) {
+      return cached;
+    }
+    void this.getImageSessionStartAsync(sessionId)
+        .then((start) => {
+          if (start) {
+            this.imageSessionStartCache.set(sessionId, start);
+          }
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load image session start:', err);
+        });
+    return null;
+  }
+
+  async getImageSessionStartAsync(sessionId) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT start_time FROM image_sessions WHERE session_id = $1',
+      [sessionId]
+    );
+    return rows[0]?.start_time ?? null;
+  }
+
+  hoursSinceImageSessionStart(sessionId) {
+    const start = this.getImageSessionStart(sessionId);
+    if (!start) return 0;
+    const diffMs = Date.now() - new Date(start).getTime();
+    return Math.floor(diffMs / (3600 * 1000));
+  }
+
+  imageLimitForSession(sessionId, baseLimit = 50) {
+    if (baseLimit <= 10) {
+      return baseLimit;
+    }
+    const hours = this.hoursSinceImageSessionStart(sessionId);
+    return Math.max(0, baseLimit - hours);
+  }
+
+  nextImageLimitReductionTime(sessionId) {
+    const start = this.getImageSessionStart(sessionId);
+    if (!start) return null;
+    const hours = this.hoursSinceImageSessionStart(sessionId);
+    const nextMs = new Date(start).getTime() + (hours + 1) * 3600 * 1000;
+    return new Date(nextMs).toISOString();
+  }
+
+  countImagesForSession(sessionId) {
+    if (!sessionId) return 0;
+    const cached = this.imageCountCache.get(sessionId);
+    if (typeof cached === 'number') {
+      return cached;
+    }
+    void this.countImagesForSessionAsync(sessionId)
+        .then((count) => {
+          this.imageCountCache.set(sessionId, count);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to count images for session:', err);
+        });
+    return 0;
+  }
+
+  async countImagesForSessionAsync(sessionId) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT COUNT(*)::int AS count FROM chat_pairs WHERE session_id = $1 AND image_url IS NOT NULL',
+      [sessionId]
+    );
+    return rows[0]?.count ?? 0;
+  }
+
+  countImagesForIp(ipAddress) {
+    if (!ipAddress) return 0;
+    const cached = this.ipImageCountCache.get(ipAddress);
+    if (typeof cached === 'number') {
+      return cached;
+    }
+    void this.countImagesForIpAsync(ipAddress)
+        .then((count) => {
+          this.ipImageCountCache.set(ipAddress, count);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to count images for IP:', err);
+        });
+    return 0;
+  }
+
+  async countImagesForIpAsync(ipAddress) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT COUNT(*)::int AS count FROM chat_pairs WHERE ip_address = $1 AND image_url IS NOT NULL',
+      [ipAddress]
+    );
+    return rows[0]?.count ?? 0;
+  }
+
+  countSearchesForSession(sessionId) {
+    if (!sessionId) return 0;
+    const cached = this.searchCountCache.get(sessionId);
+    if (typeof cached === 'number') {
+      return cached;
+    }
+    void this.countSearchesForSessionAsync(sessionId)
+        .then((count) => {
+          this.searchCountCache.set(sessionId, count);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to count searches for session:', err);
+        });
+    return 0;
+  }
+
+  async countSearchesForSessionAsync(sessionId) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      `SELECT COUNT(*)::int AS count
+         FROM chat_pairs cp
+         JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
+        WHERE cp.session_id = $1 AND ct.tab_type = 'search'`,
+      [sessionId]
+    );
+    return rows[0]?.count ?? 0;
   }
 
   ensureDesignChatTab() {
