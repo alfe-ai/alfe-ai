@@ -59,6 +59,18 @@ function setupPostRoutes(deps) {
     };
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
 
+    app.post("/api/account/exists", (req, res) => {
+        const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+        if (!email) {
+            return res.status(400).json({ error: "Email required." });
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ error: "Enter a valid email address." });
+        }
+
+        return res.json({ exists: false });
+    });
+
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
     const normalizeRepoUrlForClone = (value) => {
         const trimmed = typeof value === "string" ? value.trim() : "";
