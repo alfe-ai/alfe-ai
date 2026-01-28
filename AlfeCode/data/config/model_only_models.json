@@ -103,7 +103,7 @@
       "label": "Qwen: Qwen3 Coder 30B A3B Instruct",
       "created": "2025-07-31",
       "contextTokens": 160000,
-      "disabled": true,
+      "disabled": false,
       "pricing": {
         "inputPerMTokens": 0.07,
         "outputPerMTokens": 0.27
