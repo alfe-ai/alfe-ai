@@ -598,6 +598,24 @@ export default class TaskDBAws {
     return rows[0] || null;
   }
 
+  async getChatPairsPage(tabId = 1, limit = 10, offset = 0) {
+    try {
+      await this._initPromise;
+      const { rows } = await this.pool.query(
+        `SELECT * FROM chat_pairs
+         WHERE chat_tab_id = $1
+         ORDER BY id DESC
+         LIMIT $2
+         OFFSET $3`,
+        [tabId, limit, offset]
+      );
+      return rows;
+    } catch (err) {
+      console.warn('[TaskDBAws] Failed to load chat pairs page:', err);
+      return [];
+    }
+  }
+
   async getChatTabUuidByTaskId(taskId) {
     await this._initPromise;
     const { rows } = await this.pool.query(
