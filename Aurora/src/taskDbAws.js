@@ -635,6 +635,36 @@ export default class TaskDBAws {
     return rows;
   }
 
+  setChatTabArchived(tabId, archived = 1) {
+    void this.setChatTabArchivedAsync(tabId, archived).catch((err) => {
+      console.warn('[TaskDBAws] Failed to update chat tab archived state:', err);
+    });
+  }
+
+  async setChatTabArchivedAsync(tabId, archived = 1) {
+    await this._initPromise;
+    const isArchived = archived ? 1 : 0;
+    const archivedAt = isArchived ? new Date().toISOString() : null;
+    await this.pool.query(
+      'UPDATE chat_tabs SET archived = $1, archived_at = $2 WHERE id = $3',
+      [isArchived, archivedAt, tabId]
+    );
+  }
+
+  setChatTabFavorite(tabId, favorite = 1) {
+    void this.setChatTabFavoriteAsync(tabId, favorite).catch((err) => {
+      console.warn('[TaskDBAws] Failed to update chat tab favorite state:', err);
+    });
+  }
+
+  async setChatTabFavoriteAsync(tabId, favorite = 1) {
+    await this._initPromise;
+    await this.pool.query(
+      'UPDATE chat_tabs SET favorite = $1 WHERE id = $2',
+      [favorite ? 1 : 0, tabId]
+    );
+  }
+
   async getChatTab(tabId, sessionId = null) {
     await this._initPromise;
     if (sessionId) {
