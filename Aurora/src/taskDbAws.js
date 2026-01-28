@@ -1,4 +1,5 @@
 import pg from 'pg';
+import { randomUUID } from 'crypto';
 
 class LocalSettingsCache {
   constructor() {
@@ -502,6 +503,57 @@ export default class TaskDBAws {
     return rows;
   }
 
+  async createChatTab(
+    name,
+    nexum = 0,
+    project = '',
+    repo = '',
+    extraProjects = '',
+    taskId = 0,
+    type = 'chat',
+    sessionId = '',
+    sendProjectContext = 0,
+    chatgptUrl = '',
+    showInSidebar = 1,
+    pathAlias = ''
+  ) {
+    await this._initPromise;
+    const ts = new Date().toISOString();
+    const genImages = type === 'design' ? 1 : 0;
+    const uuid = randomUUID().replace(/-/g, '').slice(0, 12);
+    const { rows } = await this.pool.query(
+      `INSERT INTO chat_tabs (
+         name, created_at, generate_images, nexum, project_name, repo_ssh_url,
+         extra_projects, task_id, tab_type, send_project_context, session_id,
+         tab_uuid, chatgpt_url, show_in_sidebar, favorite, path_alias
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6,
+         $7, $8, $9, $10, $11,
+         $12, $13, $14, $15, $16
+       )
+       RETURNING id, tab_uuid`,
+      [
+        name,
+        ts,
+        genImages,
+        nexum ? 1 : 0,
+        project,
+        repo,
+        extraProjects,
+        taskId,
+        type,
+        sendProjectContext ? 1 : 0,
+        sessionId,
+        uuid,
+        chatgptUrl,
+        showInSidebar ? 1 : 0,
+        0,
+        pathAlias
+      ]
+    );
+    return { id: rows[0]?.id, uuid: rows[0]?.tab_uuid || uuid };
+  }
+
   async listChatTabs(nexum = null, includeArchived = true, sessionId = '') {
     await this._initPromise;
     const conditions = [];
@@ -537,6 +589,12 @@ export default class TaskDBAws {
       [taskId]
     );
     return rows[0]?.tab_uuid || null;
+  }
+
+  async listChatSubroutines() {
+    await this._initPromise;
+    const { rows } = await this.pool.query('SELECT * FROM chat_subroutines ORDER BY id ASC');
+    return rows;
   }
 
   getSetting(key) {
@@ -901,6 +959,15 @@ export default class TaskDBAws {
       [sessionId]
     );
     return rows[0]?.start_time ?? null;
+  }
+
+  async getImageSessionForUrl(url) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT session_id FROM chat_pairs WHERE image_url = $1 ORDER BY id DESC LIMIT 1',
+      [url]
+    );
+    return rows[0]?.session_id ?? '';
   }
 
   hoursSinceImageSessionStart(sessionId) {
