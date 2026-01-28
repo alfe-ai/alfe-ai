@@ -2892,7 +2892,7 @@ app.get("/api/chat/history", async (req, res) => {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const pairsDesc = db.getChatPairsPage(tabId, limit, offset);
+    const pairsDesc = await db.getChatPairsPage(tabId, limit, offset);
     const pairsAsc = pairsDesc.slice().reverse();
 
     let totalInputTokens = 0;
