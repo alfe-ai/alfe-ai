@@ -80,6 +80,8 @@ export default class TaskDBAws {
     this.imageCountCache = new Map();
     this.ipImageCountCache = new Map();
     this.searchCountCache = new Map();
+    this.ipSearchCountCache = new Map();
+    this.sprintCache = null;
     this._initPromise = this._init().catch((err) => {
       console.error(
         '[TaskDBAws] Initialization failed, continuing without DB:',
@@ -766,6 +768,35 @@ export default class TaskDBAws {
     return rows;
   }
 
+  listSprints() {
+    if (this.sprintCache) {
+      return this.sprintCache;
+    }
+    void this.listSprintsAsync()
+        .then((rows) => {
+          this.sprintCache = rows;
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to load sprints:', err);
+        });
+    return [];
+  }
+
+  async listSprintsAsync() {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      `SELECT
+         sprint,
+         COUNT(*)::int AS count
+       FROM issues
+       WHERE closed = 0 AND hidden = 0
+       GROUP BY sprint
+       HAVING sprint <> ''
+       ORDER BY count DESC`
+    );
+    return rows;
+  }
+
   logActivity(action, details) {
     void this.logActivityAsync(action, details).catch((err) => {
       console.warn('[TaskDBAws] Failed to log activity:', err);
@@ -969,6 +1000,34 @@ export default class TaskDBAws {
          JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
         WHERE cp.session_id = $1 AND ct.tab_type = 'search'`,
       [sessionId]
+    );
+    return rows[0]?.count ?? 0;
+  }
+
+  countSearchesForIp(ipAddress) {
+    if (!ipAddress) return 0;
+    const cached = this.ipSearchCountCache.get(ipAddress);
+    if (typeof cached === 'number') {
+      return cached;
+    }
+    void this.countSearchesForIpAsync(ipAddress)
+        .then((count) => {
+          this.ipSearchCountCache.set(ipAddress, count);
+        })
+        .catch((err) => {
+          console.warn('[TaskDBAws] Failed to count searches for IP:', err);
+        });
+    return 0;
+  }
+
+  async countSearchesForIpAsync(ipAddress) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      `SELECT COUNT(*)::int AS count
+         FROM chat_pairs cp
+         JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
+        WHERE cp.ip_address = $1 AND ct.tab_type = 'search'`,
+      [ipAddress]
     );
     return rows[0]?.count ?? 0;
   }
