@@ -1923,6 +1923,39 @@
             position: relative;
         }
 
+        .modal-content--auth .modal-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .modal-content--auth .auth-benefits {
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid var(--surface-border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+        }
+
+        .modal-content--auth .auth-benefits p {
+            margin: 0 0 8px;
+            font-weight: 600;
+        }
+
+        .modal-content--auth .auth-benefits ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .modal-content--auth .auth-benefits li + li {
+            margin-top: 4px;
+        }
+
+        .modal-content--auth .auth-email-label {
+            display: block;
+        }
+
         .auth-modal .modal-close {
             top: 10px;
             right: 10px;
@@ -2068,6 +2101,70 @@
         .modal-buttons button.primary:hover {
             background: var(--accent-strong);
             border-color: var(--accent-strong);
+        }
+
+        .password-requirements__check {
+            position: relative;
+            padding-left: 24px;
+            margin: 6px 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .password-requirements__check::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.65);
+        }
+
+        .password-requirements__check::after {
+            content: "";
+            position: absolute;
+            left: 4px;
+            top: 7px;
+            width: 6px;
+            height: 3px;
+            border-left: 2px solid transparent;
+            border-bottom: 2px solid transparent;
+            transform: rotate(-45deg);
+            opacity: 0;
+        }
+
+        .password-requirements__check.is-met::before {
+            background: rgba(124, 58, 237, 0.7);
+            border-color: rgba(124, 58, 237, 0.9);
+        }
+
+        .password-requirements__check.is-met::after {
+            border-left-color: #f8fafc;
+            border-bottom-color: #f8fafc;
+            opacity: 1;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(124, 58, 237, 0.92);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10001;
+        }
+
+        .toast.show {
+            display: block;
+            opacity: 1;
         }
 
         .view-tab {
@@ -3084,55 +3181,69 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     </div>
 
     <div id="authModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Sign Up or Log In">
-      <div class="modal-content">
+      <div class="modal-content modal-content--auth">
         <button class="modal-close" type="button" id="authModalCloseButton">×</button>
-        <div id="authTabs" style="display:flex; gap:0.5rem; margin-bottom:1rem;">
-          <button id="loginTab" class="view-tab active">Login</button>
-          <button id="signupTab" class="view-tab">Sign Up</button>
+        <div class="modal-title-row">
+          <h2>Sign Up / Log In</h2>
         </div>
-        <div id="loginForm">
-          <label>Email:<br/>
-            <input type="email" id="loginEmail" />
+        <div class="auth-benefits">
+          <p>Sign Up for:</p>
+          <ul>
+            <li>Web Search</li>
+            <li>Image Design</li>
+            <li>Software Development</li>
+          </ul>
+        </div>
+        <div id="authEmailStep">
+          <label class="auth-email-label">Email:<br/>
+            <input type="email" id="authEmailInput" style="width:100%;" />
           </label>
+          <div class="modal-buttons">
+            <button id="authEmailContinueBtn" class="primary">Continue</button>
+          </div>
+        </div>
+        <div id="loginForm" style="display:none;">
+          <p>Email: <span id="authEmailDisplayLogin"></span></p>
+          <input type="hidden" id="loginEmail" />
           <label style="margin-top:8px;">Password:<br/>
-            <input type="password" id="loginPassword" />
+            <input type="password" id="loginPassword" style="width:100%;" />
           </label>
           <label id="totpLoginLabel" style="margin-top:8px; display:none;">Auth Code:<br/>
-            <input type="text" id="loginTotp" />
+            <input type="text" id="loginTotp" style="width:100%;" />
           </label>
           <div class="modal-buttons">
             <button id="loginSubmitBtn">Login</button>
-            <button id="showSignupBtn">Sign Up</button>
-            <button id="loginCancelBtn">Cancel</button>
+            <button id="loginChangeEmailBtn">Use different email</button>
           </div>
         </div>
         <div id="signupForm" style="display:none;">
-          <label>Email:<br/>
-            <input type="email" id="signupEmail" />
-          </label>
+          <p>Email: <span id="authEmailDisplaySignup"></span></p>
+          <input type="hidden" id="signupEmail" />
           <label style="margin-top:8px;">Password:<br/>
-            <input type="password" id="signupPassword" />
+            <input type="password" id="signupPassword" style="width:100%;" />
           </label>
           <label style="margin-top:8px;">Confirm Password:<br/>
-            <input type="password" id="signupConfirm" />
+            <input type="password" id="signupConfirm" style="width:100%;" />
           </label>
           <div class="password-requirements" aria-live="polite">
-            <p class="password-requirements__title">Must have at least 8 characters</p>
+            <p class="password-requirements__title password-requirements__check" data-requirement="min-8" role="checkbox" aria-checked="false">Must have at least 8 characters</p>
             <p class="password-requirements__subtitle">It's best to have:</p>
             <ul class="password-requirements__list">
-              <li class="password-requirements__item">At least 12 characters</li>
-              <li class="password-requirements__item">Uppercase and lowercase letters</li>
-              <li class="password-requirements__item">Numbers</li>
-              <li class="password-requirements__item">Symbols (#$&amp;)</li>
+              <li class="password-requirements__item password-requirements__check" data-requirement="min-12" role="checkbox" aria-checked="false">At least 12 characters</li>
+              <li class="password-requirements__item password-requirements__check" data-requirement="case" role="checkbox" aria-checked="false">Uppercase and lowercase letters</li>
+              <li class="password-requirements__item password-requirements__check" data-requirement="number" role="checkbox" aria-checked="false">Numbers</li>
+              <li class="password-requirements__item password-requirements__check" data-requirement="symbol" role="checkbox" aria-checked="false">Symbols (#$&amp;)</li>
             </ul>
           </div>
           <div class="modal-buttons">
-            <button id="signupSubmitBtn">Register</button>
-            <button id="showLoginBtn">Back to Login</button>
+            <button id="signupSubmitBtn" class="primary">Register</button>
+            <button id="signupChangeEmailBtn">Use different email</button>
           </div>
         </div>
       </div>
     </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <div id="switchBranchModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="switchBranchModalTitle">
       <div class="modal-content">
