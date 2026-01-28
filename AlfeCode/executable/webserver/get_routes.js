@@ -4601,12 +4601,16 @@ ${cleanedFinalOutput}`;
 
     app.get("/repositories/add", (_req, res) => {
         const serverCWD = process.cwd();
+        const showCreateRepoLink = ["1", "true", "yes", "on"].includes(
+            (process.env.SHOW_NEW_REPOSITORY_LINK || "").toLowerCase(),
+        );
         res.render("add_repository", {
             serverCWD,
             cloneError: null,
             sshKeyRequired: false,
             repoNameValue: "",
             gitRepoURLValue: "",
+            showCreateRepoLink,
         });
     });
 
