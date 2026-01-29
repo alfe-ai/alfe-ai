@@ -3,7 +3,8 @@
 ## Alfe AI Free
 
 - Unlimited* free chat
-- Unlimited* free Code with Xiaomi Mimo V2 Flash and OpenAI gpt-5-nano
+- Unlimited* free Code with Xiaomi Mimo V2 Flash
+- Unlimited* free Code with OpenAI gpt-5-nano
 
 ## Alfe AI Plus ($14.99 monthly)
 
