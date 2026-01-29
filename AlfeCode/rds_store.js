@@ -94,8 +94,18 @@ class RdsStore {
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
-        plan TEXT DEFAULT 'Free'
+        plan TEXT DEFAULT 'Free',
+        ever_subscribed BOOLEAN DEFAULT false
       );`);
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS ever_subscribed BOOLEAN DEFAULT false`
+      );
+      await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET ever_subscribed = false
+         WHERE ever_subscribed IS NULL`
+      );
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SUPPORT_REQUESTS_TABLE} (
         id SERIAL PRIMARY KEY,
         created_at TEXT NOT NULL,
@@ -224,7 +234,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed
          FROM ${ACCOUNTS_TABLE}
          WHERE email = $1
          LIMIT 1`,
@@ -286,6 +296,21 @@ class RdsStore {
     }
   }
 
+  async setAccountEverSubscribed(id, everSubscribed) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    try {
+      await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET ever_subscribed = $1
+         WHERE id = $2`,
+        [Boolean(everSubscribed), id]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to update account ever subscribed:", error?.message || error);
+    }
+  }
+
   async getAccountBySession(sessionId) {
     if (!this.enabled) return null;
     await this.ensureReady();
@@ -293,7 +318,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed
          FROM ${ACCOUNTS_TABLE}
          WHERE session_id = $1
          LIMIT 1`,

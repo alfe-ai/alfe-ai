@@ -217,6 +217,46 @@ function setupPostRoutes(deps) {
         return res.json({ success: true, plan });
     });
 
+    app.post("/api/account/ever-subscribed", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Account update is not configured on this server." });
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        const rawValue = req.body?.everSubscribed;
+        let everSubscribed = false;
+        if (typeof rawValue === "boolean") {
+            everSubscribed = rawValue;
+        } else if (typeof rawValue === "string") {
+            const normalized = rawValue.trim().toLowerCase();
+            if (normalized === "true" || normalized === "1") {
+                everSubscribed = true;
+            } else if (normalized === "false" || normalized === "0") {
+                everSubscribed = false;
+            } else {
+                return res.status(400).json({ error: "Invalid ever subscribed selection." });
+            }
+        } else if (typeof rawValue === "number") {
+            if (rawValue === 1) {
+                everSubscribed = true;
+            } else if (rawValue === 0) {
+                everSubscribed = false;
+            } else {
+                return res.status(400).json({ error: "Invalid ever subscribed selection." });
+            }
+        } else if (typeof rawValue !== "undefined") {
+            return res.status(400).json({ error: "Invalid ever subscribed selection." });
+        }
+        const account = await rdsStore.getAccountBySession(sessionId);
+        if (!account) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        await rdsStore.setAccountEverSubscribed(account.id, everSubscribed);
+        return res.json({ success: true, everSubscribed });
+    });
+
     app.post("/api/support", async (req, res) => {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Support requests are not configured on this server." });
