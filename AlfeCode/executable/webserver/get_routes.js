@@ -804,6 +804,29 @@ function setupGetRoutes(deps) {
         return lines.slice(index).join("\n");
     };
 
+    const resolveQwenCliFinalOutput = (record) => {
+        if (!record || typeof record !== "object") {
+            return "";
+        }
+
+        if (record.qwenCli !== true) {
+            return "";
+        }
+
+        const stdoutText = typeof record.stdout === "string" ? record.stdout : "";
+        const stderrText = typeof record.stderr === "string" ? record.stderr : "";
+        if (!stdoutText && !stderrText) {
+            return "";
+        }
+
+        if (stdoutText && stderrText) {
+            const separator = stdoutText.endsWith("\n") ? "" : "\n";
+            return `${stdoutText}${separator}${stderrText}`;
+        }
+
+        return stdoutText || stderrText;
+    };
+
     const resolveFinalOutputTextForCommit = async (record) => {
         if (!record || typeof record !== "object") {
             return "";
@@ -2334,6 +2357,7 @@ ${cleanedFinalOutput}`;
             stdout: "",
             stdoutOnly: "",
             finalOutput: "",
+            qwenCli: false,
             stderr: "",
             stdoutTruncated: false,
             stderrTruncated: false,
@@ -2531,17 +2555,6 @@ ${cleanedFinalOutput}`;
             }
         }
 
-        emit({
-            event: "run-info",
-            data: {
-                id: runRecord.id,
-                numericId: runRecord.numericId,
-                projectDir,
-                requestedProjectDir: projectDir,
-                effectiveProjectDir,
-            },
-        });
-
         const closeStream = () => {
             if (!res.writableEnded) {
                 res.end();
@@ -2553,6 +2566,9 @@ ${cleanedFinalOutput}`;
                 return;
             }
             codexStreamTerminated = true;
+            if (!runRecord.finalOutput && runRecord.qwenCli) {
+                runRecord.finalOutput = resolveQwenCliFinalOutput(runRecord);
+            }
             if (typeof message === "string" && message) {
                 runRecord.finalMessage = message;
             }
@@ -2601,7 +2617,20 @@ ${cleanedFinalOutput}`;
             model = defaultCodexModel;
         }
         const useQwenCli = resolveQwenCliFlag(model);
+        runRecord.qwenCli = useQwenCli;
         const wantsOpenRouterHeaders = Boolean(openRouterReferer || openRouterTitle) && !useQwenCli;
+
+        emit({
+            event: "run-info",
+            data: {
+                id: runRecord.id,
+                numericId: runRecord.numericId,
+                projectDir,
+                requestedProjectDir: projectDir,
+                effectiveProjectDir,
+                qwenCli: useQwenCli,
+            },
+        });
 
         if (!fs.existsSync(scriptPath)) {
             const errorMessage = `Agent runner script not found at ${scriptPath}`;
