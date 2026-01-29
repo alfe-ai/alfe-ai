@@ -229,7 +229,10 @@
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Code</h4>
             <div id="codeUsageLimited" class="hidden" style="display:flex;align-items:center;gap:8px;">
-              <span id="codeUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/10 code runs</span>
+              <div style="flex:1;height:6px;background:#1e293b;border-radius:999px;overflow:hidden;">
+                <div style="height:100%;width:0%;background:#38bdf8;"></div>
+              </div>
+              <span id="codeUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/0 code runs</span>
             </div>
             <div id="codeUsageUnlimited" style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">Unlimited*</span>
@@ -264,7 +267,7 @@
           </div>
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Printify Upload</h4>
-            <div style="display:flex;align-items:center;gap:8px;">
+            <div id="printifyUsageUnlimited" style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">Unlimited*</span>
               <span style="font-size:0.8rem;color:#94a3b8;">Unlimited usage may change. You may be rate-limited.</span>
             </div>
