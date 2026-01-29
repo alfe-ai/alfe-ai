@@ -252,8 +252,9 @@
 
   function applyUsageLimits(limits, plan) {
     const normalizedPlan = (plan || '').toString().trim();
-    const isLoggedOut = !['Free', 'Lite', 'Pro'].includes(normalizedPlan);
-    const isPaidPlan = normalizedPlan === 'Lite' || normalizedPlan === 'Pro';
+    const normalizedPlanKey = normalizedPlan.toLowerCase();
+    const isLoggedOut = !['free', 'lite', 'pro'].includes(normalizedPlanKey);
+    const isPaidPlan = normalizedPlanKey === 'lite' || normalizedPlanKey === 'pro';
     if (searchUsageBar) {
       searchUsageBar.classList.toggle('hidden', isLoggedOut);
     }
