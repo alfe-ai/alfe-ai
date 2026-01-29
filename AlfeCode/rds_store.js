@@ -6,6 +6,7 @@ const SETTINGS_TABLE = "settings";
 const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
+const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
 
 function normalizeHost(host) {
@@ -104,6 +105,13 @@ class RdsStore {
         message TEXT NOT NULL,
         user_agent TEXT DEFAULT '',
         status TEXT NOT NULL DEFAULT '${SUPPORT_REQUEST_DEFAULT_STATUS}'
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SUPPORT_REQUEST_REPLIES_TABLE} (
+        id SERIAL PRIMARY KEY,
+        support_request_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user',
+        message TEXT NOT NULL
       );`);
       await this.pool.query(
         `ALTER TABLE ${SUPPORT_REQUESTS_TABLE}
@@ -407,10 +415,88 @@ class RdsStore {
          LIMIT 1`,
         params
       );
-      return result.rows[0] || null;
+      const request = result.rows[0] || null;
+      if (!request) {
+        return null;
+      }
+      request.replies = await this.listSupportRequestReplies({ requestId: request.id });
+      return request;
     } catch (error) {
       console.error("[RdsStore] Failed to load support request:", error?.message || error);
       return null;
+    }
+  }
+
+  async getSupportRequestByIdForAdmin({ requestId }) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedRequestId = Number(requestId);
+    if (!Number.isFinite(normalizedRequestId)) return null;
+    try {
+      const result = await this.pool.query(
+        `SELECT id, created_at, category, message, email, status
+         FROM ${SUPPORT_REQUESTS_TABLE}
+         WHERE id = $1
+         LIMIT 1`,
+        [normalizedRequestId]
+      );
+      const request = result.rows[0] || null;
+      if (!request) {
+        return null;
+      }
+      request.replies = await this.listSupportRequestReplies({ requestId: request.id });
+      return request;
+    } catch (error) {
+      console.error("[RdsStore] Failed to load support request for admin:", error?.message || error);
+      return null;
+    }
+  }
+
+  async listSupportRequestReplies({ requestId }) {
+    if (!this.enabled) return [];
+    await this.ensureReady();
+    const normalizedRequestId = Number(requestId);
+    if (!Number.isFinite(normalizedRequestId)) return [];
+    try {
+      const result = await this.pool.query(
+        `SELECT role, message, created_at
+         FROM ${SUPPORT_REQUEST_REPLIES_TABLE}
+         WHERE support_request_id = $1
+         ORDER BY created_at ASC`,
+        [normalizedRequestId]
+      );
+      return result.rows || [];
+    } catch (error) {
+      console.error("[RdsStore] Failed to list support request replies:", error?.message || error);
+      return [];
+    }
+  }
+
+  async createSupportRequestReply({ requestId, role, message }) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedRequestId = Number(requestId);
+    if (!Number.isFinite(normalizedRequestId)) return null;
+    const normalizedMessage = (message || "").toString().trim();
+    if (!normalizedMessage) return null;
+    const normalizedRole = (role || "user").toString().trim().toLowerCase();
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO ${SUPPORT_REQUEST_REPLIES_TABLE}
+         (support_request_id, created_at, role, message)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, created_at, role, message`,
+        [
+          normalizedRequestId,
+          new Date().toISOString(),
+          normalizedRole || "user",
+          normalizedMessage,
+        ]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("[RdsStore] Failed to create support request reply:", error?.message || error);
+      throw error;
     }
   }
 }

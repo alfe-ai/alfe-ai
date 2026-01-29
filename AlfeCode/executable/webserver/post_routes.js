@@ -60,6 +60,18 @@ function setupPostRoutes(deps) {
         );
     };
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
+    const configIpWhitelist = new Set();
+    const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+    if (configIpWhitelistEnv) {
+        configIpWhitelistEnv
+            .split(",")
+            .map((ip) => ip.trim())
+            .filter(Boolean)
+            .forEach((ip) => {
+                configIpWhitelist.add(ip);
+                configIpWhitelist.add(`::ffff:${ip}`);
+            });
+    }
 
     const normalizeAccountEmail = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
     const hashPassword = (password) => {
@@ -129,6 +141,26 @@ function setupPostRoutes(deps) {
             cookies[name] = decodeURIComponent(cookie.slice(idx + 1).trim());
         });
         return cookies.sessionId || "";
+    };
+    const getRequestIp = (req) => {
+        const forwarded = req.headers["x-forwarded-for"];
+        const forwardedIp = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+        const ip =
+            (forwardedIp ? String(forwardedIp).split(",")[0].trim() : "") ||
+            req.ip ||
+            req.connection?.remoteAddress ||
+            "";
+        return ip.trim();
+    };
+    const isIpAllowed = (ip, whitelist) => {
+        if (whitelist.size === 0) {
+            return false;
+        }
+        if (!ip) {
+            return false;
+        }
+        const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+        return whitelist.has(ip) || whitelist.has(normalized);
     };
     const normalizeHostname = (req) => {
         const header = req.hostname || req.get("host") || "";
@@ -215,6 +247,54 @@ function setupPostRoutes(deps) {
             return res.status(500).json({ error: "Unable to create support request." });
         }
         return res.json({ success: true, requestId: request.id });
+    });
+
+    app.post("/api/support/requests/:id/replies", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Support requests are not configured on this server." });
+        }
+        const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+        if (!message) {
+            return res.status(400).json({ error: "Support reply message is required." });
+        }
+        if (message.length > 4000) {
+            return res.status(400).json({ error: "Support reply message is too long." });
+        }
+        const role = typeof req.body?.role === "string" ? req.body.role.trim().toLowerCase() : "user";
+        const requestId = req.params?.id;
+        if (role === "admin") {
+            const requestIp = getRequestIp(req);
+            if (!isIpAllowed(requestIp, configIpWhitelist)) {
+                return res.status(403).json({ error: "Admin reply is not allowed from this IP." });
+            }
+            const request = await rdsStore.getSupportRequestByIdForAdmin({ requestId });
+            if (!request) {
+                return res.status(404).json({ error: "Support request not found." });
+            }
+        } else {
+            const sessionId = getSessionIdFromRequest(req);
+            if (!sessionId) {
+                return res.status(401).json({ error: "not logged in" });
+            }
+            const account = await rdsStore.getAccountBySession(sessionId);
+            const request = await rdsStore.getSupportRequestById({
+                requestId,
+                sessionId,
+                accountId: account?.id,
+            });
+            if (!request) {
+                return res.status(404).json({ error: "Support request not found." });
+            }
+        }
+        const reply = await rdsStore.createSupportRequestReply({
+            requestId,
+            role: role === "admin" ? "admin" : "user",
+            message,
+        });
+        if (!reply) {
+            return res.status(500).json({ error: "Unable to create support reply." });
+        }
+        return res.json({ success: true, reply });
     });
 
     app.post("/api/logout", async (req, res) => {
