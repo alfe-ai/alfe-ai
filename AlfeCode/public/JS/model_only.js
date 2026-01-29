@@ -1,9 +1,30 @@
 (function(){
   const modelSelect = document.getElementById('modelSelect');
+  const engineSelect = document.getElementById('engineSelect');
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
+  const ENGINE_STORAGE_KEY = 'enginePreference';
+  const ENGINE_OPTIONS = new Set(['auto', 'qwen', 'codex']);
 
   let activeProvider = '';
+
+  function normalizeEngine(value) {
+    const normalized = (value || '').toString().trim().toLowerCase();
+    return ENGINE_OPTIONS.has(normalized) ? normalized : 'auto';
+  }
+
+  function sendEnginePreference(value) {
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage(
+          { type: 'sterling:settings', key: 'engine', value },
+          '*',
+        );
+      } catch (error) {
+        console.warn('Failed to notify parent of engine preference.', error);
+      }
+    }
+  }
 
   function coerceNumber(value) {
     if (typeof value === 'number' && !Number.isNaN(value)) return value;
@@ -206,10 +227,33 @@
     }
   }
 
+  function initEngineSelect() {
+    if (!engineSelect) return;
+    let storedValue = '';
+    try {
+      storedValue = localStorage.getItem(ENGINE_STORAGE_KEY) || '';
+    } catch (error) {
+      storedValue = '';
+    }
+    const initialValue = normalizeEngine(storedValue);
+    engineSelect.value = initialValue;
+    sendEnginePreference(initialValue);
+    engineSelect.addEventListener('change', function() {
+      const nextValue = normalizeEngine(engineSelect.value);
+      try {
+        localStorage.setItem(ENGINE_STORAGE_KEY, nextValue);
+      } catch (error) {
+        /* ignore */
+      }
+      sendEnginePreference(nextValue);
+    });
+  }
+
   modelSelect.addEventListener('change', function(){
     const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
     void saveDefaultModel(newModel);
   });
 
+  initEngineSelect();
   load();
 })();
