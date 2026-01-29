@@ -3394,6 +3394,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 editorLaunchConfig: <%- JSON.stringify(editorLaunchConfig || null) %>,
                 enableFollowups: <%- JSON.stringify(enableFollowups || false) %>,
                 defaultSubmitOnEnter: <%- JSON.stringify(typeof defaultSubmitOnEnter === 'undefined' ? true : defaultSubmitOnEnter) %>,
+                accountButtonEnabled: <%- JSON.stringify(typeof accountButtonEnabled === "undefined" ? true : accountButtonEnabled) %>,
             }
         );
     </script>
