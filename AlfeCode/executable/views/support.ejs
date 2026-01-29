@@ -199,6 +199,13 @@
       return date.toLocaleString();
     };
 
+    const decodeHtmlEntities = (value) => {
+      if (value == null) return '';
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = String(value);
+      return textarea.value;
+    };
+
     const renderSupportRequests = (requests, emptyText) => {
       if (!supportRequestsList) return;
       supportRequestsList.innerHTML = '';
@@ -220,11 +227,21 @@
         const meta = document.createElement('div');
         meta.className = 'support-request-meta';
         const statusLabel = request.status || 'Awaiting Support Reply';
-        meta.innerHTML = `<span>Category: ${request.category}</span><span>Status: ${statusLabel}</span><span>Submitted: ${formatSupportDate(request.created_at)}</span><span>ID: ${request.id}</span>`;
+        const metaItems = [
+          { label: 'Category', value: decodeHtmlEntities(request.category) },
+          { label: 'Status', value: decodeHtmlEntities(statusLabel) },
+          { label: 'Submitted', value: formatSupportDate(request.created_at) },
+          { label: 'ID', value: request.id },
+        ];
+        metaItems.forEach(({ label, value }) => {
+          const span = document.createElement('span');
+          span.textContent = `${label}: ${value}`;
+          meta.appendChild(span);
+        });
 
         const message = document.createElement('p');
         message.className = 'support-request-message';
-        message.textContent = request.message;
+        message.textContent = decodeHtmlEntities(request.message);
 
         row.appendChild(meta);
         row.appendChild(message);
