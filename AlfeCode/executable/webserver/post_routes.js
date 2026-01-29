@@ -178,7 +178,7 @@ function setupPostRoutes(deps) {
         }
         return parts.join("; ");
     };
-    const ACCOUNT_PLANS = new Set(["Logged-out Session", "Free", "Lite", "Pro"]);
+    const ACCOUNT_PLANS = new Set(["Logged-out Session", "Free", "Lite", "Plus", "Pro"]);
 
     app.post("/api/account/exists", async (req, res) => {
         const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
