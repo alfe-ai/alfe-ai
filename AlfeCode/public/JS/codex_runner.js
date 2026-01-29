@@ -7541,12 +7541,10 @@ const appendMergeChunk = (text, type = "output") => {
       signUpLogInBtn.style.display = "none";
       return;
     }
-    signUpLogInBtn.style.display = "";
     if (info && info.email) {
-      signUpLogInBtn.textContent = "Account";
-      signUpLogInBtn.title = "Account";
-      signUpLogInBtn.setAttribute("aria-label", "Account");
+      signUpLogInBtn.style.display = "none";
     } else {
+      signUpLogInBtn.style.display = "";
       signUpLogInBtn.textContent = "Sign Up / Log In";
       signUpLogInBtn.title = "Sign Up or Log In";
       signUpLogInBtn.setAttribute("aria-label", "Sign up or log in");
