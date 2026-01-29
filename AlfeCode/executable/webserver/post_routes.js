@@ -999,6 +999,9 @@ function setupPostRoutes(deps) {
             if (err) {
                 console.error("[ERROR] cloneRepository:", err);
                 if (err.sshKeyRequired) {
+                    const showCreateRepoLink = ["1", "true", "yes", "on"].includes(
+                        (process.env.SHOW_NEW_REPOSITORY_LINK || "").toLowerCase(),
+                    );
                     return res.status(400).render("add_repository", {
                         serverCWD: process.cwd(),
                         cloneError:
@@ -1006,6 +1009,7 @@ function setupPostRoutes(deps) {
                         sshKeyRequired: true,
                         repoNameValue: repoName,
                         gitRepoURLValue: normalizedGitRepoURL || gitRepoURL,
+                        showCreateRepoLink,
                     });
                 }
                 return res.status(500).send("Failed to clone repository.");
