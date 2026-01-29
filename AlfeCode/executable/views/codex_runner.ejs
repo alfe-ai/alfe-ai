@@ -402,6 +402,22 @@
             text-overflow: ellipsis;
         }
 
+        .sidebar-version .repo-trigger__text .repo-demo-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #f8fafc;
+            background: rgba(124, 58, 237, 0.4);
+            border: 1px solid rgba(124, 58, 237, 0.75);
+            box-shadow: 0 0 12px rgba(124, 58, 237, 0.35);
+            flex: 0 0 auto;
+        }
+
         .sidebar-breadcrumb {
             margin: 0;
             font-size: 0.9rem;
@@ -2777,6 +2793,7 @@
                                 <span class="repo-trigger__text">
                                     <span class="repo-label">Repository:</span>
                                     <span class="repo-name"><%= typeof repoName !== "undefined" && repoName ? repoName : "Select a repository" %></span>
+                                    <span class="repo-demo-badge is-hidden">Demo</span>
                                 </span>
                             </button>
                         </div>

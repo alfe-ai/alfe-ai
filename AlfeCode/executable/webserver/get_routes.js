@@ -3419,6 +3419,7 @@ ${cleanedFinalOutput}`;
             resolvedProjectDir,
             repoName,
             gitRepoLocalPath: repoLocalPath,
+            isDemo: Boolean(repoCfg && repoCfg.isDemo),
             branchName,
             branchSource,
             repoConfigBranch: repoCfg && typeof repoCfg.gitBranch === "string"
