@@ -6,6 +6,8 @@
   const submitOnEnterFromLocal = (localStorage.getItem('submitOnEnter') !== null) ? (localStorage.getItem('submitOnEnter') === 'true') : undefined;
   // `config.defaultSubmitOnEnter` will be provided by the server; if absent, treated as true.
   let submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
+  const promptHintsFromLocal = (localStorage.getItem('showPromptHints') !== null) ? (localStorage.getItem('showPromptHints') === 'true') : undefined;
+  let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const normalizeEnginePreference = (value) => {
     const normalized = (value || '').toString().trim().toLowerCase();
@@ -29,6 +31,10 @@
       if(!d || d.type !== 'sterling:settings') return;
       if(d.key === 'submitOnEnter'){
         try{ submitOnEnterDefault = (d.value === true || d.value === 'true'); }catch(e){}
+      }
+      if (d.key === 'showPromptHints') {
+        try{ showPromptHints = (d.value === true || d.value === 'true'); }catch(e){}
+        updatePromptPlaceholder();
       }
       if(d.key === 'defaultModel'){
         var newDefaultModel = typeof d.value === 'string' ? d.value.trim() : '';
@@ -164,10 +170,16 @@
   'Create a site performance checklist.',
   'Make a hero section template.',
 ];
-const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
-promptEl.placeholder = hasSelectedRun ? "Add a followup to current task or ask a question" : `Start a new task or ask a question
-
-Try: ${suggestion}`;
+      const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+      if (hasSelectedRun) {
+        promptEl.placeholder = "Add a followup to current task or ask a question";
+        return;
+      }
+      let promptPlaceholder = "Start a new task or ask a question";
+      if (showPromptHints) {
+        promptPlaceholder = `${promptPlaceholder}\n\nTry: ${suggestion}`;
+      }
+      promptEl.placeholder = promptPlaceholder;
     } catch (_e) { /* ignore */ }
   };
   // Update initial placeholder and whenever selection/context changes
