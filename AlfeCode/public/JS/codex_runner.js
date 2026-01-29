@@ -7191,6 +7191,9 @@ const appendMergeChunk = (text, type = "output") => {
   const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
   const signupChangeEmailBtn = document.getElementById("signupChangeEmailBtn");
   const toastEl = document.getElementById("toast");
+  const currentSessionId = (typeof window !== "undefined" && window.currentSessionId)
+    ? window.currentSessionId
+    : new URLSearchParams(window.location.search || "").get("sessionId");
 
   const AUTH_MODAL_STATE_KEY = "alfe.authModalState";
   let authEmailValue = "";
