@@ -7,6 +7,7 @@
   const codeUsageLimit = document.getElementById('codeUsageLimit');
   const codeUsageLimited = document.getElementById('codeUsageLimited');
   const codeUsageUnlimited = document.getElementById('codeUsageUnlimited');
+  const printifyUsageUnlimited = document.getElementById('printifyUsageUnlimited');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
   const searchUsageBar = document.getElementById('searchUsageBar');
@@ -27,8 +28,8 @@
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
-    loggedOut: { code: 10, search: 0, images: 0 },
-    free: { code: 10, search: 10, images: 10 },
+    loggedOut: { code: 0, search: 0, images: 0 },
+    free: { code: 0, search: 10, images: 10 },
     lite: { code: null, search: 100, images: 100 },
     pro: { code: null, search: 500, images: 500 },
   };
@@ -255,6 +256,9 @@
     }
     if (codeUsageUnlimited) {
       codeUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
+    }
+    if (printifyUsageUnlimited) {
+      printifyUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
     }
     if (codeUsageLimit) {
       const codeLimit = typeof limits.code === 'number' ? limits.code : 0;
