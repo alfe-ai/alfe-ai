@@ -67,7 +67,7 @@
       if (isPaidPlan) {
         supportActionButton.textContent = 'Go to Support';
       } else if (isLoggedOut) {
-        supportActionButton.textContent = 'Log In / Sign Up';
+        supportActionButton.textContent = 'Sign Up / Log In';
       } else {
         supportActionButton.textContent = 'Subscribe Now';
       }
