@@ -7557,18 +7557,21 @@ const appendMergeChunk = (text, type = "output") => {
     if (!signUpLogInBtn) {
       return;
     }
-    if (!accountButtonEnabled) {
-      signUpLogInBtn.style.display = "none";
+    if (info && info.email) {
+      if (!accountButtonEnabled) {
+        signUpLogInBtn.style.display = "none";
+        return;
+      }
+      signUpLogInBtn.style.display = "";
+      signUpLogInBtn.textContent = "Account";
+      signUpLogInBtn.title = "Account settings";
+      signUpLogInBtn.setAttribute("aria-label", "Account settings");
       return;
     }
-    if (info && info.email) {
-      signUpLogInBtn.style.display = "none";
-    } else {
-      signUpLogInBtn.style.display = "";
-      signUpLogInBtn.textContent = "Sign Up / Log In";
-      signUpLogInBtn.title = "Sign Up or Log In";
-      signUpLogInBtn.setAttribute("aria-label", "Sign up or log in");
-    }
+    signUpLogInBtn.style.display = "";
+    signUpLogInBtn.textContent = "Sign Up / Log In";
+    signUpLogInBtn.title = "Sign Up or Log In";
+    signUpLogInBtn.setAttribute("aria-label", "Sign up or log in");
   };
 
   const setAccountInfo = (info) => {
