@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Support</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body{
+      font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      display:flex;
+      justify-content:center;
+      background:#0b1120;
+      color:#e2e8f0;
+      min-height:100vh;
+      margin:0;
+      padding:32px 20px;
+    }
+    .card{
+      background:rgba(15,23,42,0.9);
+      padding:24px;
+      border-radius:12px;
+      border:1px solid rgba(71,85,105,0.4);
+      width:min(560px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      box-shadow:0 20px 45px rgba(0,0,0,0.35);
+    }
+    h2{
+      margin:0;
+    }
+    p{
+      margin:0;
+      color:#94a3b8;
+      font-size:0.95rem;
+    }
+    form{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    label{
+      font-size:0.9rem;
+      color:#cbd5f5;
+      display:block;
+      margin-bottom:6px;
+    }
+    select,
+    textarea{
+      width:100%;
+      font-size:1rem;
+      padding:10px 12px;
+      background:#0f172a;
+      color:#e2e8f0;
+      border:1px solid rgba(148,163,184,0.35);
+      border-radius:10px;
+    }
+    textarea{
+      min-height:160px;
+      resize:vertical;
+    }
+    .support-button{
+      align-self:flex-start;
+      padding:0.6rem 1.1rem;
+      border-radius:10px;
+      border:1px solid rgba(167,139,250,0.7);
+      background:linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(99,102,241,0.4) 100%);
+      color:#f8fafc;
+      font-weight:600;
+      cursor:pointer;
+      transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .support-button:hover,
+    .support-button:focus-visible{
+      transform:translateY(-1px);
+      border-color:#c4b5fd;
+      box-shadow:0 10px 22px rgba(124,58,237,0.22);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Support</h2>
+    <p>Send a message to the AlfeCode support team.</p>
+    <form>
+      <div>
+        <label for="supportCategory">Support Category (required)</label>
+        <select id="supportCategory" name="supportCategory" required>
+          <option value="" disabled selected>Select a category</option>
+          <option value="Bug Report">Bug Report</option>
+          <option value="New Feature Request">New Feature Request</option>
+          <option value="Account Support">Account Support</option>
+          <option value="Alfe AI Code Support">Alfe AI Code Support</option>
+          <option value="Alfe AI Chat / Image Design Support">Alfe AI Chat / Image Design Support</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label for="supportMessage">Message (required)</label>
+        <textarea id="supportMessage" name="supportMessage" placeholder="Share details about your issue or request." required></textarea>
+      </div>
+      <button type="button" class="support-button">Send to Support</button>
+    </form>
+  </div>
+</body>
+</html>
