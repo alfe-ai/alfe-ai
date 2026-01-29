@@ -699,6 +699,12 @@ run_with_filtered_streams() {
     filter_openrouter=1
   fi
 
+  if $USE_QWEN_CLI; then
+    run_here_or_in_project "$@" \
+      2> >(grep --line-buffered -v "dconf-CRITICAL" >&2)
+    return ${PIPESTATUS[0]:-$?}
+  fi
+
   if run_here_or_in_project "$@" \
       > >(stream_filtered_stdout "$filter_openrouter") \
       2> >(grep --line-buffered -v "dconf-CRITICAL" >&2); then
