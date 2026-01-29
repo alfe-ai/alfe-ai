@@ -7409,6 +7409,7 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const signUpLogInBtn = document.getElementById("signUpLogInBtn");
+  const accountButtonEnabled = config.accountButtonEnabled !== false;
   const authModal = document.getElementById("authModal");
   const authModalCloseButton = document.getElementById("authModalCloseButton");
   const accountModal = document.getElementById("accountModal");
@@ -7536,6 +7537,11 @@ const appendMergeChunk = (text, type = "output") => {
     if (!signUpLogInBtn) {
       return;
     }
+    if (!accountButtonEnabled && info && info.email) {
+      signUpLogInBtn.style.display = "none";
+      return;
+    }
+    signUpLogInBtn.style.display = "";
     if (info && info.email) {
       signUpLogInBtn.textContent = "Account";
       signUpLogInBtn.title = "Account";

@@ -2136,6 +2136,11 @@ ${cleanedFinalOutput}`;
             : null;
         const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
         const showRunDirectory = parseBooleanFlag(process.env.SHOW_RUN_DIRECTORY);
+        const accountButtonEnabledEnv = process.env.ACCOUNT_BUTTON_ENABLED;
+        const accountButtonEnabled =
+            typeof accountButtonEnabledEnv === "undefined"
+                ? true
+                : parseBooleanFlag(accountButtonEnabledEnv);
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
@@ -2155,8 +2160,9 @@ ${cleanedFinalOutput}`;
             enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
             showNewTaskButton,
             showRunDirectory,
-        showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
-        showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
+            accountButtonEnabled,
+            showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
+            showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
         });
     };
 
