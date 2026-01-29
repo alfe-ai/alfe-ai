@@ -74,7 +74,7 @@
         supportActionButton.textContent = 'Go to Support';
         supportActionState = 'support';
       } else if (isLoggedOut) {
-        supportActionButton.textContent = 'Log In / Sign Up';
+        supportActionButton.textContent = 'Sign Up / Log In';
         supportActionState = 'login';
       } else {
         supportActionButton.textContent = 'Subscribe Now';
