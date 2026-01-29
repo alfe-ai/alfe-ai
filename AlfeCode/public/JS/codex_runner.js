@@ -17,6 +17,9 @@
   const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
   let enginePreference = engineFromLocal;
 
+  let currentRunContext = null;
+  let runsSidebarSelectedRunId = null;
+
   let modelSelect;
   let defaultModelInput;
   // Listen for settings from the settings iframe to update submit-on-enter default
@@ -587,7 +590,6 @@ Try: ${suggestion}`;
   let runsSidebarShowArchived = (new URLSearchParams(window.location.search).get('archived') === '1') || (window.location.pathname || '').endsWith('/archived');
   // Ensure the initial toggle element reflects the parsed state once it exists.
   const backToCurrentTasksLink = document.getElementById('backToCurrentTasksLink');
-  let currentRunContext = null;
   const updateArchivedUI = () => {
     if (runsSidebarArchiveToggle) {
       runsSidebarArchiveToggle.setAttribute('aria-pressed', runsSidebarShowArchived ? 'true' : 'false');
@@ -2281,7 +2283,7 @@ Try: ${suggestion}`;
   };
 
   const existingRunIdFromHash = parseRunIdFromHash(window.location.hash || "");
-  let runsSidebarSelectedRunId = normaliseRunId(existingRunIdFromHash);
+  runsSidebarSelectedRunId = normaliseRunId(existingRunIdFromHash);
 
   const setRunsSidebarActiveRun = (runIdValue) => {
     runsSidebarSelectedRunId = normaliseRunId(runIdValue);
