@@ -140,7 +140,7 @@
       },
       "qwen_cli": true,
       "list_order": 7,
-      "plus_model": true
+      "plus_model": false
     },
     {
       "id": "openrouter/qwen/qwen3-coder-30b-a3b-instruct",
