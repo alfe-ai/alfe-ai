@@ -563,12 +563,10 @@
 })();
 
 
-// Sidebar toggle and resizer (adds divider drag + toggle/expand buttons)
+// Sidebar resizer (adds divider drag)
 (function installDividerDragEditor(){
   const divider = document.getElementById('divider');
   const sidebar = document.querySelector('.editor-sidebar');
-  const toggleBtn = document.getElementById('sidebarToggleBtn');
-  const expandBtn = document.getElementById('expandSidebarBtn');
   if(!divider || !sidebar) return;
 
   let isDragging = false;
@@ -605,32 +603,11 @@
     document.body.style.userSelect = '';
   });
 
-  function toggleSidebar(){
-    const visible = sidebar.style.display !== 'none';
-    if(visible){
-      sidebar.style.display = 'none';
-      divider.style.display = 'none';
-      if(expandBtn) expandBtn.style.display = 'block';
-      if(toggleBtn) toggleBtn.textContent = '☰';
-    } else {
-      sidebar.style.display = '';
-      divider.style.display = '';
-      if(expandBtn) expandBtn.style.display = 'none';
-      if(toggleBtn) toggleBtn.textContent = '✕';
-    }
-    try{ fetch('/api/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: 'sidebar_visible', value: !visible }) }); }catch(e){}
-  }
-
-  toggleBtn?.addEventListener('click', () => { toggleSidebar(); });
-  expandBtn?.addEventListener('click', () => { toggleSidebar(); });
-
-  // load saved width / visibility
+  // load saved width
   (async function loadSaved(){
     try{
       const r = await fetch('/api/settings/sidebar_width');
       if(r.ok){ const data = await r.json(); if(typeof data.value !== 'undefined'){ sidebar.style.width = data.value + 'px'; }}
-      const r2 = await fetch('/api/settings/sidebar_visible');
-      if(r2.ok){ const d2 = await r2.json(); if(typeof d2.value !== 'undefined' && d2.value === false){ sidebar.style.display = 'none'; divider.style.display = 'none'; if(expandBtn) expandBtn.style.display = 'block'; if(toggleBtn) toggleBtn.textContent = '☰'; }}
     }catch(e){}
   })();
 })();

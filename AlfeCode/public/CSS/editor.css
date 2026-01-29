@@ -24,20 +24,6 @@ body {
     flex: none;
 }
 
-#expandSidebarBtn {
-    display: none;
-    position: absolute;
-    left: 8px;
-    top: 80px;
-    background: rgba(68,68,68,0.9);
-    color: #eee;
-    padding: 4px 6px;
-    border-radius: 6px;
-    z-index: 999;
-    border: 1px solid rgba(148, 163, 184, 0.5);
-    font-size: 0.85rem;
-    cursor: pointer;
-}
 
 /* Ensure layout keeps sidebar left-aligned and full height */
 .editor-layout {
@@ -289,21 +275,6 @@ body {
     color: #cbd5f5;
 }
 
-.sidebar-toggle-button {
-    background: rgba(30, 41, 59, 0.6);
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    color: #e2e8f0;
-    border-radius: 8px;
-    padding: 0.25rem 0.45rem;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.sidebar-toggle-button:hover {
-    background: rgba(59, 130, 246, 0.25);
-    border-color: rgba(148, 163, 184, 0.7);
-}
 
 .selected-file {
     background: rgba(124, 58, 237, 0.35);
