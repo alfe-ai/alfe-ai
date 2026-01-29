@@ -1183,6 +1183,28 @@ function setupPostRoutes(deps) {
         });
     });
 
+    /* ---------- /repositories/delete ---------- */
+    app.post("/repositories/delete", (req, res) => {
+        const { repoName } = req.body;
+        if (!repoName) {
+            return res.status(400).send("Repository name is required.");
+        }
+
+        const sessionId = resolveSessionId(req);
+        const repoConfig = loadRepoConfig(sessionId) || {};
+        const repoEntry = repoConfig[repoName];
+        if (!repoEntry) {
+            return res.redirect("/repositories");
+        }
+        if (repoEntry.isDemo) {
+            return res.status(403).send("Demo repositories cannot be deleted.");
+        }
+
+        delete repoConfig[repoName];
+        saveRepoConfig(repoConfig, sessionId);
+        return res.redirect("/repositories");
+    });
+
     /* ---------- /repositories/generate-ssh-key ---------- */
     app.post("/repositories/generate-ssh-key", (_req, res) => {
         try {
