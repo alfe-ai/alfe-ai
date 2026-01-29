@@ -3,7 +3,71 @@ const path = require('path');
 const { execSync } = require('child_process');
 const rdsStore = require('./rds_store');
 
-const DEFAULT_CODEX_MODEL = 'openrouter/openai/gpt-5-mini';
+const FALLBACK_CODEX_MODEL = 'openrouter/openai/gpt-5-mini';
+const MODEL_ONLY_CONFIG_PATH = path.join(__dirname, 'data', 'config', 'model_only_models.json');
+const MODEL_ONLY_CONFIG_FALLBACK_PATH = path.join(__dirname, '..', 'Sterling', 'data', 'config', 'model_only_models.json');
+
+function resolveModelOnlyDefault() {
+    const candidates = [MODEL_ONLY_CONFIG_PATH, MODEL_ONLY_CONFIG_FALLBACK_PATH];
+    const resolvedPath = candidates.find((candidate) => fs.existsSync(candidate));
+    if (!resolvedPath) {
+        return '';
+    }
+    try {
+        const raw = fs.readFileSync(resolvedPath, 'utf-8');
+        const parsed = JSON.parse(raw || '{}');
+        let models = [];
+        if (Array.isArray(parsed)) {
+            models = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.models)) {
+                models = parsed.models;
+            } else if (parsed.models && typeof parsed.models === 'object') {
+                models = Object.values(parsed.models);
+            } else {
+                models = Object.values(parsed);
+            }
+        }
+        const entries = [];
+        models.forEach((model, index) => {
+            let normalized = model;
+            if (typeof normalized === 'string') {
+                normalized = { id: normalized };
+            }
+            if (!normalized || typeof normalized !== 'object') {
+                return;
+            }
+            const modelId = typeof normalized.id === 'string' ? normalized.id.trim() : '';
+            if (!modelId) {
+                return;
+            }
+            const listOrderRaw = normalized.list_order;
+            const listOrder = Number.isFinite(listOrderRaw) ? listOrderRaw : null;
+            entries.push({ listOrder, index, id: modelId });
+        });
+        if (!entries.length) {
+            return '';
+        }
+        entries.sort((a, b) => {
+            const aHasOrder = a.listOrder !== null;
+            const bHasOrder = b.listOrder !== null;
+            if (aHasOrder && bHasOrder) {
+                if (a.listOrder !== b.listOrder) return a.listOrder - b.listOrder;
+                return a.index - b.index;
+            }
+            if (aHasOrder) return -1;
+            if (bHasOrder) return 1;
+            return a.index - b.index;
+        });
+        return entries[0].id;
+    } catch (error) {
+        console.error(`[ERROR] resolveModelOnlyDefault: ${error.message}`);
+        return '';
+    }
+}
+
+const MODEL_ONLY_DEFAULT = resolveModelOnlyDefault();
+const DEFAULT_CODEX_MODEL = MODEL_ONLY_DEFAULT || FALLBACK_CODEX_MODEL;
 const DEFAULT_CODEX_CONFIG_PATH = path.join(__dirname, 'data', 'config', 'codex_runner.json');
 const LEGACY_CODEX_CONFIG_PATH = path.join(__dirname, '..', 'Sterling', 'data', 'config', 'codex_runner.json');
 
@@ -211,6 +275,9 @@ function loadCodexConfig() {
                 console.warn(`[WARN] Invalid codex defaultModel "${rawModel}". Falling back to ${DEFAULT_CODEX_MODEL}.`);
             }
             safeConfig.defaultModel = DEFAULT_CODEX_MODEL;
+            mutated = true;
+        } else if (rawModel === FALLBACK_CODEX_MODEL && MODEL_ONLY_DEFAULT && MODEL_ONLY_DEFAULT !== FALLBACK_CODEX_MODEL) {
+            safeConfig.defaultModel = MODEL_ONLY_DEFAULT;
             mutated = true;
         } else {
             safeConfig.defaultModel = rawModel;

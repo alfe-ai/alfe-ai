@@ -61,7 +61,7 @@ Install project-specific packages inside the virtual environment with `pip insta
 
 ## Scripts
 
-- `run_codex.sh` – launches the Sterling Codex runner UI.
+- `run_codex.sh` – launches the Sterling Codex runner UI (set `ENABLE_TRACE=true` to emit `[trace]` diagnostics).
 - `test_codex_runner.sh` – helper script for validating the runner setup.
 - `git_fpush.sh` – force pushes the current branch to its remote (use with caution).
 - `codex-runner_angent-instructions.md` – Agent instructions for operating the runner.
