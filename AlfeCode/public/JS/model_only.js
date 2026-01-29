@@ -29,7 +29,7 @@
   const logoutFeedback = document.getElementById('logoutFeedback');
   const supportPlanNotice = document.getElementById('supportPlanNotice');
   const supportActionButton = document.getElementById('supportActionButton');
-  const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Pro'];
+  const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Plus', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
@@ -37,6 +37,7 @@
     loggedOut: { code: 10, search: 0, images: 0 },
     free: { code: 100, search: 10, images: 10 },
     lite: { code: null, search: 100, images: 100 },
+    plus: { code: null, search: 500, images: 500 },
     pro: { code: null, search: 500, images: 500 },
   };
 
@@ -57,14 +58,14 @@
 
   function isLoggedOutPlan(plan) {
     const normalized = (plan || '').toString().trim();
-    return !['Free', 'Lite', 'Pro'].includes(normalized);
+    return !['Free', 'Lite', 'Plus', 'Pro'].includes(normalized);
   }
 
   function updateSupportCallToAction(plan, everSubscribed = currentAccountEverSubscribed) {
     if (!supportPlanNotice && !supportActionButton) return;
     const normalized = (plan || '').toString().trim();
     const isLoggedOut = isLoggedOutPlan(normalized);
-    const isPaidPlan = normalized === 'Lite' || normalized === 'Pro';
+    const isPaidPlan = normalized === 'Lite' || normalized === 'Plus' || normalized === 'Pro';
     const isSupportEligible = isPaidPlan || (normalized === 'Free' && Boolean(everSubscribed));
     if (supportPlanNotice) {
       supportPlanNotice.classList.toggle('hidden', isSupportEligible);
@@ -313,8 +314,8 @@
   function applyUsageLimits(limits, plan) {
     const normalizedPlan = (plan || '').toString().trim();
     const normalizedPlanKey = normalizedPlan.toLowerCase();
-    const isLoggedOut = !['free', 'lite', 'pro'].includes(normalizedPlanKey);
-    const isPaidPlan = normalizedPlanKey === 'lite' || normalizedPlanKey === 'pro';
+    const isLoggedOut = !['free', 'lite', 'plus', 'pro'].includes(normalizedPlanKey);
+    const isPaidPlan = normalizedPlanKey === 'lite' || normalizedPlanKey === 'plus' || normalizedPlanKey === 'pro';
     const isProPlanActive = normalizedPlanKey === 'pro';
     if (searchUsageBar) {
       searchUsageBar.classList.toggle('hidden', isLoggedOut);
@@ -366,6 +367,7 @@
   function resolveUsageLimits(plan) {
     const normalized = (plan || '').toString().trim();
     if (normalized === 'Pro') return USAGE_LIMITS.pro;
+    if (normalized === 'Plus') return USAGE_LIMITS.plus;
     if (normalized === 'Lite') return USAGE_LIMITS.lite;
     if (normalized === 'Free') return USAGE_LIMITS.free;
     return USAGE_LIMITS.loggedOut;

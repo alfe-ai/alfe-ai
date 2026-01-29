@@ -155,7 +155,7 @@ function setupGetRoutes(deps) {
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
     ]);
-    const SUPPORT_PLANS = new Set(["Lite", "Pro"]);
+    const SUPPORT_PLANS = new Set(["Lite", "Plus", "Pro"]);
     const MAX_FILE_TREE_ENTRIES = 400;
     const MAX_RUN_OUTPUT_LENGTH = 50000;
     const MAX_STATUS_HISTORY = 200;
@@ -262,7 +262,7 @@ function setupGetRoutes(deps) {
         }
         const sessionId = getSessionIdFromRequest(req);
         if (!sessionId) {
-            res.status(403).send("Support is available to Lite or Pro subscribers only.");
+            res.status(403).send("Support is available to Lite, Plus, or Pro subscribers only.");
             return null;
         }
         const account = await rdsStore.getAccountBySession(sessionId);
@@ -270,7 +270,7 @@ function setupGetRoutes(deps) {
             && (SUPPORT_PLANS.has(account.plan)
                 || (account.plan === "Free" && Boolean(account.ever_subscribed)));
         if (!isSupportEligible) {
-            res.status(403).send("Support is available to Lite or Pro subscribers only.");
+            res.status(403).send("Support is available to Lite, Plus, or Pro subscribers only.");
             return null;
         }
         return account;
