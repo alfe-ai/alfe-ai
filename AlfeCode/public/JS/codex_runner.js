@@ -6914,6 +6914,10 @@ const appendMergeChunk = (text, type = "output") => {
       streamClosedByServer = true;
       runInFlight = false;
       const message = event.data || "Agent run complete.";
+      const hasFinalOutput =
+        typeof getActiveFinalOutputText === "function"
+          && typeof getActiveFinalOutputText() === "string"
+          && getActiveFinalOutputText().trim() !== "";
       updateGitFpushStdoutSuppression(message);
       handleGitFpushCompletionMessage(message);
       flushPendingStdoutPromptBuffer();
@@ -6926,7 +6930,7 @@ const appendMergeChunk = (text, type = "output") => {
       finalizeOutputViews();
       // Automatically switch to Final output tab when run finishes
       if (!followupRunActive) {
-        setActiveOutputTab("stdout");
+        setActiveOutputTab(hasFinalOutput ? "stdout" : "combined");
       }
       toggleButtons(false);
       loadRunsSidebar({ projectDir: currentRunContext.projectDir, force: true });
