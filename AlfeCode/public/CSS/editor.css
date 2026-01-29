@@ -232,6 +232,7 @@ body {
 }
 
 #saveFileButton {
+    width: auto;
     padding: 0.4rem 0.85rem;
     background: #7c3aed;
     border: none;
