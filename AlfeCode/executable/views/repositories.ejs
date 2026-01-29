@@ -30,11 +30,16 @@
         header p { margin:6px 0 0; color:var(--nexum-muted); }
         ul.repo-list { list-style:none; padding:0; margin:20px 0; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:14px; }
         li.repo { padding:0; border-radius:12px; background: linear-gradient(135deg, rgba(17,24,39,0.92), rgba(15,23,42,0.78)); border:1px solid var(--nexum-border); box-shadow: var(--shadow-soft); }
-        a.repo-link { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; color:var(--nexum-accent-bright); font-weight:600; text-decoration:none; border-radius:12px; }
+        .repo-card { display:flex; align-items:center; gap:12px; padding:14px; }
+        a.repo-link { display:flex; align-items:center; gap:12px; color:var(--nexum-accent-bright); font-weight:600; text-decoration:none; border-radius:12px; flex:1; min-width:0; }
         a.repo-link:hover { color:#fff; text-decoration:underline; }
         .repo-name { flex:1; min-width:0; }
         .demo-badge { padding:4px 10px; border-radius:999px; font-size:0.75rem; letter-spacing:0.04em; text-transform:uppercase; font-weight:700; color:#f8fafc; background:rgba(124, 58, 237, 0.35); border:1px solid rgba(124, 58, 237, 0.6); box-shadow: 0 0 16px rgba(124, 58, 237, 0.35); }
         .repo-meta { margin-top:8px; color:var(--nexum-muted); font-size:0.95rem; }
+        .repo-delete-form { margin:0; }
+        .repo-delete-button { width:34px; height:34px; border-radius:999px; border:1px solid var(--nexum-border); background: rgba(15, 23, 42, 0.6); color:var(--nexum-muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
+        .repo-delete-button:hover { color:#f87171; border-color: rgba(248, 113, 113, 0.6); background: rgba(248, 113, 113, 0.12); transform: translateY(-1px); }
+        .repo-delete-button:focus-visible { outline:2px solid rgba(248, 113, 113, 0.6); outline-offset:2px; }
         footer { margin-top:28px; color:var(--nexum-muted); }
         .actions { margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; }
         .button { display:inline-block; padding:10px 14px; border-radius:999px; background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: #ffffff; border: none; text-decoration:none; font-weight:600; }
@@ -54,12 +59,24 @@
         <ul class="repo-list">
             <% repos.forEach(function(repo) { %>
                 <li class="repo">
-                    <a class="repo-link" href="/agent?repo_directory=<%- encodeURIComponent(repo.gitRepoLocalPath || '') %>&repo_name=<%- encodeURIComponent(repo.name) %>" target="_blank" rel="noopener noreferrer">
-                        <span class="repo-name"><%= repo.name %></span>
-                        <% if (repo.isDemo) { %>
-                            <span class="demo-badge">Demo</span>
+                    <div class="repo-card">
+                        <a class="repo-link" href="/agent?repo_directory=<%- encodeURIComponent(repo.gitRepoLocalPath || '') %>&repo_name=<%- encodeURIComponent(repo.name) %>" target="_blank" rel="noopener noreferrer">
+                            <span class="repo-name"><%= repo.name %></span>
+                            <% if (repo.isDemo) { %>
+                                <span class="demo-badge">Demo</span>
+                            <% } %>
+                        </a>
+                        <% if (!repo.isDemo) { %>
+                            <form class="repo-delete-form" action="/repositories/delete" method="POST" data-repo-name="<%- repo.name %>">
+                                <input type="hidden" name="repoName" value="<%- repo.name %>">
+                                <button type="submit" class="repo-delete-button" aria-label="Delete repository <%- repo.name %>" title="Delete repository">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+                                        <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v8h-2V9zm4 0h2v8h-2V9zM7 9h2v8H7V9z" fill="currentColor"/>
+                                    </svg>
+                                </button>
+                            </form>
                         <% } %>
-                    </a>
+                    </div>
                 </li>
             <% }); %>
         </ul>
@@ -130,6 +147,18 @@
                     addRepoButton.addEventListener('mouseenter', showTooltip);
                     addRepoButton.addEventListener('focus', showTooltip);
                 }
+
+                document.querySelectorAll('.repo-delete-form').forEach(function(form){
+                    form.addEventListener('submit', function(event){
+                        var repoName = form.dataset.repoName || '';
+                        var message = repoName
+                            ? 'Remove ' + repoName + ' from your repositories list? This will not delete local files.'
+                            : 'Remove this repository from your list? This will not delete local files.';
+                        if (!window.confirm(message)) {
+                            event.preventDefault();
+                        }
+                    });
+                });
             })();
         </script>
     </div>
