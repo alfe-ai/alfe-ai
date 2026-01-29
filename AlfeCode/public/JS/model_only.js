@@ -4,9 +4,15 @@
   const engineFeedback = document.getElementById('engineFeedback');
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
+  const searchUsageLimit = document.getElementById('searchUsageLimit');
+  const imageUsageLimit = document.getElementById('imageUsageLimit');
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
+  const USAGE_LIMITS = {
+    loggedOut: { search: 10, images: 10 },
+    loggedIn: { search: 100, images: 100 },
+  };
 
   let activeProvider = '';
   let engineFeedbackTimeout = null;
@@ -184,6 +190,27 @@
     modelSelect.disabled = false;
   }
 
+  function applyUsageLimits(limits) {
+    if (searchUsageLimit) {
+      searchUsageLimit.textContent = `0/${limits.search} searches`;
+    }
+    if (imageUsageLimit) {
+      imageUsageLimit.textContent = `0/${limits.images} images`;
+    }
+  }
+
+  async function loadUsageLimits() {
+    applyUsageLimits(USAGE_LIMITS.loggedOut);
+    try {
+      const response = await fetch('/api/account', { credentials: 'same-origin' });
+      if (response.ok) {
+        applyUsageLimits(USAGE_LIMITS.loggedIn);
+      }
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
   function resolveAllowedEngines(modelId) {
     if (!modelId) return ENGINE_OPTION_ORDER.slice();
     const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
@@ -335,5 +362,6 @@
   });
 
   initEngineSelect();
+  loadUsageLimits();
   load();
 })();
