@@ -324,11 +324,12 @@ class RdsStore {
     }
   }
 
-  async createSupportRequest({ sessionId, accountId, email, category, message, userAgent }) {
+  async createSupportRequest({ sessionId, accountId, email, category, message, userAgent, status }) {
     if (!this.enabled) return null;
     await this.ensureReady();
     const normalizedCategory = (category || "").toString().trim();
     const normalizedMessage = (message || "").toString().trim();
+    const normalizedStatus = (status || "").toString().trim() || SUPPORT_REQUEST_DEFAULT_STATUS;
     if (!normalizedCategory || !normalizedMessage) return null;
     try {
       const result = await this.pool.query(
@@ -344,7 +345,7 @@ class RdsStore {
           normalizedCategory,
           normalizedMessage,
           (userAgent || "").toString().trim(),
-          SUPPORT_REQUEST_DEFAULT_STATUS,
+          normalizedStatus,
         ]
       );
       return result.rows[0] || null;
