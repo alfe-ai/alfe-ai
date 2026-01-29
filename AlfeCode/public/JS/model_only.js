@@ -4,8 +4,12 @@
   const engineFeedback = document.getElementById('engineFeedback');
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
+  const codeUsageLimit = document.getElementById('codeUsageLimit');
+  const codeUsageBar = document.getElementById('codeUsageBar');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
+  const searchUsageBar = document.getElementById('searchUsageBar');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
+  const imageUsageBar = document.getElementById('imageUsageBar');
   const accountPanel = document.getElementById('accountPanel');
   const accountEmail = document.getElementById('accountEmail');
   const accountPlanSelect = document.getElementById('accountPlanSelect');
@@ -16,8 +20,10 @@
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
-    loggedOut: { search: 10, images: 10 },
-    loggedIn: { search: 100, images: 100 },
+    loggedOut: { code: 10, search: 10, images: 10 },
+    Free: { code: 100, search: 100, images: 100 },
+    Lite: { code: null, search: 100, images: 100 },
+    Pro: { code: null, search: 100, images: 100 },
   };
 
   let activeProvider = '';
@@ -209,13 +215,28 @@
     modelSelect.disabled = false;
   }
 
+  function setUsageLimit(span, bar, label, limit) {
+    if (!span) return;
+    if (limit == null) {
+      span.textContent = 'Unlimited';
+      if (bar) {
+        bar.style.width = '100%';
+        bar.style.background = '#22c55e';
+      }
+      return;
+    }
+    span.textContent = `0/${limit} ${label}`;
+    if (bar) {
+      bar.style.width = '0%';
+      bar.style.background = '#38bdf8';
+    }
+  }
+
   function applyUsageLimits(limits) {
-    if (searchUsageLimit) {
-      searchUsageLimit.textContent = `0/${limits.search} searches`;
-    }
-    if (imageUsageLimit) {
-      imageUsageLimit.textContent = `0/${limits.images} images`;
-    }
+    if (!limits) return;
+    setUsageLimit(codeUsageLimit, codeUsageBar, 'code', limits.code);
+    setUsageLimit(searchUsageLimit, searchUsageBar, 'searches', limits.search);
+    setUsageLimit(imageUsageLimit, imageUsageBar, 'images', limits.images);
   }
 
   function setAccountVisibility(visible) {
@@ -291,7 +312,9 @@
         const errorMessage = payload?.error || `Failed to save plan (status ${response.status}).`;
         throw new Error(errorMessage);
       }
-      setAccountPlanValue(payload?.plan || newPlan);
+      const confirmedPlan = payload?.plan || newPlan;
+      setAccountPlanValue(confirmedPlan);
+      applyUsageLimits(USAGE_LIMITS[confirmedPlan] || USAGE_LIMITS.Free);
       showAccountPlanFeedback('Plan updated.', 'success');
     } catch (error) {
       console.error('Failed to save account plan:', error);
@@ -312,9 +335,10 @@
       const response = await fetch('/api/account', { credentials: 'same-origin' });
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
-        applyUsageLimits(USAGE_LIMITS.loggedIn);
+        const plan = payload.plan || 'Free';
+        applyUsageLimits(USAGE_LIMITS[plan] || USAGE_LIMITS.Free);
         setAccountField(accountEmail, payload.email);
-        setAccountPlanValue(payload.plan);
+        setAccountPlanValue(plan);
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         if (accountPlanSelect) {
