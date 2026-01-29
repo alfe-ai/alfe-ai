@@ -2172,6 +2172,9 @@ ${cleanedFinalOutput}`;
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         res.render('model_only', { showGitLogButtonTarget: !hideGitLogButtonTarget });
     });
+    app.get('/support', (_req, res) => {
+        res.render('support');
+    });
 
 
 

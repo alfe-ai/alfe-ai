@@ -38,6 +38,7 @@
   let activeProvider = '';
   let currentAccountPlan = 'Free';
   let engineFeedbackTimeout = null;
+  let supportActionState = 'login';
 
   function normalizeEngine(value) {
     const normalized = (value || '').toString().trim().toLowerCase();
@@ -66,12 +67,24 @@
     if (supportActionButton) {
       if (isPaidPlan) {
         supportActionButton.textContent = 'Go to Support';
+        supportActionState = 'support';
       } else if (isLoggedOut) {
         supportActionButton.textContent = 'Log In / Sign Up';
+        supportActionState = 'login';
       } else {
         supportActionButton.textContent = 'Subscribe Now';
+        supportActionState = 'subscribe';
       }
+      supportActionButton.dataset.action = supportActionState;
     }
+  }
+
+  function handleSupportActionClick() {
+    if (!supportActionButton) return;
+    const action = supportActionButton.dataset.action || supportActionState;
+    if (action !== 'support') return;
+    const supportUrl = supportActionButton.dataset.supportUrl || '/support';
+    window.open(supportUrl, '_blank', 'noopener,noreferrer');
   }
 
   function sendEnginePreference(value) {
@@ -586,6 +599,10 @@
   initEngineSelect();
   loadUsageLimits();
   load();
+
+  if (supportActionButton) {
+    supportActionButton.addEventListener('click', handleSupportActionClick);
+  }
 
   if (accountPlanSelect) {
     accountPlanSelect.addEventListener('change', function() {
