@@ -160,6 +160,7 @@
                     <tr>
                         <th>IPv4 Address</th>
                         <th>Machine Status</th>
+                        <th>User Session</th>
                         <th>Started</th>
                         <th>Last Used</th>
                     </tr>
@@ -177,13 +178,14 @@
                                         <small class="status-note"><%= session.errorMessage %></small>
                                     <% } %>
                                 </td>
+                                <td><%= session.userSessionId || '-' %></td>
                                 <td><%= startedAt %></td>
                                 <td><%= lastUsedAt %></td>
                             </tr>
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="4" style="text-align:center;color:#94a3b8;">No VMs have been added yet.</td>
+                            <td colspan="5" style="text-align:center;color:#94a3b8;">No VMs have been added yet.</td>
                         </tr>
                     <% } %>
                 </tbody>

@@ -48,6 +48,7 @@ function serializeSession(session) {
     }
     const {
         sessionId,
+        userSessionId,
         ipAddress,
         machineStatus,
         startTimestamp,
@@ -56,6 +57,7 @@ function serializeSession(session) {
     } = session;
     return {
         sessionId,
+        userSessionId,
         ipAddress,
         machineStatus,
         startTimestamp,
@@ -75,7 +77,7 @@ function getSessions() {
         .map(serializeSession);
 }
 
-function addVm(ipAddress, machineStatus) {
+function addVm(ipAddress, machineStatus, userSessionId) {
     const normalizedIp = String(ipAddress || '').trim();
     if (!isValidIpv4(normalizedIp)) {
         return { ok: false, error: 'A valid public IPv4 address is required.', code: 'InvalidIp' };
@@ -87,6 +89,7 @@ function addVm(ipAddress, machineStatus) {
     const now = new Date().toISOString();
     const session = {
         sessionId: createSessionId(),
+        userSessionId: userSessionId ? String(userSessionId) : '',
         ipAddress: normalizedIp,
         machineStatus: normalizedStatus,
         startTimestamp: now,
