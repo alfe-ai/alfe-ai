@@ -105,7 +105,7 @@
         "inputPerMTokens": 0.02,
         "outputPerMTokens": 0.1
       },
-      "qwen_cli": false
+      "qwen_cli": true
     },
     {
       "id": "openrouter/qwen/qwen3-coder-30b-a3b-instruct",
@@ -205,7 +205,7 @@
       "id": "openrouter/arcee-ai/trinity-mini:free",
       "label": "Arcee AI: Trinity Mini (Free)",
       "disabled": false,
-      "qwen_cli": false
+      "qwen_cli": true
     },
     {
       "id": "openrouter/arcee-ai/trinity-large-preview:free",
@@ -217,7 +217,7 @@
         "inputPerMTokens": 0,
         "outputPerMTokens": 0
       },
-      "qwen_cli": false
+      "qwen_cli": true
     },
     {
       "id": "openrouter/qwen/qwen3-4b:free",
