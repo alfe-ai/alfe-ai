@@ -121,6 +121,7 @@ function setupGetRoutes(deps) {
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
     ]);
+    const SUPPORT_PLANS = new Set(["Lite", "Pro"]);
     const MAX_FILE_TREE_ENTRIES = 400;
     const MAX_RUN_OUTPUT_LENGTH = 50000;
     const MAX_STATUS_HISTORY = 200;
@@ -213,6 +214,23 @@ function setupGetRoutes(deps) {
         }
 
         return false;
+    };
+    const requireSupportPlan = async (req, res) => {
+        if (!rdsStore?.enabled) {
+            res.status(503).send("Support requests are not configured on this server.");
+            return null;
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        if (!sessionId) {
+            res.status(403).send("Support is available to Lite or Pro subscribers only.");
+            return null;
+        }
+        const account = await rdsStore.getAccountBySession(sessionId);
+        if (!account || !SUPPORT_PLANS.has(account.plan)) {
+            res.status(403).send("Support is available to Lite or Pro subscribers only.");
+            return null;
+        }
+        return account;
     };
 
     const isGitPullDiffStatLine = (line) => gitDiffStatLineRegex.test(line || "");
@@ -2190,22 +2208,21 @@ ${cleanedFinalOutput}`;
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         res.render('model_only', { showGitLogButtonTarget: !hideGitLogButtonTarget });
     });
-    app.get('/support', (_req, res) => {
+    app.get('/support', async (req, res) => {
+        const account = await requireSupportPlan(req, res);
+        if (!account) {
+            return;
+        }
         res.render('support');
     });
 
     app.get('/support/requests/:id', async (req, res) => {
-        if (!rdsStore?.enabled) {
-            return res.status(503).send("Support requests are not configured on this server.");
+        const account = await requireSupportPlan(req, res);
+        if (!account) {
+            return;
         }
-        const sessionId = getSessionIdFromRequest(req);
-        if (!sessionId) {
-            return res.status(404).send("Support request not found.");
-        }
-        const account = await rdsStore.getAccountBySession(sessionId);
         const request = await rdsStore.getSupportRequestById({
             requestId: req.params?.id,
-            sessionId,
             accountId: account?.id,
         });
         if (!request) {
