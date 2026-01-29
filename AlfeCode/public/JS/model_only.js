@@ -12,6 +12,7 @@
   const proCodeUsageSection = document.getElementById('proCodeUsageSection');
   const proCodeUsageLimit = document.getElementById('proCodeUsageLimit');
   const printifyUsageUnlimited = document.getElementById('printifyUsageUnlimited');
+  const printifyLockedNotice = document.getElementById('printifyLockedNotice');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
   const searchUsageBar = document.getElementById('searchUsageBar');
@@ -350,7 +351,10 @@
       proCodeUsageLimit.textContent = 'n/10000 cycles';
     }
     if (printifyUsageUnlimited) {
-      printifyUsageUnlimited.classList.remove('hidden');
+      printifyUsageUnlimited.classList.toggle('hidden', isLoggedOut);
+    }
+    if (printifyLockedNotice) {
+      printifyLockedNotice.classList.toggle('hidden', !isLoggedOut);
     }
     if (codeUsageLimit) {
       const codeLimit = typeof limits.code === 'number' ? limits.code : 0;
