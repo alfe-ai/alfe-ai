@@ -228,9 +228,11 @@
       </label>
       <span id="submitOnEnterFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
     </div>
+    <% if (apiPanelEnabled) { %>
     <h3 class="section-title">API</h3>
     <div class="support-ticket" aria-live="polite">
     </div>
+    <% } %>
     <h3 class="section-title">Support</h3>
     <div class="support-ticket" aria-live="polite">
       <p id="supportPlanNotice">You must be logged in to send a support ticket.</p>
