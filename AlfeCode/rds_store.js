@@ -5,6 +5,7 @@ const REQUIRE_RDS = process.env.ALFECODE_REQUIRE_RDS !== "false";
 const SETTINGS_TABLE = "settings";
 const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
+const CODE_RUN_USAGE_TABLE = "code_run_usage";
 
 function normalizeHost(host) {
   if (host === "::1") return "127.0.0.1";
@@ -91,6 +92,13 @@ class RdsStore {
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free'
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${CODE_RUN_USAGE_TABLE} (
+        session_id TEXT NOT NULL,
+        month_year TEXT NOT NULL,
+        run_count INTEGER NOT NULL DEFAULT 0,
+        last_run_at TEXT DEFAULT '',
+        PRIMARY KEY (session_id, month_year)
       );`);
       await this.loadAllSettings();
       this.ready = true;
