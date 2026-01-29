@@ -6,6 +6,10 @@
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
+  const searchUsageBar = document.getElementById('searchUsageBar');
+  const imageUsageBar = document.getElementById('imageUsageBar');
+  const searchLockedNotice = document.getElementById('searchLockedNotice');
+  const imageLockedNotice = document.getElementById('imageLockedNotice');
   const accountPanel = document.getElementById('accountPanel');
   const accountEmail = document.getElementById('accountEmail');
   const accountPlanSelect = document.getElementById('accountPlanSelect');
@@ -227,7 +231,21 @@
     modelSelect.disabled = false;
   }
 
-  function applyUsageLimits(limits) {
+  function applyUsageLimits(limits, plan) {
+    const normalizedPlan = (plan || '').toString().trim();
+    const isLoggedOut = !['Free', 'Lite', 'Pro'].includes(normalizedPlan);
+    if (searchUsageBar) {
+      searchUsageBar.classList.toggle('hidden', isLoggedOut);
+    }
+    if (imageUsageBar) {
+      imageUsageBar.classList.toggle('hidden', isLoggedOut);
+    }
+    if (searchLockedNotice) {
+      searchLockedNotice.classList.toggle('hidden', !isLoggedOut);
+    }
+    if (imageLockedNotice) {
+      imageLockedNotice.classList.toggle('hidden', !isLoggedOut);
+    }
     if (searchUsageLimit) {
       searchUsageLimit.textContent = `0/${limits.search} searches`;
     }
@@ -336,7 +354,7 @@
         throw new Error(errorMessage);
       }
       setAccountPlanValue(payload?.plan || newPlan);
-      applyUsageLimits(resolveUsageLimits(payload?.plan || newPlan));
+      applyUsageLimits(resolveUsageLimits(payload?.plan || newPlan), payload?.plan || newPlan);
       showAccountPlanFeedback('Plan updated.', 'success');
     } catch (error) {
       console.error('Failed to save account plan:', error);
@@ -347,7 +365,7 @@
   }
 
   async function loadUsageLimits() {
-    applyUsageLimits(USAGE_LIMITS.loggedOut);
+    applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
     setAccountVisibility(false);
     if (accountPlanSelect) {
       accountPlanSelect.disabled = true;
@@ -361,7 +379,7 @@
       const response = await fetch('/api/account', { credentials: 'same-origin' });
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
-        applyUsageLimits(resolveUsageLimits(payload.plan));
+        applyUsageLimits(resolveUsageLimits(payload.plan), payload.plan);
         setAccountField(accountEmail, payload.email);
         setAccountPlanValue(payload.plan);
         setAccountField(accountSession, payload.sessionId);
@@ -557,7 +575,7 @@
         throw new Error(errorMessage);
       }
       showLogoutFeedback('Logged out.', 'success');
-      applyUsageLimits(USAGE_LIMITS.loggedOut);
+      applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
       setAccountField(accountEmail, '');
       setAccountPlanValue('Free');
       setAccountField(accountSession, '');

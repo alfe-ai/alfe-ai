@@ -108,6 +108,21 @@
       border-color:#c4b5fd;
       box-shadow:0 10px 22px rgba(124,58,237,0.22);
     }
+    .subscribe-button--inline{
+      padding:0.15rem 0.55rem;
+      border-radius:8px;
+      font-size:0.75rem;
+      line-height:1.2;
+      align-self:center;
+    }
+    .usage-locked{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px;
+      font-size:0.85rem;
+      color:#94a3b8;
+    }
     .logout-button{
       align-self:flex-start;
       padding:0.5rem 0.9rem;
@@ -220,20 +235,28 @@
           </div>
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Search</h4>
-            <div style="display:flex;align-items:center;gap:8px;">
+            <div id="searchUsageBar" style="display:flex;align-items:center;gap:8px;">
               <div style="flex:1;height:6px;background:#1e293b;border-radius:999px;overflow:hidden;">
                 <div style="height:100%;width:0%;background:#38bdf8;"></div>
               </div>
               <span id="searchUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/0 searches</span>
             </div>
+            <div id="searchLockedNotice" class="usage-locked hidden">
+              <span>You must be a paid subscriber to use Search.</span>
+              <button type="button" class="subscribe-button subscribe-button--inline">Subscribe Now</button>
+            </div>
           </div>
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Image Design</h4>
-            <div style="display:flex;align-items:center;gap:8px;">
+            <div id="imageUsageBar" style="display:flex;align-items:center;gap:8px;">
               <div style="flex:1;height:6px;background:#1e293b;border-radius:999px;overflow:hidden;">
                 <div style="height:100%;width:0%;background:#38bdf8;"></div>
               </div>
               <span id="imageUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/0 images</span>
+            </div>
+            <div id="imageLockedNotice" class="usage-locked hidden">
+              <span>You must be a paid subscriber to use Image Design.</span>
+              <button type="button" class="subscribe-button subscribe-button--inline">Subscribe Now</button>
             </div>
           </div>
           <div>
