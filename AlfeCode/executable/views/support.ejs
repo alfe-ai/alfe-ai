@@ -219,7 +219,19 @@
 
         const meta = document.createElement('div');
         meta.className = 'support-request-meta';
-        meta.innerHTML = `<span>Category: ${request.category}</span><span>Submitted: ${formatSupportDate(request.created_at)}</span><span>ID: ${request.id}</span>`;
+
+        const category = document.createElement('span');
+        category.textContent = `Category: ${request.category}`;
+
+        const submitted = document.createElement('span');
+        submitted.textContent = `Submitted: ${formatSupportDate(request.created_at)}`;
+
+        const id = document.createElement('span');
+        id.textContent = `ID: ${request.id}`;
+
+        meta.appendChild(category);
+        meta.appendChild(submitted);
+        meta.appendChild(id);
 
         const message = document.createElement('p');
         message.className = 'support-request-message';
