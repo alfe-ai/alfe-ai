@@ -2586,13 +2586,11 @@ ${cleanedFinalOutput}`;
             if (typeof entry.qwen_cli_model === "string" && entry.qwen_cli_model.trim().length > 0) {
                 return entry.qwen_cli_model.trim();
             }
-            if (modelId.startsWith("openrouter/qwen/")) {
-                return modelId.replace(/^openrouter\//, "");
+            const normalizedModelId = modelId.replace(/^openrouter\//, "");
+            if (normalizedModelId.startsWith("qwen/")) {
+                return normalizedModelId;
             }
-            if (modelId.startsWith("qwen/")) {
-                return modelId;
-            }
-            return "";
+            return `qwen/${normalizedModelId}`;
         };
         const args = [];
         if (invalidModelReason) {
