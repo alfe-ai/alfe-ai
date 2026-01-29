@@ -451,12 +451,17 @@ function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_NAME) {
         const normalizedPath = repoDir;
         const gitRepoURL = clonedFromRemote && fs.existsSync(remoteRepoPath) ? remoteRepoPath : "";
         const existingEntry = repoConfig[repoName];
-        const needsUpdate = !existingEntry || existingEntry.gitRepoLocalPath !== normalizedPath;
+        const isDemoRepo = repoName === NEW_SESSION_REPO_NAME;
+        const nextIsDemo = isDemoRepo ? true : existingEntry?.isDemo;
+        const needsUpdate = !existingEntry
+            || existingEntry.gitRepoLocalPath !== normalizedPath
+            || (isDemoRepo && existingEntry?.isDemo !== true);
         if (needsUpdate) {
             repoConfig[repoName] = {
                 ...(existingEntry || {}),
                 gitRepoLocalPath: normalizedPath,
                 gitRepoURL,
+                isDemo: nextIsDemo,
             };
             saveRepoConfig(repoConfig, sessionId);
         }

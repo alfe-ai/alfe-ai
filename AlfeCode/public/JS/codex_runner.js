@@ -241,13 +241,14 @@
   const runsSidebarTitleEl = document.getElementById("runsSidebarTitle");
   const repoTriggerButton = document.getElementById("repoDropdownTrigger");
   const repoNameEl = repoTriggerButton ? repoTriggerButton.querySelector(".repo-name") : null;
+  const repoDemoBadge = repoTriggerButton ? repoTriggerButton.querySelector(".repo-demo-badge") : null;
   const runsSidebarPaginationEl = document.getElementById("runsSidebarPagination");
   const runsSidebarPrevPageButton = document.getElementById("runsSidebarPrevPage");
   const runsSidebarNextPageButton = document.getElementById("runsSidebarNextPage");
   const runsSidebarPageIndicator = document.getElementById("runsSidebarPageIndicator");
   const runsSidebarArchiveAllButton = document.getElementById("runsSidebarArchiveAllButton");
 
-  const updateRepoTriggerLabel = (projectName, projectDir) => {
+  const updateRepoTriggerLabel = (projectName, projectDir, isDemo = false) => {
     if (repoNameEl) {
       const displayName = projectName || "";
       if (displayName) {
@@ -260,6 +261,10 @@
         repoNameEl.textContent = "Select a repository";
         repoNameEl.removeAttribute("title");
       }
+    }
+
+    if (repoDemoBadge) {
+      repoDemoBadge.classList.toggle("is-hidden", !isDemo);
     }
 
     if (repoTriggerButton) {
@@ -1851,6 +1856,7 @@
       repoPrimaryBranch: shouldCarryRepoMeta ? previousContext.repoPrimaryBranch || "" : "",
       repoLocalPath: shouldCarryRepoMeta ? previousContext.repoLocalPath || "" : "",
       repoName: shouldCarryRepoMeta ? previousContext.repoName || "" : "",
+      repoIsDemo: shouldCarryRepoMeta ? !!previousContext.repoIsDemo : false,
     };
   }
 
@@ -1994,6 +2000,11 @@
 
     if (meta && typeof meta.repoName === "string" && meta.repoName.trim()) {
       currentRunContext.repoName = meta.repoName.trim();
+    }
+    if (typeof meta?.isDemo !== "undefined") {
+      currentRunContext.repoIsDemo = Boolean(meta.isDemo);
+    } else if (!currentRunContext.repoName) {
+      currentRunContext.repoIsDemo = false;
     }
 
     if (typeof refreshProjectInfoBranchDisplay === "function") {
@@ -2201,7 +2212,10 @@
     } else {
       runsSidebarTitleEl.removeAttribute("title");
     }
-    updateRepoTriggerLabel(projectName, normalisedDir);
+    const isDemo = currentRunContext && typeof currentRunContext.repoIsDemo === "boolean"
+      ? currentRunContext.repoIsDemo
+      : false;
+    updateRepoTriggerLabel(projectName, normalisedDir, isDemo);
   };
 
   const codexDefaultProjectDir = normaliseProjectDir(config.defaultProjectDir);

@@ -3421,6 +3421,7 @@ ${cleanedFinalOutput}`;
             resolvedProjectDir,
             repoName,
             gitRepoLocalPath: repoLocalPath,
+            isDemo: Boolean(repoCfg && repoCfg.isDemo),
             branchName,
             branchSource,
             repoConfigBranch: repoCfg && typeof repoCfg.gitBranch === "string"
@@ -4852,6 +4853,7 @@ ${cleanedFinalOutput}`;
                         name: repoName,
                         gitRepoLocalPath: repoConfig[repoName].gitRepoLocalPath,
                         gitRepoURL: repoConfig[repoName].gitRepoURL || "#",
+                        isDemo: Boolean(repoConfig[repoName].isDemo),
                     });
                 }
             }

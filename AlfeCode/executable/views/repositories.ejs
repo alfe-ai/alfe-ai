@@ -30,8 +30,10 @@
         header p { margin:6px 0 0; color:var(--nexum-muted); }
         ul.repo-list { list-style:none; padding:0; margin:20px 0; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:14px; }
         li.repo { padding:0; border-radius:12px; background: linear-gradient(135deg, rgba(17,24,39,0.92), rgba(15,23,42,0.78)); border:1px solid var(--nexum-border); box-shadow: var(--shadow-soft); }
-        a.repo-link { display:block; padding:14px; color:var(--nexum-accent-bright); font-weight:600; text-decoration:none; border-radius:12px; }
+        a.repo-link { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; color:var(--nexum-accent-bright); font-weight:600; text-decoration:none; border-radius:12px; }
         a.repo-link:hover { color:#fff; text-decoration:underline; }
+        .repo-name { flex:1; min-width:0; }
+        .demo-badge { padding:4px 10px; border-radius:999px; font-size:0.75rem; letter-spacing:0.04em; text-transform:uppercase; font-weight:700; color:#f8fafc; background:rgba(124, 58, 237, 0.35); border:1px solid rgba(124, 58, 237, 0.6); box-shadow: 0 0 16px rgba(124, 58, 237, 0.35); }
         .repo-meta { margin-top:8px; color:var(--nexum-muted); font-size:0.95rem; }
         footer { margin-top:28px; color:var(--nexum-muted); }
         .actions { margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; }
@@ -53,7 +55,10 @@
             <% repos.forEach(function(repo) { %>
                 <li class="repo">
                     <a class="repo-link" href="/agent?repo_directory=<%- encodeURIComponent(repo.gitRepoLocalPath || '') %>&repo_name=<%- encodeURIComponent(repo.name) %>" target="_blank" rel="noopener noreferrer">
-                        <span><%= repo.name %></span>
+                        <span class="repo-name"><%= repo.name %></span>
+                        <% if (repo.isDemo) { %>
+                            <span class="demo-badge">Demo</span>
+                        <% } %>
                     </a>
                 </li>
             <% }); %>
