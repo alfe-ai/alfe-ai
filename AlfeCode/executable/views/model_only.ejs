@@ -219,7 +219,19 @@
           </div>
           <div style="display:flex;justify-content:space-between;gap:12px;">
             <span style="font-size:0.85rem;color:#94a3b8;">Plan</span>
-            <span id="accountPlan" style="font-size:0.85rem;color:#e2e8f0;">—</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+              <select
+                id="accountPlanSelect"
+                aria-label="Account plan"
+                style="font-size:0.85rem;color:#e2e8f0;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:4px 8px;"
+              >
+                <option value="Logged-out Session">Logged-out Session</option>
+                <option value="Free">Free</option>
+                <option value="Lite">Lite</option>
+                <option value="Pro">Pro</option>
+              </select>
+              <span id="accountPlanFeedback" class="hidden" style="font-size:0.75rem;color:#94a3b8;">Saved.</span>
+            </div>
           </div>
           <div style="display:flex;justify-content:space-between;gap:12px;">
             <span style="font-size:0.85rem;color:#94a3b8;">Session</span>

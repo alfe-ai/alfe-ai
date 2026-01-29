@@ -130,6 +130,7 @@ function setupPostRoutes(deps) {
         });
         return cookies.sessionId || "";
     };
+    const ACCOUNT_PLANS = new Set(["Logged-out Session", "Free", "Lite", "Pro"]);
 
     app.post("/api/account/exists", async (req, res) => {
         const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
@@ -146,6 +147,26 @@ function setupPostRoutes(deps) {
 
         const account = await rdsStore.getAccountByEmail(email);
         return res.json({ exists: !!account });
+    });
+
+    app.post("/api/account/plan", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Account update is not configured on this server." });
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        const plan = typeof req.body?.plan === "string" ? req.body.plan.trim() : "";
+        if (!ACCOUNT_PLANS.has(plan)) {
+            return res.status(400).json({ error: "Invalid plan selection." });
+        }
+        const account = await rdsStore.getAccountBySession(sessionId);
+        if (!account) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        await rdsStore.setAccountPlan(account.id, plan);
+        return res.json({ success: true, plan });
     });
 
     app.post("/api/register", async (req, res) => {

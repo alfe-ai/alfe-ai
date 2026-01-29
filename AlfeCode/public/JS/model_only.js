@@ -8,8 +8,10 @@
   const imageUsageLimit = document.getElementById('imageUsageLimit');
   const accountPanel = document.getElementById('accountPanel');
   const accountEmail = document.getElementById('accountEmail');
-  const accountPlan = document.getElementById('accountPlan');
+  const accountPlanSelect = document.getElementById('accountPlanSelect');
+  const accountPlanFeedback = document.getElementById('accountPlanFeedback');
   const accountSession = document.getElementById('accountSession');
+  const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
@@ -216,18 +218,75 @@
     el.textContent = value && value.toString().trim().length ? value : '—';
   }
 
+  function showAccountPlanFeedback(message, type) {
+    if (!accountPlanFeedback) return;
+    accountPlanFeedback.textContent = message;
+    accountPlanFeedback.classList.remove('hidden', 'error', 'success');
+    if (type === 'error') {
+      accountPlanFeedback.classList.add('error');
+    } else if (type === 'success') {
+      accountPlanFeedback.classList.add('success');
+    }
+  }
+
+  function setAccountPlanValue(value) {
+    if (!accountPlanSelect) return;
+    const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
+    accountPlanSelect.value = planValue;
+  }
+
+  async function saveAccountPlan(newPlan) {
+    if (!accountPlanSelect) return;
+    if (!ACCOUNT_PLANS.includes(newPlan)) {
+      showAccountPlanFeedback('Invalid plan.', 'error');
+      setAccountPlanValue('Free');
+      return;
+    }
+
+    showAccountPlanFeedback('Saving plan…');
+    accountPlanSelect.disabled = true;
+
+    try {
+      const response = await fetch('/api/account/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ plan: newPlan }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to save plan (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+      setAccountPlanValue(payload?.plan || newPlan);
+      showAccountPlanFeedback('Plan updated.', 'success');
+    } catch (error) {
+      console.error('Failed to save account plan:', error);
+      showAccountPlanFeedback(error.message || 'Failed to save plan.', 'error');
+    } finally {
+      accountPlanSelect.disabled = false;
+    }
+  }
+
   async function loadUsageLimits() {
     applyUsageLimits(USAGE_LIMITS.loggedOut);
     setAccountVisibility(false);
+    if (accountPlanSelect) {
+      accountPlanSelect.disabled = true;
+      setAccountPlanValue('Free');
+    }
     try {
       const response = await fetch('/api/account', { credentials: 'same-origin' });
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
         applyUsageLimits(USAGE_LIMITS.loggedIn);
         setAccountField(accountEmail, payload.email);
-        setAccountField(accountPlan, payload.plan);
+        setAccountPlanValue(payload.plan);
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
+        if (accountPlanSelect) {
+          accountPlanSelect.disabled = false;
+        }
       }
     } catch (error) {
       /* ignore */
@@ -387,4 +446,11 @@
   initEngineSelect();
   loadUsageLimits();
   load();
+
+  if (accountPlanSelect) {
+    accountPlanSelect.addEventListener('change', function() {
+      const selectedPlan = accountPlanSelect.value;
+      void saveAccountPlan(selectedPlan);
+    });
+  }
 })();
