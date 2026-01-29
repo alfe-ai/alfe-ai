@@ -216,7 +216,7 @@
         if (!pathDisplay) return;
         const projectDirEl = document.getElementById('currentProjectDir');
         if (!tab) {
-            pathDisplay.textContent = "Select a file from the sidebar";
+            pathDisplay.textContent = "";
             pathDisplay.title = "";
             if (projectDirEl && window.EDITOR_CONFIG && window.EDITOR_CONFIG.projectDir) { projectDirEl.textContent = window.EDITOR_CONFIG.projectDir; }
             return;
@@ -385,7 +385,7 @@
                 updatePathDisplay(null);
                 highlightFileInTree(null, null);
                 saveButton.disabled = true;
-                setStatus("Select a file to begin", "info");
+                setStatus("", "info");
             }
         }
         renderTabs();
@@ -539,7 +539,7 @@
         });
     });
 
-    setStatus("Select a file to begin", "info");
+    setStatus("", "info");
 
     // Auto-open file if '?open_file=...' is present in the URL (run on initial load)
     try {
