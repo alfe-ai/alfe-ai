@@ -107,6 +107,22 @@
     select option.engine-option-disabled{
       color:#64748b;
     }
+    .engine-feedback{
+      font-size:0.85rem;
+      color:#94a3b8;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .engine-feedback.success{
+      color:#a7f3d0;
+    }
+    .engine-feedback.error{
+      color:#fca5a5;
+    }
+    .engine-feedback.hidden{
+      display:none;
+    }
   </style>
 </head>
 <body>
@@ -127,6 +143,9 @@
         <option value="qwen">Qwen</option>
         <option value="codex">Codex</option>
       </select>
+      <div style="margin-top:6px;">
+        <span id="engineFeedback" class="engine-feedback hidden" aria-live="polite"></span>
+      </div>
     </div>
     <p id="info" style="color:#94a3b8;margin:2px 0 8px 0;"></p>
     <% if (showGitLogButtonTarget) { %>
