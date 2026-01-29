@@ -21,11 +21,16 @@
   };
 
   let activeProvider = '';
+  let currentAccountPlan = 'Free';
   let engineFeedbackTimeout = null;
 
   function normalizeEngine(value) {
     const normalized = (value || '').toString().trim().toLowerCase();
     return ENGINE_OPTIONS.has(normalized) ? normalized : 'auto';
+  }
+
+  function isProPlan(plan) {
+    return plan === 'Pro';
   }
 
   function sendEnginePreference(value) {
@@ -172,12 +177,17 @@
       if (model.disabled) return;
       const o = document.createElement('option');
       o.value = model.id;
+      o.dataset.plusModel = model.plus_model ? 'true' : 'false';
       const pricingText = formatPricing(model.pricing);
       const modelLabel = model.plus_model ? `[Pro] ${model.label}` : model.label;
       const contextLimit = model.contextLimitLabel && model.contextLimitLabel !== 'N/A'
         ? model.contextLimitLabel
         : '';
       o.textContent = pricingText ? `${modelLabel} — ${pricingText}` : modelLabel;
+      if (model.plus_model && !isProPlan(currentAccountPlan)) {
+        o.disabled = true;
+        o.classList.add('pro-model-disabled');
+      }
       if (contextLimit) {
         o.appendChild(document.createTextNode(' '));
         const limitSpan = document.createElement('span');
@@ -233,6 +243,29 @@
     if (!accountPlanSelect) return;
     const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
     accountPlanSelect.value = planValue;
+    currentAccountPlan = planValue;
+    updateProModelOptions();
+  }
+
+  function updateProModelOptions() {
+    if (!modelSelect) return;
+    const allowPro = isProPlan(currentAccountPlan);
+    Array.from(modelSelect.options).forEach(option => {
+      const isPlusModel = option.dataset.plusModel === 'true';
+      if (!isPlusModel) return;
+      option.disabled = !allowPro;
+      option.classList.toggle('pro-model-disabled', !allowPro);
+    });
+    if (!allowPro && modelSelect.value) {
+      const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+      if (selectedOption && selectedOption.disabled) {
+        const fallback = Array.from(modelSelect.options).find(option => !option.disabled);
+        if (fallback) {
+          modelSelect.value = fallback.value;
+          updateEngineSelect(fallback.value);
+        }
+      }
+    }
   }
 
   async function saveAccountPlan(newPlan) {
@@ -413,6 +446,7 @@
       if (data.defaultModel && modelSelect) {
         modelSelect.value = data.defaultModel;
       }
+      updateProModelOptions();
       updateEngineSelect(modelSelect.value);
       if (info) info.textContent = '';
     } catch (e) {
@@ -450,6 +484,8 @@
   if (accountPlanSelect) {
     accountPlanSelect.addEventListener('change', function() {
       const selectedPlan = accountPlanSelect.value;
+      currentAccountPlan = selectedPlan;
+      updateProModelOptions();
       void saveAccountPlan(selectedPlan);
     });
   }
