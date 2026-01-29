@@ -62,10 +62,15 @@ import json
 import sys
 
 path = sys.argv[1]
+def trace(message):
+    print(f"[trace] model-only default: {message}", file=sys.stderr)
+
+trace(f"loading model list from {path}")
 try:
     with open(path, "r", encoding="utf-8") as handle:
         data = json.load(handle)
 except Exception:
+    trace("failed to parse JSON model list")
     sys.exit(1)
 
 if isinstance(data, dict):
@@ -73,12 +78,14 @@ if isinstance(data, dict):
 elif isinstance(data, list):
     models = data
 else:
+    trace(f"unexpected JSON root type: {type(data).__name__}")
     sys.exit(1)
 
 if isinstance(models, dict):
     models = list(models.values())
 
 if not isinstance(models, list):
+    trace(f"unexpected models type: {type(models).__name__}")
     sys.exit(1)
 
 entries = []
@@ -96,9 +103,14 @@ for idx, model in enumerate(models):
     entries.append((list_order, idx, model_id.strip()))
 
 if not entries:
+    trace("no valid model ids found in JSON")
     sys.exit(1)
 
 entries.sort(key=lambda item: (item[0] is None, item[0] if item[0] is not None else 0, item[1]))
+trace("sorted model entries (list_order, index, id):")
+for list_order, idx, model_id in entries:
+    trace(f"  - list_order={list_order} index={idx} id={model_id}")
+trace(f"selected model from index {entries[0][1]} -> {entries[0][2]}")
 print(entries[0][2])
 PY
     return $?
@@ -112,6 +124,7 @@ if CODEX_MODEL_DEFAULT="$(resolve_model_only_default)"; then
 else
   CODEX_MODEL_DEFAULT="$CODEX_MODEL_DEFAULT_FALLBACK"
 fi
+printf '[trace] model-only default resolved to %s (fallback=%s)\n' "$CODEX_MODEL_DEFAULT" "$CODEX_MODEL_DEFAULT_FALLBACK" >&2
 
 MODEL="${MODEL:-${CODEX_MODEL:-$CODEX_MODEL_DEFAULT}}"
 
