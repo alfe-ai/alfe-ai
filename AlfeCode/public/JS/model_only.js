@@ -48,10 +48,15 @@
     return plan === 'Pro';
   }
 
+  function isLoggedOutPlan(plan) {
+    const normalized = (plan || '').toString().trim();
+    return !['Free', 'Lite', 'Pro'].includes(normalized);
+  }
+
   function updateSupportCallToAction(plan) {
     if (!supportPlanNotice && !supportActionButton) return;
     const normalized = (plan || '').toString().trim();
-    const isLoggedOut = !['Free', 'Lite', 'Pro'].includes(normalized);
+    const isLoggedOut = isLoggedOutPlan(normalized);
     const isPaidPlan = normalized === 'Lite' || normalized === 'Pro';
     if (supportPlanNotice) {
       supportPlanNotice.classList.toggle('hidden', isPaidPlan);
@@ -626,6 +631,22 @@
   if (logoutButton) {
     logoutButton.addEventListener('click', function() {
       void handleLogout();
+    });
+  }
+
+  if (supportActionButton) {
+    supportActionButton.addEventListener('click', function() {
+      if (!isLoggedOutPlan(currentAccountPlan)) return;
+      if (window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage(
+            { type: 'sterling:settings', key: 'openAuthModal', value: 'signup' },
+            '*',
+          );
+        } catch (error) {
+          console.warn('Failed to notify parent to open auth modal.', error);
+        }
+      }
     });
   }
 })();

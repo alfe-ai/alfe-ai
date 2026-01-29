@@ -43,6 +43,13 @@
       if(d.key === 'engine'){
         enginePreference = normalizeEnginePreference(d.value);
       }
+      if (d.key === 'openAuthModal') {
+        const preferredStep = d.value === 'login' ? 'login' : 'signup';
+        hideSettingsModal();
+        if (typeof openAuthModal === 'function') {
+          openAuthModal({ preferredStep });
+        }
+      }
     }catch(e){}
   });
 
@@ -7414,6 +7421,8 @@ const appendMergeChunk = (text, type = "output") => {
   const authModalCloseButton = document.getElementById("authModalCloseButton");
   const accountModal = document.getElementById("accountModal");
   const accountModalCloseButton = document.getElementById("accountModalCloseButton");
+  const sterlingSettingsModal = document.getElementById("sterlingSettingsModal");
+  const sterlingSettingsIframe = document.getElementById("sterlingSettingsIframe");
   const authEmailInput = document.getElementById("authEmailInput");
   const authEmailContinueBtn = document.getElementById("authEmailContinueBtn");
   const loginForm = document.getElementById("loginForm");
@@ -7515,6 +7524,17 @@ const appendMergeChunk = (text, type = "output") => {
     }
     authModal.classList.add("is-hidden");
     document.body.style.overflow = "";
+  };
+
+  const hideSettingsModal = () => {
+    if (!sterlingSettingsModal) {
+      return;
+    }
+    sterlingSettingsModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+    if (sterlingSettingsIframe) {
+      sterlingSettingsIframe.src = "";
+    }
   };
 
   const showAccountModal = () => {
