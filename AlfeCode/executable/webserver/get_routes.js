@@ -2245,9 +2245,11 @@ ${cleanedFinalOutput}`;
     app.get('/agent/model-only', (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const apiPanelEnabled = parseBooleanFlag(process.env.API_PANEL_ENABLED);
+        const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
             apiPanelEnabled,
+            showPrintifyUploadUsage,
         });
     });
     app.get('/support', async (req, res) => {
