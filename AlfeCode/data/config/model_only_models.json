@@ -33,7 +33,7 @@
         "outputPerMTokens": 0.29
       },
       "qwen_cli": false,
-      "list_order": 6,
+      "list_order": 5,
       "plus_model": true
     },
     {
@@ -51,7 +51,7 @@
         "outputPerMTokens": 0.4
       },
       "qwen_cli": false,
-      "list_order": 5,
+      "list_order": 6,
       "plus_model": true
     },
     {
