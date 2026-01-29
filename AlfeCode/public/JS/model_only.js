@@ -25,7 +25,7 @@
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
     loggedOut: { search: 0, images: 0 },
-    free: { search: 10, images: 10 },
+    free: { search: 0, images: 0 },
     lite: { search: 100, images: 100 },
     pro: { search: 500, images: 500 },
   };
@@ -233,18 +233,20 @@
 
   function applyUsageLimits(limits, plan) {
     const normalizedPlan = (plan || '').toString().trim();
-    const isLoggedOut = !['Free', 'Lite', 'Pro'].includes(normalizedPlan);
+    const isPaidPlan = normalizedPlan === 'Lite' || normalizedPlan === 'Pro';
+    const showUsageBars = isPaidPlan;
+    const showLockedNotices = !isPaidPlan;
     if (searchUsageBar) {
-      searchUsageBar.classList.toggle('hidden', isLoggedOut);
+      searchUsageBar.classList.toggle('hidden', !showUsageBars);
     }
     if (imageUsageBar) {
-      imageUsageBar.classList.toggle('hidden', isLoggedOut);
+      imageUsageBar.classList.toggle('hidden', !showUsageBars);
     }
     if (searchLockedNotice) {
-      searchLockedNotice.classList.toggle('hidden', !isLoggedOut);
+      searchLockedNotice.classList.toggle('hidden', !showLockedNotices);
     }
     if (imageLockedNotice) {
-      imageLockedNotice.classList.toggle('hidden', !isLoggedOut);
+      imageLockedNotice.classList.toggle('hidden', !showLockedNotices);
     }
     if (searchUsageLimit) {
       searchUsageLimit.textContent = `0/${limits.search} searches`;
