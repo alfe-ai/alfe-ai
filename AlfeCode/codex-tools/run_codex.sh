@@ -41,6 +41,19 @@ escape_config_value() {
   printf '%s' "$value"
 }
 
+should_trace() {
+  case "${ENABLE_TRACE,,}" in
+    1|true|yes|on) return 0 ;;
+  esac
+  return 1
+}
+
+trace_log() {
+  if should_trace; then
+    printf "[trace] %s\n" "$1" >&2
+  fi
+}
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STERLING_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 GLOBAL_TASK_COUNTER_CLI="${GLOBAL_TASK_COUNTER_CLI:-${STERLING_ROOT}/executable/globalTaskCounter.js}"
@@ -141,19 +154,6 @@ should_show_meta() {
     1|true|yes|on) return 0 ;;
   esac
   return 1
-}
-
-should_trace() {
-  case "${ENABLE_TRACE,,}" in
-    1|true|yes|on) return 0 ;;
-  esac
-  return 1
-}
-
-trace_log() {
-  if should_trace; then
-    printf "[trace] %s\n" "$1" >&2
-  fi
 }
 
 log_meta() {
