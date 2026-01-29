@@ -10,6 +10,7 @@
   const accountEmail = document.getElementById('accountEmail');
   const accountPlan = document.getElementById('accountPlan');
   const accountSession = document.getElementById('accountSession');
+  const accountLogoutButton = document.getElementById('accountLogout');
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
@@ -216,6 +217,41 @@
     el.textContent = value && value.toString().trim().length ? value : '—';
   }
 
+  function resetAccountDisplay() {
+    applyUsageLimits(USAGE_LIMITS.loggedOut);
+    setAccountField(accountEmail, '');
+    setAccountField(accountPlan, '');
+    setAccountField(accountSession, '');
+    setAccountVisibility(false);
+  }
+
+  async function handleLogout() {
+    if (!accountLogoutButton) return;
+    const originalLabel = accountLogoutButton.textContent;
+    accountLogoutButton.disabled = true;
+    accountLogoutButton.textContent = 'Logging out...';
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const message = payload?.error || `Logout failed (status ${response.status}).`;
+        throw new Error(message);
+      }
+      resetAccountDisplay();
+    } catch (error) {
+      console.warn('Failed to log out:', error);
+      if (info) {
+        info.textContent = error.message || 'Logout failed.';
+      }
+    } finally {
+      accountLogoutButton.disabled = false;
+      accountLogoutButton.textContent = originalLabel || 'Log out';
+    }
+  }
+
   async function loadUsageLimits() {
     applyUsageLimits(USAGE_LIMITS.loggedOut);
     setAccountVisibility(false);
@@ -387,4 +423,9 @@
   initEngineSelect();
   loadUsageLimits();
   load();
+  if (accountLogoutButton) {
+    accountLogoutButton.addEventListener('click', () => {
+      void handleLogout();
+    });
+  }
 })();

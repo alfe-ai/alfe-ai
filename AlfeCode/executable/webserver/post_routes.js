@@ -130,6 +130,24 @@ function setupPostRoutes(deps) {
         });
         return cookies.sessionId || "";
     };
+    const normalizeHostname = (req) => {
+        const header = req?.hostname || req?.get?.("host") || "";
+        return header.split(":")[0].toLowerCase();
+    };
+    const buildLogoutCookie = (hostname) => {
+        const parts = [
+            "sessionId=",
+            "Path=/",
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Max-Age=0",
+        ];
+
+        if (hostname === "alfe.sh" || hostname.endsWith(".alfe.sh")) {
+            parts.push("Domain=.alfe.sh");
+        }
+
+        return parts.join("; ");
+    };
 
     app.post("/api/account/exists", async (req, res) => {
         const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
@@ -282,6 +300,24 @@ function setupPostRoutes(deps) {
             timezone: account.timezone,
             sessionId,
         });
+    });
+
+    app.post("/api/logout", async (req, res) => {
+        const sessionId = getSessionIdFromRequest(req);
+        if (rdsStore.enabled && sessionId) {
+            try {
+                const account = await rdsStore.getAccountBySession(sessionId);
+                if (account) {
+                    await rdsStore.setAccountSession(account.id, "");
+                }
+            } catch (error) {
+                console.error("[AlfeCode][logout] failed to clear session:", error);
+            }
+        }
+
+        const hostname = normalizeHostname(req);
+        res.append("Set-Cookie", buildLogoutCookie(hostname));
+        return res.json({ success: true });
     });
 
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");

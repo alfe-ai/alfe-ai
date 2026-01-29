@@ -108,6 +108,34 @@
       border-color:#c4b5fd;
       box-shadow:0 10px 22px rgba(124,58,237,0.22);
     }
+    .logout-button{
+      align-self:flex-start;
+      padding:0.5rem 0.9rem;
+      border-radius:10px;
+      border:1px solid rgba(248,113,113,0.7);
+      background:linear-gradient(135deg, rgba(248,113,113,0.2) 0%, rgba(220,38,38,0.35) 100%);
+      color:#fef2f2;
+      font-weight:600;
+      cursor:pointer;
+      transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .logout-button:hover,
+    .logout-button:focus-visible{
+      transform:translateY(-1px);
+      border-color:#fecaca;
+      box-shadow:0 10px 22px rgba(248,113,113,0.18);
+    }
+    .logout-button:disabled{
+      cursor:not-allowed;
+      opacity:0.6;
+      box-shadow:none;
+      transform:none;
+    }
+    .account-actions{
+      margin-top:12px;
+      display:flex;
+      justify-content:flex-end;
+    }
     select option:disabled,
     select option.engine-option-disabled{
       color:#64748b;
@@ -226,6 +254,9 @@
             <span id="accountSession" style="font-size:0.85rem;color:#e2e8f0;word-break:break-all;">—</span>
           </div>
         </div>
+      </div>
+      <div class="account-actions">
+        <button type="button" id="accountLogout" class="logout-button">Log out</button>
       </div>
     </div>
     <footer class="footer">
