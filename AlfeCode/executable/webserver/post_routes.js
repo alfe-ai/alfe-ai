@@ -276,7 +276,12 @@ function setupPostRoutes(deps) {
         const account = sessionId ? await rdsStore.getAccountBySession(sessionId) : null;
         const userAgent = typeof req.get === "function" ? req.get("user-agent") || "" : "";
         const isBugReport = category === "Bug Report";
-        const status = isBugReport ? "Bug Report Submitted" : undefined;
+        const isFeatureRequest = category === "New Feature Request";
+        const status = isBugReport
+            ? "Bug Report Submitted"
+            : isFeatureRequest
+                ? "Feature Request Submitted"
+                : undefined;
         const request = await rdsStore.createSupportRequest({
             sessionId,
             accountId: account?.id,
@@ -289,11 +294,13 @@ function setupPostRoutes(deps) {
         if (!request) {
             return res.status(500).json({ error: "Unable to create support request." });
         }
-        if (isBugReport) {
+        if (isBugReport || isFeatureRequest) {
             await rdsStore.createSupportRequestReply({
                 requestId: request.id,
                 role: "admin",
-                message: "Thank you for submitting a bug report. Support will not reply to all received bug reports.",
+                message: isBugReport
+                    ? "Thank you for submitting a bug report. Support will not reply to all received bug reports."
+                    : "Thank you for submitting a feature request. Support will not reply to all received feature requests.",
             });
         }
         return res.json({ success: true, requestId: request.id });
@@ -346,13 +353,16 @@ function setupPostRoutes(deps) {
             return res.status(500).json({ error: "Unable to create support reply." });
         }
         const isBugReport = request?.category === "Bug Report";
+        const isFeatureRequest = request?.category === "New Feature Request";
         if (role === "admin") {
             await rdsStore.markSupportRequestReplied({ requestId });
-        } else if (isBugReport) {
+        } else if (isBugReport || isFeatureRequest) {
             await rdsStore.createSupportRequestReply({
                 requestId,
                 role: "admin",
-                message: "Thank you for submitting a bug report. Support will not reply to all received bug reports.",
+                message: isBugReport
+                    ? "Thank you for submitting a bug report. Support will not reply to all received bug reports."
+                    : "Thank you for submitting a feature request. Support will not reply to all received feature requests.",
             });
         }
         return res.json({ success: true, reply });
