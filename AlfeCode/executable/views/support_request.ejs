@@ -144,7 +144,7 @@
         <% const roleLabel = (entry.role || "user").toLowerCase(); %>
         <div class="thread-item <%= roleLabel === "admin" ? "admin" : "user" %>">
           <div class="thread-header">
-            <span><%= roleLabel === "admin" ? "Admin Reply" : "User Reply" %></span>
+            <span><%= roleLabel === "admin" ? "Support Reply" : "User Reply" %></span>
             <% if (entry.created_at) { %>
               <div><%= entry.created_at %></div>
             <% } %>
