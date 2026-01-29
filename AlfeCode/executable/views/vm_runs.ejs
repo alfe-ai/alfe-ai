@@ -122,6 +122,15 @@
         table.vm-table tbody tr.running {
             background: rgba(34, 197, 94, 0.08);
         }
+        .vm-action-button {
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: rgba(30, 41, 59, 0.8);
+            color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            cursor: not-allowed;
+        }
         small.status-note {
             display: block;
             margin-top: 4px;
@@ -163,6 +172,8 @@
                         <th>User Session</th>
                         <th>Started</th>
                         <th>Last Modified</th>
+                        <th>PROJECT LIST</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -170,6 +181,7 @@
                         <% sessions.forEach((session) => { %>
                             <% const startedAt = session.startTimestamp ? new Date(session.startTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; %>
                             <% const lastUsedAt = session.lastUsedTimestamp ? new Date(session.lastUsedTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; %>
+                            <% const projectList = session.projectList && Object.keys(session.projectList).length ? JSON.stringify(session.projectList) : '-'; %>
                             <tr class=<%= session.machineStatus === 'Running' ? 'running' : '' %>>
                                 <td><%= session.ipAddress %></td>
                                 <td>
@@ -181,11 +193,13 @@
                                 <td><%= session.userSessionId || '-' %></td>
                                 <td><%= startedAt %></td>
                                 <td><%= lastUsedAt %></td>
+                                <td><%= projectList %></td>
+                                <td><button class="vm-action-button" type="button" disabled>Restart</button></td>
                             </tr>
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="5" style="text-align:center;color:#94a3b8;">No VMs have been added yet.</td>
+                            <td colspan="7" style="text-align:center;color:#94a3b8;">No VMs have been added yet.</td>
                         </tr>
                     <% } %>
                 </tbody>

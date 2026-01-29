@@ -54,6 +54,7 @@ function serializeSession(session) {
         startTimestamp,
         lastUsedTimestamp,
         errorMessage,
+        projectList,
     } = session;
     return {
         sessionId,
@@ -63,6 +64,7 @@ function serializeSession(session) {
         startTimestamp,
         lastUsedTimestamp,
         errorMessage,
+        projectList,
     };
 }
 
@@ -95,6 +97,7 @@ function addVm(ipAddress, machineStatus, userSessionId) {
         startTimestamp: now,
         lastUsedTimestamp: now,
         errorMessage: '',
+        projectList: {},
     };
     vmSessions.push(session);
     return { ok: true, session: serializeSession(session) };
