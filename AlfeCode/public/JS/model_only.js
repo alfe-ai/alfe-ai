@@ -218,6 +218,29 @@
     }
   }
 
+  function persistEnginePreference(nextValue, options = {}) {
+    if (!engineSelect) return;
+    const normalized = normalizeEngine(nextValue);
+    const { showFeedback = true } = options;
+    engineSelect.value = normalized;
+    if (showFeedback) {
+      clearEngineFeedbackTimeout();
+      showEngineFeedback('Saving Engine');
+    }
+    try {
+      localStorage.setItem(ENGINE_STORAGE_KEY, normalized);
+    } catch (error) {
+      /* ignore */
+    }
+    sendEnginePreference(normalized);
+    if (showFeedback) {
+      engineFeedbackTimeout = setTimeout(() => {
+        showEngineFeedback('Engine Updated', 'success');
+        engineFeedbackTimeout = null;
+      }, 300);
+    }
+  }
+
   function notifyDefaultModelChange(model) {
     if (!model) return;
     if (window.parent && window.parent !== window) {
@@ -300,24 +323,13 @@
     engineSelect.value = initialValue;
     sendEnginePreference(initialValue);
     engineSelect.addEventListener('change', function() {
-      const nextValue = normalizeEngine(engineSelect.value);
-      clearEngineFeedbackTimeout();
-      showEngineFeedback('Saving Engine');
-      try {
-        localStorage.setItem(ENGINE_STORAGE_KEY, nextValue);
-      } catch (error) {
-        /* ignore */
-      }
-      sendEnginePreference(nextValue);
-      engineFeedbackTimeout = setTimeout(() => {
-        showEngineFeedback('Engine Updated', 'success');
-        engineFeedbackTimeout = null;
-      }, 300);
+      persistEnginePreference(engineSelect.value);
     });
   }
 
   modelSelect.addEventListener('change', function(){
     const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
+    persistEnginePreference('auto', { showFeedback: false });
     updateEngineSelect(newModel);
     void saveDefaultModel(newModel);
   });
