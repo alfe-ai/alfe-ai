@@ -304,7 +304,7 @@
       codeUsageUnlimitedNote.classList.toggle('hidden', !isPaidPlan);
     }
     if (printifyUsageUnlimited) {
-      printifyUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
+      printifyUsageUnlimited.classList.remove('hidden');
     }
     if (codeUsageLimit) {
       const codeLimit = typeof limits.code === 'number' ? limits.code : 0;
