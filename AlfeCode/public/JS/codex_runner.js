@@ -6191,6 +6191,8 @@ const appendMergeChunk = (text, type = "output") => {
       /continuing without updated changes/i,
       /switched to a new branch/i,
       /and the repository exists\./i,
+      /^__STERLING_SNAPSHOT_DIR__=/i,
+      /^already up to date\./i,
     ];
 
     for (const line of lines) {
