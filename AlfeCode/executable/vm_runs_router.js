@@ -55,7 +55,7 @@ router.get('/', (req, res) => {
 
 router.post('/start', (req, res) => {
     const { ipAddress, machineStatus } = req.body || {};
-    const result = vmManager.addVm(ipAddress, machineStatus);
+    const result = vmManager.addVm(ipAddress, machineStatus, req.sessionId);
     if (!result.ok) {
         const statusCode = result.code === 'InvalidIp' || result.code === 'InvalidStatus' ? 400 : 500;
         return res.status(statusCode).json(result);
