@@ -2,6 +2,8 @@ const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const { execSync, spawn } = require("child_process");
+const crypto = require("crypto");
+const rdsStore = require("../../rds_store");
 
 /**
  * setupPostRoutes attaches all POST routes to the Express app.
@@ -59,7 +61,14 @@ function setupPostRoutes(deps) {
     };
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
 
-    app.post("/api/account/exists", (req, res) => {
+    const normalizeAccountEmail = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
+    const hashPassword = (password) => {
+        const salt = crypto.randomBytes(16).toString("hex");
+        const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, "sha256").toString("hex");
+        return `${salt}$${hash}`;
+    };
+
+    app.post("/api/account/exists", async (req, res) => {
         const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
         if (!email) {
             return res.status(400).json({ error: "Email required." });
@@ -68,10 +77,15 @@ function setupPostRoutes(deps) {
             return res.status(400).json({ error: "Enter a valid email address." });
         }
 
-        return res.json({ exists: false });
+        if (!rdsStore.enabled) {
+            return res.status(503).json({ error: "Registration is not configured on this server." });
+        }
+
+        const account = await rdsStore.getAccountByEmail(email);
+        return res.json({ exists: !!account });
     });
 
-    app.post("/api/register", (req, res) => {
+    app.post("/api/register", async (req, res) => {
         console.log("[AlfeCode][register] request received", {
             hasBody: !!req.body,
             bodyKeys: req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
@@ -79,6 +93,7 @@ function setupPostRoutes(deps) {
 
         const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
         const password = typeof req.body?.password === "string" ? req.body.password : "";
+        const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId.trim() : "";
 
         console.log("[AlfeCode][register] parsed payload", {
             emailProvided: !!email,
@@ -113,10 +128,35 @@ function setupPostRoutes(deps) {
             });
         }
 
-        console.log("[AlfeCode][register] registration not implemented in AlfeCode backend.");
-        return res.status(501).json({
-            error: "Registration is not configured on this server.",
-            success: false,
+        if (!rdsStore.enabled) {
+            console.log("[AlfeCode][register] registration unavailable (RDS not configured).");
+            return res.status(503).json({
+                error: "Registration is not configured on this server.",
+                success: false,
+            });
+        }
+
+        if (await rdsStore.getAccountByEmail(email)) {
+            return res.status(400).json({ error: "Account already exists." });
+        }
+
+        const passwordHash = hashPassword(password);
+        const normalizedEmail = normalizeAccountEmail(email);
+
+        try {
+            await rdsStore.createAccount({
+                email: normalizedEmail,
+                passwordHash,
+                sessionId,
+            });
+        } catch (error) {
+            console.error("[AlfeCode][register] failed to create account", error);
+            return res.status(500).json({ error: "Failed to create account." });
+        }
+
+        return res.json({
+            success: true,
+            email: normalizedEmail,
         });
     });
 
