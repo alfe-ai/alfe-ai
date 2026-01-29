@@ -4850,6 +4850,7 @@ ${cleanedFinalOutput}`;
                         name: repoName,
                         gitRepoLocalPath: repoConfig[repoName].gitRepoLocalPath,
                         gitRepoURL: repoConfig[repoName].gitRepoURL || "#",
+                        isDemo: Boolean(repoConfig[repoName].isDemo),
                     });
                 }
             }
