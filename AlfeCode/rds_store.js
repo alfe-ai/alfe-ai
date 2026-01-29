@@ -8,6 +8,7 @@ const ACCOUNTS_TABLE = "accounts";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
+const SUPPORT_REQUEST_REPLIED_STATUS = "Support Replied";
 
 function normalizeHost(host) {
   if (host === "::1") return "127.0.0.1";
@@ -469,6 +470,26 @@ class RdsStore {
     } catch (error) {
       console.error("[RdsStore] Failed to list support request replies:", error?.message || error);
       return [];
+    }
+  }
+
+  async markSupportRequestReplied({ requestId }) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedRequestId = Number(requestId);
+    if (!Number.isFinite(normalizedRequestId)) return null;
+    try {
+      const result = await this.pool.query(
+        `UPDATE ${SUPPORT_REQUESTS_TABLE}
+         SET status = $1
+         WHERE id = $2 AND status = $3
+         RETURNING id, status`,
+        [SUPPORT_REQUEST_REPLIED_STATUS, normalizedRequestId, SUPPORT_REQUEST_DEFAULT_STATUS]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("[RdsStore] Failed to mark support request replied:", error?.message || error);
+      return null;
     }
   }
 
