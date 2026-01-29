@@ -4,6 +4,9 @@
   const engineFeedback = document.getElementById('engineFeedback');
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
+  const codeUsageLimit = document.getElementById('codeUsageLimit');
+  const codeUsageLimited = document.getElementById('codeUsageLimited');
+  const codeUsageUnlimited = document.getElementById('codeUsageUnlimited');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
   const searchUsageBar = document.getElementById('searchUsageBar');
@@ -24,10 +27,10 @@
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
-    loggedOut: { search: 0, images: 0 },
-    free: { search: 10, images: 10 },
-    lite: { search: 100, images: 100 },
-    pro: { search: 500, images: 500 },
+    loggedOut: { code: 10, search: 0, images: 0 },
+    free: { code: 10, search: 10, images: 10 },
+    lite: { code: null, search: 100, images: 100 },
+    pro: { code: null, search: 500, images: 500 },
   };
 
   let activeProvider = '';
@@ -234,6 +237,7 @@
   function applyUsageLimits(limits, plan) {
     const normalizedPlan = (plan || '').toString().trim();
     const isLoggedOut = !['Free', 'Lite', 'Pro'].includes(normalizedPlan);
+    const isPaidPlan = normalizedPlan === 'Lite' || normalizedPlan === 'Pro';
     if (searchUsageBar) {
       searchUsageBar.classList.toggle('hidden', isLoggedOut);
     }
@@ -245,6 +249,16 @@
     }
     if (imageLockedNotice) {
       imageLockedNotice.classList.toggle('hidden', !isLoggedOut);
+    }
+    if (codeUsageLimited) {
+      codeUsageLimited.classList.toggle('hidden', isPaidPlan);
+    }
+    if (codeUsageUnlimited) {
+      codeUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
+    }
+    if (codeUsageLimit) {
+      const codeLimit = typeof limits.code === 'number' ? limits.code : 0;
+      codeUsageLimit.textContent = `0/${codeLimit} code runs`;
     }
     if (searchUsageLimit) {
       searchUsageLimit.textContent = `0/${limits.search} searches`;
