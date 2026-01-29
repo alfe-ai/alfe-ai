@@ -69,6 +69,18 @@ function setupGetRoutes(deps) {
     const NEW_SESSION_REPO_NAME = "Default";
     const DEFAULT_GIT_LOG_LIMIT = 20;
     const MAX_GIT_LOG_LIMIT = 200;
+    const configIpWhitelist = new Set();
+    const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+    if (configIpWhitelistEnv) {
+        configIpWhitelistEnv
+            .split(",")
+            .map((ip) => ip.trim())
+            .filter(Boolean)
+            .forEach((ip) => {
+                configIpWhitelist.add(ip);
+                configIpWhitelist.add(`::ffff:${ip}`);
+            });
+    }
     const FILE_TREE_EXCLUDES = new Set([
         ".git",
         "node_modules",
@@ -84,6 +96,28 @@ function setupGetRoutes(deps) {
         ".venv",
     ]);
     const MAX_FILE_TREE_DEPTH = 5;
+
+    const getRequestIp = (req) => {
+        const forwarded = req.headers["x-forwarded-for"];
+        const forwardedIp = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+        const ip =
+            (forwardedIp ? String(forwardedIp).split(",")[0].trim() : "") ||
+            req.ip ||
+            req.connection?.remoteAddress ||
+            "";
+        return ip.trim();
+    };
+
+    const isIpAllowed = (ip, whitelist) => {
+        if (whitelist.size === 0) {
+            return false;
+        }
+        if (!ip) {
+            return false;
+        }
+        const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+        return whitelist.has(ip) || whitelist.has(normalized);
+    };
 
     const normalizeProviderName = (value) => {
         const normalized = (value || "").toString().trim().toLowerCase();
@@ -2211,7 +2245,8 @@ ${cleanedFinalOutput}`;
         if (!request) {
             return res.status(404).send("Support request not found.");
         }
-        return res.render('support_request', { request });
+        const allowAdminReply = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        return res.render('support_request', { request, allowAdminReply });
     });
 
 

@@ -157,7 +157,9 @@
       <textarea id="supportReply" placeholder="Type your reply here..."></textarea>
       <div class="reply-actions">
         <button type="button">Send User Reply</button>
-        <button type="button" class="secondary">Send Admin Reply</button>
+        <% if (allowAdminReply) { %>
+          <button type="button" class="secondary">Send Admin Reply</button>
+        <% } %>
       </div>
     </div>
   </div>
