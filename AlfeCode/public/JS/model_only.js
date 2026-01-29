@@ -483,11 +483,12 @@
         setAccountPlanValue(payload.plan);
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
+        const hasAccount = Boolean(payload.email);
         if (accountPlanSelect) {
-          accountPlanSelect.disabled = false;
+          accountPlanSelect.disabled = !hasAccount;
         }
         if (logoutButton) {
-          logoutButton.disabled = false;
+          logoutButton.disabled = !hasAccount;
         }
       }
     } catch (error) {
