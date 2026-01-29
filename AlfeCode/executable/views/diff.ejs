@@ -805,7 +805,7 @@
             <% } %>
 
             <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
-<% const comparisonCommitMessage = compMeta && (compMeta.fullMessage || compMeta.message) ? (compMeta.fullMessage || compMeta.message) : ''; %>
+<% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
             <% if (comparisonCommitMessage) { %>
             <div class="commit-message-box" aria-label="Comparison commit message">
                 <div class="commit-message-title">Compare: <%= compRev || '—' %></div>
