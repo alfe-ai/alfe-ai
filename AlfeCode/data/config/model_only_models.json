@@ -1,6 +1,24 @@
 {
   "models": [
     {
+      "id": "openrouter/openai/gpt-oss-20b",
+      "label": "OpenAI: gpt-oss-20b",
+      "created": "2025-08-05",
+      "contextTokens": 131072,
+      "disabled": false,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "pricing": {
+        "inputPerMTokens": 0.02,
+        "outputPerMTokens": 0.1
+      },
+      "qwen_cli": true,
+      "list_order": 0,
+      "plus_model": false
+    },
+    {
       "id": "openrouter/xiaomi/mimo-v2-flash",
       "label": "Xiaomi: MiMo V2 Flash",
       "disabled": false,
@@ -125,29 +143,11 @@
       "plus_model": false
     },
     {
-      "id": "openrouter/openai/gpt-oss-20b",
-      "label": "OpenAI: gpt-oss-20b",
-      "created": "2025-08-05",
-      "contextTokens": 131072,
-      "disabled": false,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 0.02,
-        "outputPerMTokens": 0.1
-      },
-      "qwen_cli": true,
-      "list_order": 7,
-      "plus_model": false
-    },
-    {
       "id": "openrouter/qwen/qwen3-coder-30b-a3b-instruct",
       "label": "Qwen: Qwen3 Coder 30B A3B Instruct",
       "created": "2025-07-31",
       "contextTokens": 160000,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
