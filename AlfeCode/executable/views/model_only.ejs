@@ -170,6 +170,19 @@
     .engine-feedback.hidden{
       display:none;
     }
+    .ui-settings-feedback{
+      font-size:0.75rem;
+      color:#94a3b8;
+    }
+    .ui-settings-feedback.success{
+      color:#a7f3d0;
+    }
+    .ui-settings-feedback.error{
+      color:#fca5a5;
+    }
+    .ui-settings-feedback.hidden{
+      display:none;
+    }
     .hidden{
       display:none;
     }
@@ -213,6 +226,7 @@
         <input type="checkbox" id="submitOnEnterCheckbox" name="submitOnEnter">
         <span>Enter/Return submits prompt</span>
       </label>
+      <span id="submitOnEnterFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
     </div>
     <h3 class="section-title">API</h3>
     <div class="support-ticket" aria-live="polite">
@@ -355,13 +369,45 @@
       try{
         const STORAGE_KEY_SUBMIT = 'submitOnEnter';
         const checkbox = document.getElementById('submitOnEnterCheckbox');
+        const feedback = document.getElementById('submitOnEnterFeedback');
+        let feedbackTimeout = null;
         function send(val){ try{ window.parent.postMessage({type:'sterling:settings', key:'submitOnEnter', value:val}, '*'); }catch(e){} }
+        function clearFeedbackTimeout(){
+          if (!feedbackTimeout) return;
+          clearTimeout(feedbackTimeout);
+          feedbackTimeout = null;
+        }
+        function showFeedback(message, type){
+          if (!feedback) return;
+          if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('hidden');
+            feedback.classList.remove('success', 'error');
+            return;
+          }
+          feedback.textContent = message;
+          feedback.classList.remove('hidden', 'success', 'error');
+          if (type === 'success') {
+            feedback.classList.add('success');
+          } else if (type === 'error') {
+            feedback.classList.add('error');
+          }
+        }
         try{
           let cur = (function(){ try{ return localStorage.getItem(STORAGE_KEY_SUBMIT); }catch(e){ return null; } })();
           if (cur === null) { cur = 'true'; }
           if (checkbox) checkbox.checked = (cur === 'true');
           send(checkbox ? checkbox.checked : (cur === 'true'));
-          if (checkbox) checkbox.addEventListener('change', function(){ try{ localStorage.setItem(STORAGE_KEY_SUBMIT, checkbox.checked ? 'true' : 'false'); }catch(e){} send(checkbox.checked); });
+          if (checkbox) checkbox.addEventListener('change', function(){
+            clearFeedbackTimeout();
+            showFeedback('Saving...');
+            try{ localStorage.setItem(STORAGE_KEY_SUBMIT, checkbox.checked ? 'true' : 'false'); }catch(e){}
+            send(checkbox.checked);
+            feedbackTimeout = setTimeout(function(){
+              showFeedback('Saved', 'success');
+              feedbackTimeout = null;
+            }, 300);
+          });
         }catch(e){ /* noop */ }
       }catch(e){ /* noop */ }
     })();
