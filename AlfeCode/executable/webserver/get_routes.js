@@ -1661,6 +1661,7 @@ ${cleanedFinalOutput}`;
         const disabled = Boolean(entry.disabled);
         const qwenCli = Boolean(entry.qwen_cli);
         const qwenCliModel = typeof entry.qwen_cli_model === "string" ? entry.qwen_cli_model.trim() : "";
+        const listOrder = coerceNumber(entry.list_order);
         const pricing = entry.pricing && typeof entry.pricing === "object"
             ? {
                 inputPerMTokens: coerceNumber(entry.pricing.inputPerMTokens),
@@ -1677,6 +1678,7 @@ ${cleanedFinalOutput}`;
             disabled,
             qwen_cli: qwenCli,
             qwen_cli_model: qwenCliModel || null,
+            list_order: Number.isFinite(listOrder) ? listOrder : null,
             pricing,
         };
     }
@@ -1705,9 +1707,23 @@ ${cleanedFinalOutput}`;
                 acc[model.id] = model;
                 return acc;
             }, {});
-            return models
+            const normalised = models
                 .map((model) => normaliseModelOnlyEntry(model, modelLookup))
                 .filter(Boolean);
+            return normalised
+                .map((model, index) => ({ model, index }))
+                .sort((a, b) => {
+                    const aOrder = Number.isFinite(a.model.list_order) ? a.model.list_order : null;
+                    const bOrder = Number.isFinite(b.model.list_order) ? b.model.list_order : null;
+                    if (aOrder !== null && bOrder !== null) {
+                        if (aOrder !== bOrder) return aOrder - bOrder;
+                        return a.index - b.index;
+                    }
+                    if (aOrder !== null) return -1;
+                    if (bOrder !== null) return 1;
+                    return a.index - b.index;
+                })
+                .map(({ model }) => model);
         } catch (err) {
             console.error("[ERROR] Failed to load model-only config:", err);
             return [];

@@ -171,6 +171,7 @@
       "id": "openrouter/z-ai/glm-4.5-air:free",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
+      "list_order": 2,
       "qwen_cli": true,
       "contextTokens": 131072
     },
@@ -206,6 +207,7 @@
       "id": "openrouter/arcee-ai/trinity-mini:free",
       "label": "Arcee AI: Trinity Mini",
       "disabled": false,
+      "list_order": 1,
       "qwen_cli": true,
       "contextTokens": 131072
     },
@@ -215,6 +217,7 @@
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": false,
+      "list_order": 0,
       "pricing": {
         "inputPerMTokens": 0,
         "outputPerMTokens": 0
