@@ -424,7 +424,7 @@
     setAccountVisibility(false);
     if (accountPlanSelect) {
       accountPlanSelect.disabled = true;
-      setAccountPlanValue('Free');
+      setAccountPlanValue('Logged-out Session');
     }
     if (logoutButton) {
       logoutButton.disabled = true;
@@ -636,7 +636,7 @@
       showLogoutFeedback('Logged out.', 'success');
       applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
       setAccountField(accountEmail, '');
-      setAccountPlanValue('Free');
+      setAccountPlanValue('Logged-out Session');
       setAccountField(accountSession, '');
       setAccountVisibility(false);
     } catch (error) {
