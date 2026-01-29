@@ -2590,7 +2590,7 @@ ${cleanedFinalOutput}`;
             if (normalizedModelId.startsWith("qwen/")) {
                 return normalizedModelId;
             }
-            return `qwen/${normalizedModelId}`;
+            return `${normalizedModelId}`;
         };
         const args = [];
         if (invalidModelReason) {
