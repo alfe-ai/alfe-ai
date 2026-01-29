@@ -103,6 +103,20 @@
       border-color:#c4b5fd;
       box-shadow:0 10px 22px rgba(124,58,237,0.22);
     }
+    .default-model-feedback{
+      margin-top:8px;
+      font-size:0.9rem;
+      color:#94a3b8;
+    }
+    .default-model-feedback.error{
+      color:#f87171;
+    }
+    .default-model-feedback.success{
+      color:#34d399;
+    }
+    .default-model-feedback.hidden{
+      display:none;
+    }
   </style>
 </head>
 <body>
@@ -123,6 +137,9 @@
         <option value="qwen">Qwen</option>
         <option value="codex">Codex</option>
       </select>
+      <div style="margin-top:8px;">
+        <span id="engineFeedback" class="default-model-feedback hidden" aria-live="polite"></span>
+      </div>
     </div>
     <p id="info" style="color:#94a3b8;margin:2px 0 8px 0;"></p>
     <% if (showGitLogButtonTarget) { %>

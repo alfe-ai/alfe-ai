@@ -3,6 +3,7 @@
   const engineSelect = document.getElementById('engineSelect');
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
+  const engineFeedback = document.getElementById('engineFeedback');
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTIONS = new Set(['auto', 'qwen', 'codex']);
 
@@ -96,6 +97,17 @@
       defaultModelFeedback.classList.add('error');
     } else if (type === 'success') {
       defaultModelFeedback.classList.add('success');
+    }
+  }
+
+  function showEngineFeedback(message, type) {
+    if (!engineFeedback) return;
+    engineFeedback.textContent = message;
+    engineFeedback.classList.remove('hidden', 'error', 'success');
+    if (type === 'error') {
+      engineFeedback.classList.add('error');
+    } else if (type === 'success') {
+      engineFeedback.classList.add('success');
     }
   }
 
@@ -240,12 +252,14 @@
     sendEnginePreference(initialValue);
     engineSelect.addEventListener('change', function() {
       const nextValue = normalizeEngine(engineSelect.value);
+      showEngineFeedback('Saving Engine');
       try {
         localStorage.setItem(ENGINE_STORAGE_KEY, nextValue);
       } catch (error) {
         /* ignore */
       }
       sendEnginePreference(nextValue);
+      showEngineFeedback('Engine Updated', 'success');
     });
   }
 
