@@ -407,10 +407,10 @@ run_qwen() {
   local openai_base_url_value="${OPENAI_BASE_URL:-}"
   local openai_model_value="${OPENAI_MODEL:-}"
   local -a cmd=(qwen "$@")
+  local -a display_cmd=("${cmd[@]}")
   if command -v stdbuf >/dev/null 2>&1; then
     cmd=(stdbuf -o0 -e0 "${cmd[@]}")
   fi
-  local -a display_cmd=("${cmd[@]}")
   cmd=(
     env
     "OPENAI_API_KEY=${openai_api_key_value}"
@@ -418,6 +418,13 @@ run_qwen() {
     "OPENAI_MODEL=${openai_model_value}"
     "${cmd[@]}"
   )
+  if command -v script >/dev/null 2>&1; then
+    local cmd_string
+    cmd_string="$(build_shell_command "${cmd[@]}")"
+    cmd=(script -q -c "$cmd_string" /dev/null)
+  else
+    display_cmd=("${cmd[@]}")
+  fi
   printf '[qwen] Launching qwen CLI...\n'
   printf '[qwen] cwd=%s\n' "$(pwd)"
   printf '[qwen] args=%s\n' "$(build_shell_command "${display_cmd[@]}")"
