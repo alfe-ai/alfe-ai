@@ -6115,6 +6115,45 @@ const appendMergeChunk = (text, type = "output") => {
     return joined.replace(/\n+$/, "");
   };
 
+  const stripQwenCliOutput = (text, { preserveTrailingNewlines = false } = {}) => {
+    if (typeof text !== "string" || !text) {
+      return "";
+    }
+    const normalized = text.replace(/\r/g, "");
+    const lines = normalized.split("\n");
+    const outputLines = [];
+
+    const ignoreMatchers = [
+      /^\[qwen]/i,
+      /^git@github\.com:/i,
+      /permission denied \(publickey\)/i,
+      /fatal:\s*could not read from remote repository/i,
+      /please make sure you have the correct access rights/i,
+      /warning:\s*git pull failed/i,
+      /continuing without updated changes/i,
+      /switched to a new branch/i,
+    ];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        outputLines.push(line);
+        continue;
+      }
+      const shouldIgnore = ignoreMatchers.some((matcher) => matcher.test(trimmed));
+      if (shouldIgnore) {
+        continue;
+      }
+      outputLines.push(line);
+    }
+
+    const joined = outputLines.join("\n");
+    if (preserveTrailingNewlines) {
+      return joined;
+    }
+    return joined.replace(/\n+$/, "");
+  };
+
   const extractFinalOutputFromCommitBlock = (text) => {
     if (typeof text !== "string" || !text) {
       return "";
@@ -6195,10 +6234,10 @@ const appendMergeChunk = (text, type = "output") => {
       const stderrText = typeof run.stderr === "string" ? run.stderr : "";
       if (stdoutText && stderrText) {
         const separator = stdoutText.endsWith("\n") ? "" : "\n";
-        return stripGitFpushOutput(`${stdoutText}${separator}${stderrText}`);
+        return stripGitFpushOutput(stripQwenCliOutput(`${stdoutText}${separator}${stderrText}`));
       }
       if (stdoutText || stderrText) {
-        return stripGitFpushOutput(stdoutText || stderrText);
+        return stripGitFpushOutput(stripQwenCliOutput(stdoutText || stderrText));
       }
     }
 
@@ -6309,7 +6348,9 @@ const appendMergeChunk = (text, type = "output") => {
     if (typeof chunk !== "string" || !chunk) {
       return;
     }
-    const filteredChunk = stripGitFpushOutput(chunk, { preserveTrailingNewlines: true });
+    const filteredChunk = stripGitFpushOutput(stripQwenCliOutput(chunk, { preserveTrailingNewlines: true }), {
+      preserveTrailingNewlines: true,
+    });
     if (!filteredChunk) {
       return;
     }
