@@ -29,7 +29,6 @@
             <div class="collapsible-section expanded">
                 <div class="collapsible-header">
                     <span class="tree-label">Main Repo: <%= gitRepoNameCLI %></span>
-                    <button id="sidebarToggleBtn" class="sidebar-toggle-button" type="button" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
                 </div>
                 <div class="collapsible-content directory-tree" data-repo="<%= gitRepoNameCLI %>">
                     <%- directoryTreeHTML %>
@@ -86,6 +85,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/rust/rust.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/clike/clike.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="/JS/editor.js"></script>
-  <button id="expandSidebarBtn" class="sidebar-expand-button" type="button" aria-label="Expand sidebar">☰</button>
 </body>
 </html>
