@@ -235,6 +235,7 @@ function setupPostRoutes(deps) {
         const sessionId = getSessionIdFromRequest(req);
         const account = sessionId ? await rdsStore.getAccountBySession(sessionId) : null;
         const userAgent = typeof req.get === "function" ? req.get("user-agent") || "" : "";
+        const status = category === "Bug Report" ? "Bug Report Submitted" : undefined;
         const request = await rdsStore.createSupportRequest({
             sessionId,
             accountId: account?.id,
@@ -242,6 +243,7 @@ function setupPostRoutes(deps) {
             category,
             message,
             userAgent,
+            status,
         });
         if (!request) {
             return res.status(500).json({ error: "Unable to create support request." });
@@ -262,12 +264,13 @@ function setupPostRoutes(deps) {
         }
         const role = typeof req.body?.role === "string" ? req.body.role.trim().toLowerCase() : "user";
         const requestId = req.params?.id;
+        let request = null;
         if (role === "admin") {
             const requestIp = getRequestIp(req);
             if (!isIpAllowed(requestIp, configIpWhitelist)) {
                 return res.status(403).json({ error: "Admin reply is not allowed from this IP." });
             }
-            const request = await rdsStore.getSupportRequestByIdForAdmin({ requestId });
+            request = await rdsStore.getSupportRequestByIdForAdmin({ requestId });
             if (!request) {
                 return res.status(404).json({ error: "Support request not found." });
             }
@@ -277,7 +280,7 @@ function setupPostRoutes(deps) {
                 return res.status(401).json({ error: "not logged in" });
             }
             const account = await rdsStore.getAccountBySession(sessionId);
-            const request = await rdsStore.getSupportRequestById({
+            request = await rdsStore.getSupportRequestById({
                 requestId,
                 sessionId,
                 accountId: account?.id,
@@ -294,8 +297,15 @@ function setupPostRoutes(deps) {
         if (!reply) {
             return res.status(500).json({ error: "Unable to create support reply." });
         }
+        const isBugReport = request?.category === "Bug Report";
         if (role === "admin") {
             await rdsStore.markSupportRequestReplied({ requestId });
+        } else if (isBugReport) {
+            await rdsStore.createSupportRequestReply({
+                requestId,
+                role: "admin",
+                message: "Thank you for submitting a bug report. Support will not reply to all received bug reports.",
+            });
         }
         return res.json({ success: true, reply });
     });
