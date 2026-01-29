@@ -22,6 +22,8 @@
   const accountEmail = document.getElementById('accountEmail');
   const accountPlanSelect = document.getElementById('accountPlanSelect');
   const accountPlanFeedback = document.getElementById('accountPlanFeedback');
+  const accountEverSubscribedSelect = document.getElementById('accountEverSubscribedSelect');
+  const accountEverSubscribedFeedback = document.getElementById('accountEverSubscribedFeedback');
   const accountSession = document.getElementById('accountSession');
   const logoutButton = document.getElementById('logoutButton');
   const logoutFeedback = document.getElementById('logoutFeedback');
@@ -414,6 +416,17 @@
     }
   }
 
+  function showAccountEverSubscribedFeedback(message, type) {
+    if (!accountEverSubscribedFeedback) return;
+    accountEverSubscribedFeedback.textContent = message;
+    accountEverSubscribedFeedback.classList.remove('hidden', 'error', 'success');
+    if (type === 'error') {
+      accountEverSubscribedFeedback.classList.add('error');
+    } else if (type === 'success') {
+      accountEverSubscribedFeedback.classList.add('success');
+    }
+  }
+
   function setAccountPlanValue(value) {
     if (!accountPlanSelect) return;
     const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
@@ -421,6 +434,12 @@
     currentAccountPlan = planValue;
     updateProModelOptions();
     updateSupportCallToAction(planValue);
+  }
+
+  function setAccountEverSubscribedValue(value) {
+    if (!accountEverSubscribedSelect) return;
+    const normalized = value === true || value === 'true' || value === 1 || value === '1';
+    accountEverSubscribedSelect.value = normalized ? 'true' : 'false';
   }
 
   function updateProModelOptions() {
@@ -478,12 +497,42 @@
     }
   }
 
+  async function saveAccountEverSubscribed(everSubscribed) {
+    if (!accountEverSubscribedSelect) return;
+    showAccountEverSubscribedFeedback('Saving…');
+    accountEverSubscribedSelect.disabled = true;
+    try {
+      const response = await fetch('/api/account/ever-subscribed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ everSubscribed }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to save ever subscribed (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+      setAccountEverSubscribedValue(payload?.everSubscribed ?? everSubscribed);
+      showAccountEverSubscribedFeedback('Saved.', 'success');
+    } catch (error) {
+      console.error('Failed to save ever subscribed:', error);
+      showAccountEverSubscribedFeedback(error.message || 'Failed to save.', 'error');
+    } finally {
+      accountEverSubscribedSelect.disabled = false;
+    }
+  }
+
   async function loadUsageLimits() {
     applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
     setAccountVisibility(true);
     if (accountPlanSelect) {
       accountPlanSelect.disabled = true;
       setAccountPlanValue('Free');
+    }
+    if (accountEverSubscribedSelect) {
+      accountEverSubscribedSelect.disabled = true;
+      setAccountEverSubscribedValue(false);
     }
     if (logoutButton) {
       logoutButton.disabled = true;
@@ -496,11 +545,15 @@
         applyUsageLimits(resolveUsageLimits(payload.plan), payload.plan);
         setAccountField(accountEmail, payload.email);
         setAccountPlanValue(payload.plan);
+        setAccountEverSubscribedValue(payload.everSubscribed);
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         const hasAccount = Boolean(payload.email);
         if (accountPlanSelect) {
           accountPlanSelect.disabled = !hasAccount;
+        }
+        if (accountEverSubscribedSelect) {
+          accountEverSubscribedSelect.disabled = !hasAccount;
         }
         if (logoutButton) {
           logoutButton.disabled = !hasAccount;
@@ -679,6 +732,13 @@
     });
   }
 
+  if (accountEverSubscribedSelect) {
+    accountEverSubscribedSelect.addEventListener('change', function() {
+      const selectedValue = accountEverSubscribedSelect.value === 'true';
+      void saveAccountEverSubscribed(selectedValue);
+    });
+  }
+
   async function handleLogout() {
     if (!logoutButton) return;
     logoutButton.disabled = true;
@@ -697,8 +757,12 @@
       applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
       setAccountField(accountEmail, '');
       setAccountPlanValue('Free');
+      setAccountEverSubscribedValue(false);
       setAccountField(accountSession, '');
       setAccountVisibility(false);
+      if (accountEverSubscribedSelect) {
+        accountEverSubscribedSelect.disabled = true;
+      }
     } catch (error) {
       console.error('Failed to log out:', error);
       showLogoutFeedback(error.message || 'Failed to log out.', 'error');

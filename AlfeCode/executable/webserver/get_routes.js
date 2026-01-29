@@ -183,6 +183,7 @@ function setupGetRoutes(deps) {
                 success: false,
                 sessionId,
                 plan: "Logged-out Session",
+                everSubscribed: false,
             });
         }
         return res.json({
@@ -193,6 +194,7 @@ function setupGetRoutes(deps) {
             timezone: account.timezone,
             sessionId: account.session_id,
             totpEnabled: Boolean(account.totp_secret),
+            everSubscribed: Boolean(account.ever_subscribed),
         });
     });
     app.get("/api/support", async (req, res) => {
