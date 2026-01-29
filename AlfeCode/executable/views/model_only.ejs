@@ -76,6 +76,11 @@
       flex-direction:column;
       gap:10px;
     }
+    .support-ticket h3{
+      margin:0;
+      font-size:1rem;
+      color:#e2e8f0;
+    }
     .support-ticket p{
       margin:0;
       color:#cbd5f5;
@@ -111,6 +116,14 @@
       <span id="defaultModelFeedback" class="default-model-feedback hidden" aria-live="polite"></span>
     </div>
     </div>
+    <div style="margin-top:8px;">
+      <label for="engineSelect">Engine</label>
+      <select id="engineSelect">
+        <option value="auto">Auto</option>
+        <option value="qwen">Qwen</option>
+        <option value="codex">Codex</option>
+      </select>
+    </div>
     <p id="info" style="color:#94a3b8;margin:2px 0 8px 0;"></p>
     <% if (showGitLogButtonTarget) { %>
     <div style="margin-top:8px;">
@@ -128,6 +141,7 @@
       </label>
     </div>
     <div class="support-ticket" aria-live="polite">
+      <h3>Support</h3>
       <p>You must be a paid subscriber to send a support ticket.</p>
       <button type="button" class="subscribe-button">Subscribe Now</button>
     </div>

@@ -2310,6 +2310,8 @@ ${cleanedFinalOutput}`;
         const requestedModel = (req.query.model || "").toString().trim();
         const openRouterReferer = (req.query.openRouterReferer || "").toString().trim();
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
+        const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
+        const enginePreference = ["auto", "qwen", "codex"].includes(engineParam) ? engineParam : "auto";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
         const includeMeta = includeMetaParam === "1" || includeMetaParam === "true";
         const gitFpushParam = (req.query.gitFpush || "").toString().trim().toLowerCase();
@@ -2351,6 +2353,7 @@ ${cleanedFinalOutput}`;
             gitFpushEnabled,
             openRouterReferer,
             openRouterTitle,
+            enginePreference,
             followupParentId: followupParentIdRaw,
             statusHistory: [],
             metaMessages: [],
@@ -2596,17 +2599,20 @@ ${cleanedFinalOutput}`;
             return acc;
         }, {});
         const resolveQwenCliFlag = (modelId) => Boolean(modelOnlyLookup[modelId]?.qwen_cli);
-        const resolveQwenCliModel = (modelId) => {
+        const resolveQwenCliModel = (modelId, { force = false } = {}) => {
             const entry = modelOnlyLookup[modelId];
-            if (!entry?.qwen_cli) return "";
-            if (typeof entry.qwen_cli_model === "string" && entry.qwen_cli_model.trim().length > 0) {
-                return entry.qwen_cli_model.trim();
+            if (entry?.qwen_cli) {
+                if (typeof entry.qwen_cli_model === "string" && entry.qwen_cli_model.trim().length > 0) {
+                    return entry.qwen_cli_model.trim();
+                }
+                const normalizedModelId = modelId.replace(/^openrouter\//, "");
+                if (normalizedModelId.startsWith("qwen/")) {
+                    return normalizedModelId;
+                }
+                return `${normalizedModelId}`;
             }
-            const normalizedModelId = modelId.replace(/^openrouter\//, "");
-            if (normalizedModelId.startsWith("qwen/")) {
-                return normalizedModelId;
-            }
-            return `${normalizedModelId}`;
+            if (!force) return "";
+            return modelId.replace(/^openrouter\//, "");
         };
         const args = [];
         if (invalidModelReason) {
@@ -2616,7 +2622,11 @@ ${cleanedFinalOutput}`;
             emit({ event: "meta", data: `${invalidModelReason} Falling back to ${defaultCodexModel}.` });
             model = defaultCodexModel;
         }
-        const useQwenCli = resolveQwenCliFlag(model);
+        const useQwenCli = enginePreference === "qwen"
+            ? true
+            : enginePreference === "codex"
+                ? false
+                : resolveQwenCliFlag(model);
         runRecord.qwenCli = useQwenCli;
         const wantsOpenRouterHeaders = Boolean(openRouterReferer || openRouterTitle) && !useQwenCli;
 
@@ -2641,7 +2651,7 @@ ${cleanedFinalOutput}`;
         }
         if (useQwenCli) {
             args.push("--qwen-cli");
-            const qwenCliModel = resolveQwenCliModel(model);
+            const qwenCliModel = resolveQwenCliModel(model, { force: enginePreference === "qwen" });
             if (qwenCliModel) {
                 args.push("--qwen-model", qwenCliModel);
             }

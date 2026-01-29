@@ -6,6 +6,16 @@
   const submitOnEnterFromLocal = (localStorage.getItem('submitOnEnter') !== null) ? (localStorage.getItem('submitOnEnter') === 'true') : undefined;
   // `config.defaultSubmitOnEnter` will be provided by the server; if absent, treated as true.
   let submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
+  const ENGINE_STORAGE_KEY = 'enginePreference';
+  const normalizeEnginePreference = (value) => {
+    const normalized = (value || '').toString().trim().toLowerCase();
+    if (normalized === 'qwen' || normalized === 'codex') {
+      return normalized;
+    }
+    return 'auto';
+  };
+  const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
+  let enginePreference = engineFromLocal;
 
   let modelSelect;
   let defaultModelInput;
@@ -29,6 +39,9 @@
             defaultModelInput.value = newDefaultModel;
           }
         }
+      }
+      if(d.key === 'engine'){
+        enginePreference = normalizeEnginePreference(d.value);
       }
     }catch(e){}
   });
@@ -6848,6 +6861,9 @@ const appendMergeChunk = (text, type = "output") => {
       : "";
     if (titleOverride) {
       params.append("openRouterTitle", titleOverride);
+    }
+    if (enginePreference && enginePreference !== "auto") {
+      params.append("engine", enginePreference);
     }
 
     const url = `/agent/stream?${params.toString()}`;
