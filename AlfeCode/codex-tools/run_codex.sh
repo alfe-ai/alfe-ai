@@ -28,6 +28,8 @@ OPENROUTER_TITLE_OVERRIDE=""
 ALFECODE_VM_HOST="${ALFECODE_VM_HOST:-127.0.0.1}"
 ALFECODE_VM_SSH_PORT="${ALFECODE_VM_SSH_PORT:-}"
 ALFECODE_VM_USER="${ALFECODE_VM_USER:-root}"
+USE_QWEN_CLI=false
+QWEN_ARGS=()
 
 escape_config_value() {
   local value="$1"
@@ -134,6 +136,8 @@ without changing your current shell's cwd.
 Use --model (or set CODEX_MODEL/MODEL env vars) to pick a specific OpenAI model.
 Use --openrouter-referer/--openrouter-title to override the HTTP headers used when contacting OpenRouter.
 Default: openrouter/openai/gpt-5-mini.
+
+Use --qwen-cli to run qwen directly instead of the Agent CLI.
 
 If no task is provided, an interactive Agent session is started.
 
@@ -244,6 +248,8 @@ while [[ $# -gt 0 ]]; do
     --openrouter-title)
       [[ $# -ge 2 ]] || { echo "Error: --openrouter-title requires a title" >&2; exit 1; }
       OPENROUTER_TITLE_OVERRIDE="$2"; shift 2 ;;
+    --qwen-cli)
+      USE_QWEN_CLI=true; shift ;;
     --help|-h)
       usage; exit 0 ;;
     --) shift; break ;;
@@ -259,18 +265,22 @@ done
 TASK="$*"
 
 MODEL="${MODEL:-$CODEX_MODEL_DEFAULT}"
-REQUESTED_PROVIDER="$(infer_codex_provider "$MODEL")"
-
-if [[ "$MODEL" == openai/* || "$MODEL" == openrouter/openai/* ]]; then
-  if [[ -n "$CODEX_DIR_53" && "$MODEL" != *"openai/gpt-oss-"* ]]; then
-    CODEX_DIR="$CODEX_DIR_53"
-  fi
+if ! $USE_QWEN_CLI; then
+  REQUESTED_PROVIDER="$(infer_codex_provider "$MODEL")"
 fi
 
-# Basic validations
-if [[ ! -d "$CODEX_DIR" ]]; then
-  echo "Error: CODEX_DIR does not exist: $CODEX_DIR" >&2
-  exit 1
+if ! $USE_QWEN_CLI; then
+  if [[ "$MODEL" == openai/* || "$MODEL" == openrouter/openai/* ]]; then
+    if [[ -n "$CODEX_DIR_53" && "$MODEL" != *"openai/gpt-oss-"* ]]; then
+      CODEX_DIR="$CODEX_DIR_53"
+    fi
+  fi
+
+  # Basic validations
+  if [[ ! -d "$CODEX_DIR" ]]; then
+    echo "Error: CODEX_DIR does not exist: $CODEX_DIR" >&2
+    exit 1
+  fi
 fi
 
 EFFECTIVE_MODEL="$MODEL"
@@ -279,12 +289,12 @@ if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
 fi
 
 MODEL_ARGS=()
-if [[ -n "$EFFECTIVE_MODEL" ]]; then
+CONFIG_ARGS=()
+if ! $USE_QWEN_CLI && [[ -n "$EFFECTIVE_MODEL" ]]; then
   MODEL_ARGS=(--model "$EFFECTIVE_MODEL")
 fi
 
-CONFIG_ARGS=()
-if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+if ! $USE_QWEN_CLI && [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
   raw_referer_override="${OPENROUTER_HTTP_REFERER_OVERRIDE:-${OPENROUTER_HTTP_REFERER:-${HTTP_REFERER:-}}}"
   if [[ -n "${raw_referer_override}" ]]; then
     referer_value_base="${raw_referer_override}"
@@ -341,7 +351,7 @@ if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
 fi
 
 # Optionally load API key
-if $API_KEY_MODE; then
+if $API_KEY_MODE && ! $USE_QWEN_CLI; then
   if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
     failure_message="Error: Agent runs for OpenRouter models require OPENROUTER_API_KEY. Export one or place it in a nearby .env file."
   else
@@ -371,6 +381,14 @@ run_codex() {
   fi
   if $unset_openai; then
     log_meta "$META_OPENROUTER_UNSET_MSG"
+  fi
+  "${cmd[@]}"
+}
+
+run_qwen() {
+  local -a cmd=(qwen "$@")
+  if command -v stdbuf >/dev/null 2>&1; then
+    cmd=(stdbuf -o0 -e0 "${cmd[@]}")
   fi
   "${cmd[@]}"
 }
@@ -579,18 +597,32 @@ PY2
       export CODEX_ORIGINAL_PROJECT_DIR="$PROJECT_DIR"
       export CODEX_EFFECTIVE_PROJECT_DIR="$snapshot_dir"
       export PROJECT_DIR="$snapshot_dir"
-      if should_use_vm; then
-        run_codex_in_vm "$snapshot_dir" "$@"
+      if $USE_QWEN_CLI; then
+        if should_use_vm; then
+          log_meta "Qwen CLI run requested; VM mode ignored."
+        fi
+        cd "$snapshot_dir" && run_qwen "${QWEN_ARGS[@]}"
       else
-        cd "$snapshot_dir" && run_codex "$@"
+        if should_use_vm; then
+          run_codex_in_vm "$snapshot_dir" "$@"
+        else
+          cd "$snapshot_dir" && run_codex "$@"
+        fi
       fi
     )
   else
     maybe_git_pull "$(pwd)"
-    if should_use_vm; then
-      run_codex_in_vm "$(pwd)" "$@"
+    if $USE_QWEN_CLI; then
+      if should_use_vm; then
+        log_meta "Qwen CLI run requested; VM mode ignored."
+      fi
+      run_qwen "${QWEN_ARGS[@]}"
     else
-      run_codex "$@"
+      if should_use_vm; then
+        run_codex_in_vm "$(pwd)" "$@"
+      else
+        run_codex "$@"
+      fi
     fi
   fi
 }
@@ -639,7 +671,20 @@ run_with_filtered_stderr() {
   return ${PIPESTATUS[0]:-$?}
 }
 
-if [[ -z "$TASK" ]]; then
+if $USE_QWEN_CLI; then
+  if ! command -v qwen >/dev/null 2>&1; then
+    echo "Error: qwen CLI not found on PATH." >&2
+    exit 1
+  fi
+  if [[ -z "$TASK" ]]; then
+    echo "Error: qwen CLI runs require a task prompt." >&2
+    usage
+    exit 1
+  fi
+  QWEN_ARGS=(-p "$TASK" -y)
+fi
+
+if [[ -z "$TASK" ]] && ! $USE_QWEN_CLI; then
   usage
   echo "Starting interactive Agent session..."
   log_meta "Using Agent model: $MODEL"
@@ -650,8 +695,13 @@ fi
 
 # Non-interactive
 set +e
-log_meta "Using Agent model: $MODEL"
-run_with_filtered_streams exec "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" --full-auto --skip-git-repo-check --sandbox workspace-write "$TASK"
+if $USE_QWEN_CLI; then
+  log_meta "Using qwen CLI for this run."
+  run_with_filtered_streams "${QWEN_ARGS[@]}"
+else
+  log_meta "Using Agent model: $MODEL"
+  run_with_filtered_streams exec "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" --full-auto --skip-git-repo-check --sandbox workspace-write "$TASK"
+fi
 CMD_STATUS=$?
 set -e
 exit "$CMD_STATUS"
