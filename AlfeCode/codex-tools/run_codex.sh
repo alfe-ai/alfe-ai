@@ -557,6 +557,9 @@ run_qwen() {
     display_args+=("$arg")
   done
   printf '[qwen] Launching qwen CLI...\n'
+  local qwen_version
+  qwen_version="$(qwen -v 2>&1)"
+  printf '[qwen] qwen -v: %s\n' "$qwen_version"
   printf '[qwen] cwd=%s\n' "$(pwd)"
   printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
   #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
