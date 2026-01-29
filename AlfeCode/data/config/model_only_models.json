@@ -186,6 +186,17 @@
       "disabled": true
     },
     {
+      "id": "openrouter/arcee-ai/trinity-large-preview:free",
+      "label": "Arcee AI: Trinity Large Preview (Free)",
+      "created": "2026-01-27",
+      "contextTokens": 131000,
+      "disabled": true,
+      "pricing": {
+        "inputPerMTokens": 0,
+        "outputPerMTokens": 0
+      }
+    },
+    {
       "id": "openrouter/qwen/qwen3-4b:free",
       "label": "Qwen: Qwen3 4B (Free)",
       "disabled": true
