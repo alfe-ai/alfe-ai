@@ -616,6 +616,15 @@
         }
         .runs-sidebar__pagination.is-hidden { display: none; }
 
+        .runs-sidebar__pagination-center {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
         .runs-sidebar__pagination-button {
             flex: 0 0 auto;
             background: linear-gradient(135deg, rgba(148, 163, 184, 0.2) 0%, rgba(79, 70, 229, 0.16) 100%);
@@ -643,10 +652,34 @@
         }
 
         .runs-sidebar__pagination-indicator {
-            flex: 1 1 auto;
             text-align: center;
             color: rgba(203, 213, 225, 0.9);
             font-weight: 500;
+        }
+
+        .runs-sidebar__archive-all-button {
+            background: linear-gradient(135deg, rgba(30, 64, 175, 0.42) 0%, rgba(37, 99, 235, 0.3) 100%);
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            border-radius: 999px;
+            color: #e2e8f0;
+            padding: 0.3rem 0.85rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .runs-sidebar__archive-all-button:hover,
+        .runs-sidebar__archive-all-button:focus-visible {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.55) 0%, rgba(59, 130, 246, 0.4) 100%);
+            border-color: rgba(147, 197, 253, 0.8);
+            color: #f8fafc;
+            outline: none;
+            box-shadow: 0 10px 24px rgba(30, 64, 175, 0.32);
+        }
+        .runs-sidebar__archive-all-button[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
         }
 
         .runs-sidebar__footer {
@@ -2769,7 +2802,10 @@
             </div>
             <div id="runsSidebarPagination" class="runs-sidebar__pagination is-hidden" aria-live="polite">
                 <button type="button" id="runsSidebarPrevPage" class="runs-sidebar__pagination-button" aria-label="Previous runs page">Previous</button>
-                <div id="runsSidebarPageIndicator" class="runs-sidebar__pagination-indicator" role="status">Page 1 of 1</div>
+                <div class="runs-sidebar__pagination-center">
+                    <div id="runsSidebarPageIndicator" class="runs-sidebar__pagination-indicator" role="status">Page 1 of 1</div>
+                    <button type="button" id="runsSidebarArchiveAllButton" class="runs-sidebar__archive-all-button" aria-label="Archive all runs" title="Archive all runs">Archive All</button>
+                </div>
                 <button type="button" id="runsSidebarNextPage" class="runs-sidebar__pagination-button" aria-label="Next runs page">Next</button>
             </div>
             <footer class="runs-sidebar__footer">

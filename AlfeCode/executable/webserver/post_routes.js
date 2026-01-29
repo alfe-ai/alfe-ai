@@ -285,6 +285,56 @@ function setupPostRoutes(deps) {
     });
 
     const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
+    const normaliseProjectDir = (value) => {
+        if (typeof value !== "string") {
+            return "";
+        }
+        const firstLine = value.split(/\r?\n/, 1)[0];
+        const withoutMarkdownStatus = firstLine.replace(/\s+\*\*.*$/, "");
+        return withoutMarkdownStatus.replace(/\\+/g, "/").trim();
+    };
+    const collectProjectDirComparisons = (value) => {
+        const variants = new Set();
+        const lowerVariants = new Set();
+
+        const pushVariant = (candidate) => {
+            if (typeof candidate !== "string") {
+                return;
+            }
+            const trimmed = candidate.trim();
+            if (!trimmed) {
+                return;
+            }
+            variants.add(trimmed);
+            lowerVariants.add(trimmed.toLowerCase());
+        };
+
+        pushVariant(value);
+
+        const normalised = normaliseProjectDir(value);
+        pushVariant(normalised);
+
+        if (normalised) {
+            const forwardSlashes = normalised.replace(/\\+/g, "/");
+            pushVariant(forwardSlashes);
+            pushVariant(forwardSlashes.replace(/\/+$/, ""));
+        }
+
+        const baseForResolve = normalised || (typeof value === "string" ? value.trim() : "");
+        if (baseForResolve) {
+            try {
+                const resolved = path.resolve(baseForResolve);
+                pushVariant(resolved);
+                const resolvedForward = resolved.replace(/\\+/g, "/");
+                pushVariant(resolvedForward);
+                pushVariant(resolvedForward.replace(/\/+$/, ""));
+            } catch (_err) {
+                // Ignore resolution failures; path may be invalid on this host.
+            }
+        }
+
+        return { variants, lowerVariants };
+    };
     const normalizeRepoUrlForClone = (value) => {
         const trimmed = typeof value === "string" ? value.trim() : "";
         if (!trimmed) {
@@ -627,6 +677,103 @@ function setupPostRoutes(deps) {
         } catch (error) {
             console.error('[WARN] Failed to archive run', error);
             return res.status(500).json({ error: 'Failed to archive run.' });
+        }
+    });
+
+    // Archive all runs (optionally filtered by repo directory)
+    app.post('/agent/runs/archive-all', (req, res) => {
+        const sessionId = resolveSessionId(req);
+        const repoDirectoryFilter = (req.body?.repo_directory || req.query?.repo_directory || "").toString().trim();
+        let runs = [];
+        try {
+            const loaded = typeof loadCodexRuns === "function" ? loadCodexRuns(sessionId) : [];
+            runs = Array.isArray(loaded) ? loaded : [];
+        } catch (error) {
+            console.error("[WARN] Failed to load runs for archive-all", error);
+            runs = [];
+        }
+
+        let filteredRuns = runs;
+        if (repoDirectoryFilter) {
+            const { variants: filterVariants, lowerVariants: filterLowerVariants } =
+                collectProjectDirComparisons(repoDirectoryFilter);
+
+            const buildRunVariantSets = (run) => {
+                const variantSet = new Set();
+                const lowerVariantSet = new Set();
+                const sources = [run?.projectDir, run?.effectiveProjectDir, run?.requestedProjectDir];
+                sources.forEach((source) => {
+                    const { variants, lowerVariants } = collectProjectDirComparisons(source);
+                    variants.forEach((entry) => variantSet.add(entry));
+                    lowerVariants.forEach((entry) => lowerVariantSet.add(entry));
+                });
+                return { variantSet, lowerVariantSet };
+            };
+
+            const matchRuns = (runsToFilter, { allowLowerOnly = false } = {}) =>
+                runsToFilter.filter((run) => {
+                    const { variantSet, lowerVariantSet } = buildRunVariantSets(run);
+
+                    if (!allowLowerOnly) {
+                        for (const candidate of filterVariants) {
+                            if (variantSet.has(candidate)) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    for (const candidate of filterLowerVariants) {
+                        if (lowerVariantSet.has(candidate)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+
+            let matches = matchRuns(filteredRuns);
+
+            if (!matches.length && filterLowerVariants.size) {
+                matches = matchRuns(filteredRuns, { allowLowerOnly: true });
+            }
+
+            if (!matches.length) {
+                const normalizedFilterLower =
+                    (normaliseProjectDir(repoDirectoryFilter) || repoDirectoryFilter || "").toLowerCase();
+                if (normalizedFilterLower) {
+                    matches = filteredRuns.filter((run) => {
+                        const candidates = [
+                            normaliseProjectDir(run?.projectDir),
+                            normaliseProjectDir(run?.effectiveProjectDir),
+                            normaliseProjectDir(run?.requestedProjectDir),
+                        ].filter(Boolean);
+                        return candidates.some((candidate) => candidate.toLowerCase().includes(normalizedFilterLower));
+                    });
+                }
+            }
+
+            if (matches.length) {
+                filteredRuns = matches;
+            }
+        }
+
+        try {
+            const archivedAt = new Date().toISOString();
+            let archivedCount = 0;
+            filteredRuns.forEach((run) => {
+                const runId = normaliseRunId(run?.id || "");
+                if (!runId || run?.archived) {
+                    return;
+                }
+                if (typeof upsertCodexRun === "function") {
+                    upsertCodexRun(sessionId, { id: runId, archived: 1, archivedAt });
+                    archivedCount += 1;
+                }
+            });
+            return res.json({ ok: true, archived: archivedCount });
+        } catch (error) {
+            console.error("[WARN] Failed to archive all runs", error);
+            return res.status(500).json({ error: "Failed to archive all runs." });
         }
     });
 
