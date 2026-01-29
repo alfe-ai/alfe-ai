@@ -3266,6 +3266,9 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
               </div>
             </div>
             <div id="loginForm" style="display:none;">
+              <div class="modal-buttons">
+                <button id="loginChangeEmailBtn">Use different email</button>
+              </div>
               <p>Email: <span id="authEmailDisplayLogin"></span></p>
               <input type="hidden" id="loginEmail" />
               <label style="margin-top:8px;">Password:<br/>
@@ -3276,10 +3279,12 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
               </label>
               <div class="modal-buttons">
                 <button id="loginSubmitBtn">Login</button>
-                <button id="loginChangeEmailBtn">Use different email</button>
               </div>
             </div>
             <div id="signupForm" style="display:none;">
+              <div class="modal-buttons">
+                <button id="signupChangeEmailBtn">Use different email</button>
+              </div>
               <p>Email: <span id="authEmailDisplaySignup"></span></p>
               <input type="hidden" id="signupEmail" />
               <label style="margin-top:8px;">Password:<br/>
@@ -3300,7 +3305,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
               </div>
               <div class="modal-buttons">
                 <button id="signupSubmitBtn" class="primary">Register</button>
-                <button id="signupChangeEmailBtn">Use different email</button>
               </div>
             </div>
         </div>
