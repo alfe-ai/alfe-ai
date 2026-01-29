@@ -2573,14 +2573,16 @@ ${cleanedFinalOutput}`;
         const useQwenCli = resolveQwenCliFlag(model);
         const wantsOpenRouterHeaders = Boolean(openRouterReferer || openRouterTitle) && !useQwenCli;
 
-        if (!useQwenCli) {
-            if (!fs.existsSync(scriptPath)) {
-                const errorMessage = `Agent runner script not found at ${scriptPath}`;
-                runRecord.error = errorMessage;
-                emit({ event: "stream-error", data: errorMessage });
-                finalizeStream("Agent run aborted before start.");
-                return;
-            }
+        if (!fs.existsSync(scriptPath)) {
+            const errorMessage = `Agent runner script not found at ${scriptPath}`;
+            runRecord.error = errorMessage;
+            emit({ event: "stream-error", data: errorMessage });
+            finalizeStream("Agent run aborted before start.");
+            return;
+        }
+        if (useQwenCli) {
+            args.push("--qwen-cli");
+        } else {
             args.push("--api-key-mode");
         }
 
@@ -2594,7 +2596,7 @@ ${cleanedFinalOutput}`;
         }
         runRecord.model = model;
 
-        if (projectDir && !useQwenCli) {
+        if (projectDir) {
             args.push("--project-dir", projectDir);
         }
         if (wantsOpenRouterHeaders) {
@@ -2605,24 +2607,18 @@ ${cleanedFinalOutput}`;
                 args.push("--openrouter-title", openRouterTitle);
             }
         }
-        if (useQwenCli) {
-            args.push("-p", prompt, "-y");
-            if (includeMeta) {
-                emit({ event: "meta", data: "Using qwen CLI for this run." });
-            }
-        } else {
-            args.push(prompt);
+        if (useQwenCli && includeMeta) {
+            emit({ event: "meta", data: "Using qwen CLI for this run." });
         }
+        args.push(prompt);
 
         const baseSpawnOptions = {
-            cwd: useQwenCli && projectDir ? projectDir : codexToolsDir,
+            cwd: codexToolsDir,
             env: { ...process.env, ...envOverrides },
             stdio: ["ignore", "pipe", "pipe"],
         };
 
-        if (!useQwenCli) {
-            baseSpawnOptions.env.CODEX_SHOW_META = includeMeta ? "1" : "0";
-        }
+        baseSpawnOptions.env.CODEX_SHOW_META = includeMeta ? "1" : "0";
 
         const codexUserIds = getCodexUserIds();
         let child;
@@ -2630,7 +2626,7 @@ ${cleanedFinalOutput}`;
 
         if (codexUserIds) {
             try {
-                child = spawn(useQwenCli ? "qwen" : scriptPath, args, {
+                child = spawn(scriptPath, args, {
                     ...baseSpawnOptions,
                     uid: codexUserIds.uid,
                     gid: codexUserIds.gid,
@@ -2660,7 +2656,7 @@ ${cleanedFinalOutput}`;
 
         if (!child) {
             try {
-                child = spawn(useQwenCli ? "qwen" : scriptPath, args, baseSpawnOptions);
+                child = spawn(scriptPath, args, baseSpawnOptions);
             } catch (err) {
                 const errorMessage = `Failed to start Agent: ${err.message}`;
                 runRecord.error = errorMessage;
