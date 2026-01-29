@@ -5,6 +5,7 @@ const REQUIRE_RDS = process.env.ALFECODE_REQUIRE_RDS !== "false";
 const SETTINGS_TABLE = "settings";
 const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
+const PROJECTVIEW_JSON_TABLE = "projectview_json";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
@@ -97,6 +98,19 @@ class RdsStore {
         plan TEXT DEFAULT 'Free',
         ever_subscribed BOOLEAN DEFAULT false
       );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PROJECTVIEW_JSON_TABLE} (
+        session_id TEXT PRIMARY KEY,
+        projects_json TEXT NOT NULL DEFAULT '[]',
+        updated_at TEXT NOT NULL
+      );`);
+      await this.pool.query(
+        `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
+         ADD COLUMN IF NOT EXISTS projects_json TEXT NOT NULL DEFAULT '[]'`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
+         ADD COLUMN IF NOT EXISTS updated_at TEXT NOT NULL DEFAULT ''`
+      );
       await this.pool.query(
         `ALTER TABLE ${ACCOUNTS_TABLE}
          ADD COLUMN IF NOT EXISTS ever_subscribed BOOLEAN DEFAULT false`
@@ -543,6 +557,46 @@ class RdsStore {
       return result.rows[0] || null;
     } catch (error) {
       console.error("[RdsStore] Failed to create support request reply:", error?.message || error);
+      throw error;
+    }
+  }
+
+  async getProjectViewProjects(sessionId) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    if (!normalizedSessionId) return null;
+    try {
+      const result = await this.pool.query(
+        `SELECT projects_json FROM ${PROJECTVIEW_JSON_TABLE} WHERE session_id = $1`,
+        [normalizedSessionId]
+      );
+      if (!result.rows.length) return null;
+      const payload = result.rows[0].projects_json;
+      return JSON.parse(payload || "[]");
+    } catch (error) {
+      console.error("[RdsStore] Failed to load ProjectView projects:", error?.message || error);
+      return null;
+    }
+  }
+
+  async setProjectViewProjects(sessionId, projects) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    if (!normalizedSessionId) return;
+    const payload = JSON.stringify(Array.isArray(projects) ? projects : []);
+    const updatedAt = new Date().toISOString();
+    try {
+      await this.pool.query(
+        `INSERT INTO ${PROJECTVIEW_JSON_TABLE} (session_id, projects_json, updated_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (session_id)
+         DO UPDATE SET projects_json = EXCLUDED.projects_json, updated_at = EXCLUDED.updated_at`,
+        [normalizedSessionId, payload, updatedAt]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to save ProjectView projects:", error?.message || error);
       throw error;
     }
   }

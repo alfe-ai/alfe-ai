@@ -1689,6 +1689,17 @@ async function loadGlobalProjectViewData(dataDir) {
 async function readProjectViewProjects(sessionId) {
   await migrateLegacyProjectViewDataIfNeeded();
   const dataDir = path.dirname(projectViewDataFile);
+  if (sessionId && rdsStore.enabled) {
+    const stored = await rdsStore.getProjectViewProjects(sessionId);
+    if (stored) {
+      const { sanitized, removed } = sanitizeProjectViewEntries(stored);
+      if (removed > 0) {
+        await rdsStore.setProjectViewProjects(sessionId, sanitized);
+        console.log(`[ProjectView] Removed ${removed} Sterling Git project(s) from session database record.`);
+      }
+      return sanitized;
+    }
+  }
   if (sessionId) {
     const sessionFile = path.join(dataDir, `${sessionId}.json`);
     try {
@@ -1718,6 +1729,10 @@ async function writeProjectViewProjects(projects, sessionId) {
   await mkdir(dataDir, { recursive: true });
   const payload = JSON.stringify(projects, null, 2);
   if (sessionId) {
+    if (rdsStore.enabled) {
+      await rdsStore.setProjectViewProjects(sessionId, projects);
+      return;
+    }
     const sessionFile = path.join(dataDir, `${sessionId}.json`);
     await writeFile(sessionFile, payload, 'utf-8');
   } else {
