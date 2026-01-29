@@ -232,11 +232,6 @@
                     </div>
                 <% } %>
                 <div class="field">
-                    <label for="repoName">Project name:</label>
-                    <input type="text" id="repoName" name="repoName" value="<%= repoNameValue || '' %>" required>
-                </div>
-
-                <div class="field">
                     <label for="gitRepoURL">Git repository URL:</label>
                     <input
                         type="text"
@@ -246,6 +241,14 @@
                         value="<%= gitRepoURLValue || '' %>"
                     >
                     <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
+                </div>
+
+                <div class="field">
+                    <label for="repoName">Project name:</label>
+                    <input type="text" id="repoName" name="repoName" value="<%= repoNameValue || '' %>" required>
+                </div>
+
+                <div class="field">
                     <div class="button-row">
                         <button type="submit">Add Repository</button>
                     </div>
