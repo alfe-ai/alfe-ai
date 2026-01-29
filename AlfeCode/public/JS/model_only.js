@@ -261,10 +261,10 @@
       codeUsageLimit.textContent = `0/${codeLimit} code runs`;
     }
     if (searchUsageLimit) {
-      searchUsageLimit.textContent = `0/${limits.search} searches`;
+      searchUsageLimit.textContent = isLoggedOut ? '' : `0/${limits.search} searches`;
     }
     if (imageUsageLimit) {
-      imageUsageLimit.textContent = `0/${limits.images} images`;
+      imageUsageLimit.textContent = isLoggedOut ? '' : `0/${limits.images} images`;
     }
   }
 
