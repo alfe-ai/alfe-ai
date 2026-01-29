@@ -7,6 +7,7 @@
   const codeUsageLimit = document.getElementById('codeUsageLimit');
   const codeUsageLimited = document.getElementById('codeUsageLimited');
   const codeUsageUnlimited = document.getElementById('codeUsageUnlimited');
+  const codeUsageUnlimitedNote = document.getElementById('codeUsageUnlimitedNote');
   const printifyUsageUnlimited = document.getElementById('printifyUsageUnlimited');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
@@ -256,6 +257,9 @@
     }
     if (codeUsageUnlimited) {
       codeUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
+    }
+    if (codeUsageUnlimitedNote) {
+      codeUsageUnlimitedNote.classList.toggle('hidden', !isPaidPlan);
     }
     if (printifyUsageUnlimited) {
       printifyUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
