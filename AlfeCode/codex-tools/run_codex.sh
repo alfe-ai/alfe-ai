@@ -24,6 +24,7 @@ CODEX_API_KEY_VARS=("OPENAI_API_KEY" "OPENROUTER_API_KEY")
 REQUESTED_PROVIDER=""
 DETECTED_API_KEY_VAR=""
 CODEX_SHOW_META="${CODEX_SHOW_META:-0}"
+ENABLE_TRACE="${ENABLE_TRACE:-}"
 OPENROUTER_HTTP_REFERER_OVERRIDE=""
 OPENROUTER_TITLE_OVERRIDE=""
 ALFECODE_VM_HOST="${ALFECODE_VM_HOST:-127.0.0.1}"
@@ -59,10 +60,13 @@ resolve_model_only_default() {
   if command -v python3 >/dev/null 2>&1; then
     python3 - "$resolved_path" <<'PY'
 import json
+import os
 import sys
 
 path = sys.argv[1]
 def trace(message):
+    if os.getenv("ENABLE_TRACE", "").lower() not in ("1", "true", "yes", "on"):
+        return
     print(f"[trace] model-only default: {message}", file=sys.stderr)
 
 trace(f"loading model list from {path}")
@@ -124,7 +128,7 @@ if CODEX_MODEL_DEFAULT="$(resolve_model_only_default)"; then
 else
   CODEX_MODEL_DEFAULT="$CODEX_MODEL_DEFAULT_FALLBACK"
 fi
-printf '[trace] model-only default resolved to %s (fallback=%s)\n' "$CODEX_MODEL_DEFAULT" "$CODEX_MODEL_DEFAULT_FALLBACK" >&2
+trace_log "model-only default resolved to ${CODEX_MODEL_DEFAULT} (fallback=${CODEX_MODEL_DEFAULT_FALLBACK})"
 
 MODEL="${MODEL:-${CODEX_MODEL:-$CODEX_MODEL_DEFAULT}}"
 
@@ -137,6 +141,19 @@ should_show_meta() {
     1|true|yes|on) return 0 ;;
   esac
   return 1
+}
+
+should_trace() {
+  case "${ENABLE_TRACE,,}" in
+    1|true|yes|on) return 0 ;;
+  esac
+  return 1
+}
+
+trace_log() {
+  if should_trace; then
+    printf "[trace] %s\n" "$1" >&2
+  fi
 }
 
 log_meta() {
@@ -466,9 +483,9 @@ fi
 # Runner that resolves codex from CODEX_DIR (handles spaces)
 run_codex() {
   {
-    printf '[trace] run_codex(): start %s\n' "$(date -Is)"
-    printf '[trace] run_codex(): invoked with %s args -> %s\n' "$#" "$*"
-    printf '[trace] run_codex(): launching Agent via npm exec...\n'
+    trace_log "run_codex(): start $(date -Is)"
+    trace_log "run_codex(): invoked with $# args -> $*"
+    trace_log "run_codex(): launching Agent via npm exec..."
   } >&2
   # npx lacks a stable --prefix; use npm exec with --prefix to target the install. :contentReference[oaicite:2]{index=2}
   local -a cmd=(npm exec --prefix "$CODEX_DIR" codex -- "$@")
