@@ -406,6 +406,9 @@ run_qwen() {
   local openai_api_key_value="${OPENAI_API_KEY:-}"
   local openai_base_url_value="${OPENAI_BASE_URL:-}"
   local openai_model_value="${OPENAI_MODEL:-}"
+  if [[ -n "${QWEN_MODEL:-}" ]]; then
+    openai_model_value="$QWEN_MODEL"
+  fi
   local -a cmd=(qwen "$@")
   local -a display_cmd=("${cmd[@]}")
   if command -v stdbuf >/dev/null 2>&1; then
