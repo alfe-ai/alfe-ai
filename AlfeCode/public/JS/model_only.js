@@ -421,7 +421,7 @@
 
   async function loadUsageLimits() {
     applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
-    setAccountVisibility(false);
+    setAccountVisibility(true);
     if (accountPlanSelect) {
       accountPlanSelect.disabled = true;
       setAccountPlanValue('Free');
