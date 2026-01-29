@@ -77,6 +77,14 @@
       border-color:#c4b5fd;
       box-shadow:0 10px 22px rgba(124,58,237,0.22);
     }
+    .support-status{
+      font-size:0.9rem;
+      color:#a5b4fc;
+      min-height:1.2rem;
+    }
+    .support-status.error{
+      color:#fca5a5;
+    }
   </style>
 </head>
 <body>
@@ -101,8 +109,68 @@
         <label for="supportMessage">Message (required)</label>
         <textarea id="supportMessage" name="supportMessage" placeholder="Share details about your issue or request." required></textarea>
       </div>
-      <button type="button" class="support-button">Send to Support</button>
+      <button type="button" class="support-button" id="supportSubmitButton">Send to Support</button>
+      <p class="support-status" id="supportStatus" aria-live="polite"></p>
     </form>
   </div>
+  <script>
+    const supportCategory = document.getElementById('supportCategory');
+    const supportMessage = document.getElementById('supportMessage');
+    const supportButton = document.getElementById('supportSubmitButton');
+    const supportStatus = document.getElementById('supportStatus');
+
+    const setSupportStatus = (text, { isError = false } = {}) => {
+      if (!supportStatus) return;
+      supportStatus.textContent = text;
+      supportStatus.classList.toggle('error', isError);
+    };
+
+    const setSupportButtonState = (isDisabled) => {
+      if (!supportButton) return;
+      supportButton.disabled = isDisabled;
+      supportButton.textContent = isDisabled ? 'Sending...' : 'Send to Support';
+    };
+
+    if (supportButton) {
+      supportButton.addEventListener('click', async () => {
+        const category = supportCategory?.value || '';
+        const message = supportMessage?.value?.trim() || '';
+
+        if (!category) {
+          setSupportStatus('Please select a support category.', { isError: true });
+          return;
+        }
+        if (!message) {
+          setSupportStatus('Please enter a support message.', { isError: true });
+          return;
+        }
+
+        setSupportStatus('');
+        setSupportButtonState(true);
+
+        try {
+          const response = await fetch('/api/support', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ category, message })
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            setSupportStatus(payload?.error || 'Unable to send support request.', { isError: true });
+            return;
+          }
+          supportMessage.value = '';
+          supportCategory.value = '';
+          setSupportStatus('Your support request has been sent.');
+        } catch (error) {
+          setSupportStatus('Unable to send support request. Please try again.', { isError: true });
+        } finally {
+          setSupportButtonState(false);
+        }
+      });
+    }
+  </script>
 </body>
 </html>

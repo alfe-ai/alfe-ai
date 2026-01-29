@@ -185,6 +185,38 @@ function setupPostRoutes(deps) {
         return res.json({ success: true, plan });
     });
 
+    app.post("/api/support", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Support requests are not configured on this server." });
+        }
+        const category = typeof req.body?.category === "string" ? req.body.category.trim() : "";
+        const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+        if (!category) {
+            return res.status(400).json({ error: "Support category is required." });
+        }
+        if (!message) {
+            return res.status(400).json({ error: "Support message is required." });
+        }
+        if (message.length > 4000) {
+            return res.status(400).json({ error: "Support message is too long." });
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        const account = sessionId ? await rdsStore.getAccountBySession(sessionId) : null;
+        const userAgent = typeof req.get === "function" ? req.get("user-agent") || "" : "";
+        const request = await rdsStore.createSupportRequest({
+            sessionId,
+            accountId: account?.id,
+            email: account?.email,
+            category,
+            message,
+            userAgent,
+        });
+        if (!request) {
+            return res.status(500).json({ error: "Unable to create support request." });
+        }
+        return res.json({ success: true, requestId: request.id });
+    });
+
     app.post("/api/logout", async (req, res) => {
         const sessionId = getSessionIdFromRequest(req);
         if (rdsStore?.enabled && sessionId) {
