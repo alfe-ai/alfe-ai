@@ -42,6 +42,7 @@
 
   let activeProvider = '';
   let currentAccountPlan = 'Free';
+  let currentAccountEverSubscribed = false;
   let engineFeedbackTimeout = null;
   let supportActionState = 'login';
 
@@ -59,14 +60,15 @@
     return !['Free', 'Lite', 'Pro'].includes(normalized);
   }
 
-  function updateSupportCallToAction(plan) {
+  function updateSupportCallToAction(plan, everSubscribed = currentAccountEverSubscribed) {
     if (!supportPlanNotice && !supportActionButton) return;
     const normalized = (plan || '').toString().trim();
     const isLoggedOut = isLoggedOutPlan(normalized);
     const isPaidPlan = normalized === 'Lite' || normalized === 'Pro';
+    const isSupportEligible = isPaidPlan || (normalized === 'Free' && Boolean(everSubscribed));
     if (supportPlanNotice) {
-      supportPlanNotice.classList.toggle('hidden', isPaidPlan);
-      if (isPaidPlan) {
+      supportPlanNotice.classList.toggle('hidden', isSupportEligible);
+      if (isSupportEligible) {
         supportPlanNotice.textContent = 'You must be a paid subscriber to send a support ticket.';
       } else if (isLoggedOut) {
         supportPlanNotice.textContent = 'You must be logged in to send a support ticket.';
@@ -75,7 +77,7 @@
       }
     }
     if (supportActionButton) {
-      if (isPaidPlan) {
+      if (isSupportEligible) {
         supportActionButton.textContent = 'Go to Support';
         supportActionState = 'support';
       } else if (isLoggedOut) {
@@ -424,13 +426,15 @@
     accountPlanSelect.value = planValue;
     currentAccountPlan = planValue;
     updateProModelOptions();
-    updateSupportCallToAction(planValue);
+    updateSupportCallToAction(planValue, currentAccountEverSubscribed);
   }
 
   function setAccountEverSubscribedValue(value) {
     if (!accountEverSubscribedSelect) return;
     const normalized = value === true || value === 'true' || value === 1 || value === '1';
     accountEverSubscribedSelect.value = normalized ? 'true' : 'false';
+    currentAccountEverSubscribed = normalized;
+    updateSupportCallToAction(currentAccountPlan, currentAccountEverSubscribed);
   }
 
   function updateProModelOptions() {

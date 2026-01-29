@@ -266,7 +266,10 @@ function setupGetRoutes(deps) {
             return null;
         }
         const account = await rdsStore.getAccountBySession(sessionId);
-        if (!account || !SUPPORT_PLANS.has(account.plan)) {
+        const isSupportEligible = account
+            && (SUPPORT_PLANS.has(account.plan)
+                || (account.plan === "Free" && Boolean(account.ever_subscribed)));
+        if (!isSupportEligible) {
             res.status(403).send("Support is available to Lite or Pro subscribers only.");
             return null;
         }
