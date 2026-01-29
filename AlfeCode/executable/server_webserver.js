@@ -825,6 +825,8 @@ function getGitMetaData(repoPathInput) {
     let dateStr = "";
     let branchName = "";
     let latestTag = "";
+    let remoteUrl = "";
+    let remoteName = "";
 
     try {
         rev = execSync("git rev-parse HEAD", { cwd: repoPath })
@@ -849,10 +851,46 @@ function getGitMetaData(repoPathInput) {
         } catch (tagErr) {
             latestTag = "No tags available";
         }
+
+        try {
+            remoteUrl = execSync("git remote get-url origin", { cwd: repoPath })
+                .toString()
+                .trim();
+            if (remoteUrl) {
+                remoteName = "origin";
+            }
+        } catch (remoteErr) {
+            try {
+                const remotes = execSync("git remote", { cwd: repoPath })
+                    .toString()
+                    .trim()
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean);
+                if (remotes.length > 0) {
+                    remoteName = remotes[0];
+                    remoteUrl = execSync(`git remote get-url ${remoteName}`, {
+                        cwd: repoPath,
+                    })
+                        .toString()
+                        .trim();
+                }
+            } catch (fallbackErr) {
+                remoteUrl = "";
+                remoteName = "";
+            }
+        }
     } catch (e) {
         console.error("[ERROR] getGitMetaData:", e);
     }
-    const _result = { rev, dateStr, branchName, latestTag };
+    const _result = {
+        rev,
+        dateStr,
+        branchName,
+        latestTag,
+        remoteUrl,
+        remoteName,
+    };
     try { _setCache(gitMetaCache, repoPath, _result); } catch(e){}
     return _result;
 }
