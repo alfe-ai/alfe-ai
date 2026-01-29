@@ -4,6 +4,7 @@ const REQUIRE_RDS = process.env.ALFECODE_REQUIRE_RDS !== "false";
 
 const SETTINGS_TABLE = "settings";
 const SESSION_SETTINGS_TABLE = "session_settings";
+const ACCOUNTS_TABLE = "accounts";
 
 function normalizeHost(host) {
   if (host === "::1") return "127.0.0.1";
@@ -81,10 +82,26 @@ class RdsStore {
         value TEXT NOT NULL,
         PRIMARY KEY (session_id, key)
       );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${ACCOUNTS_TABLE} (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        session_id TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        totp_secret TEXT DEFAULT '',
+        timezone TEXT DEFAULT '',
+        plan TEXT DEFAULT 'Free'
+      );`);
       await this.loadAllSettings();
       this.ready = true;
     } catch (error) {
       console.error("[RdsStore] Initialization failed:", error?.message || error);
+    }
+  }
+
+  async ensureReady() {
+    if (this.initPromise) {
+      await this.initPromise;
     }
   }
 
@@ -165,6 +182,45 @@ class RdsStore {
       );
     } catch (error) {
       console.error("[RdsStore] Failed to upsert session setting:", error?.message || error);
+    }
+  }
+
+  async getAccountByEmail(email) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalized = (email || "").toString().trim().toLowerCase();
+    if (!normalized) return null;
+    try {
+      const result = await this.pool.query(
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan
+         FROM ${ACCOUNTS_TABLE}
+         WHERE email = $1
+         LIMIT 1`,
+        [normalized]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("[RdsStore] Failed to load account:", error?.message || error);
+      return null;
+    }
+  }
+
+  async createAccount({ email, passwordHash, sessionId }) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalized = (email || "").toString().trim().toLowerCase();
+    if (!normalized) return null;
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO ${ACCOUNTS_TABLE} (email, password_hash, session_id, created_at, timezone, plan)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, email, session_id, created_at`,
+        [normalized, passwordHash, sessionId || '', new Date().toISOString(), '', 'Free']
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("[RdsStore] Failed to create account:", error?.message || error);
+      throw error;
     }
   }
 }
