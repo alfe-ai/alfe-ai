@@ -30,6 +30,16 @@
       margin:0;
       font-size:1.3rem;
     }
+    .back-link{
+      align-self:flex-start;
+      color:#a5b4fc;
+      text-decoration:none;
+      font-size:0.95rem;
+    }
+    .back-link:hover{
+      color:#c7d2fe;
+      text-decoration:underline;
+    }
     .meta{
       display:flex;
       flex-wrap:wrap;
@@ -126,6 +136,7 @@
 <body>
   <div class="card">
     <h2>Support Request <%= request.id %></h2>
+    <a class="back-link" href="/support">&lt;-- Back</a>
     <div class="meta">
       <span class="pill">Category: <%= request.category %></span>
       <span class="pill">Status: <%= request.status || "Awaiting Support Reply" %></span>
