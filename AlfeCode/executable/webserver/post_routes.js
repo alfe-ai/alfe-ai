@@ -294,6 +294,9 @@ function setupPostRoutes(deps) {
         if (!reply) {
             return res.status(500).json({ error: "Unable to create support reply." });
         }
+        if (role === "admin") {
+            await rdsStore.markSupportRequestReplied({ requestId });
+        }
         return res.json({ success: true, reply });
     });
 
