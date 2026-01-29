@@ -2244,7 +2244,11 @@ ${cleanedFinalOutput}`;
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
     app.get('/agent/model-only', (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
-        res.render('model_only', { showGitLogButtonTarget: !hideGitLogButtonTarget });
+        const apiPanelEnabled = parseBooleanFlag(process.env.API_PANEL_ENABLED);
+        res.render('model_only', {
+            showGitLogButtonTarget: !hideGitLogButtonTarget,
+            apiPanelEnabled,
+        });
     });
     app.get('/support', async (req, res) => {
         const account = await requireSupportPlan(req, res);
