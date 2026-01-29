@@ -30,6 +30,7 @@ ALFECODE_VM_SSH_PORT="${ALFECODE_VM_SSH_PORT:-}"
 ALFECODE_VM_USER="${ALFECODE_VM_USER:-root}"
 USE_QWEN_CLI=false
 QWEN_ARGS=()
+QWEN_MODEL=""
 
 escape_config_value() {
   local value="$1"
@@ -138,6 +139,7 @@ Use --openrouter-referer/--openrouter-title to override the HTTP headers used wh
 Default: openrouter/openai/gpt-5-mini.
 
 Use --qwen-cli to run qwen directly instead of the Agent CLI.
+Use --qwen-model to supply a qwen model id when running with --qwen-cli.
 
 If no task is provided, an interactive Agent session is started.
 
@@ -250,6 +252,9 @@ while [[ $# -gt 0 ]]; do
       OPENROUTER_TITLE_OVERRIDE="$2"; shift 2 ;;
     --qwen-cli)
       USE_QWEN_CLI=true; shift ;;
+    --qwen-model)
+      [[ $# -ge 2 ]] || { echo "Error: --qwen-model requires a model id" >&2; exit 1; }
+      QWEN_MODEL="$2"; shift 2 ;;
     --help|-h)
       usage; exit 0 ;;
     --) shift; break ;;
@@ -682,6 +687,9 @@ if $USE_QWEN_CLI; then
     exit 1
   fi
   QWEN_ARGS=(-p "$TASK" -y)
+  if [[ -n "$QWEN_MODEL" ]]; then
+    QWEN_ARGS=(-m "$QWEN_MODEL" "${QWEN_ARGS[@]}")
+  fi
 fi
 
 if [[ -z "$TASK" ]] && ! $USE_QWEN_CLI; then
