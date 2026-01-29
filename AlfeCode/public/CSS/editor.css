@@ -272,6 +272,10 @@ body {
     user-select: none;
 }
 
+.editor-sidebar .repo-tree-header {
+    justify-content: flex-end;
+}
+
 .editor-sidebar .collapsible-content {
     max-height: 420px;
     overflow-y: auto;
@@ -290,6 +294,10 @@ body {
 }
 
 .sidebar-toggle-button {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(30, 41, 59, 0.6);
     border: 1px solid rgba(148, 163, 184, 0.4);
     color: #e2e8f0;
