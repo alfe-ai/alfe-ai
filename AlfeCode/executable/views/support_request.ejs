@@ -58,6 +58,7 @@
     <h2>Support Request <%= request.id %></h2>
     <div class="meta">
       <span class="pill">Category: <%= request.category %></span>
+      <span class="pill">Status: <%= request.status || "Awaiting Support Reply" %></span>
       <span>Submitted: <%= request.created_at %></span>
       <% if (request.email) { %>
         <span>Email: <%= request.email %></span>

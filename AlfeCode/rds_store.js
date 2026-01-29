@@ -6,6 +6,7 @@ const SETTINGS_TABLE = "settings";
 const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
+const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
 
 function normalizeHost(host) {
   if (host === "::1") return "127.0.0.1";
@@ -101,8 +102,19 @@ class RdsStore {
         email TEXT DEFAULT '',
         category TEXT NOT NULL,
         message TEXT NOT NULL,
-        user_agent TEXT DEFAULT ''
+        user_agent TEXT DEFAULT '',
+        status TEXT NOT NULL DEFAULT '${SUPPORT_REQUEST_DEFAULT_STATUS}'
       );`);
+      await this.pool.query(
+        `ALTER TABLE ${SUPPORT_REQUESTS_TABLE}
+         ADD COLUMN IF NOT EXISTS status TEXT DEFAULT '${SUPPORT_REQUEST_DEFAULT_STATUS}'`
+      );
+      await this.pool.query(
+        `UPDATE ${SUPPORT_REQUESTS_TABLE}
+         SET status = $1
+         WHERE status IS NULL OR status = ''`,
+        [SUPPORT_REQUEST_DEFAULT_STATUS]
+      );
       await this.loadAllSettings();
       this.ready = true;
     } catch (error) {
@@ -312,9 +324,9 @@ class RdsStore {
     try {
       const result = await this.pool.query(
         `INSERT INTO ${SUPPORT_REQUESTS_TABLE}
-         (created_at, session_id, account_id, email, category, message, user_agent)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING id, created_at`,
+         (created_at, session_id, account_id, email, category, message, user_agent, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id, created_at, status`,
         [
           new Date().toISOString(),
           (sessionId || "").toString().trim(),
@@ -323,6 +335,7 @@ class RdsStore {
           normalizedCategory,
           normalizedMessage,
           (userAgent || "").toString().trim(),
+          SUPPORT_REQUEST_DEFAULT_STATUS,
         ]
       );
       return result.rows[0] || null;
@@ -353,7 +366,7 @@ class RdsStore {
 
     try {
       const result = await this.pool.query(
-        `SELECT id, created_at, category, message
+        `SELECT id, created_at, category, message, status
          FROM ${SUPPORT_REQUESTS_TABLE}
          WHERE ${whereClause}
          ORDER BY created_at DESC
@@ -388,7 +401,7 @@ class RdsStore {
 
     try {
       const result = await this.pool.query(
-        `SELECT id, created_at, category, message, email
+        `SELECT id, created_at, category, message, email, status
          FROM ${SUPPORT_REQUESTS_TABLE}
          WHERE ${whereClause}
          LIMIT 1`,

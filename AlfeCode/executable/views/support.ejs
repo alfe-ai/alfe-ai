@@ -219,7 +219,8 @@
 
         const meta = document.createElement('div');
         meta.className = 'support-request-meta';
-        meta.innerHTML = `<span>Category: ${request.category}</span><span>Submitted: ${formatSupportDate(request.created_at)}</span><span>ID: ${request.id}</span>`;
+        const statusLabel = request.status || 'Awaiting Support Reply';
+        meta.innerHTML = `<span>Category: ${request.category}</span><span>Status: ${statusLabel}</span><span>Submitted: ${formatSupportDate(request.created_at)}</span><span>ID: ${request.id}</span>`;
 
         const message = document.createElement('p');
         message.className = 'support-request-message';
