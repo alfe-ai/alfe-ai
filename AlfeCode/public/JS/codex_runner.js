@@ -6231,16 +6231,14 @@ const appendMergeChunk = (text, type = "output") => {
 
     if (stdoutOutputEl) {
       stdoutOutputEl.innerHTML = "";
-      if (finalOutputText) {
+      if (!runInFlight && finalOutputText) {
         appendLinesToElement(stdoutOutputEl, finalOutputText, "output");
-      } else if (runInFlight) {
-        appendLinesToElement(stdoutOutputEl, FINAL_OUTPUT_LOADING_MESSAGE, "status");
       }
     }
 
     if (outputTabsContainer) {
       const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "";
-      const shouldShowFinalOutput = hasFinalOutput || runInFlight;
+      const shouldShowFinalOutput = hasFinalOutput && !runInFlight;
       outputTabsContainer.classList.toggle("is-hidden", !shouldShowFinalOutput);
       if (!shouldShowFinalOutput && activeOutputTab === "stdout") {
         setActiveOutputTab("combined");
