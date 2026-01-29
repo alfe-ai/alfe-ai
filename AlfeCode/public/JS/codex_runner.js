@@ -5986,9 +5986,15 @@ const appendMergeChunk = (text, type = "output") => {
   let stderrCommitBuffer = "";
   let finalOutputText = "";
   let followupFinalOutputText = "";
+  let qwenCliRunActive = false;
+  let followupQwenCliRunActive = false;
+  let qwenCliOutputText = "";
+  let followupQwenCliOutputText = "";
   const FINAL_OUTPUT_LOADING_MESSAGE = "Final output is still generating…";
 
   const getActiveFinalOutputText = () => (followupRunActive ? followupFinalOutputText : finalOutputText);
+  const getActiveQwenCliRunActive = () => (followupRunActive ? followupQwenCliRunActive : qwenCliRunActive);
+  const getActiveQwenCliOutputText = () => (followupRunActive ? followupQwenCliOutputText : qwenCliOutputText);
 
   const setActiveFinalOutputText = (value) => {
     if (followupRunActive) {
@@ -5998,10 +6004,30 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
+  const setActiveQwenCliRunActive = (value) => {
+    if (followupRunActive) {
+      followupQwenCliRunActive = value;
+    } else {
+      qwenCliRunActive = value;
+    }
+  };
+
+  const setActiveQwenCliOutputText = (value) => {
+    if (followupRunActive) {
+      followupQwenCliOutputText = value;
+    } else {
+      qwenCliOutputText = value;
+    }
+  };
+
   const resetFinalOutput = () => {
     stderrCommitBuffer = "";
     finalOutputText = "";
     followupFinalOutputText = "";
+    qwenCliOutputText = "";
+    followupQwenCliOutputText = "";
+    qwenCliRunActive = false;
+    followupQwenCliRunActive = false;
     if (stdoutOutputEl) {
       stdoutOutputEl.innerHTML = "";
     }
@@ -6133,6 +6159,18 @@ const appendMergeChunk = (text, type = "output") => {
       return stdoutCandidate;
     }
 
+    if (run.qwenCli === true) {
+      const stdoutText = typeof run.stdout === "string" ? run.stdout : "";
+      const stderrText = typeof run.stderr === "string" ? run.stderr : "";
+      if (stdoutText && stderrText) {
+        const separator = stdoutText.endsWith("\n") ? "" : "\n";
+        return `${stdoutText}${separator}${stderrText}`;
+      }
+      if (stdoutText || stderrText) {
+        return stdoutText || stderrText;
+      }
+    }
+
     return "";
   };
 
@@ -6230,6 +6268,19 @@ const appendMergeChunk = (text, type = "output") => {
     }
     stderrCommitBuffer += cleanedChunk;
     extractCommitMessageFromBuffer();
+  };
+
+  const appendQwenCliOutputChunk = (chunk) => {
+    if (!getActiveQwenCliRunActive()) {
+      return;
+    }
+    if (typeof chunk !== "string" || !chunk) {
+      return;
+    }
+    const updated = `${getActiveQwenCliOutputText()}${chunk}`;
+    setActiveQwenCliOutputText(updated);
+    setActiveFinalOutputText(updated);
+    updateFinalOutputDisplay();
   };
 
   const handleSnapshotProjectDirDetected = (snapshotDir) => {
@@ -6730,6 +6781,8 @@ const appendMergeChunk = (text, type = "output") => {
       suppressStdoutOutput = false;
       stderrCommitBuffer = "";
       setActiveFinalOutputText("");
+      followupQwenCliRunActive = false;
+      followupQwenCliOutputText = "";
       if (session) {
         session.outputValue = "";
         session.finalValue = "";
@@ -6744,6 +6797,8 @@ const appendMergeChunk = (text, type = "output") => {
     } else {
       followupRunActive = false;
       clearOutput();
+      qwenCliRunActive = false;
+      qwenCliOutputText = "";
     }
     if (!continuingExistingRun) {
       updatePromptPreview(prompt);
@@ -6810,6 +6865,8 @@ const appendMergeChunk = (text, type = "output") => {
       if (!runIdValue) {
         return;
       }
+      const qwenCliFlag = payload && payload.qwenCli === true;
+      setActiveQwenCliRunActive(qwenCliFlag);
       const projectDirFromPayload = payload && typeof payload.projectDir === "string"
         ? normaliseProjectDir(payload.projectDir)
         : "";
@@ -6870,6 +6927,7 @@ const appendMergeChunk = (text, type = "output") => {
         handleGitFpushCompletionMessage(sanitizedText);
         captureGitFpushRevisionFromText(sanitizedText);
         appendChunk(sanitizedText);
+        appendQwenCliOutputChunk(sanitizedText);
         if (gitFpushActive) {
           captureGitFpushDiffCandidates(
             sanitizedText,
@@ -6894,6 +6952,7 @@ const appendMergeChunk = (text, type = "output") => {
         handleGitFpushCompletionMessage(sanitizedText);
         captureGitFpushRevisionFromText(sanitizedText);
         processCommitMessageChunk(sanitizedText);
+        appendQwenCliOutputChunk(sanitizedText);
         appendChunk(sanitizedText, "stderr");
       }
     });
