@@ -1685,6 +1685,11 @@ ${cleanedFinalOutput}`;
         const qwenCli = Boolean(entry.qwen_cli);
         const qwenCliModel = typeof entry.qwen_cli_model === "string" ? entry.qwen_cli_model.trim() : "";
         const listOrder = coerceNumber(entry.list_order);
+        const engineOptions = Array.isArray(entry.engine_options)
+            ? entry.engine_options
+                .map((option) => (typeof option === "string" ? option.trim() : ""))
+                .filter(Boolean)
+            : null;
         const pricing = entry.pricing && typeof entry.pricing === "object"
             ? {
                 inputPerMTokens: coerceNumber(entry.pricing.inputPerMTokens),
@@ -1701,6 +1706,7 @@ ${cleanedFinalOutput}`;
             disabled,
             qwen_cli: qwenCli,
             qwen_cli_model: qwenCliModel || null,
+            engine_options: engineOptions,
             list_order: Number.isFinite(listOrder) ? listOrder : null,
             pricing,
         };

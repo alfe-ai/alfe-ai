@@ -4,7 +4,8 @@
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
   const ENGINE_STORAGE_KEY = 'enginePreference';
-  const ENGINE_OPTIONS = new Set(['auto', 'qwen', 'codex']);
+  const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
+  const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
 
   let activeProvider = '';
 
@@ -79,12 +80,18 @@
     const label = typeof entry.label === 'string' && entry.label.trim().length ? entry.label.trim() : id;
     const disabled = Boolean(entry.disabled);
     const contextLimitLabel = typeof entry.contextLimitLabel === 'string' ? entry.contextLimitLabel.trim() : '';
+    const engineOptions = Array.isArray(entry.engine_options)
+      ? entry.engine_options
+          .map(option => (typeof option === 'string' ? option.trim() : ''))
+          .filter(Boolean)
+      : null;
     return {
       id,
       label,
       disabled,
       pricing: entry.pricing || null,
       contextLimitLabel,
+      engine_options: engineOptions,
     };
   }
 
@@ -158,6 +165,40 @@
     modelSelect.disabled = false;
   }
 
+  function resolveAllowedEngines(modelId) {
+    if (!modelId) return ENGINE_OPTION_ORDER.slice();
+    const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+    const raw = list.find(entry => entry && entry.id === modelId);
+    const model = normaliseModelEntry(raw);
+    const rawOptions = Array.isArray(model?.engine_options) ? model.engine_options : [];
+    const normalized = rawOptions
+      .map(option => normalizeEngine(option))
+      .filter((option, index, arr) => option && arr.indexOf(option) === index);
+    return normalized.length ? normalized : ENGINE_OPTION_ORDER.slice();
+  }
+
+  function updateEngineSelect(modelId) {
+    if (!engineSelect) return;
+    const allowed = new Set(resolveAllowedEngines(modelId));
+    Array.from(engineSelect.options).forEach(option => {
+      const value = normalizeEngine(option.value);
+      const isAllowed = allowed.has(value);
+      option.disabled = !isAllowed;
+      option.classList.toggle('engine-option-disabled', !isAllowed);
+    });
+    let nextValue = normalizeEngine(engineSelect.value);
+    if (!allowed.has(nextValue)) {
+      nextValue = allowed.has('auto') ? 'auto' : Array.from(allowed)[0] || 'auto';
+      engineSelect.value = nextValue;
+      try {
+        localStorage.setItem(ENGINE_STORAGE_KEY, nextValue);
+      } catch (error) {
+        /* ignore */
+      }
+      sendEnginePreference(nextValue);
+    }
+  }
+
   function notifyDefaultModelChange(model) {
     if (!model) return;
     if (window.parent && window.parent !== window) {
@@ -221,6 +262,7 @@
       if (data.defaultModel && modelSelect) {
         modelSelect.value = data.defaultModel;
       }
+      updateEngineSelect(modelSelect.value);
       if (info) info.textContent = '';
     } catch (e) {
       if (info) info.textContent = 'Error loading models: ' + e.message;
@@ -251,6 +293,7 @@
 
   modelSelect.addEventListener('change', function(){
     const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
+    updateEngineSelect(newModel);
     void saveDefaultModel(newModel);
   });
 
