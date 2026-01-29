@@ -160,6 +160,17 @@ load_env_file() {
   return 1
 }
 
+load_qwen_env() {
+  local env_path=""
+  if env_path="$(load_env_file "$STERLING_ROOT")"; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$env_path"
+    set +a
+    log_meta "Loaded Qwen CLI env vars from $env_path"
+  fi
+}
+
 infer_codex_provider() {
   local model="$1"
   if [[ "$model" == openrouter/* ]]; then
@@ -391,13 +402,27 @@ run_codex() {
 }
 
 run_qwen() {
+  load_qwen_env
+  local openai_api_key_value="${OPENAI_API_KEY:-}"
+  local openai_base_url_value="${OPENAI_BASE_URL:-}"
+  local openai_model_value="${OPENAI_MODEL:-}"
   local -a cmd=(qwen "$@")
   if command -v stdbuf >/dev/null 2>&1; then
     cmd=(stdbuf -o0 -e0 "${cmd[@]}")
   fi
+  cmd=(
+    env
+    "OPENAI_API_KEY=${openai_api_key_value}"
+    "OPENAI_BASE_URL=${openai_base_url_value}"
+    "OPENAI_MODEL=${openai_model_value}"
+    "${cmd[@]}"
+  )
   printf '[qwen] Launching qwen CLI...\n'
   printf '[qwen] cwd=%s\n' "$(pwd)"
   printf '[qwen] args=%s\n' "$(build_shell_command "${cmd[@]}")"
+  printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
+  printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
+  printf '[qwen] env OPENAI_MODEL=%s\n' "$openai_model_value"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     printf '[qwen] model=%s\n' "$QWEN_MODEL"
   fi
