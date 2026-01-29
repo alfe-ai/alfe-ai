@@ -1690,6 +1690,7 @@ ${cleanedFinalOutput}`;
                 .map((option) => (typeof option === "string" ? option.trim() : ""))
                 .filter(Boolean)
             : null;
+        const plusModel = Boolean(entry.plus_model);
         const pricing = entry.pricing && typeof entry.pricing === "object"
             ? {
                 inputPerMTokens: coerceNumber(entry.pricing.inputPerMTokens),
@@ -1708,11 +1709,12 @@ ${cleanedFinalOutput}`;
             qwen_cli_model: qwenCliModel || null,
             engine_options: engineOptions,
             list_order: Number.isFinite(listOrder) ? listOrder : null,
+            plus_model: plusModel,
             pricing,
         };
     }
 
-    function loadModelOnlyModels() {
+    function loadModelOnlyModels({ includePlus = true } = {}) {
         try {
             const resolvedPath = fs.existsSync(modelOnlyConfigPath)
                 ? modelOnlyConfigPath
@@ -1739,7 +1741,10 @@ ${cleanedFinalOutput}`;
             const normalised = models
                 .map((model) => normaliseModelOnlyEntry(model, modelLookup))
                 .filter(Boolean);
-            return normalised
+            const visibleModels = includePlus
+                ? normalised
+                : normalised.filter((model) => !model.plus_model);
+            return visibleModels
                 .map((model, index) => ({ model, index }))
                 .sort((a, b) => {
                     const aOrder = Number.isFinite(a.model.list_order) ? a.model.list_order : null;
@@ -4399,7 +4404,11 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/agent/model-only/models", (_req, res) => {
-        const models = loadModelOnlyModels();
+        const showPlusModels = parseBooleanFlag(process.env.PLUS_MODELS_VISIBLE);
+        const allModels = loadModelOnlyModels({ includePlus: true });
+        const models = showPlusModels
+            ? allModels
+            : allModels.filter((model) => !model.plus_model);
         const openRouterLookup = normaliseModelList(
             AIModels?.openrouter || [],
             AIModelContextLimits?.openrouter || {},
@@ -4419,15 +4428,20 @@ ${cleanedFinalOutput}`;
         const defaultProvider = "openrouter";
         const resolvedDefaultModel = resolveDefaultCodexModel();
         if (resolvedDefaultModel) {
+            const plusModelIds = new Set(
+                allModels.filter((model) => model && model.plus_model).map((model) => model.id),
+            );
             const hasDefault = providerModels.openrouter.some((model) => model && model.id === resolvedDefaultModel);
             if (!hasDefault && !disabledModelIds.has(resolvedDefaultModel)) {
-                const fallbackModel = openRouterLookup[resolvedDefaultModel];
-                providerModels.openrouter.push({
-                    id: resolvedDefaultModel,
-                    label: resolvedDefaultModel,
-                    max_tokens: Number.isFinite(fallbackModel?.max_tokens) ? fallbackModel.max_tokens : null,
-                    contextLimitLabel: formatTokenLimit(fallbackModel?.max_tokens),
-                });
+                if (showPlusModels || !plusModelIds.has(resolvedDefaultModel)) {
+                    const fallbackModel = openRouterLookup[resolvedDefaultModel];
+                    providerModels.openrouter.push({
+                        id: resolvedDefaultModel,
+                        label: resolvedDefaultModel,
+                        max_tokens: Number.isFinite(fallbackModel?.max_tokens) ? fallbackModel.max_tokens : null,
+                        contextLimitLabel: formatTokenLimit(fallbackModel?.max_tokens),
+                    });
+                }
             }
         }
 
