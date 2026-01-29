@@ -7611,16 +7611,36 @@ const appendMergeChunk = (text, type = "output") => {
             ...(currentSessionId ? { sessionId: currentSessionId } : {})
           })
         });
-        const data = await resp.json().catch(() => null);
+        let responseText = "";
+        let data = null;
+        try {
+          responseText = await resp.text();
+          if (responseText) {
+            try {
+              data = JSON.parse(responseText);
+            } catch (parseError) {
+              console.warn("Registration response was not JSON", parseError);
+            }
+          }
+        } catch (readError) {
+          console.warn("Unable to read registration response body", readError);
+        }
         if (resp.ok && data && data.success) {
           showToast("Registered!");
           hideAuthModal();
         } else {
-          showToast(data?.error || "Registration failed");
+          if (!resp.ok) {
+            console.warn("Registration request failed", {
+              status: resp.status,
+              statusText: resp.statusText,
+              responseText
+            });
+          }
+          showToast(data?.error || responseText || `Registration failed (status ${resp.status})`);
         }
       } catch (err) {
         console.error("Registration failed", err);
-        showToast("Registration failed");
+        showToast(`Registration failed${err?.message ? `: ${err.message}` : ""}`);
       }
     });
   }
