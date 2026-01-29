@@ -17,7 +17,9 @@
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
     loggedOut: { search: 10, images: 10 },
-    loggedIn: { search: 100, images: 100 },
+    free: { search: 10, images: 10 },
+    lite: { search: 100, images: 100 },
+    pro: { search: 500, images: 500 },
   };
 
   let activeProvider = '';
@@ -208,6 +210,14 @@
     }
   }
 
+  function resolveUsageLimits(plan) {
+    const normalized = (plan || '').toString().trim();
+    if (normalized === 'Pro') return USAGE_LIMITS.pro;
+    if (normalized === 'Lite') return USAGE_LIMITS.lite;
+    if (normalized === 'Free') return USAGE_LIMITS.free;
+    return USAGE_LIMITS.loggedOut;
+  }
+
   function setAccountVisibility(visible) {
     if (!accountPanel) return;
     accountPanel.classList.toggle('hidden', !visible);
@@ -259,6 +269,7 @@
         throw new Error(errorMessage);
       }
       setAccountPlanValue(payload?.plan || newPlan);
+      applyUsageLimits(resolveUsageLimits(payload?.plan || newPlan));
       showAccountPlanFeedback('Plan updated.', 'success');
     } catch (error) {
       console.error('Failed to save account plan:', error);
@@ -279,7 +290,7 @@
       const response = await fetch('/api/account', { credentials: 'same-origin' });
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
-        applyUsageLimits(USAGE_LIMITS.loggedIn);
+        applyUsageLimits(resolveUsageLimits(payload.plan));
         setAccountField(accountEmail, payload.email);
         setAccountPlanValue(payload.plan);
         setAccountField(accountSession, payload.sessionId);
