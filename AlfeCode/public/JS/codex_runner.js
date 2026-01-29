@@ -7415,6 +7415,81 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
+  const stopDragging = (shouldPersist = true) => {
+    if (!dragging) {
+      return;
+    }
+    dragging = false;
+    document.body.style.userSelect = '';
+    document.body.classList.remove('is-resizing');
+    if (shouldPersist && currentWidth) {
+      persistWidth(currentWidth);
+    }
+  };
+
+  const resetForLayout = () => {
+    if (!isDesktop()) {
+      stopDragging(false);
+      currentWidth = null;
+      pageShell.style.removeProperty('--runs-sidebar-width');
+      return;
+    }
+    const stored = readStoredWidth();
+    if (stored) {
+      applyWidth(stored);
+    }
+  };
+
+  const storedWidth = readStoredWidth();
+  if (storedWidth && isDesktop()) {
+    applyWidth(storedWidth);
+  }
+
+  resizer.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    if (!isDesktop()) {
+      return;
+    }
+    dragging = true;
+    document.body.style.userSelect = 'none';
+    document.body.classList.add('is-resizing');
+    event.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (event) => {
+    if (!dragging) {
+      return;
+    }
+    if (!isDesktop()) {
+      stopDragging(false);
+      return;
+    }
+    const rect = pageShell.getBoundingClientRect();
+    const nextWidth = Math.round(event.clientX - rect.left);
+    applyWidth(nextWidth);
+  });
+
+  const finishDrag = () => stopDragging(true);
+  window.addEventListener('mouseup', finishDrag);
+  window.addEventListener('blur', () => stopDragging(true));
+
+  window.addEventListener('resize', resetForLayout);
+
+  resizer.addEventListener('dblclick', () => {
+    clearPersistedWidth();
+    currentWidth = null;
+    pageShell.style.removeProperty('--runs-sidebar-width');
+    resetForLayout();
+  });
+
+  resetForLayout();
+})();
+
+// Account/auth modal handling
+(function() {
+  const config = window.CODEX_RUNNER_CONFIG || {};
   const signUpLogInBtn = document.getElementById("signUpLogInBtn");
   const accountButtonEnabled = config.accountButtonEnabled !== false;
   const authModal = document.getElementById("authModal");
@@ -7425,8 +7500,6 @@ const appendMergeChunk = (text, type = "output") => {
   const sterlingSettingsIframe = document.getElementById("sterlingSettingsIframe");
   const authEmailInput = document.getElementById("authEmailInput");
   const authEmailContinueBtn = document.getElementById("authEmailContinueBtn");
-  const loginForm = document.getElementById("loginForm");
-  const signupForm = document.getElementById("signupForm");
   const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
   const signupChangeEmailBtn = document.getElementById("signupChangeEmailBtn");
   const toastEl = document.getElementById("toast");
@@ -8022,75 +8095,4 @@ const appendMergeChunk = (text, type = "output") => {
   }
 
   fetchAccountInfo();
-
-  const stopDragging = (shouldPersist = true) => {
-    if (!dragging) {
-      return;
-    }
-    dragging = false;
-    document.body.style.userSelect = '';
-    document.body.classList.remove('is-resizing');
-    if (shouldPersist && currentWidth) {
-      persistWidth(currentWidth);
-    }
-  };
-
-  const resetForLayout = () => {
-    if (!isDesktop()) {
-      stopDragging(false);
-      currentWidth = null;
-      pageShell.style.removeProperty('--runs-sidebar-width');
-      return;
-    }
-    const stored = readStoredWidth();
-    if (stored) {
-      applyWidth(stored);
-    }
-  };
-
-  const storedWidth = readStoredWidth();
-  if (storedWidth && isDesktop()) {
-    applyWidth(storedWidth);
-  }
-
-  resizer.addEventListener('mousedown', (event) => {
-    if (event.button !== 0) {
-      return;
-    }
-    if (!isDesktop()) {
-      return;
-    }
-    dragging = true;
-    document.body.style.userSelect = 'none';
-    document.body.classList.add('is-resizing');
-    event.preventDefault();
-  });
-
-  window.addEventListener('mousemove', (event) => {
-    if (!dragging) {
-      return;
-    }
-    if (!isDesktop()) {
-      stopDragging(false);
-      return;
-    }
-    const rect = pageShell.getBoundingClientRect();
-    const nextWidth = Math.round(event.clientX - rect.left);
-    applyWidth(nextWidth);
-  });
-
-  const finishDrag = () => stopDragging(true);
-  window.addEventListener('mouseup', finishDrag);
-  window.addEventListener('blur', () => stopDragging(true));
-
-  window.addEventListener('resize', resetForLayout);
-
-  resizer.addEventListener('dblclick', () => {
-    clearPersistedWidth();
-    currentWidth = null;
-    pageShell.style.removeProperty('--runs-sidebar-width');
-    resetForLayout();
-  });
-
-  resetForLayout();
 })();
