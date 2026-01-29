@@ -409,6 +409,17 @@ run_qwen() {
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     openai_model_value="$QWEN_MODEL"
   fi
+  local strip_free_suffix
+  strip_free_suffix() {
+    local value="$1"
+    printf '%s' "${value%:free}"
+  }
+  local display_openai_model_value
+  display_openai_model_value="$(strip_free_suffix "$openai_model_value")"
+  local display_qwen_model_value=""
+  if [[ -n "${QWEN_MODEL:-}" ]]; then
+    display_qwen_model_value="$(strip_free_suffix "$QWEN_MODEL")"
+  fi
   local -a cmd=(qwen "$@")
   local -a display_cmd=("${cmd[@]}")
   if command -v stdbuf >/dev/null 2>&1; then
@@ -428,14 +439,29 @@ run_qwen() {
   else
     display_cmd=("${cmd[@]}")
   fi
+  local -a display_args=()
+  local expects_model_arg=false
+  local model_value=""
+  for arg in "${display_cmd[@]}"; do
+    if $expects_model_arg; then
+      arg="$(strip_free_suffix "$arg")"
+      expects_model_arg=false
+    elif [[ "$arg" == "-m" || "$arg" == "--model" ]]; then
+      expects_model_arg=true
+    elif [[ "$arg" == OPENAI_MODEL=* ]]; then
+      model_value="${arg#OPENAI_MODEL=}"
+      arg="OPENAI_MODEL=$(strip_free_suffix "$model_value")"
+    fi
+    display_args+=("$arg")
+  done
   printf '[qwen] Launching qwen CLI...\n'
   printf '[qwen] cwd=%s\n' "$(pwd)"
-  printf '[qwen] args=%s\n' "$(build_shell_command "${display_cmd[@]}")"
+  printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
   #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
   printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
-  printf '[qwen] env OPENAI_MODEL=%s\n' "$openai_model_value"
+  printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
-    printf '[qwen] model=%s\n' "$QWEN_MODEL"
+    printf '[qwen] model=%s\n' "$display_qwen_model_value"
   fi
   printf '[qwen] meta=%s\n' "${CODEX_SHOW_META:-0}"
   "${cmd[@]}" 2>&1
