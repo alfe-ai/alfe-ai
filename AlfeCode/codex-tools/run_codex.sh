@@ -10,14 +10,15 @@ set -euo pipefail
 # Env overrides:
 #   CODEX_DIR   : where Agent is installed (default below)
 #   PROJECT_DIR : directory to run the CLI in (same as --project-dir)
-#   CODEX_MODEL : default model to use (fallback: openrouter/openai/gpt-5-mini)
+#   CODEX_MODEL : default model to use (fallback: first model in data/config/model_only_models.json)
 
 CODEX_DIR_DEFAULT='/git/codex'
 CODEX_DIR="${CODEX_DIR:-$CODEX_DIR_DEFAULT}"
 CODEX_DIR_53="${CODEX_DIR_53:-}"
 PROJECT_DIR="${PROJECT_DIR:-}"
-CODEX_MODEL_DEFAULT='openrouter/openai/gpt-5-mini'
-MODEL="${MODEL:-${CODEX_MODEL:-$CODEX_MODEL_DEFAULT}}"
+CODEX_MODEL_DEFAULT_FALLBACK='openrouter/openai/gpt-5-mini'
+CODEX_MODEL_DEFAULT=''
+MODEL=""
 CODEX_SNAPSHOT_MARKER='::CODEX_RUNNER_PROJECT_DIR::'
 CODEX_API_KEY_VARS=("OPENAI_API_KEY" "OPENROUTER_API_KEY")
 REQUESTED_PROVIDER=""
@@ -42,6 +43,77 @@ escape_config_value() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STERLING_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 GLOBAL_TASK_COUNTER_CLI="${GLOBAL_TASK_COUNTER_CLI:-${STERLING_ROOT}/executable/globalTaskCounter.js}"
+
+resolve_model_only_default() {
+  local config_path="${STERLING_ROOT}/data/config/model_only_models.json"
+  local resolved_path=""
+
+  if [[ -f "$config_path" ]]; then
+    resolved_path="$config_path"
+  fi
+
+  if [[ -z "$resolved_path" ]]; then
+    return 1
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$resolved_path" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+except Exception:
+    sys.exit(1)
+
+if isinstance(data, dict):
+    models = data.get("models", data)
+elif isinstance(data, list):
+    models = data
+else:
+    sys.exit(1)
+
+if isinstance(models, dict):
+    models = list(models.values())
+
+if not isinstance(models, list):
+    sys.exit(1)
+
+entries = []
+for idx, model in enumerate(models):
+    if isinstance(model, str):
+        model = {"id": model}
+    if not isinstance(model, dict):
+        continue
+    model_id = model.get("id")
+    if not isinstance(model_id, str):
+        continue
+    list_order = model.get("list_order")
+    if not isinstance(list_order, (int, float)):
+        list_order = None
+    entries.append((list_order, idx, model_id.strip()))
+
+if not entries:
+    sys.exit(1)
+
+entries.sort(key=lambda item: (item[0] is None, item[0] if item[0] is not None else 0, item[1]))
+print(entries[0][2])
+PY
+    return $?
+  fi
+
+  return 1
+}
+
+if CODEX_MODEL_DEFAULT="$(resolve_model_only_default)"; then
+  CODEX_MODEL_DEFAULT="${CODEX_MODEL_DEFAULT:-$CODEX_MODEL_DEFAULT_FALLBACK}"
+else
+  CODEX_MODEL_DEFAULT="$CODEX_MODEL_DEFAULT_FALLBACK"
+fi
+
+MODEL="${MODEL:-${CODEX_MODEL:-$CODEX_MODEL_DEFAULT}}"
 
 meta_line_text() {
   printf '[meta] %s' "$1"
@@ -136,7 +208,7 @@ without changing your current shell's cwd.
 
 Use --model (or set CODEX_MODEL/MODEL env vars) to pick a specific OpenAI model.
 Use --openrouter-referer/--openrouter-title to override the HTTP headers used when contacting OpenRouter.
-Default: openrouter/openai/gpt-5-mini.
+Default: first model in data/config/model_only_models.json (fallback: openrouter/openai/gpt-5-mini).
 
 Use --qwen-cli to run qwen directly instead of the Agent CLI.
 Use --qwen-model to supply a qwen model id when running with --qwen-cli.
