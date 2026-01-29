@@ -6132,6 +6132,7 @@ const appendMergeChunk = (text, type = "output") => {
       /warning:\s*git pull failed/i,
       /continuing without updated changes/i,
       /switched to a new branch/i,
+      /and the repository exists\./i,
     ];
 
     for (const line of lines) {
