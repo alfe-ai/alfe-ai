@@ -13,6 +13,8 @@
   const accountSession = document.getElementById('accountSession');
   const logoutButton = document.getElementById('logoutButton');
   const logoutFeedback = document.getElementById('logoutFeedback');
+  const supportPlanNotice = document.getElementById('supportPlanNotice');
+  const supportActionButton = document.getElementById('supportActionButton');
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
@@ -35,6 +37,18 @@
 
   function isProPlan(plan) {
     return plan === 'Pro';
+  }
+
+  function updateSupportCallToAction(plan) {
+    if (!supportPlanNotice && !supportActionButton) return;
+    const normalized = (plan || '').toString().trim();
+    const isPaidPlan = normalized === 'Lite' || normalized === 'Pro';
+    if (supportPlanNotice) {
+      supportPlanNotice.classList.toggle('hidden', isPaidPlan);
+    }
+    if (supportActionButton) {
+      supportActionButton.textContent = isPaidPlan ? 'Go to Support' : 'Subscribe Now';
+    }
   }
 
   function sendEnginePreference(value) {
@@ -274,6 +288,7 @@
     accountPlanSelect.value = planValue;
     currentAccountPlan = planValue;
     updateProModelOptions();
+    updateSupportCallToAction(planValue);
   }
 
   function updateProModelOptions() {
