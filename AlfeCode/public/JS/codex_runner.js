@@ -223,6 +223,7 @@ Try: ${suggestion}`;
   const runsSidebarPrevPageButton = document.getElementById("runsSidebarPrevPage");
   const runsSidebarNextPageButton = document.getElementById("runsSidebarNextPage");
   const runsSidebarPageIndicator = document.getElementById("runsSidebarPageIndicator");
+  const runsSidebarArchiveAllButton = document.getElementById("runsSidebarArchiveAllButton");
 
   const updateRepoTriggerLabel = (projectName, projectDir) => {
     if (repoNameEl) {
@@ -4825,7 +4826,7 @@ const appendMergeChunk = (text, type = "output") => {
       return;
     }
 
-    if (!runsSidebarFilteredTotal || runsSidebarTotalPages <= 1) {
+    if (!runsSidebarFilteredTotal) {
       runsSidebarPaginationEl.classList.add("is-hidden");
       if (runsSidebarPrevPageButton) {
         runsSidebarPrevPageButton.disabled = true;
@@ -4834,6 +4835,10 @@ const appendMergeChunk = (text, type = "output") => {
       if (runsSidebarNextPageButton) {
         runsSidebarNextPageButton.disabled = true;
         runsSidebarNextPageButton.setAttribute("aria-disabled", "true");
+      }
+      if (runsSidebarArchiveAllButton) {
+        runsSidebarArchiveAllButton.disabled = true;
+        runsSidebarArchiveAllButton.setAttribute("aria-disabled", "true");
       }
       return;
     }
@@ -4855,6 +4860,13 @@ const appendMergeChunk = (text, type = "output") => {
       const disabled = runsSidebarCurrentPage >= runsSidebarTotalPages;
       runsSidebarNextPageButton.disabled = disabled;
       runsSidebarNextPageButton.setAttribute("aria-disabled", disabled ? "true" : "false");
+    }
+    if (runsSidebarArchiveAllButton) {
+      const hasUnarchivedRuns = Array.isArray(runsSidebarFilteredRuns)
+        && runsSidebarFilteredRuns.some((run) => run && !run.archived);
+      const disabled = runsSidebarShowArchived || !hasUnarchivedRuns || runsSidebarIsLoading;
+      runsSidebarArchiveAllButton.disabled = disabled;
+      runsSidebarArchiveAllButton.setAttribute("aria-disabled", disabled ? "true" : "false");
     }
   };
 
@@ -5472,6 +5484,39 @@ const appendMergeChunk = (text, type = "output") => {
       if (runsSidebarCurrentPage < runsSidebarTotalPages) {
         runsSidebarCurrentPage += 1;
         renderRunsSidebar(runsSidebarRuns, { preserveScroll: false });
+      }
+    });
+  }
+
+  if (runsSidebarArchiveAllButton) {
+    runsSidebarArchiveAllButton.addEventListener("click", async () => {
+      if (runsSidebarArchiveAllButton.disabled) {
+        return;
+      }
+      const previousLabel = runsSidebarArchiveAllButton.textContent;
+      runsSidebarArchiveAllButton.disabled = true;
+      runsSidebarArchiveAllButton.classList.add("is-active");
+      runsSidebarArchiveAllButton.textContent = "Archiving…";
+      try {
+        const targetProjectDir = getRunsSidebarProjectDir();
+        const query = currentSessionId ? `?sessionId=${encodeURIComponent(currentSessionId)}` : "";
+        const response = await fetch(`/agent/runs/archive-all${query}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repo_directory: targetProjectDir }),
+        });
+        if (!response.ok) {
+          console.error("[Codex Runner] Failed to archive all runs", response.status);
+        } else {
+          await loadRunsSidebar({ projectDir: getProjectDirHintForHistory(), force: true, resetPage: true });
+        }
+      } catch (error) {
+        console.error("[Codex Runner] Archive all runs failed", error);
+      } finally {
+        runsSidebarArchiveAllButton.textContent = previousLabel;
+        runsSidebarArchiveAllButton.disabled = false;
+        runsSidebarArchiveAllButton.classList.remove("is-active");
+        updateRunsSidebarPaginationUI();
       }
     });
   }
