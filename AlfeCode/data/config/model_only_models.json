@@ -2,7 +2,7 @@
   "models": [
     {
       "id": "openrouter/xiaomi/mimo-v2-flash",
-      "label": "Xiaomi: MiMo V2 Flash",
+      "label": "[Plus] Xiaomi: MiMo V2 Flash",
       "disabled": false,
       "contextTokens": 262144,
       "pricing": {
@@ -14,7 +14,7 @@
     },
     {
       "id": "openrouter/openai/gpt-5-nano",
-      "label": "OpenAI: GPT-5 Nano",
+      "label": "[Plus] OpenAI: GPT-5 Nano",
       "created": "2025-08-07",
       "contextTokens": 400000,
       "disabled": false,
@@ -51,7 +51,7 @@
     },
     {
       "id": "openrouter/qwen/qwen3-coder",
-      "label": "Qwen: Qwen3 Coder 480B A35B",
+      "label": "[Plus] Qwen: Qwen3 Coder 480B A35B",
       "created": "2025-07-23",
       "contextTokens": 262144,
       "disabled": false,
@@ -100,7 +100,7 @@
     },
     {
       "id": "openrouter/openai/gpt-oss-20b",
-      "label": "OpenAI: gpt-oss-20b",
+      "label": "[Plus] OpenAI: gpt-oss-20b",
       "created": "2025-08-05",
       "contextTokens": 131072,
       "disabled": false,
