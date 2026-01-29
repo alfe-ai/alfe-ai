@@ -395,7 +395,14 @@ run_qwen() {
   if command -v stdbuf >/dev/null 2>&1; then
     cmd=(stdbuf -o0 -e0 "${cmd[@]}")
   fi
-  "${cmd[@]}"
+  printf '[qwen] Launching qwen CLI...\n'
+  printf '[qwen] cwd=%s\n' "$(pwd)"
+  printf '[qwen] args=%s\n' "$(build_shell_command "${cmd[@]}")"
+  if [[ -n "${QWEN_MODEL:-}" ]]; then
+    printf '[qwen] model=%s\n' "$QWEN_MODEL"
+  fi
+  printf '[qwen] meta=%s\n' "${CODEX_SHOW_META:-0}"
+  "${cmd[@]}" 2>&1
 }
 
 run_codex_in_vm() {
