@@ -89,7 +89,16 @@
     const action = supportActionButton.dataset.action || supportActionState;
     if (action !== 'support') return;
     const supportUrl = supportActionButton.dataset.supportUrl || '/support';
-    window.open(supportUrl, '_blank', 'noopener,noreferrer');
+    let opened = null;
+    try {
+      const opener = window.top && window.top !== window ? window.top : window;
+      opened = opener.open(supportUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      opened = null;
+    }
+    if (!opened) {
+      window.location.assign(supportUrl);
+    }
   }
 
   function sendEnginePreference(value) {
