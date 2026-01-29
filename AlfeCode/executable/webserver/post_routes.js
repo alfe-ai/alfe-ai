@@ -275,7 +275,8 @@ function setupPostRoutes(deps) {
         const sessionId = getSessionIdFromRequest(req);
         const account = sessionId ? await rdsStore.getAccountBySession(sessionId) : null;
         const userAgent = typeof req.get === "function" ? req.get("user-agent") || "" : "";
-        const status = category === "Bug Report" ? "Bug Report Submitted" : undefined;
+        const isBugReport = category === "Bug Report";
+        const status = isBugReport ? "Bug Report Submitted" : undefined;
         const request = await rdsStore.createSupportRequest({
             sessionId,
             accountId: account?.id,
@@ -287,6 +288,13 @@ function setupPostRoutes(deps) {
         });
         if (!request) {
             return res.status(500).json({ error: "Unable to create support request." });
+        }
+        if (isBugReport) {
+            await rdsStore.createSupportRequestReply({
+                requestId: request.id,
+                role: "admin",
+                message: "Thank you for submitting a bug report. Support will not reply to all received bug reports.",
+            });
         }
         return res.json({ success: true, requestId: request.id });
     });
