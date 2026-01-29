@@ -234,7 +234,7 @@
 
   function applyUsageLimits(limits) {
     if (!limits) return;
-    setUsageLimit(codeUsageLimit, codeUsageBar, 'code', limits.code);
+    setUsageLimit(codeUsageLimit, codeUsageBar, 'code runs', limits.code);
     setUsageLimit(searchUsageLimit, searchUsageBar, 'searches', limits.search);
     setUsageLimit(imageUsageLimit, imageUsageBar, 'images', limits.images);
   }
