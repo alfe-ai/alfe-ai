@@ -101,6 +101,41 @@
     }
   }
 
+  function requestAuthModal(preferredStep = 'signup') {
+    const normalizedStep = preferredStep === 'login' ? 'login' : 'signup';
+    let opened = false;
+    try {
+      if (window.parent && window.parent !== window && typeof window.parent.alfeOpenAuthModal === 'function') {
+        window.parent.alfeOpenAuthModal(normalizedStep);
+        opened = true;
+      }
+    } catch (error) {
+      opened = false;
+    }
+    if (!opened) {
+      try {
+        if (typeof window.alfeOpenAuthModal === 'function') {
+          window.alfeOpenAuthModal(normalizedStep);
+          opened = true;
+        }
+      } catch (error) {
+        opened = false;
+      }
+    }
+    if (!opened && window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage(
+          { type: 'sterling:settings', key: 'openAuthModal', value: normalizedStep },
+          '*',
+        );
+        opened = true;
+      } catch (error) {
+        console.warn('Failed to notify parent to open auth modal.', error);
+      }
+    }
+    return opened;
+  }
+
   function sendEnginePreference(value) {
     if (window.parent && window.parent !== window) {
       try {
@@ -664,16 +699,16 @@
   if (supportActionButton) {
     supportActionButton.addEventListener('click', function() {
       if (!isLoggedOutPlan(currentAccountPlan)) return;
-      if (window.parent && window.parent !== window) {
-        try {
-          window.parent.postMessage(
-            { type: 'sterling:settings', key: 'openAuthModal', value: 'signup' },
-            '*',
-          );
-        } catch (error) {
-          console.warn('Failed to notify parent to open auth modal.', error);
-        }
-      }
+      requestAuthModal('signup');
+    });
+  }
+
+  const inlineAuthButtons = Array.from(document.querySelectorAll('.subscribe-button--inline'));
+  if (inlineAuthButtons.length) {
+    inlineAuthButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        requestAuthModal('signup');
+      });
     });
   }
 })();
