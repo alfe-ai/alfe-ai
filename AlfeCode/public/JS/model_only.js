@@ -93,6 +93,7 @@
           .map(option => (typeof option === 'string' ? option.trim() : ''))
           .filter(Boolean)
       : null;
+    const plusModel = Boolean(entry.plus_model);
     return {
       id,
       label,
@@ -100,6 +101,7 @@
       pricing: entry.pricing || null,
       contextLimitLabel,
       engine_options: engineOptions,
+      plus_model: plusModel,
     };
   }
 
@@ -165,10 +167,11 @@
       const o = document.createElement('option');
       o.value = model.id;
       const pricingText = formatPricing(model.pricing);
+      const modelLabel = model.plus_model ? `[Pro] ${model.label}` : model.label;
       const contextLimit = model.contextLimitLabel && model.contextLimitLabel !== 'N/A'
         ? model.contextLimitLabel
         : '';
-      o.textContent = pricingText ? `${model.label} — ${pricingText}` : model.label;
+      o.textContent = pricingText ? `${modelLabel} — ${pricingText}` : modelLabel;
       if (contextLimit) {
         o.appendChild(document.createTextNode(' '));
         const limitSpan = document.createElement('span');
