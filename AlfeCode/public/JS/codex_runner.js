@@ -7708,6 +7708,12 @@ const appendMergeChunk = (text, type = "output") => {
     showAuthModal();
   };
 
+  if (typeof window !== "undefined") {
+    window.alfeOpenAuthModal = (preferredStep = "signup") => {
+      openAuthModal({ preferredStep });
+    };
+  }
+
   const openSignupModal = (event) => {
     if (event) {
       event.preventDefault();
