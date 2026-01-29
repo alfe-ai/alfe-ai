@@ -5,6 +5,7 @@ const REQUIRE_RDS = process.env.ALFECODE_REQUIRE_RDS !== "false";
 const SETTINGS_TABLE = "settings";
 const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
+const SUPPORT_REQUESTS_TABLE = "support_requests";
 
 function normalizeHost(host) {
   if (host === "::1") return "127.0.0.1";
@@ -91,6 +92,16 @@ class RdsStore {
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free'
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SUPPORT_REQUESTS_TABLE} (
+        id SERIAL PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        session_id TEXT DEFAULT '',
+        account_id INTEGER,
+        email TEXT DEFAULT '',
+        category TEXT NOT NULL,
+        message TEXT NOT NULL,
+        user_agent TEXT DEFAULT ''
       );`);
       await this.loadAllSettings();
       this.ready = true;
@@ -289,6 +300,35 @@ class RdsStore {
       );
     } catch (error) {
       console.error("[RdsStore] Failed to merge sessions:", error?.message || error);
+    }
+  }
+
+  async createSupportRequest({ sessionId, accountId, email, category, message, userAgent }) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedCategory = (category || "").toString().trim();
+    const normalizedMessage = (message || "").toString().trim();
+    if (!normalizedCategory || !normalizedMessage) return null;
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO ${SUPPORT_REQUESTS_TABLE}
+         (created_at, session_id, account_id, email, category, message, user_agent)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, created_at`,
+        [
+          new Date().toISOString(),
+          (sessionId || "").toString().trim(),
+          accountId || null,
+          (email || "").toString().trim().toLowerCase(),
+          normalizedCategory,
+          normalizedMessage,
+          (userAgent || "").toString().trim(),
+        ]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("[RdsStore] Failed to create support request:", error?.message || error);
+      throw error;
     }
   }
 }
