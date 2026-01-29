@@ -156,13 +156,66 @@
     <div class="reply-panel">
       <label for="supportReply">Send a reply</label>
       <textarea id="supportReply" placeholder="Type your reply here..."></textarea>
+      <div id="replyStatus" class="meta" role="status" aria-live="polite"></div>
       <div class="reply-actions">
-        <button type="button">Send User Reply</button>
+        <button type="button" id="sendUserReply">Send User Reply</button>
         <% if (allowAdminReply) { %>
-          <button type="button" class="secondary">Send Admin Reply</button>
+          <button type="button" id="sendAdminReply" class="secondary">Send Admin Reply</button>
         <% } %>
       </div>
     </div>
   </div>
+  <script>
+    const requestId = "<%= request.id %>";
+    const replyInput = document.getElementById("supportReply");
+    const replyStatus = document.getElementById("replyStatus");
+    const userButton = document.getElementById("sendUserReply");
+    const adminButton = document.getElementById("sendAdminReply");
+
+    const setStatus = (message, isError = false) => {
+      replyStatus.textContent = message;
+      replyStatus.style.color = isError ? "#fca5a5" : "#cbd5f5";
+    };
+
+    const setButtonsDisabled = (disabled) => {
+      userButton.disabled = disabled;
+      if (adminButton) {
+        adminButton.disabled = disabled;
+      }
+    };
+
+    const sendReply = async (role) => {
+      const message = replyInput.value.trim();
+      if (!message) {
+        setStatus("Please enter a reply message before sending.", true);
+        return;
+      }
+      setStatus("Sending reply...");
+      setButtonsDisabled(true);
+      try {
+        const response = await fetch(`/api/support/requests/${requestId}/replies`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, role }),
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload?.error || "Unable to send reply.");
+        }
+        setStatus("Reply sent. Refreshing thread...");
+        replyInput.value = "";
+        window.location.reload();
+      } catch (error) {
+        setStatus(error.message || "Unable to send reply.", true);
+      } finally {
+        setButtonsDisabled(false);
+      }
+    };
+
+    userButton.addEventListener("click", () => sendReply("user"));
+    if (adminButton) {
+      adminButton.addEventListener("click", () => sendReply("admin"));
+    }
+  </script>
 </body>
 </html>
