@@ -405,7 +405,7 @@ run_qwen() {
   load_qwen_env
   local openai_api_key_value="${OPENAI_API_KEY:-}"
   local openai_base_url_value="${OPENAI_BASE_URL:-}"
-  local openai_model_value="${OPENAI_MODEL:-}"
+  local openai_model_value="${EFFECTIVE_MODEL:-$MODEL}"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     openai_model_value="$QWEN_MODEL"
   fi
