@@ -31,6 +31,24 @@
             gap: 16px;
             margin-bottom: 28px;
         }
+        .vm-header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+        .vm-input,
+        .vm-select {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: #e2e8f0;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            min-width: 180px;
+        }
+        .vm-select {
+            min-width: 140px;
+        }
         .vm-header h1 {
             margin: 0;
             font-size: 2.2rem;
@@ -109,9 +127,6 @@
             margin-top: 4px;
             color: #fda4af;
         }
-        a.log-link {
-            color: #38bdf8;
-        }
         @media (max-width: 960px) {
             .vm-header h1 {
                 font-size: 1.8rem;
@@ -129,8 +144,13 @@
             <div>
                 <h1>VM Runs</h1>
             </div>
-            <div>
-                <button id="startVmBtn" class="primary-action" type="button">Start Local Debian VM</button>
+            <div class="vm-header-actions">
+                <input id="vmIpInput" class="vm-input" type="text" inputmode="decimal" placeholder="Public IPv4 address">
+                <select id="vmStatusSelect" class="vm-select">
+                    <option value="Running">Running</option>
+                    <option value="Stopped">Stopped</option>
+                </select>
+                <button id="startVmBtn" class="primary-action" type="button">Add VM</button>
             </div>
         </header>
         <div id="vmStatus" class="vm-status" role="status" aria-live="polite"></div>
@@ -138,14 +158,10 @@
             <table class="vm-table">
                 <thead>
                     <tr>
-                        <th>Session ID</th>
-                        <th>Port</th>
-                        <th>Status</th>
-                        <th>QEMU Status</th>
-                        <th>PID</th>
+                        <th>IPv4 Address</th>
+                        <th>Machine Status</th>
                         <th>Started</th>
                         <th>Last Used</th>
-                        <th>Log</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -153,31 +169,21 @@
                         <% sessions.forEach((session) => { %>
                             <% const startedAt = session.startTimestamp ? new Date(session.startTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; %>
                             <% const lastUsedAt = session.lastUsedTimestamp ? new Date(session.lastUsedTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; %>
-                            <tr class=<%= session.status === 'Running' ? 'running' : '' %>>
-                                <td><%= session.sessionId %></td>
-                                <td><%= session.assignedPort || '-' %></td>
+                            <tr class=<%= session.machineStatus === 'Running' ? 'running' : '' %>>
+                                <td><%= session.ipAddress %></td>
                                 <td>
-                                    <span><%= session.status || '-' %></span>
+                                    <span><%= session.machineStatus || '-' %></span>
                                     <% if (session.errorMessage) { %>
                                         <small class="status-note"><%= session.errorMessage %></small>
                                     <% } %>
                                 </td>
-                                <td><%= session.qemuStatus || '-' %></td>
-                                <td><%= session.qemuPid || '-' %></td>
                                 <td><%= startedAt %></td>
                                 <td><%= lastUsedAt %></td>
-                                <td>
-                                    <% if (session.logUrl) { %>
-                                        <a class="log-link" href="<%= session.logUrl %>" target="_blank" rel="noreferrer">View log</a>
-                                    <% } else { %>
-                                        -
-                                    <% } %>
-                                </td>
                             </tr>
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="8" style="text-align:center;color:#94a3b8;">No VMs have started yet.</td>
+                            <td colspan="4" style="text-align:center;color:#94a3b8;">No VMs have been added yet.</td>
                         </tr>
                     <% } %>
                 </tbody>
@@ -188,30 +194,58 @@
         (function () {
             const button = document.getElementById('startVmBtn');
             const statusEl = document.getElementById('vmStatus');
-            const vmImagePath = <%- JSON.stringify(vmImagePath || '') %>;
+            const ipInput = document.getElementById('vmIpInput');
+            const statusSelect = document.getElementById('vmStatusSelect');
 
-            async function startLocalVm() {
+            function isValidIpv4(ip) {
+                if (!ip) {
+                    return false;
+                }
+                const parts = ip.trim().split('.');
+                if (parts.length !== 4) {
+                    return false;
+                }
+                return parts.every((segment) => {
+                    if (!/^\d{1,3}$/.test(segment)) {
+                        return false;
+                    }
+                    const value = Number(segment);
+                    return value >= 0 && value <= 255;
+                });
+            }
+
+            async function addVm() {
+                const ipAddress = ipInput.value.trim();
+                const machineStatus = statusSelect.value;
+                if (!isValidIpv4(ipAddress)) {
+                    statusEl.textContent = 'Enter a valid public IPv4 address before adding.';
+                    return;
+                }
                 button.disabled = true;
-                statusEl.textContent = 'Starting VM...';
+                statusEl.textContent = 'Adding VM...';
                 try {
-                    const response = await fetch('/vm_runs/start', { method: 'POST' });
+                    const response = await fetch('/vm_runs/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ipAddress, machineStatus }),
+                    });
                     const payload = await response.json();
                     if (!response.ok || !payload.ok) {
-                        throw new Error(payload.error || payload.message || 'Unable to start VM');
+                        throw new Error(payload.error || payload.message || 'Unable to add VM');
                     }
-                    statusEl.textContent = `VM starting on port ${payload.session.assignedPort}. Reloading...`;
+                    statusEl.textContent = `VM ${payload.session.ipAddress} added. Reloading...`;
+                    ipInput.value = '';
+                    statusSelect.value = 'Running';
                     setTimeout(() => window.location.reload(), 800);
                 } catch (err) {
-                    const message = err.message || 'Failed to start VM';
-                    statusEl.textContent = vmImagePath && message.toLowerCase().includes('image')
-                        ? `${message} (expected image at ${vmImagePath})`
-                        : message;
+                    const message = err.message || 'Failed to add VM';
+                    statusEl.textContent = message;
                 } finally {
                     button.disabled = false;
                 }
             }
 
-            button.addEventListener('click', startLocalVm);
+            button.addEventListener('click', addVm);
         })();
     </script>
 </body>
