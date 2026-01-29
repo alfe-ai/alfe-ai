@@ -3,7 +3,7 @@
     {
       "id": "openrouter/xiaomi/mimo-v2-flash",
       "label": "[Free] Xiaomi: MiMo V2 Flash",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 262144,
       "pricing": {
         "inputPerMTokens": 0.09,
@@ -16,7 +16,7 @@
       "label": "[Free] OpenAI: GPT-5 Nano",
       "created": "2025-08-07",
       "contextTokens": 400000,
-      "disabled": false,
+      "disabled": true,
       "pricing": {
         "inputPerMTokens": 0.05,
         "outputPerMTokens": 0.4
@@ -52,7 +52,7 @@
       "label": "[Plus] Qwen: Qwen3 Coder 480B A35B",
       "created": "2025-07-23",
       "contextTokens": 262144,
-      "disabled": false,
+      "disabled": true,
       "pricing": {
         "inputPerMTokens": 0.22,
         "outputPerMTokens": 0.95
@@ -100,7 +100,7 @@
       "label": "OpenAI: gpt-oss-20b",
       "created": "2025-08-05",
       "contextTokens": 131072,
-      "disabled": false,
+      "disabled": true,
       "pricing": {
         "inputPerMTokens": 0.02,
         "outputPerMTokens": 0.1
@@ -112,7 +112,7 @@
       "label": "Qwen: Qwen3 Coder 30B A3B Instruct",
       "created": "2025-07-31",
       "contextTokens": 160000,
-      "disabled": false,
+      "disabled": true,
       "pricing": {
         "inputPerMTokens": 0.07,
         "outputPerMTokens": 0.27
@@ -170,8 +170,8 @@
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
       "label": "Z.ai: GLM 4.5 Air (Free)",
-      "disabled": true,
-      "qwen_cli": false
+      "disabled": false,
+      "qwen_cli": true
     },
     {
       "id": "openrouter/z-ai/glm-4-32b",
