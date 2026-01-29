@@ -50,12 +50,26 @@
   function updateSupportCallToAction(plan) {
     if (!supportPlanNotice && !supportActionButton) return;
     const normalized = (plan || '').toString().trim();
+    const isLoggedOut = !['Free', 'Lite', 'Pro'].includes(normalized);
     const isPaidPlan = normalized === 'Lite' || normalized === 'Pro';
     if (supportPlanNotice) {
       supportPlanNotice.classList.toggle('hidden', isPaidPlan);
+      if (isPaidPlan) {
+        supportPlanNotice.textContent = 'You must be a paid subscriber to send a support ticket.';
+      } else if (isLoggedOut) {
+        supportPlanNotice.textContent = 'You must be logged in to send a support ticket.';
+      } else {
+        supportPlanNotice.textContent = 'You must be a paid subscriber to send a support ticket.';
+      }
     }
     if (supportActionButton) {
-      supportActionButton.textContent = isPaidPlan ? 'Go to Support' : 'Subscribe Now';
+      if (isPaidPlan) {
+        supportActionButton.textContent = 'Go to Support';
+      } else if (isLoggedOut) {
+        supportActionButton.textContent = 'Log In / Sign Up';
+      } else {
+        supportActionButton.textContent = 'Subscribe Now';
+      }
     }
   }
 
