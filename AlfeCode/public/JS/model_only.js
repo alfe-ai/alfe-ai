@@ -7,7 +7,10 @@
   const codeUsageLimit = document.getElementById('codeUsageLimit');
   const codeUsageLimited = document.getElementById('codeUsageLimited');
   const codeUsageUnlimited = document.getElementById('codeUsageUnlimited');
+  const codeUsageUnlimitedText = document.getElementById('codeUsageUnlimitedText');
   const codeUsageUnlimitedNote = document.getElementById('codeUsageUnlimitedNote');
+  const proCodeUsageSection = document.getElementById('proCodeUsageSection');
+  const proCodeUsageLimit = document.getElementById('proCodeUsageLimit');
   const printifyUsageUnlimited = document.getElementById('printifyUsageUnlimited');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
@@ -317,6 +320,7 @@
     const normalizedPlanKey = normalizedPlan.toLowerCase();
     const isLoggedOut = !['free', 'lite', 'pro'].includes(normalizedPlanKey);
     const isPaidPlan = normalizedPlanKey === 'lite' || normalizedPlanKey === 'pro';
+    const isProPlanActive = normalizedPlanKey === 'pro';
     if (searchUsageBar) {
       searchUsageBar.classList.toggle('hidden', isLoggedOut);
     }
@@ -335,8 +339,19 @@
     if (codeUsageUnlimited) {
       codeUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
     }
+    if (codeUsageUnlimitedText) {
+      codeUsageUnlimitedText.textContent = isProPlanActive
+        ? 'Code usage of basic models is Unlimited*'
+        : 'Code usage is Unlimited*';
+    }
     if (codeUsageUnlimitedNote) {
       codeUsageUnlimitedNote.classList.toggle('hidden', !isPaidPlan);
+    }
+    if (proCodeUsageSection) {
+      proCodeUsageSection.classList.toggle('hidden', !isProPlanActive);
+    }
+    if (proCodeUsageLimit) {
+      proCodeUsageLimit.textContent = 'n/10000 cycles';
     }
     if (printifyUsageUnlimited) {
       printifyUsageUnlimited.classList.remove('hidden');
