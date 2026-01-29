@@ -7184,6 +7184,8 @@ const appendMergeChunk = (text, type = "output") => {
   const signUpLogInBtn = document.getElementById("signUpLogInBtn");
   const authModal = document.getElementById("authModal");
   const authModalCloseButton = document.getElementById("authModalCloseButton");
+  const accountModal = document.getElementById("accountModal");
+  const accountModalCloseButton = document.getElementById("accountModalCloseButton");
   const authEmailInput = document.getElementById("authEmailInput");
   const authEmailContinueBtn = document.getElementById("authEmailContinueBtn");
   const loginForm = document.getElementById("loginForm");
@@ -7198,6 +7200,7 @@ const appendMergeChunk = (text, type = "output") => {
   const AUTH_MODAL_STATE_KEY = "alfe.authModalState";
   let authEmailValue = "";
   let authModalStep = "email";
+  let accountInfo = null;
 
   const showToast = (msg, duration = 1500) => {
     if (!toastEl) {
@@ -7284,6 +7287,64 @@ const appendMergeChunk = (text, type = "output") => {
     }
     authModal.classList.add("is-hidden");
     document.body.style.overflow = "";
+  };
+
+  const showAccountModal = () => {
+    if (!accountModal) {
+      return;
+    }
+    accountModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+  };
+
+  const hideAccountModal = () => {
+    if (!accountModal) {
+      return;
+    }
+    accountModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
+  const updateAccountButton = (info) => {
+    if (!signUpLogInBtn) {
+      return;
+    }
+    if (info && info.email) {
+      signUpLogInBtn.textContent = "Account";
+      signUpLogInBtn.title = "Account";
+      signUpLogInBtn.setAttribute("aria-label", "Account");
+    } else {
+      signUpLogInBtn.textContent = "Sign Up / Log In";
+      signUpLogInBtn.title = "Sign Up or Log In";
+      signUpLogInBtn.setAttribute("aria-label", "Sign up or log in");
+    }
+  };
+
+  const setAccountInfo = (info) => {
+    accountInfo = info && info.email ? info : null;
+    updateAccountButton(accountInfo);
+  };
+
+  const openAccountModal = (event) => {
+    if (event) {
+      event.preventDefault();
+    }
+    if (!accountInfo) {
+      return;
+    }
+    const emailValue = document.getElementById("accountEmailValue");
+    if (emailValue) {
+      emailValue.textContent = accountInfo.email || "—";
+    }
+    const planValue = document.getElementById("accountPlanValue");
+    if (planValue) {
+      planValue.textContent = accountInfo.plan || "Free";
+    }
+    const sessionValue = document.getElementById("accountSessionValue");
+    if (sessionValue) {
+      sessionValue.textContent = accountInfo.sessionId || "—";
+    }
+    showAccountModal();
   };
 
   const showAuthEmailStep = ({ keepEmail = true } = {}) => {
@@ -7445,7 +7506,13 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   if (signUpLogInBtn) {
-    signUpLogInBtn.addEventListener("click", openSignupModal);
+    signUpLogInBtn.addEventListener("click", (event) => {
+      if (accountInfo) {
+        openAccountModal(event);
+      } else {
+        openSignupModal(event);
+      }
+    });
   }
 
   if (authEmailContinueBtn) {
@@ -7479,6 +7546,13 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  if (accountModalCloseButton) {
+    accountModalCloseButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideAccountModal();
+    });
+  }
+
   if (authModal) {
     authModal.addEventListener("click", (event) => {
       if (event.target === authModal) {
@@ -7487,11 +7561,44 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  if (accountModal) {
+    accountModal.addEventListener("click", (event) => {
+      if (event.target === accountModal) {
+        hideAccountModal();
+      }
+    });
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && authModal && !authModal.classList.contains("is-hidden")) {
       hideAuthModal();
+    } else if (event.key === "Escape" && accountModal && !accountModal.classList.contains("is-hidden")) {
+      hideAccountModal();
     }
   });
+
+  const fetchAccountInfo = async () => {
+    try {
+      const params = currentSessionId
+        ? `?sessionId=${encodeURIComponent(currentSessionId)}`
+        : "";
+      const resp = await fetch(`/api/account${params}`);
+      const data = await resp.json().catch(() => null);
+      if (resp.ok && data?.email) {
+        setAccountInfo({
+          email: data.email,
+          plan: data.plan,
+          sessionId: data.sessionId,
+          timezone: data.timezone
+        });
+      } else {
+        setAccountInfo(null);
+      }
+    } catch (err) {
+      console.error("Account lookup failed", err);
+      setAccountInfo(null);
+    }
+  };
 
   const signupPasswordInput = document.getElementById("signupPassword");
   const passwordRequirementItems = signupPasswordInput
@@ -7554,6 +7661,12 @@ const appendMergeChunk = (text, type = "output") => {
         if (resp.ok && data && data.success) {
           showToast("Logged in!");
           hideAuthModal();
+          setAccountInfo({
+            email: data.email,
+            plan: data.plan,
+            sessionId: data.sessionId,
+            timezone: data.timezone
+          });
           const lbl = document.getElementById("totpLoginLabel");
           if (lbl) {
             lbl.style.display = "none";
@@ -7647,6 +7760,8 @@ const appendMergeChunk = (text, type = "output") => {
       }
     });
   }
+
+  fetchAccountInfo();
 
   const stopDragging = (shouldPersist = true) => {
     if (!dragging) {

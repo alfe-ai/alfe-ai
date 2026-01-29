@@ -223,6 +223,59 @@ class RdsStore {
       throw error;
     }
   }
+
+  async setAccountSession(id, sessionId) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    try {
+      await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET session_id = $1
+         WHERE id = $2`,
+        [sessionId || "", id]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to update account session:", error?.message || error);
+    }
+  }
+
+  async getAccountBySession(sessionId) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalized = (sessionId || "").toString().trim();
+    if (!normalized) return null;
+    try {
+      const result = await this.pool.query(
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan
+         FROM ${ACCOUNTS_TABLE}
+         WHERE session_id = $1
+         LIMIT 1`,
+        [normalized]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("[RdsStore] Failed to load account by session:", error?.message || error);
+      return null;
+    }
+  }
+
+  async mergeSessions(targetId, sourceId) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    if (!targetId || !sourceId || targetId === sourceId) {
+      return;
+    }
+    try {
+      await this.pool.query(
+        `UPDATE ${SESSION_SETTINGS_TABLE}
+         SET session_id = $1
+         WHERE session_id = $2`,
+        [targetId, sourceId]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to merge sessions:", error?.message || error);
+    }
+  }
 }
 
 module.exports = new RdsStore();

@@ -1222,6 +1222,7 @@ setupGetRoutes({
     ensureSessionDefaultRepo,
     buildSessionCookie,
     normalizeHostname,
+    rdsStore,
 });
 
 /**
