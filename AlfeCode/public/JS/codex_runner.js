@@ -7537,7 +7537,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (!signUpLogInBtn) {
       return;
     }
-    if (!accountButtonEnabled && info && info.email) {
+    if (!accountButtonEnabled) {
       signUpLogInBtn.style.display = "none";
       return;
     }
