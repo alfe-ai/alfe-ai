@@ -4203,7 +4203,38 @@ Try: ${suggestion}`;
     }
 
     const lines = normalized.split(/\n/);
+    const endsWithNewline = normalized.endsWith("\n");
     const fragment = document.createDocumentFragment();
+    const lastLineComplete = element.dataset.endsWithNewline !== "0";
+    const lastLineEl = element.lastElementChild;
+    const canAppendToLastLine = !lastLineComplete
+      && lastLineEl
+      && lastLineEl.classList.contains("log-line")
+      && (
+        (type === "output" || type === "stdout")
+          ? !["stderr", "meta", "status", "merge"].some((className) => lastLineEl.classList.contains(className))
+          : lastLineEl.classList.contains(type)
+      );
+    const formatLineText = (line, isContinuation) => {
+      if (type === "stderr") {
+        return line ? line.replace(/^\[stderr\]\s*/i, "") : "";
+      }
+      if (type === "meta") {
+        return isContinuation ? line : (line ? `[meta] ${line}` : "");
+      }
+      if (type === "status") {
+        return isContinuation ? line : (line ? `[status] ${line}` : "");
+      }
+      return line;
+    };
+
+    if (canAppendToLastLine) {
+      const firstLine = lines.shift();
+      if (typeof firstLine === "string" && firstLine.length > 0) {
+        lastLineEl.textContent += formatLineText(firstLine, true);
+      }
+    }
+
     lines.forEach((line, index) => {
       if (index === lines.length - 1 && line === "") {
         return;
@@ -4218,22 +4249,14 @@ Try: ${suggestion}`;
         span.classList.add(type);
       }
 
-      if (type === "stderr") {
-        const cleanedLine = line ? line.replace(/^\[stderr\]\s*/i, "") : "";
-        span.textContent = cleanedLine;
-      } else if (type === "meta") {
-        span.textContent = line ? `[meta] ${line}` : "";
-      } else if (type === "status") {
-        span.textContent = line ? `[status] ${line}` : "";
-      } else {
-        span.textContent = line;
-      }
+      span.textContent = formatLineText(line, false);
 
       fragment.appendChild(span);
     });
 
     element.appendChild(fragment);
     element.scrollTop = element.scrollHeight;
+    element.dataset.endsWithNewline = endsWithNewline ? "1" : "0";
   };
 
   const ensureMergeOutputVisible = () => {
