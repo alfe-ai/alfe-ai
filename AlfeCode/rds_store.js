@@ -239,6 +239,21 @@ class RdsStore {
     }
   }
 
+  async setAccountPlan(id, plan) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    try {
+      await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET plan = $1
+         WHERE id = $2`,
+        [plan || "Free", id]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to update account plan:", error?.message || error);
+    }
+  }
+
   async getAccountBySession(sessionId) {
     if (!this.enabled) return null;
     await this.ensureReady();
