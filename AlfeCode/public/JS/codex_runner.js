@@ -6084,6 +6084,33 @@ const appendMergeChunk = (text, type = "output") => {
     return lines.slice(index).join("\n");
   };
 
+  const stripGitFpushOutput = (text) => {
+    if (typeof text !== "string" || !text) {
+      return "";
+    }
+    const normalized = text.replace(/\r/g, "");
+    const lines = normalized.split("\n");
+    const outputLines = [];
+    let gitFpushStarted = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.toLowerCase().includes("git_fpush.sh")) {
+        continue;
+      }
+      if (trimmed.startsWith("---Initial Git Status:")) {
+        gitFpushStarted = true;
+        continue;
+      }
+      if (gitFpushStarted) {
+        continue;
+      }
+      outputLines.push(line);
+    }
+
+    return outputLines.join("\n").replace(/\n+$/, "");
+  };
+
   const extractFinalOutputFromCommitBlock = (text) => {
     if (typeof text !== "string" || !text) {
       return "";
@@ -6164,10 +6191,10 @@ const appendMergeChunk = (text, type = "output") => {
       const stderrText = typeof run.stderr === "string" ? run.stderr : "";
       if (stdoutText && stderrText) {
         const separator = stdoutText.endsWith("\n") ? "" : "\n";
-        return `${stdoutText}${separator}${stderrText}`;
+        return stripGitFpushOutput(`${stdoutText}${separator}${stderrText}`);
       }
       if (stdoutText || stderrText) {
-        return stdoutText || stderrText;
+        return stripGitFpushOutput(stdoutText || stderrText);
       }
     }
 
@@ -6274,10 +6301,17 @@ const appendMergeChunk = (text, type = "output") => {
     if (!getActiveQwenCliRunActive()) {
       return;
     }
+    if (gitFpushActive) {
+      return;
+    }
     if (typeof chunk !== "string" || !chunk) {
       return;
     }
-    const updated = `${getActiveQwenCliOutputText()}${chunk}`;
+    const filteredChunk = stripGitFpushOutput(chunk);
+    if (!filteredChunk) {
+      return;
+    }
+    const updated = `${getActiveQwenCliOutputText()}${filteredChunk}`;
     setActiveQwenCliOutputText(updated);
     setActiveFinalOutputText(updated);
     updateFinalOutputDisplay();
