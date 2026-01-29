@@ -6084,7 +6084,7 @@ const appendMergeChunk = (text, type = "output") => {
     return lines.slice(index).join("\n");
   };
 
-  const stripGitFpushOutput = (text) => {
+  const stripGitFpushOutput = (text, { preserveTrailingNewlines = false } = {}) => {
     if (typeof text !== "string" || !text) {
       return "";
     }
@@ -6108,7 +6108,11 @@ const appendMergeChunk = (text, type = "output") => {
       outputLines.push(line);
     }
 
-    return outputLines.join("\n").replace(/\n+$/, "");
+    const joined = outputLines.join("\n");
+    if (preserveTrailingNewlines) {
+      return joined;
+    }
+    return joined.replace(/\n+$/, "");
   };
 
   const extractFinalOutputFromCommitBlock = (text) => {
@@ -6305,7 +6309,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (typeof chunk !== "string" || !chunk) {
       return;
     }
-    const filteredChunk = stripGitFpushOutput(chunk);
+    const filteredChunk = stripGitFpushOutput(chunk, { preserveTrailingNewlines: true });
     if (!filteredChunk) {
       return;
     }
