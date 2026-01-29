@@ -11,6 +11,8 @@
   const accountPlanSelect = document.getElementById('accountPlanSelect');
   const accountPlanFeedback = document.getElementById('accountPlanFeedback');
   const accountSession = document.getElementById('accountSession');
+  const logoutButton = document.getElementById('logoutButton');
+  const logoutFeedback = document.getElementById('logoutFeedback');
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
@@ -238,6 +240,23 @@
     el.textContent = value && value.toString().trim().length ? value : '—';
   }
 
+  function showLogoutFeedback(message, type) {
+    if (!logoutFeedback) return;
+    if (!message) {
+      logoutFeedback.textContent = '';
+      logoutFeedback.classList.add('hidden');
+      logoutFeedback.classList.remove('error', 'success');
+      return;
+    }
+    logoutFeedback.textContent = message;
+    logoutFeedback.classList.remove('hidden', 'error', 'success');
+    if (type === 'error') {
+      logoutFeedback.classList.add('error');
+    } else if (type === 'success') {
+      logoutFeedback.classList.add('success');
+    }
+  }
+
   function showAccountPlanFeedback(message, type) {
     if (!accountPlanFeedback) return;
     accountPlanFeedback.textContent = message;
@@ -319,6 +338,10 @@
       accountPlanSelect.disabled = true;
       setAccountPlanValue('Free');
     }
+    if (logoutButton) {
+      logoutButton.disabled = true;
+    }
+    showLogoutFeedback('');
     try {
       const response = await fetch('/api/account', { credentials: 'same-origin' });
       if (response.ok) {
@@ -330,6 +353,9 @@
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         if (accountPlanSelect) {
           accountPlanSelect.disabled = false;
+        }
+        if (logoutButton) {
+          logoutButton.disabled = false;
         }
       }
     } catch (error) {
@@ -498,6 +524,39 @@
       currentAccountPlan = selectedPlan;
       updateProModelOptions();
       void saveAccountPlan(selectedPlan);
+    });
+  }
+
+  async function handleLogout() {
+    if (!logoutButton) return;
+    logoutButton.disabled = true;
+    showLogoutFeedback('Logging out…');
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to log out (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+      showLogoutFeedback('Logged out.', 'success');
+      applyUsageLimits(USAGE_LIMITS.loggedOut);
+      setAccountField(accountEmail, '');
+      setAccountPlanValue('Free');
+      setAccountField(accountSession, '');
+      setAccountVisibility(false);
+    } catch (error) {
+      console.error('Failed to log out:', error);
+      showLogoutFeedback(error.message || 'Failed to log out.', 'error');
+      logoutButton.disabled = false;
+    }
+  }
+
+  if (logoutButton) {
+    logoutButton.addEventListener('click', function() {
+      void handleLogout();
     });
   }
 })();

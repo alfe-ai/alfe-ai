@@ -108,6 +108,33 @@
       border-color:#c4b5fd;
       box-shadow:0 10px 22px rgba(124,58,237,0.22);
     }
+    .logout-button{
+      align-self:flex-start;
+      padding:0.5rem 0.9rem;
+      border-radius:10px;
+      border:1px solid rgba(148,163,184,0.5);
+      background:rgba(15,23,42,0.6);
+      color:#e2e8f0;
+      font-weight:600;
+      cursor:pointer;
+      transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .logout-button:hover,
+    .logout-button:focus-visible{
+      transform:translateY(-1px);
+      border-color:#f87171;
+      box-shadow:0 10px 22px rgba(248,113,113,0.2);
+    }
+    .logout-feedback{
+      font-size:0.75rem;
+      color:#94a3b8;
+    }
+    .logout-feedback.success{
+      color:#a7f3d0;
+    }
+    .logout-feedback.error{
+      color:#fca5a5;
+    }
     select option:disabled,
     select option.engine-option-disabled{
       color:#64748b;
@@ -238,6 +265,10 @@
             <span id="accountSession" style="font-size:0.85rem;color:#e2e8f0;word-break:break-all;">—</span>
           </div>
         </div>
+      </div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+        <button type="button" id="logoutButton" class="logout-button">Log out</button>
+        <span id="logoutFeedback" class="logout-feedback hidden" aria-live="polite"></span>
       </div>
     </div>
     <footer class="footer">

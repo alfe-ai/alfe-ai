@@ -130,6 +130,22 @@ function setupPostRoutes(deps) {
         });
         return cookies.sessionId || "";
     };
+    const normalizeHostname = (req) => {
+        const header = req.hostname || req.get("host") || "";
+        return header.split(":")[0].toLowerCase();
+    };
+    const buildExpiredSessionCookie = (hostname) => {
+        const parts = [
+            "sessionId=",
+            "Path=/",
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Max-Age=0",
+        ];
+        if (hostname === "alfe.sh" || hostname.endsWith(".alfe.sh")) {
+            parts.push("Domain=.alfe.sh");
+        }
+        return parts.join("; ");
+    };
     const ACCOUNT_PLANS = new Set(["Logged-out Session", "Free", "Lite", "Pro"]);
 
     app.post("/api/account/exists", async (req, res) => {
@@ -167,6 +183,19 @@ function setupPostRoutes(deps) {
         }
         await rdsStore.setAccountPlan(account.id, plan);
         return res.json({ success: true, plan });
+    });
+
+    app.post("/api/logout", async (req, res) => {
+        const sessionId = getSessionIdFromRequest(req);
+        if (rdsStore?.enabled && sessionId) {
+            const account = await rdsStore.getAccountBySession(sessionId);
+            if (account) {
+                await rdsStore.setAccountSession(account.id, "");
+            }
+        }
+        const hostname = normalizeHostname(req);
+        res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
+        return res.json({ success: true });
     });
 
     app.post("/api/register", async (req, res) => {
