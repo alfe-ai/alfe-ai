@@ -331,6 +331,75 @@ class RdsStore {
       throw error;
     }
   }
+
+  async listSupportRequests({ sessionId, accountId, limit = 20 }) {
+    if (!this.enabled) return [];
+    await this.ensureReady();
+    const normalizedLimit = Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 100) : 20;
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    const normalizedAccountId = accountId ? Number(accountId) : null;
+    if (!normalizedAccountId && !normalizedSessionId) return [];
+
+    const params = [];
+    let whereClause = "";
+    if (normalizedAccountId) {
+      params.push(normalizedAccountId);
+      whereClause = "account_id = $1";
+    } else {
+      params.push(normalizedSessionId);
+      whereClause = "session_id = $1";
+    }
+    params.push(normalizedLimit);
+
+    try {
+      const result = await this.pool.query(
+        `SELECT id, created_at, category, message
+         FROM ${SUPPORT_REQUESTS_TABLE}
+         WHERE ${whereClause}
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        params
+      );
+      return result.rows || [];
+    } catch (error) {
+      console.error("[RdsStore] Failed to list support requests:", error?.message || error);
+      return [];
+    }
+  }
+
+  async getSupportRequestById({ requestId, sessionId, accountId }) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedRequestId = Number(requestId);
+    if (!Number.isFinite(normalizedRequestId)) return null;
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    const normalizedAccountId = accountId ? Number(accountId) : null;
+    if (!normalizedAccountId && !normalizedSessionId) return null;
+
+    const params = [normalizedRequestId];
+    let whereClause = "id = $1";
+    if (normalizedAccountId) {
+      params.push(normalizedAccountId);
+      whereClause += " AND account_id = $2";
+    } else {
+      params.push(normalizedSessionId);
+      whereClause += " AND session_id = $2";
+    }
+
+    try {
+      const result = await this.pool.query(
+        `SELECT id, created_at, category, message, email
+         FROM ${SUPPORT_REQUESTS_TABLE}
+         WHERE ${whereClause}
+         LIMIT 1`,
+        params
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error("[RdsStore] Failed to load support request:", error?.message || error);
+      return null;
+    }
+  }
 }
 
 module.exports = new RdsStore();

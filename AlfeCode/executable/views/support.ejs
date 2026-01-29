@@ -85,6 +85,60 @@
     .support-status.error{
       color:#fca5a5;
     }
+    .support-requests{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:4px;
+    }
+    .support-requests h3{
+      margin:6px 0 0;
+      font-size:1.05rem;
+      color:#e2e8f0;
+    }
+    .support-requests-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .support-request-row{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid rgba(148,163,184,0.25);
+      background:rgba(15,23,42,0.75);
+      color:#e2e8f0;
+      text-decoration:none;
+      transition:border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .support-request-row:hover,
+    .support-request-row:focus-visible{
+      border-color:rgba(167,139,250,0.8);
+      transform:translateY(-1px);
+      box-shadow:0 12px 28px rgba(15,23,42,0.45);
+    }
+    .support-request-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px 16px;
+      font-size:0.85rem;
+      color:#cbd5f5;
+    }
+    .support-request-message{
+      margin:0;
+      color:#94a3b8;
+      font-size:0.95rem;
+    }
+    .support-request-empty{
+      color:#94a3b8;
+      font-size:0.95rem;
+      border:1px dashed rgba(148,163,184,0.3);
+      border-radius:10px;
+      padding:14px;
+      background:rgba(15,23,42,0.5);
+    }
   </style>
 </head>
 <body>
@@ -111,6 +165,12 @@
       </div>
       <button type="button" class="support-button" id="supportSubmitButton">Send to Support</button>
       <p class="support-status" id="supportStatus" aria-live="polite"></p>
+      <section class="support-requests" aria-live="polite">
+        <h3>Your Support Requests</h3>
+        <div class="support-requests-list" id="supportRequestsList">
+          <div class="support-request-empty" id="supportRequestsEmpty">Loading your support requests...</div>
+        </div>
+      </section>
     </form>
   </div>
   <script>
@@ -118,6 +178,7 @@
     const supportMessage = document.getElementById('supportMessage');
     const supportButton = document.getElementById('supportSubmitButton');
     const supportStatus = document.getElementById('supportStatus');
+    const supportRequestsList = document.getElementById('supportRequestsList');
 
     const setSupportStatus = (text, { isError = false } = {}) => {
       if (!supportStatus) return;
@@ -129,6 +190,60 @@
       if (!supportButton) return;
       supportButton.disabled = isDisabled;
       supportButton.textContent = isDisabled ? 'Sending...' : 'Send to Support';
+    };
+
+    const formatSupportDate = (value) => {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString();
+    };
+
+    const renderSupportRequests = (requests, emptyText) => {
+      if (!supportRequestsList) return;
+      supportRequestsList.innerHTML = '';
+      if (!requests.length) {
+        const empty = document.createElement('div');
+        empty.className = 'support-request-empty';
+        empty.textContent = emptyText || 'No support requests yet. Send one above and it will appear here.';
+        supportRequestsList.appendChild(empty);
+        return;
+      }
+
+      requests.forEach((request) => {
+        const row = document.createElement('a');
+        row.className = 'support-request-row';
+        row.href = `/support/requests/${request.id}`;
+        row.target = '_blank';
+        row.rel = 'noopener noreferrer';
+
+        const meta = document.createElement('div');
+        meta.className = 'support-request-meta';
+        meta.innerHTML = `<span>Category: ${request.category}</span><span>Submitted: ${formatSupportDate(request.created_at)}</span><span>ID: ${request.id}</span>`;
+
+        const message = document.createElement('p');
+        message.className = 'support-request-message';
+        message.textContent = request.message;
+
+        row.appendChild(meta);
+        row.appendChild(message);
+        supportRequestsList.appendChild(row);
+      });
+    };
+
+    const loadSupportRequests = async () => {
+      if (!supportRequestsList) return;
+      try {
+        const response = await fetch('/api/support');
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          renderSupportRequests([], payload?.error || 'Unable to load support requests.');
+          return;
+        }
+        renderSupportRequests(Array.isArray(payload?.requests) ? payload.requests : []);
+      } catch (error) {
+        renderSupportRequests([], 'Unable to load support requests.');
+      }
     };
 
     if (supportButton) {
@@ -164,6 +279,7 @@
           supportMessage.value = '';
           supportCategory.value = '';
           setSupportStatus('Your support request has been sent.');
+          await loadSupportRequests();
         } catch (error) {
           setSupportStatus('Unable to send support request. Please try again.', { isError: true });
         } finally {
@@ -171,6 +287,8 @@
         }
       });
     }
+
+    loadSupportRequests();
   </script>
 </body>
 </html>

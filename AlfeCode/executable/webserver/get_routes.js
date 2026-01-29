@@ -156,6 +156,24 @@ function setupGetRoutes(deps) {
             totpEnabled: Boolean(account.totp_secret),
         });
     });
+    app.get("/api/support", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Support requests are not configured on this server." });
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return res.json({ requests: [] });
+        }
+        const account = await rdsStore.getAccountBySession(sessionId);
+        const rawLimit = typeof req.query?.limit === "string" ? Number(req.query.limit) : undefined;
+        const limit = Number.isFinite(rawLimit) ? rawLimit : 20;
+        const requests = await rdsStore.listSupportRequests({
+            sessionId,
+            accountId: account?.id,
+            limit,
+        });
+        return res.json({ requests });
+    });
     const gitRemoteLineRegex = /^remote:\s/i;
     const gitFromRemoteRegex = /^from\s+\S+/i;
     const statusNoiseRegexes = [
@@ -2174,6 +2192,26 @@ ${cleanedFinalOutput}`;
     });
     app.get('/support', (_req, res) => {
         res.render('support');
+    });
+
+    app.get('/support/requests/:id', async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).send("Support requests are not configured on this server.");
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return res.status(404).send("Support request not found.");
+        }
+        const account = await rdsStore.getAccountBySession(sessionId);
+        const request = await rdsStore.getSupportRequestById({
+            requestId: req.params?.id,
+            sessionId,
+            accountId: account?.id,
+        });
+        if (!request) {
+            return res.status(404).send("Support request not found.");
+        }
+        return res.render('support_request', { request });
     });
 
 
