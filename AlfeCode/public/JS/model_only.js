@@ -4,6 +4,8 @@
   const engineFeedback = document.getElementById('engineFeedback');
   const info = document.getElementById('info');
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
+  const codeUsageLimit = document.getElementById('codeUsageLimit');
+  const codeUnlimitedText = document.getElementById('codeUnlimitedText');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
   const accountPanel = document.getElementById('accountPanel');
@@ -20,10 +22,10 @@
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
-    loggedOut: { search: 0, images: 0 },
-    free: { search: 10, images: 10 },
-    lite: { search: 100, images: 100 },
-    pro: { search: 500, images: 500 },
+    loggedOut: { code: 10, search: 0, images: 0 },
+    free: { code: 10, search: 10, images: 10 },
+    lite: { code: null, search: 100, images: 100 },
+    pro: { code: null, search: 500, images: 500 },
   };
 
   let activeProvider = '';
@@ -228,6 +230,17 @@
   }
 
   function applyUsageLimits(limits) {
+    if (codeUsageLimit) {
+      const hasCodeLimit = typeof limits.code === 'number';
+      if (hasCodeLimit) {
+        codeUsageLimit.textContent = `0/${limits.code} code runs`;
+      }
+      codeUsageLimit.classList.toggle('hidden', !hasCodeLimit);
+    }
+    if (codeUnlimitedText) {
+      const showUnlimited = limits.code == null;
+      codeUnlimitedText.classList.toggle('hidden', !showUnlimited);
+    }
     if (searchUsageLimit) {
       searchUsageLimit.textContent = `0/${limits.search} searches`;
     }

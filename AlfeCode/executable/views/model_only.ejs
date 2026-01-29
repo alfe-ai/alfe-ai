@@ -214,8 +214,11 @@
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Code</h4>
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">Unlimited*</span>
-              <span style="font-size:0.8rem;color:#94a3b8;">Unlimited usage may change. You may be rate-limited.</span>
+              <span id="codeUsageLimit" class="hidden" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/10 code runs</span>
+              <div id="codeUnlimitedText" style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">Unlimited*</span>
+                <span style="font-size:0.8rem;color:#94a3b8;">Unlimited usage may change. You may be rate-limited.</span>
+              </div>
             </div>
           </div>
           <div>
