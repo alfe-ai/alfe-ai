@@ -128,6 +128,9 @@
     .engine-feedback.hidden{
       display:none;
     }
+    .hidden{
+      display:none;
+    }
   </style>
 </head>
 <body>
@@ -202,6 +205,25 @@
               </div>
               <span id="imageUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/10 images</span>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="accountPanel" class="hidden" style="margin-top:12px;">
+      <h3 style="margin:0 0 6px 0;font-size:1rem;color:#e2e8f0;">Account</h3>
+      <div class="support-ticket" aria-live="polite">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;">
+            <span style="font-size:0.85rem;color:#94a3b8;">Email</span>
+            <span id="accountEmail" style="font-size:0.85rem;color:#e2e8f0;word-break:break-all;">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:12px;">
+            <span style="font-size:0.85rem;color:#94a3b8;">Plan</span>
+            <span id="accountPlan" style="font-size:0.85rem;color:#e2e8f0;">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:12px;">
+            <span style="font-size:0.85rem;color:#94a3b8;">Session</span>
+            <span id="accountSession" style="font-size:0.85rem;color:#e2e8f0;word-break:break-all;">—</span>
           </div>
         </div>
       </div>

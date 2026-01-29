@@ -6,6 +6,10 @@
   const defaultModelFeedback = document.getElementById('defaultModelFeedback');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
+  const accountPanel = document.getElementById('accountPanel');
+  const accountEmail = document.getElementById('accountEmail');
+  const accountPlan = document.getElementById('accountPlan');
+  const accountSession = document.getElementById('accountSession');
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
@@ -202,12 +206,28 @@
     }
   }
 
+  function setAccountVisibility(visible) {
+    if (!accountPanel) return;
+    accountPanel.classList.toggle('hidden', !visible);
+  }
+
+  function setAccountField(el, value) {
+    if (!el) return;
+    el.textContent = value && value.toString().trim().length ? value : '—';
+  }
+
   async function loadUsageLimits() {
     applyUsageLimits(USAGE_LIMITS.loggedOut);
+    setAccountVisibility(false);
     try {
       const response = await fetch('/api/account', { credentials: 'same-origin' });
       if (response.ok) {
+        const payload = await response.json().catch(() => ({}));
         applyUsageLimits(USAGE_LIMITS.loggedIn);
+        setAccountField(accountEmail, payload.email);
+        setAccountField(accountPlan, payload.plan);
+        setAccountField(accountSession, payload.sessionId);
+        setAccountVisibility(Boolean(payload.email || payload.sessionId));
       }
     } catch (error) {
       /* ignore */
