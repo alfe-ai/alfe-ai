@@ -179,7 +179,11 @@ function setupGetRoutes(deps) {
         }
         const account = await rdsStore.getAccountBySession(sessionId);
         if (!account) {
-            return res.status(401).json({ error: "not logged in" });
+            return res.json({
+                success: false,
+                sessionId,
+                plan: "Logged-out Session",
+            });
         }
         return res.json({
             success: true,
