@@ -46,6 +46,7 @@ function setupGetRoutes(deps) {
         ensureSessionDefaultRepo,
         buildSessionCookie,
         normalizeHostname,
+        rdsStore,
     } = deps;
 
     const codexScriptPath = path.join(PROJECT_ROOT, "codex-tools", "run_codex.sh");
@@ -94,6 +95,18 @@ function setupGetRoutes(deps) {
         }
         return normalized;
     };
+    const getSessionIdFromRequest = (req) => {
+        const header = req.headers?.cookie || "";
+        const cookies = {};
+        header.split(";").forEach((cookie) => {
+            const idx = cookie.indexOf("=");
+            if (idx === -1) return;
+            const name = cookie.slice(0, idx).trim();
+            if (!name) return;
+            cookies[name] = decodeURIComponent(cookie.slice(idx + 1).trim());
+        });
+        return cookies.sessionId || "";
+    };
     const normalizeBaseUrl = (value) => {
         if (typeof value !== "string") {
             return "";
@@ -118,6 +131,31 @@ function setupGetRoutes(deps) {
     const gitModeChangeRegex = /^\s*(?:create|delete)\s+mode\b/i;
     const gitRenameCopyRegex = /^\s*(?:rename|copy)\s+/i;
     const gitAlreadyUpToDateRegex = /^already up to date\.?$/i;
+
+    app.get("/api/account", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Account lookup is not configured on this server." });
+        }
+        const sessionId = typeof req.query?.sessionId === "string"
+            ? req.query.sessionId.trim()
+            : getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        const account = await rdsStore.getAccountBySession(sessionId);
+        if (!account) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        return res.json({
+            success: true,
+            id: account.id,
+            email: account.email,
+            plan: account.plan,
+            timezone: account.timezone,
+            sessionId: account.session_id,
+            totpEnabled: Boolean(account.totp_secret),
+        });
+    });
     const gitRemoteLineRegex = /^remote:\s/i;
     const gitFromRemoteRegex = /^from\s+\S+/i;
     const statusNoiseRegexes = [

@@ -67,6 +67,69 @@ function setupPostRoutes(deps) {
         const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, "sha256").toString("hex");
         return `${salt}$${hash}`;
     };
+    const verifyPassword = (password, storedHash) => {
+        if (!password || !storedHash) return false;
+        const [salt, hash] = storedHash.split("$");
+        if (!salt || !hash) return false;
+        const computed = crypto.pbkdf2Sync(password, salt, 10000, 64, "sha256").toString("hex");
+        try {
+            return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(computed, "hex"));
+        } catch (error) {
+            return false;
+        }
+    };
+    const base32ToBuffer = (input) => {
+        if (!input) return Buffer.alloc(0);
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        const cleaned = input.toUpperCase().replace(/=+$/, "").replace(/[^A-Z2-7]/g, "");
+        let bits = "";
+        for (const char of cleaned) {
+            const idx = alphabet.indexOf(char);
+            if (idx === -1) continue;
+            bits += idx.toString(2).padStart(5, "0");
+        }
+        const bytes = [];
+        for (let i = 0; i + 8 <= bits.length; i += 8) {
+            bytes.push(parseInt(bits.slice(i, i + 8), 2));
+        }
+        return Buffer.from(bytes);
+    };
+    const verifyTotpToken = ({ secret, token, window = 1, step = 30, digits = 6 } = {}) => {
+        if (!secret || !token) return false;
+        const key = base32ToBuffer(secret);
+        if (!key.length) return false;
+        const counter = Math.floor(Date.now() / 1000 / step);
+        const tokenValue = token.trim();
+        for (let offset = -window; offset <= window; offset += 1) {
+            const msg = Buffer.alloc(8);
+            const counterValue = counter + offset;
+            msg.writeUInt32BE(Math.floor(counterValue / 0x100000000), 0);
+            msg.writeUInt32BE(counterValue % 0x100000000, 4);
+            const hmac = crypto.createHmac("sha1", key).update(msg).digest();
+            const offsetBits = hmac[hmac.length - 1] & 0xf;
+            const code = ((hmac[offsetBits] & 0x7f) << 24)
+                | ((hmac[offsetBits + 1] & 0xff) << 16)
+                | ((hmac[offsetBits + 2] & 0xff) << 8)
+                | (hmac[offsetBits + 3] & 0xff);
+            const otp = (code % (10 ** digits)).toString().padStart(digits, "0");
+            if (otp === tokenValue) {
+                return true;
+            }
+        }
+        return false;
+    };
+    const getSessionIdFromRequest = (req) => {
+        const header = req.headers?.cookie || "";
+        const cookies = {};
+        header.split(";").forEach((cookie) => {
+            const idx = cookie.indexOf("=");
+            if (idx === -1) return;
+            const name = cookie.slice(0, idx).trim();
+            if (!name) return;
+            cookies[name] = decodeURIComponent(cookie.slice(idx + 1).trim());
+        });
+        return cookies.sessionId || "";
+    };
 
     app.post("/api/account/exists", async (req, res) => {
         const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
@@ -157,6 +220,67 @@ function setupPostRoutes(deps) {
         return res.json({
             success: true,
             email: normalizedEmail,
+        });
+    });
+
+    app.post("/api/login", async (req, res) => {
+        console.log("[AlfeCode][login] request received", {
+            hasBody: !!req.body,
+            bodyKeys: req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
+        });
+
+        if (!rdsStore.enabled) {
+            return res.status(503).json({ error: "Login is not configured on this server." });
+        }
+
+        const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+        const password = typeof req.body?.password === "string" ? req.body.password : "";
+        const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+        let sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId.trim() : "";
+        if (!sessionId) {
+            sessionId = getSessionIdFromRequest(req);
+        }
+
+        if (!email || !password) {
+            return res.status(400).json({ error: "email and password required" });
+        }
+
+        const account = await rdsStore.getAccountByEmail(email);
+        if (!account || !verifyPassword(password, account.password_hash)) {
+            return res.status(400).json({ error: "invalid credentials" });
+        }
+
+        const disable2fa = process.env.DISABLE_2FA === "true" || process.env.DISABLE_2FA === "1";
+        if (account.totp_secret && !disable2fa) {
+            if (!token) {
+                return res.status(400).json({ error: "totp required" });
+            }
+            const ok = verifyTotpToken({
+                secret: account.totp_secret,
+                token,
+                window: 1,
+            });
+            if (!ok) {
+                return res.status(400).json({ error: "invalid totp" });
+            }
+        }
+
+        if (account.session_id && sessionId && account.session_id !== sessionId) {
+            await rdsStore.mergeSessions(account.session_id, sessionId);
+            sessionId = account.session_id;
+        }
+
+        if (sessionId) {
+            await rdsStore.setAccountSession(account.id, sessionId);
+        }
+
+        return res.json({
+            success: true,
+            id: account.id,
+            email: account.email,
+            plan: account.plan,
+            timezone: account.timezone,
+            sessionId,
         });
     });
 
