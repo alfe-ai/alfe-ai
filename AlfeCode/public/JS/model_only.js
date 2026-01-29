@@ -18,7 +18,7 @@
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
-    loggedOut: { search: 10, images: 10 },
+    loggedOut: { search: 0, images: 0 },
     free: { search: 10, images: 10 },
     lite: { search: 100, images: 100 },
     pro: { search: 500, images: 500 },
