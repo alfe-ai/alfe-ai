@@ -39,7 +39,7 @@
     {
       "id": "openrouter/xiaomi/mimo-v2-flash",
       "label": "Xiaomi: MiMo V2 Flash (via Openrouter.ai)",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 262144,
       "engine_options": [
         "auto",
@@ -59,7 +59,7 @@
       "label": "OpenAI: GPT-5 Nano (via Openrouter.ai)",
       "created": "2025-08-07",
       "contextTokens": 400000,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "codex"
@@ -103,7 +103,7 @@
       "label": "Qwen: Qwen3 Coder 480B A35B (via Openrouter.ai)",
       "created": "2025-07-23",
       "contextTokens": 262144,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen",
