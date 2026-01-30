@@ -949,6 +949,35 @@ export default class TaskDBAws {
     return rows[0] || null;
   }
 
+  async mergeSessions(targetId, sourceId) {
+    if (!targetId || !sourceId || targetId === sourceId) return;
+    await this._initPromise;
+    await this.pool.query('UPDATE chat_tabs SET session_id = $1 WHERE session_id = $2', [
+      targetId,
+      sourceId
+    ]);
+    await this.pool.query('UPDATE chat_pairs SET session_id = $1 WHERE session_id = $2', [
+      targetId,
+      sourceId
+    ]);
+
+    const srcStart = await this.getImageSessionStartAsync(sourceId);
+    const tgtStart = await this.getImageSessionStartAsync(targetId);
+    if (srcStart && (!tgtStart || new Date(srcStart) < new Date(tgtStart))) {
+      await this.pool.query(
+        `INSERT INTO image_sessions (session_id, start_time)
+         VALUES ($1, $2)
+         ON CONFLICT (session_id) DO UPDATE SET start_time = EXCLUDED.start_time`,
+        [targetId, srcStart]
+      );
+      this.imageSessionStartCache.set(targetId, srcStart);
+    }
+    await this.pool.query('DELETE FROM image_sessions WHERE session_id = $1', [sourceId]);
+    this.imageSessionStartCache.delete(sourceId);
+    this.imageCountCache.delete(sourceId);
+    this.imageCountCache.delete(targetId);
+  }
+
   async createTask(title, project = '', sprint = '') {
     let client;
     try {
