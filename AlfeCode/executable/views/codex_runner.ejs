@@ -2690,9 +2690,11 @@
                     <a href="<%= chatBaseUrl %>" target="_blank" rel="noopener noreferrer" class="runs-sidebar__collapsed-nav-link" data-tab="chat" aria-label="Chat tab">
                         <span aria-hidden="true">💬</span>
                     </a>
+                    <% if (showImageDesign2026) { %>
                     <a href="<%= chatDesignUrl %>" target="_blank" rel="noopener noreferrer" class="runs-sidebar__collapsed-nav-link" data-tab="design" aria-label="Image Design tab">
                         <span aria-hidden="true">🎨</span>
                     </a>
+                    <% } %>
                 </div>
                 <button type="button" id="collapsedNewTaskBtn" class="runs-sidebar__collapsed-newtask" aria-label="New Task" title="New Task">
                     <span aria-hidden="true">+</span>
@@ -2730,17 +2732,19 @@
                         <span class="sidebar-nav-item__icon" aria-hidden="true">💬</span>
                         <span class="sidebar-nav-item__label">Chat</span>
                     </a>
+                    <% if (showImageDesign2026) { %>
                     <a href="<%= chatDesignUrl %>" target="_blank" rel="noopener noreferrer" class="sidebar-nav-item" data-tab="design" aria-label="Image Design tab">
                         <span class="sidebar-nav-item__icon" aria-hidden="true">🎨</span>
                         <span class="sidebar-nav-item__label">Image Design</span>
                     </a>
+                    <% } %>
                 </nav>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         try {
                             // Ensure Image Design link is visible
                             var designLink = document.querySelector('.sidebar-nav-item[data-tab="design"]');
-                            if(designLink) { designLink.style.display = ''; }
+                            if(designLink && <%= showImageDesign2026 ? 'true' : 'false' %>) { designLink.style.display = ''; }
                             // Hide any upload buttons/inputs in sidebar by default
                             var fileInput = document.getElementById('fileInput');
                             if(fileInput) fileInput.style.display = 'none';

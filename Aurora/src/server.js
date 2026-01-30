@@ -31,6 +31,8 @@ function parseBooleanEnv(value, defaultValue = false) {
 
 const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
 const IMAGE_UPLOAD_ENABLED = parseBooleanEnv(process.env.IMAGE_UPLOAD_ENABLED, false);
+const SEARCH_ENABLED_2026 = parseBooleanEnv(process.env.SEARCH_ENABLED_2026, true);
+const IMAGES_ENABLED_2026 = parseBooleanEnv(process.env.IMAGES_ENABLED_2026, true);
 const MIN_PASSWORD_LENGTH = 8;
 
 const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
@@ -4943,6 +4945,8 @@ app.get("/aurora-config.js", (_req, res) => {
     imageUpload: {
       enabled: IMAGE_UPLOAD_ENABLED,
     },
+    searchEnabled2026: SEARCH_ENABLED_2026,
+    imagesEnabled2026: IMAGES_ENABLED_2026,
     hideThemeOption: hideThemeOption,
   };
   const script = `window.AURORA_FLAGS = Object.assign({}, window.AURORA_FLAGS || {}, ${JSON.stringify(

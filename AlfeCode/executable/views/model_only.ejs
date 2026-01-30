@@ -271,6 +271,7 @@
               </div>
             </div>
           </div>
+          <% if (searchEnabled2026) { %>
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Search</h4>
             <div id="searchUsageBar" class="hidden" style="display:flex;align-items:center;gap:8px;">
@@ -284,6 +285,8 @@
               <button type="button" class="subscribe-button subscribe-button--inline">Sign Up / Log In</button>
             </div>
           </div>
+          <% } %>
+          <% if (imagesEnabled2026) { %>
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Image Design</h4>
             <div id="imageUsageBar" class="hidden" style="display:flex;align-items:center;gap:8px;">
@@ -297,6 +300,7 @@
               <button type="button" class="subscribe-button subscribe-button--inline">Sign Up / Log In</button>
             </div>
           </div>
+          <% } %>
           <% if (showPrintifyUploadUsage) { %>
           <div>
             <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Printify Upload</h4>
