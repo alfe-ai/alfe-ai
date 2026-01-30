@@ -24,6 +24,22 @@ body {
   min-height: 100vh;
 }
 
+.logged-out-state {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+.logged-out-state__message {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
 .projectview-scale-wrapper {
   transform: scale(var(--projectview-scale));
   transform-origin: top center;

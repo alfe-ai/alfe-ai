@@ -18,6 +18,9 @@ const archivedProjectsSection = document.getElementById('archived-projects');
 const archivedProjectsList = document.getElementById('archived-projects-list');
 const archivedProjectsEmpty = document.getElementById('archived-projects-empty');
 const archivedProjectsCount = document.getElementById('archived-projects-count');
+const loggedOutState = document.getElementById('logged-out-state');
+const loggedOutLoginButton = document.getElementById('logged-out-login');
+const appContainer = document.querySelector('.app');
 const isDialogSupported = Boolean(
   newProjectDialog && typeof newProjectDialog.showModal === 'function',
 );
@@ -155,6 +158,7 @@ let dragSourceIndex = null;
 let currentDropTargetRow = null;
 
 const ACTIVE_PROJECT_COOKIE = 'projectview_active_project';
+const LOGGED_OUT_PLAN = 'Logged-out Session';
 
 function getCookieValue(name) {
   if (typeof document === 'undefined' || !name) {
@@ -182,11 +186,38 @@ function getCookieValue(name) {
   return null;
 }
 
+function isLoggedOutPlan(plan) {
+  return (plan || '').toString().trim() === LOGGED_OUT_PLAN;
+}
+
+function setLoggedOutState(isLoggedOut) {
+  if (loggedOutState) {
+    loggedOutState.hidden = !isLoggedOut;
+  }
+  if (appContainer) {
+    appContainer.hidden = isLoggedOut;
+  }
+}
 
 function getSessionIdCookie() {
   return getCookieValue('sessionId');
 }
 
+async function isLoggedOutSession() {
+  try {
+    const sessionId = getSessionIdCookie();
+    const url = '/api/account' + (sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '');
+    const response = await fetch(url);
+    if (response.status === 401) {
+      return true;
+    }
+    const payload = await response.json().catch(() => null);
+    return Boolean(payload && isLoggedOutPlan(payload.plan));
+  } catch (error) {
+    console.warn('[ProjectView] Unable to check account status:', error);
+    return false;
+  }
+}
 
 function getProjectIdFromPath() {
   if (typeof window === 'undefined' || typeof window.location === 'undefined') return null;
@@ -1434,4 +1465,20 @@ if (downloadCurrentButton) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', loadProjects);
+if (loggedOutLoginButton) {
+  loggedOutLoginButton.addEventListener('click', () => {
+    window.location.href = '/agent';
+  });
+}
+
+async function initializeProjectView() {
+  const isLoggedOut = await isLoggedOutSession();
+  if (isLoggedOut) {
+    setLoggedOutState(true);
+    return;
+  }
+  setLoggedOutState(false);
+  await loadProjects();
+}
+
+document.addEventListener('DOMContentLoaded', initializeProjectView);
