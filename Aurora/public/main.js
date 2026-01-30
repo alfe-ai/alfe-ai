@@ -298,6 +298,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch(e) { console.warn('Error applying imageUploadConfig', e); }
 
+  try {
+    if (!featureFlagConfig.twoFactorEnabled2026) {
+      const totpSection = document.getElementById('totpSection');
+      if (totpSection) {
+        totpSection.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to apply 2FA visibility flag', err);
+  }
+
   const sessEl = document.getElementById('sessionIdText');
   if (sessEl) sessEl.textContent = sessionId;
   document.title = defaultTitle;
