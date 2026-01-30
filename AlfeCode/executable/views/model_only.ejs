@@ -253,7 +253,7 @@
               <div style="flex:1;height:6px;background:#1e293b;border-radius:999px;overflow:hidden;">
                 <div style="height:100%;width:0%;background:#38bdf8;"></div>
               </div>
-              <span id="codeUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/100 code runs</span>
+              <span id="codeUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/20 code runs</span>
             </div>
             <hr style="border:0;border-top:1px solid #1e293b;margin:8px 0;">
             <div id="codeUsageUnlimited" class="hidden" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
@@ -331,8 +331,8 @@
                 <option value="Logged-out Session">Logged-out Session</option>
                 <option value="Free">Free</option>
                 <option value="Lite">Lite</option>
-                <option value="Plus">Plus</option>
-                <option value="Pro">Pro</option>
+                <option id="accountPlanPlusOption" value="Plus" disabled hidden>Plus</option>
+                <option value="Pro" hidden>Pro</option>
               </select>
               <span id="accountPlanFeedback" class="hidden" style="font-size:0.75rem;color:#94a3b8;">Saved.</span>
             </div>

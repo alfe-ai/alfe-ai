@@ -21,6 +21,7 @@
   const accountPanel = document.getElementById('accountPanel');
   const accountEmail = document.getElementById('accountEmail');
   const accountPlanSelect = document.getElementById('accountPlanSelect');
+  const accountPlanPlusOption = document.getElementById('accountPlanPlusOption');
   const accountPlanFeedback = document.getElementById('accountPlanFeedback');
   const accountEverSubscribedSelect = document.getElementById('accountEverSubscribedSelect');
   const accountEverSubscribedFeedback = document.getElementById('accountEverSubscribedFeedback');
@@ -35,7 +36,7 @@
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const USAGE_LIMITS = {
     loggedOut: { code: 10, search: 0, images: 0 },
-    free: { code: 100, search: 10, images: 10 },
+    free: { code: 20, search: 10, images: 10 },
     lite: { code: null, search: 100, images: 100 },
     plus: { code: null, search: 500, images: 500 },
     pro: { code: null, search: 500, images: 500 },
@@ -425,6 +426,11 @@
   function setAccountPlanValue(value) {
     if (!accountPlanSelect) return;
     const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
+    if (accountPlanPlusOption) {
+      const showPlus = planValue === 'Plus';
+      accountPlanPlusOption.hidden = !showPlus;
+      accountPlanPlusOption.disabled = true;
+    }
     accountPlanSelect.value = planValue;
     currentAccountPlan = planValue;
     updateProModelOptions();
