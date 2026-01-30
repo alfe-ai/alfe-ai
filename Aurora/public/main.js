@@ -1977,7 +1977,6 @@ async function openSettingsModal(e){
     themeSelect.value = document.body.dataset.theme || getStoredTheme();
   }
   renderAccountSettingsSection();
-  renderUsageCountersInSettings();
   if(!usageLimitCache){
     updateUsageLimitInfo();
   }
@@ -2280,27 +2279,6 @@ function usageLimitReached(count, limit){
   return count >= limit;
 }
 
-function renderUsageCountersInSettings(){
-  const imageSessionEl = document.getElementById('settingsImageSessionCounter');
-  const imageIpEl = document.getElementById('settingsImageIpCounter');
-  const searchSessionEl = document.getElementById('settingsSearchSessionCounter');
-  const searchIpEl = document.getElementById('settingsSearchIpCounter');
-  if(!imageSessionEl || !imageIpEl || !searchSessionEl || !searchIpEl) return;
-
-  if(!usageLimitCache){
-    imageSessionEl.textContent = '…';
-    imageIpEl.textContent = '…';
-    searchSessionEl.textContent = '…';
-    searchIpEl.textContent = '…';
-    return;
-  }
-
-  imageSessionEl.textContent = formatUsageCount(usageLimitCache.sessionCount, usageLimitCache.sessionLimit);
-  imageIpEl.textContent = formatUsageCount(usageLimitCache.ipCount, usageLimitCache.ipLimit);
-  searchSessionEl.textContent = formatUsageCount(usageLimitCache.searchSessionCount, usageLimitCache.searchSessionLimit);
-  searchIpEl.textContent = formatUsageCount(usageLimitCache.searchIpCount, usageLimitCache.searchIpLimit);
-}
-
 async function updateUsageLimitInfo(){
   try {
     const resp = await fetch(`/api/image/counts?sessionId=${encodeURIComponent(sessionId)}`);
@@ -2329,7 +2307,6 @@ async function updateUsageLimitInfo(){
         stopLimitCountdown();
       }
     }
-    renderUsageCountersInSettings();
     return data;
   } catch(e){
     console.error('Failed to update usage limit info:', e);
