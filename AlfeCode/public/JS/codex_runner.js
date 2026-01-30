@@ -6284,7 +6284,7 @@ const appendMergeChunk = (text, type = "output") => {
       return "";
     }
 
-    const normaliseCandidate = (value) => {
+    const normaliseCandidate = (value, { qwenCli = false } = {}) => {
       if (typeof value !== "string") {
         return "";
       }
@@ -6292,7 +6292,11 @@ const appendMergeChunk = (text, type = "output") => {
       if (!trimmed) {
         return "";
       }
-      return stripInitialHeaders(trimmed);
+      const cleaned = qwenCli ? stripGitFpushOutput(stripQwenCliOutput(trimmed)) : trimmed;
+      if (!cleaned) {
+        return "";
+      }
+      return stripInitialHeaders(cleaned);
     };
 
     // If the run explicitly recorded final output fields, prefer them.
@@ -6303,7 +6307,7 @@ const appendMergeChunk = (text, type = "output") => {
     ];
 
     for (const candidate of directCandidates) {
-      const normalised = normaliseCandidate(candidate);
+      const normalised = normaliseCandidate(candidate, { qwenCli: run.qwenCli === true });
       if (normalised) {
         return normalised;
       }
