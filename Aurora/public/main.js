@@ -1619,11 +1619,10 @@ function setAccountsFeatureVisibility(enabled){
   accountsEnabled = normalized;
   const signupBtn = document.getElementById("signupBtn");
   if(signupBtn){
-    signupBtn.style.display = normalized ? "" : "none";
+    signupBtn.style.display = normalized && !accountInfo ? "" : "none";
   }
   if(!normalized){
     hideModal(document.getElementById("authModal"));
-    hideModal(document.getElementById("accountModal"));
   }
   if(document.body){
     document.body.classList.toggle("accounts-enabled", normalized);
@@ -1913,27 +1912,44 @@ async function checkAuthEmailAndContinue(){
   }
 }
 
-function openAccountModal(e){
-  if(e) e.preventDefault();
-  if(!ensureAccountsEnabled()){
+function renderAccountSettingsSection(){
+  const accountSection = document.getElementById("settingsAccountSection");
+  const signedOutSection = document.getElementById("settingsAccountSignedOut");
+  const signedOutMessage = document.getElementById("settingsAccountSignedOutMessage");
+  if(!accountSection && !signedOutSection){
     return;
   }
-  if(accountInfo){
-    const emailEl = document.getElementById("accountEmail");
-    if(emailEl) emailEl.textContent = accountInfo.email;
-    const enabledMsg = document.getElementById('totpEnabledMsg');
-    const enableBtn = document.getElementById('enableTotpBtn');
-    if(accountInfo.totpEnabled){
-      if(enabledMsg) enabledMsg.style.display = 'block';
-      if(enableBtn) enableBtn.style.display = 'none';
-    } else {
-      if(enabledMsg) enabledMsg.style.display = 'none';
-      if(enableBtn) enableBtn.style.display = 'inline-block';
-    }
-    const planText = document.getElementById('accountPlanText');
-    if(planText) planText.innerHTML = 'Subscription Plan: <strong>Free</strong>';
+  const isEnabled = accountsEnabled;
+  const isLoggedIn = !!accountInfo;
+  if(accountSection){
+    accountSection.style.display = isEnabled && isLoggedIn ? "" : "none";
   }
-  showModal(document.getElementById("accountModal"));
+  if(signedOutSection){
+    signedOutSection.style.display = !isLoggedIn ? "" : "none";
+  }
+  if(signedOutMessage){
+    if(!isEnabled){
+      signedOutMessage.textContent = "Accounts are currently unavailable.";
+    } else {
+      signedOutMessage.textContent = "Log in to manage your account.";
+    }
+  }
+  if(!isEnabled || !isLoggedIn){
+    return;
+  }
+  const emailEl = document.getElementById("accountEmail");
+  if(emailEl) emailEl.textContent = accountInfo.email;
+  const enabledMsg = document.getElementById('totpEnabledMsg');
+  const enableBtn = document.getElementById('enableTotpBtn');
+  if(accountInfo.totpEnabled){
+    if(enabledMsg) enabledMsg.style.display = 'block';
+    if(enableBtn) enableBtn.style.display = 'none';
+  } else {
+    if(enabledMsg) enabledMsg.style.display = 'none';
+    if(enableBtn) enableBtn.style.display = 'inline-block';
+  }
+  const planText = document.getElementById('accountPlanText');
+  if(planText) planText.innerHTML = 'Subscription Plan: <strong>Free</strong>';
 }
 
 async function openSettingsModal(e){
@@ -1960,6 +1976,7 @@ async function openSettingsModal(e){
   if(themeSelect){
     themeSelect.value = document.body.dataset.theme || getStoredTheme();
   }
+  renderAccountSettingsSection();
   renderUsageCountersInSettings();
   if(!usageLimitCache){
     updateUsageLimitInfo();
@@ -1986,25 +2003,24 @@ function updateAccountButton(info){
     toggleDesignTabs(false);
     return;
   }
-  btn.style.display = "";
   btn.removeEventListener("click", openSignupModal);
-  btn.removeEventListener("click", openAccountModal);
   btn.removeEventListener("click", openLoginModal);
   if(info && info.exists){
     accountInfo = info;
-    btn.textContent = "Account";
-    btn?.addEventListener("click", openAccountModal);
+    btn.style.display = "none";
     togglePortfolioMenu(info.id === 1);
     toggleImageIdColumn();
     toggleDesignTabs(info.plan === 'Pro' || info.plan === 'Ultimate');
   } else {
     accountInfo = null;
+    btn.style.display = "";
     btn.textContent = "Sign Up / Log In";
     btn?.addEventListener("click", openSignupModal);
     togglePortfolioMenu(false);
     toggleImageIdColumn();
     toggleDesignTabs(false);
   }
+  renderAccountSettingsSection();
 }
 
 
@@ -2054,7 +2070,7 @@ async function logout(){
   }
   document.cookie = "sessionId=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
   sessionStorage.removeItem('sessionId');
-  hideModal(document.getElementById("accountModal"));
+  hideModal(document.getElementById("settingsModal"));
   updateAccountButton(null);
   showToast("Logged out");
   setTimeout(() => location.reload(), 500);
@@ -5400,13 +5416,6 @@ if (loginSubmitBtn) {
       showToast("Login failed");
     }
   });
-}
-
-const accountCloseBtn = document.getElementById("accountCloseBtn");
-if(accountCloseBtn){
-  accountCloseBtn?.addEventListener("click", () =>
-    hideModal(document.getElementById("accountModal"))
-  );
 }
 
 const accountLogoutBtn = document.getElementById("accountLogoutBtn");
