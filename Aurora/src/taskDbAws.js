@@ -641,6 +641,12 @@ export default class TaskDBAws {
     });
   }
 
+  renameChatTab(tabId, newName) {
+    void this.renameChatTabAsync(tabId, newName).catch((err) => {
+      console.warn('[TaskDBAws] Failed to rename chat tab:', err);
+    });
+  }
+
   async setChatTabArchivedAsync(tabId, archived = 1) {
     await this._initPromise;
     const isArchived = archived ? 1 : 0;
@@ -648,6 +654,14 @@ export default class TaskDBAws {
     await this.pool.query(
       'UPDATE chat_tabs SET archived = $1, archived_at = $2 WHERE id = $3',
       [isArchived, archivedAt, tabId]
+    );
+  }
+
+  async renameChatTabAsync(tabId, newName) {
+    await this._initPromise;
+    await this.pool.query(
+      'UPDATE chat_tabs SET name = $1 WHERE id = $2',
+      [newName, tabId]
     );
   }
 
