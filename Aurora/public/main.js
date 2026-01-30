@@ -5441,6 +5441,27 @@ if(settingsBtn){
   settingsBtn?.addEventListener("click", openSettingsModal);
 }
 
+const aboutModalButton = document.getElementById("aboutModalButton");
+const aboutModal = document.getElementById("aboutModal");
+const aboutModalIframe = document.getElementById("aboutModalIframe");
+const aboutModalCloseBtn = document.getElementById("aboutModalCloseBtn");
+if(aboutModalButton && aboutModal){
+  aboutModalButton.addEventListener("click", () => {
+    if(aboutModalIframe){
+      aboutModalIframe.src = "/about.html";
+    }
+    showModal(aboutModal);
+  });
+}
+if(aboutModalCloseBtn && aboutModal){
+  aboutModalCloseBtn.addEventListener("click", () => {
+    hideModal(aboutModal);
+    if(aboutModalIframe){
+      aboutModalIframe.src = "";
+    }
+  });
+}
+
 const archiveChatBtn = document.getElementById("archiveChatBtn");
 if(archiveChatBtn){
   archiveChatBtn?.addEventListener("click", archiveCurrentChat);

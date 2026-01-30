@@ -186,7 +186,7 @@
       </table>
     </div>
     <div id="sidebarFooterLinks" class="sidebar-footer">
-      <a class="footer-button" href="/about.html" target="_blank" rel="noopener noreferrer">About</a>
+      <button type="button" id="aboutModalButton" class="footer-button">About</button>
       <a class="footer-button github-button" href="https://github.com/alfe-ai" target="_blank" rel="noopener noreferrer">
         GitHub
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" focusable="false" aria-hidden="true">
@@ -724,6 +724,17 @@
       <button type="button" id="printifyQueueModalCloseBtn" class="modal-title-action" aria-label="Close Printify Queue modal" title="Close">✕</button>
     </div>
     <iframe id="printifyQueueIframe" class="modal-iframe" src="" title="Printify Queue"></iframe>
+  </div>
+</div>
+
+<!-- About modal -->
+<div id="aboutModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="aboutModalTitle">
+  <div class="modal-content modal-content--iframe" role="document">
+    <div class="modal-title-row">
+      <h2 id="aboutModalTitle">About Alfe AI</h2>
+      <button type="button" id="aboutModalCloseBtn" class="modal-title-action" aria-label="Close About modal" title="Close">✕</button>
+    </div>
+    <iframe id="aboutModalIframe" class="modal-iframe" src="" title="About Alfe AI"></iframe>
   </div>
 </div>
 
