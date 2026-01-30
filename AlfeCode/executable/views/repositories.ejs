@@ -113,7 +113,7 @@
                 }
                 var params = new URLSearchParams(window.location.search);
                 var iframeParam = params.get('iframe');
-                var isIframeMode = (iframeParam===null) ? false : parseBooleanFlag(iframeParam);
+                var isIframeMode = (iframeParam===null) ? (window.self !== window.top) : parseBooleanFlag(iframeParam);
                 var howItWorksContainer = document.querySelector('[data-how-it-works]');
                 if(isIframeMode){
                     if(howItWorksContainer) howItWorksContainer.style.display='none';
@@ -129,6 +129,18 @@
 
                 var addRepoButton = document.querySelector('.add-repo-button');
                 var tooltipMessage = document.querySelector('.tooltip-message');
+                var requestRepoModal = function() {
+                    if (!isIframeMode) return false;
+                    if (window.parent && window.parent !== window) {
+                        try {
+                            window.parent.postMessage({ type: 'sterling:open-repo-add' }, '*');
+                            return true;
+                        } catch (err) {
+                            return false;
+                        }
+                    }
+                    return false;
+                };
                 if (addRepoButton && tooltipMessage) {
                     var tooltipTimeout;
                     var showTooltip = function() {
@@ -140,12 +152,24 @@
                     };
 
                     addRepoButton.addEventListener('click', function(event) {
+                        if (requestRepoModal()) {
+                            event.preventDefault();
+                            return;
+                        }
                         event.preventDefault();
                         showTooltip();
                     });
 
                     addRepoButton.addEventListener('mouseenter', showTooltip);
                     addRepoButton.addEventListener('focus', showTooltip);
+                }
+
+                if (addRepoButton && !tooltipMessage) {
+                    addRepoButton.addEventListener('click', function(event) {
+                        if (requestRepoModal()) {
+                            event.preventDefault();
+                        }
+                    });
                 }
 
                 document.querySelectorAll('.repo-delete-form').forEach(function(form){
