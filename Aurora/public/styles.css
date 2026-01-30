@@ -2473,6 +2473,12 @@ body {
   min-height: 1em;
 }
 
+.settings-status--summary {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .settings-status.is-success {
   color: #59d695;
 }
