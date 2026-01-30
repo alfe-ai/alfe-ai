@@ -4066,10 +4066,9 @@ $("#editTabNameSaveBtn")?.addEventListener("click", async () => {
   await renameTab(tabId, name);
   hideModal(modal);
 });
-$("#editTabNameCancelBtn")?.addEventListener("click", () => hideModal($("#editTabNameModal")));
 $("#editTabNameInput")?.addEventListener("keydown", evt => {
   if(evt.key === "Enter") $("#editTabNameSaveBtn")?.click();
-  else if(evt.key === "Escape") $("#editTabNameCancelBtn")?.click();
+  else if(evt.key === "Escape") hideModal($("#editTabNameModal"));
 });
 
 $("#renameTabSaveBtn").addEventListener("click", async () => {
