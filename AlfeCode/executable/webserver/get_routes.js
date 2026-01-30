@@ -4877,11 +4877,23 @@ ${cleanedFinalOutput}`;
         res.render("repositories", { repos: repoList, sessionId: sessionId });
     });
 
-    app.get("/repositories/add", (_req, res) => {
+    app.get("/repositories/add", async (req, res) => {
         const serverCWD = process.cwd();
         const showCreateRepoLink = ["1", "true", "yes", "on"].includes(
             (process.env.SHOW_NEW_REPOSITORY_LINK || "").toLowerCase(),
         );
+        let showLoggedOutMessage = false;
+        if (rdsStore?.enabled) {
+            const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+            if (!sessionId) {
+                showLoggedOutMessage = true;
+            } else {
+                const account = await rdsStore.getAccountBySession(sessionId);
+                if (!account) {
+                    showLoggedOutMessage = true;
+                }
+            }
+        }
         res.render("add_repository", {
             serverCWD,
             cloneError: null,
@@ -4889,6 +4901,7 @@ ${cleanedFinalOutput}`;
             repoNameValue: "",
             gitRepoURLValue: "",
             showCreateRepoLink,
+            showLoggedOutMessage,
         });
     });
 
