@@ -1969,14 +1969,17 @@ async function openSettingsModal(e){
     ensureTimezoneOption(tzEl, tzValue);
     tzEl.value = tzValue || '';
   }
+  updateSettingsStatus(document.getElementById('timezoneSaveStatus'), '');
   const autoScrollCheck = document.getElementById('accountAutoScrollCheck');
   if(autoScrollCheck){
     autoScrollCheck.checked = chatAutoScroll;
   }
+  updateSettingsStatus(document.getElementById('autoScrollSaveStatus'), '');
   const mobileCheck = document.getElementById('mobileThinSidebarCheck');
   if(mobileCheck){
     mobileCheck.checked = mobileSidebarToolbar;
   }
+  updateSettingsStatus(document.getElementById('mobileSidebarSaveStatus'), '');
   const sessionIdEl = document.getElementById('settingsSessionIdText');
   if(sessionIdEl){
     sessionIdEl.textContent = sessionId || '';
@@ -1990,6 +1993,17 @@ async function openSettingsModal(e){
     updateUsageLimitInfo();
   }
   showModal(document.getElementById("settingsModal"));
+}
+
+function updateSettingsStatus(el, message, state){
+  if(!el) return;
+  el.textContent = message || '';
+  el.classList.remove('is-success', 'is-error');
+  if(state === 'success'){
+    el.classList.add('is-success');
+  } else if(state === 'error'){
+    el.classList.add('is-error');
+  }
 }
 
 
@@ -2410,7 +2424,9 @@ async function setSetting(key, value){
   });
   if(response.ok){
     settingsCache[key] = value;
+    return true;
   }
+  return false;
 }
 
 async function setSettings(map){
@@ -5420,36 +5436,6 @@ if(archiveChatBtn){
   updateArchiveChatButton();
 }
 
-
-const settingsSaveBtn = document.getElementById("settingsSaveBtn");
-if(settingsSaveBtn){
-  settingsSaveBtn?.addEventListener("click", async () => {
-    if(!ensureAccountsEnabled()){
-      return;
-    }
-    const tzSelect = document.getElementById('accountTimezone');
-    const tz = (tzSelect?.value || '').trim();
-    try {
-      const resp = await fetch('/api/account/timezone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timezone: tz })
-      });
-      const data = await resp.json().catch(() => null);
-      if(resp.ok && data && data.success){
-        if(accountInfo) accountInfo.timezone = tz;
-        showToast('Settings saved');
-        hideModal(document.getElementById('settingsModal'));
-      } else {
-        showToast(data?.error || 'Failed to save settings');
-      }
-    } catch (err) {
-      console.error('Failed to save settings', err);
-      showToast('Failed to save settings');
-    }
-  });
-}
-
 const enableTotpBtn = document.getElementById('enableTotpBtn');
 if(enableTotpBtn){
   enableTotpBtn?.addEventListener('click', async () => {
@@ -5544,23 +5530,77 @@ if(changePasswordBtn){
   });
 }
 
+const accountTimezoneSelect = document.getElementById('accountTimezone');
+if(accountTimezoneSelect){
+  const timezoneStatus = document.getElementById('timezoneSaveStatus');
+  accountTimezoneSelect.addEventListener('change', async () => {
+    if(!ensureAccountsEnabled()){
+      updateSettingsStatus(timezoneStatus, 'Sign in required to save.', 'error');
+      return;
+    }
+    const tz = (accountTimezoneSelect.value || '').trim();
+    updateSettingsStatus(timezoneStatus, 'Saving...');
+    try {
+      const resp = await fetch('/api/account/timezone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timezone: tz })
+      });
+      const data = await resp.json().catch(() => null);
+      if(resp.ok && data && data.success){
+        if(accountInfo) accountInfo.timezone = tz;
+        updateSettingsStatus(timezoneStatus, 'Saved', 'success');
+      } else {
+        updateSettingsStatus(timezoneStatus, data?.error || 'Failed to save.', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save timezone', err);
+      updateSettingsStatus(timezoneStatus, 'Failed to save.', 'error');
+    }
+  });
+}
+
 const accountAutoScrollCheck = document.getElementById('accountAutoScrollCheck');
 if(accountAutoScrollCheck){
+  const autoScrollStatus = document.getElementById('autoScrollSaveStatus');
   accountAutoScrollCheck?.addEventListener('change', async () => {
     chatAutoScroll = accountAutoScrollCheck.checked;
     if(chatAutoScroll){
       setTimeout(scrollChatToBottom, 0);
     }
-    await setSetting('chat_auto_scroll', chatAutoScroll);
+    updateSettingsStatus(autoScrollStatus, 'Saving...');
+    try {
+      const ok = await setSetting('chat_auto_scroll', chatAutoScroll);
+      if(ok){
+        updateSettingsStatus(autoScrollStatus, 'Saved', 'success');
+      } else {
+        updateSettingsStatus(autoScrollStatus, 'Failed to save.', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save chat auto-scroll', err);
+      updateSettingsStatus(autoScrollStatus, 'Failed to save.', 'error');
+    }
   });
 }
 
 const mobileThinSidebarCheck = document.getElementById('mobileThinSidebarCheck');
 if(mobileThinSidebarCheck){
+  const mobileSidebarStatus = document.getElementById('mobileSidebarSaveStatus');
   mobileThinSidebarCheck?.addEventListener('change', async () => {
     mobileSidebarToolbar = mobileThinSidebarCheck.checked;
     updateMobileThinSidebar();
-    await setSetting('mobile_sidebar_toolbar', mobileSidebarToolbar);
+    updateSettingsStatus(mobileSidebarStatus, 'Saving...');
+    try {
+      const ok = await setSetting('mobile_sidebar_toolbar', mobileSidebarToolbar);
+      if(ok){
+        updateSettingsStatus(mobileSidebarStatus, 'Saved', 'success');
+      } else {
+        updateSettingsStatus(mobileSidebarStatus, 'Failed to save.', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save mobile sidebar setting', err);
+      updateSettingsStatus(mobileSidebarStatus, 'Failed to save.', 'error');
+    }
   });
 }
 

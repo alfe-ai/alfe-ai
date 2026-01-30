@@ -2466,6 +2466,21 @@ body {
   pointer-events: none;
 }
 
+.settings-status {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #8ea1b3;
+  min-height: 1em;
+}
+
+.settings-status.is-success {
+  color: #59d695;
+}
+
+.settings-status.is-error {
+  color: #f08a8a;
+}
+
 /* Inline loading spinner used in status indicators */
 .loading-spinner {
   display: inline-block;

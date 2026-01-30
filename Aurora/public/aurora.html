@@ -893,6 +893,7 @@
           <option value="">Select a timezone</option>
         </select>
       </label>
+      <div id="timezoneSaveStatus" class="settings-status" aria-live="polite"></div>
     </div>
     <div id="themeSection" style="margin-top:10px;">
       <label>Theme:<br/>
@@ -904,9 +905,11 @@
     </div>
     <div id="autoScrollSection" style="margin-top:10px;">
       <label><input type="checkbox" id="accountAutoScrollCheck" checked/> Keep chat pinned to bottom</label>
+      <div id="autoScrollSaveStatus" class="settings-status" aria-live="polite"></div>
     </div>
     <div id="mobileThinSidebarSection" style="margin-top:10px;">
       <label><input type="checkbox" id="mobileThinSidebarCheck" checked/> Show sidebar toolbar on mobile</label>
+      <div id="mobileSidebarSaveStatus" class="settings-status" aria-live="polite"></div>
     </div>
     <div id="settingsAccountSection" style="margin-top:16px; display:none;">
       <h3 style="margin-bottom:6px;">Account</h3>
@@ -945,9 +948,6 @@
     <div id="settingsAccountSignedOut" style="margin-top:16px; display:none;">
       <h3 style="margin-bottom:6px;">Account</h3>
       <p id="settingsAccountSignedOutMessage">Log in to manage your account.</p>
-    </div>
-    <div class="modal-buttons">
-      <button id="settingsSaveBtn">Save</button>
     </div>
     <div id="sessionIdSection" style="margin-top:12px; font-size:0.85rem; color:#8ea1b3; word-break:break-all;">
       Session ID: <code id="settingsSessionIdText"></code>
