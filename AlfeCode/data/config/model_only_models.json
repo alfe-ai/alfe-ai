@@ -247,7 +247,7 @@
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air",
-      "label": "Z.ai: GLM 4.5 Air",
+      "label": "[Backup] Z.ai: GLM 4.5 Air",
       "disabled": false,
       "list_order": 1,
       "engine_options": [
@@ -256,7 +256,7 @@
       ],
       "qwen_cli": true,
       "contextTokens": 131072,
-      "plus_model": true
+      "plus_model": false
     },
     {
       "id": "openrouter/z-ai/glm-4-32b",
