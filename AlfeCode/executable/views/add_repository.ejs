@@ -357,11 +357,17 @@
             if (trimmedValue) {
                 repoNameValue.textContent = trimmedValue;
                 repoNameValue.classList.remove('placeholder');
+                if (editRepoNameButton) {
+                    editRepoNameButton.classList.remove('is-hidden');
+                }
                 return;
             }
 
             repoNameValue.textContent = 'Not set';
             repoNameValue.classList.add('placeholder');
+            if (editRepoNameButton) {
+                editRepoNameButton.classList.add('is-hidden');
+            }
         };
 
         const showRepoNameReadOnly = () => {
