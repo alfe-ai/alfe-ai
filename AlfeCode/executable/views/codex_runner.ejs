@@ -2864,7 +2864,7 @@
             </div>
             <footer class="runs-sidebar__footer">
                 <div class="runs-sidebar__footer-links">
-                    <button type="button" class="github-link-button" onclick="window.open('/about.html', '_blank', 'noopener,noreferrer');" oncontextmenu="window.open('/about.html', '_blank', 'noopener,noreferrer'); return false;">About</button>
+                    <button type="button" id="aboutModalButton" class="github-link-button">About</button>
                     <button
                         type="button"
                         class="github-link-button"
@@ -3421,6 +3421,13 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       </div>
     </div>
 
+    <div id="aboutModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="About Alfe AI">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="aboutModalCloseButton">×</button>
+        <iframe id="aboutModalIframe" class="modal-iframe" src="" title="About Alfe AI"></iframe>
+      </div>
+    </div>
+
     <div id="sterlingSettingsModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Settings">
       <div class="modal-content" style="position:relative;min-height:140px;max-width:980px;margin:auto; width:90%;">
         <button class="modal-close" type="button" id="sterlingSettingsCloseButton">×</button>
@@ -3616,6 +3623,31 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       document.body.style.overflow='';
       if(sterlingSettingsIframe){
         sterlingSettingsIframe.src = '';
+      }
+    });
+  }
+
+  const aboutModalButton = document.getElementById('aboutModalButton');
+  const aboutModal = document.getElementById('aboutModal');
+  const aboutModalIframe = document.getElementById('aboutModalIframe');
+  const aboutModalCloseButton = document.getElementById('aboutModalCloseButton');
+  if(aboutModalButton && aboutModal){
+    aboutModalButton.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if(aboutModalIframe){
+        aboutModalIframe.src = '/about.html';
+      }
+      aboutModal.classList.remove('is-hidden');
+      document.body.style.overflow = 'hidden';
+    });
+  }
+  if(aboutModalCloseButton && aboutModal){
+    aboutModalCloseButton.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      aboutModal.classList.add('is-hidden');
+      document.body.style.overflow = '';
+      if(aboutModalIframe){
+        aboutModalIframe.src = '';
       }
     });
   }
