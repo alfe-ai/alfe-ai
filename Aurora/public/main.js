@@ -1974,6 +1974,7 @@ function renderAccountSettingsSection(){
 
 async function openSettingsModal(e){
   if(e) e.preventDefault();
+  updateSettingsStatus(document.getElementById('settingsModalStatus'), '');
   const tzEl = document.getElementById('accountTimezone');
   const tzValue = (accountInfo?.timezone && accountInfo.timezone.trim()) || detectedTimezone || '';
   if(tzEl){
@@ -2015,6 +2016,10 @@ function updateSettingsStatus(el, message, state){
   } else if(state === 'error'){
     el.classList.add('is-error');
   }
+}
+
+function updateSettingsModalStatus(message, state){
+  updateSettingsStatus(document.getElementById('settingsModalStatus'), message, state);
 }
 
 
@@ -5571,10 +5576,12 @@ if(accountTimezoneSelect){
   accountTimezoneSelect.addEventListener('change', async () => {
     if(!ensureAccountsEnabled()){
       updateSettingsStatus(timezoneStatus, 'Sign in required to save.', 'error');
+      updateSettingsModalStatus('Sign in required to save timezone.', 'error');
       return;
     }
     const tz = (accountTimezoneSelect.value || '').trim();
     updateSettingsStatus(timezoneStatus, 'Saving...');
+    updateSettingsModalStatus('Saving timezone...');
     try {
       const resp = await fetch('/api/account/timezone', {
         method: 'POST',
@@ -5585,12 +5592,15 @@ if(accountTimezoneSelect){
       if(resp.ok && data && data.success){
         if(accountInfo) accountInfo.timezone = tz;
         updateSettingsStatus(timezoneStatus, 'Saved', 'success');
+        updateSettingsModalStatus('Timezone saved.', 'success');
       } else {
         updateSettingsStatus(timezoneStatus, data?.error || 'Failed to save.', 'error');
+        updateSettingsModalStatus(data?.error || 'Failed to save timezone.', 'error');
       }
     } catch (err) {
       console.error('Failed to save timezone', err);
       updateSettingsStatus(timezoneStatus, 'Failed to save.', 'error');
+      updateSettingsModalStatus('Failed to save timezone.', 'error');
     }
   });
 }
