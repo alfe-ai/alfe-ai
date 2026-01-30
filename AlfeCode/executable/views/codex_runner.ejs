@@ -2490,7 +2490,33 @@
             border-color: rgba(196, 181, 253, 0.85);
         }
 
+        #repoAddCloseButton {
+            background: rgba(124, 58, 237, 0.28);
+            border: 1px solid rgba(167, 139, 250, 0.7);
+            color: #f8fafc;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.35);
+        }
+
+        #repoAddCloseButton:hover,
+        #repoAddCloseButton:focus-visible {
+            background: rgba(124, 58, 237, 0.4);
+            border-color: rgba(196, 181, 253, 0.85);
+        }
+
         #aboutModal .modal-content {
+            max-width: 980px;
+            width: 90%;
+            margin: auto;
+            position: relative;
+        }
+
+        #repoAddModal .modal-content {
             max-width: 980px;
             width: 90%;
             margin: auto;
@@ -3476,6 +3502,19 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       </div>
     </div>
 
+    <div id="repoAddModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Connect Git Repository">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="repoAddCloseButton">×</button>
+        <iframe
+          id="repoAddIframe"
+          class="modal-iframe"
+          src=""
+          data-default-src="/repositories/add"
+          title="Connect Git Repository"
+        ></iframe>
+      </div>
+    </div>
+
     <div id="sterlingSettingsModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Settings">
       <div class="modal-content" style="position:relative;min-height:140px;max-width:980px;margin:auto; width:90%;">
         <button class="modal-close" type="button" id="sterlingSettingsCloseButton">×</button>
@@ -3699,6 +3738,42 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       }
     });
   }
+
+  const repoAddModal = document.getElementById('repoAddModal');
+  const repoAddIframe = document.getElementById('repoAddIframe');
+  const repoAddCloseButton = document.getElementById('repoAddCloseButton');
+  const openRepoAddModal = function() {
+    if (!repoAddModal) return;
+    const defaultRepoAddUrl = (repoAddIframe && (repoAddIframe.dataset.defaultSrc || repoAddIframe.getAttribute('data-default-src'))) || '/repositories/add';
+    if (repoAddIframe) {
+      const currentSrc = repoAddIframe.getAttribute('src');
+      if (!currentSrc || currentSrc === '') {
+        repoAddIframe.src = defaultRepoAddUrl;
+      }
+    }
+    repoAddModal.classList.remove('is-hidden');
+    document.body.style.overflow = 'hidden';
+    const reposDropdown = document.getElementById('reposDropdown');
+    if (reposDropdown) {
+        reposDropdown.classList.add('is-hidden');
+        reposDropdown.setAttribute('aria-hidden', 'true');
+    }
+  };
+  if (repoAddCloseButton && repoAddModal) {
+    repoAddCloseButton.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      repoAddModal.classList.add('is-hidden');
+      document.body.style.overflow = '';
+      if (repoAddIframe) {
+        repoAddIframe.src = '';
+      }
+    });
+  }
+  window.addEventListener('message', function(ev){
+    const data = ev && ev.data;
+    if (!data || data.type !== 'sterling:open-repo-add') return;
+    openRepoAddModal();
+  });
 
 
 
