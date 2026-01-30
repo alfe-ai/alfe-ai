@@ -125,6 +125,47 @@
         form label {
             font-weight: 600;
         }
+        .inline-edit-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .inline-edit-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+        }
+        .inline-edit-value {
+            font-weight: 500;
+        }
+        .inline-edit-value.placeholder {
+            color: var(--nexum-muted);
+            font-style: italic;
+            font-weight: 400;
+        }
+        .inline-edit-input {
+            margin-top: 8px;
+        }
+        .icon-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--nexum-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--nexum-text);
+            cursor: pointer;
+        }
+        .icon-button:hover {
+            background: rgba(30, 41, 59, 0.75);
+        }
+        .is-hidden {
+            display: none;
+        }
         form input[type="text"] {
             width: 100%;
             box-sizing: border-box;
@@ -243,8 +284,23 @@
                 </div>
 
                 <div class="field">
-                    <label for="repoName">Project name:</label>
-                    <input type="text" id="repoName" name="repoName" value="<%= repoNameValue || '' %>" required>
+                    <div class="inline-edit-row">
+                        <label for="repoName">Project name:</label>
+                        <div class="inline-edit-display" id="repoNameDisplay">
+                            <span class="inline-edit-value" id="repoNameValue"></span>
+                            <button type="button" class="icon-button" id="editRepoName" aria-label="Edit project name">
+                                <span aria-hidden="true">✎</span>
+                            </button>
+                        </div>
+                    </div>
+                    <input
+                        type="text"
+                        id="repoName"
+                        name="repoName"
+                        value="<%= repoNameValue || '' %>"
+                        class="inline-edit-input is-hidden"
+                        required
+                    >
                 </div>
 
                 <div class="field">
@@ -263,6 +319,9 @@
     <script>
         const repoNameInput = document.getElementById('repoName');
         const gitRepoURLInput = document.getElementById('gitRepoURL');
+        const repoNameDisplay = document.getElementById('repoNameDisplay');
+        const repoNameValue = document.getElementById('repoNameValue');
+        const editRepoNameButton = document.getElementById('editRepoName');
         const addRepoForm = document.getElementById('addRepoForm');
         const generateSshKeyButton = document.getElementById('generateSshKey');
         const copySshKeyButton = document.getElementById('copySshKey');
@@ -294,10 +353,38 @@
             return '';
         };
 
+        const updateRepoNameDisplay = () => {
+            const trimmedValue = repoNameInput.value.trim();
+            if (trimmedValue) {
+                repoNameValue.textContent = trimmedValue;
+                repoNameValue.classList.remove('placeholder');
+                return;
+            }
+
+            repoNameValue.textContent = 'Not set';
+            repoNameValue.classList.add('placeholder');
+        };
+
+        const showRepoNameReadOnly = () => {
+            repoNameInput.setAttribute('readonly', 'readonly');
+            repoNameInput.classList.add('is-hidden');
+            repoNameDisplay.classList.remove('is-hidden');
+        };
+
+        const showRepoNameEditor = () => {
+            repoNameInput.removeAttribute('readonly');
+            repoNameInput.classList.remove('is-hidden');
+            repoNameDisplay.classList.add('is-hidden');
+            repoNameInput.focus();
+            repoNameInput.select();
+        };
+
         const clearFormInputs = () => {
             repoNameInput.value = '';
             gitRepoURLInput.value = '';
             repoNameInput.removeAttribute('aria-invalid');
+            updateRepoNameDisplay();
+            showRepoNameReadOnly();
         };
 
         window.addEventListener('pageshow', () => {
@@ -306,6 +393,9 @@
             }
         });
 
+        updateRepoNameDisplay();
+        showRepoNameReadOnly();
+
         let repoNameEdited = Boolean(repoNameInput.value.trim());
 
         repoNameInput.addEventListener('input', () => {
@@ -313,7 +403,15 @@
             if (repoNameInput.value.trim()) {
                 repoNameInput.removeAttribute('aria-invalid');
             }
+            updateRepoNameDisplay();
         });
+
+        if (editRepoNameButton) {
+            editRepoNameButton.addEventListener('click', () => {
+                repoNameEdited = true;
+                showRepoNameEditor();
+            });
+        }
 
         gitRepoURLInput.addEventListener('input', () => {
             if (repoNameEdited) {
@@ -327,11 +425,13 @@
             } else {
                 repoNameInput.value = '';
             }
+            updateRepoNameDisplay();
         });
 
         addRepoForm.addEventListener('submit', () => {
             if (!repoNameInput.value.trim()) {
                 repoNameInput.setAttribute('aria-invalid', 'true');
+                showRepoNameEditor();
             }
         });
 
