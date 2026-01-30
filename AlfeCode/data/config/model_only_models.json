@@ -15,7 +15,7 @@
         "outputPerMTokens": 0.1
       },
       "qwen_cli": true,
-      "list_order": 0,
+      "list_order": 1,
       "plus_model": false
     },
     {
