@@ -2101,6 +2101,9 @@ async function logout(){
   } catch(err){
     console.error("Logout failed", err);
   }
+  authModalStep = "email";
+  setAuthEmailValue("");
+  sessionStorage.removeItem(AUTH_MODAL_STATE_KEY);
   document.cookie = "sessionId=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
   sessionStorage.removeItem('sessionId');
   hideModal(document.getElementById("settingsModal"));
