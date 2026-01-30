@@ -1011,9 +1011,31 @@
         }
 
         .runs-sidebar__badge--running {
-            background: rgba(255, 193, 7, 0.18);
-            border-color: rgba(255, 193, 7, 0.35);
-            color: #f6c200;
+            background: linear-gradient(120deg, rgba(255, 193, 7, 0.12), rgba(255, 214, 10, 0.32), rgba(255, 193, 7, 0.18));
+            background-size: 200% 200%;
+            border-color: rgba(255, 214, 10, 0.6);
+            color: #ffd000;
+            animation: runs-sidebar-running-glow 2.4s ease-in-out infinite;
+        }
+
+        @keyframes runs-sidebar-running-glow {
+            0% {
+                background-position: 0% 50%;
+                border-color: rgba(255, 214, 10, 0.45);
+                color: #ffd000;
+            }
+
+            50% {
+                background-position: 100% 50%;
+                border-color: rgba(255, 230, 70, 0.85);
+                color: #ffe65b;
+            }
+
+            100% {
+                background-position: 0% 50%;
+                border-color: rgba(255, 214, 10, 0.45);
+                color: #ffd000;
+            }
         }
 
         .runs-sidebar__badge--merging {
