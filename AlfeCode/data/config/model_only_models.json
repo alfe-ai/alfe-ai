@@ -234,7 +234,7 @@
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
-      "label": "Z.ai: GLM 4.5 Air (via Openrouter.ai)",
+      "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
       "list_order": 2,
       "engine_options": [
@@ -296,7 +296,7 @@
     },
     {
       "id": "openrouter/arcee-ai/trinity-large-preview:free",
-      "label": "Arcee AI: Trinity Large Preview (via Openrouter.ai)",
+      "label": "Arcee AI: Trinity Large Preview",
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": false,
