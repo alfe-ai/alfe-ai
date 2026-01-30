@@ -8750,7 +8750,7 @@ async function handleCodeNavClick(fromIcon = false){
   try {
     // Direct the Code button to the GitHub repo for AlfeCode
     const target = 'https://code.alfe.sh';
-    window.open(target, '_blank', 'noopener,noreferrer');
+    window.location.href = target;
   } catch (err) {
     console.error('[CodeNav] Failed to open code repo', err);
   }
