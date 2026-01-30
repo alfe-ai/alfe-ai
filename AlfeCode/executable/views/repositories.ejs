@@ -30,6 +30,7 @@
         header p { margin:6px 0 0; color:var(--nexum-muted); }
         ul.repo-list { list-style:none; padding:0; margin:20px 0; display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:14px; }
         li.repo { padding:0; border-radius:12px; background: linear-gradient(135deg, rgba(17,24,39,0.92), rgba(15,23,42,0.78)); border:1px solid var(--nexum-border); box-shadow: var(--shadow-soft); }
+        li.repo.is-hidden { display:none; }
         .repo-card { display:flex; align-items:center; gap:12px; padding:14px; }
         a.repo-link { display:flex; align-items:center; gap:12px; color:var(--nexum-accent-bright); font-weight:600; text-decoration:none; border-radius:12px; flex:1; min-width:0; }
         a.repo-link:hover { color:#fff; text-decoration:underline; }
@@ -58,7 +59,7 @@
 
         <ul class="repo-list">
             <% repos.forEach(function(repo) { %>
-                <li class="repo">
+                <li class="repo" data-is-demo="<%= repo.isDemo ? 'true' : 'false' %>">
                     <div class="repo-card">
                         <a class="repo-link" href="/agent?repo_directory=<%- encodeURIComponent(repo.gitRepoLocalPath || '') %>&repo_name=<%- encodeURIComponent(repo.name) %>" target="_blank" rel="noopener noreferrer">
                             <span class="repo-name"><%= repo.name %></span>
@@ -159,6 +160,18 @@
                         }
                     });
                 });
+
+                try {
+                    var demoPreference = localStorage.getItem('showDemoRepos');
+                    var showDemoRepos = (demoPreference === null) ? true : demoPreference === 'true';
+                    if (!showDemoRepos) {
+                        document.querySelectorAll('.repo[data-is-demo="true"]').forEach(function(card){
+                            card.classList.add('is-hidden');
+                        });
+                    }
+                } catch (e) {
+                    /* noop */
+                }
             })();
         </script>
     </div>
