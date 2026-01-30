@@ -147,6 +147,7 @@ const featureFlagConfig = (() => {
   return {
     searchEnabled2026: normalizeFlag(flags.searchEnabled2026, true),
     imagesEnabled2026: normalizeFlag(flags.imagesEnabled2026, true),
+    twoFactorEnabled2026: normalizeFlag(flags.twoFactorEnabled2026, false),
   };
 })();
 
@@ -1939,14 +1940,24 @@ function renderAccountSettingsSection(){
   }
   const emailEl = document.getElementById("accountEmail");
   if(emailEl) emailEl.textContent = accountInfo.email;
+  const totpSection = document.getElementById('totpSection');
   const enabledMsg = document.getElementById('totpEnabledMsg');
   const enableBtn = document.getElementById('enableTotpBtn');
-  if(accountInfo.totpEnabled){
-    if(enabledMsg) enabledMsg.style.display = 'block';
-    if(enableBtn) enableBtn.style.display = 'none';
+  const isTwoFactorEnabled = featureFlagConfig.twoFactorEnabled2026;
+  if(totpSection){
+    totpSection.style.display = isTwoFactorEnabled ? '' : 'none';
+  }
+  if(isTwoFactorEnabled){
+    if(accountInfo.totpEnabled){
+      if(enabledMsg) enabledMsg.style.display = 'block';
+      if(enableBtn) enableBtn.style.display = 'none';
+    } else {
+      if(enabledMsg) enabledMsg.style.display = 'none';
+      if(enableBtn) enableBtn.style.display = 'inline-block';
+    }
   } else {
     if(enabledMsg) enabledMsg.style.display = 'none';
-    if(enableBtn) enableBtn.style.display = 'inline-block';
+    if(enableBtn) enableBtn.style.display = 'none';
   }
 }
 
