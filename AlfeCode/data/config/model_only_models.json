@@ -236,7 +236,7 @@
       "id": "openrouter/z-ai/glm-4.5-air:free",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
-      "list_order": 2,
+      "list_order": 0,
       "engine_options": [
         "auto",
         "qwen"
@@ -300,7 +300,7 @@
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": false,
-      "list_order": 0,
+      "list_order": 2,
       "engine_options": [
         "auto",
         "qwen"
