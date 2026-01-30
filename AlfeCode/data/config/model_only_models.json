@@ -5,7 +5,7 @@
       "label": "OpenAI: gpt-oss-20b (via Alfe AI)",
       "created": "2025-08-05",
       "contextTokens": 131072,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -23,7 +23,7 @@
       "label": "OpenAI: gpt-oss-20b (via Openrouter.ai)",
       "created": "2025-08-05",
       "contextTokens": 131072,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
