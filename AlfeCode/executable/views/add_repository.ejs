@@ -231,253 +231,273 @@
         footer a:hover {
             text-decoration: underline;
         }
+        .logged-out-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .logged-out-message {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <%- include('partials/session_banner') %>
     <%- include('partials/cookie_banner') %>
     <div class="page">
-        <header>
-            <h1>Connect Git Repository</h1>
-        </header>
-
-        <div class="card">
-            <div class="meta-row">
-                <% if (showCreateRepoLink) { %>
-                    <div class="meta-action">
-                        <span>Or</span>
-                        <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
-                    </div>
-                <% } %>
+        <% if (showLoggedOutMessage) { %>
+            <div class="card logged-out-card">
+                <p class="logged-out-message">Log in to connect Git repositories.</p>
+                <a class="button-link" href="/" role="button">Log In / Sign Up</a>
             </div>
-            <form action="/repositories/add" method="POST" id="addRepoForm">
-                <% if (cloneError) { %>
-                    <div class="alert"><%= cloneError %></div>
-                <% } %>
-                <% if (sshKeyRequired) { %>
-                    <div class="ssh-card">
-                        <h3>Generate a GitHub SSH key</h3>
-                        <p>Create a key, copy the public key into GitHub, then retry the clone.</p>
+        <% } else { %>
+            <header>
+                <h1>Connect Git Repository</h1>
+            </header>
+
+            <div class="card">
+                <div class="meta-row">
+                    <% if (showCreateRepoLink) { %>
+                        <div class="meta-action">
+                            <span>Or</span>
+                            <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
+                        </div>
+                    <% } %>
+                </div>
+                <form action="/repositories/add" method="POST" id="addRepoForm">
+                    <% if (cloneError) { %>
+                        <div class="alert"><%= cloneError %></div>
+                    <% } %>
+                    <% if (sshKeyRequired) { %>
+                        <div class="ssh-card">
+                            <h3>Generate a GitHub SSH key</h3>
+                            <p>Create a key, copy the public key into GitHub, then retry the clone.</p>
+                            <div class="button-row">
+                                <button type="button" class="secondary" id="generateSshKey">Generate SSH key</button>
+                                <button type="button" class="secondary" id="copySshKey" disabled>Copy key</button>
+                            </div>
+                            <textarea
+                                class="ssh-key-output"
+                                id="sshPublicKey"
+                                readonly
+                                placeholder="Your public key will appear here after generation."
+                            ></textarea>
+                            <div class="ssh-status" id="sshKeyStatus">Generate a key to continue. After generation, add the public key to GitHub: <a id="githubKeyLink" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a></div>
+                        </div>
+                    <% } %>
+                    <div class="field">
+                        <label for="gitRepoURL">Git repository URL:</label>
+                        <input
+                            type="text"
+                            id="gitRepoURL"
+                            name="gitRepoURL"
+                            placeholder="git@github.com:example-org/example-repo.git"
+                            value="<%= gitRepoURLValue || '' %>"
+                        >
+                        <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
+                    </div>
+
+                    <div class="field">
+                        <div class="inline-edit-row">
+                            <label for="repoName">Project name:</label>
+                            <div class="inline-edit-display" id="repoNameDisplay">
+                                <span class="inline-edit-value" id="repoNameValue"></span>
+                                <button type="button" class="icon-button" id="editRepoName" aria-label="Edit project name">
+                                    <span aria-hidden="true">✎</span>
+                                </button>
+                            </div>
+                        </div>
+                        <input
+                            type="text"
+                            id="repoName"
+                            name="repoName"
+                            value="<%= repoNameValue || '' %>"
+                            class="inline-edit-input is-hidden"
+                            required
+                        >
+                    </div>
+
+                    <div class="field">
                         <div class="button-row">
-                            <button type="button" class="secondary" id="generateSshKey">Generate SSH key</button>
-                            <button type="button" class="secondary" id="copySshKey" disabled>Copy key</button>
-                        </div>
-                        <textarea
-                            class="ssh-key-output"
-                            id="sshPublicKey"
-                            readonly
-                            placeholder="Your public key will appear here after generation."
-                        ></textarea>
-                        <div class="ssh-status" id="sshKeyStatus">Generate a key to continue. After generation, add the public key to GitHub: <a id="githubKeyLink" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a></div>
-                    </div>
-                <% } %>
-                <div class="field">
-                    <label for="gitRepoURL">Git repository URL:</label>
-                    <input
-                        type="text"
-                        id="gitRepoURL"
-                        name="gitRepoURL"
-                        placeholder="git@github.com:example-org/example-repo.git"
-                        value="<%= gitRepoURLValue || '' %>"
-                    >
-                    <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
-                </div>
-
-                <div class="field">
-                    <div class="inline-edit-row">
-                        <label for="repoName">Project name:</label>
-                        <div class="inline-edit-display" id="repoNameDisplay">
-                            <span class="inline-edit-value" id="repoNameValue"></span>
-                            <button type="button" class="icon-button" id="editRepoName" aria-label="Edit project name">
-                                <span aria-hidden="true">✎</span>
-                            </button>
+                            <button type="submit">Add Repository</button>
                         </div>
                     </div>
-                    <input
-                        type="text"
-                        id="repoName"
-                        name="repoName"
-                        value="<%= repoNameValue || '' %>"
-                        class="inline-edit-input is-hidden"
-                        required
-                    >
-                </div>
+                </form>
+            </div>
 
-                <div class="field">
-                    <div class="button-row">
-                        <button type="submit">Add Repository</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <footer>
-        </footer>
+            <footer>
+            </footer>
+        <% } %>
     </div>
 
     <script>
-        const repoNameInput = document.getElementById('repoName');
-        const gitRepoURLInput = document.getElementById('gitRepoURL');
-        const repoNameDisplay = document.getElementById('repoNameDisplay');
-        const repoNameValue = document.getElementById('repoNameValue');
-        const editRepoNameButton = document.getElementById('editRepoName');
         const addRepoForm = document.getElementById('addRepoForm');
-        const generateSshKeyButton = document.getElementById('generateSshKey');
-        const copySshKeyButton = document.getElementById('copySshKey');
-        const sshPublicKeyField = document.getElementById('sshPublicKey');
-        const sshKeyStatus = document.getElementById('sshKeyStatus');
-        const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
+        if (addRepoForm) {
+            const repoNameInput = document.getElementById('repoName');
+            const gitRepoURLInput = document.getElementById('gitRepoURL');
+            const repoNameDisplay = document.getElementById('repoNameDisplay');
+            const repoNameValue = document.getElementById('repoNameValue');
+            const editRepoNameButton = document.getElementById('editRepoName');
+            const generateSshKeyButton = document.getElementById('generateSshKey');
+            const copySshKeyButton = document.getElementById('copySshKey');
+            const sshPublicKeyField = document.getElementById('sshPublicKey');
+            const sshKeyStatus = document.getElementById('sshKeyStatus');
+            const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
 
-        const getRepoNameFromUrl = (url) => {
-            const trimmed = url.trim();
-            if (!trimmed) {
-                return '';
-            }
-
-            const sanitized = trimmed.split('#')[0].split('?')[0];
-            const patterns = [
-                /^git@[^:\s]+:([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-                /^https?:\/\/[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-                /^git\+ssh:\/\/git@[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-                /^(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-            ];
-
-            for (const pattern of patterns) {
-                const match = sanitized.match(pattern);
-                if (match) {
-                    return match[2];
+            const getRepoNameFromUrl = (url) => {
+                const trimmed = url.trim();
+                if (!trimmed) {
+                    return '';
                 }
-            }
 
-            return '';
-        };
+                const sanitized = trimmed.split('#')[0].split('?')[0];
+                const patterns = [
+                    /^git@[^:\s]+:([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
+                    /^https?:\/\/[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
+                    /^git\+ssh:\/\/git@[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
+                    /^(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
+                ];
 
-        const updateRepoNameDisplay = () => {
-            const trimmedValue = repoNameInput.value.trim();
-            if (trimmedValue) {
-                repoNameValue.textContent = trimmedValue;
-                repoNameValue.classList.remove('placeholder');
-                if (editRepoNameButton) {
-                    editRepoNameButton.classList.remove('is-hidden');
-                }
-                return;
-            }
-
-            repoNameValue.textContent = 'Not set';
-            repoNameValue.classList.add('placeholder');
-            if (editRepoNameButton) {
-                editRepoNameButton.classList.add('is-hidden');
-            }
-        };
-
-        const showRepoNameReadOnly = () => {
-            repoNameInput.setAttribute('readonly', 'readonly');
-            repoNameInput.classList.add('is-hidden');
-            repoNameDisplay.classList.remove('is-hidden');
-        };
-
-        const showRepoNameEditor = () => {
-            repoNameInput.removeAttribute('readonly');
-            repoNameInput.classList.remove('is-hidden');
-            repoNameDisplay.classList.add('is-hidden');
-            repoNameInput.focus();
-            repoNameInput.select();
-        };
-
-        const clearFormInputs = () => {
-            repoNameInput.value = '';
-            gitRepoURLInput.value = '';
-            repoNameInput.removeAttribute('aria-invalid');
-            updateRepoNameDisplay();
-            showRepoNameReadOnly();
-        };
-
-        window.addEventListener('pageshow', () => {
-            if (shouldResetInputs) {
-                clearFormInputs();
-            }
-        });
-
-        updateRepoNameDisplay();
-        showRepoNameReadOnly();
-
-        let repoNameEdited = Boolean(repoNameInput.value.trim());
-
-        repoNameInput.addEventListener('input', () => {
-            repoNameEdited = repoNameInput.value.trim().length > 0;
-            if (repoNameInput.value.trim()) {
-                repoNameInput.removeAttribute('aria-invalid');
-            }
-            updateRepoNameDisplay();
-        });
-
-        if (editRepoNameButton) {
-            editRepoNameButton.addEventListener('click', () => {
-                repoNameEdited = true;
-                showRepoNameEditor();
-            });
-        }
-
-        gitRepoURLInput.addEventListener('input', () => {
-            if (repoNameEdited) {
-                return;
-            }
-
-            const derivedName = getRepoNameFromUrl(gitRepoURLInput.value);
-            if (derivedName) {
-                repoNameInput.value = derivedName;
-                repoNameInput.removeAttribute('aria-invalid');
-            } else {
-                repoNameInput.value = '';
-            }
-            updateRepoNameDisplay();
-        });
-
-        addRepoForm.addEventListener('submit', () => {
-            if (!repoNameInput.value.trim()) {
-                repoNameInput.setAttribute('aria-invalid', 'true');
-                showRepoNameEditor();
-            }
-        });
-
-        if (generateSshKeyButton) {
-            generateSshKeyButton.addEventListener('click', async () => {
-                generateSshKeyButton.disabled = true;
-                sshKeyStatus.textContent = 'Generating SSH key...';
-                try {
-                    const response = await fetch('/repositories/generate-ssh-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                    const payload = await response.json();
-                    if (!response.ok) {
-                        throw new Error(payload.error || 'Unable to generate SSH key.');
+                for (const pattern of patterns) {
+                    const match = sanitized.match(pattern);
+                    if (match) {
+                        return match[2];
                     }
-                    sshPublicKeyField.value = payload.publicKey || '';
-                    copySshKeyButton.disabled = !sshPublicKeyField.value;
-                    sshKeyStatus.textContent = payload.addedToAgent
-                        ? 'SSH key generated and added to the agent. Paste it into GitHub now (https://github.com/settings/keys).'
-                        : 'SSH key generated. Paste it into GitHub now (https://github.com/settings/keys).';
-                } catch (error) {
-                    sshKeyStatus.textContent = error.message;
-                } finally {
-                    generateSshKeyButton.disabled = false;
                 }
-            });
-        }
 
-        if (copySshKeyButton) {
-            copySshKeyButton.addEventListener('click', async () => {
-                if (!sshPublicKeyField.value) {
+                return '';
+            };
+
+            const updateRepoNameDisplay = () => {
+                const trimmedValue = repoNameInput.value.trim();
+                if (trimmedValue) {
+                    repoNameValue.textContent = trimmedValue;
+                    repoNameValue.classList.remove('placeholder');
+                    if (editRepoNameButton) {
+                        editRepoNameButton.classList.remove('is-hidden');
+                    }
                     return;
                 }
-                try {
-                    await navigator.clipboard.writeText(sshPublicKeyField.value);
-                    sshKeyStatus.textContent = 'SSH key copied to clipboard.';
-                } catch (error) {
-                    sshKeyStatus.textContent = 'Copy failed. Select the key text and copy manually.';
+
+                repoNameValue.textContent = 'Not set';
+                repoNameValue.classList.add('placeholder');
+                if (editRepoNameButton) {
+                    editRepoNameButton.classList.add('is-hidden');
+                }
+            };
+
+            const showRepoNameReadOnly = () => {
+                repoNameInput.setAttribute('readonly', 'readonly');
+                repoNameInput.classList.add('is-hidden');
+                repoNameDisplay.classList.remove('is-hidden');
+            };
+
+            const showRepoNameEditor = () => {
+                repoNameInput.removeAttribute('readonly');
+                repoNameInput.classList.remove('is-hidden');
+                repoNameDisplay.classList.add('is-hidden');
+                repoNameInput.focus();
+                repoNameInput.select();
+            };
+
+            const clearFormInputs = () => {
+                repoNameInput.value = '';
+                gitRepoURLInput.value = '';
+                repoNameInput.removeAttribute('aria-invalid');
+                updateRepoNameDisplay();
+                showRepoNameReadOnly();
+            };
+
+            window.addEventListener('pageshow', () => {
+                if (shouldResetInputs) {
+                    clearFormInputs();
                 }
             });
+
+            updateRepoNameDisplay();
+            showRepoNameReadOnly();
+
+            let repoNameEdited = Boolean(repoNameInput.value.trim());
+
+            repoNameInput.addEventListener('input', () => {
+                repoNameEdited = repoNameInput.value.trim().length > 0;
+                if (repoNameInput.value.trim()) {
+                    repoNameInput.removeAttribute('aria-invalid');
+                }
+                updateRepoNameDisplay();
+            });
+
+            if (editRepoNameButton) {
+                editRepoNameButton.addEventListener('click', () => {
+                    repoNameEdited = true;
+                    showRepoNameEditor();
+                });
+            }
+
+            gitRepoURLInput.addEventListener('input', () => {
+                if (repoNameEdited) {
+                    return;
+                }
+
+                const derivedName = getRepoNameFromUrl(gitRepoURLInput.value);
+                if (derivedName) {
+                    repoNameInput.value = derivedName;
+                    repoNameInput.removeAttribute('aria-invalid');
+                } else {
+                    repoNameInput.value = '';
+                }
+                updateRepoNameDisplay();
+            });
+
+            addRepoForm.addEventListener('submit', () => {
+                if (!repoNameInput.value.trim()) {
+                    repoNameInput.setAttribute('aria-invalid', 'true');
+                    showRepoNameEditor();
+                }
+            });
+
+            if (generateSshKeyButton) {
+                generateSshKeyButton.addEventListener('click', async () => {
+                    generateSshKeyButton.disabled = true;
+                    sshKeyStatus.textContent = 'Generating SSH key...';
+                    try {
+                        const response = await fetch('/repositories/generate-ssh-key', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                        });
+                        const payload = await response.json();
+                        if (!response.ok) {
+                            throw new Error(payload.error || 'Unable to generate SSH key.');
+                        }
+                        sshPublicKeyField.value = payload.publicKey || '';
+                        copySshKeyButton.disabled = !sshPublicKeyField.value;
+                        sshKeyStatus.textContent = payload.addedToAgent
+                            ? 'SSH key generated and added to the agent. Paste it into GitHub now (https://github.com/settings/keys).'
+                            : 'SSH key generated. Paste it into GitHub now (https://github.com/settings/keys).';
+                    } catch (error) {
+                        sshKeyStatus.textContent = error.message;
+                    } finally {
+                        generateSshKeyButton.disabled = false;
+                    }
+                });
+            }
+
+            if (copySshKeyButton) {
+                copySshKeyButton.addEventListener('click', async () => {
+                    if (!sshPublicKeyField.value) {
+                        return;
+                    }
+                    try {
+                        await navigator.clipboard.writeText(sshPublicKeyField.value);
+                        sshKeyStatus.textContent = 'SSH key copied to clipboard.';
+                    } catch (error) {
+                        sshKeyStatus.textContent = 'Copy failed. Select the key text and copy manually.';
+                    }
+                });
+            }
         }
     </script>
 </body>
