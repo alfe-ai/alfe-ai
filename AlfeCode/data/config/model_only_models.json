@@ -299,7 +299,7 @@
       "label": "Arcee AI: Trinity Large Preview",
       "created": "2026-01-27",
       "contextTokens": 131000,
-      "disabled": false,
+      "disabled": true,
       "list_order": 2,
       "engine_options": [
         "auto",
