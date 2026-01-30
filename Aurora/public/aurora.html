@@ -883,46 +883,6 @@
   </div>
 </div>
 
-<!-- Account modal -->
-<div id="accountModal" class="modal">
-  <div class="modal-content">
-    <h2>Account</h2>
-    <p>Email: <span id="accountEmail"></span></p>
-    <div id="totpSection" style="margin-top:10px;">
-      <button id="enableTotpBtn">Enable 2FA</button>
-      <div id="totpSetup" style="display:none; margin-top:10px;">
-        <p>Enter the code from your authenticator app:</p>
-        <p><code id="totpSecret"></code></p>
-        <input type="text" id="totpToken" style="width:100%;" />
-        <button id="totpVerifyBtn">Verify</button>
-      </div>
-      <p id="totpEnabledMsg" style="display:none;">2FA Enabled</p>
-    </div>
-    <div id="planSection" style="margin-top:10px;">
-      <p id="accountPlanText">Subscription Plan: <strong>Free</strong></p>
-    </div>
-    <div id="passwordSection" style="margin-top:10px;">
-      <button id="showChangePasswordBtn">Change Password</button>
-      <div id="passwordForm" style="display:none; margin-top:10px;">
-        <label>Current Password:<br/>
-          <input type="password" id="currentPassword" style="width:100%;" />
-        </label>
-        <label style="margin-top:8px;">New Password:<br/>
-          <input type="password" id="newPassword" style="width:100%;" />
-        </label>
-        <label style="margin-top:8px;">Confirm New Password:<br/>
-          <input type="password" id="confirmPassword" style="width:100%;" />
-        </label>
-        <button id="changePasswordBtn" style="margin-top:8px;">Save</button>
-      </div>
-    </div>
-    <div class="modal-buttons">
-      <button id="accountLogoutBtn">Logout</button>
-      <button id="accountCloseBtn">Close</button>
-    </div>
-  </div>
-</div>
-
 <!-- Settings modal -->
 <div id="settingsModal" class="modal">
   <div class="modal-content">
@@ -947,6 +907,45 @@
     </div>
     <div id="mobileThinSidebarSection" style="margin-top:10px;">
       <label><input type="checkbox" id="mobileThinSidebarCheck" checked/> Show sidebar toolbar on mobile</label>
+    </div>
+    <div id="settingsAccountSection" style="margin-top:16px; display:none;">
+      <h3 style="margin-bottom:6px;">Account</h3>
+      <p>Email: <span id="accountEmail"></span></p>
+      <div id="totpSection" style="margin-top:10px;">
+        <button id="enableTotpBtn">Enable 2FA</button>
+        <div id="totpSetup" style="display:none; margin-top:10px;">
+          <p>Enter the code from your authenticator app:</p>
+          <p><code id="totpSecret"></code></p>
+          <input type="text" id="totpToken" style="width:100%;" />
+          <button id="totpVerifyBtn">Verify</button>
+        </div>
+        <p id="totpEnabledMsg" style="display:none;">2FA Enabled</p>
+      </div>
+      <div id="planSection" style="margin-top:10px;">
+        <p id="accountPlanText">Subscription Plan: <strong>Free</strong></p>
+      </div>
+      <div id="passwordSection" style="margin-top:10px;">
+        <button id="showChangePasswordBtn">Change Password</button>
+        <div id="passwordForm" style="display:none; margin-top:10px;">
+          <label>Current Password:<br/>
+            <input type="password" id="currentPassword" style="width:100%;" />
+          </label>
+          <label style="margin-top:8px;">New Password:<br/>
+            <input type="password" id="newPassword" style="width:100%;" />
+          </label>
+          <label style="margin-top:8px;">Confirm New Password:<br/>
+            <input type="password" id="confirmPassword" style="width:100%;" />
+          </label>
+          <button id="changePasswordBtn" style="margin-top:8px;">Save</button>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button id="accountLogoutBtn">Logout</button>
+      </div>
+    </div>
+    <div id="settingsAccountSignedOut" style="margin-top:16px; display:none;">
+      <h3 style="margin-bottom:6px;">Account</h3>
+      <p id="settingsAccountSignedOutMessage">Log in to manage your account.</p>
     </div>
     <div class="modal-buttons">
       <button id="settingsSaveBtn">Save</button>
