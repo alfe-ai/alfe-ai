@@ -1460,6 +1460,7 @@
   let pythonTestInFlight = false;
   let gitFpushActive = false;
   let gitFpushDetectedChanges = false;
+  let gitFpushDetectedNoChanges = false;
   let gitFpushCommitRevision = "";
   let gitFpushLogCaptureActive = false;
   let mergeDiffLockedAfterMerge = false;
@@ -3221,6 +3222,19 @@
     return indicators.some((pattern) => pattern.test(text));
   };
 
+  const detectGitNoChangeIndicator = (text) => {
+    if (!text || typeof text !== "string") {
+      return false;
+    }
+
+    return [
+      /\b0\s+files?\s+changed\b/i,
+      /\bnothing to commit\b/i,
+      /\bworking tree clean\b/i,
+      /\bno changes added to commit\b/i,
+    ].some((pattern) => pattern.test(text));
+  };
+
   const captureGitFpushDiffCandidates = (text, projectDirValue) => {
     if (!gitFpushActive || !text) {
       return;
@@ -3251,6 +3265,10 @@
 
     if (detectGitChangeIndicator(text)) {
       gitFpushDetectedChanges = true;
+    }
+
+    if (detectGitNoChangeIndicator(text)) {
+      gitFpushDetectedNoChanges = true;
     }
   };
 
@@ -3453,6 +3471,7 @@
     enableMergeDiffButtonForHash("", "");
     gitFpushActive = false;
     gitFpushDetectedChanges = false;
+    gitFpushDetectedNoChanges = false;
     pendingGitFpushHash = "";
     pendingGitFpushHashProjectDir = "";
     pendingGitFpushBranch = "";
@@ -3484,6 +3503,8 @@
     if (normalized.includes("git_fpush.sh exited with code 0")) {
       const hasDetectedChanges = gitFpushDetectedChanges
         || detectGitChangeIndicator(message);
+      const hasNoChanges = !hasDetectedChanges && (gitFpushDetectedNoChanges
+        || detectGitNoChangeIndicator(message));
       if (!hasDetectedChanges) {
         setMergeReady(false);
         enableMergeDiffButtonForHash("", "");
@@ -3491,6 +3512,9 @@
         pendingGitFpushHashProjectDir = "";
         pendingGitFpushBranch = "";
         pendingGitFpushBranchProjectDir = "";
+        if (hasNoChanges) {
+          autoOpenMergeDiffOnEnable = false;
+        }
         markGitFpushPhaseComplete();
         return;
       }
@@ -6495,6 +6519,7 @@ const appendMergeChunk = (text, type = "output") => {
     ) {
       gitFpushActive = true;
       gitFpushDetectedChanges = false;
+      gitFpushDetectedNoChanges = false;
       suppressStdoutOutput = true;
       return;
     }
