@@ -1948,8 +1948,6 @@ function renderAccountSettingsSection(){
     if(enabledMsg) enabledMsg.style.display = 'none';
     if(enableBtn) enableBtn.style.display = 'inline-block';
   }
-  const planText = document.getElementById('accountPlanText');
-  if(planText) planText.innerHTML = 'Subscription Plan: <strong>Free</strong>';
 }
 
 async function openSettingsModal(e){
