@@ -255,6 +255,12 @@ function setupGetRoutes(deps) {
 
         return false;
     };
+    const parseBooleanFlagWithDefault = (value, defaultValue) => {
+        if (typeof value === "undefined") {
+            return defaultValue;
+        }
+        return parseBooleanFlag(value);
+    };
     const requireSupportPlan = async (req, res) => {
         if (!rdsStore?.enabled) {
             res.status(503).send("Support requests are not configured on this server.");
@@ -2242,6 +2248,7 @@ ${cleanedFinalOutput}`;
             accountButtonEnabled,
             showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
             showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
+            showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
         });
     };
 
@@ -2251,10 +2258,14 @@ ${cleanedFinalOutput}`;
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const apiPanelEnabled = parseBooleanFlag(process.env.API_PANEL_ENABLED);
         const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
+        const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
+        const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
             apiPanelEnabled,
             showPrintifyUploadUsage,
+            searchEnabled2026,
+            imagesEnabled2026,
         });
     });
     app.get('/support', async (req, res) => {

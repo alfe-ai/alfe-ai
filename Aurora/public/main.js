@@ -123,6 +123,32 @@ const codeRedirectConfig = (() => {
     target,
   };
 })();
+const featureFlagConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const normalizeFlag = (value, defaultValue) => {
+    if (typeof value === 'undefined' || value === null) {
+      return defaultValue;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return value === 1;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (!normalized) {
+        return defaultValue;
+      }
+      return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+    }
+    return defaultValue;
+  };
+  return {
+    searchEnabled2026: normalizeFlag(flags.searchEnabled2026, true),
+    imagesEnabled2026: normalizeFlag(flags.imagesEnabled2026, true),
+  };
+})();
 
 function getStoredTheme(){
   try {
@@ -603,6 +629,54 @@ let currentView = 'chat';
 let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
 let aiResponsesEnabled = true; // allow AI responses
+
+const applyFeatureFlagVisibility = () => {
+  const { searchEnabled2026, imagesEnabled2026 } = featureFlagConfig;
+
+  if (!searchEnabled2026) {
+    searchEnabled = false;
+    const searchToggleBtn = document.getElementById("searchToggleBtn");
+    if (searchToggleBtn) {
+      searchToggleBtn.hidden = true;
+      searchToggleBtn.style.display = "none";
+    }
+    document.querySelectorAll('button[data-type="search"]').forEach((btn) => {
+      btn.hidden = true;
+      btn.style.display = "none";
+    });
+    document.querySelectorAll('option[value="search"]').forEach((option) => {
+      option.disabled = true;
+      option.hidden = true;
+    });
+    document.querySelectorAll(".project-search-btn").forEach((btn) => {
+      btn.hidden = true;
+      btn.style.display = "none";
+    });
+  }
+
+  if (!imagesEnabled2026) {
+    [
+      document.getElementById("navUploaderBtn"),
+      document.getElementById("navUploaderIcon"),
+      document.getElementById("thinIconImages")
+    ].forEach((el) => {
+      if (el) {
+        el.hidden = true;
+        el.style.display = "none";
+      }
+    });
+    document.querySelectorAll('button[data-type="design"]').forEach((btn) => {
+      btn.hidden = true;
+      btn.style.display = "none";
+    });
+    document.querySelectorAll('option[value="design"]').forEach((option) => {
+      option.disabled = true;
+      option.hidden = true;
+    });
+  }
+};
+
+applyFeatureFlagVisibility();
 
 let tabOptionsMenu = null;
 let tabOptionsMenuTarget = null;
