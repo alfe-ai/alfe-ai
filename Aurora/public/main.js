@@ -3945,6 +3945,17 @@ async function openRenameTabModal(tabId){
   setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
+function resolveRenameModalTabId(modal){
+  const rawId = modal?.dataset?.tabId || "";
+  const parsedId = parseInt(rawId, 10);
+  if(!Number.isNaN(parsedId)) return parsedId;
+  if(typeof currentTabId === "number" && !Number.isNaN(currentTabId)){
+    modal.dataset.tabId = currentTabId;
+    return currentTabId;
+  }
+  return NaN;
+}
+
 async function openProjectSettingsModal(project){
   const input = $("#projectSettingsNameInput");
   const modal = $("#projectSettingsModal");
@@ -4063,7 +4074,11 @@ $("#editTabNameInput")?.addEventListener("keydown", evt => {
 
 $("#renameTabSaveBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
-  const tabId = parseInt(modal.dataset.tabId, 10);
+  const tabId = resolveRenameModalTabId(modal);
+  if(Number.isNaN(tabId)){
+    showToast('Unable to locate the tab to rename.');
+    return;
+  }
   const name = $("#renameTabInput").value.trim();
   const type = $("#renameTabTypeSelect")?.value || 'chat';
   mosaicPanelVisible = $("#renameShowMosaicCheck").checked;
@@ -4097,7 +4112,7 @@ $("#renameTabSaveBtn").addEventListener("click", async () => {
 });
 $("#renameTabArchiveBtn")?.addEventListener("click", async () => {
   const modal = $("#renameTabModal");
-  const tabId = parseInt(modal.dataset.tabId, 10);
+  const tabId = resolveRenameModalTabId(modal);
   if(Number.isNaN(tabId)) return;
   const btn = $("#renameTabArchiveBtn");
   if(!btn) return;
@@ -4112,7 +4127,11 @@ $("#renameTabArchiveBtn")?.addEventListener("click", async () => {
 });
 $("#renameTabCreateTaskBtn").addEventListener("click", async () => {
   const modal = $("#renameTabModal");
-  const tabId = parseInt(modal.dataset.tabId, 10);
+  const tabId = resolveRenameModalTabId(modal);
+  if(Number.isNaN(tabId)){
+    showToast('Unable to locate the tab to rename.');
+    return;
+  }
   const name = $("#renameTabInput").value.trim();
   const type = $("#renameTabTypeSelect")?.value || 'chat';
   mosaicPanelVisible = $("#renameShowMosaicCheck").checked;
