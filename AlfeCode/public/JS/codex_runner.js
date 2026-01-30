@@ -1461,6 +1461,7 @@
   let gitFpushActive = false;
   let gitFpushDetectedChanges = false;
   let gitFpushDetectedNoChanges = false;
+  let gitFpushOutputSection = "";
   let gitFpushCommitRevision = "";
   let gitFpushLogCaptureActive = false;
   let mergeDiffLockedAfterMerge = false;
@@ -3235,11 +3236,37 @@
     ].some((pattern) => pattern.test(text));
   };
 
+  const updateGitFpushOutputSection = (text) => {
+    if (!text || typeof text !== "string") {
+      return;
+    }
+
+    let nextSection = gitFpushOutputSection;
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line) => {
+      const match = line.match(/^---\s*([^:]+):\s*$/);
+      if (!match) {
+        return;
+      }
+      const label = match[1].trim().toLowerCase();
+      if (label === "initial git status" || label === "added, git status" || label === "final git status") {
+        nextSection = "status";
+      } else if (label === "git log") {
+        nextSection = "log";
+      } else {
+        nextSection = "other";
+      }
+    });
+
+    gitFpushOutputSection = nextSection;
+  };
+
   const captureGitFpushDiffCandidates = (text, projectDirValue) => {
     if (!gitFpushActive || !text) {
       return;
     }
 
+    updateGitFpushOutputSection(text);
     const effectiveDir =
       normaliseProjectDir(projectDirValue)
       || normaliseProjectDir(currentSnapshotProjectDir)
@@ -3263,11 +3290,11 @@
       pendingGitFpushHashProjectDir = effectiveDir;
     }
 
-    if (detectGitChangeIndicator(text)) {
+    if (gitFpushOutputSection === "status" && detectGitChangeIndicator(text)) {
       gitFpushDetectedChanges = true;
     }
 
-    if (detectGitNoChangeIndicator(text)) {
+    if (gitFpushOutputSection === "status" && detectGitNoChangeIndicator(text)) {
       gitFpushDetectedNoChanges = true;
     }
   };
@@ -3472,6 +3499,7 @@
     gitFpushActive = false;
     gitFpushDetectedChanges = false;
     gitFpushDetectedNoChanges = false;
+    gitFpushOutputSection = "";
     pendingGitFpushHash = "";
     pendingGitFpushHashProjectDir = "";
     pendingGitFpushBranch = "";
@@ -6520,6 +6548,7 @@ const appendMergeChunk = (text, type = "output") => {
       gitFpushActive = true;
       gitFpushDetectedChanges = false;
       gitFpushDetectedNoChanges = false;
+      gitFpushOutputSection = "";
       suppressStdoutOutput = true;
       return;
     }
