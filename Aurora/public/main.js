@@ -2531,7 +2531,7 @@ function openTabOptionsMenu(tab, anchor){
     tabOptionsMenu.appendChild(btn);
   };
 
-  makeItem('Rename', () => renameTab(tab.id));
+  makeItem('Rename', () => openEditTabNameModal(tab.id));
   if(tabSupportsFavorites(tab)){
     makeItem(tab.favorite ? 'Remove Favorite' : 'Add to Favorites', () => toggleFavoriteTab(tab.id, !tab.favorite));
   }
