@@ -4155,10 +4155,9 @@ $("#renameTabCreateTaskBtn").addEventListener("click", async () => {
   if(typeof loadTasks === 'function') await loadTasks();
   hideModal(modal);
 });
-$("#renameTabCancelBtn").addEventListener("click", () => hideModal($("#renameTabModal")));
 $("#renameTabInput").addEventListener("keydown", evt => {
   if(evt.key === "Enter") $("#renameTabSaveBtn").click();
-  else if(evt.key === "Escape") $("#renameTabCancelBtn").click();
+  else if(evt.key === "Escape") hideModal($("#renameTabModal"));
 });
 async function duplicateTab(tabId){
   const t = chatTabs.find(t => t.id===tabId);
