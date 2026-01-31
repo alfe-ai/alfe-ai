@@ -2810,9 +2810,12 @@ document.getElementById("navMenuToggle")?.addEventListener("click", toggleNavMen
 
 function updateView(v){
   currentView = v;
-  $("#viewTabChat").classList.toggle("active", v === 'chat');
-  $("#viewTabTasks").classList.toggle("active", v === 'tasks');
-  $("#viewTabArchive").classList.toggle("active", v === 'archive');
+  const viewTabChat = $("#viewTabChat");
+  if(viewTabChat) viewTabChat.classList.toggle("active", v === 'chat');
+  const viewTabTasks = $("#viewTabTasks");
+  if(viewTabTasks) viewTabTasks.classList.toggle("active", v === 'tasks');
+  const viewTabArchive = $("#viewTabArchive");
+  if(viewTabArchive) viewTabArchive.classList.toggle("active", v === 'archive');
   const showSub = v !== 'chat';
   const taskPanel = document.getElementById("taskListPanel");
   if(taskPanel) taskPanel.style.display = showSub ? "" : "none";
