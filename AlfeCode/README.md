@@ -93,5 +93,5 @@ Alfe AI / Agent Instructions: https://github.com/alfe-ai
 
 See the [LICENSE](https://github.com/alfe-ai) file.
 
-**Copyright (c) 2022-2025 [Nicholas Lochner](https://lochner.tech)**  
+**Copyright (c) 2022-2026 [Nicholas Lochner](https://lochner.tech)**  
 https://github.com/lochner-technology
