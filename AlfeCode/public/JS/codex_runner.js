@@ -5387,6 +5387,18 @@ const appendMergeChunk = (text, type = "output") => {
           if (buttonRunId === runsSidebarSelectedRunId) {
             return;
           }
+          const activeRunId = runsSidebarSelectedRunId || (currentRunContext && currentRunContext.runId) || "";
+          const activeRun = activeRunId && Array.isArray(runsSidebarRuns)
+            ? runsSidebarRuns.find((run) => normaliseRunId(run?.id || "") === activeRunId)
+            : null;
+          const isActiveRunRunning = Boolean(runInFlight) || Boolean(activeRun && !activeRun.finishedAt);
+          if (isActiveRunRunning && activeRunId && buttonRunId !== activeRunId) {
+            const targetProjectDir = projectDirFromDataset || getProjectDirHintForHistory();
+            const baseHref = buildRunsPageHref(targetProjectDir);
+            const targetHref = `${baseHref}#run=${encodeURIComponent(buttonRunId)}`;
+            window.open(targetHref, "_blank", "noopener,noreferrer");
+            return;
+          }
           setRunsSidebarActiveRun(buttonRunId);
           loadRunFromHistory(buttonRunId, projectDirFromDataset || getProjectDirHintForHistory());
         });
