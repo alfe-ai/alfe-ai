@@ -6200,9 +6200,11 @@ chatSendBtnEl?.addEventListener("click", async () => {
 
   const userHead = document.createElement("div");
   userHead.className = "bubble-header";
+  const userTime = new Date().toISOString();
   const userLabel = "You";
   userHead.innerHTML = `
     <div class="name-oval name-oval-user">${userLabel}</div>
+    <span style="opacity:0.8;">${formatTimestamp(userTime)}</span>
   `;
   userDiv.appendChild(userHead);
 
@@ -6320,7 +6322,6 @@ chatSendBtnEl?.addEventListener("click", async () => {
   let usageLimitType = null;
   let usageLimitMessage = '';
   try {
-    const userTime = new Date().toISOString();
     const resp = await fetch("/api/chat",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
