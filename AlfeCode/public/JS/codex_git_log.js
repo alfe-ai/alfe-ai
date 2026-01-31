@@ -73,27 +73,19 @@
     return "";
   };
 
-  const formatRelativeDate = (dateValue) => {
+  const formatExactDate = (dateValue) => {
     if (!dateValue) return "";
     const ts = Date.parse(dateValue);
     if (Number.isNaN(ts)) {
       return dateValue;
     }
-    const diffMs = Date.now() - ts;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays <= 0) {
-      return "today";
-    }
-    if (diffDays === 1) {
-      return "yesterday";
-    }
-    if (diffDays < 14) {
-      return `${diffDays} days ago`;
-    }
     return new Intl.DateTimeFormat(undefined, {
       year: "numeric",
       month: "short",
       day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     }).format(ts);
   };
 
@@ -118,7 +110,7 @@
 
     const author = mappedEntry?.author || (authorMatch ? authorMatch[1].trim() : "");
     const dateLabel = mappedEntry?.date
-      ? formatRelativeDate(mappedEntry.date)
+      ? formatExactDate(mappedEntry.date)
       : dateMatch
         ? dateMatch[1].trim()
         : "";
