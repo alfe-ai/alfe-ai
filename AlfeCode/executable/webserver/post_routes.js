@@ -1261,7 +1261,7 @@ function setupPostRoutes(deps) {
                     return res.status(400).render("add_repository", {
                         serverCWD: process.cwd(),
                         cloneError:
-                            "GitHub SSH authentication failed. Add a GitHub SSH key to continue cloning.",
+                            "Git SSH authentication failed. Add a Git SSH key to continue cloning.",
                         sshKeyRequired: true,
                         repoNameValue: repoName,
                         gitRepoURLValue: normalizedGitRepoURL || gitRepoURL,
