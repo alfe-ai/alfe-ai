@@ -605,6 +605,9 @@
                 sshCopyStatus.textContent = message;
                 sshCopyStatus.classList.remove('is-success', 'is-error');
                 if (status) {
+                    void sshCopyStatus.offsetWidth;
+                }
+                if (status) {
                     sshCopyStatus.classList.add(status);
                 }
             };
