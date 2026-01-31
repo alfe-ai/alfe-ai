@@ -780,6 +780,76 @@ export default class TaskDBAws {
     return rows;
   }
 
+  deleteChatTab(tabId) {
+    void this.deleteChatTabAsync(tabId).catch((err) => {
+      console.warn('[TaskDBAws] Failed to delete chat tab:', err);
+    });
+  }
+
+  async deleteChatTabAsync(tabId) {
+    await this._initPromise;
+    await this.pool.query('DELETE FROM chat_pairs WHERE chat_tab_id = $1', [tabId]);
+    await this.pool.query('DELETE FROM chat_tabs WHERE id = $1', [tabId]);
+  }
+
+  deleteChatPair(id) {
+    void this.deleteChatPairAsync(id).catch((err) => {
+      console.warn('[TaskDBAws] Failed to delete chat pair:', err);
+    });
+  }
+
+  async deleteChatPairAsync(id) {
+    await this._initPromise;
+    await this.pool.query('DELETE FROM chat_pairs WHERE id = $1', [id]);
+  }
+
+  deleteAiPart(id) {
+    void this.deleteAiPartAsync(id).catch((err) => {
+      console.warn('[TaskDBAws] Failed to delete AI part:', err);
+    });
+  }
+
+  async deleteAiPartAsync(id) {
+    await this._initPromise;
+    await this.pool.query(
+      "UPDATE chat_pairs SET ai_text = '', model = '', ai_timestamp = NULL, token_info = NULL WHERE id = $1",
+      [id]
+    );
+  }
+
+  updateAiText(id, text) {
+    void this.updateAiTextAsync(id, text).catch((err) => {
+      console.warn('[TaskDBAws] Failed to update AI text:', err);
+    });
+  }
+
+  async updateAiTextAsync(id, text) {
+    await this._initPromise;
+    await this.pool.query('UPDATE chat_pairs SET ai_text = $1 WHERE id = $2', [text, id]);
+  }
+
+  deleteUserPart(id) {
+    void this.deleteUserPartAsync(id).catch((err) => {
+      console.warn('[TaskDBAws] Failed to delete user part:', err);
+    });
+  }
+
+  async deleteUserPartAsync(id) {
+    await this._initPromise;
+    await this.pool.query("UPDATE chat_pairs SET user_text = '' WHERE id = $1", [id]);
+  }
+
+  updateUserText(id, text) {
+    void this.updateUserTextAsync(id, text).catch((err) => {
+      console.warn('[TaskDBAws] Failed to update user text:', err);
+    });
+  }
+
+  async updateUserTextAsync(id, text) {
+    await this._initPromise;
+    await this.pool.query('UPDATE chat_pairs SET user_text = $1 WHERE id = $2', [text, id]);
+  }
+
   async hasUserMessages(tabId = 1) {
     await this._initPromise;
     const { rows } = await this.pool.query(
