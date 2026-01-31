@@ -2175,20 +2175,20 @@ body {
   border: none;
   color: inherit;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  font-size: 0.9rem;
+  width: 36px;
+  height: 36px;
+  font-size: 1.35rem;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .tab-archive-trigger svg {
-  width: 14px;
-  height: 14px;
+  width: 21px;
+  height: 21px;
   display: block;
 }
 
