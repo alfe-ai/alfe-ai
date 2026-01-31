@@ -6315,6 +6315,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
   let usageLimitType = null;
   let usageLimitMessage = '';
   try {
+    const userTime = new Date().toISOString();
     const resp = await fetch("/api/chat",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
