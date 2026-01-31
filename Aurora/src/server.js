@@ -1428,7 +1428,11 @@ app.get("/api/tasks", async (req, res) => {
   }
 });
 
-app.get("/api/db/tables", (_req, res) => {
+app.get("/api/db/tables", (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /api/db/tables blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
   console.debug("[Server Debug] GET /api/db/tables called.");
   (async () => {
     try {
@@ -1446,6 +1450,10 @@ app.get("/api/db/tables", (_req, res) => {
 
 app.get("/api/db/table/:name", (req, res) => {
   const tableName = req.params.name;
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /api/db/table blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
   console.debug("[Server Debug] GET /api/db/table =>", tableName);
   (async () => {
     try {
