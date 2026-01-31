@@ -5032,6 +5032,8 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   }
 
   wrapper.appendChild(info);
+  const optionsBtn = createTabOptionsButton(tab);
+  wrapper.appendChild(optionsBtn);
   if(showArchiveChatButton && !tab.archived){
     const archiveBtn = document.createElement("button");
     archiveBtn.type = "button";
@@ -5048,8 +5050,6 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
     });
     wrapper.appendChild(archiveBtn);
   }
-  const optionsBtn = createTabOptionsButton(tab);
-  wrapper.appendChild(optionsBtn);
   if (tab.task_id) wrapper.appendChild(taskIdSpan);
   wrapper?.addEventListener("dragover", tabDragOver);
   wrapper?.addEventListener("dragleave", tabDragLeave);
