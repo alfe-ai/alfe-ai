@@ -780,6 +780,64 @@ export default class TaskDBAws {
     return rows;
   }
 
+  deleteChatPair(id) {
+    void this.deleteChatPairAsync(id).catch((err) => {
+      console.warn('[TaskDBAws] Failed to delete chat pair:', err);
+    });
+  }
+
+  async deleteChatPairAsync(id) {
+    await this._initPromise;
+    await this.pool.query('DELETE FROM chat_pairs WHERE id = $1', [id]);
+  }
+
+  deleteAiPart(id) {
+    void this.deleteAiPartAsync(id).catch((err) => {
+      console.warn('[TaskDBAws] Failed to clear AI text:', err);
+    });
+  }
+
+  async deleteAiPartAsync(id) {
+    await this._initPromise;
+    await this.pool.query(
+      "UPDATE chat_pairs SET ai_text = '', model = '', ai_timestamp = NULL, token_info = NULL WHERE id = $1",
+      [id]
+    );
+  }
+
+  updateAiText(id, text) {
+    void this.updateAiTextAsync(id, text).catch((err) => {
+      console.warn('[TaskDBAws] Failed to update AI text:', err);
+    });
+  }
+
+  async updateAiTextAsync(id, text) {
+    await this._initPromise;
+    await this.pool.query('UPDATE chat_pairs SET ai_text = $1 WHERE id = $2', [text, id]);
+  }
+
+  deleteUserPart(id) {
+    void this.deleteUserPartAsync(id).catch((err) => {
+      console.warn('[TaskDBAws] Failed to clear user text:', err);
+    });
+  }
+
+  async deleteUserPartAsync(id) {
+    await this._initPromise;
+    await this.pool.query("UPDATE chat_pairs SET user_text = '' WHERE id = $1", [id]);
+  }
+
+  updateUserText(id, text) {
+    void this.updateUserTextAsync(id, text).catch((err) => {
+      console.warn('[TaskDBAws] Failed to update user text:', err);
+    });
+  }
+
+  async updateUserTextAsync(id, text) {
+    await this._initPromise;
+    await this.pool.query('UPDATE chat_pairs SET user_text = $1 WHERE id = $2', [text, id]);
+  }
+
   async hasUserMessages(tabId = 1) {
     await this._initPromise;
     const { rows } = await this.pool.query(
