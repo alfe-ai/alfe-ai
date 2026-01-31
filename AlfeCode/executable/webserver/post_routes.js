@@ -142,6 +142,28 @@ function setupPostRoutes(deps) {
         });
         return cookies.sessionId || "";
     };
+    const isLoggedOutPlan = (plan) => {
+        if (!plan) {
+            return false;
+        }
+        return plan.toString().trim().toLowerCase().replace(/[-\s]+/g, " ") === "logged out session";
+    };
+    const getShowLoggedOutMessage = async (req) => {
+        if (!rdsStore?.enabled) {
+            return false;
+        }
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return true;
+        }
+        try {
+            const account = await rdsStore.getAccountBySession(sessionId);
+            return !account || isLoggedOutPlan(account.plan);
+        } catch (error) {
+            console.warn("[WARN] Failed to check account session:", error);
+            return false;
+        }
+    };
     const getRequestIp = (req) => {
         const forwarded = req.headers["x-forwarded-for"];
         const forwardedIp = Array.isArray(forwarded) ? forwarded[0] : forwarded;
@@ -1228,13 +1250,14 @@ function setupPostRoutes(deps) {
             return res.status(400).send("Either repository URL or local path is required.");
         }
 
-        cloneRepository(repoName, normalizedGitRepoURL || gitRepoURL, sessionId, (err, localPath) => {
+        cloneRepository(repoName, normalizedGitRepoURL || gitRepoURL, sessionId, async (err, localPath) => {
             if (err) {
                 console.error("[ERROR] cloneRepository:", err);
                 if (err.sshKeyRequired) {
                     const showCreateRepoLink = ["1", "true", "yes", "on"].includes(
                         (process.env.SHOW_NEW_REPOSITORY_LINK || "").toLowerCase(),
                     );
+                    const showLoggedOutMessage = await getShowLoggedOutMessage(req);
                     return res.status(400).render("add_repository", {
                         serverCWD: process.cwd(),
                         cloneError:
@@ -1243,6 +1266,7 @@ function setupPostRoutes(deps) {
                         repoNameValue: repoName,
                         gitRepoURLValue: normalizedGitRepoURL || gitRepoURL,
                         showCreateRepoLink,
+                        showLoggedOutMessage,
                     });
                 }
                 return res.status(500).send("Failed to clone repository.");
