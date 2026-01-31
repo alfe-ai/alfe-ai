@@ -259,13 +259,13 @@
     <%- include('partials/session_banner') %>
     <%- include('partials/cookie_banner') %>
     <div class="page">
+        <% const isSshAuthError = cloneError === "Git SSH authentication failed. Add a Git SSH key to continue cloning."; %>
         <% if (showLoggedOutMessage) { %>
             <div class="card logged-out-card">
                 <p class="logged-out-message">Log in to connect Git repositories.</p>
                 <a class="button-link" href="/" role="button">Log In / Sign Up</a>
             </div>
         <% } else { %>
-            <% const isSshAuthError = cloneError === "Git SSH authentication failed. Add a Git SSH key to continue cloning."; %>
             <header>
                 <h1>Connect Git Repository</h1>
             </header>
