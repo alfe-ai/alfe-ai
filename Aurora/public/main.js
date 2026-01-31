@@ -5,6 +5,7 @@ const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";
 // Enable automatic scrolling of the chat by default so new messages stay in view.
 // Manual scrolling (e.g. via the scroll down button) can still force scrolling.
 let chatAutoScroll = true;
+let collapseReasoningByDefault = false;
 const isEmbedded = (() => {
   try {
     return window.self !== window.top;
@@ -1151,7 +1152,7 @@ function renderAssistantContent(container, text, model, options = {}) {
   if(!container) return;
   const { reasoning, content } = splitReasoningContent(text, model);
   renderAssistantContentParts(container, reasoning, content, {
-    defaultReasoningCollapsed: true,
+    defaultReasoningCollapsed: collapseReasoningByDefault,
     resetReasoningExpanded: options.resetReasoningExpanded
   });
 }
@@ -1988,6 +1989,11 @@ async function openSettingsModal(e){
     autoScrollCheck.checked = chatAutoScroll;
   }
   updateSettingsStatus(document.getElementById('autoScrollSaveStatus'), '');
+  const collapseReasoningCheck = document.getElementById('collapseReasoningCheck');
+  if(collapseReasoningCheck){
+    collapseReasoningCheck.checked = collapseReasoningByDefault;
+  }
+  updateSettingsStatus(document.getElementById('collapseReasoningSaveStatus'), '');
   const mobileCheck = document.getElementById('mobileThinSidebarCheck');
   if(mobileCheck){
     mobileCheck.checked = mobileSidebarToolbar;
@@ -2826,6 +2832,7 @@ async function loadSettings(){
     "ai_models_menu_visible","tasks_menu_visible","jobs_menu_visible",
     "chat_tabs_menu_visible","up_arrow_history_enabled",
     "chat_auto_scroll","show_session_id",
+    "collapse_reasoning_by_default",
     "new_tab_project_enabled","group_tabs_by_project",
     "search_enabled","ai_search_model",
     "reasoning_enabled","ai_reasoning_model","ai_vision_model",
@@ -3059,6 +3066,9 @@ async function loadSettings(){
 
   if(typeof map.chat_auto_scroll !== "undefined"){
     chatAutoScroll = !!map.chat_auto_scroll;
+  }
+  if(typeof map.collapse_reasoning_by_default !== "undefined"){
+    collapseReasoningByDefault = map.collapse_reasoning_by_default === true;
   }
 
   if(typeof map.new_tab_project_enabled !== "undefined"){
@@ -5650,6 +5660,26 @@ if(accountAutoScrollCheck){
   });
 }
 
+const collapseReasoningCheck = document.getElementById('collapseReasoningCheck');
+if(collapseReasoningCheck){
+  const collapseReasoningStatus = document.getElementById('collapseReasoningSaveStatus');
+  collapseReasoningCheck?.addEventListener('change', async () => {
+    collapseReasoningByDefault = collapseReasoningCheck.checked;
+    updateSettingsStatus(collapseReasoningStatus, 'Saving...');
+    try {
+      const ok = await setSetting('collapse_reasoning_by_default', collapseReasoningByDefault);
+      if(ok){
+        updateSettingsStatus(collapseReasoningStatus, 'Saved', 'success');
+      } else {
+        updateSettingsStatus(collapseReasoningStatus, 'Failed to save.', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save reasoning collapse setting', err);
+      updateSettingsStatus(collapseReasoningStatus, 'Failed to save.', 'error');
+    }
+  });
+}
+
 const mobileThinSidebarCheck = document.getElementById('mobileThinSidebarCheck');
 if(mobileThinSidebarCheck){
   const mobileSidebarStatus = document.getElementById('mobileSidebarSaveStatus');
@@ -6359,7 +6389,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
         streamBuffer = lines.pop() || "";
         lines.forEach(line => {
           handleReasoningLine(line);
-          renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: false });
+          renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: collapseReasoningByDefault });
         });
       } else {
         rawResponseText += chunkText;
@@ -6381,7 +6411,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
             contentText = "";
             botBody.innerHTML = "";
             lines.forEach(line => handleReasoningLine(line));
-            renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: false });
+            renderAssistantContentParts(botBody, reasoningText, contentText, { defaultReasoningCollapsed: collapseReasoningByDefault });
             continue;
           }
           rawResponseText = lines.concat(remainder).join("\n");
@@ -6408,7 +6438,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
         }
       }
       renderAssistantContentParts(botBody, reasoningText, contentText, {
-        defaultReasoningCollapsed: true,
+        defaultReasoningCollapsed: collapseReasoningByDefault,
         resetReasoningExpanded: true
       });
       addFilesFromCodeBlocks(contentText);
