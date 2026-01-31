@@ -307,7 +307,7 @@
                                 Need help?
                                 <a
                                     class="ssh-link"
-                                    href="https://code-s.alfe.sh/support?disableBack=true&category=git"
+                                    href="/support?disableBack=true&category=git"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >Click here for support.</a>
@@ -371,7 +371,7 @@
             const sshPublicKeyField = document.getElementById('sshPublicKey');
             const sshKeyStatus = document.getElementById('sshKeyStatus');
             const githubKeyLinkHtml = '<a class="ssh-link" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a>';
-            const supportLinkHtml = '<a class="ssh-link" href="https://code-s.alfe.sh/support?disableBack=true&category=git" target="_blank" rel="noopener noreferrer">Click here for support.</a>';
+            const supportLinkHtml = '<a class="ssh-link" href="/support?disableBack=true&category=git" target="_blank" rel="noopener noreferrer">Click here for support.</a>';
             const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
 
             const getRepoNameFromUrl = (url) => {
