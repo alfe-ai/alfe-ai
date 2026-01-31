@@ -151,6 +151,12 @@ function setupGetRoutes(deps) {
         }
         return trimmed.replace(/\/+$/, "");
     };
+    const isLoggedOutPlan = (plan) => {
+        if (!plan) {
+            return false;
+        }
+        return plan.toString().trim().toLowerCase().replace(/[-\s]+/g, " ") === "logged out session";
+    };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
@@ -4889,7 +4895,7 @@ ${cleanedFinalOutput}`;
                 showLoggedOutMessage = true;
             } else {
                 const account = await rdsStore.getAccountBySession(sessionId);
-                if (!account) {
+                if (!account || isLoggedOutPlan(account.plan)) {
                     showLoggedOutMessage = true;
                 }
             }
