@@ -270,7 +270,7 @@
       && window.accountInfo
       && window.accountInfo.email
     );
-    const isLoggedOut = !hasAccountInfo;
+    const isLoggedOut = !hasAccountInfo || normalizedPlanKey === "logged-out session";
     const isFreePlan = normalizedPlanKey === "free";
     const isPaidPlan = normalizedPlanKey === "lite" || normalizedPlanKey === "plus" || normalizedPlanKey === "pro";
     const isProPlanActive = normalizedPlanKey === "pro";
