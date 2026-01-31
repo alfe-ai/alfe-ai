@@ -6763,7 +6763,7 @@ const appendMergeChunk = (text, type = "output") => {
         if (payload?.output) appendMergeChunk(payload.output, 'status');
         if (payload?.errorOutput) appendMergeChunk(payload.errorOutput, 'stderr');
         if (!response.ok) throw new Error(payload?.error || `Update failed: ${response.status}`);
-        appendMergeChunk(payload?.message || 'Branch updated and pushed.', 'status');
+        appendMergeChunk(payload?.message || 'Branch updated.', 'status');
       } catch (err) {
         console.error('Update branch failed:', err);
         appendMergeChunk(err && err.message ? err.message : String(err), 'stderr');

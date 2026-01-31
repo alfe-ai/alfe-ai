@@ -2283,7 +2283,7 @@ function setupPostRoutes(deps) {
                 return res.status(500).json({ error: 'Failed to push branch.', output: stdout, errorOutput: stderr });
             }
 
-            return res.json({ message: 'Branch updated and pushed.', output: stdout, errorOutput: stderr });
+            return res.json({ message: 'Branch updated.', output: stdout, errorOutput: stderr });
         } catch (err) {
             console.error('[ERROR] /agent/update-branch:', err);
             return res.status(500).json({ error: 'Internal server error' });
