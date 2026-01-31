@@ -1151,8 +1151,10 @@ function renderAssistantContentParts(container, reasoning, content, options = {}
 function renderAssistantContent(container, text, model, options = {}) {
   if(!container) return;
   const { reasoning, content } = splitReasoningContent(text, model);
+  const defaultReasoningCollapsed =
+    options.defaultReasoningCollapsed ?? collapseReasoningByDefault;
   renderAssistantContentParts(container, reasoning, content, {
-    defaultReasoningCollapsed: collapseReasoningByDefault,
+    defaultReasoningCollapsed,
     resetReasoningExpanded: options.resetReasoningExpanded
   });
 }
@@ -6439,13 +6441,16 @@ chatSendBtnEl?.addEventListener("click", async () => {
         }
       }
       renderAssistantContentParts(botBody, reasoningText, contentText, {
-        defaultReasoningCollapsed: collapseReasoningByDefault,
+        defaultReasoningCollapsed: true,
         resetReasoningExpanded: true
       });
       addFilesFromCodeBlocks(contentText);
       finalResponseText = contentText;
     } else {
-      renderAssistantContent(botBody, partialText, modelName, { resetReasoningExpanded: true });
+      renderAssistantContent(botBody, partialText, modelName, {
+        defaultReasoningCollapsed: true,
+        resetReasoningExpanded: true
+      });
       addFilesFromCodeBlocks(partialText);
       finalResponseText = partialText;
     }
@@ -10108,7 +10113,10 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         }
 
         const botBody = document.createElement("div");
-        renderAssistantContent(botBody, p.ai_text || "", p.model, { resetReasoningExpanded: true });
+        renderAssistantContent(botBody, p.ai_text || "", p.model, {
+          defaultReasoningCollapsed: true,
+          resetReasoningExpanded: true
+        });
         botDiv.appendChild(botBody);
         addFilesFromCodeBlocks(p.ai_text || "");
         appendModelInfoIcon(botDiv, p.model);
@@ -10308,7 +10316,10 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   }
 
   const botBody = document.createElement("div");
-  renderAssistantContent(botBody, aiText || "", model, { resetReasoningExpanded: true });
+  renderAssistantContent(botBody, aiText || "", model, {
+    defaultReasoningCollapsed: true,
+    resetReasoningExpanded: true
+  });
   botDiv.appendChild(botBody);
   addFilesFromCodeBlocks(aiText || "");
 
