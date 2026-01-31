@@ -151,13 +151,6 @@
       dateEl.textContent = dateLabel;
       meta.appendChild(dateEl);
     }
-    if (mappedEntry && mappedEntry.refs) {
-      const refsEl = document.createElement("span");
-      refsEl.className = "cli-refs";
-      refsEl.textContent = mappedEntry.refs;
-      meta.appendChild(refsEl);
-    }
-
     const messageEl = document.createElement("div");
     messageEl.className = "cli-message";
     messageEl.textContent = message;
