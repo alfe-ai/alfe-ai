@@ -10,6 +10,8 @@ const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
 const SUPPORT_REQUEST_REPLIED_STATUS = "Support Replied";
+const SUPPORT_REQUEST_BUG_SUBMITTED_STATUS = "Bug Report Submitted";
+const SUPPORT_REQUEST_FEATURE_SUBMITTED_STATUS = "Feature Request Submitted";
 
 function normalizeHost(host) {
   if (host === "::1") return "127.0.0.1";
@@ -519,12 +521,17 @@ class RdsStore {
     const normalizedRequestId = Number(requestId);
     if (!Number.isFinite(normalizedRequestId)) return null;
     try {
+      const replyableStatuses = [
+        SUPPORT_REQUEST_DEFAULT_STATUS,
+        SUPPORT_REQUEST_BUG_SUBMITTED_STATUS,
+        SUPPORT_REQUEST_FEATURE_SUBMITTED_STATUS,
+      ];
       const result = await this.pool.query(
         `UPDATE ${SUPPORT_REQUESTS_TABLE}
          SET status = $1
-         WHERE id = $2 AND status = $3
+         WHERE id = $2 AND status = ANY($3)
          RETURNING id, status`,
-        [SUPPORT_REQUEST_REPLIED_STATUS, normalizedRequestId, SUPPORT_REQUEST_DEFAULT_STATUS]
+        [SUPPORT_REQUEST_REPLIED_STATUS, normalizedRequestId, replyableStatuses]
       );
       return result.rows[0] || null;
     } catch (error) {
