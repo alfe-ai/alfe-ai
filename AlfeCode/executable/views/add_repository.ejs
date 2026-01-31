@@ -316,7 +316,7 @@
                             </div>
                         </div>
                     <% } %>
-                    <div class="field <%= isSshAuthError ? 'is-hidden' : '' %>">
+                    <div class="field">
                         <label for="gitRepoURL">Git repository URL:</label>
                         <input
                             type="text"
@@ -324,16 +324,22 @@
                             name="gitRepoURL"
                             placeholder="git@github.com:example-org/example-repo.git"
                             value="<%= gitRepoURLValue || '' %>"
+                            <%= isSshAuthError ? 'readonly' : '' %>
                         >
                         <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
                     </div>
 
-                    <div class="field <%= isSshAuthError ? 'is-hidden' : '' %>">
+                    <div class="field">
                         <div class="inline-edit-row">
                             <label for="repoName">Project name:</label>
                             <div class="inline-edit-display" id="repoNameDisplay">
                                 <span class="inline-edit-value" id="repoNameValue"></span>
-                                <button type="button" class="icon-button" id="editRepoName" aria-label="Edit project name">
+                                <button
+                                    type="button"
+                                    class="icon-button <%= isSshAuthError ? 'is-hidden' : '' %>"
+                                    id="editRepoName"
+                                    aria-label="Edit project name"
+                                >
                                     <span aria-hidden="true">✎</span>
                                 </button>
                             </div>
@@ -375,6 +381,7 @@
             const githubKeyLinkHtml = '<a class="ssh-link" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a>';
             const supportLinkHtml = '<a class="ssh-link" href="/support?disableBack=true&category=git" target="_blank" rel="noopener noreferrer">Click here for support.</a>';
             const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
+            const isSshAuthError = <%= isSshAuthError ? 'true' : 'false' %>;
 
             const getRepoNameFromUrl = (url) => {
                 const trimmed = url.trim();
@@ -405,7 +412,7 @@
                 if (trimmedValue) {
                     repoNameValue.textContent = trimmedValue;
                     repoNameValue.classList.remove('placeholder');
-                    if (editRepoNameButton) {
+                    if (editRepoNameButton && !isSshAuthError) {
                         editRepoNameButton.classList.remove('is-hidden');
                     }
                     return;
