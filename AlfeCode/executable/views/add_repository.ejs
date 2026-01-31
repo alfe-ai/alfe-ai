@@ -122,6 +122,16 @@
             color: var(--nexum-muted);
             margin-top: 8px;
         }
+        .ssh-status .ssh-link {
+            color: #22d3ee;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .ssh-status .ssh-link:hover,
+        .ssh-status .ssh-link:focus {
+            color: #67e8f9;
+            text-decoration: underline;
+        }
         form label {
             font-weight: 600;
         }
@@ -273,10 +283,8 @@
                     <% } %>
                     <% if (sshKeyRequired) { %>
                         <div class="ssh-card">
-                            <h3>Generate a GitHub SSH key</h3>
-                            <p>Create a key, copy the public key into GitHub, then retry the clone.</p>
+                            <h3>Copy Git SSH key</h3>
                             <div class="button-row">
-                                <button type="button" class="secondary" id="generateSshKey">Generate SSH key</button>
                                 <button type="button" class="secondary" id="copySshKey" disabled>Copy key</button>
                             </div>
                             <textarea
@@ -285,7 +293,16 @@
                                 readonly
                                 placeholder="Your public key will appear here after generation."
                             ></textarea>
-                            <div class="ssh-status" id="sshKeyStatus">Generate a key to continue. After generation, add the public key to GitHub: <a id="githubKeyLink" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a></div>
+                            <div class="ssh-status" id="sshKeyStatus">
+                                Generating SSH key... For GitHub, paste the key here:
+                                <a
+                                    class="ssh-link"
+                                    id="githubKeyLink"
+                                    href="https://github.com/settings/keys"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >https://github.com/settings/keys</a>
+                            </div>
                         </div>
                     <% } %>
                     <div class="field">
@@ -341,10 +358,10 @@
             const repoNameDisplay = document.getElementById('repoNameDisplay');
             const repoNameValue = document.getElementById('repoNameValue');
             const editRepoNameButton = document.getElementById('editRepoName');
-            const generateSshKeyButton = document.getElementById('generateSshKey');
             const copySshKeyButton = document.getElementById('copySshKey');
             const sshPublicKeyField = document.getElementById('sshPublicKey');
             const sshKeyStatus = document.getElementById('sshKeyStatus');
+            const githubKeyLinkHtml = '<a class="ssh-link" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a>';
             const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
 
             const getRepoNameFromUrl = (url) => {
@@ -459,30 +476,44 @@
                 }
             });
 
-            if (generateSshKeyButton) {
-                generateSshKeyButton.addEventListener('click', async () => {
-                    generateSshKeyButton.disabled = true;
-                    sshKeyStatus.textContent = 'Generating SSH key...';
-                    try {
-                        const response = await fetch('/repositories/generate-ssh-key', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                        });
-                        const payload = await response.json();
-                        if (!response.ok) {
-                            throw new Error(payload.error || 'Unable to generate SSH key.');
-                        }
-                        sshPublicKeyField.value = payload.publicKey || '';
-                        copySshKeyButton.disabled = !sshPublicKeyField.value;
-                        sshKeyStatus.textContent = payload.addedToAgent
-                            ? 'SSH key generated and added to the agent. Paste it into GitHub now (https://github.com/settings/keys).'
-                            : 'SSH key generated. Paste it into GitHub now (https://github.com/settings/keys).';
-                    } catch (error) {
-                        sshKeyStatus.textContent = error.message;
-                    } finally {
-                        generateSshKeyButton.disabled = false;
+            const setSshStatus = (message, includeLink = false) => {
+                if (!sshKeyStatus) {
+                    return;
+                }
+                if (includeLink) {
+                    sshKeyStatus.innerHTML = `${message} For GitHub, paste the key here: ${githubKeyLinkHtml}`;
+                } else {
+                    sshKeyStatus.textContent = message;
+                }
+            };
+
+            const generateSshKey = async () => {
+                if (!sshKeyStatus || !sshPublicKeyField || !copySshKeyButton) {
+                    return;
+                }
+                setSshStatus('Generating SSH key...', true);
+                try {
+                    const response = await fetch('/repositories/generate-ssh-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.error || 'Unable to generate SSH key.');
                     }
-                });
+                    sshPublicKeyField.value = payload.publicKey || '';
+                    copySshKeyButton.disabled = !sshPublicKeyField.value;
+                    const generatedMessage = payload.addedToAgent
+                        ? 'SSH key generated and added to the agent.'
+                        : 'SSH key generated.';
+                    setSshStatus(generatedMessage, true);
+                } catch (error) {
+                    setSshStatus(error.message);
+                }
+            };
+
+            if (sshPublicKeyField && sshKeyStatus) {
+                generateSshKey();
             }
 
             if (copySshKeyButton) {
@@ -492,9 +523,9 @@
                     }
                     try {
                         await navigator.clipboard.writeText(sshPublicKeyField.value);
-                        sshKeyStatus.textContent = 'SSH key copied to clipboard.';
+                        setSshStatus('SSH key copied to clipboard.', true);
                     } catch (error) {
-                        sshKeyStatus.textContent = 'Copy failed. Select the key text and copy manually.';
+                        setSshStatus('Copy failed. Select the key text and copy manually.', true);
                     }
                 });
             }
