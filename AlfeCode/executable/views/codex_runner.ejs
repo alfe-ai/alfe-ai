@@ -3687,6 +3687,26 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       </div>
     </div>
 
+    <div id="helpGuideModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Help guide">
+      <div class="modal-content" style="position:relative;min-height:140px;max-width:980px;margin:auto; width:90%;">
+        <button class="modal-close" type="button" id="helpGuideCloseButton">×</button>
+        <div id="helpGuideLoader" class="settings-modal-loader is-hidden" role="status" aria-live="polite">
+            <div class="loading-card">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <p class="loading-title">Loading Help…</p>
+            </div>
+        </div>
+        <iframe
+          id="helpGuideIframe"
+          class="modal-iframe"
+          src=""
+          data-default-src="/help.html"
+          title="Help guide"
+          style="width:100%;height:80vh;border:0;border-radius:6px;"
+        ></iframe>
+      </div>
+    </div>
+
     <script>
         window.CODEX_RUNNER_CONFIG = Object.assign(
             {},
@@ -3934,6 +3954,64 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       } catch(_e) { /* noop */ }
     });
   })();
+
+  const helpGuideButton = document.getElementById('helpGuideButton');
+  const helpGuideModal = document.getElementById('helpGuideModal');
+  const helpGuideIframe = document.getElementById('helpGuideIframe');
+  const helpGuideCloseButton = document.getElementById('helpGuideCloseButton');
+  const helpGuideLoader = document.getElementById('helpGuideLoader');
+  const showHelpGuideLoader = () => {
+    if (helpGuideLoader) {
+      helpGuideLoader.classList.remove('is-hidden');
+    }
+    if (helpGuideIframe) {
+      helpGuideIframe.classList.add('is-loading');
+    }
+  };
+  const hideHelpGuideLoader = () => {
+    if (helpGuideLoader) {
+      helpGuideLoader.classList.add('is-hidden');
+    }
+    if (helpGuideIframe) {
+      helpGuideIframe.classList.remove('is-loading');
+    }
+  };
+  if (helpGuideButton && helpGuideModal) {
+    const defaultHelpUrl = (helpGuideIframe && (helpGuideIframe.dataset.defaultSrc || helpGuideIframe.getAttribute('data-default-src'))) || '/help.html';
+    helpGuideButton.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      showHelpGuideLoader();
+      if (helpGuideIframe) {
+        const currentSrcAttr = helpGuideIframe.getAttribute('src');
+        if (!currentSrcAttr || currentSrcAttr === '') {
+          helpGuideIframe.src = defaultHelpUrl;
+        } else if (helpGuideIframe.contentDocument && helpGuideIframe.contentDocument.readyState === 'complete') {
+          hideHelpGuideLoader();
+        }
+      }
+      helpGuideModal.classList.remove('is-hidden');
+      document.body.style.overflow = 'hidden';
+    });
+  }
+  if (helpGuideCloseButton && helpGuideModal) {
+    helpGuideCloseButton.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      helpGuideModal.classList.add('is-hidden');
+      document.body.style.overflow = '';
+      hideHelpGuideLoader();
+      if (helpGuideIframe) {
+        helpGuideIframe.src = '';
+      }
+    });
+  }
+  if (helpGuideIframe) {
+    helpGuideIframe.addEventListener('load', () => {
+      hideHelpGuideLoader();
+    });
+    helpGuideIframe.addEventListener('error', () => {
+      hideHelpGuideLoader();
+    });
+  }
 
   const aboutModalButton = document.getElementById('aboutModalButton');
   const aboutModal = document.getElementById('aboutModal');
