@@ -168,7 +168,7 @@
           <option value="Bug Report">Bug Report</option>
           <option value="New Feature Request">New Feature Request</option>
           <option value="Account Support">Account Support</option>
-          <option value="GitHub link / Git URL link">GitHub link / Git URL link</option>
+          <option value="Git URL link">Git URL link</option>
           <option value="Billing">Billing</option>
           <option value="2-Factor Authentication">2-Factor Authentication</option>
           <option value="Alfe AI Code Support">Alfe AI Code Support</option>
@@ -197,6 +197,11 @@
     const supportButton = document.getElementById('supportSubmitButton');
     const supportStatus = document.getElementById('supportStatus');
     const supportRequestsList = document.getElementById('supportRequestsList');
+    const supportCategoryParam = new URLSearchParams(window.location.search).get('category');
+
+    if (supportCategory && supportCategoryParam === 'git') {
+      supportCategory.value = 'Git URL link';
+    }
 
     const setSupportStatus = (text, { isError = false } = {}) => {
       if (!supportStatus) return;
