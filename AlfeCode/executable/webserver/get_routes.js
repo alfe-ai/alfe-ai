@@ -4545,8 +4545,13 @@ ${cleanedFinalOutput}`;
         const modelEntries = SHOW_MODEL_ONLY_COSTS
             ? models
             : models.map((model) => (model ? { ...model, pricing: null } : model));
+        const enabledModelIds = new Set(
+            modelEntries.filter((model) => model && !model.disabled).map((model) => model.id),
+        );
         const disabledModelIds = new Set(
-            modelEntries.filter((model) => model && model.disabled).map((model) => model.id),
+            modelEntries
+                .filter((model) => model && model.disabled && !enabledModelIds.has(model.id))
+                .map((model) => model.id),
         );
         const providerModels = {
             openrouter: modelEntries,
