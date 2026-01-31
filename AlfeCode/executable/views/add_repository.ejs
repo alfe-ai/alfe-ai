@@ -285,6 +285,17 @@
             display: inline-flex;
             align-items: center;
         }
+        .refresh-icon.is-spinning {
+            animation: refresh-spin 0.9s linear infinite;
+        }
+        @keyframes refresh-spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
@@ -420,6 +431,7 @@
             const sshPublicKeyField = document.getElementById('sshPublicKey');
             const sshKeyStatus = document.getElementById('sshKeyStatus');
             const sshCopyStatus = document.getElementById('sshCopyStatus');
+            const refreshIcon = addRepoForm.querySelector('.refresh-icon');
             const githubKeyLinkHtml = '<a class="ssh-link" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a>';
             const supportLinkHtml = '<a class="ssh-link" href="/support?disableBack=true&category=git" target="_blank" rel="noopener noreferrer">Click here for support.</a>';
             const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
@@ -551,6 +563,9 @@
             };
 
             addRepoForm.addEventListener('submit', () => {
+                if (refreshIcon) {
+                    refreshIcon.classList.add('is-spinning');
+                }
                 const convertedUrl = convertHttpsToSsh(gitRepoURLInput.value);
                 if (convertedUrl !== gitRepoURLInput.value.trim()) {
                     gitRepoURLInput.value = convertedUrl;
