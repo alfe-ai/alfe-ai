@@ -6204,7 +6204,6 @@ chatSendBtnEl?.addEventListener("click", async () => {
   const userLabel = "You";
   userHead.innerHTML = `
     <div class="name-oval name-oval-user">${userLabel}</div>
-    <span style="opacity:0.8;">${formatTimestamp(userTime)}</span>
   `;
   userDiv.appendChild(userHead);
 
