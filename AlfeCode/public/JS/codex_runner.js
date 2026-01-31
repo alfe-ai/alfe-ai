@@ -115,8 +115,12 @@
   };
 
   const getUsagePlanName = () => {
-    if (accountInfo && accountInfo.plan) {
-      return accountInfo.plan;
+    const info =
+      (typeof window !== "undefined" && window.accountInfo)
+        ? window.accountInfo
+        : null;
+    if (info && info.plan) {
+      return info.plan;
     }
     return "Logged-out Session";
   };
@@ -310,6 +314,18 @@
     if (!usageLimitModal) return;
     usageLimitModal.classList.add("is-hidden");
     document.body.style.overflow = "";
+  };
+
+  const isUsageLimitMessage = (message) => {
+    if (!message) return false;
+    const normalized = message.toString().toLowerCase();
+    return (
+      normalized.includes("usage limit")
+      || normalized.includes("limit reached")
+      || normalized.includes("run limit")
+      || normalized.includes("quota")
+      || normalized.includes("rate limit")
+    );
   };
 
   const isCodeUsageLimitReached = () => {
@@ -7374,10 +7390,14 @@ const appendMergeChunk = (text, type = "output") => {
     });
 
     eventSource.addEventListener("stream-error", (event) => {
-      updateGitFpushStdoutSuppression(event.data);
+      const message = event.data || "Stream error";
+      updateGitFpushStdoutSuppression(message);
       flushPendingStdoutPromptBuffer();
-      appendChunk(event.data || "Stream error", "stderr");
-      setStatus(event.data || "Agent run error.", "error");
+      appendChunk(message, "stderr");
+      setStatus(message || "Agent run error.", "error");
+      if (isUsageLimitMessage(message)) {
+        showUsageLimitModal();
+      }
       finalizeOutputViews();
       runInFlight = false;
       awaitingGitFpushCompletion = false;
@@ -7428,8 +7448,14 @@ const appendMergeChunk = (text, type = "output") => {
         return;
       }
       flushPendingStdoutPromptBuffer();
-      setStatus("Connection interrupted.", "error");
-      appendChunk("\nConnection interrupted.", "stderr");
+      if (isCodeUsageLimitReached()) {
+        showUsageLimitModal();
+        setStatus("Usage limit reached.", "error");
+        appendChunk("\nUsage limit reached.", "stderr");
+      } else {
+        setStatus("Connection interrupted.", "error");
+        appendChunk("\nConnection interrupted.", "stderr");
+      }
       closeExistingStream();
       finalizeOutputViews();
       toggleButtons(false);
@@ -7943,6 +7969,9 @@ const appendMergeChunk = (text, type = "output") => {
 
   const setAccountInfo = (info) => {
     accountInfo = info && info.email ? info : null;
+    if (typeof window !== "undefined") {
+      window.accountInfo = accountInfo;
+    }
     updateAccountButton(accountInfo);
   };
 
