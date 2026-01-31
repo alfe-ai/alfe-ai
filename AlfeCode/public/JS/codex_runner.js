@@ -1501,11 +1501,12 @@
     if (!runsSidebarListEl) {
       return;
     }
+    const shouldDisableForControls = runControlsDisabled && !runInFlight;
     const items = runsSidebarListEl.querySelectorAll("[data-run-id]");
     items.forEach((item) => {
       const element = item;
       const isActive = element.classList.contains("is-active");
-      const shouldDisable = runControlsDisabled && !isActive;
+      const shouldDisable = shouldDisableForControls && !isActive;
       element.classList.toggle("is-disabled", shouldDisable);
       element.setAttribute("aria-disabled", shouldDisable ? "true" : "false");
     });
@@ -5386,7 +5387,7 @@ const appendMergeChunk = (text, type = "output") => {
           }
           const projectDirFromDataset = normaliseProjectDir(button.dataset && button.dataset.projectDir ? button.dataset.projectDir : "");
           const isButtonActive = buttonRunId === runsSidebarSelectedRunId;
-          if (runControlsDisabled && !isButtonActive) {
+          if (runControlsDisabled && !runInFlight && !isButtonActive) {
             try {
               const href = `/agent#run=${encodeURIComponent(buttonRunId)}`;
               window.open(href, '_blank', 'noopener,noreferrer');
@@ -5405,7 +5406,7 @@ const appendMergeChunk = (text, type = "output") => {
 
       // Update common properties for both new and existing elements
       try {
-        const isDisabledForControls = !!runControlsDisabled && !isActive;
+        const isDisabledForControls = !!runControlsDisabled && !runInFlight && !isActive;
         button.className = 'runs-sidebar__item';
         if (isActive) button.classList.add('is-active');
         button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
