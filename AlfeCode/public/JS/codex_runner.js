@@ -265,7 +265,8 @@
     const planName = getUsagePlanName();
     const limits = resolveUsageLimits(planName);
     const normalizedPlanKey = (planName || "").toString().trim().toLowerCase();
-    const isLoggedOut = !["free", "lite", "plus", "pro"].includes(normalizedPlanKey);
+    const isLoggedOut = ["logged-out session", "logged out session"].includes(normalizedPlanKey);
+    const isFreePlan = normalizedPlanKey === "free";
     const isPaidPlan = normalizedPlanKey === "lite" || normalizedPlanKey === "plus" || normalizedPlanKey === "pro";
     const isProPlanActive = normalizedPlanKey === "pro";
     const codeLimit = typeof limits.code === "number" ? limits.code : 0;
@@ -279,7 +280,7 @@
       usageLimitCodeUsageLimited.classList.toggle("hidden", isPaidPlan);
     }
     if (usageLimitFreeCodeUsageUpsell) {
-      usageLimitFreeCodeUsageUpsell.classList.toggle("hidden", normalizedPlanKey !== "free");
+      usageLimitFreeCodeUsageUpsell.classList.toggle("hidden", !isFreePlan);
     }
     if (usageLimitLoggedOutCodeUsageUpsell) {
       usageLimitLoggedOutCodeUsageUpsell.classList.toggle("hidden", !isLoggedOut);
