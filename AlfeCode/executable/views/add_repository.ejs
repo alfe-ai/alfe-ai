@@ -258,6 +258,11 @@
             font-size: 1.1rem;
             font-weight: 600;
         }
+        .refresh-icon {
+            margin-right: 8px;
+            display: inline-flex;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -363,7 +368,14 @@
 
                     <div class="field">
                         <div class="button-row">
-                            <button type="submit">Connect Repository</button>
+                            <button type="submit">
+                                <% if (isSshAuthError) { %>
+                                    <span class="refresh-icon" aria-hidden="true">⟳</span>
+                                    Add Repository
+                                <% } else { %>
+                                    Connect Repository
+                                <% } %>
+                            </button>
                         </div>
                     </div>
                 </form>
