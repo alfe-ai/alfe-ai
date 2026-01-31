@@ -516,7 +516,8 @@
                     return;
                 }
                 if (includeLink) {
-                    sshKeyStatus.innerHTML = `${message} For GitHub, paste the key here: ${githubKeyLinkHtml}<br>Need help? ${supportLinkHtml}`;
+                    const linkMessage = `For GitHub, paste the key here: ${githubKeyLinkHtml}<br>Need help? ${supportLinkHtml}`;
+                    sshKeyStatus.innerHTML = message ? `${message} ${linkMessage}` : linkMessage;
                 } else {
                     sshKeyStatus.textContent = message;
                 }
@@ -540,7 +541,7 @@
                     copySshKeyButton.disabled = !sshPublicKeyField.value;
                     const generatedMessage = payload.addedToAgent
                         ? 'SSH key generated and added to the agent.'
-                        : 'SSH key generated.';
+                        : '';
                     setSshStatus(generatedMessage, true);
                 } catch (error) {
                     setSshStatus(error.message);
