@@ -8,6 +8,7 @@ fi
 SCREEN_NAME="alfeDEV"
 
 clear
+git stash
 git pull
 
 git --no-pager log -n 3
