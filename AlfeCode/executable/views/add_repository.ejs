@@ -469,7 +469,30 @@
                 updateRepoNameDisplay();
             });
 
+            const convertHttpsToSsh = (url) => {
+                const trimmed = url.trim();
+                if (!trimmed) {
+                    return trimmed;
+                }
+
+                const sanitized = trimmed.split('#')[0].split('?')[0];
+                const httpsMatch = sanitized.match(/^https?:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i);
+                if (!httpsMatch) {
+                    return trimmed;
+                }
+
+                const host = httpsMatch[1];
+                const owner = httpsMatch[2];
+                const repo = httpsMatch[3];
+                return `git@${host}:${owner}/${repo}.git`;
+            };
+
             addRepoForm.addEventListener('submit', () => {
+                const convertedUrl = convertHttpsToSsh(gitRepoURLInput.value);
+                if (convertedUrl !== gitRepoURLInput.value.trim()) {
+                    gitRepoURLInput.value = convertedUrl;
+                }
+
                 if (!repoNameInput.value.trim()) {
                     repoNameInput.setAttribute('aria-invalid', 'true');
                     showRepoNameEditor();
