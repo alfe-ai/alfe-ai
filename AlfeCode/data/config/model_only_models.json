@@ -248,7 +248,7 @@
     {
       "id": "openrouter/z-ai/glm-4.5-air",
       "label": "[Backup] Z.ai: GLM 4.5 Air",
-      "disabled": false,
+      "disabled": true,
       "list_order": 1,
       "engine_options": [
         "auto",
