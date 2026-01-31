@@ -6124,8 +6124,22 @@ const appendMergeChunk = (text, type = "output") => {
     if (typeof window !== 'undefined' && window.location && typeof window.location.pathname === 'string' && /(^|\/)agent(\/|$)/.test(window.location.pathname)) {
       runButton && runButton.addEventListener('click', (ev) => {
         try {
-          if (runButton && (runButton.classList.contains('is-cancel') || runButton.dataset.mode === 'cancel')) {
+          if (!runButton || runButton.disabled) {
+            return;
+          }
+          const isCancelMode = runButton.classList.contains('is-cancel') || runButton.dataset.mode === 'cancel';
+          if (isCancelMode) {
+            ev.preventDefault();
             window.location.reload();
+            return;
+          }
+          if (form) {
+            ev.preventDefault();
+            if (typeof form.requestSubmit === 'function') {
+              form.requestSubmit();
+            } else {
+              form.submit();
+            }
           }
         } catch (_e) { /* ignore */ }
       });
