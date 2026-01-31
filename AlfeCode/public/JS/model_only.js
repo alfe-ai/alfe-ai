@@ -312,6 +312,34 @@
     modelSelect.disabled = false;
   }
 
+  function ensureModelOption(modelId) {
+    if (!modelSelect || !modelId) return;
+    const existing = Array.from(modelSelect.options).find(option => option.value === modelId);
+    if (existing) return existing;
+    const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+    const raw = list.find(entry => {
+      if (!entry) return false;
+      if (typeof entry === 'string') return entry.trim() === modelId;
+      if (typeof entry === 'object') {
+        if (typeof entry.id === 'string' && entry.id.trim() === modelId) return true;
+        if (typeof entry.model === 'string' && entry.model.trim() === modelId) return true;
+      }
+      return false;
+    });
+    const model = normaliseModelEntry(raw);
+    const option = document.createElement('option');
+    option.value = modelId;
+    const label = model ? (model.plus_model ? `[Pro] ${model.label}` : model.label) : modelId;
+    option.textContent = label;
+    if (model && model.plus_model && !isProPlan(currentAccountPlan)) {
+      option.disabled = true;
+      option.dataset.plusModel = 'true';
+      option.classList.add('pro-model-disabled');
+    }
+    modelSelect.insertBefore(option, modelSelect.firstChild);
+    return option;
+  }
+
   function applyUsageLimits(limits, plan) {
     const normalizedPlan = (plan || '').toString().trim();
     const normalizedPlanKey = normalizedPlan.toLowerCase();
@@ -685,6 +713,7 @@
       }
       populateModels();
       if (data.defaultModel && modelSelect) {
+        ensureModelOption(data.defaultModel);
         modelSelect.value = data.defaultModel;
       }
       updateProModelOptions();
