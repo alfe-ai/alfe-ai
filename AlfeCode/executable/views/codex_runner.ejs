@@ -3040,6 +3040,16 @@
                             <span class="sr-only">Open Sterling settings</span>
                         </button>
                         <button
+                            id="helpGuideButton"
+                            class="nav-button icon-only same-height"
+                            type="button"
+                            title="Help guide"
+                            aria-label="Help guide"
+                        >
+                            <span aria-hidden="true">?</span>
+                            <span class="sr-only">Open help guide</span>
+                        </button>
+                        <button
                             id="subscribeButton"
                             class="nav-button icon-tone"
                             type="button"
@@ -3689,6 +3699,40 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       }
     });
   }
+
+  (function(){
+    const helpGuideButton = document.getElementById('helpGuideButton');
+    const STORAGE_KEY_HELP_BUTTON = 'showHelpButton';
+    if (!helpGuideButton) return;
+    const setHelpButtonVisible = (show) => {
+      if (show) {
+        helpGuideButton.classList.remove('is-hidden');
+        helpGuideButton.removeAttribute('aria-hidden');
+      } else {
+        helpGuideButton.classList.add('is-hidden');
+        helpGuideButton.setAttribute('aria-hidden', 'true');
+      }
+    };
+    let storedValue = null;
+    try {
+      storedValue = localStorage.getItem(STORAGE_KEY_HELP_BUTTON);
+    } catch (_e) {
+      storedValue = null;
+    }
+    if (storedValue === null) {
+      storedValue = 'true';
+    }
+    setHelpButtonVisible(storedValue === 'true');
+    window.addEventListener('message', function(ev){
+      try {
+        const d = ev && ev.data;
+        if (!d || d.type !== 'sterling:settings' || d.key !== 'showHelpButton') return;
+        const shouldShow = d.value === true || d.value === 'true';
+        try{ localStorage.setItem(STORAGE_KEY_HELP_BUTTON, shouldShow ? 'true' : 'false'); }catch(_e){}
+        setHelpButtonVisible(shouldShow);
+      } catch(_e) { /* noop */ }
+    });
+  })();
 
   const aboutModalButton = document.getElementById('aboutModalButton');
   const aboutModal = document.getElementById('aboutModal');
