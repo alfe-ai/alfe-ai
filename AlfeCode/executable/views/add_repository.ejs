@@ -136,7 +136,13 @@
             margin-top: 8px;
         }
         .ssh-copy-status.is-success {
-            color: #4ade80;
+            color: #22c55e;
+            background-image: linear-gradient(90deg, #bbf7d0 0%, #4ade80 45%, #22c55e 100%);
+            background-size: 200% 100%;
+            background-position: 0% 50%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             animation: ssh-copy-success-shift 2s ease-out forwards;
         }
         .ssh-copy-status.is-error {
@@ -144,10 +150,14 @@
         }
         @keyframes ssh-copy-success-shift {
             0% {
-                color: #4ade80;
+                background-position: 0% 50%;
+            }
+            70% {
+                background-position: 100% 50%;
             }
             100% {
-                color: #22c55e;
+                background-position: 100% 50%;
+                background-image: linear-gradient(90deg, #22c55e 0%, #22c55e 100%);
             }
         }
         .ssh-status .ssh-link {
