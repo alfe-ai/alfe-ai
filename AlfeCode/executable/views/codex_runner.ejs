@@ -3170,6 +3170,16 @@
                             <span class="sr-only">Open Sterling settings</span>
                         </button>
                         <button
+                            id="signUpLogInBtn"
+                            class="nav-button icon-tone"
+                            type="button"
+                            title="Sign Up or Log In"
+                            aria-label="Sign up or log in"
+                            onclick="(function(){ if (window.alfeOpenAuthModal) { window.alfeOpenAuthModal('signup'); } })()"
+                        >
+                            Sign Up / Log In
+                        </button>
+                        <button
                             id="helpGuideButton"
                             class="nav-button icon-only same-height"
                             type="button"
@@ -3189,16 +3199,6 @@
                             style="display:none;"
                         >
                             Subscribe
-                        </button>
-                        <button
-                            id="signUpLogInBtn"
-                            class="nav-button icon-tone"
-                            type="button"
-                            title="Sign Up or Log In"
-                            aria-label="Sign up or log in"
-                            onclick="(function(){ if (window.alfeOpenAuthModal) { window.alfeOpenAuthModal('signup'); } })()"
-                        >
-                            Sign Up / Log In
                         </button>
                     </div>
                 </div>
