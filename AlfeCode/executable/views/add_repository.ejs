@@ -326,7 +326,9 @@
                             value="<%= gitRepoURLValue || '' %>"
                             <%= isSshAuthError ? 'readonly' : '' %>
                         >
-                        <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
+                        <% if (!isSshAuthError) { %>
+                            <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
+                        <% } %>
                     </div>
 
                     <div class="field">
