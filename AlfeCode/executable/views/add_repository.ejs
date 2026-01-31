@@ -284,8 +284,13 @@
             margin-right: 8px;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
+            width: 1em;
+            opacity: 0;
+            transition: opacity 0.15s ease;
         }
         .refresh-icon.is-spinning {
+            opacity: 1;
             animation: refresh-spin 0.9s linear infinite;
         }
         @keyframes refresh-spin {
@@ -402,12 +407,8 @@
                     <div class="field">
                         <div class="button-row">
                             <button type="submit">
-                                <% if (isSshAuthError) { %>
-                                    <span class="refresh-icon" aria-hidden="true">⟳</span>
-                                    Connect Repository
-                                <% } else { %>
-                                    Connect Repository
-                                <% } %>
+                                <span class="refresh-icon" aria-hidden="true">⟳</span>
+                                Connect Repository
                             </button>
                         </div>
                     </div>
