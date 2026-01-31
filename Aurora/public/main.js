@@ -7,6 +7,7 @@ const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";
 let chatAutoScroll = true;
 let collapseReasoningByDefault = false;
 const isEmbedded = (() => {
+  let chatRequestSucceeded = false;
   try {
     return window.self !== window.top;
   } catch (err) {
@@ -6455,6 +6456,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
     // Refresh usage counters so search/session counts update immediately
     // (ensures UI shows latest counts without requiring a full page reload)
     try { updateUsageLimitInfo(); } catch (err) { console.warn('Failed to refresh usage counters', err); }
+    chatRequestSucceeded = true;
   } catch(e) {
     clearInterval(waitInterval);
     clearInterval(ellipsisInterval);
@@ -6480,11 +6482,16 @@ chatSendBtnEl?.addEventListener("click", async () => {
   // Code previously auto-created a task for every chat pair.
   // This behavior remains disabled to avoid cluttering the task list.
 
-  try {
-    await loadChatHistory(currentTabId, true);
-    await loadTabs();
-  } catch(err){
-    console.error('Refresh after chat send failed', err);
+  if(chatRequestSucceeded){
+    try {
+      await loadChatHistory(currentTabId, true, {
+        preserveExistingOnReset: true,
+        expectedUserText: combinedUserText
+      });
+      await loadTabs();
+    } catch(err){
+      console.error('Refresh after chat send failed', err);
+    }
   }
   renderTabs();
   renderSidebarTabs();
@@ -9912,19 +9919,28 @@ let chatHistoryLoading = false; // prevent duplicate history loads
 let lastChatDate = null;
 const prefabGreetingPendingTabs = new Set();
 
-async function loadChatHistory(tabId = currentTabId, reset=false) {
+async function loadChatHistory(tabId = currentTabId, reset=false, options = {}) {
   if(chatHistoryLoading) return;
   chatHistoryLoading = true;
   const chatMessagesEl = document.getElementById("chatMessages");
   console.debug(`[ChatHistory Debug] loadChatHistory(tabId=${tabId}, reset=${reset}, offset=${chatHistoryOffset})`);
-  if(reset){
-    chatMessagesEl.innerHTML = `
+  const { preserveExistingOnReset = false, expectedUserText = "" } = options;
+  const resetMarkup = `
       <div id="chatPlaceholder" style="text-align:center;margin:1rem 0;">
         <span class="loading-spinner"></span>
       </div>
       <div id="imageGenerationIndicator" style="display:none; color:#0ff; margin:8px 0;">Generating image<span class="loading-spinner"></span></div>
       <div id="startSuggestions" style="display:none;"></div>
     `;
+  const previousState = {
+    offset: chatHistoryOffset,
+    hasMore: chatHasMore,
+    lastChatDate
+  };
+  if(reset){
+    if(!preserveExistingOnReset){
+      chatMessagesEl.innerHTML = resetMarkup;
+    }
     chatHistoryOffset = 0;
     chatHasMore = true;
     lastChatDate = null;
@@ -9988,6 +10004,18 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
     console.debug(`[ChatHistory Debug] new offset=${chatHistoryOffset}, chatHasMore=${chatHasMore}`);
 
     if(reset){
+      if(preserveExistingOnReset && expectedUserText){
+        const normalizedExpected = expectedUserText.trim();
+        const hasExpected = pairs.some(p => (p.user_text || "").trim() === normalizedExpected);
+        if(!hasExpected){
+          chatHistoryOffset = previousState.offset;
+          chatHasMore = previousState.hasMore;
+          lastChatDate = previousState.lastChatDate;
+          return;
+        }
+        chatMessagesEl.innerHTML = resetMarkup;
+        lastChatDate = null;
+      }
       if(pairs.length === 0){
         const tabInfo = chatTabs.find(t => t.id === tabId);
         const greetingMessage = tabInfo && tabInfo.tab_type === 'code' ? CODE_CHAT_GREETING : null;
