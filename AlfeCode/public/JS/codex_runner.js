@@ -7852,6 +7852,7 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const openAuthModal = ({ preferredStep } = {}) => {
+    hideSettingsModal();
     const saved = loadAuthModalState();
     if (saved?.email) {
       setAuthEmailValue(saved.email);
