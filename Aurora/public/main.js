@@ -5487,15 +5487,19 @@ if(settingsBtn){
 }
 
 const aboutModalButton = document.getElementById("aboutModalButton");
+const settingsAboutBtn = document.getElementById("settingsAboutBtn");
 const aboutModal = document.getElementById("aboutModal");
 const aboutModalIframe = document.getElementById("aboutModalIframe");
 const aboutModalCloseBtn = document.getElementById("aboutModalCloseBtn");
-if(aboutModalButton && aboutModal){
-  aboutModalButton.addEventListener("click", () => {
-    if(aboutModalIframe){
-      aboutModalIframe.src = "/about.html";
-    }
-    showModal(aboutModal);
+const aboutModalButtons = [aboutModalButton, settingsAboutBtn].filter(Boolean);
+if(aboutModalButtons.length > 0 && aboutModal){
+  aboutModalButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if(aboutModalIframe){
+        aboutModalIframe.src = "/about.html";
+      }
+      showModal(aboutModal);
+    });
   });
 }
 if(aboutModalCloseBtn && aboutModal){
