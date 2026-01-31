@@ -9961,15 +9961,6 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
             userHead.innerHTML = `
               <div class="name-oval name-oval-user">${userLabel}</div>
             `;
-            const uDel = document.createElement("button");
-            uDel.className = "delete-chat-btn bubble-delete-btn";
-            uDel.textContent = "🗑";
-            uDel.title = "Delete user message";
-            uDel?.addEventListener("click", async () => {
-              if(!confirm("Delete this user message?")) return;
-              const r = await fetch(`/api/chat/pair/${p.id}/user`, { method:"DELETE" });
-              if(r.ok) userDiv.remove();
-            });
             const uCopy = document.createElement("button");
             uCopy.className = "bubble-copy-btn";
             uCopy.textContent = "\u2398"; // copy icon
@@ -9979,7 +9970,6 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
               showToast("Copied to clipboard");
             });
             userHead.appendChild(uCopy);
-            userHead.appendChild(uDel);
             userDiv.appendChild(userHead);
 
             const userBody = document.createElement("div");
@@ -10023,15 +10013,6 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         botHead.innerHTML = `
           <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
         `;
-        const aDel = document.createElement("button");
-        aDel.className = "delete-chat-btn bubble-delete-btn";
-        aDel.textContent = "🗑";
-        aDel.title = "Delete AI reply";
-        aDel?.addEventListener("click", async () => {
-          if(!confirm("Delete this AI reply?")) return;
-          const r = await fetch(`/api/chat/pair/${p.id}/ai`, { method:"DELETE" });
-          if(r.ok) botDiv.remove();
-        });
         const aCopy = document.createElement("button");
         aCopy.className = "bubble-copy-btn";
         aCopy.textContent = "\u2398";
@@ -10041,7 +10022,6 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
           showToast("Copied to clipboard");
         });
         botHead.appendChild(aCopy);
-        botHead.appendChild(aDel);
         botDiv.appendChild(botHead);
 
         if(p.image_url){
@@ -10166,19 +10146,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       userHead.className = "bubble-header";
       const userLabel = "You";
       userHead.innerHTML = `<div class="name-oval name-oval-user">${userLabel}</div>`;
-      const userDelBtn = document.createElement("button");
-      userDelBtn.className = "delete-chat-btn bubble-delete-btn";
-      userDelBtn.textContent = "🗑";
-      userDelBtn.title = "Delete user message";
-      userDelBtn?.addEventListener("click", async () => {
-        if (!confirm("Delete this user message?")) return;
-        const resp = await fetch(`/api/chat/pair/${pairId}/user`, { method: "DELETE" });
-        if (resp.ok) {
-          userDiv.remove();
-        } else {
-          alert("Failed to delete user message.");
-        }
-      });
       const userCopyBtn = document.createElement("button");
       userCopyBtn.className = "bubble-copy-btn";
       userCopyBtn.textContent = "\u2398";
@@ -10199,7 +10166,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
       });
       userHead.appendChild(userCopyBtn);
       userHead.appendChild(userEditBtn);
-      userHead.appendChild(userDelBtn);
       userDiv.appendChild(userHead);
 
       const userBody = document.createElement("div");
@@ -10237,19 +10203,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
   const titleAttr = imageUrl ? "" : ` title="${providerTitle}"`;
   botHead.innerHTML = `<div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>`;
-  const aiDelBtn = document.createElement("button");
-  aiDelBtn.className = "delete-chat-btn bubble-delete-btn";
-  aiDelBtn.textContent = "🗑";
-  aiDelBtn.title = "Delete AI reply";
-  aiDelBtn?.addEventListener("click", async () => {
-    if (!confirm("Delete this AI reply?")) return;
-    const resp = await fetch(`/api/chat/pair/${pairId}/ai`, { method: "DELETE" });
-    if (resp.ok) {
-      botDiv.remove();
-    } else {
-      alert("Failed to delete AI reply.");
-    }
-  });
   const aiCopyBtn = document.createElement("button");
   aiCopyBtn.className = "bubble-copy-btn";
   aiCopyBtn.textContent = "\u2398";
@@ -10270,7 +10223,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   });
   botHead.appendChild(aiCopyBtn);
   botHead.appendChild(aiEditBtn);
-  botHead.appendChild(aiDelBtn);
   botDiv.appendChild(botHead);
 
   if(imageUrl){
