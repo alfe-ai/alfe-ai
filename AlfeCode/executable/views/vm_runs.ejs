@@ -31,6 +31,41 @@
             gap: 16px;
             margin-bottom: 28px;
         }
+        .vm-clone-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 28px;
+            box-shadow: 0 18px 50px rgba(2, 6, 23, 0.45);
+        }
+        .vm-clone-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+        .vm-clone-header h2 {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+        .vm-clone-header p {
+            margin: 8px 0 0;
+            color: #94a3b8;
+            max-width: 720px;
+        }
+        .vm-clone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .vm-clone-status {
+            margin-top: 12px;
+            min-height: 1.4rem;
+            color: #fcd34d;
+            font-weight: 500;
+        }
         .vm-header-actions {
             display: flex;
             flex-wrap: wrap;
@@ -149,6 +184,28 @@
 </head>
 <body>
     <div class="vm-page">
+        <section class="vm-clone-card">
+            <div class="vm-clone-header">
+                <div>
+                    <h2>Clone VM from Snapshot</h2>
+                    <p>Launch a Lightsail clone using <code>CreateInstancesFromSnapshot</code>. Once created, the instance IP is fetched and the VM is added to the list automatically. Defaults can be set via <code>VM_CLONE_REGION</code>, <code>VM_CLONE_AVAILABILITY_ZONE</code>, <code>VM_CLONE_SNAPSHOT_NAME</code>, <code>VM_CLONE_BUNDLE_ID</code>, <code>VM_CLONE_KEY_PAIR_NAME</code>, and <code>VM_CLONE_IP_ADDRESS_TYPE</code>.</p>
+                </div>
+                <button id="cloneVmBtn" class="primary-action" type="button">Clone VM</button>
+            </div>
+            <div class="vm-clone-grid">
+                <input id="cloneRegion" class="vm-input" type="text" placeholder="Region (e.g. us-west-2)" value="<%= cloneDefaults?.region || '' %>">
+                <input id="cloneAz" class="vm-input" type="text" placeholder="Availability zone (e.g. us-west-2a)" value="<%= cloneDefaults?.availabilityZone || '' %>">
+                <input id="cloneInstanceName" class="vm-input" type="text" placeholder="New instance name">
+                <input id="cloneSnapshotName" class="vm-input" type="text" placeholder="Snapshot name" value="<%= cloneDefaults?.instanceSnapshotName || '' %>">
+                <input id="cloneBundleId" class="vm-input" type="text" placeholder="Bundle ID (e.g. medium_3_0)" value="<%= cloneDefaults?.bundleId || '' %>">
+                <input id="cloneKeyPairName" class="vm-input" type="text" placeholder="Key pair name (optional)" value="<%= cloneDefaults?.keyPairName || '' %>">
+                <select id="cloneIpType" class="vm-select">
+                    <option value="dualstack" <%= cloneDefaults?.ipAddressType === 'dualstack' ? 'selected' : '' %>>dualstack</option>
+                    <option value="ipv4" <%= cloneDefaults?.ipAddressType === 'ipv4' ? 'selected' : '' %>>ipv4</option>
+                </select>
+            </div>
+            <div id="cloneStatus" class="vm-clone-status" role="status" aria-live="polite"></div>
+        </section>
         <header class="vm-header">
             <div>
                 <h1>VM Runs</h1>
@@ -212,6 +269,15 @@
             const statusEl = document.getElementById('vmStatus');
             const ipInput = document.getElementById('vmIpInput');
             const statusSelect = document.getElementById('vmStatusSelect');
+            const cloneButton = document.getElementById('cloneVmBtn');
+            const cloneStatusEl = document.getElementById('cloneStatus');
+            const cloneRegion = document.getElementById('cloneRegion');
+            const cloneAz = document.getElementById('cloneAz');
+            const cloneInstanceName = document.getElementById('cloneInstanceName');
+            const cloneSnapshotName = document.getElementById('cloneSnapshotName');
+            const cloneBundleId = document.getElementById('cloneBundleId');
+            const cloneKeyPairName = document.getElementById('cloneKeyPairName');
+            const cloneIpType = document.getElementById('cloneIpType');
 
             function isValidIpv4(ip) {
                 if (!ip) {
@@ -261,7 +327,52 @@
                 }
             }
 
+            async function cloneVm() {
+                const region = cloneRegion.value.trim();
+                const availabilityZone = cloneAz.value.trim();
+                const instanceName = cloneInstanceName.value.trim();
+                const instanceSnapshotName = cloneSnapshotName.value.trim();
+                const bundleId = cloneBundleId.value.trim();
+                const keyPairName = cloneKeyPairName.value.trim();
+                const ipAddressType = cloneIpType.value;
+
+                if (!region || !availabilityZone || !instanceName || !instanceSnapshotName || !bundleId) {
+                    cloneStatusEl.textContent = 'Region, availability zone, instance name, snapshot name, and bundle ID are required.';
+                    return;
+                }
+
+                cloneButton.disabled = true;
+                cloneStatusEl.textContent = 'Cloning VM from snapshot...';
+                try {
+                    const response = await fetch('/vm_runs/clone', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            region,
+                            availabilityZone,
+                            instanceName,
+                            instanceSnapshotName,
+                            bundleId,
+                            keyPairName,
+                            ipAddressType,
+                        }),
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok) {
+                        throw new Error(payload.error || payload.message || 'Unable to clone VM');
+                    }
+                    cloneStatusEl.textContent = `Clone created for ${payload.instance.name}. IP: ${payload.instance.ipAddress}. Reloading...`;
+                    setTimeout(() => window.location.reload(), 1200);
+                } catch (err) {
+                    const message = err.message || 'Failed to clone VM';
+                    cloneStatusEl.textContent = message;
+                } finally {
+                    cloneButton.disabled = false;
+                }
+            }
+
             button.addEventListener('click', addVm);
+            cloneButton.addEventListener('click', cloneVm);
         })();
     </script>
 </body>
