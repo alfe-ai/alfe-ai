@@ -234,7 +234,7 @@
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
-      "label": "Z.ai: GLM 4.5 Air (via Openrouter.ai)",
+      "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
       "list_order": 0,
       "engine_options": [
