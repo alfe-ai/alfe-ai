@@ -206,37 +206,6 @@
             gap: 12px;
             margin-top: 18px;
         }
-        .summary-card {
-            padding: 14px 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.7);
-            margin-bottom: 18px;
-        }
-        .summary-card h4 {
-            margin: 0 0 10px;
-            font-size: 1rem;
-        }
-        .summary-list {
-            margin: 0;
-            display: grid;
-            gap: 10px;
-        }
-        .summary-list div {
-            display: grid;
-            gap: 4px;
-        }
-        .summary-list dt {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: var(--nexum-muted);
-        }
-        .summary-list dd {
-            margin: 0;
-            font-weight: 500;
-            word-break: break-word;
-        }
         button,
         .button-link {
             display: inline-flex;
@@ -313,21 +282,6 @@
                 <form action="/repositories/add" method="POST" id="addRepoForm">
                     <% if (cloneError) { %>
                         <div class="alert"><%= cloneError %></div>
-                    <% } %>
-                    <% if (isSshAuthError) { %>
-                        <div class="summary-card">
-                            <h4>Repository details</h4>
-                            <dl class="summary-list">
-                                <div>
-                                    <dt>Git repository URL</dt>
-                                    <dd><%= gitRepoURLValue || 'Not provided' %></dd>
-                                </div>
-                                <div>
-                                    <dt>Project name</dt>
-                                    <dd><%= repoNameValue || 'Not set' %></dd>
-                                </div>
-                            </dl>
-                        </div>
                     <% } %>
                     <% if (sshKeyRequired) { %>
                         <div class="ssh-card">
