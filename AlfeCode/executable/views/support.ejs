@@ -197,19 +197,17 @@
     const supportButton = document.getElementById('supportSubmitButton');
     const supportStatus = document.getElementById('supportStatus');
     const supportRequestsList = document.getElementById('supportRequestsList');
-<<<<<<< HEAD
     const supportBackLink = document.querySelector('.support-back-link');
-
     const params = new URLSearchParams(window.location.search);
     const disableBack = params.get('disableBack');
+    const supportCategoryParam = params.get('category');
+
     if (supportBackLink && disableBack && disableBack !== 'false') {
       supportBackLink.style.display = 'none';
-=======
-    const supportCategoryParam = new URLSearchParams(window.location.search).get('category');
+    }
 
     if (supportCategory && supportCategoryParam === 'git') {
       supportCategory.value = 'Git URL link';
->>>>>>> origin/codex/update-support-link-and-category-title
     }
 
     const setSupportStatus = (text, { isError = false } = {}) => {
