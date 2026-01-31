@@ -393,6 +393,15 @@ body {
   text-align: right;
 }
 
+.modal-buttons--left {
+  text-align: left;
+}
+
+.modal-buttons--left button,
+.modal-buttons--left a {
+  margin-left: 0;
+}
+
 #settingsFooterLinks {
   display: flex;
   justify-content: center;
