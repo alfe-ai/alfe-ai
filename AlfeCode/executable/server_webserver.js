@@ -916,7 +916,8 @@ function getGitCommits(repoPath, options = {}) {
 
     const args = [
         "log",
-        '--pretty=format:"%h - %an, %ar : %s"',
+        '--pretty=format:"%h - %an, %ad : %s"',
+        "--date=iso",
     ];
 
     if (skip > 0) {
