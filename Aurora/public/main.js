@@ -4998,9 +4998,6 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
 
   info.appendChild(b);
 
-  const optionsBtn = createTabOptionsButton(tab);
-
-
   const taskIdSpan = document.createElement("span");
   taskIdSpan.className = "task-id";
   if (tab.task_id) {
@@ -5035,12 +5032,15 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
   }
 
   wrapper.appendChild(info);
-  wrapper.appendChild(optionsBtn);
   if(showArchiveChatButton && !tab.archived){
     const archiveBtn = document.createElement("button");
     archiveBtn.type = "button";
     archiveBtn.className = "tab-archive-trigger";
-    archiveBtn.textContent = "🗄️";
+    archiveBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M4 4h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 6h14v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9zm4 3h6v2H9v-2z" fill="currentColor"/>
+      </svg>
+    `;
     archiveBtn.title = "Archive this chat";
     archiveBtn?.addEventListener("click", async e => {
       e.stopPropagation();
@@ -5048,6 +5048,8 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
     });
     wrapper.appendChild(archiveBtn);
   }
+  const optionsBtn = createTabOptionsButton(tab);
+  wrapper.appendChild(optionsBtn);
   if (tab.task_id) wrapper.appendChild(taskIdSpan);
   wrapper?.addEventListener("dragover", tabDragOver);
   wrapper?.addEventListener("dragleave", tabDragLeave);
