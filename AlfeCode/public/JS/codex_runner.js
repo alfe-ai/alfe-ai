@@ -285,10 +285,10 @@
       usageLimitCodeUsageLimited.classList.toggle("hidden", isPaidPlan);
     }
     if (usageLimitFreeCodeUsageUpsell) {
-      usageLimitFreeCodeUsageUpsell.classList.toggle("hidden", !(isFreePlan && !isLoggedOut));
+      usageLimitFreeCodeUsageUpsell.classList.toggle("is-hidden", !(isFreePlan && !isLoggedOut));
     }
     if (usageLimitLoggedOutCodeUsageUpsell) {
-      usageLimitLoggedOutCodeUsageUpsell.classList.toggle("hidden", !isLoggedOut);
+      usageLimitLoggedOutCodeUsageUpsell.classList.toggle("is-hidden", !isLoggedOut);
     }
     if (usageLimitCodeUsageUnlimited) {
       usageLimitCodeUsageUnlimited.classList.toggle("hidden", !isPaidPlan);
