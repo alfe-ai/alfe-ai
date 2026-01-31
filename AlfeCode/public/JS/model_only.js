@@ -10,6 +10,7 @@
   const codeUsageUnlimitedText = document.getElementById('codeUsageUnlimitedText');
   const codeUsageUnlimitedNote = document.getElementById('codeUsageUnlimitedNote');
   const freeCodeUsageUpsell = document.getElementById('freeCodeUsageUpsell');
+  const loggedOutCodeUsageUpsell = document.getElementById('loggedOutCodeUsageUpsell');
   const proCodeUsageSection = document.getElementById('proCodeUsageSection');
   const proCodeUsageLimit = document.getElementById('proCodeUsageLimit');
   const codeUsageBarFill = document.getElementById('codeUsageBarFill');
@@ -401,6 +402,9 @@
     }
     if (freeCodeUsageUpsell) {
       freeCodeUsageUpsell.classList.toggle('hidden', normalizedPlanKey !== 'free');
+    }
+    if (loggedOutCodeUsageUpsell) {
+      loggedOutCodeUsageUpsell.classList.toggle('hidden', !isLoggedOut);
     }
     if (codeUsageUnlimited) {
       codeUsageUnlimited.classList.toggle('hidden', !isPaidPlan);
