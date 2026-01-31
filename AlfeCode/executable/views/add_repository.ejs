@@ -478,13 +478,15 @@
 
                 const sanitized = trimmed.split('#')[0].split('?')[0];
                 const httpsMatch = sanitized.match(/^https?:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i);
-                if (!httpsMatch) {
+                const bareMatch = sanitized.match(/^(?:www\.)?([^/\s]+)\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i);
+                const match = httpsMatch || bareMatch;
+                if (!match) {
                     return trimmed;
                 }
 
-                const host = httpsMatch[1];
-                const owner = httpsMatch[2];
-                const repo = httpsMatch[3];
+                const host = match[1];
+                const owner = match[2];
+                const repo = match[3];
                 return `git@${host}:${owner}/${repo}.git`;
             };
 
