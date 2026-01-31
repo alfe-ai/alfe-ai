@@ -2402,6 +2402,49 @@
             white-space: pre-line;
         }
 
+        /* Repo add modal loader */
+        .repo-add-loader {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(2,6,23,0.56);
+            z-index: 1001;
+        }
+
+        .repo-add-loader.is-hidden { display: none; }
+
+        .repo-add-loader .loading-spinner {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.12);
+            border-top-color: #9ad3ff;
+            animation: spin 0.9s linear infinite;
+        }
+
+        .repo-add-loader .loading-card {
+            min-width: 260px;
+            max-width: min(90vw, 420px);
+            padding: 18px 22px;
+            border-radius: 12px;
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.78));
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            box-shadow: var(--shadow-elevated);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .repo-add-loader .loading-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -3560,6 +3603,12 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     <div id="repoAddModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Connect Git Repository">
       <div class="modal-content">
         <button class="modal-close" type="button" id="repoAddCloseButton">×</button>
+        <div id="repoAddLoader" class="repo-add-loader is-hidden" role="status" aria-live="polite">
+            <div class="loading-card">
+                <div class="loading-spinner" aria-hidden="true"></div>
+                <p class="loading-title">Loading Repository Form…</p>
+            </div>
+        </div>
         <iframe
           id="repoAddIframe"
           class="modal-iframe"
@@ -3831,12 +3880,24 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
   const repoAddModal = document.getElementById('repoAddModal');
   const repoAddIframe = document.getElementById('repoAddIframe');
   const repoAddCloseButton = document.getElementById('repoAddCloseButton');
+  const repoAddLoader = document.getElementById('repoAddLoader');
+  const showRepoAddLoader = () => {
+    if (repoAddLoader) {
+      repoAddLoader.classList.remove('is-hidden');
+    }
+  };
+  const hideRepoAddLoader = () => {
+    if (repoAddLoader) {
+      repoAddLoader.classList.add('is-hidden');
+    }
+  };
   const openRepoAddModal = function() {
     if (!repoAddModal) return;
     const defaultRepoAddUrl = (repoAddIframe && (repoAddIframe.dataset.defaultSrc || repoAddIframe.getAttribute('data-default-src'))) || '/repositories/add';
     if (repoAddIframe) {
       const currentSrc = repoAddIframe.getAttribute('src');
       if (!currentSrc || currentSrc === '') {
+        showRepoAddLoader();
         repoAddIframe.src = defaultRepoAddUrl;
       }
     }
@@ -3853,9 +3914,18 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       ev.stopPropagation();
       repoAddModal.classList.add('is-hidden');
       document.body.style.overflow = '';
+      hideRepoAddLoader();
       if (repoAddIframe) {
         repoAddIframe.src = '';
       }
+    });
+  }
+  if (repoAddIframe) {
+    repoAddIframe.addEventListener('load', () => {
+      hideRepoAddLoader();
+    });
+    repoAddIframe.addEventListener('error', () => {
+      hideRepoAddLoader();
     });
   }
   window.addEventListener('message', function(ev){
