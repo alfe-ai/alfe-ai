@@ -197,6 +197,13 @@
     const supportButton = document.getElementById('supportSubmitButton');
     const supportStatus = document.getElementById('supportStatus');
     const supportRequestsList = document.getElementById('supportRequestsList');
+    const supportBackLink = document.querySelector('.support-back-link');
+
+    const params = new URLSearchParams(window.location.search);
+    const disableBack = params.get('disableBack');
+    if (supportBackLink && disableBack && disableBack !== 'false') {
+      supportBackLink.style.display = 'none';
+    }
 
     const setSupportStatus = (text, { isError = false } = {}) => {
       if (!supportStatus) return;
