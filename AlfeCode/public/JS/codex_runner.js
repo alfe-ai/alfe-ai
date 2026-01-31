@@ -9,6 +9,7 @@
   const promptHintsFromLocal = (localStorage.getItem('showPromptHints') !== null) ? (localStorage.getItem('showPromptHints') === 'true') : undefined;
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
   const ENGINE_STORAGE_KEY = 'enginePreference';
+  const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const normalizeEnginePreference = (value) => {
     const normalized = (value || '').toString().trim().toLowerCase();
     if (normalized === 'qwen' || normalized === 'codex') {
@@ -61,6 +62,30 @@
       }
     }catch(e){}
   });
+
+  const incrementCodeUsageCount = () => {
+    let nextCount = 1;
+    try {
+      const raw = localStorage.getItem(CODE_USAGE_STORAGE_KEY);
+      const current = Number(raw);
+      const normalized = Number.isFinite(current) ? current : 0;
+      nextCount = normalized + 1;
+      localStorage.setItem(CODE_USAGE_STORAGE_KEY, String(nextCount));
+    } catch (error) {
+      nextCount = 1;
+    }
+    try {
+      const settingsIframe = document.getElementById("sterlingSettingsIframe");
+      if (settingsIframe && settingsIframe.contentWindow) {
+        settingsIframe.contentWindow.postMessage(
+          { type: "sterling:usage", key: "codeRun", value: nextCount },
+          "*"
+        );
+      }
+    } catch (error) {
+      /* ignore */
+    }
+  };
 
   const form = document.getElementById("codexForm");
   const projectDirInput = document.getElementById("projectDir");
@@ -6955,6 +6980,8 @@ const appendMergeChunk = (text, type = "output") => {
       setStatus("Prompt is required.", "error");
       return;
     }
+
+    incrementCodeUsageCount();
 
     const params = new URLSearchParams();
     // Prefer an explicit project dir if provided; otherwise send the effective
