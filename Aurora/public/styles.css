@@ -2757,6 +2757,10 @@ body {
   flex-wrap: wrap;
 }
 
+.app.sidebar-collapsed .sidebar-footer {
+  display: none;
+}
+
 .sidebar-footer .footer-button {
   border: 1px solid var(--surface-border);
   border-radius: 999px;

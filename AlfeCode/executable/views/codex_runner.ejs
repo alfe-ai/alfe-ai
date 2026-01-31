@@ -2687,33 +2687,9 @@
         .runs-sidebar-collapsed .expand-runs-sidebar-arrow { display: flex !important; }
         .runs-sidebar-collapsed #runsSidebar .runs-sidebar__collapsed-mini { display: flex; }
         .runs-sidebar-collapsed .runs-sidebar__collapse { display: none !important; }
-        /* Keep footer visible in collapsed sidebar and pin to bottom */
+        /* Hide footer links when collapsed */
         .runs-sidebar-collapsed #runsSidebar .runs-sidebar__footer {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            position: absolute;
-            bottom: 10px;
-            left: 8px;
-            right: 8px;
-            padding: 10px 8px !important;
-            font-size: 0.78rem !important;
-            text-align: center !important;
-            white-space: normal;
-            line-height: 1.2;
-        }
-
-        .runs-sidebar-collapsed #runsSidebar .runs-sidebar__footer a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            width: 100%;
-            padding: 6px 10px;
-            border-radius: 10px;
-            background: rgba(148, 163, 184, 0.08);
-            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+            display: none !important;
         }
 
     
