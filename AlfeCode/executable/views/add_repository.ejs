@@ -265,6 +265,7 @@
                 <a class="button-link" href="/" role="button">Log In / Sign Up</a>
             </div>
         <% } else { %>
+            <% const isSshAuthError = cloneError === "Git SSH authentication failed. Add a Git SSH key to continue cloning."; %>
             <header>
                 <h1>Connect Git Repository</h1>
             </header>
@@ -315,7 +316,7 @@
                             </div>
                         </div>
                     <% } %>
-                    <div class="field">
+                    <div class="field <%= isSshAuthError ? 'is-hidden' : '' %>">
                         <label for="gitRepoURL">Git repository URL:</label>
                         <input
                             type="text"
@@ -327,7 +328,7 @@
                         <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
                     </div>
 
-                    <div class="field">
+                    <div class="field <%= isSshAuthError ? 'is-hidden' : '' %>">
                         <div class="inline-edit-row">
                             <label for="repoName">Project name:</label>
                             <div class="inline-edit-display" id="repoNameDisplay">
