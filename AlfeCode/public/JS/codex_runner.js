@@ -7592,6 +7592,7 @@ const appendMergeChunk = (text, type = "output") => {
 (function() {
   const config = window.CODEX_RUNNER_CONFIG || {};
   const signUpLogInBtn = document.getElementById("signUpLogInBtn");
+  const subscribeButton = document.getElementById("subscribeButton");
   const accountButtonEnabled = config.accountButtonEnabled !== false;
   const authModal = document.getElementById("authModal");
   const authModalCloseButton = document.getElementById("authModalCloseButton");
@@ -7734,18 +7735,28 @@ const appendMergeChunk = (text, type = "output") => {
     if (info && info.email) {
       if (!accountButtonEnabled) {
         signUpLogInBtn.style.display = "none";
+        if (subscribeButton) {
+          subscribeButton.style.display = "none";
+        }
         return;
       }
       signUpLogInBtn.style.display = "";
       signUpLogInBtn.textContent = "Account";
       signUpLogInBtn.title = "Account settings";
       signUpLogInBtn.setAttribute("aria-label", "Account settings");
+      if (subscribeButton) {
+        const normalizedPlan = (info.plan || "").toString().trim().toLowerCase();
+        subscribeButton.style.display = normalizedPlan === "free" ? "" : "none";
+      }
       return;
     }
     signUpLogInBtn.style.display = "";
     signUpLogInBtn.textContent = "Sign Up / Log In";
     signUpLogInBtn.title = "Sign Up or Log In";
     signUpLogInBtn.setAttribute("aria-label", "Sign up or log in");
+    if (subscribeButton) {
+      subscribeButton.style.display = "none";
+    }
   };
 
   const setAccountInfo = (info) => {
@@ -7947,6 +7958,14 @@ const appendMergeChunk = (text, type = "output") => {
       } else {
         openSignupModal(event);
       }
+    });
+  }
+
+  if (subscribeButton) {
+    subscribeButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      const url = subscribeButton.dataset.subscribeUrl || "/agent/model-only";
+      window.open(url, "_blank", "noopener,noreferrer");
     });
   }
 
