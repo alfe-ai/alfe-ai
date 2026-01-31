@@ -404,7 +404,28 @@ body {
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
+.modal-buttons a {
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid var(--surface-border);
+  color: var(--text-color);
+  margin-left: 4px;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
 .modal-buttons button:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.modal-buttons a:hover,
+.modal-buttons a:focus-visible {
   background: var(--accent-light);
   border-color: var(--accent);
   transform: translateY(-1px);
