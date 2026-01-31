@@ -112,17 +112,7 @@
     } catch (error) {
       opened = false;
     }
-    if (!opened) {
-      try {
-        if (typeof window.alfeOpenAuthModal === 'function') {
-          window.alfeOpenAuthModal(normalizedStep);
-          opened = true;
-        }
-      } catch (error) {
-        opened = false;
-      }
-    }
-    if (!opened && window.parent && window.parent !== window) {
+    if (window.parent && window.parent !== window) {
       try {
         window.parent.postMessage(
           { type: 'sterling:settings', key: 'openAuthModal', value: normalizedStep },
@@ -131,6 +121,16 @@
         opened = true;
       } catch (error) {
         console.warn('Failed to notify parent to open auth modal.', error);
+      }
+    }
+    if (!opened) {
+      try {
+        if (typeof window.alfeOpenAuthModal === 'function') {
+          window.alfeOpenAuthModal(normalizedStep);
+          opened = true;
+        }
+      } catch (error) {
+        opened = false;
       }
     }
     return opened;
