@@ -43,9 +43,10 @@
         .repo-delete-button:focus-visible { outline:2px solid rgba(248, 113, 113, 0.6); outline-offset:2px; }
         footer { margin-top:28px; color:var(--nexum-muted); }
         .actions { margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; }
-        .button { display:inline-block; padding:10px 14px; border-radius:999px; background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: #ffffff; border: none; text-decoration:none; font-weight:600; }
+        .button { display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px; background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: #ffffff; border: none; text-decoration:none; font-weight:600; }
         .button.secondary { background: rgba(17,24,39,0.65); border:1px solid var(--nexum-border); color:var(--nexum-text); }
         .button.secondary:hover { background: rgba(17,24,39,0.85); color:#fff; }
+        .button__icon { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:999px; background: rgba(15, 23, 42, 0.35); border: 1px solid rgba(255, 255, 255, 0.25); }
     </style>
 </head>
 <body>
@@ -53,7 +54,14 @@
     <div class="page">
         <header>
             <div class="actions">
-                <a class="button add-repo-button" href="/repositories/add" role="button">Connect Git Repository</a>
+                <a class="button add-repo-button" href="/repositories/add" role="button">
+                    <span class="button__icon" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    Connect Git Repository
+                </a>
             </div>
         </header>
 
