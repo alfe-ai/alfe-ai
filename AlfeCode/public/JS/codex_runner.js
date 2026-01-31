@@ -4947,8 +4947,8 @@ const appendMergeChunk = (text, type = "output") => {
         runsSidebarNextPageButton.setAttribute("aria-disabled", "true");
       }
       if (runsSidebarArchiveAllButton) {
-        runsSidebarArchiveAllButton.disabled = true;
-        runsSidebarArchiveAllButton.setAttribute("aria-disabled", "true");
+        runsSidebarArchiveAllButton.disabled = false;
+        runsSidebarArchiveAllButton.setAttribute("aria-disabled", "false");
       }
       return;
     }
@@ -4972,11 +4972,8 @@ const appendMergeChunk = (text, type = "output") => {
       runsSidebarNextPageButton.setAttribute("aria-disabled", disabled ? "true" : "false");
     }
     if (runsSidebarArchiveAllButton) {
-      const hasUnarchivedRuns = Array.isArray(runsSidebarFilteredRuns)
-        && runsSidebarFilteredRuns.some((run) => run && !run.archived);
-      const disabled = runsSidebarShowArchived || !hasUnarchivedRuns || runsSidebarIsLoading;
-      runsSidebarArchiveAllButton.disabled = disabled;
-      runsSidebarArchiveAllButton.setAttribute("aria-disabled", disabled ? "true" : "false");
+      runsSidebarArchiveAllButton.disabled = false;
+      runsSidebarArchiveAllButton.setAttribute("aria-disabled", "false");
     }
   };
 
@@ -5602,11 +5599,11 @@ const appendMergeChunk = (text, type = "output") => {
 
   if (runsSidebarArchiveAllButton) {
     runsSidebarArchiveAllButton.addEventListener("click", async () => {
-      if (runsSidebarArchiveAllButton.disabled) {
+      if (runsSidebarArchiveAllButton.dataset.archiving === "true") {
         return;
       }
       const previousLabel = runsSidebarArchiveAllButton.textContent;
-      runsSidebarArchiveAllButton.disabled = true;
+      runsSidebarArchiveAllButton.dataset.archiving = "true";
       runsSidebarArchiveAllButton.classList.add("is-active");
       runsSidebarArchiveAllButton.textContent = "Archiving…";
       try {
@@ -5626,7 +5623,7 @@ const appendMergeChunk = (text, type = "output") => {
         console.error("[Codex Runner] Archive all runs failed", error);
       } finally {
         runsSidebarArchiveAllButton.textContent = previousLabel;
-        runsSidebarArchiveAllButton.disabled = false;
+        delete runsSidebarArchiveAllButton.dataset.archiving;
         runsSidebarArchiveAllButton.classList.remove("is-active");
         updateRunsSidebarPaginationUI();
       }
