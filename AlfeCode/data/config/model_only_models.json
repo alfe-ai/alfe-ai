@@ -2,7 +2,7 @@
   "models": [
     {
       "id": "openrouter/openai/gpt-oss-20b",
-      "label": "[Backup] OpenAI: gpt-oss-20b",
+      "label": "[Backup] OpenAI: gpt-oss-20b (via Alfe AI)",
       "created": "2025-08-05",
       "contextTokens": 131072,
       "disabled": false,
@@ -234,7 +234,7 @@
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
-      "label": "Z.ai: GLM 4.5 Air",
+      "label": "Z.ai: GLM 4.5 Air (via Openrouter.ai)",
       "disabled": false,
       "list_order": 0,
       "engine_options": [
