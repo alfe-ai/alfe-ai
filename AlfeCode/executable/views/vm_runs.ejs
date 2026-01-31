@@ -188,20 +188,20 @@
             <div class="vm-clone-header">
                 <div>
                     <h2>Clone VM from Snapshot</h2>
-                    <p>Launch a Lightsail clone using <code>CreateInstancesFromSnapshot</code>. Once created, the instance IP is fetched and the VM is added to the list automatically.</p>
+                    <p>Launch a Lightsail clone using <code>CreateInstancesFromSnapshot</code>. Once created, the instance IP is fetched and the VM is added to the list automatically. Defaults can be set via <code>VM_CLONE_REGION</code>, <code>VM_CLONE_AVAILABILITY_ZONE</code>, <code>VM_CLONE_SNAPSHOT_NAME</code>, <code>VM_CLONE_BUNDLE_ID</code>, <code>VM_CLONE_KEY_PAIR_NAME</code>, and <code>VM_CLONE_IP_ADDRESS_TYPE</code>.</p>
                 </div>
                 <button id="cloneVmBtn" class="primary-action" type="button">Clone VM</button>
             </div>
             <div class="vm-clone-grid">
-                <input id="cloneRegion" class="vm-input" type="text" placeholder="Region (e.g. us-west-2)">
-                <input id="cloneAz" class="vm-input" type="text" placeholder="Availability zone (e.g. us-west-2a)">
+                <input id="cloneRegion" class="vm-input" type="text" placeholder="Region (e.g. us-west-2)" value="<%= cloneDefaults?.region || '' %>">
+                <input id="cloneAz" class="vm-input" type="text" placeholder="Availability zone (e.g. us-west-2a)" value="<%= cloneDefaults?.availabilityZone || '' %>">
                 <input id="cloneInstanceName" class="vm-input" type="text" placeholder="New instance name">
-                <input id="cloneSnapshotName" class="vm-input" type="text" placeholder="Snapshot name">
-                <input id="cloneBundleId" class="vm-input" type="text" placeholder="Bundle ID (e.g. medium_3_0)">
-                <input id="cloneKeyPairName" class="vm-input" type="text" placeholder="Key pair name (optional)">
+                <input id="cloneSnapshotName" class="vm-input" type="text" placeholder="Snapshot name" value="<%= cloneDefaults?.instanceSnapshotName || '' %>">
+                <input id="cloneBundleId" class="vm-input" type="text" placeholder="Bundle ID (e.g. medium_3_0)" value="<%= cloneDefaults?.bundleId || '' %>">
+                <input id="cloneKeyPairName" class="vm-input" type="text" placeholder="Key pair name (optional)" value="<%= cloneDefaults?.keyPairName || '' %>">
                 <select id="cloneIpType" class="vm-select">
-                    <option value="dualstack">dualstack</option>
-                    <option value="ipv4">ipv4</option>
+                    <option value="dualstack" <%= cloneDefaults?.ipAddressType === 'dualstack' ? 'selected' : '' %>>dualstack</option>
+                    <option value="ipv4" <%= cloneDefaults?.ipAddressType === 'ipv4' ? 'selected' : '' %>>ipv4</option>
                 </select>
             </div>
             <div id="cloneStatus" class="vm-clone-status" role="status" aria-live="polite"></div>

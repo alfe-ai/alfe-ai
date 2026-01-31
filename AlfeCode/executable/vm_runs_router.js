@@ -4,6 +4,14 @@ const vmManager = require('./vm_manager');
 
 const AWS_CLI_TIMEOUT_MS = 120000;
 const AWS_CLI_MAX_BUFFER = 1024 * 1024;
+const VM_CLONE_DEFAULTS = {
+    region: process.env.VM_CLONE_REGION || '',
+    availabilityZone: process.env.VM_CLONE_AVAILABILITY_ZONE || '',
+    instanceSnapshotName: process.env.VM_CLONE_SNAPSHOT_NAME || '',
+    bundleId: process.env.VM_CLONE_BUNDLE_ID || '',
+    keyPairName: process.env.VM_CLONE_KEY_PAIR_NAME || '',
+    ipAddressType: process.env.VM_CLONE_IP_ADDRESS_TYPE || 'dualstack',
+};
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -20,6 +28,11 @@ const execAws = (args, region) => new Promise((resolve, reject) => {
 });
 
 const normalizeString = (value) => (value ? String(value).trim() : '');
+
+const valueOrDefault = (value, fallback) => {
+    const normalized = normalizeString(value);
+    return normalized || normalizeString(fallback);
+};
 
 const ensureRequired = (value, label) => {
     if (!value) {
@@ -98,6 +111,7 @@ router.get('/', (req, res) => {
     const sessions = vmManager.getSessions();
     res.render('vm_runs', {
         sessions,
+        cloneDefaults: VM_CLONE_DEFAULTS,
     });
 });
 
@@ -123,13 +137,13 @@ router.post('/clone', async (req, res) => {
     } = req.body || {};
 
     const normalized = {
-        region: normalizeString(region),
-        availabilityZone: normalizeString(availabilityZone),
+        region: valueOrDefault(region, VM_CLONE_DEFAULTS.region),
+        availabilityZone: valueOrDefault(availabilityZone, VM_CLONE_DEFAULTS.availabilityZone),
         instanceName: normalizeString(instanceName),
-        instanceSnapshotName: normalizeString(instanceSnapshotName),
-        bundleId: normalizeString(bundleId),
-        keyPairName: normalizeString(keyPairName),
-        ipAddressType: normalizeString(ipAddressType),
+        instanceSnapshotName: valueOrDefault(instanceSnapshotName, VM_CLONE_DEFAULTS.instanceSnapshotName),
+        bundleId: valueOrDefault(bundleId, VM_CLONE_DEFAULTS.bundleId),
+        keyPairName: valueOrDefault(keyPairName, VM_CLONE_DEFAULTS.keyPairName),
+        ipAddressType: valueOrDefault(ipAddressType, VM_CLONE_DEFAULTS.ipAddressType),
     };
 
     const requiredErrors = [
