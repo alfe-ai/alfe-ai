@@ -1152,7 +1152,7 @@ function renderAssistantContent(container, text, model, options = {}) {
   if(!container) return;
   const { reasoning, content } = splitReasoningContent(text, model);
   const defaultReasoningCollapsed =
-    options.defaultReasoningCollapsed ?? collapseReasoningByDefault;
+    options.defaultReasoningCollapsed ?? true;
   renderAssistantContentParts(container, reasoning, content, {
     defaultReasoningCollapsed,
     resetReasoningExpanded: options.resetReasoningExpanded
@@ -6444,7 +6444,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
         }
       }
       renderAssistantContentParts(botBody, reasoningText, contentText, {
-        defaultReasoningCollapsed: true,
+        defaultReasoningCollapsed: collapseReasoningByDefault,
         resetReasoningExpanded: true
       });
       addFilesFromCodeBlocks(contentText);
