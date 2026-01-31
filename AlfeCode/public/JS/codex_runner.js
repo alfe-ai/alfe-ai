@@ -8325,6 +8325,54 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  const handleLoginSuccess = (data) => {
+    showToast("Logged in!");
+    hideAuthModal();
+    setAccountInfo({
+      email: data.email,
+      plan: data.plan,
+      sessionId: data.sessionId,
+      timezone: data.timezone
+    });
+    const lbl = document.getElementById("totpLoginLabel");
+    if (lbl) {
+      lbl.style.display = "none";
+    }
+    if (data.sessionId && data.sessionId !== currentSessionId) {
+      setTimeout(() => window.location.reload(), 500);
+    }
+  };
+
+  const handleLoginFailure = (data) => {
+    if (data?.error === "totp required" || data?.error === "invalid totp") {
+      const lbl = document.getElementById("totpLoginLabel");
+      if (lbl) {
+        lbl.style.display = "block";
+      }
+    }
+    showToast(data?.error || "Login failed");
+  };
+
+  const attemptLogin = async ({ email, password, token }) => {
+    const resp = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        password,
+        token,
+        ...(currentSessionId ? { sessionId: currentSessionId } : {})
+      })
+    });
+    const data = await resp.json().catch(() => null);
+    if (resp.ok && data && data.success) {
+      handleLoginSuccess(data);
+      return true;
+    }
+    handleLoginFailure(data);
+    return false;
+  };
+
   const loginSubmitBtn = document.getElementById("loginSubmitBtn");
   if (loginSubmitBtn) {
     loginSubmitBtn.addEventListener("click", async () => {
@@ -8340,42 +8388,7 @@ const appendMergeChunk = (text, type = "output") => {
         return;
       }
       try {
-        const resp = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email,
-            password,
-            token,
-            ...(currentSessionId ? { sessionId: currentSessionId } : {})
-          })
-        });
-        const data = await resp.json().catch(() => null);
-        if (resp.ok && data && data.success) {
-          showToast("Logged in!");
-          hideAuthModal();
-          setAccountInfo({
-            email: data.email,
-            plan: data.plan,
-            sessionId: data.sessionId,
-            timezone: data.timezone
-          });
-          const lbl = document.getElementById("totpLoginLabel");
-          if (lbl) {
-            lbl.style.display = "none";
-          }
-          if (data.sessionId && data.sessionId !== currentSessionId) {
-            setTimeout(() => window.location.reload(), 500);
-          }
-        } else {
-          if (data?.error === "totp required" || data?.error === "invalid totp") {
-            const lbl = document.getElementById("totpLoginLabel");
-            if (lbl) {
-              lbl.style.display = "block";
-            }
-          }
-          showToast(data?.error || "Login failed");
-        }
+        await attemptLogin({ email, password, token });
       } catch (err) {
         console.error("Login failed", err);
         showToast("Login failed");
@@ -8436,7 +8449,12 @@ const appendMergeChunk = (text, type = "output") => {
         }
         if (resp.ok && data && data.success) {
           showToast("Registered!");
-          hideAuthModal();
+          try {
+            await attemptLogin({ email, password, token: "" });
+          } catch (loginError) {
+            console.error("Auto-login after registration failed", loginError);
+            showToast("Registered, but login failed");
+          }
         } else {
           if (!resp.ok) {
             console.warn("Registration request failed", {
