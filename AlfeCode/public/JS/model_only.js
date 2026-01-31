@@ -11,6 +11,7 @@
   const codeUsageUnlimitedNote = document.getElementById('codeUsageUnlimitedNote');
   const proCodeUsageSection = document.getElementById('proCodeUsageSection');
   const proCodeUsageLimit = document.getElementById('proCodeUsageLimit');
+  const codeUsageBarFill = document.getElementById('codeUsageBarFill');
   const printifyUsageUnlimited = document.getElementById('printifyUsageUnlimited');
   const searchUsageLimit = document.getElementById('searchUsageLimit');
   const imageUsageLimit = document.getElementById('imageUsageLimit');
@@ -34,6 +35,7 @@
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
+  const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const USAGE_LIMITS = {
     loggedOut: { code: 10, search: 0, images: 0 },
     free: { code: 20, search: 10, images: 10 },
@@ -47,6 +49,8 @@
   let currentAccountEverSubscribed = false;
   let engineFeedbackTimeout = null;
   let supportActionState = 'login';
+  let currentUsagePlan = 'Logged-out Session';
+  let currentUsageLimits = USAGE_LIMITS.loggedOut;
 
   function normalizeEngine(value) {
     const normalized = (value || '').toString().trim().toLowerCase();
@@ -182,6 +186,37 @@
       if (formatted) parts.push(`$${formatted}/M out`);
     }
     return parts.join(', ');
+  }
+
+  function getStoredCodeUsageCount() {
+    try {
+      const raw = localStorage.getItem(CODE_USAGE_STORAGE_KEY);
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function setStoredCodeUsageCount(value) {
+    const normalized = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+    try {
+      localStorage.setItem(CODE_USAGE_STORAGE_KEY, String(normalized));
+    } catch (error) {
+      /* ignore */
+    }
+    return normalized;
+  }
+
+  function updateCodeUsageDisplay(limits, plan) {
+    if (!codeUsageLimit || !limits) return;
+    const codeLimit = typeof limits.code === 'number' ? limits.code : 0;
+    const used = getStoredCodeUsageCount();
+    codeUsageLimit.textContent = `${used}/${codeLimit} code runs`;
+    if (codeUsageBarFill) {
+      const percent = codeLimit > 0 ? Math.min(used / codeLimit, 1) * 100 : 0;
+      codeUsageBarFill.style.width = `${percent}%`;
+    }
   }
 
   function normaliseModelEntry(entry) {
@@ -341,6 +376,8 @@
   }
 
   function applyUsageLimits(limits, plan) {
+    currentUsageLimits = limits || USAGE_LIMITS.loggedOut;
+    currentUsagePlan = plan || 'Logged-out Session';
     const normalizedPlan = (plan || '').toString().trim();
     const normalizedPlanKey = normalizedPlan.toLowerCase();
     const isLoggedOut = !['free', 'lite', 'plus', 'pro'].includes(normalizedPlanKey);
@@ -381,10 +418,7 @@
     if (printifyUsageUnlimited) {
       printifyUsageUnlimited.classList.remove('hidden');
     }
-    if (codeUsageLimit) {
-      const codeLimit = typeof limits.code === 'number' ? limits.code : 0;
-      codeUsageLimit.textContent = `0/${codeLimit} code runs`;
-    }
+    updateCodeUsageDisplay(currentUsageLimits, currentUsagePlan);
     if (searchUsageLimit) {
       searchUsageLimit.textContent = isLoggedOut ? '' : `0/${limits.search} searches`;
     }
@@ -412,6 +446,20 @@
     el.textContent = value && value.toString().trim().length ? value : '—';
   }
 
+  function handleUsageEvent(event) {
+    const data = event && event.data ? event.data : null;
+    if (!data || data.type !== 'sterling:usage' || data.key !== 'codeRun') return;
+    const next = coerceNumber(data.value);
+    if (next === null) return;
+    setStoredCodeUsageCount(next);
+    updateCodeUsageDisplay(currentUsageLimits, currentUsagePlan);
+  }
+
+  function handleStorageEvent(event) {
+    if (!event || event.key !== CODE_USAGE_STORAGE_KEY) return;
+    updateCodeUsageDisplay(currentUsageLimits, currentUsagePlan);
+  }
+
   function showLogoutFeedback(message, type) {
     if (!logoutFeedback) return;
     if (!message) {
@@ -428,6 +476,9 @@
       logoutFeedback.classList.add('success');
     }
   }
+
+  window.addEventListener('message', handleUsageEvent);
+  window.addEventListener('storage', handleStorageEvent);
 
   function showAccountPlanFeedback(message, type) {
     if (!accountPlanFeedback) return;
