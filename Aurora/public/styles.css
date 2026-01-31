@@ -2133,6 +2133,11 @@ body {
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   font-size: 0.9rem;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -2151,8 +2156,19 @@ body {
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   font-size: 0.9rem;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab-archive-trigger svg {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 .tab-archive-trigger:hover,
