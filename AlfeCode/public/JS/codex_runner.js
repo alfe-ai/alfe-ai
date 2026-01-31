@@ -87,6 +87,40 @@
     }
   };
 
+  const USAGE_LIMITS = {
+    loggedOut: { code: 10 },
+    free: { code: 20 },
+    lite: { code: null },
+    plus: { code: null },
+    pro: { code: null },
+  };
+
+  const resolveUsageLimits = (plan) => {
+    const normalized = (plan || "").toString().trim();
+    if (normalized === "Pro") return USAGE_LIMITS.pro;
+    if (normalized === "Plus") return USAGE_LIMITS.plus;
+    if (normalized === "Lite") return USAGE_LIMITS.lite;
+    if (normalized === "Free") return USAGE_LIMITS.free;
+    return USAGE_LIMITS.loggedOut;
+  };
+
+  const getStoredCodeUsageCount = () => {
+    try {
+      const raw = localStorage.getItem(CODE_USAGE_STORAGE_KEY);
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : 0;
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  const getUsagePlanName = () => {
+    if (accountInfo && accountInfo.plan) {
+      return accountInfo.plan;
+    }
+    return "Logged-out Session";
+  };
+
   const form = document.getElementById("codexForm");
   const projectDirInput = document.getElementById("projectDir");
   const agentInstructionsInput = document.getElementById("agentInstructions");
@@ -101,6 +135,18 @@
   const gitFpushRevisionNotice = document.getElementById("gitFpushRevisionNotice");
   const gitFpushRevisionCode = document.getElementById("gitFpushRevisionCode");
   const promptInput = document.getElementById("prompt");
+  const usageLimitModal = document.getElementById("usageLimitModal");
+  const usageLimitModalCloseButton = document.getElementById("usageLimitModalCloseButton");
+  const usageLimitCodeUsageLimit = document.getElementById("usageLimitCodeUsageLimit");
+  const usageLimitCodeUsageBarFill = document.getElementById("usageLimitCodeUsageBarFill");
+  const usageLimitCodeUsageLimited = document.getElementById("usageLimitCodeUsageLimited");
+  const usageLimitCodeUsageUnlimited = document.getElementById("usageLimitCodeUsageUnlimited");
+  const usageLimitCodeUsageUnlimitedText = document.getElementById("usageLimitCodeUsageUnlimitedText");
+  const usageLimitCodeUsageUnlimitedNote = document.getElementById("usageLimitCodeUsageUnlimitedNote");
+  const usageLimitFreeCodeUsageUpsell = document.getElementById("usageLimitFreeCodeUsageUpsell");
+  const usageLimitLoggedOutCodeUsageUpsell = document.getElementById("usageLimitLoggedOutCodeUsageUpsell");
+  const usageLimitProCodeUsageSection = document.getElementById("usageLimitProCodeUsageSection");
+  const usageLimitProCodeUsageLimit = document.getElementById("usageLimitProCodeUsageLimit");
   const updatePromptPlaceholder = () => {
     try {
       const promptEl = promptInput;
@@ -209,6 +255,71 @@
   };
   // Update initial placeholder and whenever selection/context changes
   updatePromptPlaceholder();
+
+  const updateUsageLimitModal = () => {
+    if (!usageLimitCodeUsageLimit) return;
+    const planName = getUsagePlanName();
+    const limits = resolveUsageLimits(planName);
+    const normalizedPlanKey = (planName || "").toString().trim().toLowerCase();
+    const isLoggedOut = !["free", "lite", "plus", "pro"].includes(normalizedPlanKey);
+    const isPaidPlan = normalizedPlanKey === "lite" || normalizedPlanKey === "plus" || normalizedPlanKey === "pro";
+    const isProPlanActive = normalizedPlanKey === "pro";
+    const codeLimit = typeof limits.code === "number" ? limits.code : 0;
+    const used = getStoredCodeUsageCount();
+    usageLimitCodeUsageLimit.textContent = `${used}/${codeLimit} code runs`;
+    if (usageLimitCodeUsageBarFill) {
+      const percent = codeLimit > 0 ? Math.min(used / codeLimit, 1) * 100 : 0;
+      usageLimitCodeUsageBarFill.style.width = `${percent}%`;
+    }
+    if (usageLimitCodeUsageLimited) {
+      usageLimitCodeUsageLimited.classList.toggle("hidden", isPaidPlan);
+    }
+    if (usageLimitFreeCodeUsageUpsell) {
+      usageLimitFreeCodeUsageUpsell.classList.toggle("hidden", normalizedPlanKey !== "free");
+    }
+    if (usageLimitLoggedOutCodeUsageUpsell) {
+      usageLimitLoggedOutCodeUsageUpsell.classList.toggle("hidden", !isLoggedOut);
+    }
+    if (usageLimitCodeUsageUnlimited) {
+      usageLimitCodeUsageUnlimited.classList.toggle("hidden", !isPaidPlan);
+    }
+    if (usageLimitCodeUsageUnlimitedText) {
+      usageLimitCodeUsageUnlimitedText.textContent = isProPlanActive
+        ? "Code usage of basic models is Unlimited*"
+        : "Code usage is Unlimited*";
+    }
+    if (usageLimitCodeUsageUnlimitedNote) {
+      usageLimitCodeUsageUnlimitedNote.classList.toggle("hidden", !isPaidPlan);
+    }
+    if (usageLimitProCodeUsageSection) {
+      usageLimitProCodeUsageSection.classList.toggle("hidden", !isProPlanActive);
+    }
+    if (usageLimitProCodeUsageLimit) {
+      usageLimitProCodeUsageLimit.textContent = "n/10000 cycles";
+    }
+  };
+
+  const showUsageLimitModal = () => {
+    if (!usageLimitModal) return;
+    updateUsageLimitModal();
+    usageLimitModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+  };
+
+  const hideUsageLimitModal = () => {
+    if (!usageLimitModal) return;
+    usageLimitModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
+  const isCodeUsageLimitReached = () => {
+    const planName = getUsagePlanName();
+    const limits = resolveUsageLimits(planName);
+    const limit = limits.code;
+    if (typeof limit !== "number") return false;
+    const used = getStoredCodeUsageCount();
+    return used >= limit;
+  };
 
   modelSelect = document.getElementById("model");
   const statusEl = document.getElementById("status");
@@ -6954,9 +7065,6 @@ const appendMergeChunk = (text, type = "output") => {
     );
     const continuingExistingRun = Boolean(config.enableFollowups) && hadExistingRun && hasExistingOutput;
 
-    // Only clear the main prompt input when starting a new run; for follow-ups preserve the original read-only prompt.
-    try { if (promptInput && !continuingExistingRun) { promptInput.value = ""; } } catch (e) { /* ignore */ }
-
     const normalizedProjectDir = normaliseProjectDir(projectDir);
     const effectiveProjectDirForRun =
       normalizedProjectDir
@@ -7019,6 +7127,14 @@ const appendMergeChunk = (text, type = "output") => {
       setStatus("Prompt is required.", "error");
       return;
     }
+
+    if (isCodeUsageLimitReached()) {
+      showUsageLimitModal();
+      return;
+    }
+
+    // Only clear the main prompt input when starting a new run; for follow-ups preserve the original read-only prompt.
+    try { if (promptInput && !continuingExistingRun) { promptInput.value = ""; } } catch (e) { /* ignore */ }
 
     incrementCodeUsageCount();
 
@@ -7779,6 +7895,21 @@ const appendMergeChunk = (text, type = "output") => {
     document.body.style.overflow = "";
   };
 
+  if (usageLimitModalCloseButton && usageLimitModal) {
+    usageLimitModalCloseButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideUsageLimitModal();
+    });
+  }
+
+  if (usageLimitModal) {
+    usageLimitModal.addEventListener("click", (event) => {
+      if (event.target === usageLimitModal) {
+        hideUsageLimitModal();
+      }
+    });
+  }
+
   const updateAccountButton = (info) => {
     if (!signUpLogInBtn) {
       return;
@@ -7951,6 +8082,18 @@ const appendMergeChunk = (text, type = "output") => {
     };
   }
 
+  if (usageLimitModal) {
+    const usageLimitInlineButtons = Array.from(
+      usageLimitModal.querySelectorAll(".subscribe-button--inline"),
+    );
+    usageLimitInlineButtons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        openAuthModal({ preferredStep: "signup" });
+      });
+    });
+  }
+
   const openSignupModal = (event) => {
     if (event) {
       event.preventDefault();
@@ -8079,6 +8222,8 @@ const appendMergeChunk = (text, type = "output") => {
       hideAuthModal();
     } else if (event.key === "Escape" && accountModal && !accountModal.classList.contains("is-hidden")) {
       hideAccountModal();
+    } else if (event.key === "Escape" && usageLimitModal && !usageLimitModal.classList.contains("is-hidden")) {
+      hideUsageLimitModal();
     }
   });
 

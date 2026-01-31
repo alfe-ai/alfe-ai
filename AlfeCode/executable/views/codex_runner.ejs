@@ -1982,6 +1982,23 @@
             background: white;
         }
 
+        .usage-limit-modal .modal-content {
+            max-width: 640px;
+            width: 92%;
+            height: auto;
+            max-height: 90vh;
+            margin: auto;
+            padding: 28px 28px 24px;
+            border-radius: 20px;
+            overflow: auto;
+            position: relative;
+        }
+
+        .usage-limit-modal .usage-limit-message {
+            margin: 4px 0 16px;
+            color: rgba(226, 232, 240, 0.9);
+        }
+
         .auth-modal .modal-content {
             max-width: 520px;
             width: 92%;
@@ -3440,6 +3457,55 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 <li><span>Plan</span><strong id="accountPlanValue">—</strong></li>
                 <li><span>Session</span><strong id="accountSessionValue">—</strong></li>
             </ul>
+        </div>
+    </div>
+
+    <div id="usageLimitModal" class="modal-overlay is-hidden usage-limit-modal" role="dialog" aria-modal="true" aria-label="Usage limit reached">
+        <div class="modal-content">
+            <button class="modal-close" type="button" id="usageLimitModalCloseButton">×</button>
+            <h2>Usage limit reached.</h2>
+            <p class="usage-limit-message">Usage limit reached.</p>
+            <div>
+                <h3 style="margin:0 0 6px 0;font-size:1rem;color:#e2e8f0;">Usage</h3>
+                <div class="support-ticket" aria-live="polite">
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <div>
+                            <h4 style="margin:0 0 6px 0;font-size:0.95rem;color:#e2e8f0;">Code</h4>
+                            <div id="usageLimitCodeUsageLimited" style="display:flex;align-items:center;gap:8px;">
+                                <div style="flex:1;height:6px;background:#1e293b;border-radius:999px;overflow:hidden;">
+                                    <div id="usageLimitCodeUsageBarFill" style="height:100%;width:0%;background:#38bdf8;"></div>
+                                </div>
+                                <span id="usageLimitCodeUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">0/20 code runs</span>
+                            </div>
+                            <div id="usageLimitFreeCodeUsageUpsell" class="hidden" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+                                <span style="font-size:0.85rem;color:#94a3b8;">Subscribe for Unlimited use.</span>
+                                <button type="button" class="subscribe-button subscribe-button--inline">Subscribe Now</button>
+                            </div>
+                            <div id="usageLimitLoggedOutCodeUsageUpsell" class="hidden" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+                                <span style="font-size:0.85rem;color:#94a3b8;">Log in for increased usage.</span>
+                                <button type="button" class="subscribe-button subscribe-button--inline">Log In / Sign Up</button>
+                            </div>
+                            <hr style="border:0;border-top:1px solid #1e293b;margin:8px 0;">
+                            <div id="usageLimitCodeUsageUnlimited" class="hidden" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+                                <span id="usageLimitCodeUsageUnlimitedText" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">Code usage is Unlimited*</span>
+                                <span id="usageLimitCodeUsageUnlimitedNote" class="hidden" style="font-size:0.8rem;color:#94a3b8;">Unlimited usage may change. You may be rate-limited.</span>
+                            </div>
+                            <div id="usageLimitProCodeUsageSection" class="hidden" style="margin-top:12px;">
+                                <h4 style="margin:0 0 6px 0;font-size:0.9rem;color:#e2e8f0;">Pro Code</h4>
+                                <span style="font-size:0.85rem;color:#94a3b8;">Code usage of Pro models.</span>
+                                <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                                    <div style="flex:1;height:6px;background:#1e293b;border-radius:999px;overflow:hidden;">
+                                        <div style="height:100%;width:0%;background:#38bdf8;"></div>
+                                    </div>
+                                    <span id="usageLimitProCodeUsageLimit" style="font-size:0.85rem;color:#94a3b8;white-space:nowrap;">n/10000 cycles</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="border:0;border-top:1px solid #1e293b;margin:12px 0 8px 0;">
+                    <p style="margin:12px 0 0 0;font-size:0.8rem;color:#94a3b8;">All limits are monthly.</p>
+                </div>
+            </div>
         </div>
     </div>
 
