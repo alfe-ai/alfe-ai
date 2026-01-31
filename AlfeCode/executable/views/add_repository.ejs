@@ -284,7 +284,7 @@
                     <% } %>
                     <% if (sshKeyRequired) { %>
                         <div class="ssh-card">
-                            <h3>Copy Git SSH key</h3>
+                            <h3>Copy Git SSH public key</h3>
                             <div class="button-row">
                                 <button type="button" class="secondary" id="copySshKey" disabled>Copy key</button>
                             </div>
@@ -303,6 +303,14 @@
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >https://github.com/settings/keys</a>
+                                <br>
+                                Need help?
+                                <a
+                                    class="ssh-link"
+                                    href="/support"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >Click here for support.</a>
                             </div>
                         </div>
                     <% } %>
@@ -363,6 +371,7 @@
             const sshPublicKeyField = document.getElementById('sshPublicKey');
             const sshKeyStatus = document.getElementById('sshKeyStatus');
             const githubKeyLinkHtml = '<a class="ssh-link" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a>';
+            const supportLinkHtml = '<a class="ssh-link" href="/support" target="_blank" rel="noopener noreferrer">Click here for support.</a>';
             const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
 
             const getRepoNameFromUrl = (url) => {
@@ -507,7 +516,7 @@
                     return;
                 }
                 if (includeLink) {
-                    sshKeyStatus.innerHTML = `${message} For GitHub, paste the key here: ${githubKeyLinkHtml}`;
+                    sshKeyStatus.innerHTML = `${message} For GitHub, paste the key here: ${githubKeyLinkHtml}<br>Need help? ${supportLinkHtml}`;
                 } else {
                     sshKeyStatus.textContent = message;
                 }
