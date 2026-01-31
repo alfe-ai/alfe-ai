@@ -2123,6 +2123,24 @@ body {
   outline: none;
 }
 
+.tab-archive-trigger {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab-archive-trigger:hover,
+.tab-archive-trigger:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--accent-light);
+  outline: none;
+}
+
 .tab-options-menu {
   position: absolute;
   background: var(--surface);

@@ -587,6 +587,7 @@ let tasksOnlyTabs = false; // filter chat tabs with tasks only
 let hideArchivedTabs = true; // filter out archived chat tabs
 let hideDoneTasks = false; // hide tasks with status 'Done'
 let mobileSidebarToolbar = true; // show thin sidebar toolbar on mobile
+let showArchiveChatButton = false; // show archive button next to chat tabs
 let topChatTabsBarVisible = false; // visibility of the top chat tabs bar
 let viewTabsBarVisible = false; // visibility of the top Chat/Tasks bar
 let showProjectNameInTabs = false; // append project name to chat tab titles
@@ -1992,6 +1993,11 @@ async function openSettingsModal(e){
     mobileCheck.checked = mobileSidebarToolbar;
   }
   updateSettingsStatus(document.getElementById('mobileSidebarSaveStatus'), '');
+  const archiveChatButtonCheck = document.getElementById('showArchiveChatButtonCheck');
+  if(archiveChatButtonCheck){
+    archiveChatButtonCheck.checked = showArchiveChatButton;
+  }
+  updateSettingsStatus(document.getElementById('archiveChatButtonSaveStatus'), '');
   const sessionIdEl = document.getElementById('settingsSessionIdText');
   if(sessionIdEl){
     sessionIdEl.textContent = sessionId || '';
@@ -2824,7 +2830,8 @@ async function loadSettings(){
     "search_enabled","ai_search_model",
     "reasoning_enabled","ai_reasoning_model","ai_vision_model",
     "ai_responses_enabled",
-    "codex_mini_enabled","mobile_sidebar_toolbar"
+    "codex_mini_enabled","mobile_sidebar_toolbar",
+    "show_archive_chat_button"
   ];
   const map = await getSettings(keys);
 
@@ -3072,6 +3079,9 @@ async function loadSettings(){
   }
   if(typeof map.mobile_sidebar_toolbar !== "undefined"){
     mobileSidebarToolbar = map.mobile_sidebar_toolbar !== false;
+  }
+  if(typeof map.show_archive_chat_button !== "undefined"){
+    showArchiveChatButton = map.show_archive_chat_button !== false;
   }
   updateSearchButton();
   updateReasoningButton();
@@ -5011,6 +5021,18 @@ function renderSidebarTabRow(container, tab, indented=false, hasChildren=false){
 
   wrapper.appendChild(info);
   wrapper.appendChild(optionsBtn);
+  if(showArchiveChatButton && !tab.archived){
+    const archiveBtn = document.createElement("button");
+    archiveBtn.type = "button";
+    archiveBtn.className = "tab-archive-trigger";
+    archiveBtn.textContent = "🗄️";
+    archiveBtn.title = "Archive this chat";
+    archiveBtn?.addEventListener("click", async e => {
+      e.stopPropagation();
+      await toggleArchiveTab(tab.id, true);
+    });
+    wrapper.appendChild(archiveBtn);
+  }
   if (tab.task_id) wrapper.appendChild(taskIdSpan);
   wrapper?.addEventListener("dragover", tabDragOver);
   wrapper?.addEventListener("dragleave", tabDragLeave);
@@ -5645,6 +5667,27 @@ if(mobileThinSidebarCheck){
     } catch (err) {
       console.error('Failed to save mobile sidebar setting', err);
       updateSettingsStatus(mobileSidebarStatus, 'Failed to save.', 'error');
+    }
+  });
+}
+
+const showArchiveChatButtonCheck = document.getElementById('showArchiveChatButtonCheck');
+if(showArchiveChatButtonCheck){
+  const archiveChatButtonStatus = document.getElementById('archiveChatButtonSaveStatus');
+  showArchiveChatButtonCheck?.addEventListener('change', async () => {
+    showArchiveChatButton = showArchiveChatButtonCheck.checked;
+    renderSidebarTabs();
+    updateSettingsStatus(archiveChatButtonStatus, 'Saving...');
+    try {
+      const ok = await setSetting('show_archive_chat_button', showArchiveChatButton);
+      if(ok){
+        updateSettingsStatus(archiveChatButtonStatus, 'Saved', 'success');
+      } else {
+        updateSettingsStatus(archiveChatButtonStatus, 'Failed to save.', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save archive chat button setting', err);
+      updateSettingsStatus(archiveChatButtonStatus, 'Failed to save.', 'error');
     }
   });
 }
