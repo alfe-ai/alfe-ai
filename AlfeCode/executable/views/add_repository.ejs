@@ -90,6 +90,11 @@
             color: #fecaca;
             margin-bottom: 18px;
         }
+        .alert.alert-ssh-warning {
+            border-color: rgba(251, 146, 60, 0.5);
+            background: rgba(251, 146, 60, 0.18);
+            color: #fed7aa;
+        }
         .ssh-card {
             border-radius: 14px;
             border: 1px solid rgba(124, 58, 237, 0.35);
@@ -281,7 +286,7 @@
                 </div>
                 <form action="/repositories/add" method="POST" id="addRepoForm">
                     <% if (cloneError) { %>
-                        <div class="alert"><%= cloneError %></div>
+                        <div class="alert <%= isSshAuthError ? 'alert-ssh-warning' : '' %>"><%= cloneError %></div>
                     <% } %>
                     <% if (sshKeyRequired) { %>
                         <div class="ssh-card">
