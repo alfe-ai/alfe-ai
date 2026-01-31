@@ -597,6 +597,10 @@ if (_hideCookieBanner) {
 
 // Auto-hide theme selector when requested via env var HIDE_THEME_OPTION=true
 const hideThemeOption = parseBooleanEnv(process.env.HIDE_THEME_OPTION, false);
+const collapseReasoningByDefaultVisible = parseBooleanEnv(
+  process.env.COLLAPSE_REASONING_BY_DEFAULT_VISIBLE,
+  false
+);
 if (hideThemeOption) {
   app.use((req, res, next) => {
     const _send = res.send.bind(res);
@@ -4953,6 +4957,7 @@ app.get("/aurora-config.js", (_req, res) => {
     imagesEnabled2026: IMAGES_ENABLED_2026,
     twoFactorEnabled2026: TWO_FACTOR_ENABLED_2026,
     hideThemeOption: hideThemeOption,
+    collapseReasoningByDefaultVisible: collapseReasoningByDefaultVisible,
   };
   const script = `window.AURORA_FLAGS = Object.assign({}, window.AURORA_FLAGS || {}, ${JSON.stringify(
     flags
