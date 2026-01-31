@@ -149,6 +149,10 @@ const featureFlagConfig = (() => {
     searchEnabled2026: normalizeFlag(flags.searchEnabled2026, true),
     imagesEnabled2026: normalizeFlag(flags.imagesEnabled2026, true),
     twoFactorEnabled2026: normalizeFlag(flags.twoFactorEnabled2026, false),
+    collapseReasoningByDefaultVisible: normalizeFlag(
+      flags.collapseReasoningByDefaultVisible,
+      false
+    ),
   };
 })();
 
@@ -1991,6 +1995,12 @@ async function openSettingsModal(e){
     autoScrollCheck.checked = chatAutoScroll;
   }
   updateSettingsStatus(document.getElementById('autoScrollSaveStatus'), '');
+  const collapseReasoningSection = document.getElementById('collapseReasoningSection');
+  if(collapseReasoningSection){
+    collapseReasoningSection.style.display = featureFlagConfig.collapseReasoningByDefaultVisible
+      ? ''
+      : 'none';
+  }
   const collapseReasoningCheck = document.getElementById('collapseReasoningCheck');
   if(collapseReasoningCheck){
     collapseReasoningCheck.checked = collapseReasoningByDefault;
