@@ -393,6 +393,18 @@ body {
   text-align: right;
 }
 
+#settingsFooterLinks {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+#settingsFooterLinks button,
+#settingsFooterLinks a {
+  margin-left: 0;
+}
+
 .modal-buttons button {
   background: rgba(30, 41, 59, 0.92);
   border: 1px solid var(--surface-border);
