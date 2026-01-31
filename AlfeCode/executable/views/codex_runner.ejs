@@ -1981,6 +1981,10 @@
             display: block;
             background: white;
         }
+        .modal-iframe.is-loading {
+            opacity: 0;
+            pointer-events: none;
+        }
 
         .usage-limit-modal .modal-content {
             max-width: 640px;
@@ -3886,20 +3890,28 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     if (repoAddLoader) {
       repoAddLoader.classList.remove('is-hidden');
     }
+    if (repoAddIframe) {
+      repoAddIframe.classList.add('is-loading');
+    }
   };
   const hideRepoAddLoader = () => {
     if (repoAddLoader) {
       repoAddLoader.classList.add('is-hidden');
     }
+    if (repoAddIframe) {
+      repoAddIframe.classList.remove('is-loading');
+    }
   };
   const openRepoAddModal = function() {
     if (!repoAddModal) return;
     const defaultRepoAddUrl = (repoAddIframe && (repoAddIframe.dataset.defaultSrc || repoAddIframe.getAttribute('data-default-src'))) || '/repositories/add';
+    showRepoAddLoader();
     if (repoAddIframe) {
       const currentSrc = repoAddIframe.getAttribute('src');
       if (!currentSrc || currentSrc === '') {
-        showRepoAddLoader();
         repoAddIframe.src = defaultRepoAddUrl;
+      } else if (repoAddIframe.contentDocument && repoAddIframe.contentDocument.readyState === 'complete') {
+        hideRepoAddLoader();
       }
     }
     repoAddModal.classList.remove('is-hidden');
