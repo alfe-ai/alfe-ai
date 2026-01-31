@@ -6282,6 +6282,47 @@ const appendMergeChunk = (text, type = "output") => {
     return joined.replace(/\n+$/, "");
   };
 
+  const stripGitPullOutput = (text, { preserveTrailingNewlines = false } = {}) => {
+    if (typeof text !== "string" || !text) {
+      return "";
+    }
+    const normalized = text.replace(/\r/g, "");
+    const lines = normalized.split("\n");
+    const outputLines = [];
+
+    const ignoreMatchers = [
+      /^from\s+\S+/i,
+      /^\s*\*\s+\[new branch\]/i,
+      /^[0-9a-f]{6,}\.\.[0-9a-f]{6,}\s+/i,
+      /^updating\s+[0-9a-f]{6,}\.\.[0-9a-f]{6,}/i,
+      /^fast-forward\b/i,
+      /^\s*create mode \d+\s+/i,
+      /^\s*\S+\s+\|\s+\d+/,
+      /^\s*\d+\s+files? changed,/i,
+      /^\s*\d+\s+insertions?\(\+\)/i,
+      /^\s*\d+\s+deletions?\(-\)/i,
+    ];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        outputLines.push(line);
+        continue;
+      }
+      const shouldIgnore = ignoreMatchers.some((matcher) => matcher.test(trimmed));
+      if (shouldIgnore) {
+        continue;
+      }
+      outputLines.push(line);
+    }
+
+    const joined = outputLines.join("\n");
+    if (preserveTrailingNewlines) {
+      return joined;
+    }
+    return joined.replace(/\n+$/, "");
+  };
+
   const stripQwenCliOutput = (text, { preserveTrailingNewlines = false } = {}) => {
     if (typeof text !== "string" || !text) {
       return "";
@@ -6350,7 +6391,7 @@ const appendMergeChunk = (text, type = "output") => {
     const finalOutputRaw = sanitized.slice(commitStart).replace(/^\n+/, "");
     const normalisedFinalOutput = finalOutputRaw.trimEnd();
     const cleanedFinalOutput = stripInitialHeaders(normalisedFinalOutput);
-    return cleanedFinalOutput;
+    return stripGitPullOutput(cleanedFinalOutput);
   };
 
   const resolveFinalOutputForSavedRun = (run) => {
@@ -6370,7 +6411,7 @@ const appendMergeChunk = (text, type = "output") => {
       if (!cleaned) {
         return "";
       }
-      return stripInitialHeaders(cleaned);
+      return stripGitPullOutput(stripInitialHeaders(cleaned));
     };
 
     // If the run explicitly recorded final output fields, prefer them.
@@ -6490,7 +6531,7 @@ const appendMergeChunk = (text, type = "output") => {
 
     const commitMessage = stderrCommitBuffer.slice(commitStart).replace(/^\n+/, "");
     const normalisedCommitMessage = commitMessage.trimEnd();
-    const cleanedCommitMessage = stripInitialHeaders(normalisedCommitMessage);
+    const cleanedCommitMessage = stripGitPullOutput(stripInitialHeaders(normalisedCommitMessage));
 
     const currentFinalOutput = getActiveFinalOutputText();
     if (cleanedCommitMessage !== currentFinalOutput) {
@@ -6525,10 +6566,11 @@ const appendMergeChunk = (text, type = "output") => {
     const filteredChunk = stripGitFpushOutput(stripQwenCliOutput(chunk, { preserveTrailingNewlines: true }), {
       preserveTrailingNewlines: true,
     });
-    if (!filteredChunk) {
+    const cleanedChunk = stripGitPullOutput(filteredChunk, { preserveTrailingNewlines: true });
+    if (!cleanedChunk) {
       return;
     }
-    const updated = `${getActiveQwenCliOutputText()}${filteredChunk}`;
+    const updated = `${getActiveQwenCliOutputText()}${cleanedChunk}`;
     setActiveQwenCliOutputText(updated);
     setActiveFinalOutputText(updated);
     updateFinalOutputDisplay();
