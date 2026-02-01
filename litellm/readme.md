@@ -2,6 +2,13 @@ Place files in /opt/litellm
 
 https://chatgpt.com/c/697f7707-9164-832e-83b4-7599ad9f2bdf
 
+2) Restart LiteLLM
+
+   cd /opt/litellm
+   docker compose restart litellm
+   docker compose logs -f --tail=200 litellm
+
+
 3) Test fallback works (force it)
 
 LiteLLM supports forcing fallbacks by sending mock_testing_fallbacks: true in the request body.
