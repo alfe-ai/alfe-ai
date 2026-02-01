@@ -312,10 +312,15 @@
     <%- include('partials/session_banner') %>
     <div class="page">
         <% const isSshAuthError = cloneError === "Git SSH authentication failed. Add a Git SSH key to continue cloning."; %>
-        <% if (showLoggedOutMessage) { %>
+        <% if (showLoggedOutMessage || showSubscribeMessage) { %>
             <div class="card logged-out-card">
-                <p class="logged-out-message">Log in to connect Git repositories.</p>
-                <a class="button-link" href="/" role="button">Log In / Sign Up</a>
+                <% if (showSubscribeMessage) { %>
+                    <p class="logged-out-message">Subscribe to connect Git repositories.</p>
+                    <a class="button-link" href="/agent/model-only" role="button">Subscribe</a>
+                <% } else { %>
+                    <p class="logged-out-message">Log in to connect Git repositories.</p>
+                    <a class="button-link" href="/" role="button">Log In / Sign Up</a>
+                <% } %>
             </div>
         <% } else { %>
             <header>
