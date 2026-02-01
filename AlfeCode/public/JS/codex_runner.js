@@ -481,7 +481,7 @@
       modifier = "followup-status--canceled";
     }
     statusEl.classList.add(modifier);
-    statusEl.textContent = `Follow-up ${session.index} — ${label}`;
+    statusEl.textContent = "Follow-up";
   };
 
   const formatFollowupText = (text, type = "output") => {
@@ -634,7 +634,7 @@
 
     const statusEl = document.createElement("p");
     statusEl.className = "followup-status followup-status--running";
-    statusEl.textContent = `Follow-up ${followupSessionCounter} — Running`;
+    statusEl.textContent = "Follow-up";
     sessionEl.appendChild(statusEl);
 
     const promptPreview = buildPromptPreviewElement(promptText);
