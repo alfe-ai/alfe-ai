@@ -47,7 +47,7 @@ Keep 4000 closed publicly
 
 3) Configure Caddy reverse proxy
    sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
-   litellm.alfe.sh {
+   localhost {
    reverse_proxy 127.0.0.1:4000
    }
    EOF
