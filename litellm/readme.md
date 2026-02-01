@@ -47,7 +47,8 @@ Keep 4000 closed publicly
 
 3) Configure Caddy reverse proxy
    sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
-   localhost {
+   litellm.alfe.sh {
+   tls /etc/caddy/certs/litellm.alfe.sh/fullchain.pem /etc/caddy/certs/litellm.alfe.sh/privkey.pem
    reverse_proxy 127.0.0.1:4000
    }
    EOF
