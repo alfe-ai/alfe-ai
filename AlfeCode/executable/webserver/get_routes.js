@@ -2176,6 +2176,31 @@ ${cleanedFinalOutput}`;
             } catch (_e) { /* ignore */ }
         } catch (_e) { /* ignore */ }
     };
+    const resolveDefaultProjectDirForSession = (sessionId) => {
+        if (!sessionId) {
+            return defaultCodexProjectDir;
+        }
+
+        let defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
+        let defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath || "";
+
+        if (!defaultRepoPath || !fs.existsSync(defaultRepoPath)) {
+            try {
+                ensureSessionDefaultRepo(sessionId);
+            } catch (error) {
+                console.error(`Failed to initialize default repo for session: ${error?.message || error}`);
+            }
+            defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, sessionId);
+            defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath || "";
+        }
+
+        if (defaultRepoPath && fs.existsSync(defaultRepoPath)) {
+            return defaultRepoPath;
+        }
+
+        return defaultCodexProjectDir;
+    };
+
     const renderCodexRunner = (req, res) => {
         // Defer git cache prewarm until after the response is finished so the UI
         // can be rendered immediately. The prewarm is best-effort and may be
@@ -2197,6 +2222,7 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req);
         const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
         const projectDirParam = (req?.query?.projectDir || "").toString();
+        const resolvedDefaultProjectDir = resolveDefaultProjectDirForSession(sessionId);
         const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanFlag(iframeParam);
         const defaultAgentInstructions =
             typeof codexConfig?.defaultAgentInstructions === "string"
@@ -2235,7 +2261,7 @@ ${cleanedFinalOutput}`;
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
-            defaultProjectDir: defaultCodexProjectDir,
+            defaultProjectDir: resolvedDefaultProjectDir,
             codexModelGroups: buildCodexModelGroups(defaultCodexModel),
             defaultCodexModel,
             defaultAgentInstructions,
