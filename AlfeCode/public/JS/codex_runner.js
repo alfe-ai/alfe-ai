@@ -8361,7 +8361,7 @@ const appendMergeChunk = (text, type = "output") => {
       "min-12": value.length >= 12,
       "case": /[a-z]/.test(value) && /[A-Z]/.test(value),
       "number": /\d/.test(value),
-      "symbol": /[#$&]/.test(value)
+      "symbol": /[^A-Za-z0-9\s]/.test(value)
     };
 
     passwordRequirementItems.forEach((item) => {
