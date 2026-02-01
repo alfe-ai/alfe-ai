@@ -4894,6 +4894,7 @@ ${cleanedFinalOutput}`;
             (process.env.SHOW_NEW_REPOSITORY_LINK || "").toLowerCase(),
         );
         let showLoggedOutMessage = false;
+        let showSubscribeMessage = false;
         if (rdsStore?.enabled) {
             const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
             if (!sessionId) {
@@ -4902,6 +4903,8 @@ ${cleanedFinalOutput}`;
                 const account = await rdsStore.getAccountBySession(sessionId);
                 if (!account || isLoggedOutPlan(account.plan)) {
                     showLoggedOutMessage = true;
+                } else if (account.plan === "Free") {
+                    showSubscribeMessage = true;
                 }
             }
         }
@@ -4913,6 +4916,7 @@ ${cleanedFinalOutput}`;
             gitRepoURLValue: "",
             showCreateRepoLink,
             showLoggedOutMessage,
+            showSubscribeMessage,
         });
     });
 
