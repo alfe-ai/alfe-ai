@@ -1,0 +1,30 @@
+model_list:
+  # Primary (FREE model)
+  - model_name: glm-4.5-air
+    litellm_params:
+      model: openrouter/z-ai/glm-4.5-air:free
+      api_base: https://openrouter.ai/api/v1
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      headers:
+        HTTP-Referer: "https://alfe.sh"
+        X-Title: "Alfe AI"
+
+  # Fallback (paid / non-free)
+  - model_name: glm-4.5-air-fallback
+    litellm_params:
+      model: openrouter/z-ai/glm-4.5-air
+      api_base: https://openrouter.ai/api/v1
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      headers:
+        HTTP-Referer: "https://alfe.sh"
+        X-Title: "Alfe AI"
+
+litellm_settings:
+  num_retries: 2
+  request_timeout: 30
+  fallbacks:
+    - {"glm-4.5-air": ["glm-4.5-air-fallback"]}
+
+general_settings:
+  master_key: "os.environ/LITELLM_MASTER_KEY"
+  database_url: "os.environ/DATABASE_URL"
