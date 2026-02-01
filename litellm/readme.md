@@ -15,7 +15,7 @@ LiteLLM supports forcing fallbacks by sending mock_testing_fallbacks: true in th
 
 MASTER=$(grep '^LITELLM_MASTER_KEY=' .env | cut -d= -f2)
 
-curl -k -sS http://127.0.0.1:4000/v1/chat/completions \
+curl -sS http://127.0.0.1:4000/v1/chat/completions \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer $MASTER" \
 -d '{
@@ -53,3 +53,15 @@ Keep 4000 closed publicly
    EOF
 
 sudo systemctl reload caddy
+
+
+Add -k flag to curl (equiv to --insecure) if testing with self-signed certs.
+
+curl -k -sS https://localhost/v1/chat/completions \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer $MASTER" \
+-d '{
+"model": "glm-4.5-air",
+"messages": [{"role":"user","content":"ping"}],
+"mock_testing_fallbacks": true
+}' | head -c 1000 && echo
