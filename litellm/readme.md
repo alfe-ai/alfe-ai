@@ -15,7 +15,7 @@ LiteLLM supports forcing fallbacks by sending mock_testing_fallbacks: true in th
 
 MASTER=$(grep '^LITELLM_MASTER_KEY=' .env | cut -d= -f2)
 
-curl -sS http://127.0.0.1:4000/v1/chat/completions \
+curl -k -sS http://127.0.0.1:4000/v1/chat/completions \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer $MASTER" \
 -d '{
