@@ -2354,6 +2354,25 @@
             border: 2px solid var(--accent);
             border-radius: 50%;
         }
+
+        .auth-submit-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .auth-submit-spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+        }
+
+        .auth-submit-spinner.is-hidden {
+            display: none;
+        }
         /* Git Log modal loader */
         .git-log-loader {
             position: absolute;
@@ -3551,7 +3570,10 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 </ul>
               </div>
               <div class="modal-buttons">
-                <button id="signupSubmitBtn" class="primary">Register</button>
+                <div class="auth-submit-row">
+                    <button id="signupSubmitBtn" class="primary">Register</button>
+                    <span id="signupSubmitSpinner" class="auth-submit-spinner is-hidden" aria-live="polite" aria-label="Registering"></span>
+                </div>
               </div>
             </div>
         </div>
