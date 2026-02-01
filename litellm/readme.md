@@ -23,3 +23,33 @@ curl -sS http://127.0.0.1:4000/v1/chat/completions \
 "messages": [{"role":"user","content":"ping"}],
 "mock_testing_fallbacks": true
 }' | head -c 1000 && echo
+
+
+
+Recommended: HTTPS via Caddy (real domain)
+1) Install Caddy (Ubuntu 22.04)
+   sudo apt update
+   sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+   sudo apt update
+   sudo apt install -y caddy
+
+2) Point DNS to your server
+
+Create an A record like litellm.alfe.sh -> <your public IP>.
+
+Open inbound ports in your security group/firewall:
+
+80/tcp and 443/tcp (for cert issuance + HTTPS)
+
+Keep 4000 closed publicly
+
+3) Configure Caddy reverse proxy
+   sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
+   litellm.alfe.sh {
+   reverse_proxy 127.0.0.1:4000
+   }
+   EOF
+
+sudo systemctl reload caddy
