@@ -7850,6 +7850,51 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
+  const clearAuthModalState = () => {
+    authEmailValue = "";
+    authModalStep = "email";
+    if (authEmailInput) {
+      authEmailInput.value = "";
+    }
+    const loginEmail = document.getElementById("loginEmail");
+    if (loginEmail) {
+      loginEmail.value = "";
+    }
+    const signupEmail = document.getElementById("signupEmail");
+    if (signupEmail) {
+      signupEmail.value = "";
+    }
+    const loginDisplay = document.getElementById("authEmailDisplayLogin");
+    if (loginDisplay) {
+      loginDisplay.textContent = "";
+    }
+    const signupDisplay = document.getElementById("authEmailDisplaySignup");
+    if (signupDisplay) {
+      signupDisplay.textContent = "";
+    }
+    const loginPassword = document.getElementById("loginPassword");
+    if (loginPassword) {
+      loginPassword.value = "";
+    }
+    const loginTotp = document.getElementById("loginTotp");
+    if (loginTotp) {
+      loginTotp.value = "";
+    }
+    const signupPassword = document.getElementById("signupPassword");
+    if (signupPassword) {
+      signupPassword.value = "";
+    }
+    const signupConfirm = document.getElementById("signupConfirm");
+    if (signupConfirm) {
+      signupConfirm.value = "";
+    }
+    try {
+      sessionStorage.removeItem(AUTH_MODAL_STATE_KEY);
+    } catch (_err) {
+      /* ignore storage errors */
+    }
+  };
+
   const loadAuthModalState = () => {
     try {
       const raw = sessionStorage.getItem(AUTH_MODAL_STATE_KEY);
@@ -7991,6 +8036,9 @@ const appendMergeChunk = (text, type = "output") => {
     accountInfo = info && info.email ? info : null;
     if (typeof window !== "undefined") {
       window.accountInfo = accountInfo;
+    }
+    if (!accountInfo) {
+      clearAuthModalState();
     }
     updateAccountButton(accountInfo);
   };
