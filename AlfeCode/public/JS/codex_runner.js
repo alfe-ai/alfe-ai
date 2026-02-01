@@ -659,7 +659,7 @@
     combinedButton.setAttribute("role", "tab");
     combinedButton.setAttribute("aria-selected", "true");
     combinedButton.setAttribute("aria-controls", combinedOutputId);
-    combinedButton.textContent = "Agent output";
+    combinedButton.textContent = "Full output";
     tabsContainer.appendChild(combinedButton);
 
     const finalButton = document.createElement("button");
