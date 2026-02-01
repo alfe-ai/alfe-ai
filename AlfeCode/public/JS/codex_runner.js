@@ -8452,6 +8452,14 @@ const appendMergeChunk = (text, type = "output") => {
 
   const signupSubmitBtn = document.getElementById("signupSubmitBtn");
   if (signupSubmitBtn) {
+    const signupSubmitSpinner = document.getElementById("signupSubmitSpinner");
+    const setSignupLoading = (isLoading) => {
+      signupSubmitBtn.disabled = !!isLoading;
+      if (signupSubmitSpinner) {
+        signupSubmitSpinner.classList.toggle("is-hidden", !isLoading);
+      }
+      signupSubmitBtn.setAttribute("aria-busy", isLoading ? "true" : "false");
+    };
     signupSubmitBtn.addEventListener("click", async () => {
       const email = document.getElementById("signupEmail")?.value.trim();
       const password = document.getElementById("signupPassword")?.value;
@@ -8478,6 +8486,7 @@ const appendMergeChunk = (text, type = "output") => {
         return;
       }
       try {
+        setSignupLoading(true);
         const resp = await fetch("/api/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -8522,6 +8531,8 @@ const appendMergeChunk = (text, type = "output") => {
       } catch (err) {
         console.error("Registration failed", err);
         showToast(`Registration failed${err?.message ? `: ${err.message}` : ""}`);
+      } finally {
+        setSignupLoading(false);
       }
     });
   }
