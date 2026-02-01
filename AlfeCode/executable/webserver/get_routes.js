@@ -2288,12 +2288,14 @@ ${cleanedFinalOutput}`;
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
     app.get('/agent/model-only', (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
+        const engineDropdownHidden = parseBooleanFlag(process.env.ENGINE_DROPDOWN_HIDDEN);
         const apiPanelEnabled = parseBooleanFlag(process.env.API_PANEL_ENABLED);
         const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
         const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
+            engineDropdownHidden,
             apiPanelEnabled,
             showPrintifyUploadUsage,
             searchEnabled2026,

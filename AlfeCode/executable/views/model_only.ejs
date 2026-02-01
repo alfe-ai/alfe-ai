@@ -199,6 +199,7 @@
       <span id="defaultModelFeedback" class="default-model-feedback hidden" aria-live="polite"></span>
     </div>
     </div>
+    <% if (!engineDropdownHidden) { %>
     <div style="margin-top:8px;">
       <label for="engineSelect">Engine</label>
       <select id="engineSelect">
@@ -210,6 +211,7 @@
         <span id="engineFeedback" class="engine-feedback hidden" aria-live="polite"></span>
       </div>
     </div>
+    <% } %>
     <p id="info" style="color:#94a3b8;margin:2px 0 8px 0;"></p>
     <% if (showGitLogButtonTarget) { %>
     <div style="margin-top:8px;">
