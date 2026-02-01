@@ -858,6 +858,13 @@
       if (accountEverSubscribedSelect) {
         accountEverSubscribedSelect.disabled = true;
       }
+      if (window.parent && window.parent !== window) {
+        try {
+          window.parent.location.assign('/agent');
+        } catch (error) {
+          console.warn('Failed to refresh parent after logout.', error);
+        }
+      }
     } catch (error) {
       console.error('Failed to log out:', error);
       showLogoutFeedback(error.message || 'Failed to log out.', 'error');
