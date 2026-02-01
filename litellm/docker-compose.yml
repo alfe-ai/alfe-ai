@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: litellm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  litellm:
+    image: docker.litellm.ai/berriai/litellm-database:main-stable
+    env_file: .env
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+    ports:
+      - "127.0.0.1:4000:4000"
+    command: ["--port", "4000", "--config", "/app/config.yaml", "--num_workers", "4", "--run_gunicorn"]
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  pgdata:
