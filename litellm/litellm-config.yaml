@@ -19,9 +19,13 @@ model_list:
         HTTP-Referer: "https://alfe.sh"
         X-Title: "Alfe AI"
 
+# global proxy settings (timeout etc.)
 litellm_settings:
-  num_retries: 2
   request_timeout: 30
+
+# routing/reliability settings (retries + fallbacks)
+router_settings:
+  num_retries: 2
   fallbacks:
     - {"glm-4.5-air": ["glm-4.5-air-fallback"]}
 
