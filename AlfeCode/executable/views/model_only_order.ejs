@@ -87,6 +87,36 @@
       color:#bfdbfe;
       margin-left:8px;
     }
+    .usage-badge{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 6px;
+      border-radius:999px;
+      font-size:0.7rem;
+      font-weight:600;
+      margin-left:8px;
+      text-transform:none;
+    }
+    .usage-low{
+      background:rgba(59,130,246,0.2);
+      color:#93c5fd;
+      border:1px solid rgba(59,130,246,0.4);
+    }
+    .usage-medium{
+      background:rgba(250,204,21,0.2);
+      color:#fde047;
+      border:1px solid rgba(250,204,21,0.45);
+    }
+    .usage-high{
+      background:rgba(249,115,22,0.2);
+      color:#fb923c;
+      border:1px solid rgba(249,115,22,0.45);
+    }
+    .usage-very-high{
+      background:rgba(255,69,0,0.2);
+      color:orangered;
+      border:1px solid rgba(255,69,0,0.45);
+    }
     .row-actions{
       display:flex;
       flex-direction:column;
@@ -148,9 +178,21 @@
       statusEl.className = `status${type ? ` ${type}` : ''}`;
     };
 
+    const toUsageLabel = (usage) => {
+      if (!usage) return '';
+      const formatted = usage.replace(/-/g, ' ');
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    };
+
+    const getVisibleIndices = () => models
+      .map((model, index) => (model && !model.disabled ? index : null))
+      .filter((value) => value !== null);
+
     const renderList = () => {
       listEl.innerHTML = '';
-      models.forEach((model, index) => {
+      const visibleIndices = getVisibleIndices();
+      visibleIndices.forEach((modelIndex, index) => {
+        const model = models[modelIndex];
         const row = document.createElement('div');
         row.className = 'model-row';
 
@@ -168,6 +210,12 @@
           tag.className = 'model-tag';
           tag.textContent = 'Plus';
           label.appendChild(tag);
+        }
+        if (model.usage) {
+          const usageBadge = document.createElement('span');
+          usageBadge.className = `usage-badge${model.usage ? ` usage-${model.usage}` : ''}`;
+          usageBadge.textContent = `${toUsageLabel(model.usage)} usage`;
+          label.appendChild(usageBadge);
         }
         const id = document.createElement('div');
         id.className = 'model-id';
@@ -187,7 +235,7 @@
         downButton.type = 'button';
         downButton.className = 'arrow-button';
         downButton.textContent = '↓';
-        downButton.disabled = index === models.length - 1;
+        downButton.disabled = index === visibleIndices.length - 1;
         downButton.addEventListener('click', () => moveItem(index, 1));
         actions.appendChild(upButton);
         actions.appendChild(downButton);
@@ -227,10 +275,13 @@
     };
 
     const moveItem = (index, direction) => {
+      const visibleIndices = getVisibleIndices();
       const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= models.length) return;
+      if (targetIndex < 0 || targetIndex >= visibleIndices.length) return;
       const next = [...models];
-      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      const sourceModelIndex = visibleIndices[index];
+      const targetModelIndex = visibleIndices[targetIndex];
+      [next[sourceModelIndex], next[targetModelIndex]] = [next[targetModelIndex], next[sourceModelIndex]];
       models = next;
       renderList();
       queueSave();
@@ -244,8 +295,8 @@
         }
         const payload = await response.json();
         models = payload.models || [];
-        if (!models.length) {
-          setStatus('No models found.');
+        if (!models.some((model) => model && !model.disabled)) {
+          setStatus('No enabled models found.');
           return;
         }
         setStatus('');
