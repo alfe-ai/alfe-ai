@@ -15,7 +15,7 @@
         "outputPerMTokens": 0.1
       },
       "qwen_cli": true,
-      "list_order": 0,
+      "list_order": 19,
       "plus_model": false,
       "usage": "low",
       "url": "https://openrouter.ai/api/v1"
@@ -35,7 +35,7 @@
         "outputPerMTokens": 0.19
       },
       "qwen_cli": true,
-      "list_order": 1,
+      "list_order": 3,
       "plus_model": false,
       "usage": "medium",
       "url": "https://openrouter.ai/api/v1"
@@ -73,7 +73,7 @@
         "outputPerMTokens": 0.29
       },
       "qwen_cli": false,
-      "list_order": 3,
+      "list_order": 0,
       "plus_model": false,
       "usage": "medium"
     },
@@ -92,7 +92,7 @@
         "outputPerMTokens": 0.4
       },
       "qwen_cli": false,
-      "list_order": 4,
+      "list_order": 1,
       "plus_model": false,
       "usage": "medium"
     },
@@ -109,7 +109,7 @@
       "qwen_cli": false,
       "plus_model": false,
       "usage": "very high",
-      "list_order": 5
+      "list_order": 8
     },
     {
       "id": "openrouter/openai/gpt-5.1-codex-mini",
@@ -156,7 +156,7 @@
         "outputPerMTokens": 0.95
       },
       "qwen_cli": false,
-      "list_order": 8,
+      "list_order": 4,
       "plus_model": false,
       "usage": "high"
     },
@@ -250,7 +250,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 14,
+      "list_order": 5,
       "usage": "high"
     },
     {
@@ -289,7 +289,7 @@
       "id": "glm-4.5-air",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
-      "list_order": 19,
+      "list_order": 14,
       "engine_options": [
         "auto",
         "qwen"
