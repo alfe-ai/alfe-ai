@@ -22,7 +22,7 @@
     },
     {
       "id": "openrouter/openai/gpt-oss-20b",
-      "label": "OpenAI: gpt-oss-20b (via Openrouter.ai)",
+      "label": "OpenAI: gpt-oss-20b",
       "created": "2025-08-05",
       "contextTokens": 131072,
       "disabled": true,
@@ -40,8 +40,8 @@
     },
     {
       "id": "openrouter/xiaomi/mimo-v2-flash",
-      "label": "Xiaomi: MiMo V2 Flash (via Openrouter.ai)",
-      "disabled": true,
+      "label": "Xiaomi: MiMo V2 Flash",
+      "disabled": false,
       "contextTokens": 262144,
       "engine_options": [
         "auto",
@@ -53,8 +53,9 @@
         "outputPerMTokens": 0.29
       },
       "qwen_cli": false,
-      "list_order": 5,
-      "plus_model": true
+      "list_order": 99,
+      "plus_model": true,
+      "usage": "low"
     },
     {
       "id": "openrouter/openai/gpt-5-nano",
