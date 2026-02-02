@@ -971,6 +971,15 @@
       if (data.defaultModel && modelSelect) {
         ensureModelOption(data.defaultModel);
         modelSelect.value = data.defaultModel;
+        const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+        const selected = normaliseModelEntry(list.find((entry) => {
+          if (!entry) return false;
+          if (typeof entry === 'string') return entry.trim() === data.defaultModel;
+          if (typeof entry === 'object') return entry.id === data.defaultModel;
+          return false;
+        }));
+        updateModelSelectButton(selected);
+        syncModelDropdownSelection();
       }
       updateProModelOptions();
       updateEngineSelect(modelSelect.value);
