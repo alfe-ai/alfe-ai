@@ -88,7 +88,8 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "usage": "very high"
+      "usage": "very high",
+      "list_order": 6
     },
     {
       "id": "openrouter/nex-agi/deepseek-v3.1-nex-n1",
@@ -323,7 +324,7 @@
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": false,
-      "list_order": 6,
+      "list_order": 7,
       "engine_options": [
         "auto",
         "qwen"
