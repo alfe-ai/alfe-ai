@@ -345,24 +345,23 @@
       const contextLimit = model.contextLimitLabel && model.contextLimitLabel !== 'N/A'
         ? model.contextLimitLabel
         : '';
-      o.textContent = pricingText ? `${modelLabel} — ${pricingText}` : modelLabel;
-      if (model.usage) {
-        o.appendChild(document.createTextNode(' '));
-        const badge = document.createElement('span');
-        badge.className = `usage-badge usage-${model.usage}`;
-        badge.textContent = `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`;
-        o.appendChild(badge);
+      const usageText = model.usage
+        ? `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`
+        : '';
+      const labelParts = [modelLabel];
+      if (pricingText) {
+        labelParts.push(`— ${pricingText}`);
       }
+      if (usageText) {
+        labelParts.push(`• ${usageText}`);
+      }
+      if (contextLimit) {
+        labelParts.push(`(${contextLimit})`);
+      }
+      o.textContent = labelParts.join(' ');
       if (model.plus_model && !isProPlan(currentAccountPlan)) {
         o.disabled = true;
         o.classList.add('pro-model-disabled');
-      }
-      if (contextLimit) {
-        o.appendChild(document.createTextNode(' '));
-        const limitSpan = document.createElement('span');
-        limitSpan.className = 'context-limit';
-        limitSpan.textContent = `(${contextLimit})`;
-        o.appendChild(limitSpan);
       }
       modelSelect.appendChild(o);
       added += 1;
@@ -396,14 +395,16 @@
     const option = document.createElement('option');
     option.value = modelId;
     const label = model ? (model.plus_model ? `[Pro] ${model.label}` : model.label) : modelId;
-    option.textContent = label;
+    const usageText = model?.usage
+      ? `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`
+      : '';
+    const labelParts = [label];
+    if (usageText) {
+      labelParts.push(`• ${usageText}`);
+    }
+    option.textContent = labelParts.join(' ');
     if (model?.usage) {
       option.dataset.usage = model.usage;
-      option.appendChild(document.createTextNode(' '));
-      const badge = document.createElement('span');
-      badge.className = `usage-badge usage-${model.usage}`;
-      badge.textContent = `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`;
-      option.appendChild(badge);
     }
     if (model && model.plus_model && !isProPlan(currentAccountPlan)) {
       option.disabled = true;
