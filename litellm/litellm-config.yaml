@@ -36,7 +36,7 @@ litellm_settings:
 
 # routing/reliability settings (retries + fallbacks)
 router_settings:
-  num_retries: 2
+  num_retries: 1
   fallbacks:
     - {"glm-4.5-air": ["gpt-oss-20b-fallback"]}
 
