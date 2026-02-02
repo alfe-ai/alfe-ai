@@ -24,6 +24,7 @@ CODEX_API_KEY_VARS=("OPENAI_API_KEY" "OPENROUTER_API_KEY")
 REQUESTED_PROVIDER=""
 DETECTED_API_KEY_VAR=""
 CODEX_SHOW_META="${CODEX_SHOW_META:-0}"
+SHOW_QWEN_CLI_ARGS="${SHOW_QWEN_CLI_ARGS:-false}"
 ENABLE_TRACE="${ENABLE_TRACE:-}"
 OPENROUTER_HTTP_REFERER_OVERRIDE=""
 OPENROUTER_TITLE_OVERRIDE=""
@@ -656,7 +657,9 @@ run_qwen() {
   qwen_version="$(qwen -v 2>&1)"
   printf '[qwen] qwen -v: %s\n' "$qwen_version"
   printf '[qwen] cwd=%s\n' "$(pwd)"
-  printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
+  if [[ "${SHOW_QWEN_CLI_ARGS:-false}" == "true" ]]; then
+    printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
+  fi
   #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
   printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
   printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
@@ -711,7 +714,7 @@ run_codex_in_vm() {
   tar -C "$source_dir" -cf - . \
     | ssh "${ssh_args[@]}" "${ALFECODE_VM_USER}@${ALFECODE_VM_HOST}" "mkdir -p $(escape_shell_arg "$remote_dir") && tar -C $(escape_shell_arg "$remote_dir") -xf -"
 
-  local -a remote_env=( "CODEX_DIR=${CODEX_DIR}" "CODEX_SHOW_META=${CODEX_SHOW_META}" )
+  local -a remote_env=( "CODEX_DIR=${CODEX_DIR}" "CODEX_SHOW_META=${CODEX_SHOW_META}" "SHOW_QWEN_CLI_ARGS=${SHOW_QWEN_CLI_ARGS}" )
   if [[ -n "${OPENAI_API_KEY:-}" ]]; then
     remote_env+=( "OPENAI_API_KEY=${OPENAI_API_KEY}" )
   fi
