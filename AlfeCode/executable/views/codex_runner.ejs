@@ -442,8 +442,8 @@
             border-radius: 0 24px 24px 0;
             border: 1px solid var(--surface-border);
             border-left: none;
-            padding: clamp(24px, 4vw, 48px);
-            padding-top: clamp(20px, 3vw, 32px);
+            padding: clamp(20px, 3.5vw, 36px);
+            padding-top: clamp(12px, 2vw, 20px);
             box-shadow: var(--shadow);
             backdrop-filter: blur(18px);
             display: flex;
@@ -1151,7 +1151,7 @@
             justify-content: flex-end;
             align-items: center;
             flex-wrap: wrap;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             color: var(--text-muted);
             gap: 14px;
         }
@@ -1293,14 +1293,14 @@
 
         form {
             display: grid;
-            gap: 18px;
-            margin-top: 28px;
+            gap: 16px;
+            margin-top: 16px;
         }
 
         .prompt-model-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 8px;
             align-items: flex-end;
         }
 
@@ -3369,7 +3369,6 @@
             </div>
             <div class="prompt-model-row">
                 <div class="prompt-model-item">
-                    <label for="modelPromptSelect">Model</label>
                     <select id="modelPromptSelect" name="modelPromptSelect">
                         <% codexModelGroups.forEach((group) => { %>
                             <optgroup label="<%= group.label %>">
@@ -3381,7 +3380,6 @@
                     </select>
                 </div>
                 <div class="prompt-model-item prompt-engine-item">
-                    <label for="engineSelectInline">Engine</label>
                     <select id="engineSelectInline" name="engineSelectInline">
                         <option value="auto">Auto</option>
                         <option value="qwen">Qwen</option>
