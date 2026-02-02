@@ -267,6 +267,39 @@ function setupGetRoutes(deps) {
         }
         return parseBooleanFlag(value);
     };
+    const USER_PROMPT_VISIBLE_CODEX = parseBooleanFlag(process.env.USER_PROMPT_VISIBLE_CODEX);
+    const shouldStripCodexUserPrompt = !USER_PROMPT_VISIBLE_CODEX;
+    const CODEX_HIDDEN_PROMPT_LINES = [
+        'Do not ask to commit changes, we run a script to automatically stage, commit, and push after you finish.',
+        'Do not ask anything like "Do you want me to run `git commit` with a message?"',
+        'Do not mention anything like "The file is staged."',
+        'Python command is available via "python3 --version" – Python 3.11.2',
+        'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
+        'When starting, please check AGENTS.md in repository root for further instructions.',
+        'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
+    ];
+
+    const stripCodexUserPromptFromText = (text) => {
+        if (!shouldStripCodexUserPrompt) {
+            return text;
+        }
+        if (typeof text !== 'string' || !text) {
+            return text;
+        }
+        const endsWithNewline = text.endsWith('\n');
+        const lines = text.split(/\r?\n/);
+        const filtered = lines.filter((line) => {
+            if (!line) {
+                return true;
+            }
+            return !CODEX_HIDDEN_PROMPT_LINES.some((phrase) => line.includes(phrase));
+        });
+        let joined = filtered.join('\n');
+        if (endsWithNewline && joined) {
+            joined += '\n';
+        }
+        return joined;
+    };
     const requireSupportPlan = async (req, res) => {
         if (!rdsStore?.enabled) {
             res.status(503).send("Support requests are not configured on this server.");
@@ -2343,6 +2376,7 @@ ${cleanedFinalOutput}`;
             showEngineOnAgent,
             accountButtonEnabled,
             accountsEnabled,
+            userPromptVisibleCodex: parseBooleanFlag(process.env.USER_PROMPT_VISIBLE_CODEX),
             showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
             showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
             showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
@@ -2796,7 +2830,11 @@ ${cleanedFinalOutput}`;
             if (res.writableEnded) {
                 return;
             }
-            const payloadString = typeof data === "string" ? data : JSON.stringify(data ?? "");
+            const rawPayload = typeof data === "string" ? data : JSON.stringify(data ?? "");
+            const payloadString = stripCodexUserPromptFromText(rawPayload);
+            if (!payloadString && (event === "output" || event === "stderr")) {
+                return;
+            }
             let shouldPersist = false;
             switch (event) {
                 case "output": {
@@ -2839,7 +2877,7 @@ ${cleanedFinalOutput}`;
                 default:
                     break;
             }
-            sendSse(res, { event, data });
+            sendSse(res, { event, data: payloadString });
             if (shouldPersist) {
                 persistRunRecord();
             }
