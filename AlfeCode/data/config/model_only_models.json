@@ -118,7 +118,7 @@
       "qwen_cli": false,
       "list_order": 0,
       "plus_model": false,
-      "usage": "high"
+      "usage": "medium"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
