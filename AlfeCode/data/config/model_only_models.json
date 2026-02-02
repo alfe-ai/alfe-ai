@@ -320,7 +320,7 @@
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": true,
-      "list_order": 2,
+      "list_order": 4,
       "engine_options": [
         "auto",
         "qwen"
@@ -330,7 +330,8 @@
         "outputPerMTokens": 0
       },
       "qwen_cli": true,
-      "plus_model": false
+      "plus_model": false,
+      "usage": "low"
     },
     {
       "id": "openrouter/qwen/qwen3-4b:free",
