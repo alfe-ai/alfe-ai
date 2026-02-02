@@ -343,6 +343,22 @@ button {
     background: var(--accent-strong);
 }
 
+.git-log-row,
+#gitTreeTab li.git-commit-row {
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 2px 0;
+    padding: 4px 6px;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.git-log-row:hover,
+.git-log-row:focus-within,
+#gitTreeTab li.git-commit-row:hover,
+#gitTreeTab li.git-commit-row:focus-within {
+    background-color: rgba(30, 144, 255, 0.15);
+}
+
 .sidebar-panel form {
     background: rgba(15, 23, 42, 0.55);
     border: 1px solid rgba(148, 163, 184, 0.18);
