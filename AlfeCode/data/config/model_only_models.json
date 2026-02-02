@@ -198,14 +198,16 @@
     {
       "id": "openrouter/kwaipilot/kat-coder-pro",
       "label": "KwaiPilot: KAT Coder Pro",
-      "disabled": true,
+      "disabled": false,
       "contextTokens": 256000,
       "pricing": {
         "inputPerMTokens": 0.207,
         "outputPerMTokens": 0.828
       },
       "qwen_cli": false,
-      "plus_model": true
+      "plus_model": false,
+      "list_order": 3,
+      "usage": "medium"
     },
     {
       "id": "openrouter/mistralai/devstral-2512:free",
