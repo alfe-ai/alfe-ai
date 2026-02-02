@@ -105,7 +105,10 @@
       "pricing": {
         "inputPerMTokens": 0.25,
         "outputPerMTokens": 2
-      },
+      },"engine_options": [
+      "auto",
+      "codex"
+    ],
       "qwen_cli": false,
       "plus_model": false,
       "usage": "very high",
@@ -120,7 +123,10 @@
       "pricing": {
         "inputPerMTokens": 0.25,
         "outputPerMTokens": 2
-      },
+      },"engine_options": [
+      "auto",
+      "codex"
+    ],
       "qwen_cli": false,
       "plus_model": false,
       "usage": "very high",
