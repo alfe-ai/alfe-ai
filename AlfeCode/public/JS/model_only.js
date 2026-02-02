@@ -40,6 +40,7 @@
   const accountsEnabled = config.accountsEnabled !== false;
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Plus', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
+  const DEFAULT_MODEL_STORAGE_KEY = 'agent.defaultModel';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
@@ -293,6 +294,23 @@
       return { label: normalized, className: 'usage-low' };
     }
     return { label: normalized, className: 'usage-low' };
+  }
+
+  function getStoredDefaultModel() {
+    try {
+      const value = localStorage.getItem(DEFAULT_MODEL_STORAGE_KEY);
+      return value ? value.trim() : '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function setStoredDefaultModel(value) {
+    try {
+      localStorage.setItem(DEFAULT_MODEL_STORAGE_KEY, value);
+    } catch (error) {
+      /* ignore */
+    }
   }
 
   function createUsageBadge(usage) {
@@ -742,6 +760,7 @@
         if (fallback) {
           modelSelect.value = fallback.value;
           updateEngineSelect(fallback.value);
+          setStoredDefaultModel(fallback.value);
         }
       }
     }
@@ -968,14 +987,23 @@
         return;
       }
       populateModels();
-      if (data.defaultModel && modelSelect) {
-        ensureModelOption(data.defaultModel);
-        modelSelect.value = data.defaultModel;
+      if (modelSelect) {
         const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+        const storedDefault = getStoredDefaultModel();
+        const preferredDefault = storedDefault && list.some((entry) => {
+          if (!entry) return false;
+          if (typeof entry === 'string') return entry.trim() === storedDefault;
+          if (typeof entry === 'object') return entry.id === storedDefault;
+          return false;
+        }) ? storedDefault : data.defaultModel;
+        if (preferredDefault) {
+          ensureModelOption(preferredDefault);
+          modelSelect.value = preferredDefault;
+        }
         const selected = normaliseModelEntry(list.find((entry) => {
           if (!entry) return false;
-          if (typeof entry === 'string') return entry.trim() === data.defaultModel;
-          if (typeof entry === 'object') return entry.id === data.defaultModel;
+          if (typeof entry === 'string') return entry.trim() === modelSelect.value;
+          if (typeof entry === 'object') return entry.id === modelSelect.value;
           return false;
         }));
         updateModelSelectButton(selected);
@@ -1007,6 +1035,9 @@
 
   modelSelect.addEventListener('change', function(){
     const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
+    if (newModel) {
+      setStoredDefaultModel(newModel);
+    }
     persistEnginePreference('auto', { showFeedback: false });
     updateEngineSelect(newModel);
     const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
