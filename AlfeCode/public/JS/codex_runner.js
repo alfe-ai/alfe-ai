@@ -177,6 +177,71 @@
     }
     return existingOption;
   };
+  const updateDefaultModelState = (savedModel) => {
+    if (!savedModel) return;
+    if (defaultModelInput) {
+      defaultModelInput.value = savedModel;
+    }
+    if (modelSelect) {
+      ensureModelOption(modelSelect, savedModel);
+    }
+    if (modelPromptSelect) {
+      ensureModelOption(modelPromptSelect, savedModel);
+    }
+    updateModelSelectValue(savedModel);
+    config.defaultModel = savedModel;
+    config.defaultCodexModel = savedModel;
+  };
+  const persistDefaultModelSelection = async (newModel, options = {}) => {
+    const { showFeedback = false } = options;
+    const trimmedModel = newModel ? newModel.trim() : "";
+    if (!trimmedModel) {
+      if (showFeedback) {
+        showDefaultModelFeedback("Default model cannot be empty.", "error");
+      }
+      return;
+    }
+    if (config.defaultModel === trimmedModel) {
+      return;
+    }
+    if (showFeedback) {
+      showDefaultModelFeedback("Saving default model…");
+    }
+    if (defaultModelSaveButton) {
+      defaultModelSaveButton.disabled = true;
+    }
+    try {
+      const response = await fetch("/agent/default-model", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ defaultModel: trimmedModel }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to save default model (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+      const savedModel =
+        typeof payload?.defaultModel === "string" && payload.defaultModel.trim()
+          ? payload.defaultModel.trim()
+          : trimmedModel;
+      updateDefaultModelState(savedModel);
+      if (showFeedback) {
+        showDefaultModelFeedback(payload?.message || "Default model saved.", "success");
+      }
+    } catch (error) {
+      console.error("Failed to save default Agent model:", error);
+      if (showFeedback) {
+        showDefaultModelFeedback(error.message || "Failed to save default model.", "error");
+      }
+    } finally {
+      if (defaultModelSaveButton) {
+        defaultModelSaveButton.disabled = false;
+      }
+    }
+  };
   // Listen for settings from the settings iframe to update submit-on-enter default
   window.addEventListener('message', function(ev){
     try{
@@ -517,6 +582,7 @@
     const nextValue = (modelPromptSelect && modelPromptSelect.value) || (modelSelect && modelSelect.value) || "";
     updateModelPromptSelectButton(modelOnlyLookup.get(nextValue) || (nextValue ? { label: nextValue, plus_model: false } : null));
     syncModelPromptDropdownSelection();
+    persistDefaultModelSelection(nextValue, { showFeedback: true });
   };
   const renderModelOnlyOptions = (models) => {
     const enabledModels = models.filter(isModelEnabled);
@@ -7321,58 +7387,7 @@ const appendMergeChunk = (text, type = "output") => {
 
     defaultModelSaveButton.addEventListener("click", async () => {
       const newModel = defaultModelInput.value ? defaultModelInput.value.trim() : "";
-      if (!newModel) {
-        showDefaultModelFeedback("Default model cannot be empty.", "error");
-        return;
-      }
-
-      showDefaultModelFeedback("Saving default model…");
-      defaultModelSaveButton.disabled = true;
-
-      try {
-        const response = await fetch("/agent/default-model", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ defaultModel: newModel }),
-        });
-
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const errorMessage = payload?.error || `Failed to save default model (status ${response.status}).`;
-          throw new Error(errorMessage);
-        }
-
-        const savedModel =
-          typeof payload?.defaultModel === "string" && payload.defaultModel.trim()
-            ? payload.defaultModel.trim()
-            : newModel;
-
-        if (defaultModelInput) {
-          defaultModelInput.value = savedModel;
-        }
-
-        if (modelSelect) {
-          ensureModelOption(modelSelect, savedModel);
-        }
-        if (modelPromptSelect) {
-          ensureModelOption(modelPromptSelect, savedModel);
-        }
-        updateModelSelectValue(savedModel);
-
-        config.defaultModel = savedModel;
-        config.defaultCodexModel = savedModel;
-
-        showDefaultModelFeedback(payload?.message || "Default model saved.", "success");
-      } catch (error) {
-        console.error("Failed to save default Agent model:", error);
-        showDefaultModelFeedback(error.message || "Failed to save default model.", "error");
-      } finally {
-        if (defaultModelSaveButton) {
-          defaultModelSaveButton.disabled = false;
-        }
-      }
+      await persistDefaultModelSelection(newModel, { showFeedback: true });
     });
   }
 
