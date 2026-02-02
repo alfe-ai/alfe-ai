@@ -34,6 +34,8 @@
   const logoutFeedback = document.getElementById('logoutFeedback');
   const supportPlanNotice = document.getElementById('supportPlanNotice');
   const supportActionButton = document.getElementById('supportActionButton');
+  const config = window.MODEL_ONLY_CONFIG || {};
+  const accountsEnabled = config.accountsEnabled !== false;
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Plus', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex'];
@@ -54,6 +56,20 @@
   let supportActionState = 'login';
   let currentUsagePlan = 'Logged-out Session';
   let currentUsageLimits = USAGE_LIMITS.loggedOut;
+
+  if (!accountsEnabled) {
+    if (supportActionButton) {
+      supportActionButton.style.display = 'none';
+    }
+    if (supportPlanNotice) {
+      supportPlanNotice.textContent = 'Accounts are disabled on this server.';
+    }
+    document.querySelectorAll('button.subscribe-button--inline').forEach((button) => {
+      if ((button.textContent || '').trim().toLowerCase() === 'sign up / log in') {
+        button.style.display = 'none';
+      }
+    });
+  }
 
   function normalizeEngine(value) {
     const normalized = (value || '').toString().trim().toLowerCase();

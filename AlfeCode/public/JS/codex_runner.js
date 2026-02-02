@@ -8005,14 +8005,14 @@ const appendMergeChunk = (text, type = "output") => {
     if (!signUpLogInBtn) {
       return;
     }
-    if (info && info.email) {
-      if (!accountButtonEnabled) {
-        signUpLogInBtn.style.display = "none";
-        if (subscribeButton) {
-          subscribeButton.style.display = "none";
-        }
-        return;
+    if (!accountButtonEnabled) {
+      signUpLogInBtn.style.display = "none";
+      if (subscribeButton) {
+        subscribeButton.style.display = "none";
       }
+      return;
+    }
+    if (info && info.email) {
       signUpLogInBtn.style.display = "";
       signUpLogInBtn.textContent = "Account";
       signUpLogInBtn.title = "Account settings";
@@ -8157,6 +8157,10 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const openAuthModal = ({ preferredStep } = {}) => {
+    if (!accountButtonEnabled) {
+      showToast("Accounts are disabled on this server.");
+      return;
+    }
     hideSettingsModal();
     const saved = loadAuthModalState();
     if (saved?.email) {
