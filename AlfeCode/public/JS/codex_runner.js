@@ -584,7 +584,7 @@
     syncModelPromptDropdownSelection();
     persistDefaultModelSelection(nextValue, { showFeedback: true });
   };
-  const renderModelOnlyOptions = (models) => {
+  const renderModelOnlyOptions = (models, preferredValue = "") => {
     const enabledModels = models.filter(isModelEnabled);
     modelOnlyLookup = new Map(enabledModels.map((model) => [model.id, model]));
     const selects = [modelSelect, modelPromptSelect].filter(Boolean);
@@ -645,11 +645,6 @@
     selects.forEach((select) => {
       select.disabled = false;
     });
-    const preferredValue =
-      (modelSelect && modelSelect.value)
-      || (modelPromptSelect && modelPromptSelect.value)
-      || config.defaultModel
-      || (enabledModels[0] && enabledModels[0].id);
     const resolvedValue = modelOnlyLookup.has(preferredValue)
       ? preferredValue
       : (enabledModels[0] && enabledModels[0].id) || "";
@@ -657,6 +652,11 @@
   };
   const loadModelOnlyOptions = async () => {
     if (!modelSelect && !modelPromptSelect) return;
+    const currentSelection =
+      (modelSelect && modelSelect.value)
+      || (modelPromptSelect && modelPromptSelect.value)
+      || config.defaultModel
+      || "";
     try {
       const response = await fetch("/agent/model-only/models");
       if (!response.ok) {
@@ -667,7 +667,8 @@
       const providerKey = payload.defaultProvider || Object.keys(providers)[0] || "";
       const list = providerKey && Array.isArray(providers[providerKey]) ? providers[providerKey] : [];
       const normalized = list.map(normaliseModelEntry).filter(Boolean);
-      renderModelOnlyOptions(normalized);
+      const preferredValue = currentSelection || payload.defaultModel || (normalized[0] && normalized[0].id) || "";
+      renderModelOnlyOptions(normalized, preferredValue);
     } catch (error) {
       console.warn("Failed to load model-only list:", error);
       const fallbackValue = (modelPromptSelect && modelPromptSelect.value) || (modelSelect && modelSelect.value) || "";
