@@ -15,8 +15,9 @@
         "outputPerMTokens": 0.1
       },
       "qwen_cli": true,
-      "list_order": 0,
-      "plus_model": false
+      "list_order": 99,
+      "plus_model": false,
+      "usage": "low"
     },
     {
       "id": "openrouter/openai/gpt-oss-20b",
@@ -249,14 +250,15 @@
       "id": "openrouter/z-ai/glm-4.5-air:free",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
-      "list_order": 1,
+      "list_order": 0,
       "engine_options": [
         "auto",
         "qwen"
       ],
       "qwen_cli": true,
       "contextTokens": 131072,
-      "plus_model": false
+      "plus_model": false,
+      "usage": "low"
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air",

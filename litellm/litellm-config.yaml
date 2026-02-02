@@ -1,5 +1,4 @@
 model_list:
-  # Primary (FREE model)
   - model_name: glm-4.5-air
     litellm_params:
       model: openrouter/z-ai/glm-4.5-air:free
@@ -9,7 +8,6 @@ model_list:
         HTTP-Referer: "https://alfe.sh"
         X-Title: "Alfe AI"
 
-  # Fallback (paid / non-free)
   - model_name: glm-4.5-air-fallback
     litellm_params:
       model: openrouter/z-ai/glm-4.5-air
@@ -19,26 +17,15 @@ model_list:
         HTTP-Referer: "https://alfe.sh"
         X-Title: "Alfe AI"
 
-  # Fallback (paid / non-free)
-  - model_name: gpt-oss-20b-fallback
-    litellm_params:
-      model: openrouter/openai/gpt-oss-20b
-      api_base: https://openrouter.ai/api/v1
-      api_key: "os.environ/OPENROUTER_API_KEY"
-      headers:
-        HTTP-Referer: "https://alfe.sh"
-        X-Title: "Alfe AI"
-
-
 # global proxy settings (timeout etc.)
 litellm_settings:
   request_timeout: 30
 
 # routing/reliability settings (retries + fallbacks)
 router_settings:
-  num_retries: 1
+  num_retries: 2
   fallbacks:
-    - {"glm-4.5-air": ["gpt-oss-20b-fallback"]}
+    - {"glm-4.5-air": ["glm-4.5-air-fallback"]}
 
 general_settings:
   master_key: "os.environ/LITELLM_MASTER_KEY"
