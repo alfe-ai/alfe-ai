@@ -149,6 +149,43 @@ function sanitizeSessionId(sessionId) {
     return trimmed.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 120) || SESSION_FALLBACK_KEY;
 }
 
+const sessionCodexModelOverrides = new Map();
+
+function getSessionCodexModel(sessionId) {
+    const safeId = sanitizeSessionId(sessionId);
+    const stored = sessionCodexModelOverrides.get(safeId);
+    if (typeof stored === 'string' && isCodexModelValid(stored)) {
+        return stored;
+    }
+    if (stored) {
+        sessionCodexModelOverrides.delete(safeId);
+    }
+    return '';
+}
+
+function setSessionCodexModel(sessionId, model) {
+    const safeId = sanitizeSessionId(sessionId);
+    const trimmed = typeof model === 'string' ? model.trim() : '';
+    if (!trimmed) {
+        sessionCodexModelOverrides.delete(safeId);
+        return '';
+    }
+    if (!isCodexModelValid(trimmed)) {
+        return '';
+    }
+    sessionCodexModelOverrides.set(safeId, trimmed);
+    return trimmed;
+}
+
+function resolveCodexModelForSession(sessionId) {
+    const sessionModel = getSessionCodexModel(sessionId);
+    if (sessionModel) {
+        return sessionModel;
+    }
+    return getDefaultCodexModel();
+}
+
+
 function sanitizeRepoName(repoName) {
     if (typeof repoName !== 'string') {
         return 'repo';
@@ -757,6 +794,9 @@ module.exports = {
     loadCodexConfig,
     saveCodexConfig,
     getDefaultCodexModel,
+    getSessionCodexModel,
+    setSessionCodexModel,
+    resolveCodexModelForSession,
     DEFAULT_CODEX_MODEL,
     CODEX_MODEL_PATTERN,
     sanitizeSessionId,
