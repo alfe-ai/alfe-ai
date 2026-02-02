@@ -103,6 +103,7 @@
     const lookupHash = mappedEntry ? mappedEntry.hash : matchedHash;
     const parentHash = mappedEntry ? mappedEntry.parent : null;
     const diffUrl = buildDiffUrl(lookupHash, parentHash);
+    item.dataset.diffUrl = diffUrl || "";
 
     const authorMatch = rawText.match(/-\s([^,]+),/);
     const dateMatch = rawText.match(/,\s([^:]+)\s:/);
@@ -155,12 +156,48 @@
     item.dataset.enhanced = "true";
   };
 
+  const makeCommitListClickable = () => {
+    if (!commitListEl) {
+      return;
+    }
+    const listItems = commitListEl.querySelectorAll("li");
+    listItems.forEach((item) => {
+      if (!item || item.dataset.clickable === "true") {
+        return;
+      }
+      const diffUrl = item.dataset.diffUrl;
+      if (!diffUrl) {
+        return;
+      }
+      item.dataset.clickable = "true";
+      item.classList.add("git-commit-row");
+      item.setAttribute("role", "link");
+      item.tabIndex = 0;
+
+      const openDiff = (event) => {
+        if (event && event.target && event.target.closest("a")) {
+          return;
+        }
+        window.open(diffUrl, "_blank", "noopener,noreferrer");
+      };
+
+      item.addEventListener("click", openDiff);
+      item.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openDiff(event);
+        }
+      });
+    });
+  };
+
   const renderCommitItems = () => {
     if (!commitListEl) {
       return;
     }
     const listItems = commitListEl.querySelectorAll("li");
     listItems.forEach(enhanceCommitItem);
+    makeCommitListClickable();
   };
 
   renderCommitItems();
@@ -242,7 +279,6 @@
             nextOffset += newCommits.length;
           }
           hasMoreCommits = Boolean(data.hasMore);
-          makeCommitListClickable();
           updateLoadMoreVisibility();
           if (newCommits.length > 0) {
             const successMessage = newCommits.length === 1
