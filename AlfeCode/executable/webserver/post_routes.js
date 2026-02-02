@@ -53,13 +53,36 @@ function setupPostRoutes(deps) {
     const STERLING_TEMP_DIR_PATTERN = /^(?:,,,-\d{6,}|sterlingcodex[_-]?.+|.+-\d{10,})$/i;
 
     const TRUTHY_ENV_VALUES = ["1", "true", "yes", "on"];
+    const FALSY_ENV_VALUES = ["0", "false", "no", "off"];
     const isTruthyEnvValue = (value) => {
         return (
             typeof value === "string"
             && TRUTHY_ENV_VALUES.includes(value.trim().toLowerCase())
         );
     };
+    const parseBooleanEnvWithDefault = (value, defaultValue) => {
+        if (typeof value === "undefined") {
+            return defaultValue;
+        }
+        if (typeof value === "boolean") {
+            return value;
+        }
+        if (typeof value === "number") {
+            return value === 1;
+        }
+        if (typeof value === "string") {
+            const normalized = value.trim().toLowerCase();
+            if (TRUTHY_ENV_VALUES.includes(normalized)) {
+                return true;
+            }
+            if (FALSY_ENV_VALUES.includes(normalized)) {
+                return false;
+            }
+        }
+        return defaultValue;
+    };
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
+    const accountsEnabled = parseBooleanEnvWithDefault(process.env.ACCOUNTS_ENABLED, true);
     const configIpWhitelist = new Set();
     const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
     if (configIpWhitelistEnv) {
@@ -211,6 +234,9 @@ function setupPostRoutes(deps) {
             return res.status(400).json({ error: "Enter a valid email address." });
         }
 
+        if (!accountsEnabled) {
+            return res.status(403).json({ error: "Accounts are disabled on this server." });
+        }
         if (!rdsStore.enabled) {
             return res.status(503).json({ error: "Registration is not configured on this server." });
         }
@@ -446,6 +472,13 @@ function setupPostRoutes(deps) {
             });
         }
 
+        if (!accountsEnabled) {
+            console.log("[AlfeCode][register] registration unavailable (accounts disabled).");
+            return res.status(403).json({
+                error: "Accounts are disabled on this server.",
+                success: false,
+            });
+        }
         if (!rdsStore.enabled) {
             console.log("[AlfeCode][register] registration unavailable (RDS not configured).");
             return res.status(503).json({
@@ -484,6 +517,9 @@ function setupPostRoutes(deps) {
             bodyKeys: req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
         });
 
+        if (!accountsEnabled) {
+            return res.status(403).json({ error: "Accounts are disabled on this server." });
+        }
         if (!rdsStore.enabled) {
             return res.status(503).json({ error: "Login is not configured on this server." });
         }

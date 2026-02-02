@@ -412,6 +412,11 @@
     </footer>
   </div>
   </div>
+  <script>
+    window.MODEL_ONLY_CONFIG = {
+      accountsEnabled: <%- JSON.stringify(typeof accountsEnabled === "undefined" ? true : accountsEnabled) %>,
+    };
+  </script>
   <script src="/JS/model_only.js"></script>
     <% if (showGitLogButtonTarget) { %>
     <script>

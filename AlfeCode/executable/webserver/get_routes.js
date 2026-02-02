@@ -2253,11 +2253,13 @@ ${cleanedFinalOutput}`;
             : null;
         const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
         const showRunDirectory = parseBooleanFlag(process.env.SHOW_RUN_DIRECTORY);
+        const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         const accountButtonEnabledEnv = process.env.ACCOUNT_BUTTON_ENABLED;
         const accountButtonEnabled =
-            typeof accountButtonEnabledEnv === "undefined"
+            accountsEnabled
+            && (typeof accountButtonEnabledEnv === "undefined"
                 ? true
-                : parseBooleanFlag(accountButtonEnabledEnv);
+                : parseBooleanFlag(accountButtonEnabledEnv));
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
@@ -2278,6 +2280,7 @@ ${cleanedFinalOutput}`;
             showNewTaskButton,
             showRunDirectory,
             accountButtonEnabled,
+            accountsEnabled,
             showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
             showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
             showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
@@ -2300,6 +2303,7 @@ ${cleanedFinalOutput}`;
             showPrintifyUploadUsage,
             searchEnabled2026,
             imagesEnabled2026,
+            accountsEnabled: parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true),
         });
     });
     app.get('/support', async (req, res) => {
