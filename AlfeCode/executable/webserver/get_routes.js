@@ -2313,6 +2313,7 @@ ${cleanedFinalOutput}`;
             : null;
         const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
         const showRunDirectory = parseBooleanFlag(process.env.SHOW_RUN_DIRECTORY);
+        const showEngineOnAgent = parseBooleanFlag(process.env.SHOW_ENGINE_ON_AGENT);
         const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         const accountButtonEnabledEnv = process.env.ACCOUNT_BUTTON_ENABLED;
         const accountButtonEnabled =
@@ -2339,6 +2340,7 @@ ${cleanedFinalOutput}`;
             enableFollowups: parseBooleanFlag(process.env.ENABLE_FOLLOWUPS),
             showNewTaskButton,
             showRunDirectory,
+            showEngineOnAgent,
             accountButtonEnabled,
             accountsEnabled,
             showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),

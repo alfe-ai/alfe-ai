@@ -3533,13 +3533,15 @@
                         <% }) %>
                     </select>
                 </div>
-                <div class="prompt-model-item prompt-engine-item">
-                    <select id="engineSelectInline" name="engineSelectInline">
-                        <option value="auto">Auto</option>
-                        <option value="qwen">Qwen</option>
-                        <option value="codex">Codex</option>
-                    </select>
-                </div>
+                <% if (showEngineOnAgent) { %>
+                    <div class="prompt-model-item prompt-engine-item">
+                        <select id="engineSelectInline" name="engineSelectInline">
+                            <option value="auto">Auto</option>
+                            <option value="qwen">Qwen</option>
+                            <option value="codex">Codex</option>
+                        </select>
+                    </div>
+                <% } %>
             </div>
             <div>
                 <label for="prompt">Prompt</label>
