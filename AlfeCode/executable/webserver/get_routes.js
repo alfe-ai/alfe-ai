@@ -4925,6 +4925,7 @@ ${cleanedFinalOutput}`;
         const showCreateRepoLink = ["1", "true", "yes", "on"].includes(
             (process.env.SHOW_NEW_REPOSITORY_LINK || "").toLowerCase(),
         );
+        const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         let showLoggedOutMessage = false;
         let showSubscribeMessage = false;
         if (rdsStore?.enabled) {
@@ -4949,6 +4950,7 @@ ${cleanedFinalOutput}`;
             showCreateRepoLink,
             showLoggedOutMessage,
             showSubscribeMessage,
+            accountsEnabled,
         });
     });
 

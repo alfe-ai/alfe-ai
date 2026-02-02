@@ -319,7 +319,9 @@
                     <a class="button-link" href="/agent/model-only" role="button">Subscribe</a>
                 <% } else { %>
                     <p class="logged-out-message">Log in to connect Git repositories.</p>
-                    <a class="button-link" href="/" role="button">Sign Up / Log In</a>
+                    <% if (accountsEnabled) { %>
+                        <a class="button-link" href="/" role="button">Sign Up / Log In</a>
+                    <% } %>
                 <% } %>
             </div>
         <% } else { %>
