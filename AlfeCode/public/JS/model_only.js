@@ -281,7 +281,7 @@
     const normalized = (usage || '').toString().trim().toLowerCase();
     if (!normalized) return null;
     if (normalized.includes('very')) {
-      return { label: normalized, className: 'usage-high' };
+      return { label: normalized, className: 'usage-very-high' };
     }
     if (normalized.includes('high')) {
       return { label: normalized, className: 'usage-high' };
