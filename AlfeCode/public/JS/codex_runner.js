@@ -25,8 +25,127 @@
 
   let modelSelect;
   let modelPromptSelect;
+  let modelPromptSelectButton;
+  let modelPromptSelectMenu;
   let engineSelectInline;
   let defaultModelInput;
+
+  let modelOnlyLookup = new Map();
+
+  const formatModelLabel = (model) => {
+    if (!model) return "";
+    return model.plus_model ? `[Pro] ${model.label}` : model.label;
+  };
+
+  const resolveUsageBadge = (usage) => {
+    const normalized = (usage || "").toString().trim().toLowerCase();
+    if (!normalized) return null;
+    if (normalized.includes("very")) {
+      return { label: normalized, className: "usage-very-high" };
+    }
+    if (normalized.includes("high")) {
+      return { label: normalized, className: "usage-high" };
+    }
+    if (normalized.includes("medium")) {
+      return { label: normalized, className: "usage-medium" };
+    }
+    if (normalized.includes("low")) {
+      return { label: normalized, className: "usage-low" };
+    }
+    return { label: normalized, className: "usage-low" };
+  };
+
+  const createUsageBadge = (usage) => {
+    const badge = resolveUsageBadge(usage);
+    if (!badge) return null;
+    const label = badge.label
+      .split(" ")
+      .filter(Boolean)
+      .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+      .join(" ");
+    const badgeEl = document.createElement("span");
+    badgeEl.className = `usage-badge ${badge.className}`;
+    badgeEl.textContent = `${label} usage`;
+    return badgeEl;
+  };
+
+  const isModelEnabled = (model) => {
+    if (!model) return false;
+    if (typeof model.enabled === "boolean") {
+      return model.enabled;
+    }
+    if (typeof model.disabled === "boolean") {
+      return !model.disabled;
+    }
+    return true;
+  };
+
+  const normaliseModelEntry = (entry) => {
+    if (!entry) return null;
+    if (typeof entry === "string") {
+      const trimmed = entry.trim();
+      if (!trimmed) return null;
+      return {
+        id: trimmed,
+        label: trimmed,
+        disabled: false,
+        plus_model: false,
+        usage: "",
+      };
+    }
+    if (typeof entry !== "object") return null;
+    const id = typeof entry.id === "string" ? entry.id.trim() : "";
+    if (!id) return null;
+    const label = typeof entry.label === "string" && entry.label.trim().length ? entry.label.trim() : id;
+    const usage = typeof entry.usage === "string" ? entry.usage.trim().toLowerCase() : "";
+    const enabled = typeof entry.enabled === "boolean" ? entry.enabled : undefined;
+    return {
+      id,
+      label,
+      disabled: Boolean(entry.disabled),
+      enabled,
+      plus_model: Boolean(entry.plus_model),
+      usage,
+    };
+  };
+
+  const updateModelPromptSelectButton = (model) => {
+    if (!modelPromptSelectButton) return;
+    const textWrapper = modelPromptSelectButton.querySelector(".model-select-button__text");
+    if (!textWrapper) return;
+    textWrapper.textContent = "";
+    const labelText = model ? formatModelLabel(model) : "Select model";
+    const labelSpan = document.createElement("span");
+    labelSpan.textContent = labelText;
+    textWrapper.appendChild(labelSpan);
+  };
+
+  const syncModelPromptDropdownSelection = () => {
+    if (!modelPromptSelectMenu || !modelPromptSelect) return;
+    const currentValue = modelPromptSelect.value || "";
+    Array.from(modelPromptSelectMenu.querySelectorAll(".model-select-option")).forEach((button) => {
+      const isSelected = button.dataset.modelId === currentValue;
+      button.classList.toggle("is-selected", isSelected);
+    });
+  };
+
+  const closeModelPromptDropdown = () => {
+    if (!modelPromptSelectMenu || !modelPromptSelectButton) return;
+    modelPromptSelectMenu.classList.add("is-hidden");
+    modelPromptSelectButton.setAttribute("aria-expanded", "false");
+  };
+
+  const toggleModelPromptDropdown = () => {
+    if (!modelPromptSelectMenu || !modelPromptSelectButton) return;
+    const isOpen = !modelPromptSelectMenu.classList.contains("is-hidden");
+    if (isOpen) {
+      closeModelPromptDropdown();
+    } else {
+      modelPromptSelectMenu.classList.remove("is-hidden");
+      modelPromptSelectButton.setAttribute("aria-expanded", "true");
+      syncModelPromptDropdownSelection();
+    }
+  };
 
   const updateModelSelectValue = (value) => {
     if (modelSelect) {
@@ -35,6 +154,12 @@
     if (modelPromptSelect) {
       modelPromptSelect.value = value;
     }
+    if (value) {
+      updateModelPromptSelectButton(modelOnlyLookup.get(value) || { label: value, plus_model: false });
+    } else {
+      updateModelPromptSelectButton(null);
+    }
+    syncModelPromptDropdownSelection();
   };
 
   const shouldUpdateModelSelect = (selectEl, previousDefault) =>
@@ -44,9 +169,10 @@
     if (!selectEl || !value) return null;
     let existingOption = Array.from(selectEl.options || []).find((opt) => opt.value === value);
     if (!existingOption) {
+      const model = modelOnlyLookup.get(value);
       existingOption = document.createElement("option");
       existingOption.value = value;
-      existingOption.textContent = value;
+      existingOption.textContent = model ? formatModelLabel(model) : value;
       selectEl.insertBefore(existingOption, selectEl.firstChild);
     }
     return existingOption;
@@ -377,6 +503,8 @@
 
   modelSelect = document.getElementById("model");
   modelPromptSelect = document.getElementById("modelPromptSelect");
+  modelPromptSelectButton = document.getElementById("modelPromptSelectButton");
+  modelPromptSelectMenu = document.getElementById("modelPromptSelectMenu");
   engineSelectInline = document.getElementById("engineSelectInline");
   const handleModelSelectChange = (event) => {
     const source = event.target;
@@ -385,6 +513,99 @@
     }
     if (source === modelPromptSelect && modelSelect) {
       modelSelect.value = source.value;
+    }
+    const nextValue = (modelPromptSelect && modelPromptSelect.value) || (modelSelect && modelSelect.value) || "";
+    updateModelPromptSelectButton(modelOnlyLookup.get(nextValue) || (nextValue ? { label: nextValue, plus_model: false } : null));
+    syncModelPromptDropdownSelection();
+  };
+  const renderModelOnlyOptions = (models) => {
+    const enabledModels = models.filter(isModelEnabled);
+    modelOnlyLookup = new Map(enabledModels.map((model) => [model.id, model]));
+    const selects = [modelSelect, modelPromptSelect].filter(Boolean);
+    selects.forEach((select) => {
+      select.innerHTML = "";
+    });
+    if (modelPromptSelectMenu) {
+      modelPromptSelectMenu.innerHTML = "";
+    }
+    if (!enabledModels.length) {
+      selects.forEach((select) => {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No models available";
+        select.appendChild(option);
+        select.disabled = true;
+      });
+      if (modelPromptSelectButton) {
+        modelPromptSelectButton.disabled = true;
+      }
+      updateModelPromptSelectButton(null);
+      return;
+    }
+    if (modelPromptSelectButton) {
+      modelPromptSelectButton.disabled = false;
+    }
+    enabledModels.forEach((model) => {
+      const label = formatModelLabel(model);
+      selects.forEach((select) => {
+        const option = document.createElement("option");
+        option.value = model.id;
+        option.textContent = label;
+        select.appendChild(option);
+      });
+      if (modelPromptSelectMenu && modelPromptSelect) {
+        const optionButton = document.createElement("button");
+        optionButton.type = "button";
+        optionButton.className = "model-select-option";
+        optionButton.dataset.modelId = model.id;
+        const labelRow = document.createElement("div");
+        labelRow.className = "model-select-option__label";
+        const labelText = document.createElement("span");
+        labelText.textContent = label;
+        labelRow.appendChild(labelText);
+        const badgeEl = model.usage ? createUsageBadge(model.usage) : null;
+        if (badgeEl) {
+          labelRow.appendChild(badgeEl);
+        }
+        optionButton.appendChild(labelRow);
+        optionButton.addEventListener("click", () => {
+          modelPromptSelect.value = model.id;
+          modelPromptSelect.dispatchEvent(new Event("change", { bubbles: true }));
+          closeModelPromptDropdown();
+        });
+        modelPromptSelectMenu.appendChild(optionButton);
+      }
+    });
+    selects.forEach((select) => {
+      select.disabled = false;
+    });
+    const preferredValue =
+      (modelSelect && modelSelect.value)
+      || (modelPromptSelect && modelPromptSelect.value)
+      || config.defaultModel
+      || (enabledModels[0] && enabledModels[0].id);
+    const resolvedValue = modelOnlyLookup.has(preferredValue)
+      ? preferredValue
+      : (enabledModels[0] && enabledModels[0].id) || "";
+    updateModelSelectValue(resolvedValue);
+  };
+  const loadModelOnlyOptions = async () => {
+    if (!modelSelect && !modelPromptSelect) return;
+    try {
+      const response = await fetch("/agent/model-only/models");
+      if (!response.ok) {
+        throw new Error(`Unable to load models (status ${response.status}).`);
+      }
+      const payload = await response.json();
+      const providers = payload && payload.providers ? payload.providers : {};
+      const providerKey = payload.defaultProvider || Object.keys(providers)[0] || "";
+      const list = providerKey && Array.isArray(providers[providerKey]) ? providers[providerKey] : [];
+      const normalized = list.map(normaliseModelEntry).filter(Boolean);
+      renderModelOnlyOptions(normalized);
+    } catch (error) {
+      console.warn("Failed to load model-only list:", error);
+      const fallbackValue = (modelPromptSelect && modelPromptSelect.value) || (modelSelect && modelSelect.value) || "";
+      updateModelPromptSelectButton(fallbackValue ? { label: fallbackValue, plus_model: false } : null);
     }
   };
   if (modelSelect) {
@@ -396,6 +617,15 @@
     }
     modelPromptSelect.addEventListener("change", handleModelSelectChange);
   }
+  if (modelPromptSelectButton && modelPromptSelectMenu) {
+    modelPromptSelectButton.addEventListener("click", toggleModelPromptDropdown);
+    document.addEventListener("click", (event) => {
+      if (!modelPromptSelectMenu.contains(event.target) && !modelPromptSelectButton.contains(event.target)) {
+        closeModelPromptDropdown();
+      }
+    });
+  }
+  loadModelOnlyOptions();
   if (engineSelectInline) {
     const engineOptionLabelPrefix = "Engine: ";
     const syncEngineOptionLabels = (expanded) => {
