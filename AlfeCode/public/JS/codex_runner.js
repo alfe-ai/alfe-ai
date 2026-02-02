@@ -8205,22 +8205,17 @@ const appendMergeChunk = (text, type = "output") => {
     if (typeof text !== "string" || !text) {
       return text;
     }
-    const endsWithNewline = text.endsWith("
-");
-    const lines = text.split(/
-?
-/);
+    const endsWithNewline = text.endsWith("\n");
+    const lines = text.split(/\r?\n/);
     const filtered = lines.filter((line) => {
       if (!line) {
         return true;
       }
       return !CODEX_HIDDEN_PROMPT_LINES.some((phrase) => line.includes(phrase));
     });
-    let joined = filtered.join("
-");
+    let joined = filtered.join("\n");
     if (endsWithNewline && joined) {
-      joined += "
-";
+      joined += "\n";
     }
     return joined;
   };
