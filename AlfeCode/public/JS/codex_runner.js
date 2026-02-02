@@ -5996,7 +5996,7 @@ const appendMergeChunk = (text, type = "output") => {
     flushPendingStdoutPromptBuffer();
     resetMergeState();
     toggleButtons(false);
-    setStatus("Waiting to start…", "idle");
+    setStatus("", "idle");
     updatePromptPreview("");
 
     const hintProjectDir = getProjectDirHintForHistory();
