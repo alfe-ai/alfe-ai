@@ -15,7 +15,7 @@
         "outputPerMTokens": 0.1
       },
       "qwen_cli": true,
-      "list_order": 200,
+      "list_order": 201,
       "plus_model": false,
       "usage": "low",
       "url": "https://openrouter.ai/api/v1"
@@ -35,7 +35,7 @@
         "outputPerMTokens": 0.1
       },
       "qwen_cli": true,
-      "list_order": 1000,
+      "list_order": 1001,
       "plus_model": true
     },
     {
@@ -53,7 +53,7 @@
         "outputPerMTokens": 0.29
       },
       "qwen_cli": false,
-      "list_order": 0,
+      "list_order": 2,
       "plus_model": false,
       "usage": "medium"
     },
@@ -72,7 +72,7 @@
         "outputPerMTokens": 0.4
       },
       "qwen_cli": false,
-      "list_order": 7,
+      "list_order": 1,
       "plus_model": false,
       "usage": "medium"
     },
@@ -119,7 +119,7 @@
         "outputPerMTokens": 0.95
       },
       "qwen_cli": false,
-      "list_order": 1,
+      "list_order": 2,
       "plus_model": false,
       "usage": "high"
     },
@@ -181,7 +181,7 @@
         "outputPerMTokens": 0.27
       },
       "qwen_cli": true,
-      "list_order": 4,
+      "list_order": 5,
       "plus_model": false
     },
     {
@@ -209,7 +209,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 4,
+      "list_order": 5,
       "usage": "high"
     },
     {
@@ -244,7 +244,7 @@
       "id": "glm-4.5-air",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
-      "list_order": 100,
+      "list_order": 101,
       "engine_options": [
         "auto",
         "qwen"
@@ -259,7 +259,7 @@
       "id": "openrouter/z-ai/glm-4.5-air",
       "label": "[Backup] Z.ai: GLM 4.5 Air",
       "disabled": true,
-      "list_order": 2,
+      "list_order": 3,
       "engine_options": [
         "auto",
         "qwen"
@@ -308,7 +308,7 @@
       "id": "openrouter/arcee-ai/trinity-mini:free",
       "label": "Arcee AI: Trinity Mini",
       "disabled": true,
-      "list_order": 2,
+      "list_order": 3,
       "engine_options": [
         "auto",
         "qwen"
@@ -323,7 +323,7 @@
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": false,
-      "list_order": 5,
+      "list_order": 6,
       "engine_options": [
         "auto",
         "qwen"
