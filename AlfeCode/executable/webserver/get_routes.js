@@ -1956,9 +1956,19 @@ ${cleanedFinalOutput}`;
     };
 
     const buildCodexModelGroups = (defaultCodexModel) => {
+        const modelLabelLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
+            if (entry && entry.id) {
+                acc[entry.id] = entry.label || entry.id;
+            }
+            return acc;
+        }, {});
+        const resolveModelLabel = (modelId) => modelLabelLookup[modelId] || modelId;
         const groups = baseCodexModelGroups.map((group) => ({
             label: group.label,
-            models: [...group.models],
+            models: group.models.map((model) => ({
+                id: model,
+                label: resolveModelLabel(model),
+            })),
         }));
 
         const openRouterSource = (AIModels && Array.isArray(AIModels.openrouter))
@@ -1973,18 +1983,28 @@ ${cleanedFinalOutput}`;
             const uniqueModels = [...new Set(openRouterModels)];
             groups.unshift({
                 label: "OpenRouter (Sterling startup fetch)",
-                models: uniqueModels,
+                models: uniqueModels.map((model) => ({
+                    id: model,
+                    label: resolveModelLabel(model),
+                })),
             });
         }
 
         if (defaultCodexModel) {
             const hasDefault = groups.some((group) =>
-                group.models.some((model) => model === defaultCodexModel),
+                group.models.some((model) =>
+                    (typeof model === "string" ? model : model.id) === defaultCodexModel,
+                ),
             );
             if (!hasDefault) {
                 groups.unshift({
                     label: "Saved default",
-                    models: [defaultCodexModel],
+                    models: [
+                        {
+                            id: defaultCodexModel,
+                            label: resolveModelLabel(defaultCodexModel),
+                        },
+                    ],
                 });
             }
         }

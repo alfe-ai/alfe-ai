@@ -1305,13 +1305,14 @@
         }
 
         .prompt-model-row .prompt-model-item {
-            flex: 1 1 260px;
-            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            flex: 0 1 auto;
         }
 
-        .prompt-model-row .prompt-engine-item {
-            flex: 0 0 180px;
-            min-width: 160px;
+        .prompt-model-row .prompt-model-item select {
+            width: auto;
+            min-width: 0;
         }
 
         label {
@@ -3285,8 +3286,8 @@
                 <select id="model" name="model">
                     <% codexModelGroups.forEach((group) => { %>
                         <optgroup label="<%= group.label %>">
-                            <% group.models.forEach((model) => { %>
-                                <option value="<%= model %>" <%= model === defaultCodexModel ? "selected" : "" %>><%= model %></option>
+                            <% group.models.forEach((model) => { const modelId = typeof model === "string" ? model : model.id; const modelLabel = typeof model === "string" ? model : (model.label || model.id); %>
+                                <option value="<%= modelId %>" <%= modelId === defaultCodexModel ? "selected" : "" %>><%= modelLabel %></option>
                             <% }) %>
                         </optgroup>
                     <% }) %>
@@ -3372,8 +3373,8 @@
                     <select id="modelPromptSelect" name="modelPromptSelect">
                         <% codexModelGroups.forEach((group) => { %>
                             <optgroup label="<%= group.label %>">
-                                <% group.models.forEach((model) => { %>
-                                    <option value="<%= model %>" <%= model === defaultCodexModel ? "selected" : "" %>><%= model %></option>
+                                <% group.models.forEach((model) => { const modelId = typeof model === "string" ? model : model.id; const modelLabel = typeof model === "string" ? model : (model.label || model.id); %>
+                                    <option value="<%= modelId %>" <%= modelId === defaultCodexModel ? "selected" : "" %>><%= modelLabel %></option>
                                 <% }) %>
                             </optgroup>
                         <% }) %>
