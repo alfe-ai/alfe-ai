@@ -49,8 +49,31 @@ Keep 4000 closed publicly
    sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
    litellm.alfe.sh {
    tls /etc/caddy/certs/litellm.alfe.sh/fullchain.pem /etc/caddy/certs/litellm.alfe.sh/privkey.pem
+   
+   # --- UI allowlist ---
+   @ui path /ui*
+   
+   @ui_allowed {
+   path /ui*
+   remote_ip 203.0.113.10 198.51.100.0/24
+   }
+   
+   # Allowed IPs can access /ui
+   handle @ui_allowed {
    reverse_proxy 127.0.0.1:4000
    }
+   
+   # Everyone else gets blocked from /ui
+   handle @ui {
+   respond "Forbidden" 403
+   }
+   
+   # --- Everything else (e.g. /v1/*) is open ---
+   handle {
+   reverse_proxy 127.0.0.1:4000
+   }
+   }
+
    EOF
 
 sudo systemctl reload caddy
