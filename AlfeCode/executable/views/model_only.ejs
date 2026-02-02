@@ -522,8 +522,10 @@
       </div>
     </div>
     <footer class="footer">
+      <% if (allowModelOrderEdit) { %>
       <a href="/agent/model-only/order">Edit model order</a>
       <span aria-hidden="true">|</span>
+      <% } %>
       <a href="/about.html" target="_blank" rel="noopener noreferrer">About</a>
       <span aria-hidden="true">|</span>
       <button
