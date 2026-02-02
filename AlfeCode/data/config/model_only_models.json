@@ -19,6 +19,25 @@
       "plus_model": false,
       "usage": "low",
       "url": "https://openrouter.ai/api/v1"
+    },{
+      "id": "openrouter/openai/gpt-oss-120b",
+      "label": "OpenAI: gpt-oss-120b",
+      "created": "2025-08-05",
+      "contextTokens": 131072,
+      "disabled": false,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "pricing": {
+        "inputPerMTokens": 0.039,
+        "outputPerMTokens": 0.19
+      },
+      "qwen_cli": true,
+      "list_order": 201,
+      "plus_model": false,
+      "usage": "medium",
+      "url": "https://openrouter.ai/api/v1"
     },
     {
       "id": "openrouter/openai/gpt-oss-20b",
