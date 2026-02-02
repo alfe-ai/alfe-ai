@@ -324,7 +324,7 @@
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": false,
-      "list_order": 7,
+      "list_order": 99,
       "engine_options": [
         "auto",
         "qwen"
