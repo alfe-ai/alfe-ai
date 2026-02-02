@@ -155,7 +155,7 @@
         "inputPerMTokens": 0.22,
         "outputPerMTokens": 0.95
       },
-      "qwen_cli": false,
+      "qwen_cli": true,
       "list_order": 4,
       "plus_model": false,
       "usage": "high"
