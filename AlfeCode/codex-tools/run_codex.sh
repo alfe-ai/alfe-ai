@@ -488,11 +488,11 @@ if ! $USE_QWEN_CLI && [[ -n "$EFFECTIVE_MODEL" ]]; then
   MODEL_ARGS=(--model "$EFFECTIVE_MODEL")
 fi
 
-MODEL_API_URL=""
-if MODEL_API_URL="$(resolve_model_only_url "${QWEN_MODEL:-}" "${MODEL:-}" "${EFFECTIVE_MODEL:-}")"; then
-  trace_log "model-only url resolved to ${MODEL_API_URL}"
+MODEL_BASE_URL=""
+if MODEL_BASE_URL="$(resolve_model_only_url "${QWEN_MODEL:-}" "${MODEL:-}" "${EFFECTIVE_MODEL:-}")"; then
+  trace_log "model-only url resolved to ${MODEL_BASE_URL}"
 else
-  MODEL_API_URL=""
+  MODEL_BASE_URL=""
 fi
 
 if ! $USE_QWEN_CLI && [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
@@ -583,8 +583,8 @@ run_codex() {
   if $unset_openai; then
     env_prefix+=(-u OPENAI_API_KEY)
   fi
-  if [[ -n "${MODEL_API_URL:-}" ]]; then
-    env_prefix+=("OPENAI_API_URL=${MODEL_API_URL}")
+  if [[ -n "${MODEL_BASE_URL:-}" ]]; then
+    env_prefix+=("OPENAI_BASE_URL=${MODEL_BASE_URL}")
   fi
   if [[ ${#env_prefix[@]} -gt 0 ]]; then
     cmd=(env "${env_prefix[@]}" "${cmd[@]}")
@@ -598,13 +598,9 @@ run_codex() {
 run_qwen() {
   load_qwen_env
   local openai_api_key_value="${OPENAI_API_KEY:-}"
-  local openai_api_url_value="${OPENAI_API_URL:-}"
-  if [[ -n "${MODEL_API_URL:-}" ]]; then
-    openai_api_url_value="${MODEL_API_URL}"
-  fi
   local openai_base_url_value="${OPENAI_BASE_URL:-}"
-  if [[ -n "${openai_api_url_value}" ]]; then
-    openai_base_url_value="${openai_api_url_value}"
+  if [[ -n "${MODEL_BASE_URL:-}" ]]; then
+    openai_base_url_value="${MODEL_BASE_URL}"
   fi
   local openai_model_value="${EFFECTIVE_MODEL:-}"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
@@ -629,7 +625,6 @@ run_qwen() {
   cmd=(
     env
     "OPENAI_API_KEY=${openai_api_key_value}"
-    "OPENAI_API_URL=${openai_api_url_value}"
     "OPENAI_BASE_URL=${openai_base_url_value}"
     "OPENAI_MODEL=${openai_model_value}"
     "${cmd[@]}"
@@ -664,7 +659,6 @@ run_qwen() {
   printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
   #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
   printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
-  printf '[qwen] env OPENAI_API_URL=%s\n' "$openai_api_url_value"
   printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     printf '[qwen] model=%s\n' "$display_qwen_model_value"
@@ -727,8 +721,8 @@ run_codex_in_vm() {
   if [[ -n "${MODEL:-}" ]]; then
     remote_env+=( "MODEL=${MODEL}" )
   fi
-  if [[ -n "${MODEL_API_URL:-}" ]]; then
-    remote_env+=( "OPENAI_API_URL=${MODEL_API_URL}" )
+  if [[ -n "${MODEL_BASE_URL:-}" ]]; then
+    remote_env+=( "OPENAI_BASE_URL=${MODEL_BASE_URL}" )
   fi
 
   local -a remote_exec=(npm exec --prefix "$CODEX_DIR" codex -- "$@")
