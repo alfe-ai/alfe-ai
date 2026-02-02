@@ -103,7 +103,7 @@
       "label": "Qwen: Qwen3 Coder 480B A35B (via Openrouter.ai)",
       "created": "2025-07-23",
       "contextTokens": 262144,
-      "disabled": true,
+      "disabled": false,
       "engine_options": [
         "auto",
         "qwen",
@@ -115,7 +115,7 @@
       },
       "qwen_cli": false,
       "list_order": 4,
-      "plus_model": true
+      "plus_model": false
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
