@@ -32,6 +32,9 @@ function setupPostRoutes(deps) {
         loadCodexConfig,
         saveCodexConfig,
         getDefaultCodexModel,
+        getSessionCodexModel,
+        setSessionCodexModel,
+        resolveCodexModelForSession,
         DEFAULT_CODEX_MODEL,
         CODEX_MODEL_PATTERN,
         loadCodexRuns,
@@ -1182,35 +1185,24 @@ function setupPostRoutes(deps) {
             return res.status(400).json({ error: "Default model contains unsupported characters." });
         }
 
-        if (typeof saveCodexConfig !== "function" || typeof loadCodexConfig !== "function") {
-            return res.status(500).json({ error: "Agent configuration storage is unavailable." });
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        const previousDefault = typeof resolveCodexModelForSession === "function"
+            ? resolveCodexModelForSession(sessionId)
+            : (typeof getSessionCodexModel === "function" ? (getSessionCodexModel(sessionId) || getDefaultCodexModel()) : getDefaultCodexModel());
+        const savedModel = typeof setSessionCodexModel === "function"
+            ? setSessionCodexModel(sessionId, rawModel)
+            : rawModel;
+
+        if (!savedModel) {
+            return res.status(400).json({ error: "Default model is invalid." });
         }
 
-        let previousDefault = "";
-        try {
-            const existingConfig = loadCodexConfig();
-            if (existingConfig && typeof existingConfig.defaultModel === "string") {
-                previousDefault = existingConfig.defaultModel;
-            } else if (typeof getDefaultCodexModel === "function") {
-                previousDefault = getDefaultCodexModel();
-            }
-
-            const updatedConfig = {
-                ...existingConfig,
-                defaultModel: rawModel,
-            };
-            saveCodexConfig(updatedConfig);
-
-            return res.json({
-                defaultModel: rawModel,
-                previousDefaultModel: previousDefault,
-                fallbackDefaultModel: DEFAULT_CODEX_MODEL || "",
-                message: "Model updated",
-            });
-        } catch (error) {
-            console.error("[ERROR] /agent/default-model:", error);
-            return res.status(500).json({ error: "Failed to save Agent default model." });
-        }
+        return res.json({
+            defaultModel: savedModel,
+            previousDefaultModel: previousDefault,
+            fallbackDefaultModel: (typeof getDefaultCodexModel === "function" ? getDefaultCodexModel() : DEFAULT_CODEX_MODEL) || "",
+            message: "Model updated",
+        });
     });
 
     /* ---------- Agent runner instructions ---------- */

@@ -34,6 +34,8 @@ function setupGetRoutes(deps) {
         AIModelContextLimits,
         DEFAULT_AIMODEL,
         getDefaultCodexModel,
+        getSessionCodexModel,
+        resolveCodexModelForSession,
         DEFAULT_CODEX_MODEL,
         CODEX_MODEL_PATTERN,
         execSync,
@@ -1940,7 +1942,24 @@ ${cleanedFinalOutput}`;
         ? CODEX_MODEL_PATTERN
         : /^[A-Za-z0-9._:+-]+(?:\/[A-Za-z0-9._:+-]+)*$/;
 
-    const resolveDefaultCodexModel = () => {
+    const resolveDefaultCodexModel = (sessionId = "") => {
+        const safeSessionId = typeof sessionId === "string" ? sessionId : "";
+        if (typeof resolveCodexModelForSession === "function") {
+            try {
+                const resolved = resolveCodexModelForSession(safeSessionId);
+                if (typeof resolved === "string" && resolved.trim()) {
+                    return resolved.trim();
+                }
+            } catch (err) {
+                console.error(`[ERROR] resolveDefaultCodexModel: ${err.message}`);
+            }
+        } else if (typeof getSessionCodexModel === "function") {
+            const sessionModel = getSessionCodexModel(safeSessionId);
+            if (sessionModel) {
+                return sessionModel;
+            }
+        }
+
         if (typeof getDefaultCodexModel === "function") {
             try {
                 const resolved = getDefaultCodexModel();
@@ -2276,10 +2295,10 @@ ${cleanedFinalOutput}`;
             }
         } catch (_e) { /* ignore */ }
 
-        const defaultCodexModel = resolveDefaultCodexModel();
-        const codexConfig = typeof loadCodexConfig === "function" ? loadCodexConfig() : {};
         const iframeParam = req?.query?.iframe;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        const defaultCodexModel = resolveDefaultCodexModel(sessionId);
+        const codexConfig = typeof loadCodexConfig === "function" ? loadCodexConfig() : {};
         const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
         const projectDirParam = (req?.query?.projectDir || "").toString();
         const resolvedDefaultProjectDir = resolveDefaultProjectDirForSession(sessionId);
@@ -2617,7 +2636,7 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/agent/stream", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDir = (req.query.projectDir || "").toString().trim();
         const prompt = (req.query.prompt || "").toString().trim();
         const requestedModel = (req.query.model || "").toString().trim();
@@ -2634,7 +2653,7 @@ ${cleanedFinalOutput}`;
         const followupParentIdRaw = (req.query.followupParentId || "").toString().trim();
 
         const scriptPath = codexScriptPath;
-        const defaultCodexModel = resolveDefaultCodexModel();
+        const defaultCodexModel = resolveDefaultCodexModel(sessionId);
         let model = defaultCodexModel;
         let invalidModelReason = "";
         if (requestedModel) {
@@ -3361,7 +3380,7 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/agent/runs/data", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoDirectoryFilter = (req.query.repo_directory || "").toString().trim();
         const runIdFilter = (req.query.run_id || "").toString().trim();
 
@@ -3464,7 +3483,7 @@ ${cleanedFinalOutput}`;
     app.get("/agent/runs", (req, res) => {
         const repoDirectory = (req.query.repo_directory || "").toString();
         const runId = (req.query.run_id || "").toString();
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         res.render("codex_runs", { repoDirectory, runId, sessionId });
     });
 
@@ -3523,7 +3542,7 @@ ${cleanedFinalOutput}`;
     };
 
     app.get("/agent/project-meta", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const directoryParamRaw = ((req.query.projectDir || req.query.repo_directory || "")
             .toString()
             .trim());
@@ -3996,7 +4015,7 @@ ${cleanedFinalOutput}`;
         // TIMING: measure sub-operation durations
         const __timing_entries = [];
         const __timing_start = Date.now();
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const requestedProjectDir = (req.query.projectDir || "").toString().trim();
         const effectiveProjectDir = requestedProjectDir || defaultCodexProjectDir || "";
         const resolvedProjectDir = effectiveProjectDir ? path.resolve(effectiveProjectDir) : "";
@@ -4107,7 +4126,7 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/agent/git-log/commits.json", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const requestedProjectDir = (req.query.projectDir || "").toString().trim();
         const effectiveProjectDir = requestedProjectDir || defaultCodexProjectDir || "";
 
@@ -4163,7 +4182,7 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/agent/resolve-editor-target", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const directoryParam = ((req.query.repo_directory || req.query.projectDir || "")
             .toString()
             .trim());
@@ -4196,7 +4215,7 @@ ${cleanedFinalOutput}`;
         // TIMING: measure sub-operation durations
         const __timing_entries = [];
         const __timing_start = Date.now();
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const requestedProjectDir = (req.query.projectDir || "").toString().trim();
         const effectiveProjectDir = requestedProjectDir || defaultCodexProjectDir || "";
         const resolvedProjectDir = effectiveProjectDir ? path.resolve(effectiveProjectDir) : "";
@@ -4706,7 +4725,7 @@ ${cleanedFinalOutput}`;
         });
     });
 
-    app.get("/agent/model-only/models", (_req, res) => {
+    app.get("/agent/model-only/models", (req, res) => {
         const showPlusModels = parseBooleanFlag(process.env.PLUS_MODELS_VISIBLE);
         const allModels = loadModelOnlyModels({ includePlus: true });
         const models = showPlusModels
@@ -4734,7 +4753,8 @@ ${cleanedFinalOutput}`;
             openrouter: modelEntries,
         };
         const defaultProvider = "openrouter";
-        const resolvedDefaultModel = resolveDefaultCodexModel();
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        const resolvedDefaultModel = resolveDefaultCodexModel(sessionId);
         if (resolvedDefaultModel) {
             const plusModelIds = new Set(
                 allModels.filter((model) => model && model.plus_model).map((model) => model.id),
@@ -5041,7 +5061,7 @@ ${cleanedFinalOutput}`;
 
     /* ---------- Repositories listing ---------- */
     app.get("/repositories", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoConfig = loadRepoConfig(sessionId);
         const repoList = [];
         if (repoConfig) {
@@ -5094,7 +5114,7 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/repositories/new-default", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         if (!sessionId) {
             res.redirect("/repositories/add");
             return;
@@ -5142,7 +5162,7 @@ ${cleanedFinalOutput}`;
     /* ---------- Chats list ---------- */
     app.get("/environment/:repoName", (req, res) => {
         const repoName = req.params.repoName;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoCfg = loadSingleRepoConfig(repoName, sessionId);
         if (!repoCfg) {
             res.status(404).send(`Repository configuration not found: '${repoName}'`);
@@ -5190,7 +5210,7 @@ ${cleanedFinalOutput}`;
     /* ---------- Create new chat ---------- */
     app.get("/:repoName/chat", (req, res) => {
         const repoName = req.params.repoName;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const dataObj = loadRepoJson(repoName, sessionId);
 
         /* find highest existing chat number */
@@ -5217,7 +5237,7 @@ ${cleanedFinalOutput}`;
     /* ---------- Show specific chat ---------- */
     app.get("/:repoName/chat/:chatNumber", (req, res) => {
         const { repoName, chatNumber } = req.params;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const dataObj = loadRepoJson(repoName, sessionId);
         const chatData = dataObj[chatNumber];
         if (!chatData) return res.status(404).send("Chat not found.");
@@ -5329,7 +5349,7 @@ ${cleanedFinalOutput}`;
     /* ---------- Dedicated editor view ---------- */
     app.get("/:repoName/chat/:chatNumber/editor", (req, res) => {
         const { repoName, chatNumber } = req.params;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const dataObj = loadRepoJson(repoName, sessionId);
         const chatData = dataObj[chatNumber];
         if (!chatData) {
@@ -5433,7 +5453,7 @@ res.render("editor", {
         // will always join against the repo root rather than taking an absolute path.
         requestedPath = requestedPath.replace(/\+/g, '/').replace(/^\/+/, '');
 
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const dataObj = loadRepoJson(repoName, sessionId);
         const chatData = dataObj[chatNumber];
         if (!chatData) {
@@ -5516,7 +5536,7 @@ res.render("editor", {
     /* ---------- Raw / JSON viewer helpers ---------- */
     app.get("/:repoName/chat/:chatNumber/raw/:idx", (req, res) => {
         const { repoName, chatNumber, idx } = req.params;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const dataObj = loadRepoJson(repoName, sessionId);
         const chatData = dataObj[chatNumber];
         if (!chatData) return res.status(404).send("Chat not found.");
@@ -5532,7 +5552,7 @@ res.render("editor", {
 
     app.get("/:repoName/chat/:chatNumber/json_viewer/:idx", (req, res) => {
         const { repoName, chatNumber, idx } = req.params;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const dataObj = loadRepoJson(repoName, sessionId);
         const chatData = dataObj[chatNumber];
         if (!chatData) return res.status(404).send("Chat not found.");
@@ -5549,7 +5569,7 @@ res.render("editor", {
     /* ---------- Git log (JSON) ---------- */
     app.get("/:repoName/git_log", async (req, res) => {
         const { repoName } = req.params;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoCfg = loadSingleRepoConfig(repoName, sessionId);
         if (!repoCfg) return res.status(400).json({ error: `Repository '${repoName}' not found.` });
 
@@ -5569,7 +5589,7 @@ res.render("editor", {
     /* ---------- /:repoName/git_branches ---------- */
     app.get("/:repoName/git_branches", (req, res) => {
         const { repoName } = req.params;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoCfg = loadSingleRepoConfig(repoName, sessionId);
         if (!repoCfg) {
             return res.status(400).json({ error: `Repo '${repoName}' not found.` });
@@ -5673,7 +5693,7 @@ res.render("editor", {
     };
 
     app.get("/agent/git-diff-branch-merge", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
         const branchParam = (req.query.branch || "").toString().trim();
         const branchName = branchParam.replace(/^['"]+|['"]+$/g, "");
@@ -5941,7 +5961,7 @@ ${err}`;
     });
 
 app.get("/agent/git-diff", (req, res) => {
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
         const baseRevInput = (req.query.baseRev || "").toString();
         const compRevInput = (req.query.compRev || "").toString();
@@ -6309,7 +6329,7 @@ app.get("/agent/git-diff", (req, res) => {
 /* ---------- New diff page ---------- */
     app.get("/:repoName/diff", (req, res) => {
         const { repoName } = req.params;
-        const sessionId = resolveSessionId(req);
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const { baseRev, compRev } = req.query;
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         let diffOutput = "";
