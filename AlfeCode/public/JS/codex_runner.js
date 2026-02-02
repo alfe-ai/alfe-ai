@@ -1,5 +1,37 @@
 (() => {
   const config = window.CODEX_RUNNER_CONFIG || {};
+  const shouldStripCodexUserPrompt = config.userPromptVisibleCodex !== true;
+  const CODEX_HIDDEN_PROMPT_LINES = [
+    'Do not ask to commit changes, we run a script to automatically stage, commit, and push after you finish.',
+    'Do not ask anything like "Do you want me to run `git commit` with a message?"',
+    'Do not mention anything like "The file is staged."',
+    'Python command is available via "python3 --version" – Python 3.11.2',
+    'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
+    'When starting, please check AGENTS.md in repository root for further instructions.',
+    'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
+  ];
+
+  const stripCodexUserPromptFromText = (text) => {
+    if (!shouldStripCodexUserPrompt) {
+      return text;
+    }
+    if (typeof text !== "string" || !text) {
+      return text;
+    }
+    const endsWithNewline = text.endsWith("\n");
+    const lines = text.split(/\r?\n/);
+    const filtered = lines.filter((line) => {
+      if (!line) {
+        return true;
+      }
+      return !CODEX_HIDDEN_PROMPT_LINES.some((phrase) => line.includes(phrase));
+    });
+    let joined = filtered.join("\n");
+    if (endsWithNewline && joined) {
+      joined += "\n";
+    }
+    return joined;
+  };
   // submitOnEnter default (may be overridden by localStorage)
   // If localStorage has 'submitOnEnter', that value is used; otherwise the server-provided
   // CODEX_RUNNER_CONFIG.defaultSubmitOnEnter is used (defaults to true).
@@ -4839,6 +4871,9 @@
     if (type === "stdout") {
       normalized = filterStdoutPromptFromText(normalized);
     }
+    if (["output", "stderr", "stdout", "meta"].includes(type)) {
+      normalized = stripCodexUserPromptFromText(normalized);
+    }
 
     if (!normalized) {
       return;
@@ -8152,6 +8187,43 @@ const appendMergeChunk = (text, type = "output") => {
 // Account/auth modal handling
 (function() {
   const config = window.CODEX_RUNNER_CONFIG || {};
+  const shouldStripCodexUserPrompt = config.userPromptVisibleCodex !== true;
+  const CODEX_HIDDEN_PROMPT_LINES = [
+    'Do not ask to commit changes, we run a script to automatically stage, commit, and push after you finish.',
+    'Do not ask anything like "Do you want me to run `git commit` with a message?"',
+    'Do not mention anything like "The file is staged."',
+    'Python command is available via "python3 --version" – Python 3.11.2',
+    'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
+    'When starting, please check AGENTS.md in repository root for further instructions.',
+    'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
+  ];
+
+  const stripCodexUserPromptFromText = (text) => {
+    if (!shouldStripCodexUserPrompt) {
+      return text;
+    }
+    if (typeof text !== "string" || !text) {
+      return text;
+    }
+    const endsWithNewline = text.endsWith("
+");
+    const lines = text.split(/
+?
+/);
+    const filtered = lines.filter((line) => {
+      if (!line) {
+        return true;
+      }
+      return !CODEX_HIDDEN_PROMPT_LINES.some((phrase) => line.includes(phrase));
+    });
+    let joined = filtered.join("
+");
+    if (endsWithNewline && joined) {
+      joined += "
+";
+    }
+    return joined;
+  };
   const signUpLogInBtn = document.getElementById("signUpLogInBtn");
   const subscribeButton = document.getElementById("subscribeButton");
   const accountButtonEnabled = config.accountButtonEnabled !== false;
