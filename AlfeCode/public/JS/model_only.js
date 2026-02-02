@@ -1,5 +1,7 @@
 (function(){
   const modelSelect = document.getElementById('modelSelect');
+  const modelSelectButton = document.getElementById('modelSelectButton');
+  const modelSelectMenu = document.getElementById('modelSelectMenu');
   const engineSelect = document.getElementById('engineSelect');
   const engineFeedback = document.getElementById('engineFeedback');
   const info = document.getElementById('info');
@@ -275,6 +277,81 @@
     };
   }
 
+  function resolveUsageBadge(usage) {
+    const normalized = (usage || '').toString().trim().toLowerCase();
+    if (!normalized) return null;
+    if (normalized.includes('very')) {
+      return { label: normalized, className: 'usage-high' };
+    }
+    if (normalized.includes('high')) {
+      return { label: normalized, className: 'usage-high' };
+    }
+    if (normalized.includes('medium')) {
+      return { label: normalized, className: 'usage-medium' };
+    }
+    if (normalized.includes('low')) {
+      return { label: normalized, className: 'usage-low' };
+    }
+    return { label: normalized, className: 'usage-low' };
+  }
+
+  function createUsageBadge(usage) {
+    const badge = resolveUsageBadge(usage);
+    if (!badge) return null;
+    const label = badge.label
+      .split(' ')
+      .filter(Boolean)
+      .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+      .join(' ');
+    const badgeEl = document.createElement('span');
+    badgeEl.className = `usage-badge ${badge.className}`;
+    badgeEl.textContent = `${label} usage`;
+    return badgeEl;
+  }
+
+  function updateModelSelectButton(model) {
+    if (!modelSelectButton) return;
+    const textWrapper = modelSelectButton.querySelector('.model-select-button__text');
+    if (!textWrapper) return;
+    textWrapper.textContent = '';
+    const labelText = model
+      ? (model.plus_model ? `[Pro] ${model.label}` : model.label)
+      : 'Select model';
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = labelText;
+    textWrapper.appendChild(labelSpan);
+    const badgeEl = model?.usage ? createUsageBadge(model.usage) : null;
+    if (badgeEl) {
+      textWrapper.appendChild(badgeEl);
+    }
+  }
+
+  function syncModelDropdownSelection() {
+    if (!modelSelectMenu) return;
+    const currentValue = modelSelect?.value || '';
+    Array.from(modelSelectMenu.querySelectorAll('.model-select-option')).forEach((button) => {
+      const isSelected = button.dataset.modelId === currentValue;
+      button.classList.toggle('is-selected', isSelected);
+    });
+  }
+
+  function closeModelDropdown() {
+    if (!modelSelectButton || !modelSelectMenu) return;
+    modelSelectMenu.classList.add('hidden');
+    modelSelectButton.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleModelDropdown() {
+    if (!modelSelectButton || !modelSelectMenu) return;
+    const isOpen = !modelSelectMenu.classList.contains('hidden');
+    if (isOpen) {
+      closeModelDropdown();
+    } else {
+      modelSelectMenu.classList.remove('hidden');
+      modelSelectButton.setAttribute('aria-expanded', 'true');
+    }
+  }
+
   function showDefaultModelFeedback(message, type){
     if (!defaultModelFeedback) return;
     defaultModelFeedback.textContent = message;
@@ -321,12 +398,18 @@
       return;
     }
     modelSelect.innerHTML = '';
+    if (modelSelectMenu) {
+      modelSelectMenu.innerHTML = '';
+    }
     if (!list.length) {
       const o = document.createElement('option');
       o.value = '';
       o.textContent = 'No models available';
       modelSelect.appendChild(o);
       modelSelect.disabled = true;
+      if (modelSelectButton) {
+        updateModelSelectButton(null);
+      }
       return;
     }
     let added = 0;
@@ -342,15 +425,9 @@
       }
       const pricingText = formatPricing(model.pricing);
       const modelLabel = model.plus_model ? `[Pro] ${model.label}` : model.label;
-      const usageText = model.usage
-        ? `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`
-        : '';
       const labelParts = [modelLabel];
       if (pricingText) {
         labelParts.push(`— ${pricingText}`);
-      }
-      if (usageText) {
-        labelParts.push(`• ${usageText}`);
       }
       o.textContent = labelParts.join(' ');
       if (model.plus_model && !isProPlan(currentAccountPlan)) {
@@ -358,6 +435,40 @@
         o.classList.add('pro-model-disabled');
       }
       modelSelect.appendChild(o);
+      if (modelSelectMenu) {
+        const optionButton = document.createElement('button');
+        optionButton.type = 'button';
+        optionButton.className = 'model-select-option';
+        optionButton.dataset.modelId = model.id;
+        optionButton.dataset.plusModel = model.plus_model ? 'true' : 'false';
+        if (model.usage) {
+          optionButton.dataset.usage = model.usage;
+        }
+        optionButton.disabled = model.plus_model && !isProPlan(currentAccountPlan);
+        const labelRow = document.createElement('div');
+        labelRow.className = 'model-select-option__label';
+        const labelText = document.createElement('span');
+        labelText.textContent = modelLabel;
+        labelRow.appendChild(labelText);
+        const badgeEl = model.usage ? createUsageBadge(model.usage) : null;
+        if (badgeEl) {
+          labelRow.appendChild(badgeEl);
+        }
+        optionButton.appendChild(labelRow);
+        if (pricingText) {
+          const metaRow = document.createElement('div');
+          metaRow.className = 'model-select-option__meta';
+          metaRow.textContent = pricingText;
+          optionButton.appendChild(metaRow);
+        }
+        optionButton.addEventListener('click', () => {
+          if (optionButton.disabled) return;
+          modelSelect.value = model.id;
+          modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          closeModelDropdown();
+        });
+        modelSelectMenu.appendChild(optionButton);
+      }
       added += 1;
     });
     if (!added) {
@@ -366,9 +477,20 @@
       o.textContent = 'No models available';
       modelSelect.appendChild(o);
       modelSelect.disabled = true;
+      updateModelSelectButton(null);
       return;
     }
     modelSelect.disabled = false;
+    if (modelSelectButton) {
+      const selected = normaliseModelEntry(list.find((entry) => {
+        if (!entry) return false;
+        if (typeof entry === 'string') return entry.trim() === modelSelect.value;
+        if (typeof entry === 'object') return entry.id === modelSelect.value;
+        return false;
+      }));
+      updateModelSelectButton(selected);
+      syncModelDropdownSelection();
+    }
   }
 
   function ensureModelOption(modelId) {
@@ -406,6 +528,36 @@
       option.classList.add('pro-model-disabled');
     }
     modelSelect.insertBefore(option, modelSelect.firstChild);
+    if (modelSelectMenu) {
+      const optionButton = document.createElement('button');
+      optionButton.type = 'button';
+      optionButton.className = 'model-select-option';
+      optionButton.dataset.modelId = modelId;
+      if (model?.plus_model) {
+        optionButton.dataset.plusModel = 'true';
+        optionButton.disabled = !isProPlan(currentAccountPlan);
+      }
+      if (model?.usage) {
+        optionButton.dataset.usage = model.usage;
+      }
+      const labelRow = document.createElement('div');
+      labelRow.className = 'model-select-option__label';
+      const labelText = document.createElement('span');
+      labelText.textContent = label;
+      labelRow.appendChild(labelText);
+      const badgeEl = model?.usage ? createUsageBadge(model.usage) : null;
+      if (badgeEl) {
+        labelRow.appendChild(badgeEl);
+      }
+      optionButton.appendChild(labelRow);
+      optionButton.addEventListener('click', () => {
+        if (optionButton.disabled) return;
+        modelSelect.value = modelId;
+        modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        closeModelDropdown();
+      });
+      modelSelectMenu.insertBefore(optionButton, modelSelectMenu.firstChild);
+    }
     return option;
   }
 
@@ -576,6 +728,13 @@
       option.disabled = !allowPro;
       option.classList.toggle('pro-model-disabled', !allowPro);
     });
+    if (modelSelectMenu) {
+      Array.from(modelSelectMenu.querySelectorAll('.model-select-option')).forEach(option => {
+        const isPlusModel = option.dataset.plusModel === 'true';
+        if (!isPlusModel) return;
+        option.disabled = !allowPro;
+      });
+    }
     if (!allowPro && modelSelect.value) {
       const selectedOption = modelSelect.options[modelSelect.selectedIndex];
       if (selectedOption && selectedOption.disabled) {
@@ -585,6 +744,9 @@
           updateEngineSelect(fallback.value);
         }
       }
+    }
+    if (modelSelectMenu) {
+      syncModelDropdownSelection();
     }
   }
 
@@ -838,12 +1000,35 @@
     const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
     persistEnginePreference('auto', { showFeedback: false });
     updateEngineSelect(newModel);
+    const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+    const selected = normaliseModelEntry(list.find((entry) => {
+      if (!entry) return false;
+      if (typeof entry === 'string') return entry.trim() === newModel;
+      if (typeof entry === 'object') return entry.id === newModel;
+      return false;
+    }));
+    updateModelSelectButton(selected);
+    syncModelDropdownSelection();
     void saveDefaultModel(newModel);
   });
 
   initEngineSelect();
   loadUsageLimits();
   load();
+
+  if (modelSelectButton && modelSelectMenu) {
+    modelSelectButton.addEventListener('click', toggleModelDropdown);
+    document.addEventListener('click', (event) => {
+      if (!modelSelectMenu.contains(event.target) && !modelSelectButton.contains(event.target)) {
+        closeModelDropdown();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeModelDropdown();
+      }
+    });
+  }
 
   if (supportActionButton) {
     supportActionButton.addEventListener('click', handleSupportActionClick);
