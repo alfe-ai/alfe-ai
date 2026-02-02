@@ -1297,6 +1297,23 @@
             margin-top: 28px;
         }
 
+        .prompt-model-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .prompt-model-row .prompt-model-item {
+            flex: 1 1 260px;
+            min-width: 220px;
+        }
+
+        .prompt-model-row .prompt-engine-item {
+            flex: 0 0 180px;
+            min-width: 160px;
+        }
+
         label {
             display: block;
             font-weight: 600;
@@ -3348,6 +3365,28 @@
                 <p class="git-fpush-description">
                     When enabled, run <code>git_fpush.sh</code> automatically after a successful Agent run.
                 </p>
+            </div>
+            <div class="prompt-model-row">
+                <div class="prompt-model-item">
+                    <label for="modelPromptSelect">Model</label>
+                    <select id="modelPromptSelect" name="modelPromptSelect">
+                        <% codexModelGroups.forEach((group) => { %>
+                            <optgroup label="<%= group.label %>">
+                                <% group.models.forEach((model) => { %>
+                                    <option value="<%= model %>" <%= model === defaultCodexModel ? "selected" : "" %>><%= model %></option>
+                                <% }) %>
+                            </optgroup>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="prompt-model-item prompt-engine-item">
+                    <label for="engineSelectInline">Engine</label>
+                    <select id="engineSelectInline" name="engineSelectInline">
+                        <option value="auto">Auto</option>
+                        <option value="qwen">Qwen</option>
+                        <option value="codex">Codex</option>
+                    </select>
+                </div>
             </div>
             <div>
                 <label for="prompt">Prompt</label>
