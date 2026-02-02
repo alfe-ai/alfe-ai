@@ -819,23 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
             li.appendChild(anchor);
             li.appendChild(document.createTextNode(trailingText));
             li.dataset.hashLinked = 'true';
-            li.dataset.diffUrl = diffUrl;
-            li.classList.add('git-commit-row');
-            li.tabIndex = 0;
-
-            li.addEventListener('click', (event) => {
-                if (event.target && event.target.closest('a')) {
-                    return;
-                }
-                window.open(diffUrl, '_blank', 'noopener');
-            });
-
-            li.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    window.open(diffUrl, '_blank', 'noopener');
-                }
-            });
         });
     }
 
@@ -889,32 +872,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const repoName = getRepoNameFromPath();
 
         function displayCommit(commit, indent) {
+            const row = container.append('div')
+                .attr('class', 'git-log-row')
+                .style('margin-left', `${indent * 20}px`);
+
             const parentHash = Array.isArray(commit.parents) && commit.parents.length > 0
                 ? commit.parents[0]
                 : null;
             const baseRev = parentHash || `${commit.hash}^`;
             const diffUrl = `/${repoName}/diff?baseRev=${encodeURIComponent(baseRev)}&compRev=${encodeURIComponent(commit.hash)}`;
-
-            const row = container.append('div')
-                .attr('class', 'git-log-row')
-                .attr('role', 'link')
-                .attr('tabindex', '0')
-                .attr('data-diff-url', diffUrl)
-                .style('margin-left', `${indent * 20}px`);
-
-            row.on('click', (event) => {
-                if (event?.target && event.target.closest('a')) {
-                    return;
-                }
-                window.open(diffUrl, '_blank', 'noopener');
-            });
-
-            row.on('keydown', (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    window.open(diffUrl, '_blank', 'noopener');
-                }
-            });
 
             row.append('a')
                 .attr('href', diffUrl)
