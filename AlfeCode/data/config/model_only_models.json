@@ -75,7 +75,7 @@
       "qwen_cli": true,
       "list_order": 2,
       "plus_model": false,
-      "usage": "low"
+      "usage": "medium"
     },
     {
       "id": "openrouter/openai/gpt-5-nano",
@@ -164,7 +164,7 @@
       "qwen_cli": true,
       "list_order": 4,
       "plus_model": false,
-      "usage": "medium"
+      "usage": "high"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
@@ -257,7 +257,7 @@
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 5,
-      "usage": "medium"
+      "usage": "high"
     },
     {
       "id": "openrouter/mistralai/devstral-2512:free",
