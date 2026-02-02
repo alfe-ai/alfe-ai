@@ -246,7 +246,7 @@
       "plus_model": false
     },
     {
-      "id": "glm-4.5-air-gpt-oss-20b-fallback",
+      "id": "glm-4.5-air-fallback",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
       "list_order": 1,
