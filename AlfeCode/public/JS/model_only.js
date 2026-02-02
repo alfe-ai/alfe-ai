@@ -281,7 +281,7 @@
     const normalized = (usage || '').toString().trim().toLowerCase();
     if (!normalized) return null;
     if (normalized.includes('very')) {
-      return { label: normalized, className: 'usage-very-high' };
+      return { label: normalized, className: 'usage-high' };
     }
     if (normalized.includes('high')) {
       return { label: normalized, className: 'usage-high' };
@@ -298,9 +298,14 @@
   function createUsageBadge(usage) {
     const badge = resolveUsageBadge(usage);
     if (!badge) return null;
+    const label = badge.label
+      .split(' ')
+      .filter(Boolean)
+      .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+      .join(' ');
     const badgeEl = document.createElement('span');
     badgeEl.className = `usage-badge ${badge.className}`;
-    badgeEl.textContent = badge.label;
+    badgeEl.textContent = `${label} usage`;
     return badgeEl;
   }
 
