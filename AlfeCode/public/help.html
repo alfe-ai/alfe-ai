@@ -16,6 +16,25 @@
     .help-section h2{font-size:1.05rem;margin-bottom:8px}
     .help-section h3{font-size:0.95rem;margin:12px 0 6px}
     .placeholder{color:rgba(234,238,242,0.65);font-style:italic}
+    .github-link-button{
+      display:inline-flex;
+      align-items:center;
+      gap:0.4rem;
+      padding:0.5rem 0.85rem;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.35);
+      background:linear-gradient(135deg, rgba(148,163,184,0.12) 0%, rgba(51,65,85,0.18) 100%);
+      color:var(--text);
+      font-weight:700;
+      cursor:pointer;
+      transition:border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .github-link-button:hover,
+    .github-link-button:focus-visible{
+      border-color:#a78bfa;
+      transform:translateY(-1px);
+      box-shadow:0 10px 22px rgba(124,58,237,0.22);
+    }
   </style>
 </head>
 <body>
@@ -65,7 +84,15 @@
       </section>
     </div>
     <p class="muted" style="margin-top:20px;">
-      Visit the <a href="/about.html" target="_blank" rel="noopener noreferrer">About page</a>.
+      Visit the About page:
+      <button
+        type="button"
+        class="github-link-button"
+        onclick="window.open('/about.html','_blank','noopener,noreferrer');"
+        oncontextmenu="window.open('/about.html','_blank','noopener,noreferrer'); return false;"
+      >
+        About
+      </button>
     </p>
   </div>
 </body>
