@@ -262,6 +262,7 @@
           .filter(Boolean)
       : null;
     const plusModel = Boolean(entry.plus_model);
+    const usage = typeof entry.usage === 'string' ? entry.usage.trim().toLowerCase() : '';
     return {
       id,
       label,
@@ -270,6 +271,7 @@
       contextLimitLabel,
       engine_options: engineOptions,
       plus_model: plusModel,
+      usage,
     };
   }
 
@@ -335,12 +337,22 @@
       const o = document.createElement('option');
       o.value = model.id;
       o.dataset.plusModel = model.plus_model ? 'true' : 'false';
+      if (model.usage) {
+        o.dataset.usage = model.usage;
+      }
       const pricingText = formatPricing(model.pricing);
       const modelLabel = model.plus_model ? `[Pro] ${model.label}` : model.label;
       const contextLimit = model.contextLimitLabel && model.contextLimitLabel !== 'N/A'
         ? model.contextLimitLabel
         : '';
       o.textContent = pricingText ? `${modelLabel} — ${pricingText}` : modelLabel;
+      if (model.usage) {
+        o.appendChild(document.createTextNode(' '));
+        const badge = document.createElement('span');
+        badge.className = `usage-badge usage-${model.usage}`;
+        badge.textContent = `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`;
+        o.appendChild(badge);
+      }
       if (model.plus_model && !isProPlan(currentAccountPlan)) {
         o.disabled = true;
         o.classList.add('pro-model-disabled');
@@ -385,6 +397,14 @@
     option.value = modelId;
     const label = model ? (model.plus_model ? `[Pro] ${model.label}` : model.label) : modelId;
     option.textContent = label;
+    if (model?.usage) {
+      option.dataset.usage = model.usage;
+      option.appendChild(document.createTextNode(' '));
+      const badge = document.createElement('span');
+      badge.className = `usage-badge usage-${model.usage}`;
+      badge.textContent = `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`;
+      option.appendChild(badge);
+    }
     if (model && model.plus_model && !isProPlan(currentAccountPlan)) {
       option.disabled = true;
       option.dataset.plusModel = 'true';
