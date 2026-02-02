@@ -54,7 +54,7 @@
       },
       "qwen_cli": false,
       "list_order": 99,
-      "plus_model": true,
+      "plus_model": false,
       "usage": "medium"
     },
     {
@@ -73,7 +73,7 @@
       },
       "qwen_cli": false,
       "list_order": 6,
-      "plus_model": true
+      "plus_model": false
     },
     {
       "id": "openrouter/openai/gpt-5-mini",
