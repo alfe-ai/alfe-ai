@@ -136,6 +136,82 @@ PY
   return 1
 }
 
+resolve_model_only_url() {
+  local config_path="${STERLING_ROOT}/data/config/model_only_models.json"
+  local resolved_path=""
+
+  if [[ -f "$config_path" ]]; then
+    resolved_path="$config_path"
+  fi
+
+  if [[ -z "$resolved_path" ]]; then
+    return 1
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$resolved_path" "$@" <<'PY'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+candidates = [c for c in sys.argv[2:] if c]
+def trace(message):
+    if os.getenv("ENABLE_TRACE", "").lower() not in ("1", "true", "yes", "on"):
+        return
+    print(f"[trace] model-only url: {message}", file=sys.stderr)
+
+trace(f"loading model list from {path}")
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+except Exception:
+    trace("failed to parse JSON model list")
+    sys.exit(1)
+
+if isinstance(data, dict):
+    models = data.get("models", data)
+elif isinstance(data, list):
+    models = data
+else:
+    trace(f"unexpected JSON root type: {type(data).__name__}")
+    sys.exit(1)
+
+if isinstance(models, dict):
+    models = list(models.values())
+
+if not isinstance(models, list):
+    trace(f"unexpected models type: {type(models).__name__}")
+    sys.exit(1)
+
+if not candidates:
+    trace("no candidate model ids provided")
+    sys.exit(1)
+
+for candidate in candidates:
+    for model in models:
+        if isinstance(model, str):
+            continue
+        if not isinstance(model, dict):
+            continue
+        model_id = model.get("id")
+        if model_id != candidate:
+            continue
+        url = model.get("url")
+        if isinstance(url, str) and url.strip():
+            trace(f"matched model {candidate} with url {url}")
+            print(url.strip())
+            sys.exit(0)
+
+trace("no matching model url found")
+sys.exit(1)
+PY
+    return $?
+  fi
+
+  return 1
+}
+
 if CODEX_MODEL_DEFAULT="$(resolve_model_only_default)"; then
   CODEX_MODEL_DEFAULT="${CODEX_MODEL_DEFAULT:-$CODEX_MODEL_DEFAULT_FALLBACK}"
 else
@@ -412,6 +488,13 @@ if ! $USE_QWEN_CLI && [[ -n "$EFFECTIVE_MODEL" ]]; then
   MODEL_ARGS=(--model "$EFFECTIVE_MODEL")
 fi
 
+MODEL_API_URL=""
+if MODEL_API_URL="$(resolve_model_only_url "${QWEN_MODEL:-}" "${MODEL:-}" "${EFFECTIVE_MODEL:-}")"; then
+  trace_log "model-only url resolved to ${MODEL_API_URL}"
+else
+  MODEL_API_URL=""
+fi
+
 if ! $USE_QWEN_CLI && [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
   raw_referer_override="${OPENROUTER_HTTP_REFERER_OVERRIDE:-${OPENROUTER_HTTP_REFERER:-${HTTP_REFERER:-}}}"
   if [[ -n "${raw_referer_override}" ]]; then
@@ -495,7 +578,16 @@ run_codex() {
   fi
   if [[ "$REQUESTED_PROVIDER" == "openrouter" && "$DETECTED_API_KEY_VAR" == "OPENROUTER_API_KEY" ]]; then
     unset_openai=true
-    cmd=(env -u OPENAI_API_KEY "${cmd[@]}")
+  fi
+  local -a env_prefix=()
+  if $unset_openai; then
+    env_prefix+=(-u OPENAI_API_KEY)
+  fi
+  if [[ -n "${MODEL_API_URL:-}" ]]; then
+    env_prefix+=("OPENAI_API_URL=${MODEL_API_URL}")
+  fi
+  if [[ ${#env_prefix[@]} -gt 0 ]]; then
+    cmd=(env "${env_prefix[@]}" "${cmd[@]}")
   fi
   if $unset_openai; then
     log_meta "$META_OPENROUTER_UNSET_MSG"
@@ -506,7 +598,14 @@ run_codex() {
 run_qwen() {
   load_qwen_env
   local openai_api_key_value="${OPENAI_API_KEY:-}"
+  local openai_api_url_value="${OPENAI_API_URL:-}"
+  if [[ -n "${MODEL_API_URL:-}" ]]; then
+    openai_api_url_value="${MODEL_API_URL}"
+  fi
   local openai_base_url_value="${OPENAI_BASE_URL:-}"
+  if [[ -n "${openai_api_url_value}" ]]; then
+    openai_base_url_value="${openai_api_url_value}"
+  fi
   local openai_model_value="${EFFECTIVE_MODEL:-}"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     openai_model_value="$QWEN_MODEL"
@@ -530,6 +629,7 @@ run_qwen() {
   cmd=(
     env
     "OPENAI_API_KEY=${openai_api_key_value}"
+    "OPENAI_API_URL=${openai_api_url_value}"
     "OPENAI_BASE_URL=${openai_base_url_value}"
     "OPENAI_MODEL=${openai_model_value}"
     "${cmd[@]}"
@@ -564,6 +664,7 @@ run_qwen() {
   printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
   #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
   printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
+  printf '[qwen] env OPENAI_API_URL=%s\n' "$openai_api_url_value"
   printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     printf '[qwen] model=%s\n' "$display_qwen_model_value"
@@ -625,6 +726,9 @@ run_codex_in_vm() {
   fi
   if [[ -n "${MODEL:-}" ]]; then
     remote_env+=( "MODEL=${MODEL}" )
+  fi
+  if [[ -n "${MODEL_API_URL:-}" ]]; then
+    remote_env+=( "OPENAI_API_URL=${MODEL_API_URL}" )
   fi
 
   local -a remote_exec=(npm exec --prefix "$CODEX_DIR" codex -- "$@")
