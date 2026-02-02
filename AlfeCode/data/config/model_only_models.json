@@ -246,7 +246,7 @@
       "plus_model": false
     },
     {
-      "id": "glm-4.5-air-fallback",
+      "id": "openrouter/z-ai/glm-4.5-air:free",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
       "list_order": 1,
