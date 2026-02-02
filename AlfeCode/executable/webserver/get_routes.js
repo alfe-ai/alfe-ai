@@ -1782,6 +1782,7 @@ ${cleanedFinalOutput}`;
                 .filter(Boolean)
             : null;
         const plusModel = Boolean(entry.plus_model);
+        const usage = typeof entry.usage === "string" ? entry.usage.trim().toLowerCase() : "";
         const pricing = entry.pricing && typeof entry.pricing === "object"
             ? {
                 inputPerMTokens: coerceNumber(entry.pricing.inputPerMTokens),
@@ -1801,6 +1802,7 @@ ${cleanedFinalOutput}`;
             engine_options: engineOptions,
             list_order: Number.isFinite(listOrder) ? listOrder : null,
             plus_model: plusModel,
+            usage,
             pricing,
         };
     }
