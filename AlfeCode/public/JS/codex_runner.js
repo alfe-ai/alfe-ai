@@ -24,7 +24,33 @@
   let runsSidebarSelectedRunId = null;
 
   let modelSelect;
+  let modelPromptSelect;
+  let engineSelectInline;
   let defaultModelInput;
+
+  const updateModelSelectValue = (value) => {
+    if (modelSelect) {
+      modelSelect.value = value;
+    }
+    if (modelPromptSelect) {
+      modelPromptSelect.value = value;
+    }
+  };
+
+  const shouldUpdateModelSelect = (selectEl, previousDefault) =>
+    Boolean(selectEl && (!selectEl.value || selectEl.value === previousDefault));
+
+  const ensureModelOption = (selectEl, value) => {
+    if (!selectEl || !value) return null;
+    let existingOption = Array.from(selectEl.options || []).find((opt) => opt.value === value);
+    if (!existingOption) {
+      existingOption = document.createElement("option");
+      existingOption.value = value;
+      existingOption.textContent = value;
+      selectEl.insertBefore(existingOption, selectEl.firstChild);
+    }
+    return existingOption;
+  };
   // Listen for settings from the settings iframe to update submit-on-enter default
   window.addEventListener('message', function(ev){
     try{
@@ -42,8 +68,11 @@
         if(newDefaultModel){
           var previousDefault = config.defaultModel || '';
           config.defaultModel = newDefaultModel;
-          if(modelSelect && (!modelSelect.value || modelSelect.value === previousDefault)){
+          if(shouldUpdateModelSelect(modelSelect, previousDefault)){
             modelSelect.value = newDefaultModel;
+          }
+          if(shouldUpdateModelSelect(modelPromptSelect, previousDefault)){
+            modelPromptSelect.value = newDefaultModel;
           }
           if(defaultModelInput){
             defaultModelInput.value = newDefaultModel;
@@ -52,6 +81,9 @@
       }
       if(d.key === 'engine'){
         enginePreference = normalizeEnginePreference(d.value);
+        if (engineSelectInline) {
+          engineSelectInline.value = enginePreference;
+        }
       }
       if (d.key === 'openAuthModal') {
         const preferredStep = d.value === 'login' ? 'login' : 'signup';
@@ -344,6 +376,39 @@
   };
 
   modelSelect = document.getElementById("model");
+  modelPromptSelect = document.getElementById("modelPromptSelect");
+  engineSelectInline = document.getElementById("engineSelectInline");
+  const handleModelSelectChange = (event) => {
+    const source = event.target;
+    if (source === modelSelect && modelPromptSelect) {
+      modelPromptSelect.value = source.value;
+    }
+    if (source === modelPromptSelect && modelSelect) {
+      modelSelect.value = source.value;
+    }
+  };
+  if (modelSelect) {
+    modelSelect.addEventListener("change", handleModelSelectChange);
+  }
+  if (modelPromptSelect) {
+    if (modelSelect && modelSelect.value) {
+      modelPromptSelect.value = modelSelect.value;
+    }
+    modelPromptSelect.addEventListener("change", handleModelSelectChange);
+  }
+  if (engineSelectInline) {
+    engineSelectInline.value = enginePreference;
+    engineSelectInline.addEventListener("change", (event) => {
+      const normalized = normalizeEnginePreference(event.target.value);
+      enginePreference = normalized;
+      engineSelectInline.value = normalized;
+      try {
+        localStorage.setItem(ENGINE_STORAGE_KEY, normalized);
+      } catch (error) {
+        /* ignore */
+      }
+    });
+  }
   const statusEl = document.getElementById("status");
   const statusTextEl = document.getElementById("statusText");
   const outputEl = document.getElementById("output");
@@ -4076,7 +4141,7 @@
       : repoDirectoryFromUrl || codexDefaultProjectDir || "",
   );
   if (modelSelect && config.defaultModel) {
-    modelSelect.value = config.defaultModel;
+    updateModelSelectValue(config.defaultModel);
   }
   if (defaultModelInput && config.defaultModel) {
     defaultModelInput.value = config.defaultModel;
@@ -4883,7 +4948,7 @@ const appendMergeChunk = (text, type = "output") => {
     }
 
     if (modelSelect && typeof run.model === "string" && run.model.trim()) {
-      modelSelect.value = run.model;
+      updateModelSelectValue(run.model);
     }
 
     const promptValue =
@@ -6033,7 +6098,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (modelSelect) {
       const fallbackModel = config.defaultModel || config.defaultCodexModel || "";
       if (fallbackModel) {
-        modelSelect.value = fallbackModel;
+        updateModelSelectValue(fallbackModel);
       }
     }
 
@@ -6075,6 +6140,12 @@ const appendMergeChunk = (text, type = "output") => {
     }
     if (modelSelect) {
       modelSelect.disabled = disabled;
+    }
+    if (modelPromptSelect) {
+      modelPromptSelect.disabled = disabled;
+    }
+    if (engineSelectInline) {
+      engineSelectInline.disabled = disabled;
     }
     if (promptInput) {
       try {
@@ -7030,15 +7101,12 @@ const appendMergeChunk = (text, type = "output") => {
         }
 
         if (modelSelect) {
-          let existingOption = Array.from(modelSelect.options || []).find((opt) => opt.value === savedModel);
-          if (!existingOption) {
-            existingOption = document.createElement("option");
-            existingOption.value = savedModel;
-            existingOption.textContent = savedModel;
-            modelSelect.insertBefore(existingOption, modelSelect.firstChild);
-          }
-          modelSelect.value = savedModel;
+          ensureModelOption(modelSelect, savedModel);
         }
+        if (modelPromptSelect) {
+          ensureModelOption(modelPromptSelect, savedModel);
+        }
+        updateModelSelectValue(savedModel);
 
         config.defaultModel = savedModel;
         config.defaultCodexModel = savedModel;
@@ -7133,7 +7201,9 @@ const appendMergeChunk = (text, type = "output") => {
     const selectedModel =
       (modelSelect && modelSelect.value)
         ? modelSelect.value
-        : config.defaultModel || config.defaultCodexModel || "";
+        : (modelPromptSelect && modelPromptSelect.value)
+          ? modelPromptSelect.value
+          : config.defaultModel || config.defaultCodexModel || "";
 
     const trimmedInstructions = agentInstructions ? agentInstructions.trim() : "";
     const promptSections = [];
