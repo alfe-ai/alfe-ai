@@ -112,6 +112,21 @@
       "list_order": 5
     },
     {
+      "id": "openrouter/openai/gpt-5.1-codex-mini",
+      "label": "OpenAI: GPT-5.1 Codex Mini",
+      "created": "2025-11-13",
+      "contextTokens": 400000,
+      "disabled": false,
+      "pricing": {
+        "inputPerMTokens": 0.25,
+        "outputPerMTokens": 2
+      },
+      "qwen_cli": false,
+      "plus_model": false,
+      "usage": "very high",
+      "list_order": 6
+    },
+    {
       "id": "openrouter/nex-agi/deepseek-v3.1-nex-n1",
       "label": "Nex AGI: DeepSeek V3.1 Nex N1",
       "created": "2025-12-08",
@@ -123,7 +138,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 6
+      "list_order": 7
     },
     {
       "id": "openrouter/qwen/qwen3-coder",
@@ -141,7 +156,7 @@
         "outputPerMTokens": 0.95
       },
       "qwen_cli": false,
-      "list_order": 7,
+      "list_order": 8,
       "plus_model": false,
       "usage": "high"
     },
@@ -157,7 +172,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 8
+      "list_order": 9
     },
     {
       "id": "openrouter/openai/gpt-oss-120b:free",
@@ -171,7 +186,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 9
+      "list_order": 10
     },
     {
       "id": "openrouter/openai/gpt-oss-20b:free",
@@ -189,7 +204,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 10
+      "list_order": 11
     },
     {
       "id": "openrouter/qwen/qwen3-coder-30b-a3b-instruct",
@@ -206,7 +221,7 @@
         "outputPerMTokens": 0.27
       },
       "qwen_cli": true,
-      "list_order": 11,
+      "list_order": 12,
       "plus_model": false
     },
     {
@@ -222,7 +237,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 12
+      "list_order": 13
     },
     {
       "id": "openrouter/kwaipilot/kat-coder-pro",
@@ -235,7 +250,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 13,
+      "list_order": 14,
       "usage": "high"
     },
     {
@@ -244,7 +259,7 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 14
+      "list_order": 15
     },
     {
       "id": "openrouter/mistralai/mistral-small-3.1-24b-instruct:free",
@@ -252,7 +267,7 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 15
+      "list_order": 16
     },
     {
       "id": "openrouter/meta-llama/llama-3.3-70b-instruct:free",
@@ -260,7 +275,7 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 16
+      "list_order": 17
     },
     {
       "id": "openrouter/google/gemini-2.0-flash-exp:free",
@@ -268,13 +283,13 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 17
+      "list_order": 18
     },
     {
       "id": "glm-4.5-air",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
-      "list_order": 18,
+      "list_order": 19,
       "engine_options": [
         "auto",
         "qwen"
@@ -289,7 +304,7 @@
       "id": "openrouter/z-ai/glm-4.5-air",
       "label": "[Backup] Z.ai: GLM 4.5 Air",
       "disabled": true,
-      "list_order": 19,
+      "list_order": 20,
       "engine_options": [
         "auto",
         "qwen"
@@ -312,7 +327,7 @@
       },
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 20
+      "list_order": 21
     },
     {
       "id": "openrouter/mistralai/mistral-7b-instruct:free",
@@ -320,7 +335,7 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 21
+      "list_order": 22
     },
     {
       "id": "openrouter/google/gemma-3-27b-it:free",
@@ -328,7 +343,7 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 22
+      "list_order": 23
     },
     {
       "id": "openrouter/nvidia/nemotron-nano-9b-v2:free",
@@ -336,13 +351,13 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 23
+      "list_order": 24
     },
     {
       "id": "openrouter/arcee-ai/trinity-mini:free",
       "label": "Arcee AI: Trinity Mini",
       "disabled": true,
-      "list_order": 24,
+      "list_order": 25,
       "engine_options": [
         "auto",
         "qwen"
@@ -357,7 +372,7 @@
       "created": "2026-01-27",
       "contextTokens": 131000,
       "disabled": false,
-      "list_order": 25,
+      "list_order": 26,
       "engine_options": [
         "auto",
         "qwen"
@@ -376,7 +391,7 @@
       "disabled": true,
       "qwen_cli": false,
       "plus_model": false,
-      "list_order": 26
+      "list_order": 27
     }
   ]
 }
