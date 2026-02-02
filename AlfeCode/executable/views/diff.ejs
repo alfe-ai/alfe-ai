@@ -1013,8 +1013,9 @@
             }
 
             const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
-            const fallbackEditorBase = currentUrl.hostname === 'git' ? 'https://code-s.alfe.sh' : '';
-            const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined') ? editorBaseRaw : fallbackEditorBase;
+            const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined')
+                ? editorBaseRaw
+                : currentUrl.origin;
             const url = new URL(newPathname, editorBase || currentUrl.origin);
             // preserve existing query params from current URL
             const newParams = new URLSearchParams(currentUrl.search);
@@ -1032,8 +1033,9 @@
         } catch (e) {
             try {
                 const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
-                const fallbackEditorBase = currentUrl.hostname === 'git' ? 'https://code-s.alfe.sh' : '';
-                const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined') ? editorBaseRaw : fallbackEditorBase;
+                const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined')
+                    ? editorBaseRaw
+                    : currentUrl.origin;
                 const fallbackPath = (repoLinksEnabled
                     ? '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file='
                     : '/chat/editor?open_file=') + encodeURIComponent(filePath);
