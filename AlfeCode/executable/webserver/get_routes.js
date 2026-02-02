@@ -2346,10 +2346,16 @@ ${cleanedFinalOutput}`;
             accountsEnabled: parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true),
         });
     });
-    app.get('/agent/model-only/order', (_req, res) => {
+    app.get('/agent/model-only/order', (req, res) => {
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).send("Forbidden.");
+        }
         res.render('model_only_order');
     });
-    app.get('/agent/model-only/order/data', (_req, res) => {
+    app.get('/agent/model-only/order/data', (req, res) => {
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ message: "Forbidden." });
+        }
         const { models, error } = loadModelOnlyConfigRaw();
         if (error) {
             res.status(500).json({ message: error });
@@ -2368,6 +2374,9 @@ ${cleanedFinalOutput}`;
         });
     });
     app.post('/agent/model-only/order', (req, res) => {
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ message: "Forbidden." });
+        }
         const requestedOrder = req.body?.order;
         if (!Array.isArray(requestedOrder)) {
             res.status(400).json({ message: "Order must be an array." });
