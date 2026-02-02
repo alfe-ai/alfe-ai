@@ -397,17 +397,40 @@
     modelPromptSelect.addEventListener("change", handleModelSelectChange);
   }
   if (engineSelectInline) {
+    const engineOptionLabelPrefix = "Engine: ";
+    const syncEngineOptionLabels = (expanded) => {
+      engineSelectInline.querySelectorAll("option").forEach((option) => {
+        if (!option.dataset.originalLabel) {
+          option.dataset.originalLabel = option.textContent || "";
+        }
+        const isSelected = option.value === engineSelectInline.value;
+        if (expanded && !isSelected) {
+          option.textContent = `${engineOptionLabelPrefix}${option.dataset.originalLabel}`;
+          return;
+        }
+        option.textContent = option.dataset.originalLabel;
+      });
+    };
+
     engineSelectInline.value = enginePreference;
     engineSelectInline.addEventListener("change", (event) => {
       const normalized = normalizeEnginePreference(event.target.value);
       enginePreference = normalized;
       engineSelectInline.value = normalized;
+      syncEngineOptionLabels(document.activeElement === engineSelectInline);
       try {
         localStorage.setItem(ENGINE_STORAGE_KEY, normalized);
       } catch (error) {
         /* ignore */
       }
     });
+    engineSelectInline.addEventListener("focus", () => {
+      syncEngineOptionLabels(true);
+    });
+    engineSelectInline.addEventListener("blur", () => {
+      syncEngineOptionLabels(false);
+    });
+    syncEngineOptionLabels(false);
   }
   const statusEl = document.getElementById("status");
   const statusTextEl = document.getElementById("statusText");
