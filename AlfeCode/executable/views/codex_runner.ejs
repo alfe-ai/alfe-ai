@@ -442,8 +442,8 @@
             border-radius: 0 24px 24px 0;
             border: 1px solid var(--surface-border);
             border-left: none;
-            padding: clamp(24px, 4vw, 48px);
-            padding-top: clamp(20px, 3vw, 32px);
+            padding: clamp(20px, 3.5vw, 36px);
+            padding-top: clamp(12px, 2vw, 20px);
             box-shadow: var(--shadow);
             backdrop-filter: blur(18px);
             display: flex;
@@ -1151,7 +1151,7 @@
             justify-content: flex-end;
             align-items: center;
             flex-wrap: wrap;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             color: var(--text-muted);
             gap: 14px;
         }
@@ -1293,8 +1293,26 @@
 
         form {
             display: grid;
-            gap: 18px;
-            margin-top: 28px;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .prompt-model-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .prompt-model-row .prompt-model-item {
+            display: flex;
+            flex-direction: column;
+            flex: 0 1 auto;
+        }
+
+        .prompt-model-row .prompt-model-item select {
+            width: auto;
+            min-width: 0;
         }
 
         label {
@@ -3268,8 +3286,8 @@
                 <select id="model" name="model">
                     <% codexModelGroups.forEach((group) => { %>
                         <optgroup label="<%= group.label %>">
-                            <% group.models.forEach((model) => { %>
-                                <option value="<%= model %>" <%= model === defaultCodexModel ? "selected" : "" %>><%= model %></option>
+                            <% group.models.forEach((model) => { const modelId = typeof model === "string" ? model : model.id; const modelLabel = typeof model === "string" ? model : (model.label || model.id); %>
+                                <option value="<%= modelId %>" <%= modelId === defaultCodexModel ? "selected" : "" %>><%= modelLabel %></option>
                             <% }) %>
                         </optgroup>
                     <% }) %>
@@ -3348,6 +3366,26 @@
                 <p class="git-fpush-description">
                     When enabled, run <code>git_fpush.sh</code> automatically after a successful Agent run.
                 </p>
+            </div>
+            <div class="prompt-model-row">
+                <div class="prompt-model-item">
+                    <select id="modelPromptSelect" name="modelPromptSelect">
+                        <% codexModelGroups.forEach((group) => { %>
+                            <optgroup label="<%= group.label %>">
+                                <% group.models.forEach((model) => { const modelId = typeof model === "string" ? model : model.id; const modelLabel = typeof model === "string" ? model : (model.label || model.id); %>
+                                    <option value="<%= modelId %>" <%= modelId === defaultCodexModel ? "selected" : "" %>><%= modelLabel %></option>
+                                <% }) %>
+                            </optgroup>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="prompt-model-item prompt-engine-item">
+                    <select id="engineSelectInline" name="engineSelectInline">
+                        <option value="auto">Auto</option>
+                        <option value="qwen">Qwen</option>
+                        <option value="codex">Codex</option>
+                    </select>
+                </div>
             </div>
             <div>
                 <label for="prompt">Prompt</label>
