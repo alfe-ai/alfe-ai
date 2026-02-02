@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Model Order</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body{
+      font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      display:flex;
+      justify-content:center;
+      background:#0b1120;
+      color:#e2e8f0;
+      min-height:100vh;
+      margin:0;
+      padding:32px 20px;
+    }
+    .card{
+      background:rgba(15,23,42,0.9);
+      padding:24px;
+      border-radius:12px;
+      border:1px solid rgba(71,85,105,0.4);
+      width:min(780px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      box-shadow:0 20px 45px rgba(0,0,0,0.35);
+    }
+    .card h2{
+      margin:0;
+    }
+    .subtitle{
+      margin:0;
+      color:#94a3b8;
+      font-size:0.95rem;
+    }
+    .status{
+      min-height:20px;
+      font-size:0.85rem;
+      color:#94a3b8;
+    }
+    .status.success{color:#a7f3d0;}
+    .status.error{color:#fca5a5;}
+    .model-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      max-height:60vh;
+      overflow:auto;
+      padding-right:4px;
+    }
+    .model-row{
+      display:grid;
+      grid-template-columns:48px 1fr auto;
+      gap:12px;
+      align-items:center;
+      padding:12px;
+      border-radius:12px;
+      background:rgba(15,23,42,0.6);
+      border:1px solid rgba(148,163,184,0.2);
+    }
+    .model-index{
+      font-weight:700;
+      color:#cbd5f5;
+    }
+    .model-meta{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .model-label{
+      font-weight:600;
+      color:#e2e8f0;
+    }
+    .model-id{
+      font-size:0.85rem;
+      color:#94a3b8;
+      word-break:break-all;
+    }
+    .model-tag{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:0.7rem;
+      background:rgba(59,130,246,0.2);
+      color:#bfdbfe;
+      margin-left:8px;
+    }
+    .row-actions{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .arrow-button{
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,0.4);
+      background:rgba(15,23,42,0.7);
+      color:#e2e8f0;
+      padding:6px 10px;
+      cursor:pointer;
+      font-size:0.9rem;
+      transition:transform 0.15s ease, border-color 0.15s ease;
+    }
+    .arrow-button:hover:not(:disabled),
+    .arrow-button:focus-visible:not(:disabled){
+      transform:translateY(-1px);
+      border-color:#a78bfa;
+    }
+    .arrow-button:disabled{
+      opacity:0.4;
+      cursor:not-allowed;
+    }
+    .footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      border-top:1px solid rgba(148,163,184,0.12);
+      padding-top:12px;
+      color:#94a3b8;
+    }
+    .footer a{color:inherit;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div>
+      <h2>Model order editor</h2>
+      <p class="subtitle">Click the arrows to swap a model with the one above or below it. Order updates are saved automatically.</p>
+    </div>
+    <div class="status" id="status">Loading model list…</div>
+    <div class="model-list" id="modelList"></div>
+    <div class="footer">
+      <span>Need to jump back? <a href="/agent/model-only">Return to settings</a></span>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const listEl = document.getElementById('modelList');
+    let models = [];
+    let saveTimeout;
+
+    const setStatus = (message, type) => {
+      statusEl.textContent = message;
+      statusEl.className = `status${type ? ` ${type}` : ''}`;
+    };
+
+    const renderList = () => {
+      listEl.innerHTML = '';
+      models.forEach((model, index) => {
+        const row = document.createElement('div');
+        row.className = 'model-row';
+
+        const indexEl = document.createElement('div');
+        indexEl.className = 'model-index';
+        indexEl.textContent = index;
+
+        const meta = document.createElement('div');
+        meta.className = 'model-meta';
+        const label = document.createElement('div');
+        label.className = 'model-label';
+        label.textContent = model.label || model.id || 'Unnamed model';
+        if (model.plus_model) {
+          const tag = document.createElement('span');
+          tag.className = 'model-tag';
+          tag.textContent = 'Plus';
+          label.appendChild(tag);
+        }
+        const id = document.createElement('div');
+        id.className = 'model-id';
+        id.textContent = model.id || '';
+        meta.appendChild(label);
+        meta.appendChild(id);
+
+        const actions = document.createElement('div');
+        actions.className = 'row-actions';
+        const upButton = document.createElement('button');
+        upButton.type = 'button';
+        upButton.className = 'arrow-button';
+        upButton.textContent = '↑';
+        upButton.disabled = index === 0;
+        upButton.addEventListener('click', () => moveItem(index, -1));
+        const downButton = document.createElement('button');
+        downButton.type = 'button';
+        downButton.className = 'arrow-button';
+        downButton.textContent = '↓';
+        downButton.disabled = index === models.length - 1;
+        downButton.addEventListener('click', () => moveItem(index, 1));
+        actions.appendChild(upButton);
+        actions.appendChild(downButton);
+
+        row.appendChild(indexEl);
+        row.appendChild(meta);
+        row.appendChild(actions);
+        listEl.appendChild(row);
+      });
+    };
+
+    const queueSave = () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      saveTimeout = setTimeout(saveOrder, 150);
+    };
+
+    const saveOrder = async () => {
+      try {
+        setStatus('Saving order…');
+        const response = await fetch('/agent/model-only/order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ order: models.map((model) => model.key) }),
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.message || 'Unable to save order.');
+        }
+        setStatus('Order saved.', 'success');
+      } catch (error) {
+        setStatus(error.message || 'Unable to save order.', 'error');
+      }
+    };
+
+    const moveItem = (index, direction) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= models.length) return;
+      const next = [...models];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      models = next;
+      renderList();
+      queueSave();
+    };
+
+    const loadModels = async () => {
+      try {
+        const response = await fetch('/agent/model-only/order/data');
+        if (!response.ok) {
+          throw new Error('Unable to load models.');
+        }
+        const payload = await response.json();
+        models = payload.models || [];
+        if (!models.length) {
+          setStatus('No models found.');
+          return;
+        }
+        setStatus('');
+        renderList();
+      } catch (error) {
+        setStatus(error.message || 'Unable to load models.', 'error');
+      }
+    };
+
+    loadModels();
+  </script>
+</body>
+</html>

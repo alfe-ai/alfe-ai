@@ -1856,6 +1856,44 @@ ${cleanedFinalOutput}`;
             return [];
         }
     }
+
+    const loadModelOnlyConfigRaw = () => {
+        const resolvedPath = fs.existsSync(modelOnlyConfigPath)
+            ? modelOnlyConfigPath
+            : modelOnlyConfigFallbackPath;
+        if (!fs.existsSync(resolvedPath)) {
+            return { error: "Model-only config file not found." };
+        }
+        try {
+            const raw = fs.readFileSync(resolvedPath, "utf-8");
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return { parsed, models: parsed, path: resolvedPath, rootArray: true };
+            }
+            if (Array.isArray(parsed?.models)) {
+                return { parsed, models: parsed.models, path: resolvedPath, rootArray: false };
+            }
+            return { error: "Model-only config format is not supported." };
+        } catch (err) {
+            return { error: err.message };
+        }
+    };
+
+    const sortModelOnlyEntries = (entries) => {
+        return entries
+            .map((entry, index) => ({ ...entry, index }))
+            .sort((a, b) => {
+                const aOrder = Number.isFinite(a.list_order) ? a.list_order : null;
+                const bOrder = Number.isFinite(b.list_order) ? b.list_order : null;
+                if (aOrder !== null && bOrder !== null) {
+                    if (aOrder !== bOrder) return aOrder - bOrder;
+                    return a.index - b.index;
+                }
+                if (aOrder !== null) return -1;
+                if (bOrder !== null) return 1;
+                return a.index - b.index;
+            });
+    };
     const baseCodexModelGroups = [
         {
             label: "OpenRouter (OpenAI-compatible IDs)",
@@ -2307,6 +2345,72 @@ ${cleanedFinalOutput}`;
             imagesEnabled2026,
             accountsEnabled: parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true),
         });
+    });
+    app.get('/agent/model-only/order', (_req, res) => {
+        res.render('model_only_order');
+    });
+    app.get('/agent/model-only/order/data', (_req, res) => {
+        const { models, error } = loadModelOnlyConfigRaw();
+        if (error) {
+            res.status(500).json({ message: error });
+            return;
+        }
+        const entries = models
+            .map((model, index) => {
+                const normalised = normaliseModelOnlyEntry(model, {});
+                if (!normalised) return null;
+                return { key: index, ...normalised };
+            })
+            .filter(Boolean);
+        const sorted = sortModelOnlyEntries(entries);
+        res.json({
+            models: sorted.map(({ index, ...entry }) => entry),
+        });
+    });
+    app.post('/agent/model-only/order', (req, res) => {
+        const requestedOrder = req.body?.order;
+        if (!Array.isArray(requestedOrder)) {
+            res.status(400).json({ message: "Order must be an array." });
+            return;
+        }
+        const { parsed, models, path: configPath, error } = loadModelOnlyConfigRaw();
+        if (error) {
+            res.status(500).json({ message: error });
+            return;
+        }
+        const maxIndex = models.length;
+        const seen = new Set();
+        const cleanedOrder = [];
+        requestedOrder.forEach((value) => {
+            const index = Number(value);
+            if (!Number.isInteger(index) || index < 0 || index >= maxIndex) {
+                return;
+            }
+            if (seen.has(index)) return;
+            seen.add(index);
+            cleanedOrder.push(index);
+        });
+        for (let index = 0; index < maxIndex; index += 1) {
+            if (!seen.has(index)) {
+                cleanedOrder.push(index);
+            }
+        }
+        cleanedOrder.forEach((modelIndex, position) => {
+            const entry = models[modelIndex];
+            if (entry && typeof entry === "object") {
+                entry.list_order = position;
+                return;
+            }
+            if (typeof entry === "string") {
+                models[modelIndex] = { id: entry, list_order: position };
+            }
+        });
+        try {
+            fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`, "utf-8");
+            res.json({ message: "Order saved." });
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
     });
     app.get('/support', async (req, res) => {
         const account = await requireSupportPlan(req, res);
