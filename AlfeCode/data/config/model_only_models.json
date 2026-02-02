@@ -116,8 +116,9 @@
         "outputPerMTokens": 0.95
       },
       "qwen_cli": false,
-      "list_order": 4,
-      "plus_model": false
+      "list_order": 0,
+      "plus_model": false,
+      "usage": "high"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
