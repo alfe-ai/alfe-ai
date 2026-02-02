@@ -7646,9 +7646,9 @@ const appendMergeChunk = (text, type = "output") => {
 
   const readPersistedState = () => {
     try {
-      return window.localStorage.getItem(STORAGE_KEY) === '1';
+      return window.localStorage.getItem(STORAGE_KEY);
     } catch (_err) {
-      return false;
+      return null;
     }
   };
 
@@ -7673,9 +7673,18 @@ const appendMergeChunk = (text, type = "output") => {
     try { collapseButton.focus({ preventScroll: true }); } catch (_err) { /* ignore */ }
   };
 
-  if (readPersistedState()) {
-    applyState(true);
-  }
+  const initialState = (() => {
+    const stored = readPersistedState();
+    if (stored === '1') {
+      return true;
+    }
+    if (stored === '0') {
+      return false;
+    }
+    return window.matchMedia('(max-width: 700px)').matches;
+  })();
+
+  applyState(initialState);
 
   collapseButton.addEventListener('click', collapse);
   [expandButton, collapsedLogoButton].forEach((el) => {
