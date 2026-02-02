@@ -342,9 +342,6 @@
       }
       const pricingText = formatPricing(model.pricing);
       const modelLabel = model.plus_model ? `[Pro] ${model.label}` : model.label;
-      const contextLimit = model.contextLimitLabel && model.contextLimitLabel !== 'N/A'
-        ? model.contextLimitLabel
-        : '';
       const usageText = model.usage
         ? `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`
         : '';
@@ -354,9 +351,6 @@
       }
       if (usageText) {
         labelParts.push(`• ${usageText}`);
-      }
-      if (contextLimit) {
-        labelParts.push(`(${contextLimit})`);
       }
       o.textContent = labelParts.join(' ');
       if (model.plus_model && !isProPlan(currentAccountPlan)) {
