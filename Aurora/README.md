@@ -41,6 +41,14 @@ Run `../setup_certbot.sh <domain> <email>` to quickly generate these files with
 Let's Encrypt. After generation, execute `../setup_ssl_permissions.sh <domain> [user]`
 so the specified user can access the key and certificate without root.
 
+For `chat.alfe.sh`, the setup commands look like:
+```bash
+sudo ../setup_certbot.sh chat.alfe.sh <email>
+sudo ../setup_ssl_permissions.sh chat.alfe.sh [user]
+export HTTPS_KEY_PATH="/etc/letsencrypt/live/chat.alfe.sh/privkey.pem"
+export HTTPS_CERT_PATH="/etc/letsencrypt/live/chat.alfe.sh/fullchain.pem"
+```
+
 ### Obtaining API Keys
 1. **OpenAI API Key**:
    - Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
