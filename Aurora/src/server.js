@@ -4661,7 +4661,7 @@ app.get("/", async (req, res) => {
     }
   }
 
-  if (["mvp2.alfe.sh", "app.alfe.sh"].includes(req.hostname)) {
+  if (["mvp2.alfe.sh", "chat.alfe.sh"].includes(req.hostname)) {
     try {
       const { sessionId } = ensureSessionIdCookie(req, res);
       const { uuid } = await db.createChatTab(
