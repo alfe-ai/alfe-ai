@@ -119,10 +119,10 @@ router.get('/', (req, res) => {
 });
 
 router.post('/start', (req, res) => {
-    const { ipAddress, machineStatus } = req.body || {};
-    const result = vmManager.addVm(ipAddress, machineStatus, req.sessionId);
+    const { ipAddress, machineStatus, vmType } = req.body || {};
+    const result = vmManager.addVm(ipAddress, machineStatus, req.sessionId, vmType);
     if (!result.ok) {
-        const statusCode = result.code === 'InvalidIp' || result.code === 'InvalidStatus' ? 400 : 500;
+        const statusCode = ['InvalidIp', 'InvalidStatus', 'InvalidType'].includes(result.code) ? 400 : 500;
         return res.status(statusCode).json(result);
     }
     return res.json(result);
@@ -138,6 +138,7 @@ router.post('/clone', async (req, res) => {
         securityGroupIds,
         keyName,
         iamInstanceProfile,
+        vmType,
     } = req.body || {};
 
     const normalized = {
@@ -208,9 +209,10 @@ router.post('/clone', async (req, res) => {
             });
         }
 
-        const result = vmManager.addVm(ipAddress, 'Running', req.sessionId);
+        const result = vmManager.addVm(ipAddress, 'Running', req.sessionId, vmType);
         if (!result.ok) {
-            return res.status(500).json(result);
+            const statusCode = result.code === 'InvalidType' ? 400 : 500;
+            return res.status(statusCode).json(result);
         }
 
         return res.json({
