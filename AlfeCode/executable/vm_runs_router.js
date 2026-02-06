@@ -13,6 +13,7 @@ const VM_CLONE_DEFAULTS = {
     keyName: process.env.EC2_CLONE_KEY_NAME || '',
     iamInstanceProfile: process.env.EC2_CLONE_IAM_INSTANCE_PROFILE || '',
 };
+const NODE_PING_SHARED_KEY = (process.env.ALFECODE_NODE_PING_KEY || '').trim();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -90,6 +91,18 @@ const getRequestIp = (req) => {
     return ip.trim();
 };
 
+const isValidNodePingKey = (req) => {
+    if (!NODE_PING_SHARED_KEY) {
+        return true;
+    }
+    const provided = req.headers["x-alfecode-node-key"];
+    const headerValue = Array.isArray(provided) ? provided[0] : provided;
+    if (!headerValue) {
+        return false;
+    }
+    return String(headerValue).trim() === NODE_PING_SHARED_KEY;
+};
+
 const isIpAllowed = (ip, whitelist) => {
     if (whitelist.size === 0) {
         return false;
@@ -109,6 +122,9 @@ const requireConfigWhitelist = (req, res, next) => {
 };
 
 router.post('/ping', (req, res) => {
+    if (!isValidNodePingKey(req)) {
+        return res.status(403).json({ ok: false, error: 'Invalid node key.' });
+    }
     const ipAddress = getRequestIp(req);
     const { hostname, nodeId } = req.body || {};
     const ping = vmManager.recordNodePing(ipAddress, { hostname, nodeId });
