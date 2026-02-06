@@ -108,14 +108,31 @@ const requireConfigWhitelist = (req, res, next) => {
     return next();
 };
 
+router.post('/ping', (req, res) => {
+    const ipAddress = getRequestIp(req);
+    const { hostname, nodeId } = req.body || {};
+    const ping = vmManager.recordNodePing(ipAddress, { hostname, nodeId });
+    if (!ping) {
+        return res.status(400).json({ ok: false, error: 'Unable to record ping without an IP address.' });
+    }
+    return res.json({ ok: true, ping });
+});
+
 router.use(requireConfigWhitelist);
 
 router.get('/', (req, res) => {
     const sessions = vmManager.getSessions();
+    const nodePings = vmManager.getNodePings();
     res.render('vm_runs', {
         sessions,
+        nodePings,
         cloneDefaults: VM_CLONE_DEFAULTS,
     });
+});
+
+router.get('/pings', (req, res) => {
+    const nodePings = vmManager.getNodePings();
+    return res.json({ ok: true, nodePings });
 });
 
 router.post('/start', (req, res) => {

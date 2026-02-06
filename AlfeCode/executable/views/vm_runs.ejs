@@ -93,6 +93,41 @@
             padding: 1px;
             box-shadow: 0 20px 60px rgba(2, 6, 23, 0.55);
         }
+        .vm-pings {
+            margin-top: 32px;
+            background: rgba(15, 23, 42, 0.75);
+            border-radius: 18px;
+            padding: 20px 24px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .vm-pings h2 {
+            margin: 0 0 6px;
+            font-size: 1.3rem;
+        }
+        .vm-pings p {
+            margin: 0 0 18px;
+            color: #94a3b8;
+        }
+        .vm-ping-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .vm-ping-table th,
+        .vm-ping-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            font-size: 0.9rem;
+            text-align: left;
+        }
+        .vm-ping-table th {
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .vm-ping-table tbody tr:last-child td {
+            border-bottom: none;
+        }
         table.vm-table {
             width: 100%;
             border-collapse: collapse;
@@ -212,6 +247,44 @@
                 </tbody>
             </table>
         </div>
+        <section class="vm-pings" aria-live="polite">
+            <h2>Node heartbeat pings</h2>
+            <p>Live updates every second from ALFECODE_NODE instances.</p>
+            <div class="vm-ping-table-wrapper">
+                <table class="vm-ping-table">
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Hostname</th>
+                            <th>Node ID</th>
+                            <th>First Ping</th>
+                            <th>Last Ping</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nodePingBody">
+                        <% if (nodePings && nodePings.length) { %>
+                            <% nodePings.forEach((ping) => { %>
+                                <% const firstPing = ping.firstPingTimestamp ? new Date(ping.firstPingTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; %>
+                                <% const lastPing = ping.lastPingTimestamp ? new Date(ping.lastPingTimestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; %>
+                                <tr>
+                                    <td><%= ping.ipAddress %></td>
+                                    <td><%= ping.hostname || '-' %></td>
+                                    <td><%= ping.nodeId || '-' %></td>
+                                    <td><%= firstPing %></td>
+                                    <td><%= lastPing %></td>
+                                    <td><%= ping.totalPings || 0 %></td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="6" style="text-align:center;color:#94a3b8;">No node pings received yet.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
     <script>
         (function () {
@@ -221,6 +294,60 @@
             const statusSelect = document.getElementById('vmStatusSelect');
             const typeSelect = document.getElementById('vmTypeSelect');
             const cloneButton = document.getElementById('cloneVmBtn');
+            const pingBody = document.getElementById('nodePingBody');
+            const initialPings = <%- JSON.stringify(nodePings || []) %>;
+
+            function formatTimestamp(value) {
+                if (!value) {
+                    return '-';
+                }
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) {
+                    return '-';
+                }
+                return date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+            }
+
+            function renderPings(pings) {
+                if (!pingBody) {
+                    return;
+                }
+                if (!Array.isArray(pings) || pings.length === 0) {
+                    pingBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">No node pings received yet.</td></tr>';
+                    return;
+                }
+                pingBody.innerHTML = '';
+                pings.forEach((ping) => {
+                    const row = document.createElement('tr');
+                    const cells = [
+                        ping.ipAddress || '-',
+                        ping.hostname || '-',
+                        ping.nodeId || '-',
+                        formatTimestamp(ping.firstPingTimestamp),
+                        formatTimestamp(ping.lastPingTimestamp),
+                        String(ping.totalPings || 0),
+                    ];
+                    cells.forEach((text) => {
+                        const cell = document.createElement('td');
+                        cell.textContent = text;
+                        row.appendChild(cell);
+                    });
+                    pingBody.appendChild(row);
+                });
+            }
+
+            async function pollPings() {
+                try {
+                    const response = await fetch('/vm_runs/pings');
+                    const payload = await response.json();
+                    if (!response.ok || !payload.ok) {
+                        throw new Error(payload.error || 'Unable to load pings');
+                    }
+                    renderPings(payload.nodePings || []);
+                } catch (err) {
+                    console.warn('Failed to fetch node pings:', err);
+                }
+            }
 
             function buildCloneInstanceName() {
                 const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '');
@@ -308,6 +435,9 @@
 
             button.addEventListener('click', addVm);
             cloneButton.addEventListener('click', cloneVm);
+
+            renderPings(initialPings);
+            setInterval(pollPings, 1000);
         })();
     </script>
 </body>
