@@ -2412,6 +2412,7 @@ ${cleanedFinalOutput}`;
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
         const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
         const allowModelOrderEdit = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowVmRunsLink = allowModelOrderEdit;
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
             engineDropdownHidden,
@@ -2421,6 +2422,7 @@ ${cleanedFinalOutput}`;
             imagesEnabled2026,
             accountsEnabled: parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true),
             allowModelOrderEdit,
+            allowVmRunsLink,
         });
     });
     app.get('/agent/model-only/order', (req, res) => {
