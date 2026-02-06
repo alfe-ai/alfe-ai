@@ -47,6 +47,10 @@ const VM_PORT_END = (Number.isFinite(vmPortEndEnv) && vmPortEndEnv >= VM_PORT_ST
 const DEFAULT_VM_IMAGE_PATH = path.join(PROJECT_ROOT, '..', 'example', 'alfe-agent.qcow2');
 const VM_IMAGE_PATH = process.env.ALFECODE_VM_IMAGE_PATH || process.env.AURORA_QEMU_IMAGE || DEFAULT_VM_IMAGE_PATH;
 const VM_LOG_DIR = path.join(PROJECT_ROOT, 'data', 'vm_runs_logs');
+const IS_ALFECODE_NODE = parseBooleanEnv(process.env.ALFECODE_NODE, false);
+const ALFECODE_CNC_IP = normalizeBaseUrl(process.env.ALFECODE_CNC_IP || '');
+const NODE_HEARTBEAT_INTERVAL_MS = 1000;
+const NODE_HEARTBEAT_ID = process.env.ALFECODE_NODE_ID || '';
 
 function parseBooleanEnv(value, defaultValue = false) {
     if (typeof value === "undefined" || value === null) {
@@ -71,6 +75,64 @@ function normalizeBaseUrl(candidate) {
         return "";
     }
     return trimmed.replace(/\/+$/, "");
+}
+
+function resolveCncBaseUrl() {
+    if (!ALFECODE_CNC_IP) {
+        return "";
+    }
+    if (/^https?:\/\//i.test(ALFECODE_CNC_IP)) {
+        return normalizeBaseUrl(ALFECODE_CNC_IP);
+    }
+    return `http://${normalizeBaseUrl(ALFECODE_CNC_IP)}`;
+}
+
+function startNodeHeartbeat() {
+    if (!IS_ALFECODE_NODE) {
+        return;
+    }
+    const baseUrl = resolveCncBaseUrl();
+    if (!baseUrl) {
+        console.warn("[WARN] ALFECODE_NODE is true, but ALFECODE_CNC_IP is not set.");
+        return;
+    }
+
+    let pingUrl;
+    try {
+        pingUrl = new URL("/vm_runs/ping", baseUrl);
+    } catch (err) {
+        console.warn("[WARN] Invalid ALFECODE_CNC_IP for node heartbeat:", err.message);
+        return;
+    }
+
+    const transport = pingUrl.protocol === "https:" ? https : http;
+    const hostname = os.hostname();
+    const payload = JSON.stringify({ hostname, nodeId: NODE_HEARTBEAT_ID });
+    const requestOptions = {
+        method: "POST",
+        hostname: pingUrl.hostname,
+        port: pingUrl.port || (pingUrl.protocol === "https:" ? 443 : 80),
+        path: `${pingUrl.pathname}${pingUrl.search}`,
+        headers: {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(payload),
+        },
+    };
+
+    const sendPing = () => {
+        const req = transport.request(requestOptions, (res) => {
+            res.on("data", () => {});
+            res.on("end", () => {});
+        });
+        req.on("error", (err) => {
+            console.warn(`[WARN] Node heartbeat failed: ${err.message}`);
+        });
+        req.write(payload);
+        req.end();
+    };
+
+    sendPing();
+    setInterval(sendPing, NODE_HEARTBEAT_INTERVAL_MS);
 }
 
 const DEFAULT_STERLING_CODEX_BASE_URL = "https://sterlingcodex/agent";
@@ -1495,6 +1557,8 @@ if (httpsServerStarted && httpsPort === httpPort) {
         console.log(`[DEBUG] Server running => http://localhost:${httpPort}`);
     });
 }
+
+startNodeHeartbeat();
 
 const projectViewPublicDir = path.join(
   __dirname,

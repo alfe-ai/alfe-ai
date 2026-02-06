@@ -1,6 +1,8 @@
 const { randomUUID } = require('crypto');
 
 const vmSessions = [];
+const nodePingMap = new Map();
+const MAX_NODE_PINGS = 200;
 const STATUS_OPTIONS = new Set(['Running', 'Stopped']);
 const VM_TYPE_OPTIONS = new Set(['Default', 'Demo']);
 
@@ -128,4 +130,46 @@ function addVm(ipAddress, machineStatus, userSessionId, vmType) {
 module.exports = {
     addVm,
     getSessions,
+    getNodePings,
+    recordNodePing,
 };
+
+function getNodePings() {
+    return Array.from(nodePingMap.values())
+        .slice()
+        .sort((a, b) => {
+            const aTime = a.lastPingTimestamp ? Date.parse(a.lastPingTimestamp) : 0;
+            const bTime = b.lastPingTimestamp ? Date.parse(b.lastPingTimestamp) : 0;
+            return bTime - aTime;
+        });
+}
+
+function recordNodePing(ipAddress, details = {}) {
+    const normalizedIp = String(ipAddress || '').trim();
+    if (!normalizedIp) {
+        return null;
+    }
+    const now = new Date().toISOString();
+    const existing = nodePingMap.get(normalizedIp);
+    const payload = {
+        ipAddress: normalizedIp,
+        hostname: details.hostname ? String(details.hostname) : existing?.hostname || '',
+        nodeId: details.nodeId ? String(details.nodeId) : existing?.nodeId || '',
+        firstPingTimestamp: existing?.firstPingTimestamp || now,
+        lastPingTimestamp: now,
+        totalPings: (existing?.totalPings || 0) + 1,
+    };
+    nodePingMap.set(normalizedIp, payload);
+    if (nodePingMap.size > MAX_NODE_PINGS) {
+        const entries = Array.from(nodePingMap.entries()).sort(([, a], [, b]) => {
+            const aTime = a.lastPingTimestamp ? Date.parse(a.lastPingTimestamp) : 0;
+            const bTime = b.lastPingTimestamp ? Date.parse(b.lastPingTimestamp) : 0;
+            return aTime - bTime;
+        });
+        const overflow = entries.length - MAX_NODE_PINGS;
+        for (let i = 0; i < overflow; i += 1) {
+            nodePingMap.delete(entries[i][0]);
+        }
+    }
+    return payload;
+}
