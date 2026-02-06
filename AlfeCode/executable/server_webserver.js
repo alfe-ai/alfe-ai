@@ -51,6 +51,7 @@ const IS_ALFECODE_NODE = parseBooleanEnv(process.env.ALFECODE_NODE, false);
 const ALFECODE_CNC_IP = normalizeBaseUrl(process.env.ALFECODE_CNC_IP || '');
 const NODE_HEARTBEAT_INTERVAL_MS = 1000;
 const NODE_HEARTBEAT_ID = process.env.ALFECODE_NODE_ID || '';
+const NODE_PING_SHARED_KEY = (process.env.ALFECODE_NODE_PING_KEY || '').trim();
 
 function parseBooleanEnv(value, defaultValue = false) {
     if (typeof value === "undefined" || value === null) {
@@ -91,6 +92,10 @@ function startNodeHeartbeat() {
     if (!IS_ALFECODE_NODE) {
         return;
     }
+    if (!NODE_PING_SHARED_KEY) {
+        console.warn("[WARN] ALFECODE_NODE_PING_KEY is not set; skipping node heartbeat ping.");
+        return;
+    }
     const baseUrl = resolveCncBaseUrl();
     if (!baseUrl) {
         console.warn("[WARN] ALFECODE_NODE is true, but ALFECODE_CNC_IP is not set.");
@@ -104,19 +109,25 @@ function startNodeHeartbeat() {
         console.warn("[WARN] Invalid ALFECODE_CNC_IP for node heartbeat:", err.message);
         return;
     }
+    if (pingUrl.protocol !== "https:") {
+        console.warn("[WARN] Node heartbeat requires HTTPS; skipping ping for:", pingUrl.href);
+        return;
+    }
 
-    const transport = pingUrl.protocol === "https:" ? https : http;
+    const transport = https;
     const hostname = os.hostname();
     const payload = JSON.stringify({ hostname, nodeId: NODE_HEARTBEAT_ID });
+    const headers = {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(payload),
+    };
+    headers["x-alfecode-node-key"] = NODE_PING_SHARED_KEY;
     const requestOptions = {
         method: "POST",
         hostname: pingUrl.hostname,
         port: pingUrl.port || (pingUrl.protocol === "https:" ? 443 : 80),
         path: `${pingUrl.pathname}${pingUrl.search}`,
-        headers: {
-            "Content-Type": "application/json",
-            "Content-Length": Buffer.byteLength(payload),
-        },
+        headers,
     };
 
     const sendPing = () => {
