@@ -86,6 +86,16 @@ To run the web server over HTTPS, provide paths to your SSL certificate files:
 If both files exist the server starts in HTTPS mode, otherwise it falls back to HTTP.
 You can generate a certificate automatically with `../setup_certbot.sh <domain> <email>`.
 
+To authenticate node heartbeat pings, set a shared key in `.env` using `ALFECODE_NODE_PING_KEY`.
+On Debian/Ubuntu shells you can generate a 32-byte hex key with:
+```
+openssl rand -hex 32
+```
+Then add it to `.env` (same value on the CNC server and each node):
+```
+ALFECODE_NODE_PING_KEY=your_generated_value_here
+```
+
 ### Related Repositories:  
 Alfe AI / Agent Instructions: https://github.com/alfe-ai
 
