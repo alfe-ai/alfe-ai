@@ -159,6 +159,10 @@
                     <option value="Running">Running</option>
                     <option value="Stopped">Stopped</option>
                 </select>
+                <select id="vmTypeSelect" class="vm-select">
+                    <option value="Default">Default</option>
+                    <option value="Demo">Demo</option>
+                </select>
                 <button id="startVmBtn" class="primary-action" type="button">Add VM</button>
                 <button id="cloneVmBtn" class="primary-action" type="button">Clone VM</button>
             </div>
@@ -170,6 +174,7 @@
                     <tr>
                         <th>IPv4 Address</th>
                         <th>Machine Status</th>
+                        <th>VM Type</th>
                         <th>User Session</th>
                         <th>Started</th>
                         <th>Last Modified</th>
@@ -191,6 +196,7 @@
                                         <small class="status-note"><%= session.errorMessage %></small>
                                     <% } %>
                                 </td>
+                                <td><%= session.vmType || 'Default' %></td>
                                 <td><%= session.userSessionId || '-' %></td>
                                 <td><%= startedAt %></td>
                                 <td><%= lastUsedAt %></td>
@@ -200,7 +206,7 @@
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="7" style="text-align:center;color:#94a3b8;">No VMs have been added yet.</td>
+                            <td colspan="8" style="text-align:center;color:#94a3b8;">No VMs have been added yet.</td>
                         </tr>
                     <% } %>
                 </tbody>
@@ -213,6 +219,7 @@
             const statusEl = document.getElementById('vmStatus');
             const ipInput = document.getElementById('vmIpInput');
             const statusSelect = document.getElementById('vmStatusSelect');
+            const typeSelect = document.getElementById('vmTypeSelect');
             const cloneButton = document.getElementById('cloneVmBtn');
 
             function buildCloneInstanceName() {
@@ -240,6 +247,7 @@
             async function addVm() {
                 const ipAddress = ipInput.value.trim();
                 const machineStatus = statusSelect.value;
+                const vmType = typeSelect.value;
                 if (!isValidIpv4(ipAddress)) {
                     statusEl.textContent = 'Enter a valid public IPv4 address before adding.';
                     return;
@@ -250,7 +258,7 @@
                     const response = await fetch('/vm_runs/start', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ipAddress, machineStatus }),
+                        body: JSON.stringify({ ipAddress, machineStatus, vmType }),
                     });
                     const payload = await response.json();
                     if (!response.ok || !payload.ok) {
@@ -259,6 +267,7 @@
                     statusEl.textContent = `VM ${payload.session.ipAddress} added. Reloading...`;
                     ipInput.value = '';
                     statusSelect.value = 'Running';
+                    typeSelect.value = 'Default';
                     setTimeout(() => window.location.reload(), 800);
                 } catch (err) {
                     const message = err.message || 'Failed to add VM';
@@ -270,6 +279,7 @@
 
             async function cloneVm() {
                 const instanceName = buildCloneInstanceName();
+                const vmType = typeSelect.value;
 
                 cloneButton.disabled = true;
                 statusEl.textContent = 'Cloning VM from snapshot...';
@@ -279,6 +289,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             instanceName,
+                            vmType,
                         }),
                     });
                     const payload = await response.json();
