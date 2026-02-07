@@ -65,8 +65,7 @@
       "contextTokens": 262144,
       "engine_options": [
         "auto",
-        "qwen",
-        "codex"
+        "qwen"
       ],
       "pricing": {
         "inputPerMTokens": 0.09,
