@@ -239,6 +239,13 @@ function setupGetRoutes(deps) {
         /^unable to switch to /i,
         /^agent run aborted/i,
     ];
+    const normalizeBooleanFlagValue = (value) => {
+        if (typeof value !== "string") {
+            return value;
+        }
+        const stripped = value.replace(/\s[#;].*$/, "").trim().toLowerCase();
+        return stripped;
+    };
     const parseBooleanFlag = (value) => {
         if (Array.isArray(value)) {
             return parseBooleanFlag(value[value.length - 1]);
@@ -253,7 +260,7 @@ function setupGetRoutes(deps) {
         }
 
         if (typeof value === "string") {
-            const normalized = value.trim().toLowerCase();
+            const normalized = normalizeBooleanFlagValue(value);
             if (!normalized) {
                 return false;
             }

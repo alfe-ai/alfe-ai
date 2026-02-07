@@ -63,6 +63,12 @@ function setupPostRoutes(deps) {
             && TRUTHY_ENV_VALUES.includes(value.trim().toLowerCase())
         );
     };
+    const normalizeBooleanEnvValue = (value) => {
+        if (typeof value !== "string") {
+            return value;
+        }
+        return value.replace(/\s[#;].*$/, "").trim().toLowerCase();
+    };
     const parseBooleanEnvWithDefault = (value, defaultValue) => {
         if (typeof value === "undefined") {
             return defaultValue;
@@ -74,7 +80,7 @@ function setupPostRoutes(deps) {
             return value === 1;
         }
         if (typeof value === "string") {
-            const normalized = value.trim().toLowerCase();
+            const normalized = normalizeBooleanEnvValue(value);
             if (TRUTHY_ENV_VALUES.includes(normalized)) {
                 return true;
             }
