@@ -101,7 +101,7 @@
       "label": "OpenAI: GPT-5 Mini",
       "created": "2025-08-07",
       "contextTokens": 400000,
-      "disabled": true,
+      "disabled": false,
       "pricing": {
         "inputPerMTokens": 0.25,
         "outputPerMTokens": 2
@@ -111,7 +111,7 @@
     ],
       "qwen_cli": false,
       "plus_model": false,
-      "usage": "high",
+      "usage": "very high",
       "list_order": 8
     },
     {
@@ -119,7 +119,7 @@
       "label": "OpenAI: GPT-5.1 Codex Mini",
       "created": "2025-11-13",
       "contextTokens": 400000,
-      "disabled": true,
+      "disabled": false,
       "pricing": {
         "inputPerMTokens": 0.25,
         "outputPerMTokens": 2
@@ -129,7 +129,7 @@
     ],
       "qwen_cli": false,
       "plus_model": false,
-      "usage": "high",
+      "usage": "very high",
       "list_order": 6
     },
     {
