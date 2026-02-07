@@ -343,6 +343,20 @@
   });
 
   const incrementCodeUsageCount = () => {
+    // Check if current model has usage: "free"
+    let currentModelId = "";
+    try {
+      currentModelId = (modelSelect && modelSelect.value) || "";
+    } catch (e) {
+      // ignore
+    }
+
+    const currentModel = modelOnlyLookup && modelOnlyLookup.get(currentModelId);
+    if (currentModel && currentModel.usage === "free") {
+      // Don't increment usage count for free models
+      return;
+    }
+
     let nextCount = 1;
     try {
       const raw = localStorage.getItem(CODE_USAGE_STORAGE_KEY);
