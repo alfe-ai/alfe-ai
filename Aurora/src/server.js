@@ -2060,7 +2060,7 @@ app.post("/api/account/plan", async (req, res) => {
     return res.status(400).json({ error: "plan required" });
   }
   await db.setAccountPlan(account.id, plan);
-  res.json({ success: true });
+  res.json({ success: true, plan });
 });
 
 app.post("/api/account/password", async (req, res) => {
