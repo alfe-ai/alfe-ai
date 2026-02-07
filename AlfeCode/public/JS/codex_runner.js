@@ -746,7 +746,7 @@
         const isUsageLimitDisabled = isDisabled;
         const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
-        optionButton.disabled = blockedByPlan;
+        optionButton.disabled = blockedByPlan && !isUsageLimitDisabled;
         optionButton.classList.toggle("usage-limit-disabled", isUsageLimitDisabled);
         optionButton.classList.toggle("pro-model-disabled", isProDisabled);
         if (isUsageLimitDisabled || blockedByPlan) {

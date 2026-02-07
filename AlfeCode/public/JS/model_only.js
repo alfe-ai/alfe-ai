@@ -523,7 +523,7 @@
         const isUsageLimitDisabled = isDisabled;
         const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
-        optionButton.disabled = blockedByPlan;
+        optionButton.disabled = blockedByPlan && !isUsageLimitDisabled;
         optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
         optionButton.classList.toggle('pro-model-disabled', isProDisabled);
         if (isUsageLimitDisabled || blockedByPlan) {
@@ -641,7 +641,7 @@
       const isUsageLimitDisabled = isDisabled;
       if (model?.plus_model) {
         optionButton.dataset.plusModel = 'true';
-        optionButton.disabled = !isProPlan(currentAccountPlan);
+        optionButton.disabled = !isProPlan(currentAccountPlan) && !isUsageLimitDisabled;
       }
       optionButton.dataset.usageLimitDisabled = isUsageLimitDisabled ? 'true' : 'false';
       optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
