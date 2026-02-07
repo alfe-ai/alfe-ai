@@ -1,7 +1,13 @@
-require("dotenv").config();
-const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const dotenv = require("dotenv");
+const dotenvPath = process.env.ALFECODE_DOTENV_PATH || path.resolve(__dirname, "..", ".env");
+if (fs.existsSync(dotenvPath)) {
+    dotenv.config({ path: dotenvPath });
+} else {
+    dotenv.config();
+}
+const express = require("express");
 const globalTaskCounter = require("./globalTaskCounter");
 const os = require("os");
 const { exec, execSync, spawn } = require("child_process");
