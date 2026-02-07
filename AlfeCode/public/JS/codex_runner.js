@@ -112,6 +112,29 @@
     return true;
   };
 
+  const shouldDisableModel = (model, plan, limits, usageCount) => {
+    if (!model) return false;
+
+    // Check if user is on Free or Logged-out Session plan
+    const normalizedPlan = (plan || "").toString().trim().toLowerCase();
+    const isFreeOrLoggedOut = normalizedPlan === "free" || normalizedPlan === "logged-out session";
+
+    if (!isFreeOrLoggedOut) {
+      return false; // Paid plans can use any model
+    }
+
+    // Check if usage limit is reached
+    const codeLimit = typeof limits.code === "number" ? limits.code : 0;
+    const hasReachedLimit = codeLimit > 0 && usageCount >= codeLimit;
+
+    if (!hasReachedLimit) {
+      return false; // Not at limit yet
+    }
+
+    // Disable models that don't have usage: "free"
+    return model.usage !== "free";
+  };
+
   const normaliseModelEntry = (entry) => {
     if (!entry) return null;
     if (typeof entry === "string") {
@@ -643,19 +666,44 @@
     if (modelPromptSelectButton) {
       modelPromptSelectButton.disabled = false;
     }
-    enabledModels.forEach((model) => {
+    // Get current usage count and check if models should be disabled
+    const usageCount = getStoredCodeUsageCount();
+    const planName = getUsagePlanName();
+    const limits = resolveUsageLimits(planName);
+    const shouldDisable = shouldDisableModel(null, planName, limits, usageCount);
+
+    // Sort models: free models first, then others
+    const sortedModels = enabledModels.sort((a, b) => {
+      // Free models come first
+      const aIsFree = a.usage === "free";
+      const bIsFree = b.usage === "free";
+      if (aIsFree && !bIsFree) return -1;
+      if (!aIsFree && bIsFree) return 1;
+      return 0;
+    });
+
+    sortedModels.forEach((model) => {
       const label = formatModelLabel(model);
+      const isDisabled = shouldDisableModel(model, planName, limits, usageCount);
+
       selects.forEach((select) => {
         const option = document.createElement("option");
         option.value = model.id;
         option.textContent = label;
+        if (isDisabled) {
+          option.disabled = true;
+          option.classList.add("usage-limit-disabled");
+        }
         select.appendChild(option);
       });
+
       if (modelPromptSelectMenu && modelPromptSelect) {
         const optionButton = document.createElement("button");
         optionButton.type = "button";
         optionButton.className = "model-select-option";
         optionButton.dataset.modelId = model.id;
+        optionButton.disabled = isDisabled;
+
         const labelRow = document.createElement("div");
         labelRow.className = "model-select-option__label";
         const labelText = document.createElement("span");
@@ -667,6 +715,7 @@
         }
         optionButton.appendChild(labelRow);
         optionButton.addEventListener("click", () => {
+          if (optionButton.disabled) return;
           modelPromptSelect.value = model.id;
           modelPromptSelect.dispatchEvent(new Event("change", { bubbles: true }));
           closeModelPromptDropdown();
