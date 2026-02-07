@@ -8859,7 +8859,7 @@ const appendMergeChunk = (text, type = "output") => {
       const params = currentSessionId
         ? `?sessionId=${encodeURIComponent(currentSessionId)}`
         : "";
-      const resp = await fetch(`/api/account${params}`);
+      const resp = await fetch(`/api/account${params}`, { cache: "no-store" });
       const data = await resp.json().catch(() => null);
       if (resp.ok && data?.email) {
         setAccountInfo({

@@ -969,7 +969,10 @@
     }
     showLogoutFeedback('');
     try {
-      const response = await fetch('/api/account', { credentials: 'same-origin' });
+      const response = await fetch('/api/account', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
         applyUsageLimits(resolveUsageLimits(payload.plan), payload.plan);

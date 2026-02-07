@@ -179,6 +179,7 @@ function setupGetRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account lookup is not configured on this server." });
         }
+        res.set("Cache-Control", "no-store");
         const sessionId = typeof req.query?.sessionId === "string"
             ? req.query.sessionId.trim()
             : getSessionIdFromRequest(req);
