@@ -5527,12 +5527,12 @@ const appendMergeChunk = (text, type = "output") => {
     }
 
     const statusHistory = Array.isArray(run.statusHistory) ? run.statusHistory : [];
-    statusHistory.forEach((entry) => {
+    for (const entry of statusHistory) {
       if (entry) {
         appendChunk(entry, "status");
         await handleGitFpushCompletionMessage(entry);
       }
-    });
+    }
 
     const metaMessages = Array.isArray(run.metaMessages) ? run.metaMessages : [];
     metaMessages.forEach((entry) => {
