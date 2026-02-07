@@ -111,7 +111,7 @@
       ],
       "qwen_cli": false,
       "plus_model": false,
-      "usage": "very high",
+      "usage": "high",
       "list_order": 9
     },
     {
@@ -258,7 +258,7 @@
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 0,
-      "usage": "high"
+      "usage": "medium"
     },
     {
       "id": "openrouter/mistralai/devstral-2512:free",
