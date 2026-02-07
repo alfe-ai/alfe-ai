@@ -715,7 +715,13 @@
         }
         optionButton.appendChild(labelRow);
         optionButton.addEventListener("click", () => {
-          if (optionButton.disabled) return;
+          if (optionButton.disabled) {
+            // Show usage limit reached modal for disabled non-free models
+            if (window.showUsageLimitModal) {
+              window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
+            }
+            return;
+          }
           modelPromptSelect.value = model.id;
           modelPromptSelect.dispatchEvent(new Event("change", { bubbles: true }));
           closeModelPromptDropdown();
