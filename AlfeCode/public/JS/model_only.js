@@ -1243,12 +1243,7 @@
     });
   }
 
-  const inlineAuthButtons = Array.from(document.querySelectorAll('.subscribe-button--inline'));
-  if (inlineAuthButtons.length) {
-    inlineAuthButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        requestAuthModal('signup');
-      });
-    });
-  }
-})();
+  // Make showUsageLimitModal available globally
+  window.showUsageLimitModal = function(type, message) {
+    // For now, we don't have a specific modal for model-only pages
+    // But we can redirect to the main usage limit page or show an alert

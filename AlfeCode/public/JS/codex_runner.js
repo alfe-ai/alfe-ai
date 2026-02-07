@@ -9009,4 +9009,9 @@ const appendMergeChunk = (text, type = "output") => {
   }
 
   fetchAccountInfo();
+
+  // Make showUsageLimitModal available globally
+  window.showUsageLimitModal = function(type, message) {
+    showUsageLimitModal();
+  };
 })();
