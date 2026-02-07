@@ -882,6 +882,7 @@
       }
       setAccountPlanValue(payload?.plan || newPlan);
       applyUsageLimits(resolveUsageLimits(payload?.plan || newPlan), payload?.plan || newPlan);
+      populateModels();
       showAccountPlanFeedback('Plan updated.', 'success');
     } catch (error) {
       console.error('Failed to save account plan:', error);
