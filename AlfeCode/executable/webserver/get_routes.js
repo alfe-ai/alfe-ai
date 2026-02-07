@@ -6217,11 +6217,14 @@ ${err}`;
 
         const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
-        const comparisonFinalOutput = await extractFinalOutputForCommit(
-            sessionId,
-            resolvedProjectDir,
-            compMeta.hash || compRev
-        );
+        let comparisonFinalOutput = "";
+        if (!errorMessage) {
+            comparisonFinalOutput = await extractFinalOutputForCommit(
+                sessionId,
+                resolvedProjectDir,
+                compMeta.hash || compRev
+            );
+        }
         const commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
 
         res.status(statusCode).render("diff", {
