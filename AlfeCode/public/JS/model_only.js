@@ -412,6 +412,32 @@
     return model.usage !== 'free';
   }
 
+  function isCodeUsageLimitReached() {
+    const limit = currentUsageLimits?.code;
+    if (typeof limit !== 'number') return false;
+    const used = getStoredCodeUsageCount();
+    return used >= limit;
+  }
+
+  function isUsageLimitRestrictedModel(modelId, optionEl) {
+    if (!modelId) return false;
+    if (!isCodeUsageLimitReached()) return false;
+    const optionUsage = optionEl?.dataset?.usage;
+    if (optionUsage) {
+      return optionUsage !== 'free';
+    }
+    const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+    const entry = list.find((item) => {
+      if (!item) return false;
+      if (typeof item === 'string') return item.trim() === modelId;
+      if (typeof item === 'object') return item.id === modelId;
+      return false;
+    });
+    const model = normaliseModelEntry(entry);
+    if (model && model.usage === 'free') return false;
+    return true;
+  }
+
   function populateModels(){
     const models = (window.__providerModels = (window.__providerModels || {}));
     const list = models[activeProvider];
@@ -503,7 +529,7 @@
         const isUsageLimitDisabled = isDisabled;
         const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
-        optionButton.disabled = blockedByPlan;
+        optionButton.disabled = blockedByPlan && !isUsageLimitDisabled;
         optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
         optionButton.classList.toggle('pro-model-disabled', isProDisabled);
         if (isUsageLimitDisabled || blockedByPlan) {
@@ -530,7 +556,7 @@
           optionButton.appendChild(metaRow);
         }
         optionButton.addEventListener('click', (event) => {
-          if (isUsageLimitDisabled) {
+          if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id, optionButton)) {
             event.preventDefault();
             if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
@@ -621,7 +647,7 @@
       const isUsageLimitDisabled = isDisabled;
       if (model?.plus_model) {
         optionButton.dataset.plusModel = 'true';
-        optionButton.disabled = !isProPlan(currentAccountPlan);
+        optionButton.disabled = !isProPlan(currentAccountPlan) && !isUsageLimitDisabled;
       }
       optionButton.dataset.usageLimitDisabled = isUsageLimitDisabled ? 'true' : 'false';
       optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
@@ -1134,6 +1160,26 @@
 
   modelSelect.addEventListener('change', function(){
     const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    if (selectedOption && isUsageLimitRestrictedModel(modelSelect.value, selectedOption)) {
+      if (window.showUsageLimitModal) {
+        window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
+      }
+      const fallback = lastValidModelSelection || getFirstAvailableModelValue();
+      if (fallback) {
+        modelSelect.value = fallback;
+        updateEngineSelect(fallback);
+        const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+        const selected = normaliseModelEntry(list.find((entry) => {
+          if (!entry) return false;
+          if (typeof entry === 'string') return entry.trim() === modelSelect.value;
+          if (typeof entry === 'object') return entry.id === modelSelect.value;
+          return false;
+        }));
+        updateModelSelectButton(selected);
+        syncModelDropdownSelection();
+      }
+      return;
+    }
     if (selectedOption && selectedOption.dataset.usageLimitDisabled === 'true') {
       if (window.showUsageLimitModal) {
         window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');

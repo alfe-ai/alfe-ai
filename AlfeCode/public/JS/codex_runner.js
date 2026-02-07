@@ -622,6 +622,14 @@
     return used >= limit;
   };
 
+  const isUsageLimitRestrictedModel = (modelId) => {
+    if (!modelId) return false;
+    if (!isCodeUsageLimitReached()) return false;
+    const model = modelOnlyLookup.get(modelId);
+    if (model && model.usage === "free") return false;
+    return true;
+  };
+
   modelSelect = document.getElementById("model");
   modelPromptSelect = document.getElementById("modelPromptSelect");
   modelPromptSelectButton = document.getElementById("modelPromptSelectButton");
@@ -639,6 +647,17 @@
   const handleModelSelectChange = (event) => {
     const source = event.target;
     const selectedOption = source && source.options ? source.options[source.selectedIndex] : null;
+    const selectedValue = (selectedOption && selectedOption.value) || (source && source.value) || "";
+    if (selectedValue && isUsageLimitRestrictedModel(selectedValue)) {
+      if (window.showUsageLimitModal) {
+        window.showUsageLimitModal("code", "Usage limit reached. Please try again later.");
+      }
+      const fallback = lastValidModelSelection || getFirstAvailableModelValue();
+      if (fallback) {
+        updateModelSelectValue(fallback);
+      }
+      return;
+    }
     if (selectedOption && selectedOption.dataset.usageLimitDisabled === "true") {
       if (window.showUsageLimitModal) {
         window.showUsageLimitModal("code", "Usage limit reached. Please try again later.");
@@ -727,7 +746,7 @@
         const isUsageLimitDisabled = isDisabled;
         const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
-        optionButton.disabled = blockedByPlan;
+        optionButton.disabled = blockedByPlan && !isUsageLimitDisabled;
         optionButton.classList.toggle("usage-limit-disabled", isUsageLimitDisabled);
         optionButton.classList.toggle("pro-model-disabled", isProDisabled);
         if (isUsageLimitDisabled || blockedByPlan) {
@@ -748,7 +767,7 @@
         }
         optionButton.appendChild(labelRow);
         optionButton.addEventListener("click", (event) => {
-          if (isUsageLimitDisabled) {
+          if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id)) {
             event.preventDefault();
             if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
