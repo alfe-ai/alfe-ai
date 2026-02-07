@@ -225,6 +225,21 @@
   }
 
   function setStoredCodeUsageCount(value) {
+    // Check if current model has usage: "free"
+    let currentModelId = "";
+    try {
+      currentModelId = (modelSelect && modelSelect.value) || "";
+    } catch (e) {
+      // ignore
+    }
+
+    const modelData = window.__providerModels || {};
+    const currentModel = modelData[currentModelId];
+    if (currentModel && currentModel.usage === "free") {
+      // Don't update usage count for free models
+      return getStoredCodeUsageCount();
+    }
+
     const normalized = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
     try {
       localStorage.setItem(CODE_USAGE_STORAGE_KEY, String(normalized));
