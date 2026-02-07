@@ -5735,6 +5735,22 @@ res.render("editor", {
         return firstLine;
     };
 
+    const normalizeFinalOutputForDiff = (value) => {
+        if (typeof value !== 'string') {
+            return '';
+        }
+        const normalized = value.replace(/\r/g, '').trim();
+        if (!normalized) {
+            return '';
+        }
+        const hasDoubleNewline = /\n\n/.test(normalized);
+        const hasSingleNewline = /(^|[^\n])\n([^\n]|$)/.test(normalized);
+        if (hasDoubleNewline && !hasSingleNewline) {
+            return normalized.replace(/\n\n/g, '\n');
+        }
+        return normalized;
+    };
+
     app.get("/agent/git-diff-branch-merge", async (req, res) => {
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
@@ -5745,7 +5761,7 @@ res.render("editor", {
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         const comparisonFinalOutputParam = typeof req.query.finalOutput === "string" ? req.query.finalOutput : "";
         const comparisonFinalOutputFromQuery = comparisonFinalOutputParam
-            ? comparisonFinalOutputParam.replace(/\r/g, "").trimEnd()
+            ? normalizeFinalOutputForDiff(comparisonFinalOutputParam)
             : "";
 
         if (!branchParam) {
@@ -5980,10 +5996,12 @@ ${err}`;
                 commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
             }
             const comparisonFinalOutput = comparisonFinalOutputFromQuery
-                || await extractFinalOutputForCommit(
-                    sessionId,
-                    resolvedProjectDir,
-                    compMeta.hash || compRev
+                || normalizeFinalOutputForDiff(
+                    await extractFinalOutputForCommit(
+                        sessionId,
+                        resolvedProjectDir,
+                        compMeta.hash || compRev
+                    )
                 );
 
             res.render("diff", {
@@ -6224,10 +6242,12 @@ ${err}`;
         const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         let comparisonFinalOutput = "";
         if (!errorMessage) {
-            comparisonFinalOutput = await extractFinalOutputForCommit(
-                sessionId,
-                resolvedProjectDir,
-                compMeta.hash || compRev
+            comparisonFinalOutput = normalizeFinalOutputForDiff(
+                await extractFinalOutputForCommit(
+                    sessionId,
+                    resolvedProjectDir,
+                    compMeta.hash || compRev
+                )
             );
         }
         const commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
