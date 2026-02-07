@@ -153,6 +153,32 @@
             font-family: inherit;
         }
 
+        .final-output-block {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #0b1324;
+            border: 1px solid var(--border);
+        }
+
+        .final-output-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .final-output-text {
+            white-space: pre-wrap;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 0;
+        }
+
         .commit-message-box {
             background: var(--panel-soft);
             border: 1px solid var(--border);
@@ -820,6 +846,12 @@
                         aria-readonly="true"
                         tabindex="-1"
                     />
+                </div>
+                <% } %>
+                <% if (comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
+                <div class="final-output-block" aria-label="Final output">
+                    <span class="final-output-label">Final output</span>
+                    <pre class="final-output-text"><%= comparisonFinalOutput %></pre>
                 </div>
                 <% } %>
                 <p class="commit-message-body" id="comparisonCommitMessage"></p>
