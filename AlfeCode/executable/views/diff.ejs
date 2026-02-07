@@ -848,7 +848,7 @@
                     />
                 </div>
                 <% } %>
-                <% if (comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
+                <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
                 <div class="final-output-block" aria-label="Final output">
                     <span class="final-output-label">Final output</span>
                     <pre class="final-output-text"><%= comparisonFinalOutput %></pre>

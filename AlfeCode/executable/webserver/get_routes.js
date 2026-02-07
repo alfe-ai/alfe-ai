@@ -5746,13 +5746,13 @@ res.render("editor", {
 
         if (!branchParam) {
             return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
-                        comparisonPromptLine });
+                        comparisonPromptLine, comparisonFinalOutput: "" });
         }
 
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
         if (!resolvedProjectDir) {
             return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
-                        comparisonPromptLine });
+                        comparisonPromptLine, comparisonFinalOutput: "" });
         }
 
         try {
@@ -5898,6 +5898,7 @@ res.render("editor", {
                         errorMessage: `Unable to resolve branch '${branchName}' for diff.`,
                         mergeReady,
                         comparisonPromptLine,
+                        comparisonFinalOutput: "",
                     });
                 }
 
@@ -5974,6 +5975,11 @@ ${err}`;
             if (!commitList.length) {
                 commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
             }
+            const comparisonFinalOutput = await extractFinalOutputForCommit(
+                sessionId,
+                resolvedProjectDir,
+                compMeta.hash || compRev
+            );
 
             res.render("diff", {
                 gitRepoNameCLI: repoName || resolvedProjectDir,
@@ -5993,13 +5999,14 @@ ${err}`;
                 commitList,
                 mergeReady,
                 comparisonPromptLine,
+                comparisonFinalOutput,
                 chatNumber,
                 showCommitList: SHOW_COMMIT_LIST
             });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
             return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
-                comparisonPromptLine });
+                comparisonPromptLine, comparisonFinalOutput: "" });
         }
     });
 
