@@ -13,11 +13,11 @@ dotenvCandidates.forEach((candidate) => {
     }
     loadedDotenvPaths.add(candidate);
     if (fs.existsSync(candidate)) {
-        dotenv.config({ path: candidate });
+        dotenv.config({ path: candidate, override: true });
     }
 });
 if (!loadedDotenvPaths.size) {
-    dotenv.config();
+    dotenv.config({ override: true });
 }
 const express = require("express");
 const globalTaskCounter = require("./globalTaskCounter");
