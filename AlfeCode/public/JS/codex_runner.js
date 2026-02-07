@@ -3532,6 +3532,17 @@
     return m ? m[0] : null;
   };
 
+  const getFinalOutputForDiff = () => {
+    const activeFinalOutput = getActiveFinalOutputText();
+    if (typeof activeFinalOutput !== "string") {
+      return "";
+    }
+    if (!activeFinalOutput.trim()) {
+      return "";
+    }
+    return activeFinalOutput;
+  };
+
   const buildMergeDiffUrl = (hash, projectDirValue) => {
     if (!hash) return '';
     const baseRev = `${hash}^`;
@@ -3542,6 +3553,10 @@
     const promptForDiff = typeof lastUserPrompt === 'string' ? lastUserPrompt : '';
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
+    }
+    const finalOutputForDiff = getFinalOutputForDiff();
+    if (finalOutputForDiff) {
+      params.set('finalOutput', finalOutputForDiff);
     }
 
     return `/agent/git-diff?${params.toString()}`;
@@ -3555,6 +3570,10 @@
     const promptForDiff = typeof lastUserPrompt === 'string' ? lastUserPrompt : '';
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
+    }
+    const finalOutputForDiff = getFinalOutputForDiff();
+    if (finalOutputForDiff) {
+      params.set('finalOutput', finalOutputForDiff);
     }
 
     // Use a server-side resolver to find the parent-merge commit for this branch
