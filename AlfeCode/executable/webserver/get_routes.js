@@ -6059,7 +6059,6 @@ ${err}`;
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
-        const comparisonFinalOutput = await extractFinalOutputForCommit(sessionId, resolvedProjectDir, compRev);
 
         let errorMessage = "";
 
@@ -6211,6 +6210,11 @@ ${err}`;
 
         const baseMeta = baseRev ? getCommitMeta(resolvedProjectDir, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
+        const comparisonFinalOutput = await extractFinalOutputForCommit(
+            sessionId,
+            resolvedProjectDir,
+            compMeta.hash || compRev
+        );
         const commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
 
         res.status(statusCode).render("diff", {
@@ -6451,7 +6455,11 @@ ${err}`;
 
         const editorTarget = resolveEditorTargetForProjectDir(gitRepoLocalPath, sessionId);
         const chatNumber = editorTarget && editorTarget.chatNumber ? editorTarget.chatNumber : "";
-        const comparisonFinalOutput = await extractFinalOutputForCommit(sessionId, gitRepoLocalPath, compRev);
+        const comparisonFinalOutput = await extractFinalOutputForCommit(
+            sessionId,
+            gitRepoLocalPath,
+            compMeta.hash || compRev
+        );
 
         res.render("diff", {
             gitRepoNameCLI: repoName,
