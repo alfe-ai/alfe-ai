@@ -3616,9 +3616,9 @@
 
     if (!diffUrl) {
       if (useBranch) {
-        enableMergeDiffButtonForBranch(branch, projectDirValue || "");
+        enableMergeDiffButtonForBranch(branch, projectDirValue || "", finalOutput);
       } else if (hash) {
-        enableMergeDiffButtonForHash(hash, projectDirValue || "");
+        enableMergeDiffButtonForHash(hash, projectDirValue || "", finalOutput);
       }
       return;
     }
@@ -3627,9 +3627,9 @@
       .catch(() => false)
       .finally(() => {
         if (useBranch) {
-          enableMergeDiffButtonForBranch(branch, projectDirValue || "");
+          enableMergeDiffButtonForBranch(branch, projectDirValue || "", finalOutput);
         } else if (hash) {
-          enableMergeDiffButtonForHash(hash, projectDirValue || "");
+          enableMergeDiffButtonForHash(hash, projectDirValue || "", finalOutput);
         }
       });
   };
@@ -4058,7 +4058,7 @@
         const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, branchProjectDir);
         enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir, finalOutput });
       } else {
-        enableMergeDiffButtonForBranch(branch, branchProjectDir);
+        enableMergeDiffButtonForBranch(branch, branchProjectDir, null);
       }
       return true;
     }
@@ -4068,7 +4068,7 @@
         const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, hashProjectDir);
         enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir, finalOutput });
       } else {
-        enableMergeDiffButtonForHash(hash, hashProjectDir);
+        enableMergeDiffButtonForHash(hash, hashProjectDir, null);
       }
       return true;
     }
@@ -4076,7 +4076,7 @@
     return false;
   };
 
-  const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
+  const enableMergeDiffButtonForBranch = (branch, projectDirValue, finalOutput) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4090,7 +4090,7 @@
       mergeDiffButton.classList.add('is-hidden');
       return;
     }
-    const url = buildMergeDiffUrlForBranch(branch, projectDirValue || '');
+    const url = buildMergeDiffUrlForBranch(branch, projectDirValue || '', finalOutput);
     if (!url) {
       mergeDiffButton.disabled = true;
       mergeDiffButton.setAttribute('aria-disabled', 'true');
@@ -4117,7 +4117,7 @@
   };
 
 
-  const enableMergeDiffButtonForHash = (hash, projectDirValue) => {
+  const enableMergeDiffButtonForHash = (hash, projectDirValue, finalOutput) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4131,7 +4131,7 @@
       mergeDiffButton.classList.add('is-hidden');
       return;
     }
-    const url = buildMergeDiffUrl(hash, projectDirValue || '');
+    const url = buildMergeDiffUrl(hash, projectDirValue || '', finalOutput);
     if (!url) {
       mergeDiffButton.disabled = true;
       mergeDiffButton.setAttribute('aria-disabled', 'true');
@@ -4151,10 +4151,10 @@
     }
   };
 
-  const tryEnableMergeDiffFromText = (text, projectDirValue) => {
+  const tryEnableMergeDiffFromText = (text, projectDirValue, finalOutput) => {
     const hash = extractFirstHashFromText(text || '');
     if (hash) {
-      enableMergeDiffButtonForHash(hash, projectDirValue);
+      enableMergeDiffButtonForHash(hash, projectDirValue, finalOutput);
     }
   };
 
@@ -4240,7 +4240,7 @@
     mergeDiffLockedAfterMerge = false;
     applyMergeButtonState();
     // Disable merge-diff button when merge state resets
-    enableMergeDiffButtonForHash("", "");
+    enableMergeDiffButtonForHash("", "", null);
     gitFpushActive = false;
     gitFpushDetectedChanges = false;
     gitFpushDetectedNoChanges = false;
@@ -4280,7 +4280,7 @@
         || detectGitNoChangeIndicator(message));
       if (!hasDetectedChanges) {
         setMergeReady(false);
-        enableMergeDiffButtonForHash("", "");
+        enableMergeDiffButtonForHash("", "", null);
         pendingGitFpushHash = "";
         pendingGitFpushHashProjectDir = "";
         pendingGitFpushBranch = "";
@@ -4386,7 +4386,7 @@
       || candidateTexts.some((candidate) => detectGitChangeIndicator(candidate));
     if (hasExplicitNoChanges || !hasGitChanges) {
       setMergeReady(false);
-      enableMergeDiffButtonForHash("", "");
+      enableMergeDiffButtonForHash("", "", null);
       return;
     }
 
@@ -4394,14 +4394,14 @@
 
     const branchFromRun = extractBranchFromRun(run);
     if (branchFromRun) {
-      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir);
+      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir, resolvedSavedFinalOutput);
     }
 
     for (const candidate of candidateTexts) {
       if (hasActiveMergeDiffLink()) {
         return;
       }
-      tryEnableMergeDiffFromText(candidate, diffProjectDir);
+      tryEnableMergeDiffFromText(candidate, diffProjectDir, null);
     }
   };
 
@@ -5587,7 +5587,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (run.gitMergeStdout) {
       appendMergeChunk(`\n--- Merge stdout ---\n${run.gitMergeStdout}`, "output");
     }
-    tryEnableMergeDiffFromText(run.gitMergeStdout, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '');
+    tryEnableMergeDiffFromText(run.gitMergeStdout, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '', null);
 
     // After restoring a saved run ensure run controls and merge button state are refreshed.
     try { setRunControlsDisabledState(false, { forceRefresh: true }); } catch (e) { /* ignore */ }
@@ -7497,12 +7497,12 @@ const appendMergeChunk = (text, type = "output") => {
           "status",
         );
         // Attempt to locate a merge commit hash in the merge output and enable the Merge Diff button
-        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
+        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir, null);
 
         // Set merged status in UI
         try { setStatus('Merged.', 'merged'); } catch (e) { console.warn('Failed to set merged status', e); }
         // Attempt to locate a merge commit hash in the merge output and enable the Merge Diff button
-        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
+        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir, null);
 
         // If a merge diff was detected and the button is enabled, open the modal to show the merge commit diff
         try {
