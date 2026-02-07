@@ -39,6 +39,8 @@ function setupPostRoutes(deps) {
         CODEX_MODEL_PATTERN,
         loadCodexRuns,
         upsertCodexRun,
+        ensureSessionDefaultRepo,
+        buildSessionCookie,
     } = deps;
 
     const codexModelPattern = CODEX_MODEL_PATTERN instanceof RegExp
@@ -436,6 +438,32 @@ function setupPostRoutes(deps) {
         const hostname = normalizeHostname(req);
         res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
         return res.json({ success: true });
+    });
+
+    app.post("/api/session/refresh", async (req, res) => {
+        const currentSessionId = getSessionIdFromRequest(req);
+        if (rdsStore?.enabled && currentSessionId) {
+            const account = await rdsStore.getAccountBySession(currentSessionId);
+            if (account) {
+                await rdsStore.setAccountSession(account.id, "");
+            }
+        }
+        const freshSessionId = crypto.randomUUID();
+        try {
+            const hostname = normalizeHostname(req);
+            const cookie = buildSessionCookie(freshSessionId, hostname);
+            res.append("Set-Cookie", cookie);
+        } catch (error) {
+            console.error(`Failed to issue session cookie for refreshed session: ${error?.message || error}`);
+        }
+        try {
+            if (typeof ensureSessionDefaultRepo === "function") {
+                ensureSessionDefaultRepo(freshSessionId);
+            }
+        } catch (error) {
+            console.error(`Failed to initialize default repo for refreshed session: ${error?.message || error}`);
+        }
+        return res.json({ success: true, sessionId: freshSessionId });
     });
 
     app.post("/api/register", async (req, res) => {
