@@ -694,13 +694,16 @@
     const limits = resolveUsageLimits(planName);
     const shouldDisable = shouldDisableModel(null, planName, limits, usageCount);
 
-    // Sort models: free models first, then others
+    // Sort models: free models first only when usage limit is reached
     const sortedModels = enabledModels.sort((a, b) => {
-      // Free models come first
-      const aIsFree = a.usage === "free";
-      const bIsFree = b.usage === "free";
-      if (aIsFree && !bIsFree) return -1;
-      if (!aIsFree && bIsFree) return 1;
+      // Only show free models first when usage limit is reached
+      const hasReachedLimit = limits.code > 0 && usageCount >= limits.code;
+      if (hasReachedLimit) {
+        const aIsFree = a.usage === "free";
+        const bIsFree = b.usage === "free";
+        if (aIsFree && !bIsFree) return -1;
+        if (!aIsFree && bIsFree) return 1;
+      }
       return 0;
     });
 
