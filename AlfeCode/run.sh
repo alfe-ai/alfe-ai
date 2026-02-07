@@ -21,4 +21,10 @@ if [ -x "$GITHOST_SCRIPT" ]; then
     sudo "$GITHOST_SCRIPT" start-daemon || echo "git-server start-daemon failed or requires sudo"
 fi
 
-node executable/server_webserver.js
+while true; do
+    echo "Starting webserver..."
+    node executable/server_webserver.js
+    EXIT_CODE=$?
+    echo "Webserver exited with code ${EXIT_CODE}. Restarting in 2 seconds..."
+    sleep 2
+done
