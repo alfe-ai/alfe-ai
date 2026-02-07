@@ -702,7 +702,18 @@
         optionButton.type = "button";
         optionButton.className = "model-select-option";
         optionButton.dataset.modelId = model.id;
-        optionButton.disabled = isDisabled;
+        const isUsageLimitDisabled = isDisabled;
+        const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
+        const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
+        optionButton.disabled = blockedByPlan;
+        optionButton.classList.toggle("usage-limit-disabled", isUsageLimitDisabled);
+        optionButton.classList.toggle("pro-model-disabled", isProDisabled);
+        if (isUsageLimitDisabled || blockedByPlan) {
+          optionButton.setAttribute("aria-disabled", "true");
+        } else {
+          optionButton.removeAttribute("aria-disabled");
+        }
+        optionButton.dataset.usageLimitDisabled = isUsageLimitDisabled ? "true" : "false";
 
         const labelRow = document.createElement("div");
         labelRow.className = "model-select-option__label";
@@ -714,12 +725,15 @@
           labelRow.appendChild(badgeEl);
         }
         optionButton.appendChild(labelRow);
-        optionButton.addEventListener("click", () => {
-          if (optionButton.disabled) {
-            // Show usage limit reached modal for disabled non-free models
+        optionButton.addEventListener("click", (event) => {
+          if (isUsageLimitDisabled) {
+            event.preventDefault();
             if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
             }
+            return;
+          }
+          if (blockedByPlan) {
             return;
           }
           modelPromptSelect.value = model.id;

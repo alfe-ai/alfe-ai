@@ -493,14 +493,18 @@
           optionButton.dataset.usage = model.usage;
         }
 
-        let buttonDisabled = false;
-        if (model.plus_model && !isProPlan(currentAccountPlan)) {
-          buttonDisabled = true;
-        } else if (isDisabled) {
-          buttonDisabled = true;
+        const isUsageLimitDisabled = isDisabled;
+        const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
+        const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
+        optionButton.disabled = blockedByPlan;
+        optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
+        optionButton.classList.toggle('pro-model-disabled', isProDisabled);
+        if (isUsageLimitDisabled || blockedByPlan) {
+          optionButton.setAttribute('aria-disabled', 'true');
+        } else {
+          optionButton.removeAttribute('aria-disabled');
         }
-
-        optionButton.disabled = buttonDisabled;
+        optionButton.dataset.usageLimitDisabled = isUsageLimitDisabled ? 'true' : 'false';
 
         const labelRow = document.createElement('div');
         labelRow.className = 'model-select-option__label';
@@ -518,12 +522,15 @@
           metaRow.textContent = pricingText;
           optionButton.appendChild(metaRow);
         }
-        optionButton.addEventListener('click', () => {
-          if (optionButton.disabled) {
-            // Show usage limit reached modal for disabled non-free models
+        optionButton.addEventListener('click', (event) => {
+          if (isUsageLimitDisabled) {
+            event.preventDefault();
             if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
             }
+            return;
+          }
+          if (blockedByPlan) {
             return;
           }
           modelSelect.value = model.id;
