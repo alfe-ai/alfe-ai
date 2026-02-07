@@ -386,6 +386,12 @@
   function shouldDisableModel(model, plan, limits, usageCount) {
     if (!model) return false;
 
+    const normalizedAccountPlan = (currentAccountPlan || '').toString().trim().toLowerCase();
+    const isPaidAccountPlan = ['lite', 'plus', 'pro'].includes(normalizedAccountPlan);
+    if (isPaidAccountPlan) {
+      return false;
+    }
+
     // Check if user is on Free or Logged-out Session plan
     const normalizedPlan = (plan || '').toString().trim().toLowerCase();
     const isFreeOrLoggedOut = normalizedPlan === 'free' || normalizedPlan === 'logged-out session';
