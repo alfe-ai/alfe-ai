@@ -198,6 +198,25 @@ function setupPostRoutes(deps) {
             return false;
         }
     };
+    const getShowSubscribeMessage = async (req) => {
+        if (!rdsStore?.enabled) {
+            return false;
+        }
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return false;
+        }
+        try {
+            const account = await rdsStore.getAccountBySession(sessionId);
+            if (!account || isLoggedOutPlan(account.plan)) {
+                return false;
+            }
+            return account.plan === "Free";
+        } catch (error) {
+            console.warn("[WARN] Failed to check account session:", error);
+            return false;
+        }
+    };
     const getRequestIp = (req) => {
         const forwarded = req.headers["x-forwarded-for"];
         const forwardedIp = Array.isArray(forwarded) ? forwarded[0] : forwarded;
@@ -1320,6 +1339,7 @@ function setupPostRoutes(deps) {
                         (process.env.SHOW_NEW_REPOSITORY_LINK || "").toLowerCase(),
                     );
                     const showLoggedOutMessage = await getShowLoggedOutMessage(req);
+                    const showSubscribeMessage = await getShowSubscribeMessage(req);
                     return res.status(400).render("add_repository", {
                         serverCWD: process.cwd(),
                         cloneError:
@@ -1329,6 +1349,7 @@ function setupPostRoutes(deps) {
                         gitRepoURLValue: normalizedGitRepoURL || gitRepoURL,
                         showCreateRepoLink,
                         showLoggedOutMessage,
+                        showSubscribeMessage,
                     });
                 }
                 return res.status(500).send("Failed to clone repository.");
