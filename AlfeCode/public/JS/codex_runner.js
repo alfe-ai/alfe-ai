@@ -63,6 +63,7 @@
   let defaultModelInput;
 
   let modelOnlyLookup = new Map();
+  let lastValidModelSelection = "";
 
   const formatModelLabel = (model) => {
     if (!model) return "";
@@ -626,8 +627,28 @@
   modelPromptSelectButton = document.getElementById("modelPromptSelectButton");
   modelPromptSelectMenu = document.getElementById("modelPromptSelectMenu");
   engineSelectInline = document.getElementById("engineSelectInline");
+  const getFirstAvailableModelValue = () => {
+    const select = modelPromptSelect || modelSelect;
+    if (!select) return "";
+    const options = Array.from(select.options);
+    const fallback = options.find(
+      (option) => option.dataset.usageLimitDisabled !== "true" && !option.disabled,
+    );
+    return fallback ? fallback.value : "";
+  };
   const handleModelSelectChange = (event) => {
     const source = event.target;
+    const selectedOption = source && source.options ? source.options[source.selectedIndex] : null;
+    if (selectedOption && selectedOption.dataset.usageLimitDisabled === "true") {
+      if (window.showUsageLimitModal) {
+        window.showUsageLimitModal("code", "Usage limit reached. Please try again later.");
+      }
+      const fallback = lastValidModelSelection || getFirstAvailableModelValue();
+      if (fallback) {
+        updateModelSelectValue(fallback);
+      }
+      return;
+    }
     if (source === modelSelect && modelPromptSelect) {
       modelPromptSelect.value = source.value;
     }
@@ -638,6 +659,7 @@
     updateModelPromptSelectButton(modelOnlyLookup.get(nextValue) || (nextValue ? { label: nextValue, plus_model: false } : null));
     syncModelPromptDropdownSelection();
     persistDefaultModelSelection(nextValue, { showFeedback: true });
+    lastValidModelSelection = nextValue;
   };
   const renderModelOnlyOptions = (models, preferredValue = "") => {
     const enabledModels = models.filter(isModelEnabled);
@@ -691,8 +713,8 @@
         option.value = model.id;
         option.textContent = label;
         if (isDisabled) {
-          option.disabled = true;
           option.classList.add("usage-limit-disabled");
+          option.dataset.usageLimitDisabled = "true";
         }
         select.appendChild(option);
       });
@@ -750,6 +772,7 @@
       ? preferredValue
       : (enabledModels[0] && enabledModels[0].id) || "";
     updateModelSelectValue(resolvedValue);
+    lastValidModelSelection = resolvedValue;
   };
   const loadModelOnlyOptions = async () => {
     if (!modelSelect && !modelPromptSelect) return;
