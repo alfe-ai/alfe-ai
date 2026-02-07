@@ -2374,13 +2374,7 @@ ${cleanedFinalOutput}`;
         const showRunDirectory = parseBooleanFlag(process.env.SHOW_RUN_DIRECTORY);
         const showEngineOnAgent = parseBooleanFlag(process.env.SHOW_ENGINE_ON_AGENT);
         const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
-        const accountButtonEnabledEnv = process.env.ACCOUNT_BUTTON_ENABLED;
-        const accountButtonEnabled =
-            accountsEnabled
-            && (typeof accountButtonEnabledEnv === "undefined"
-                || (typeof accountButtonEnabledEnv === "string" && !accountButtonEnabledEnv.trim())
-                ? true
-                : parseBooleanFlag(accountButtonEnabledEnv));
+        const accountButtonEnabled = accountsEnabled;
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
