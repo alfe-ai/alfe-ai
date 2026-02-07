@@ -1322,6 +1322,8 @@ setupPostRoutes({
     CODEX_MODEL_PATTERN,
     loadCodexRuns,
     upsertCodexRun,
+    ensureSessionDefaultRepo,
+    buildSessionCookie,
 });
 
 

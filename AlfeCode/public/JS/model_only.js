@@ -32,6 +32,8 @@
   const accountEverSubscribedSelect = document.getElementById('accountEverSubscribedSelect');
   const accountEverSubscribedFeedback = document.getElementById('accountEverSubscribedFeedback');
   const accountSession = document.getElementById('accountSession');
+  const refreshSessionButton = document.getElementById('refreshSessionButton');
+  const refreshSessionFeedback = document.getElementById('refreshSessionFeedback');
   const logoutButton = document.getElementById('logoutButton');
   const logoutFeedback = document.getElementById('logoutFeedback');
   const supportPlanNotice = document.getElementById('supportPlanNotice');
@@ -672,6 +674,23 @@
     }
   }
 
+  function showSessionRefreshFeedback(message, type) {
+    if (!refreshSessionFeedback) return;
+    if (!message) {
+      refreshSessionFeedback.textContent = '';
+      refreshSessionFeedback.classList.add('hidden');
+      refreshSessionFeedback.classList.remove('error', 'success');
+      return;
+    }
+    refreshSessionFeedback.textContent = message;
+    refreshSessionFeedback.classList.remove('hidden', 'error', 'success');
+    if (type === 'error') {
+      refreshSessionFeedback.classList.add('error');
+    } else if (type === 'success') {
+      refreshSessionFeedback.classList.add('success');
+    }
+  }
+
   window.addEventListener('message', handleUsageEvent);
   window.addEventListener('storage', handleStorageEvent);
 
@@ -845,6 +864,9 @@
         }
         if (logoutButton) {
           logoutButton.disabled = !hasAccount;
+        }
+        if (refreshSessionButton) {
+          refreshSessionButton.disabled = !payload.sessionId;
         }
       }
     } catch (error) {
@@ -1067,6 +1089,7 @@
     if (!logoutButton) return;
     logoutButton.disabled = true;
     showLogoutFeedback('Logging out…');
+    showSessionRefreshFeedback('');
     try {
       const response = await fetch('/api/logout', {
         method: 'POST',
@@ -1087,6 +1110,9 @@
       if (accountEverSubscribedSelect) {
         accountEverSubscribedSelect.disabled = true;
       }
+      if (refreshSessionButton) {
+        refreshSessionButton.disabled = true;
+      }
       if (window.parent && window.parent !== window) {
         try {
           window.parent.location.assign('/agent');
@@ -1104,6 +1130,39 @@
   if (logoutButton) {
     logoutButton.addEventListener('click', function() {
       void handleLogout();
+    });
+  }
+
+  async function handleSessionRefresh() {
+    if (!refreshSessionButton) return;
+    refreshSessionButton.disabled = true;
+    showSessionRefreshFeedback('Refreshing session…');
+    try {
+      const response = await fetch('/api/session/refresh', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to refresh session (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+      setAccountField(accountSession, payload.sessionId);
+      showSessionRefreshFeedback('Session refreshed.', 'success');
+      await loadUsageLimits();
+    } catch (error) {
+      console.error('Failed to refresh session:', error);
+      showSessionRefreshFeedback(error.message || 'Failed to refresh session.', 'error');
+    } finally {
+      if (refreshSessionButton) {
+        refreshSessionButton.disabled = false;
+      }
+    }
+  }
+
+  if (refreshSessionButton) {
+    refreshSessionButton.addEventListener('click', function() {
+      void handleSessionRefresh();
     });
   }
 
