@@ -519,7 +519,13 @@
           optionButton.appendChild(metaRow);
         }
         optionButton.addEventListener('click', () => {
-          if (optionButton.disabled) return;
+          if (optionButton.disabled) {
+            // Show usage limit reached modal for disabled non-free models
+            if (window.showUsageLimitModal) {
+              window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
+            }
+            return;
+          }
           modelSelect.value = model.id;
           modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
           closeModelDropdown();
