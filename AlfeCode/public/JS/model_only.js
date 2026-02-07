@@ -382,6 +382,29 @@
     engineFeedbackTimeout = null;
   }
 
+  function shouldDisableModel(model, plan, limits, usageCount) {
+    if (!model) return false;
+
+    // Check if user is on Free or Logged-out Session plan
+    const normalizedPlan = (plan || '').toString().trim().toLowerCase();
+    const isFreeOrLoggedOut = normalizedPlan === 'free' || normalizedPlan === 'logged-out session';
+
+    if (!isFreeOrLoggedOut) {
+      return false; // Paid plans can use any model
+    }
+
+    // Check if usage limit is reached
+    const codeLimit = typeof limits.code === 'number' ? limits.code : 0;
+    const hasReachedLimit = codeLimit > 0 && usageCount >= codeLimit;
+
+    if (!hasReachedLimit) {
+      return false; // Not at limit yet
+    }
+
+    // Disable models that don't have usage: "free"
+    return model.usage !== 'free';
+  }
+
   function populateModels(){
     const models = (window.__providerModels = (window.__providerModels || {}));
     const list = models[activeProvider];
@@ -415,8 +438,24 @@
       return;
     }
     let added = 0;
-    list.forEach(raw => {
-      const model = normaliseModelEntry(raw);
+    // Get current usage count and check if models should be disabled
+    const usageCount = getStoredCodeUsageCount();
+    const shouldDisable = shouldDisableModel(null, currentUsagePlan, currentUsageLimits, usageCount);
+
+    // Sort models: free models first, then others
+    const sortedList = list
+      .map(normaliseModelEntry)
+      .filter(Boolean)
+      .sort((a, b) => {
+        // Free models come first
+        const aIsFree = a.usage === 'free';
+        const bIsFree = b.usage === 'free';
+        if (aIsFree && !bIsFree) return -1;
+        if (!aIsFree && bIsFree) return 1;
+        return 0;
+      });
+
+    sortedList.forEach(model => {
       if (!model) return;
       if (model.disabled) return;
       const o = document.createElement('option');
@@ -432,10 +471,17 @@
         labelParts.push(`— ${pricingText}`);
       }
       o.textContent = labelParts.join(' ');
+
+      // Apply disabling logic for free/logged-out users at limit
+      const isDisabled = shouldDisableModel(model, currentUsagePlan, currentUsageLimits, usageCount);
       if (model.plus_model && !isProPlan(currentAccountPlan)) {
         o.disabled = true;
         o.classList.add('pro-model-disabled');
+      } else if (isDisabled) {
+        o.disabled = true;
+        o.classList.add('usage-limit-disabled');
       }
+
       modelSelect.appendChild(o);
       if (modelSelectMenu) {
         const optionButton = document.createElement('button');
@@ -446,7 +492,16 @@
         if (model.usage) {
           optionButton.dataset.usage = model.usage;
         }
-        optionButton.disabled = model.plus_model && !isProPlan(currentAccountPlan);
+
+        let buttonDisabled = false;
+        if (model.plus_model && !isProPlan(currentAccountPlan)) {
+          buttonDisabled = true;
+        } else if (isDisabled) {
+          buttonDisabled = true;
+        }
+
+        optionButton.disabled = buttonDisabled;
+
         const labelRow = document.createElement('div');
         labelRow.className = 'model-select-option__label';
         const labelText = document.createElement('span');
@@ -524,11 +579,18 @@
     if (model?.usage) {
       option.dataset.usage = model.usage;
     }
+
+    // Apply disabling logic for free/logged-out users at limit
+    const isDisabled = shouldDisableModel(model, currentUsagePlan, currentUsageLimits, getStoredCodeUsageCount());
     if (model && model.plus_model && !isProPlan(currentAccountPlan)) {
       option.disabled = true;
       option.dataset.plusModel = 'true';
       option.classList.add('pro-model-disabled');
+    } else if (isDisabled) {
+      option.disabled = true;
+      option.classList.add('usage-limit-disabled');
     }
+
     modelSelect.insertBefore(option, modelSelect.firstChild);
     if (modelSelectMenu) {
       const optionButton = document.createElement('button');
@@ -538,6 +600,8 @@
       if (model?.plus_model) {
         optionButton.dataset.plusModel = 'true';
         optionButton.disabled = !isProPlan(currentAccountPlan);
+      } else if (isDisabled) {
+        optionButton.disabled = true;
       }
       if (model?.usage) {
         optionButton.dataset.usage = model.usage;
