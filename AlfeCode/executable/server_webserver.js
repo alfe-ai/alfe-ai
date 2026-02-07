@@ -1,7 +1,25 @@
-require("dotenv").config();
-const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const dotenv = require("dotenv");
+const dotenvCandidates = [
+    process.env.ALFECODE_DOTENV_PATH,
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(__dirname, "..", ".env"),
+].filter(Boolean);
+const loadedDotenvPaths = new Set();
+dotenvCandidates.forEach((candidate) => {
+    if (loadedDotenvPaths.has(candidate)) {
+        return;
+    }
+    loadedDotenvPaths.add(candidate);
+    if (fs.existsSync(candidate)) {
+        dotenv.config({ path: candidate });
+    }
+});
+if (!loadedDotenvPaths.size) {
+    dotenv.config();
+}
+const express = require("express");
 const globalTaskCounter = require("./globalTaskCounter");
 const os = require("os");
 const { exec, execSync, spawn } = require("child_process");
