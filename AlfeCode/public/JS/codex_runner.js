@@ -8428,10 +8428,7 @@ const appendMergeChunk = (text, type = "output") => {
       return;
     }
     if (info && info.email) {
-      signUpLogInBtn.style.display = "";
-      signUpLogInBtn.textContent = "Account";
-      signUpLogInBtn.title = "Account settings";
-      signUpLogInBtn.setAttribute("aria-label", "Account settings");
+      signUpLogInBtn.style.display = "none";
       if (subscribeButton) {
         const normalizedPlan = (info.plan || "").toString().trim().toLowerCase();
         subscribeButton.style.display = normalizedPlan === "free" ? "" : "none";
