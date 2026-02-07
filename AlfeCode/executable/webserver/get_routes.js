@@ -6011,6 +6011,7 @@ app.get("/agent/git-diff", (req, res) => {
         const mergeReady = isTruthyFlag(req.query.mergeReady);
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
+        const comparisonFinalOutput = await extractFinalOutputForCommit(sessionId, resolvedProjectDir, compRev);
 
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
 
@@ -6184,6 +6185,7 @@ app.get("/agent/git-diff", (req, res) => {
             commitList,
             mergeReady,
             comparisonPromptLine,
+            comparisonFinalOutput,
             chatNumber,
         });
     });
