@@ -1336,6 +1336,7 @@
             btn.type = 'button';
             btn.className = index === focusedFileIndex ? 'active' : '';
             btn.setAttribute('aria-current', index === focusedFileIndex ? 'true' : 'false');
+            btn.setAttribute('title', file.newPath || file.oldPath || '');
 
             const label = document.createElement('span');
             label.className = 'file-label';
