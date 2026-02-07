@@ -3543,7 +3543,19 @@
     return activeFinalOutput;
   };
 
-  const buildMergeDiffUrl = (hash, projectDirValue) => {
+  const getFinalOutputFromRunRecord = async (runId, projectDirValue) => {
+    try {
+      const run = await fetchRunFromHistory(runId, projectDirValue);
+      if (run && typeof run.finalOutput === 'string' && run.finalOutput.trim()) {
+        return run.finalOutput;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch final output from run record:', e);
+    }
+    return null;
+  };
+
+  const buildMergeDiffUrl = (hash, projectDirValue, finalOutput) => {
     if (!hash) return '';
     const baseRev = `${hash}^`;
     const params = new URLSearchParams({ baseRev, compRev: hash });
@@ -3554,14 +3566,14 @@
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
     }
-    const finalOutputForDiff = getFinalOutputForDiff();
+    const finalOutputForDiff = finalOutput || getFinalOutputForDiff();
     if (finalOutputForDiff) {
       params.set('finalOutput', finalOutputForDiff);
     }
 
     return `/agent/git-diff?${params.toString()}`;
   };
-  const buildMergeDiffUrlForBranch = (branch, projectDirValue) => {
+  const buildMergeDiffUrlForBranch = (branch, projectDirValue, finalOutput) => {
     if (!branch) return '';
     const params = new URLSearchParams({ branch });
     const dir = normaliseProjectDir(projectDirValue) || normaliseProjectDir(currentSnapshotProjectDir) || (currentRunContext && currentRunContext.projectDir) || '';
@@ -3571,7 +3583,7 @@
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
     }
-    const finalOutputForDiff = getFinalOutputForDiff();
+    const finalOutputForDiff = finalOutput || getFinalOutputForDiff();
     if (finalOutputForDiff) {
       params.set('finalOutput', finalOutputForDiff);
     }
@@ -3596,11 +3608,11 @@
     }
   };
 
-  const enableMergeDiffAfterPrefetch = ({ branch, hash, projectDirValue }) => {
+  const enableMergeDiffAfterPrefetch = ({ branch, hash, projectDirValue, finalOutput }) => {
     const useBranch = Boolean(branch);
     const diffUrl = useBranch
-      ? buildMergeDiffUrlForBranch(branch, projectDirValue || "")
-      : buildMergeDiffUrl(hash, projectDirValue || "");
+      ? buildMergeDiffUrlForBranch(branch, projectDirValue || "", finalOutput)
+      : buildMergeDiffUrl(hash, projectDirValue || "", finalOutput);
 
     if (!diffUrl) {
       if (useBranch) {
@@ -4030,7 +4042,7 @@
     }
   };
 
-  const consumePendingGitFpushDiff = (options = {}) => {
+  const consumePendingGitFpushDiff = async (options = {}) => {
     const branch = pendingGitFpushBranch;
     const branchProjectDir = pendingGitFpushBranchProjectDir;
     const hash = pendingGitFpushHash;
@@ -4043,7 +4055,8 @@
 
     if (branch) {
       if (options.prefetchFirst) {
-        enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir });
+        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, branchProjectDir);
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir, finalOutput });
       } else {
         enableMergeDiffButtonForBranch(branch, branchProjectDir);
       }
@@ -4052,7 +4065,8 @@
 
     if (hash) {
       if (options.prefetchFirst) {
-        enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir });
+        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, hashProjectDir);
+        enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir, finalOutput });
       } else {
         enableMergeDiffButtonForHash(hash, hashProjectDir);
       }
@@ -4251,7 +4265,7 @@
     return true;
   };
 
-  const handleGitFpushCompletionMessage = (message) => {
+  const handleGitFpushCompletionMessage = async (message) => {
     if (typeof message !== "string" || !message) {
       return;
     }
@@ -4272,7 +4286,7 @@
         pendingGitFpushBranch = "";
         pendingGitFpushBranchProjectDir = "";
         if (hasNoChanges) {
-          autoOpenMergeDiffOnEnable = false;
+          appendMergeChunk("\n--- git_fpush.sh: No changes to push ---\n", "output");
         }
         markGitFpushPhaseComplete();
         return;
@@ -4291,14 +4305,16 @@
       const branch = extractBranchFromText(message);
       enableAutoOpenMergeDiffIfAllowed();
       if (branch) {
-        enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir });
+        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, effectiveProjectDir);
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir, finalOutput });
         consumePendingGitFpushDiff({ prefetchFirst: true });
         markGitFpushPhaseComplete();
         return;
       }
 
       if (detectedHash) {
-        enableMergeDiffAfterPrefetch({ hash: detectedHash, projectDirValue: effectiveProjectDir });
+        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, effectiveProjectDir);
+        enableMergeDiffAfterPrefetch({ hash: detectedHash, projectDirValue: effectiveProjectDir, finalOutput });
         consumePendingGitFpushDiff({ prefetchFirst: true });
         markGitFpushPhaseComplete();
         return;
@@ -5514,7 +5530,7 @@ const appendMergeChunk = (text, type = "output") => {
     statusHistory.forEach((entry) => {
       if (entry) {
         appendChunk(entry, "status");
-        handleGitFpushCompletionMessage(entry);
+        await handleGitFpushCompletionMessage(entry);
       }
     });
 
@@ -5543,12 +5559,12 @@ const appendMergeChunk = (text, type = "output") => {
 
     if (run.gitFpushExitCode !== null && run.gitFpushExitCode !== undefined) {
       appendChunk(`git_fpush.sh exited with code ${run.gitFpushExitCode}.`, "status");
-      handleGitFpushCompletionMessage(`git_fpush.sh exited with code ${run.gitFpushExitCode}.`);
+      await handleGitFpushCompletionMessage(`git_fpush.sh exited with code ${run.gitFpushExitCode}.`);
     }
 
     if (run.finalMessage && !run.error) {
       appendChunk(run.finalMessage, "status");
-      handleGitFpushCompletionMessage(run.finalMessage);
+      await handleGitFpushCompletionMessage(run.finalMessage);
     }
 
     if (run.error) {
