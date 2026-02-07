@@ -6003,7 +6003,54 @@ ${err}`;
         }
     });
 
-app.get("/agent/git-diff", (req, res) => {
+    const extractFinalOutputForCommit = async (sessionId, projectDir, commitHash) => {
+        if (!sessionId || !projectDir || !commitHash) {
+            return "";
+        }
+
+        try {
+            const runs = typeof loadCodexRuns === 'function' ? loadCodexRuns(sessionId) : [];
+            if (!Array.isArray(runs)) {
+                return "";
+            }
+
+            // Find the run that matches this commit hash
+            const matchingRun = runs.find(run => {
+                if (!run || typeof run !== 'object') return false;
+
+                // Check if this run's commit hash matches
+                const runCommitHash = run.commit || run.hash || '';
+                if (runCommitHash && runCommitHash.startsWith(commitHash)) {
+                    return true;
+                }
+
+                // Also check if the project directory matches
+                const runProjectDir = run.projectDir || run.requestedProjectDir || run.effectiveProjectDir || '';
+                if (runProjectDir) {
+                    try {
+                        const resolvedRunProjectDir = path.resolve(runProjectDir);
+                        const resolvedProjectDir = path.resolve(projectDir);
+                        return resolvedRunProjectDir === resolvedProjectDir;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                return false;
+            });
+
+            if (matchingRun) {
+                return await resolveFinalOutputTextForCommit(matchingRun);
+            }
+
+            return "";
+        } catch (err) {
+            console.error("Failed to extract final output for commit:", err);
+            return "";
+        }
+    };
+
+    app.get("/agent/git-diff", async (req, res) => {
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
         const baseRevInput = (req.query.baseRev || "").toString();
@@ -6011,8 +6058,8 @@ app.get("/agent/git-diff", (req, res) => {
         const mergeReady = isTruthyFlag(req.query.mergeReady);
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
-
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
+        const comparisonFinalOutput = await extractFinalOutputForCommit(sessionId, resolvedProjectDir, compRev);
 
         let errorMessage = "";
 
@@ -6184,6 +6231,7 @@ app.get("/agent/git-diff", (req, res) => {
             commitList,
             mergeReady,
             comparisonPromptLine,
+            comparisonFinalOutput,
             chatNumber,
         });
     });
@@ -6370,7 +6418,7 @@ app.get("/agent/git-diff", (req, res) => {
     };
 
 /* ---------- New diff page ---------- */
-    app.get("/:repoName/diff", (req, res) => {
+    app.get("/:repoName/diff", async (req, res) => {
         const { repoName } = req.params;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const { baseRev, compRev } = req.query;
@@ -6403,6 +6451,7 @@ app.get("/agent/git-diff", (req, res) => {
 
         const editorTarget = resolveEditorTargetForProjectDir(gitRepoLocalPath, sessionId);
         const chatNumber = editorTarget && editorTarget.chatNumber ? editorTarget.chatNumber : "";
+        const comparisonFinalOutput = await extractFinalOutputForCommit(sessionId, gitRepoLocalPath, compRev);
 
         res.render("diff", {
             gitRepoNameCLI: repoName,
@@ -6422,6 +6471,7 @@ app.get("/agent/git-diff", (req, res) => {
             commitList,
             mergeReady,
             comparisonPromptLine,
+            comparisonFinalOutput,
             chatNumber,
             showCommitList: SHOW_COMMIT_LIST
         });
