@@ -61,7 +61,7 @@
     {
       "id": "openrouter/xiaomi/mimo-v2-flash",
       "label": "Xiaomi: MiMo V2 Flash",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 262144,
       "engine_options": [
         "auto",
@@ -152,7 +152,7 @@
       "label": "Qwen: Qwen3 Coder 480B A35B",
       "created": "2025-07-23",
       "contextTokens": 262144,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen",
