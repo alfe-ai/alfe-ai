@@ -320,6 +320,19 @@
       "plus_model": false
     },
     {
+      "id": "openrouter/z-ai/glm-4.5-air:free",
+      "label": "Z.ai: GLM 4.5 Air",
+      "disabled": false,
+      "list_order": 20,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "qwen_cli": true,
+      "contextTokens": 131072,
+      "plus_model": false
+    },
+    {
       "id": "openrouter/z-ai/glm-4-32b",
       "label": "Z.ai: GLM 4 32B",
       "disabled": true,
@@ -377,7 +390,7 @@
       "label": "Arcee AI: Trinity Large Preview",
       "created": "2026-01-27",
       "contextTokens": 131000,
-      "disabled": true,
+      "disabled": false,
       "list_order": 26,
       "engine_options": [
         "auto",
@@ -389,7 +402,7 @@
       },
       "qwen_cli": true,
       "plus_model": false,
-      "usage": "low"
+      "usage": "free"
     },
     {
       "id": "openrouter/qwen/qwen3-4b:free",
