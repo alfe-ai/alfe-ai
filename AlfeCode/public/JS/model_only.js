@@ -60,6 +60,7 @@
   let supportActionState = 'login';
   let currentUsagePlan = 'Logged-out Session';
   let currentUsageLimits = USAGE_LIMITS.loggedOut;
+  let lastValidModelSelection = '';
 
   if (!accountsEnabled) {
     if (supportActionButton) {
@@ -478,8 +479,8 @@
         o.disabled = true;
         o.classList.add('pro-model-disabled');
       } else if (isDisabled) {
-        o.disabled = true;
         o.classList.add('usage-limit-disabled');
+        o.dataset.usageLimitDisabled = 'true';
       }
 
       modelSelect.appendChild(o);
@@ -561,6 +562,7 @@
       updateModelSelectButton(selected);
       syncModelDropdownSelection();
     }
+    lastValidModelSelection = modelSelect.value;
   }
 
   function ensureModelOption(modelId) {
@@ -600,8 +602,8 @@
       option.dataset.plusModel = 'true';
       option.classList.add('pro-model-disabled');
     } else if (isDisabled) {
-      option.disabled = true;
       option.classList.add('usage-limit-disabled');
+      option.dataset.usageLimitDisabled = 'true';
     }
 
     modelSelect.insertBefore(option, modelSelect.firstChild);
@@ -610,12 +612,13 @@
       optionButton.type = 'button';
       optionButton.className = 'model-select-option';
       optionButton.dataset.modelId = modelId;
+      const isUsageLimitDisabled = isDisabled;
       if (model?.plus_model) {
         optionButton.dataset.plusModel = 'true';
         optionButton.disabled = !isProPlan(currentAccountPlan);
-      } else if (isDisabled) {
-        optionButton.disabled = true;
       }
+      optionButton.dataset.usageLimitDisabled = isUsageLimitDisabled ? 'true' : 'false';
+      optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
       if (model?.usage) {
         optionButton.dataset.usage = model.usage;
       }
@@ -629,7 +632,14 @@
         labelRow.appendChild(badgeEl);
       }
       optionButton.appendChild(labelRow);
-      optionButton.addEventListener('click', () => {
+      optionButton.addEventListener('click', (event) => {
+        if (optionButton.dataset.usageLimitDisabled === 'true') {
+          event.preventDefault();
+          if (window.showUsageLimitModal) {
+            window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
+          }
+          return;
+        }
         if (optionButton.disabled) return;
         modelSelect.value = modelId;
         modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1108,7 +1118,35 @@
     });
   }
 
+  function getFirstAvailableModelValue() {
+    if (!modelSelect) return '';
+    const options = Array.from(modelSelect.options);
+    const fallback = options.find(option => option.dataset.usageLimitDisabled !== 'true' && !option.disabled);
+    return fallback ? fallback.value : '';
+  }
+
   modelSelect.addEventListener('change', function(){
+    const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    if (selectedOption && selectedOption.dataset.usageLimitDisabled === 'true') {
+      if (window.showUsageLimitModal) {
+        window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
+      }
+      const fallback = lastValidModelSelection || getFirstAvailableModelValue();
+      if (fallback) {
+        modelSelect.value = fallback;
+        updateEngineSelect(fallback);
+        const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+        const selected = normaliseModelEntry(list.find((entry) => {
+          if (!entry) return false;
+          if (typeof entry === 'string') return entry.trim() === modelSelect.value;
+          if (typeof entry === 'object') return entry.id === modelSelect.value;
+          return false;
+        }));
+        updateModelSelectButton(selected);
+        syncModelDropdownSelection();
+      }
+      return;
+    }
     const newModel = modelSelect && modelSelect.value ? modelSelect.value.trim() : '';
     persistEnginePreference('auto', { showFeedback: false });
     updateEngineSelect(newModel);
@@ -1122,6 +1160,7 @@
     updateModelSelectButton(selected);
     syncModelDropdownSelection();
     void saveDefaultModel(newModel);
+    lastValidModelSelection = newModel;
   });
 
   initEngineSelect();
