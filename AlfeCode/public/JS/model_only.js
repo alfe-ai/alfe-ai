@@ -511,7 +511,7 @@
       // Apply disabling logic for free/logged-out users at limit
       const isDisabled = shouldDisableModel(model, currentUsagePlan, currentUsageLimits, usageCount);
       if (model.plus_model && !isProPlan(currentAccountPlan)) {
-        o.disabled = true;
+        o.dataset.proModelDisabled = 'true';
         o.classList.add('pro-model-disabled');
       } else if (isDisabled) {
         o.classList.add('usage-limit-disabled');
@@ -532,7 +532,7 @@
         const isUsageLimitDisabled = isDisabled;
         const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
-        optionButton.disabled = blockedByPlan && !isUsageLimitDisabled;
+        optionButton.disabled = false;
         optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
         optionButton.classList.toggle('pro-model-disabled', isProDisabled);
         if (isUsageLimitDisabled || blockedByPlan) {
@@ -559,14 +559,11 @@
           optionButton.appendChild(metaRow);
         }
         optionButton.addEventListener('click', (event) => {
-          if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id, optionButton)) {
+          if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id, optionButton) || blockedByPlan) {
             event.preventDefault();
             if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
             }
-            return;
-          }
-          if (blockedByPlan) {
             return;
           }
           modelSelect.value = model.id;
@@ -633,8 +630,8 @@
     // Apply disabling logic for free/logged-out users at limit
     const isDisabled = shouldDisableModel(model, currentUsagePlan, currentUsageLimits, getStoredCodeUsageCount());
     if (model && model.plus_model && !isProPlan(currentAccountPlan)) {
-      option.disabled = true;
       option.dataset.plusModel = 'true';
+      option.dataset.proModelDisabled = 'true';
       option.classList.add('pro-model-disabled');
     } else if (isDisabled) {
       option.classList.add('usage-limit-disabled');
@@ -648,12 +645,13 @@
       optionButton.className = 'model-select-option';
       optionButton.dataset.modelId = modelId;
       const isUsageLimitDisabled = isDisabled;
+      const isProDisabled = model?.plus_model && !isProPlan(currentAccountPlan);
       if (model?.plus_model) {
         optionButton.dataset.plusModel = 'true';
-        optionButton.disabled = !isProPlan(currentAccountPlan) && !isUsageLimitDisabled;
       }
       optionButton.dataset.usageLimitDisabled = isUsageLimitDisabled ? 'true' : 'false';
       optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
+      optionButton.classList.toggle('pro-model-disabled', isProDisabled);
       if (model?.usage) {
         optionButton.dataset.usage = model.usage;
       }
@@ -668,14 +666,14 @@
       }
       optionButton.appendChild(labelRow);
       optionButton.addEventListener('click', (event) => {
-        if (optionButton.dataset.usageLimitDisabled === 'true') {
+        const isProDisabled = optionButton.classList.contains('pro-model-disabled');
+        if (optionButton.dataset.usageLimitDisabled === 'true' || isProDisabled) {
           event.preventDefault();
           if (window.showUsageLimitModal) {
             window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
           }
           return;
         }
-        if (optionButton.disabled) return;
         modelSelect.value = modelId;
         modelSelect.dispatchEvent(new Event('change', { bubbles: true }));
         closeModelDropdown();
@@ -866,20 +864,27 @@
     Array.from(modelSelect.options).forEach(option => {
       const isPlusModel = option.dataset.plusModel === 'true';
       if (!isPlusModel) return;
-      option.disabled = !allowPro;
+      option.dataset.proModelDisabled = allowPro ? 'false' : 'true';
       option.classList.toggle('pro-model-disabled', !allowPro);
     });
     if (modelSelectMenu) {
       Array.from(modelSelectMenu.querySelectorAll('.model-select-option')).forEach(option => {
         const isPlusModel = option.dataset.plusModel === 'true';
         if (!isPlusModel) return;
-        option.disabled = !allowPro;
+        option.classList.toggle('pro-model-disabled', !allowPro);
+        if (!allowPro) {
+          option.setAttribute('aria-disabled', 'true');
+        } else if (option.dataset.usageLimitDisabled !== 'true') {
+          option.removeAttribute('aria-disabled');
+        }
       });
     }
     if (!allowPro && modelSelect.value) {
       const selectedOption = modelSelect.options[modelSelect.selectedIndex];
-      if (selectedOption && selectedOption.disabled) {
-        const fallback = Array.from(modelSelect.options).find(option => !option.disabled);
+      if (selectedOption && selectedOption.dataset.proModelDisabled === 'true') {
+        const fallback = Array.from(modelSelect.options).find(
+          option => option.dataset.proModelDisabled !== 'true' && option.dataset.usageLimitDisabled !== 'true',
+        );
         if (fallback) {
           modelSelect.value = fallback.value;
           updateEngineSelect(fallback.value);
@@ -1160,12 +1165,32 @@
   function getFirstAvailableModelValue() {
     if (!modelSelect) return '';
     const options = Array.from(modelSelect.options);
-    const fallback = options.find(option => option.dataset.usageLimitDisabled !== 'true' && !option.disabled);
+    const fallback = options.find(option => option.dataset.usageLimitDisabled !== 'true' && option.dataset.proModelDisabled !== 'true');
     return fallback ? fallback.value : '';
   }
 
   modelSelect.addEventListener('change', function(){
     const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    if (selectedOption && selectedOption.dataset.proModelDisabled === 'true') {
+      if (window.showUsageLimitModal) {
+        window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
+      }
+      const fallback = lastValidModelSelection || getFirstAvailableModelValue();
+      if (fallback) {
+        modelSelect.value = fallback;
+        updateEngineSelect(fallback);
+        const list = (window.__providerModels && window.__providerModels[activeProvider]) || [];
+        const selected = normaliseModelEntry(list.find((entry) => {
+          if (!entry) return false;
+          if (typeof entry === 'string') return entry.trim() === modelSelect.value;
+          if (typeof entry === 'object') return entry.id === modelSelect.value;
+          return false;
+        }));
+        updateModelSelectButton(selected);
+        syncModelDropdownSelection();
+      }
+      return;
+    }
     if (selectedOption && isUsageLimitRestrictedModel(modelSelect.value, selectedOption)) {
       if (window.showUsageLimitModal) {
         window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');

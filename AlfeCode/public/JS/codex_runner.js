@@ -640,7 +640,7 @@
     if (!select) return "";
     const options = Array.from(select.options);
     const fallback = options.find(
-      (option) => option.dataset.usageLimitDisabled !== "true" && !option.disabled,
+      (option) => option.dataset.usageLimitDisabled !== "true" && option.dataset.proModelDisabled !== "true",
     );
     return fallback ? fallback.value : "";
   };
@@ -648,6 +648,16 @@
     const source = event.target;
     const selectedOption = source && source.options ? source.options[source.selectedIndex] : null;
     const selectedValue = (selectedOption && selectedOption.value) || (source && source.value) || "";
+    if (selectedOption && selectedOption.dataset.proModelDisabled === "true") {
+      if (window.showUsageLimitModal) {
+        window.showUsageLimitModal("code", "Usage limit reached. Please try again later.");
+      }
+      const fallback = lastValidModelSelection || getFirstAvailableModelValue();
+      if (fallback) {
+        updateModelSelectValue(fallback);
+      }
+      return;
+    }
     if (selectedValue && isUsageLimitRestrictedModel(selectedValue)) {
       if (window.showUsageLimitModal) {
         window.showUsageLimitModal("code", "Usage limit reached. Please try again later.");
@@ -729,6 +739,7 @@
     sortedModels.forEach((model) => {
       const label = formatModelLabel(model);
       const isDisabled = shouldDisableModel(model, planName, limits, usageCount);
+      const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
 
       selects.forEach((select) => {
         const option = document.createElement("option");
@@ -737,6 +748,10 @@
         if (isDisabled) {
           option.classList.add("usage-limit-disabled");
           option.dataset.usageLimitDisabled = "true";
+        }
+        if (isProDisabled) {
+          option.classList.add("pro-model-disabled");
+          option.dataset.proModelDisabled = "true";
         }
         select.appendChild(option);
       });
@@ -747,9 +762,8 @@
         optionButton.className = "model-select-option";
         optionButton.dataset.modelId = model.id;
         const isUsageLimitDisabled = isDisabled;
-        const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
-        optionButton.disabled = blockedByPlan && !isUsageLimitDisabled;
+        optionButton.disabled = false;
         optionButton.classList.toggle("usage-limit-disabled", isUsageLimitDisabled);
         optionButton.classList.toggle("pro-model-disabled", isProDisabled);
         if (isUsageLimitDisabled || blockedByPlan) {
@@ -770,14 +784,11 @@
         }
         optionButton.appendChild(labelRow);
         optionButton.addEventListener("click", (event) => {
-          if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id)) {
+          if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id) || blockedByPlan) {
             event.preventDefault();
             if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
             }
-            return;
-          }
-          if (blockedByPlan) {
             return;
           }
           modelPromptSelect.value = model.id;
