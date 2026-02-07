@@ -2371,6 +2371,7 @@ ${cleanedFinalOutput}`;
         const accountButtonEnabled =
             accountsEnabled
             && (typeof accountButtonEnabledEnv === "undefined"
+                || (typeof accountButtonEnabledEnv === "string" && !accountButtonEnabledEnv.trim())
                 ? true
                 : parseBooleanFlag(accountButtonEnabledEnv));
         res.render("codex_runner", {
