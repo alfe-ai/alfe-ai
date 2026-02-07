@@ -33,7 +33,9 @@
   const accountEverSubscribedFeedback = document.getElementById('accountEverSubscribedFeedback');
   const accountSession = document.getElementById('accountSession');
   const refreshSessionButton = document.getElementById('refreshSessionButton');
+  const resetUsageButton = document.getElementById('resetUsageButton');
   const refreshSessionFeedback = document.getElementById('refreshSessionFeedback');
+  const resetUsageFeedback = document.getElementById('resetUsageFeedback');
   const logoutButton = document.getElementById('logoutButton');
   const logoutFeedback = document.getElementById('logoutFeedback');
   const supportPlanNotice = document.getElementById('supportPlanNotice');
@@ -794,6 +796,23 @@
     }
   }
 
+  function showResetUsageFeedback(message, type) {
+    if (!resetUsageFeedback) return;
+    if (!message) {
+      resetUsageFeedback.textContent = '';
+      resetUsageFeedback.classList.add('hidden');
+      resetUsageFeedback.classList.remove('error', 'success');
+      return;
+    }
+    resetUsageFeedback.textContent = message;
+    resetUsageFeedback.classList.remove('hidden', 'error', 'success');
+    if (type === 'error') {
+      resetUsageFeedback.classList.add('error');
+    } else if (type === 'success') {
+      resetUsageFeedback.classList.add('success');
+    }
+  }
+
   function showSessionRefreshFeedback(message, type) {
     if (!refreshSessionFeedback) return;
     if (!message) {
@@ -1360,9 +1379,37 @@
     }
   }
 
+  async function handleResetUsage() {
+    if (!resetUsageButton) return;
+    resetUsageButton.disabled = true;
+    showResetUsageFeedback('Resetting usage...', 'info');
+    try {
+      // Reset the code usage count to 0
+      setStoredCodeUsageCount(0);
+
+      // Update the UI to reflect the reset
+      await loadUsageLimits();
+
+      showResetUsageFeedback('Usage count reset to 0.', 'success');
+    } catch (error) {
+      console.error('Failed to reset usage:', error);
+      showResetUsageFeedback('Failed to reset usage.', 'error');
+    } finally {
+      if (resetUsageButton) {
+        resetUsageButton.disabled = false;
+      }
+    }
+  }
+
   if (refreshSessionButton) {
     refreshSessionButton.addEventListener('click', function() {
       void handleSessionRefresh();
+    });
+  }
+
+  if (resetUsageButton) {
+    resetUsageButton.addEventListener('click', function() {
+      void handleResetUsage();
     });
   }
 
