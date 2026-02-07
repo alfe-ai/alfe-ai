@@ -5735,7 +5735,7 @@ res.render("editor", {
         return firstLine;
     };
 
-    app.get("/agent/git-diff-branch-merge", (req, res) => {
+    app.get("/agent/git-diff-branch-merge", async (req, res) => {
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
         const branchParam = (req.query.branch || "").toString().trim();
