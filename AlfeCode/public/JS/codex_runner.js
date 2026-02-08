@@ -4394,7 +4394,7 @@
 
     const branchFromRun = extractBranchFromRun(run);
     if (branchFromRun) {
-      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir, resolvedSavedFinalOutput);
+      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir, run.finalOutput);
     }
 
     for (const candidate of candidateTexts) {
