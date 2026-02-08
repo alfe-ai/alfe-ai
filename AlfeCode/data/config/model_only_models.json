@@ -254,6 +254,10 @@
         "inputPerMTokens": 0.207,
         "outputPerMTokens": 0.828
       },
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 0,
