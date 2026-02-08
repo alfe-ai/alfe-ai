@@ -1002,14 +1002,18 @@ function setupGetRoutes(deps) {
             return cleanedFinalOutput;
         };
 
-        // Prefer stderr (legacy), then stdout, then the stored finalOutput field.
-        let cleanedFinalOutput = extractFromText(stderrText);
-        if (!cleanedFinalOutput) {
-            cleanedFinalOutput = extractFromText(stdoutText);
-        }
-        if (!cleanedFinalOutput && finalOutputField) {
+        // Prefer the stored finalOutput field (which should contain just the final output tab content),
+        // then fall back to extracting from stderr/stdout for legacy compatibility.
+        let cleanedFinalOutput = "";
+        if (finalOutputField) {
             const candidate = finalOutputField.replace(/\r/g, "").trim();
             cleanedFinalOutput = candidate ? stripInitialHeaders(candidate) : "";
+        }
+        if (!cleanedFinalOutput) {
+            cleanedFinalOutput = extractFromText(stderrText);
+        }
+        if (!cleanedFinalOutput) {
+            cleanedFinalOutput = extractFromText(stdoutText);
         }
 
         if (!cleanedFinalOutput) {
