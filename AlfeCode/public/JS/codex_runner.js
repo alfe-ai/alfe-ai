@@ -3546,8 +3546,11 @@
   const getFinalOutputFromRunRecord = async (runId, projectDirValue) => {
     try {
       const run = await fetchRunFromHistory(runId, projectDirValue);
-      if (run && typeof run.finalOutput === 'string' && run.finalOutput.trim()) {
-        return run.finalOutput;
+      if (run) {
+        const resolved = resolveFinalOutputForSavedRun(run);
+        if (resolved) {
+          return resolved;
+        }
       }
     } catch (e) {
       console.warn('Failed to fetch final output from run record:', e);
