@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Diff: <%= gitRepoNameCLI %></title>
+    <link id="favicon" rel="icon" href="/alfe_favicon.ico" />
+    <link rel="alternate icon" href="/alfe_favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/CSS/chat.css" />
+    <style>
+        :root {
+            --bg: #020617;
+            --panel: #0f172a;
+            --panel-soft: #111827;
+            --border: #1e293b;
+            --border-strong: #334155;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --success: #22c55e;
+            --added: rgba(16, 185, 129, 0.12);
+            --removed: rgba(248, 113, 113, 0.16);
+            --meta: rgba(245, 158, 11, 0.18);
+            --shadow: 0 16px 40px rgba(15, 23, 42, 0.7);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 55%),
+                radial-gradient(circle at top right, rgba(139, 92, 246, 0.12), transparent 60%),
+                var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .page {
+            margin: 24px;
+            max-width: 1280px;
+            width: 100%;
+            background: var(--panel);
+            border-radius: 14px;
+            padding: 16px 16px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .header-row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-main {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .header-actions {
+            flex: 0 0 auto;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+            min-width: 0;
+            margin-left: auto;
+        }
+
+        .revision-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .revision-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px 10px;
+            color: var(--text);
+            font-weight: 600;
+            min-width: 200px;
+        }
+
+        .revision-pill .sub {
+            display: block;
+            margin-top: 4px;
+            font-weight: 400;
+            color: var(--muted);
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .toolbar button {
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            background: #0b1324;
+            color: var(--muted);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .toolbar button.active {
+            background: #1d4ed8;
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        .read-only-prompt-row {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .read-only-prompt-label {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+        .read-only-prompt-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            background: #0b1324;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            padding: 8px 10px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .final-output-block {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #0b1324;
+            border: 1px solid var(--border);
+        }
+
+        .final-output-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .final-output-text {
+            white-space: pre-wrap;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .commit-message-box {
+            background: var(--panel-soft);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .commit-message-title {
+            margin: 0 0 6px;
+            font-size: 13px;
+            color: var(--muted);
+            letter-spacing: 0.01em;
+        }
+
+        .commit-message-body {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            color: var(--text);
+            background: #0b1324;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .commit-message-toggle {
+            margin-top: 8px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .commit-message-toggle:hover {
+            background: rgba(59, 130, 246, 0.15);
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        .diff-followup-form {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .diff-followup-label {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .diff-followup-input {
+            width: 100%;
+            min-height: 64px;
+            background: #0b1324;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            padding: 10px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .diff-followup-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .diff-followup-submit {
+            margin-left: auto;
+            padding: 10px;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            color: #fff;
+            border: none;
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.35);
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .diff-followup-submit svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .diff-followup-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.38);
+        }
+
+        .diff-followup-status {
+            flex: 1;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 960px) {
+            .header-row {
+                flex-wrap: wrap;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        .merge-button-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .merge-button-wrapper .merge-disabled-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translate(-50%, 6px);
+            background: rgba(15, 23, 42, 0.95);
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            color: var(--text);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.35);
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            z-index: 10;
+        }
+
+        .merge-button-wrapper.is-merge-disabled:hover .merge-disabled-tooltip {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        #mergeButton {
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(230, 230, 230, 0.95);
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            box-shadow: none;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 40px;
+            margin-right: 50px;
+        }
+        #mergeButton svg { opacity: 0.95; }
+        #mergeButton:enabled:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.32);
+        }
+        #mergeButton.is-merge-ready {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(139, 92, 246, 0.95));
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 12px 26px rgba(124, 58, 237, 0.35);
+        }
+        .merge-button-wrapper.is-merge-disabled #mergeButton {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--muted);
+            border-color: var(--border);
+            box-shadow: none;
+        }
+
+        .alert {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: rgba(249, 115, 22, 0.18);
+            border: 1px solid rgba(249, 115, 22, 0.35);
+            color: #fed7aa;
+        }
+
+        .open-in-editor-button {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            position: absolute;
+            top: 12px;
+            right: 12px;
+        }
+        .open-in-editor-button:hover { color: #fff; background: rgba(255,255,255,0.03); }
+
+        .diff-shell {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 12px;
+            min-height: 360px;
+            min-width: 0;
+        }
+
+        .diff-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-self: flex-start;
+            min-width: 0;
+        }
+
+        .commit-list {
+            background: var(--panel-soft);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-self: stretch;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .commit-list h4 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .commit-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .commit-list button {
+            width: 100%;
+            text-align: left;
+            background: #0b1324;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 12px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .commit-list button:hover {
+            background: rgba(59, 130, 246, 0.18);
+            transform: translateX(2px);
+        }
+
+        .commit-list button.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #2563eb;
+        }
+
+        .commit-list .commit-hash {
+            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .commit-list .commit-message {
+            font-size: 12px;
+            color: var(--text);
+            line-height: 1.3;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .file-list {
+            background: var(--panel-soft);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            flex: 1;
+        }
+
+        .file-list h4 {
+            margin: 0 0 10px;
+            font-size: 14px;
+        }
+
+        .file-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .file-list button {
+            width: 100%;
+            text-align: left;
+            background: #0b1324;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 13px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .file-list button:hover {
+            background: rgba(59, 130, 246, 0.18);
+            transform: translateX(2px);
+        }
+
+        .file-list button.active {
+            background: rgba(59, 130, 246, 0.3);
+            border-color: #2563eb;
+        }
+
+        .file-list button .file-label {
+            display: inline-block;
+            max-width: calc(100% - 76px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: top;
+        }
+
+        .file-list button .file-stats {
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+            color: var(--muted);
+        }
+
+        .file-list button .file-stats .additions {
+            color: var(--success, #22c55e);
+        }
+
+        .file-list button .file-stats .deletions {
+            color: #f87171;
+        }
+
+        .viewer-panel {
+            background: #020617;
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .file-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 0 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .diff-view {
+            position: relative;
+            flex: 1;
+            min-height: auto;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            overflow: visible;
+            min-width: 0;
+        }
+
+        .diff-inner {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding-bottom: 6px;
+        }
+
+        .diff-file-section {
+            background: #050812;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 20px 40px rgba(2, 6, 23, 0.6);
+            position: relative;
+        }
+
+        .diff-file-section:focus-visible {
+            outline: 2px solid rgba(59, 130, 246, 0.9);
+            outline-offset: 3px;
+        }
+
+        .diff-file-header {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            color: var(--text);
+            font-size: 14px;
+            padding-right: 36px;
+        }
+
+        .diff-file-title {
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .diff-file-viewer {
+            background: #020617;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 14px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+            width: 100%;
+        }
+
+        .diff-lines {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            overflow-x: auto;
+            overflow-y: visible;
+            overscroll-behavior: contain;
+            width: max-content;
+            min-width: 100%;
+        }
+
+        .diff-header {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            border-bottom: 1px solid var(--border);
+            background: #0b1324;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .diff-header > div {
+            padding: 6px 10px;
+        }
+
+        .diff-view.stacked .diff-header {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .diff-view.stacked .diff-header > div:nth-child(2) {
+            border-top: 1px solid var(--border);
+        }
+
+        .hunk {}
+
+        .diff-view.side-by-side .hunk {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        .diff-view.stacked .hunk {
+            display: block;
+        }
+
+        .diff-column {
+            border-left: 1px solid var(--border);
+        }
+
+        .diff-column:first-child {
+            border-left: none;
+        }
+
+        .diff-line {
+            display: grid;
+            grid-template-columns: 3.75rem minmax(0, 1fr);
+            align-items: baseline;
+            white-space: pre;
+            line-height: 1.35;
+            padding: 0 10px;
+            width: max-content;
+            min-width: 100%;
+        }
+
+        .line-num {
+            padding-right: 8px;
+            text-align: right;
+            color: var(--muted);
+            user-select: none;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .code {
+            display: block;
+            overflow: visible;
+            min-width: max-content;
+        }
+
+        .line-sign {
+            display: inline-block;
+            width: 1ch;
+            padding-right: 8px;
+            font-weight: 700;
+            font-family: inherit;
+        }
+
+        .diff-line.added .line-sign, .diff-line.changed-right .line-sign {
+            color: #10b981;
+        }
+        .diff-line.removed .line-sign, .diff-line.changed-left .line-sign {
+            color: #f87171;
+        }
+        .diff-line .line-sign {
+            color: var(--muted);
+        }
+
+        .diff-line.added {
+            background: var(--added);
+        }
+
+        .diff-line.removed {
+            background: var(--removed);
+        }
+
+        .diff-line.changed-left {
+            background: var(--removed);
+        }
+
+        .diff-line.changed-right {
+            background: var(--added);
+        }
+
+        .diff-line.meta {
+            background: var(--meta);
+            color: #facc15;
+            font-style: italic;
+        }
+
+        .diff-view.stacked .hunk {
+            border-top: 1px solid var(--border);
+        }
+
+        .diff-view.stacked .hunk:first-child {
+            border-top: none;
+        }
+
+        .diff-view.stacked .diff-column {
+            border-left: none;
+            border-top: 1px solid var(--border);
+        }
+
+        .diff-view.stacked .diff-column:first-child {
+            border-top: none;
+        }
+
+        details.raw-diff {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        details.raw-diff pre {
+            background: #0b1324;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            white-space: pre;
+            overflow: auto;
+            max-height: 420px;
+        }
+
+        @media (max-width: 1100px) {
+            .diff-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .commit-list {
+                order: -2;
+            }
+
+            .file-list {
+                order: -1;
+            }
+
+            .diff-inner {
+                min-width: 520px;
+            }
+        }
+    </style>
+</head>
+<body>
+<%- include('partials/session_banner') %>
+<div class="page">
+    <div class="header-row">
+        <div class="header-main">
+            <% if (baseRev || compRev) { %>
+            <div class="revision-info">
+                <span class="revision-pill">Base: <%= baseRev || '—' %>
+                    <% if (typeof baseMeta !== 'undefined' && baseMeta && (baseMeta.message || baseMeta.authorName)) { %>
+                        <span class="sub"><%= baseMeta.message %> — <%= baseMeta.authorName %></span>
+                    <% } %>
+                </span>
+            </div>
+            <% } %>
+
+            <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
+<% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
+            <% if (comparisonCommitMessage) { %>
+            <div class="commit-message-box" aria-label="Comparison commit message">
+                <div class="commit-message-title">Compare: <%= compRev || '—' %></div>
+                <% if (comparisonPromptLineValue) { %>
+                <div class="read-only-prompt-row">
+                    <span class="read-only-prompt-label">Prompt</span>
+                    <input
+                        type="text"
+                        class="read-only-prompt-input"
+                        value="<%= comparisonPromptLineValue %>"
+                        readonly
+                        aria-readonly="true"
+                        tabindex="-1"
+                    />
+                </div>
+                <% } %>
+                <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
+                <div class="final-output-block" aria-label="Final output">
+                    <span class="final-output-label">Final output</span>
+                    <pre class="final-output-text"><%= comparisonFinalOutput %></pre>
+                </div>
+                <% } %>
+                <p class="commit-message-body" id="comparisonCommitMessage"></p>
+                <button type="button" class="commit-message-toggle" id="comparisonCommitToggle" aria-expanded="false">Show more</button>
+                <form class="diff-followup-form" id="diffFollowupForm">
+                    <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
+                    <textarea
+                        id="diffFollowupPrompt"
+                        class="diff-followup-input"
+                        name="followupPrompt"
+                        placeholder="Add a follow-up prompt for this run"
+                        rows="2"
+                    ></textarea>
+                    <div class="diff-followup-actions">
+                        <span class="diff-followup-status" id="diffFollowupStatus" aria-live="polite"></span>
+                        <button type="submit" class="diff-followup-submit" aria-label="Send follow-up">
+                            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <% } %>
+        </div>
+        <div class="header-actions">
+            <div class="merge-button-wrapper<%= mergeReady ? '' : ' is-merge-disabled' %>" id="mergeButtonWrapper">
+                <button
+                    type="button"
+                    id="mergeButton"
+                    class="nav-button<%= mergeReady ? ' is-merge-ready' : '' %>"
+                    <%= mergeReady ? '' : 'disabled aria-disabled="true"' %>
+                    title="<%= mergeReady ? 'Merge current branch into the configured parent branch' : 'Merge is available after agent finishes running.' %>"
+                >
+                    <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 3a2 2 0 11-4 0 2 2 0 014 0zM6 21a2 2 0 11-4 0 2 2 0 014 0zM18 21a2 2 0 11-4 0 2 2 0 014 0zM8.5 12.5l6-3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Merge</span>
+                </button>
+                <div class="merge-disabled-tooltip" id="mergeDisabledTooltip" aria-hidden="<%= mergeReady ? 'true' : 'false' %>">
+                    <% if (!mergeReady) { %>
+                        Merge is available after agent finishes running.
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <% if (errorMessage) { %>
+        <div class="alert"><%= errorMessage %></div>
+    <% } %>
+
+    <form action="<%= diffFormAction %>" method="get" class="diff-revision-form" aria-hidden="true">
+        <% if (!repoLinksEnabled && projectDir) { %>
+            <input type="hidden" name="projectDir" value="<%= projectDir %>" />
+        <% } %>
+        <input type="hidden" name="baseRev" value="<%= baseRev %>" />
+        <input type="hidden" name="compRev" value="<%= compRev %>" />
+    </form>
+
+    <% if (diffOutput) { %>
+        <% if (structuredDiff && structuredDiff.length) { %>
+    <div class="diff-shell">
+        <div class="diff-sidebar" aria-label="Commits and files">
+            <% if (showCommitList) { %><aside class="commit-list" aria-label="Commits">
+                <h4>Commits</h4>
+                <ul id="commit-list"></ul>
+            </aside>
+            <% } %><aside class="file-list" aria-label="Changed files">
+                <h4>Files</h4>
+                <ul id="file-list"></ul>
+            </aside>
+        </div>
+        <section id="diff" class="viewer-panel diff-view stacked" aria-label="Diff viewer">
+            <div class="file-meta" aria-live="polite">
+                <span id="current-file-label">Select a file</span>
+            </div>
+            <div class="diff-inner"></div>
+        </section>
+    </div>
+    <% if (diffOutput) { %>
+    <details class="raw-diff">
+        <summary>View raw diff</summary>
+        <pre><%= diffOutput %></pre>
+    </details>
+    <% } %>
+<script id="structured-diff-data" type="application/json"><%-
+    JSON.stringify(structuredDiff || [])
+        .replace(/</g, '\u003c')
+        .replace(/<\//g, '<\\\\/')
+        .replace(/\u2028|\u2029/g, '')
+%></script>
+<script id="raw-diff-data" type="application/json"><%-
+    JSON.stringify(diffOutput || '')
+        .replace(/</g, '\u003c')
+        .replace(/<\//g, '<\\\\/')
+        .replace(/\u2028|\u2029/g, '')
+%></script>
+<% if (showCommitList) { %><script id="commit-list-data" type="application/json"><%-
+    JSON.stringify(typeof commitList !== 'undefined' ? commitList : [])
+        .replace(/</g, '\u003c')
+        .replace(/<\//g, '<\\\\/')
+        .replace(/\u2028|\u2029/g, '')
+%></script><% } %>
+<script>
+    const structuredDiffData = document.getElementById('structured-diff-data');
+    const rawDiffData = document.getElementById('raw-diff-data');
+    const commitListData = document.getElementById('commit-list-data');
+    let structuredDiff = [];
+    let rawDiffText = '';
+    let commitList = [];
+
+    try {
+        structuredDiff = JSON.parse(structuredDiffData?.textContent || '[]');
+    } catch (err) {
+        console.error('Failed to parse structured diff payload', err);
+        structuredDiff = [];
+    }
+
+    if (!Array.isArray(structuredDiff)) {
+        structuredDiff = [];
+    }
+
+    try {
+        rawDiffText = JSON.parse(rawDiffData?.textContent || '""');
+    } catch (err) {
+        console.error('Failed to parse raw diff payload', err);
+        rawDiffText = '';
+    }
+
+    if (typeof rawDiffText !== 'string') {
+        rawDiffText = '';
+    }
+
+    structuredDiffData?.remove();
+
+    try {
+        commitList = JSON.parse(commitListData?.textContent || '[]');
+    } catch (err) {
+        console.error('Failed to parse commit list payload', err);
+        commitList = [];
+    }
+
+    if (!Array.isArray(commitList)) {
+        commitList = [];
+    }
+
+    commitList = commitList.map((commit) => {
+        if (!commit || typeof commit !== 'object') return null;
+        const parents = Array.isArray(commit.parents)
+            ? commit.parents.filter(Boolean)
+            : (typeof commit.parents === 'string' && commit.parents.trim()
+                ? commit.parents.split(' ').filter(Boolean)
+                : []);
+        return {
+            hash: typeof commit.hash === 'string' ? commit.hash.trim() : '',
+            message: typeof commit.message === 'string' ? commit.message : '',
+            parents,
+        };
+    }).filter((commit) => commit && commit.hash);
+    // Open this file in the editor within the modal.
+    const openEditorForFile = (filePath) => {
+        const currentUrl = new URL(window.location.href);
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const repoDir = params.get('repo_directory') || (typeof projectDir !== 'undefined' ? (projectDir || '') : '');
+            const repoName = '<%= gitRepoNameCLI %>';
+            const chatNumber = '<%= chatNumber %>';
+            const repoLinksEnabled = <%- JSON.stringify(!!repoLinksEnabled) %>;
+            const templateProjectDir = <%- JSON.stringify(projectDir || '') %>;
+            const pathname = currentUrl.pathname || '';
+            let newPathname = null;
+            if (repoLinksEnabled) {
+                const repoMarker = `/${repoName}/diff`;
+                const idx = pathname.indexOf(repoMarker);
+                if (idx !== -1) {
+                    const prefix = pathname.slice(0, idx);
+                    newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
+                } else {
+                    const repoIdx = pathname.indexOf(`/${repoName}`);
+                    if (repoIdx !== -1) {
+                        const prefix = pathname.slice(0, repoIdx);
+                        newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
+                    } else {
+                        newPathname = `/${repoName}/chat/${chatNumber}/editor`;
+                    }
+                }
+            } else {
+                newPathname = '/chat/editor';
+            }
+
+            const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
+            const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined')
+                ? editorBaseRaw
+                : currentUrl.origin;
+            const url = new URL(newPathname, editorBase || currentUrl.origin);
+            // preserve existing query params from current URL
+            const newParams = new URLSearchParams(currentUrl.search);
+            if (repoLinksEnabled && repoDir) newParams.set('repo_directory', repoDir);
+            if (!repoLinksEnabled && templateProjectDir && !newParams.get('projectDir')) {
+                newParams.set('projectDir', templateProjectDir);
+            }
+            newParams.set('open_file', filePath);
+            newParams.set('from_diff', '1');
+            newParams.set('diff_url', currentUrl.toString());
+            url.search = newParams.toString();
+            const finalUrl = url.toString();
+
+            window.location.href = finalUrl;
+        } catch (e) {
+            try {
+                const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
+                const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined')
+                    ? editorBaseRaw
+                    : currentUrl.origin;
+                const fallbackPath = (repoLinksEnabled
+                    ? '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file='
+                    : '/chat/editor?open_file=') + encodeURIComponent(filePath);
+                const fallbackUrl = editorBase ? (editorBase.replace(/\/$/, '') + fallbackPath) : fallbackPath;
+                window.location.href = fallbackUrl;
+            } catch (err2) {
+                console.error('Failed to open editor', err2);
+            }
+        }
+    };
+
+
+    rawDiffData?.remove();
+    commitListData?.remove();
+
+    const normalizeRows = (file) => {
+        if (file.isBinary) {
+            return [{ leftNo: '', rightNo: '', left: file.binaryMessage || 'Binary file', right: file.binaryMessage || 'Binary file', type: 'meta' }];
+        }
+        const rows = [];
+        (file.hunks || []).forEach((hunk) => {
+            rows.push({ leftNo: '', rightNo: '', left: hunk.header || '', right: hunk.header || '', type: 'meta' });
+            (hunk.rows || []).forEach((row) => {
+                if (row.type === 'add') {
+                    rows.push({ leftNo: row.leftNumber || '', rightNo: row.rightNumber || '', left: '', right: row.rightContent || '', type: 'added' });
+                } else if (row.type === 'remove') {
+                    rows.push({ leftNo: row.leftNumber || '', rightNo: row.rightNumber || '', left: row.leftContent || '', right: '', type: 'removed' });
+                } else if (row.type === 'modify') {
+                    rows.push({ leftNo: row.leftNumber || '', rightNo: row.rightNumber || '', left: row.leftContent || '', right: row.rightContent || '', type: 'changed' });
+                } else if (row.type === 'meta') {
+                    rows.push({ leftNo: '', rightNo: '', left: row.metaContent || '', right: row.metaContent || '', type: 'meta' });
+                } else {
+                    rows.push({ leftNo: row.leftNumber || row.rightNumber || '', rightNo: row.rightNumber || row.leftNumber || '', left: row.leftContent || '', right: row.rightContent || '', type: 'unchanged' });
+                }
+            });
+        });
+        return rows;
+    };
+
+    const computeFileStats = (rows) => {
+        const stats = { additions: 0, deletions: 0 };
+        if (!Array.isArray(rows)) {
+            return stats;
+        }
+        rows.forEach((row) => {
+            if (!row || typeof row.type !== 'string') {
+                return;
+            }
+            if (row.type === 'added' || row.type === 'changed') {
+                stats.additions += 1;
+            }
+            if (row.type === 'removed' || row.type === 'changed') {
+                stats.deletions += 1;
+            }
+        });
+        return stats;
+    };
+
+    const files = structuredDiff.map((file) => {
+        const rows = normalizeRows(file);
+        return {
+            label: file.newPath || file.oldPath || 'Untracked file',
+            rows,
+            stats: computeFileStats(rows),
+        };
+    });
+
+    const diffEl = document.getElementById('diff');
+    const diffInner = diffEl?.querySelector('.diff-inner');
+    const commitListEl = document.getElementById('commit-list');
+    const fileListEl = document.getElementById('file-list');
+    const fileLabelEl = document.getElementById('current-file-label');
+    let focusedFileIndex = 0;
+    const currentCompRev = '<%= compRev || "" %>';
+    const currentBaseRev = '<%= baseRev || "" %>';
+
+    const createDiffLine = (lineNumber, codeText, className) => {
+        const line = document.createElement('div');
+        line.className = `diff-line ${className}`.trim();
+
+        const lineNum = document.createElement('span');
+        lineNum.className = 'line-num';
+        lineNum.textContent = (lineNumber ?? '').toString();
+
+        const code = document.createElement('span');
+        code.className = 'code';
+
+        const signSpan = document.createElement('span');
+        signSpan.className = 'line-sign';
+        // Determine sign based on className
+        const cls = (className || '').toString();
+        if (cls.includes('added') || cls.includes('changed-right')) {
+            signSpan.textContent = '+';
+        } else if (cls.includes('removed') || cls.includes('changed-left')) {
+            signSpan.textContent = '-';
+        } else {
+            signSpan.textContent = ' ';
+        }
+
+        const textNode = document.createTextNode(typeof codeText === 'string' ? codeText : (codeText ?? '').toString());
+        code.appendChild(signSpan);
+        code.appendChild(textNode);
+
+        line.appendChild(lineNum);
+        line.appendChild(code);
+        return line;
+    };
+
+    const appendInlineDiffRows = (rows, container) => {
+        if (!container) return;
+
+        const flushChangedGroup = (group) => {
+            if (!group.length) return;
+
+            group.forEach((row) => {
+                if (row.left || row.leftNo) {
+                    container.appendChild(createDiffLine(row.leftNo, row.left, 'changed-left'));
+                }
+            });
+
+            group.forEach((row) => {
+                if (row.right || row.rightNo) {
+                    container.appendChild(createDiffLine(row.rightNo, row.right, 'changed-right'));
+                }
+            });
+
+            group.length = 0;
+        };
+
+        const changedGroup = [];
+
+        (rows || []).forEach((row) => {
+            if (!row || typeof row !== 'object') {
+                return;
+            }
+
+            const appendLine = (lineNumber, text, className) => {
+                container.appendChild(createDiffLine(lineNumber, text, className));
+            };
+
+            if (row.type === 'changed') {
+                changedGroup.push(row);
+                return;
+            }
+
+            flushChangedGroup(changedGroup);
+
+            if (row.type === 'meta') {
+                appendLine('', row.left || row.right || row.metaContent || '', 'meta');
+                return;
+            }
+
+            if (row.type === 'added') {
+                appendLine(row.rightNo, row.right, 'added');
+                return;
+            }
+
+            if (row.type === 'removed') {
+                appendLine(row.leftNo, row.left, 'removed');
+                return;
+            }
+
+            appendLine(row.rightNo || row.leftNo, row.right || row.left || '', 'unchanged');
+        });
+
+        flushChangedGroup(changedGroup);
+    };
+
+    const normalizedRowCount = (value) => (Array.isArray(value) ? value.length : 0);
+
+    const hasStructuredDiff = files.some((file) => normalizedRowCount(file.rows) > 0);
+
+    const updateSummary = () => {
+        const totalFiles = files.length;
+        if (fileLabelEl) {
+            if (totalFiles) {
+                fileLabelEl.textContent = `${totalFiles} file${totalFiles === 1 ? '' : 's'} changed`;
+            } else {
+                fileLabelEl.textContent = 'Diff';
+            }
+        }
+    };
+
+    const renderStructuredSections = () => {
+        if (!diffInner) return;
+        diffInner.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+        files.forEach((file, index) => {
+            const section = document.createElement('article');
+            section.className = 'diff-file-section';
+            section.id = `diff-file-${index}`;
+            section.tabIndex = -1;
+
+            const header = document.createElement('header');
+            header.className = 'diff-file-header';
+
+            const title = document.createElement('span');
+            title.className = 'diff-file-title';
+            title.textContent = file.label;
+            header.appendChild(title);
+
+            // add edit-in-editor button
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'open-in-editor-button';
+            editBtn.title = 'Open in editor';
+            editBtn.setAttribute('aria-label', 'Open file in editor');
+            editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 21v-3.75L14.81 5.44a1.5 1.5 0 012.12 0l1.63 1.63a1.5 1.5 0 010 2.12L6.75 21H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+            editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openEditorForFile(file.label); });
+            header.appendChild(editBtn);
+
+
+            const rowCount = normalizedRowCount(file.rows);
+            section.appendChild(header);
+
+            const viewer = document.createElement('div');
+            viewer.className = 'diff-file-viewer diff-view stacked';
+
+            const linesContainer = document.createElement('div');
+            linesContainer.className = 'diff-lines';
+
+            if (rowCount) {
+                appendInlineDiffRows(file.rows, linesContainer);
+            } else {
+                linesContainer.appendChild(createDiffLine('', 'No diff available for this file.', 'meta'));
+            }
+
+            viewer.appendChild(linesContainer);
+            section.appendChild(viewer);
+            fragment.appendChild(section);
+        });
+        diffInner.appendChild(fragment);
+    };
+
+
+    const renderEmptyStructuredState = () => {
+        if (!diffInner) return;
+        diffInner.innerHTML = '<div class="empty-state">No structured diff available.</div>';
+        if (fileLabelEl) fileLabelEl.textContent = rawDiffText ? 'No structured diff' : 'No diff available';
+    };
+
+    const focusFileSection = (index) => {
+        const section = document.getElementById(`diff-file-${index}`);
+        if (!section) return;
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        section.focus({ preventScroll: true });
+        focusedFileIndex = index;
+        renderFileList();
+    };
+
+    const renderFileList = () => {
+        if (!fileListEl) return;
+        fileListEl.innerHTML = '';
+        if (!files.length) {
+            const empty = document.createElement('li');
+            empty.textContent = 'No changed files.';
+            fileListEl.appendChild(empty);
+            return;
+        }
+        if (focusedFileIndex >= files.length) {
+            focusedFileIndex = Math.max(0, files.length - 1);
+        }
+        files.forEach((file, index) => {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = index === focusedFileIndex ? 'active' : '';
+            btn.setAttribute('aria-current', index === focusedFileIndex ? 'true' : 'false');
+            btn.setAttribute('title', file.newPath || file.oldPath || '');
+
+            const label = document.createElement('span');
+            label.className = 'file-label';
+            label.textContent = file.label;
+            btn.appendChild(label);
+
+            const stats = file.stats;
+            if (stats && (stats.additions || stats.deletions)) {
+                const statsEl = document.createElement('span');
+                statsEl.className = 'file-stats';
+                if (typeof stats.additions === 'number') {
+                    const additionsEl = document.createElement('span');
+                    additionsEl.className = 'additions';
+                    additionsEl.textContent = `+${stats.additions}`;
+                    statsEl.appendChild(additionsEl);
+                }
+                if (typeof stats.deletions === 'number') {
+                    const deletionsEl = document.createElement('span');
+                    deletionsEl.className = 'deletions';
+                    deletionsEl.textContent = `-${stats.deletions}`;
+                    statsEl.appendChild(deletionsEl);
+                }
+                btn.appendChild(statsEl);
+            }
+
+            btn.addEventListener('click', () => focusFileSection(index));
+            li.appendChild(btn);
+            fileListEl.appendChild(li);
+        });
+    };
+
+    const condenseHash = (hash) => (hash ? hash.slice(0, 7) : '');
+    const condenseMessage = (message) => {
+        if (!message) return '';
+        const trimmed = message.trim();
+        if (trimmed.length <= 60) return trimmed;
+        return `${trimmed.slice(0, 57)}…`;
+    };
+
+    const switchToCommit = (hash, parentHash) => {
+        if (!hash) return;
+        if (hash === currentCompRev && (!parentHash || parentHash === currentBaseRev)) {
+            return;
+        }
+        const url = new URL(window.location.href);
+        const params = new URLSearchParams(url.search);
+        const nextBaseRev = parentHash || currentBaseRev;
+        if (nextBaseRev) {
+            params.set('baseRev', nextBaseRev);
+        } else {
+            params.delete('baseRev');
+        }
+        params.set('compRev', hash);
+        url.search = params.toString();
+        window.location.href = url.toString();
+    };
+
+    const renderCommitList = () => {
+        if (!commitListEl) return;
+        commitListEl.innerHTML = '';
+        if (!commitList.length) {
+            const empty = document.createElement('li');
+            empty.textContent = 'No commits.';
+            commitListEl.appendChild(empty);
+            return;
+        }
+        commitList.forEach((commit) => {
+            if (!commit || !commit.hash) return;
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = commit.hash === currentCompRev ? 'active' : '';
+            btn.setAttribute('aria-current', commit.hash === currentCompRev ? 'true' : 'false');
+
+            const hashEl = document.createElement('span');
+            hashEl.className = 'commit-hash';
+            hashEl.textContent = condenseHash(commit.hash);
+            btn.appendChild(hashEl);
+
+            const messageEl = document.createElement('span');
+            messageEl.className = 'commit-message';
+            messageEl.textContent = condenseMessage(commit.message || '');
+            btn.appendChild(messageEl);
+
+            const parentHash = Array.isArray(commit.parents) ? commit.parents[0] : '';
+            btn.addEventListener('click', () => switchToCommit(commit.hash, parentHash));
+            li.appendChild(btn);
+            commitListEl.appendChild(li);
+        });
+    };
+
+    if (hasStructuredDiff) {
+        renderStructuredSections();
+        updateSummary();
+    } else {
+        renderEmptyStructuredState();
+    }
+
+    renderFileList();
+    <% if (showCommitList) { %>renderCommitList();<% } %>
+</script>
+<% } %>
+<script>
+    (function () {
+        const comparisonCommitMessage = <%- JSON.stringify(comparisonCommitMessage || '') %>;
+        const commitMessageEl = document.getElementById('comparisonCommitMessage');
+        const toggleButton = document.getElementById('comparisonCommitToggle');
+
+        if (!commitMessageEl || !toggleButton || typeof comparisonCommitMessage !== 'string') {
+            return;
+        }
+
+        const lines = comparisonCommitMessage.split(/\r?\n/);
+        const preview = lines.slice(0, 3).join('\n');
+        const isTruncated = lines.length > 3;
+        let expanded = false;
+
+        const renderMessage = () => {
+            commitMessageEl.textContent = expanded || !isTruncated ? comparisonCommitMessage : preview;
+            toggleButton.textContent = expanded ? 'Show less' : 'Show more';
+            toggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            toggleButton.style.display = isTruncated ? 'inline-flex' : 'none';
+        };
+
+        toggleButton.addEventListener('click', () => {
+            expanded = !expanded;
+            renderMessage();
+        });
+
+        renderMessage();
+    })();
+</script>
+<script>
+    (function () {
+        const form = document.getElementById("diffFollowupForm");
+        const input = document.getElementById("diffFollowupPrompt");
+        const status = document.getElementById("diffFollowupStatus");
+        const FOLLOWUP_MESSAGE_TYPE = "codex:diff-modal-followup";
+
+        if (!form || !input) {
+            return;
+        }
+
+        const setStatus = (message) => {
+            if (!status) return;
+            status.textContent = message || "";
+        };
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const prompt = typeof input.value === "string" ? input.value.trim() : "";
+            if (!prompt) {
+                setStatus("Enter a follow-up prompt to continue.");
+                return;
+            }
+            if (!window.parent || window.parent === window) {
+                setStatus("Follow-ups are available from the running task view.");
+                return;
+            }
+            try {
+                window.parent.postMessage({ type: FOLLOWUP_MESSAGE_TYPE, prompt }, "*");
+                input.value = "";
+                setStatus("Follow-up sent.");
+            } catch (_err) {
+                setStatus("Unable to send follow-up.");
+            }
+        });
+    })();
+</script>
+<script>
+    (function () {
+        const MERGE_BUTTON_ID = "mergeButton";
+        const MERGE_REQUEST_MESSAGE_TYPE = "STERLING_VIEW_DIFF_MODAL_MERGE_REQUEST";
+        const mergeButton = document.getElementById(MERGE_BUTTON_ID);
+        if (!mergeButton) {
+            return;
+        }
+        mergeButton.addEventListener("click", () => {
+            if (mergeButton.disabled) {
+                return;
+            }
+            if (!window.parent || window.parent === window) {
+                return;
+            }
+            try {
+                window.parent.postMessage({ type: MERGE_REQUEST_MESSAGE_TYPE }, '*');
+            } catch (_err) { /* ignore */ }
+        });
+    })();
+</script>
+<% } %>
+</body>
+</html>
