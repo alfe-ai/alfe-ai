@@ -194,35 +194,6 @@
             letter-spacing: 0.01em;
         }
 
-        .commit-message-body {
-            margin: 0;
-            font-size: 13px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            color: var(--text);
-            background: #0b1324;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 12px;
-        }
-
-        .commit-message-toggle {
-            margin-top: 8px;
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--muted);
-            font-size: 12px;
-            padding: 6px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-        }
-
-        .commit-message-toggle:hover {
-            background: rgba(59, 130, 246, 0.15);
-            color: #fff;
-            border-color: #2563eb;
-        }
 
         .diff-followup-form {
             margin-top: 12px;
@@ -854,8 +825,6 @@
                     <pre class="final-output-text"><%= comparisonFinalOutput %></pre>
                 </div>
                 <% } %>
-                <p class="commit-message-body" id="comparisonCommitMessage"></p>
-                <button type="button" class="commit-message-toggle" id="comparisonCommitToggle" aria-expanded="false">Show more</button>
                 <form class="diff-followup-form" id="diffFollowupForm">
                     <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
                     <textarea
@@ -1439,36 +1408,6 @@
     <% if (showCommitList) { %>renderCommitList();<% } %>
 </script>
 <% } %>
-<script>
-    (function () {
-        const comparisonCommitMessage = <%- JSON.stringify(comparisonCommitMessage || '') %>;
-        const commitMessageEl = document.getElementById('comparisonCommitMessage');
-        const toggleButton = document.getElementById('comparisonCommitToggle');
-
-        if (!commitMessageEl || !toggleButton || typeof comparisonCommitMessage !== 'string') {
-            return;
-        }
-
-        const lines = comparisonCommitMessage.split(/\r?\n/);
-        const preview = lines.slice(0, 3).join('\n');
-        const isTruncated = lines.length > 3;
-        let expanded = false;
-
-        const renderMessage = () => {
-            commitMessageEl.textContent = expanded || !isTruncated ? comparisonCommitMessage : preview;
-            toggleButton.textContent = expanded ? 'Show less' : 'Show more';
-            toggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            toggleButton.style.display = isTruncated ? 'inline-flex' : 'none';
-        };
-
-        toggleButton.addEventListener('click', () => {
-            expanded = !expanded;
-            renderMessage();
-        });
-
-        renderMessage();
-    })();
-</script>
 <script>
     (function () {
         const form = document.getElementById("diffFollowupForm");
