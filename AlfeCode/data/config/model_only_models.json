@@ -155,7 +155,6 @@
       "disabled": false,
       "engine_options": [
         "auto",
-        "qwen",
         "codex"
       ],
       "pricing": {
