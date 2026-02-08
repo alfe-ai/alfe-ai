@@ -100,7 +100,7 @@
       "label": "OpenAI: GPT-5 Mini",
       "created": "2025-08-07",
       "contextTokens": 400000,
-      "disabled": true,
+      "disabled": false,
       "pricing": {
         "inputPerMTokens": 0.25,
         "outputPerMTokens": 2
