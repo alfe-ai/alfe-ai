@@ -5947,6 +5947,17 @@ const appendMergeChunk = (text, type = "output") => {
     return searchable.some((entry) => entry.includes(trimmedFilter));
   };
 
+  const doesRunMatchRepository = (run, currentRepoDir) => {
+    if (!currentRepoDir) {
+      return true;
+    }
+    if (!run || typeof run !== "object") {
+      return false;
+    }
+    const runProjectDir = normaliseProjectDir(run.projectDir || run.effectiveProjectDir || "");
+    return runProjectDir === currentRepoDir;
+  };
+
   const renderRunsSidebar = (runs, options = {}) => {
     if (!runsSidebarListEl) {
       return;
@@ -5995,7 +6006,9 @@ const appendMergeChunk = (text, type = "output") => {
       ? followupFilteredRuns.filter((run) => doesRunMatchFilter(run, filterValue))
       : [];
     const filteredByArchiveState = afterMatch.filter((run) => runsSidebarShowArchived ? Boolean(run && run.archived) : !Boolean(run && run.archived));
-    const filteredRuns = filteredByArchiveState;
+    const currentRepoDir = normaliseProjectDir(currentSearchParams.get("repo_directory") || "");
+    const filteredByRepository = filteredByArchiveState.filter((run) => doesRunMatchRepository(run, currentRepoDir));
+    const filteredRuns = filteredByRepository;
     runsSidebarFilteredRuns = filteredRuns;
     runsSidebarFilteredTotal = filteredRuns.length;
     runsSidebarTotalPages = runsSidebarFilteredTotal > 0
