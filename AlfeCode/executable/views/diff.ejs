@@ -793,11 +793,7 @@
         <div class="header-main">
             <% if (baseRev || compRev) { %>
             <div class="revision-info">
-                <span class="revision-pill">Base: <%= baseRev || '—' %>
-                    <% if (typeof baseMeta !== 'undefined' && baseMeta && (baseMeta.message || baseMeta.authorName)) { %>
-                        <span class="sub"><%= baseMeta.message %> — <%= baseMeta.authorName %></span>
-                    <% } %>
-                </span>
+                <span class="revision-pill">Base: <%= baseRev || '—' %></span>
             </div>
             <% } %>
 
