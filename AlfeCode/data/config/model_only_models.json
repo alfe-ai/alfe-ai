@@ -152,7 +152,7 @@
       "label": "Qwen: Qwen3 Coder 480B A35B",
       "created": "2025-07-23",
       "contextTokens": 262144,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "codex"
