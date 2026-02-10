@@ -533,6 +533,10 @@ console.debug("[Server Debug] Checking or setting default 'image_gen_model' in D
 if (!db.getSetting("image_gen_model")) {
   db.setSetting("image_gen_model", "gptimage1");
 }
+console.debug("[Server Debug] Checking or setting default 'image_gen_quality' in DB...");
+if (!db.getSetting("image_gen_quality")) {
+  db.setSetting("image_gen_quality", "low");
+}
 
 console.debug("[Server Debug] Checking or setting default 'image_upload_enabled' in DB...");
 if (db.getSetting("image_upload_enabled") === undefined) {
@@ -4524,9 +4528,15 @@ app.post("/api/image/generate", async (req, res) => {
       countParsed = Math.min(countParsed, 4);
     }
 
+    const allowedQualities = ["low", "medium", "high", "auto"];
+    let imageQuality = (db.getSetting("image_gen_quality") || "auto").toLowerCase();
+    if (!allowedQualities.includes(imageQuality)) {
+      imageQuality = "auto";
+    }
+
     console.debug(
       "[Server Debug] Calling OpenAI image API =>",
-      JSON.stringify({ model: modelName, n: countParsed, size: imgSize })
+      JSON.stringify({ model: modelName, n: countParsed, size: imgSize, quality: imageQuality })
     );
 
     let result;
@@ -4537,6 +4547,9 @@ app.post("/api/image/generate", async (req, res) => {
         n: countParsed,
         size: imgSize
       };
+      if (modelName === "gpt-image-1") {
+        params.quality = imageQuality;
+      }
       if (modelName !== "gpt-image-1") {
         params.response_format = "url";
       }
