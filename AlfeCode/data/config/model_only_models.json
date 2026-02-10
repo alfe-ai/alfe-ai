@@ -261,7 +261,7 @@
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 0,
-      "usage": "medium"
+      "usage": "free"
     },
     {
       "id": "openrouter/mistralai/devstral-2512:free",
