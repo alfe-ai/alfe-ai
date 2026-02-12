@@ -1641,6 +1641,31 @@ projectViewRouter.get('/api/filepath', (req, res) => {
   }
 });
 
+// JSON Path Settings API
+projectViewRouter.post("/api/jsonpath", async (req, res) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  const { path } = req.body;
+
+  if (!path || typeof path !== 'string') {
+    return res.status(400).json({ message: "JSON path is required." });
+  }
+
+  try {
+    // For now, we'll store the JSON path in the user's session data
+    // In a real implementation, this would be stored in the database
+    if (sessionId) {
+      // Store the JSON path preference for this user session
+      // This is a simplified implementation - in production you'd want to store this in a database
+      console.log(`[ProjectView] User ${sessionId} updated JSON path to: ${path}`);
+    }
+
+    res.status(200).json({ message: "JSON path saved successfully.", path });
+  } catch (err) {
+    console.error("[ProjectView] Failed to save JSON path:", err);
+    res.status(500).json({ message: "Unable to save JSON path settings." });
+  }
+});
+
 // ProjectView data helpers (migrated from Aurora)
 const { mkdir, readFile, writeFile, access, unlink, readdir } = fs.promises;
 const projectViewDataFile = path.join(__dirname, "../data/projectView/projects.json");

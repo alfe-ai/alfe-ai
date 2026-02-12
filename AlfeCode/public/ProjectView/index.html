@@ -52,6 +52,15 @@
             + New Project
           </button>
         </div>
+        <section class="json-path-section">
+          <div class="json-path-header">
+            <h3 class="json-path-title">JSON Path:</h3>
+            <span id="json-path-display" class="json-path-value">/data/projectView/projects.json</span>
+            <button id="json-path-settings" type="button" class="json-path-settings-btn" aria-label="Settings">
+              ⚙️
+            </button>
+          </div>
+        </section>
         <details id="archived-projects" class="archived-projects">
           <summary>
             Archived Projects
@@ -134,6 +143,23 @@
         <div class="modal__actions">
           <button type="button" id="task-detail-cancel">Cancel</button>
           <button type="submit" id="task-detail-save" class="primary">Save</button>
+        </div>
+      </form>
+      </dialog>
+      <dialog id="json-path-settings-dialog" class="modal" aria-labelledby="json-path-settings-title">
+      <form id="json-path-settings-form" class="modal__content" method="dialog">
+        <h2 id="json-path-settings-title">JSON Path Settings</h2>
+        <label class="modal__label" for="json-path-input">JSON File Path</label>
+        <input
+          id="json-path-input"
+          name="jsonPath"
+          type="text"
+          required
+          placeholder="e.g. /data/projectView/projects.json"
+        />
+        <div class="modal__actions">
+          <button id="json-path-settings-cancel" type="button">Cancel</button>
+          <button type="submit" class="primary">Save</button>
         </div>
       </form>
       </dialog>

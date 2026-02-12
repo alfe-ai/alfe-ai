@@ -21,9 +21,151 @@ const archivedProjectsCount = document.getElementById('archived-projects-count')
 const loggedOutState = document.getElementById('logged-out-state');
 const loggedOutLoginButton = document.getElementById('logged-out-login');
 const appContainer = document.querySelector('.app');
+const jsonPathDisplay = document.getElementById('json-path-display');
+const jsonPathSettingsButton = document.getElementById('json-path-settings');
+const jsonPathSettingsDialog = document.getElementById('json-path-settings-dialog');
+const jsonPathSettingsForm = document.getElementById('json-path-settings-form');
+const jsonPathInput = document.getElementById('json-path-input');
+const jsonPathSettingsCancel = document.getElementById('json-path-settings-cancel');
 const isDialogSupported = Boolean(
   newProjectDialog && typeof newProjectDialog.showModal === 'function',
 );
+
+// JSON Path Management
+const JSON_PATH_COOKIE = 'projectview_json_path';
+const DEFAULT_JSON_PATH = '/data/projectView/projects.json';
+
+function getJsonPathFromCookie() {
+  if (typeof document === 'undefined') {
+    return DEFAULT_JSON_PATH;
+  }
+
+  const path = getCookieValue(JSON_PATH_COOKIE);
+  return path || DEFAULT_JSON_PATH;
+}
+
+function setJsonPathCookie(path) {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const expires = new Date();
+  expires.setFullYear(expires.getFullYear() + 1);
+  document.cookie = `${JSON_PATH_COOKIE}=${encodeURIComponent(path)}; expires=${expires.toUTCString()}; path=/`;
+}
+
+function updateJsonPathDisplay() {
+  const currentPath = getJsonPathFromCookie();
+  if (jsonPathDisplay) {
+    jsonPathDisplay.textContent = currentPath;
+  }
+}
+
+async function saveJsonPathToServer(path) {
+  try {
+    const response = await fetch('/ProjectView/api/jsonpath', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-Id': getSessionIdCookie() || ''
+      },
+      body: JSON.stringify({ path })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save JSON path to server');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error saving JSON path:', error);
+    showStatus('Failed to save JSON path settings.', 'error');
+    return false;
+  }
+}
+
+function openJsonPathSettingsDialog() {
+  if (!jsonPathSettingsDialog) {
+    return;
+  }
+
+  if (!isDialogSupported || !jsonPathSettingsDialog) {
+    const currentPath = getJsonPathFromCookie();
+    const newPath = window.prompt('Enter new JSON file path', currentPath);
+    if (newPath !== null) {
+      setJsonPathCookie(newPath);
+      updateJsonPathDisplay();
+      showStatus(`JSON path updated to: ${newPath}`, 'success');
+    }
+    return;
+  }
+
+  if (jsonPathSettingsDialog.open) {
+    return;
+  }
+
+  if (jsonPathSettingsForm) {
+    jsonPathSettingsForm.reset();
+  }
+
+  if (jsonPathInput) {
+    jsonPathInput.value = getJsonPathFromCookie();
+    jsonPathInput.setCustomValidity('');
+  }
+
+  jsonPathSettingsDialog.showModal();
+
+  window.requestAnimationFrame(() => {
+    if (jsonPathInput) {
+      jsonPathInput.focus();
+    }
+  });
+}
+
+function closeJsonPathSettingsDialog() {
+  if (!jsonPathSettingsDialog) {
+    return;
+  }
+
+  if (isDialogSupported && jsonPathSettingsDialog.open) {
+    jsonPathSettingsDialog.close();
+  }
+
+  if (jsonPathSettingsForm) {
+    jsonPathSettingsForm.reset();
+  }
+
+  if (jsonPathInput) {
+    jsonPathInput.setCustomValidity('');
+  }
+}
+
+async function handleJsonPathFormSubmit(event) {
+  event.preventDefault();
+
+  if (!jsonPathInput) {
+    return;
+  }
+
+  const newPath = jsonPathInput.value.trim();
+  if (!newPath) {
+    jsonPathInput.setCustomValidity('JSON path cannot be empty.');
+    jsonPathInput.reportValidity();
+    return;
+  }
+
+  setJsonPathCookie(newPath);
+  updateJsonPathDisplay();
+  closeJsonPathSettingsDialog();
+
+  // Save to server
+  const success = await saveJsonPathToServer(newPath);
+  if (success) {
+    showStatus(`JSON path updated to: ${newPath}`, 'success');
+    // Reload projects with new path
+    await loadProjects();
+  }
+}
 
 const PINNED_PROJECT = Object.freeze({
   id: 'pinned-project',
@@ -616,7 +758,8 @@ function openNewProjectDialog() {
 
 async function loadProjects() {
   try {
-    const response = await fetch('/ProjectView/api/projects' + (getSessionIdCookie() ? ('?sessionId='+encodeURIComponent(getSessionIdCookie())) : ''));
+    const jsonPath = getJsonPathFromCookie();
+    const response = await fetch('/ProjectView/api/projects' + (getSessionIdCookie() ? ('?sessionId='+encodeURIComponent(getSessionIdCookie())) : '') + '&jsonPath=' + encodeURIComponent(jsonPath));
     if (!response.ok) {
       throw new Error('Failed to fetch projects');
     }
@@ -1478,7 +1621,21 @@ async function initializeProjectView() {
     return;
   }
   setLoggedOutState(false);
+  updateJsonPathDisplay();
   await loadProjects();
 }
 
 document.addEventListener('DOMContentLoaded', initializeProjectView);
+
+// JSON Path Event Listeners
+if (jsonPathSettingsButton) {
+  jsonPathSettingsButton.addEventListener('click', openJsonPathSettingsDialog);
+}
+
+if (jsonPathSettingsForm) {
+  jsonPathSettingsForm.addEventListener('submit', handleJsonPathFormSubmit);
+}
+
+if (jsonPathSettingsCancel) {
+  jsonPathSettingsCancel.addEventListener('click', closeJsonPathSettingsDialog);
+}

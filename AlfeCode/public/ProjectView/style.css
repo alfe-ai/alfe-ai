@@ -244,6 +244,60 @@ body {
   background: rgba(148, 163, 184, 0.05);
 }
 
+.json-path-section {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.15), rgba(148, 163, 184, 0.08));
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.json-path-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.json-path-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #c084fc;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.json-path-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+  color: #e5e7eb;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.json-path-settings-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #e5e7eb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+}
+
+.json-path-settings-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: rgba(148, 163, 184, 0.5);
+  transform: translateY(-1px);
+}
+
+.json-path-settings-btn:active {
+  transform: translateY(0);
+  background: rgba(148, 163, 184, 0.3);
+}
+
 .archived-projects summary {
   cursor: pointer;
   font-weight: 600;
