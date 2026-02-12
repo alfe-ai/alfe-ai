@@ -3960,6 +3960,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 defaultSubmitOnEnter: <%- JSON.stringify(typeof defaultSubmitOnEnter === 'undefined' ? true : defaultSubmitOnEnter) %>,
                 accountButtonEnabled: <%- JSON.stringify(typeof accountButtonEnabled === "undefined" ? true : accountButtonEnabled) %>,
                 userPromptVisibleCodex: <%- JSON.stringify(typeof userPromptVisibleCodex === "undefined" ? false : userPromptVisibleCodex) %>,
+                agentModelDropdownDisabled: <%- JSON.stringify(typeof agentModelDropdownDisabled !== 'undefined' ? agentModelDropdownDisabled : false) %>,
             }
         );
     </script>
