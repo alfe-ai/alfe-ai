@@ -3436,7 +3436,7 @@
             <div id="defaultModelFeedback" class="default-model-feedback hidden" role="status" aria-live="polite"></div>
         </div>
         <form id="codexForm">
-            <div id="modelField" class="is-hidden <%= agentModelDropdownDisabled ? 'is-hidden' : '' %>" style="<%= agentModelDropdownDisabled ? 'display: none;' : '' %>">
+            <div id="modelField" class="<%= agentModelDropdownDisabled ? 'is-hidden' : '' %>" style="<%= agentModelDropdownDisabled ? 'display: none;' : '' %>">
                 <label for="model">Model</label>
                 <select id="model" name="model">
                     <% codexModelGroups.forEach((group) => { %>
