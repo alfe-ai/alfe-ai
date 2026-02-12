@@ -2380,6 +2380,7 @@ ${cleanedFinalOutput}`;
         const showEngineOnAgent = parseBooleanFlag(process.env.SHOW_ENGINE_ON_AGENT);
         const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         const accountButtonEnabled = accountsEnabled;
+        const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
@@ -2406,6 +2407,7 @@ ${cleanedFinalOutput}`;
             showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
             showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
             showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
+            agentModelDropdownDisabled,
         });
     };
 
