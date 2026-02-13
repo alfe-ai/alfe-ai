@@ -44,7 +44,7 @@
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const normalizeEnginePreference = (value) => {
     const normalized = (value || '').toString().trim().toLowerCase();
-    if (normalized === 'qwen' || normalized === 'codex') {
+    if (normalized === 'qwen' || normalized === 'codex' || normalized === 'sterling' || normalized === 'blackbox') {
       return normalized;
     }
     return 'auto';
