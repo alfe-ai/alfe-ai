@@ -2723,6 +2723,8 @@ ${cleanedFinalOutput}`;
         const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
         const qwenSandboxApprovalModeParam = (req.query.qwenSandboxApprovalMode || "").toString().trim().toLowerCase();
         const qwenSandboxApprovalModeEnabled = qwenSandboxApprovalModeParam === "1" || qwenSandboxApprovalModeParam === "true";
+        const qwenDebugEnvParam = (req.query.qwenDebugEnv || "").toString().trim().toLowerCase();
+        const qwenDebugEnvEnabled = qwenDebugEnvParam === "1" || qwenDebugEnvParam === "true";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
         const includeMeta = includeMetaParam === "1" || includeMetaParam === "true";
         const gitFpushParam = (req.query.gitFpush || "").toString().trim().toLowerCase();
@@ -2766,6 +2768,7 @@ ${cleanedFinalOutput}`;
             openRouterTitle,
             enginePreference,
             qwenSandboxApprovalModeEnabled,
+            qwenDebugEnvEnabled,
             followupParentId: followupParentIdRaw,
             statusHistory: [],
             metaMessages: [],
@@ -3073,6 +3076,10 @@ ${cleanedFinalOutput}`;
             env: { ...process.env, ...envOverrides },
             stdio: ["ignore", "pipe", "pipe"],
         };
+
+        if (useQwenCli) {
+            baseSpawnOptions.env.QWEN_PASS_DEBUG_ENV = qwenDebugEnvEnabled ? "1" : "0";
+        }
 
         if (enginePreference === "cline") {
             // Handle Cline engine - run cline CLI with proper permissions
