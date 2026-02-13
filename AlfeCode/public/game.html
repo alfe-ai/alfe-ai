@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alfe AI Terminal Game</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        /* Terminal Game Styles */
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .game-header {
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .game-header h2 {
+            margin: 0 0 10px 0;
+            color: #58a6ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #8b949e;
+        }
+
+        .level-info h3 {
+            margin: 0 0 5px 0;
+            color: #79c0ff;
+        }
+
+        .level-info p {
+            margin: 0;
+            color: #8b949e;
+            font-size: 14px;
+        }
+
+        .challenge-card {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .challenge-header {
+            margin-bottom: 15px;
+        }
+
+        .challenge-number {
+            background: #30363d;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        .question p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .options {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .option-btn:hover {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+
+        .option-btn:active {
+            transform: translateY(1px);
+        }
+
+        .option-letter {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            background: #30363d;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            font-weight: bold;
+            margin-right: 10px;
+            color: #8b949e;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #0d1117;
+            border-left: 4px solid #58a6ff;
+            border-radius: 4px;
+        }
+
+        .explanation-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #58a6ff;
+        }
+
+        .terminal-output {
+            height: 150px;
+            overflow-y: auto;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        .terminal-message {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .terminal-message.success { color: #56d364; }
+        .terminal-message.error { color: #f85149; }
+        .terminal-message.info { color: #79c0ff; }
+
+        .game-over {
+            text-align: center;
+        }
+
+        .game-over h2 {
+            color: #f85149;
+            margin-bottom: 20px;
+        }
+
+        .final-stats {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .final-stats p {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        .game-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn-restart, .btn-main-menu {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-restart:hover {
+            background: #2ea043;
+        }
+
+        .btn-main-menu {
+            background: #58a6ff;
+        }
+
+        .btn-main-menu:hover {
+            background: #79c0ff;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .options {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+
+        /* Animation for terminal effect */
+        @keyframes terminalBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #58a6ff;
+            animation: terminalBlink 1s infinite;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="game-container">
+        <div style="text-align: center; padding: 40px;">
+            <h2 style="color: #58a6ff; margin-bottom: 20px;">Alfe AI Terminal Game Loading...</h2>
+            <div class="cursor"></div>
+        </div>
+    </div>
+
+    <script src="/game.js"></script>
+</body>
+</html>

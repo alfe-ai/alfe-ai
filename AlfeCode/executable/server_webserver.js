@@ -1965,6 +1965,15 @@ projectViewRouter.post('/api/queue/send', async (req, res) => {
   }
 });
 
+// Game Routes
+app.get('/games', (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, 'public', 'games.html'));
+});
+
+app.get('/game', (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, 'public', 'game.html'));
+});
+
 projectViewRouter.get('/queue', (_req, res) => {
   res.sendFile(path.join(projectViewPublicDir, 'queue.html'));
 });

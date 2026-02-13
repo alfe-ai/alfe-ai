@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alfe AI Games</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            color: #8b949e;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .game-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            border-color: #58a6ff;
+            box-shadow: 0 10px 20px rgba(88, 166, 255, 0.1);
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #58a6ff, #79c0ff);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .game-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .game-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .game-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #c9d1d9;
+            margin-bottom: 10px;
+        }
+
+        .game-desc {
+            color: #8b949e;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .play-btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .play-btn:hover {
+            background: #2ea043;
+        }
+
+        .terminal-effect {
+            display: inline-block;
+            border-right: 2px solid #58a6ff;
+            animation: blink 1s infinite;
+            padding-right: 5px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .back-btn {
+            background: transparent;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .back-btn:hover {
+            background: #30363d;
+            color: #c9d1d9;
+            border-color: #58a6ff;
+        }
+
+        .footer {
+            margin-top: 40px;
+            color: #6e7681;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 600px) {
+            .game-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Alfe <span class="terminal-effect">AI</span> Games</h1>
+        <p class="subtitle">Test your coding skills and have some fun</p>
+
+        <div class="game-grid">
+            <div class="game-card" onclick="window.location.href='/game'">
+                <div class="game-icon">💻</div>
+                <div class="game-title">Terminal Challenge</div>
+                <div class="game-desc">
+                    A coding quiz game that tests your programming knowledge through multiple levels.
+                    From basic variables to advanced concepts, prove your skills and earn points!
+                </div>
+                <button class="play-btn">Launch Game</button>
+            </div>
+
+            <!-- Future games can be added here -->
+            <div class="game-card" style="opacity: 0.5; cursor: not-allowed;">
+                <div class="game-icon">🧩</div>
+                <div class="game-title">Code Puzzles</div>
+                <div class="game-desc">
+                    Logic puzzles and algorithmic challenges coming soon.
+                    Stay tuned for more brain-teasing fun!
+                </div>
+                <button class="play-btn" disabled>Coming Soon</button>
+            </div>
+
+            <div class="game-card" style="opacity: 0.5; cursor: not-allowed;">
+                <div class="game-icon">⚡</div>
+                <div class="game-title">Speed Coding</div>
+                <div class="game-desc">
+                    Fast-paced coding challenges to test your reflexes and problem-solving skills.
+                    Ready, set, code!
+                </div>
+                <button class="play-btn" disabled>Coming Soon</button>
+            </div>
+        </div>
+
+        <a href="/" class="back-btn">← Back to Main Application</a>
+        
+        <div class="footer">
+            Made with ❤️ by Alfe AI Team | Terminal Challenge v1.0
+        </div>
+    </div>
+
+    <script>
+        // Add some terminal-style effects
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.game-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+</html>
