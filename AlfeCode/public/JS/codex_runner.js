@@ -7477,7 +7477,13 @@ const appendMergeChunk = (text, type = "output") => {
       }
     }
 
-    return displayLines.join("\n");
+    if (!displayLines.length) {
+      return "";
+    }
+
+    // Ensure each parsed Qwen JSON section is newline-terminated so subsequent
+    // streamed sections never get concatenated onto the same rendered line.
+    return `${displayLines.join("\n")}\n`;
   };
 
   const handleSnapshotProjectDirDetected = (snapshotDir) => {
