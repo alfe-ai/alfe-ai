@@ -3117,9 +3117,9 @@ ${cleanedFinalOutput}`;
             }
         }
         if (qwenSandboxApprovalModeEnabled) {
-            args.push("--approval-mode", "sandbox");
+            args.push("--approval-mode", "auto-edit");
             if (includeMeta) {
-                emit({ event: "meta", data: "Qwen sandbox approval mode is enabled." });
+                emit({ event: "meta", data: "Qwen auto-edit approval mode is enabled." });
             }
         }
         if (useQwenCli && includeMeta) {
