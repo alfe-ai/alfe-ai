@@ -270,7 +270,8 @@
       "contextTokens": 128000,
       "engine_options": [
         "auto",
-        "qwen"
+        "qwen",
+        "cline"
       ],
       "qwen_cli": true,
       "plus_model": false,
