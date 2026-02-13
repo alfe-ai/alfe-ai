@@ -7116,7 +7116,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (typeof text !== "string" || !text) {
       return "";
     }
-    const normalized = text.replace(/\r/g, "");
+    const normalized = stripSystemReminderTags(text.replace(/\r/g, ""), { preserveTrailingNewlines: true });
     const lines = normalized.split("\n");
     const outputLines = [];
 
@@ -7154,6 +7154,18 @@ const appendMergeChunk = (text, type = "output") => {
     return joined.replace(/\n+$/, "");
   };
 
+  const stripSystemReminderTags = (text, { preserveTrailingNewlines = false } = {}) => {
+    if (typeof text !== "string" || !text) {
+      return "";
+    }
+
+    const removedTaggedBlocks = text.replace(/<system-reminder\b[^>]*>[\s\S]*?<\/system-reminder>/gi, "");
+    if (preserveTrailingNewlines) {
+      return removedTaggedBlocks;
+    }
+    return removedTaggedBlocks.replace(/\n+$/, "");
+  };
+
   const extractFinalOutputFromCommitBlock = (text) => {
     if (typeof text !== "string" || !text) {
       return "";
@@ -7187,12 +7199,12 @@ const appendMergeChunk = (text, type = "output") => {
     if (typeof value !== "string" || !value) {
       return "";
     }
-    return value
+    return stripSystemReminderTags(value
       .replace(/\r/g, "")
       .replace(/\\n/g, "\n")
       .replace(/\\t/g, "\t")
       .replace(/\\\"/g, "\"")
-      .replace(/\\\\/g, "\\");
+      .replace(/\\\\/g, "\\"));
   };
 
   const collectQwenDisplayMessagesFromEvent = (parsed) => {
