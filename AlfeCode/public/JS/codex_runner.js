@@ -7112,7 +7112,13 @@ const appendMergeChunk = (text, type = "output") => {
     return joined.replace(/\n+$/, "");
   };
 
-  const stripQwenCliOutput = (text, { preserveTrailingNewlines = false } = {}) => {
+  const stripQwenCliOutput = (
+    text,
+    {
+      preserveTrailingNewlines = false,
+      stripQwenMetaLines = true,
+    } = {},
+  ) => {
     if (typeof text !== "string" || !text) {
       return "";
     }
@@ -7121,7 +7127,6 @@ const appendMergeChunk = (text, type = "output") => {
     const outputLines = [];
 
     const ignoreMatchers = [
-      /^\[qwen]/i,
       /^git@github\.com:/i,
       /permission denied \(publickey\)/i,
       /fatal:\s*could not read from remote repository/i,
@@ -7140,7 +7145,8 @@ const appendMergeChunk = (text, type = "output") => {
         outputLines.push(line);
         continue;
       }
-      const shouldIgnore = ignoreMatchers.some((matcher) => matcher.test(trimmed));
+      const shouldIgnore = ignoreMatchers.some((matcher) => matcher.test(trimmed))
+        || (stripQwenMetaLines && /^\[qwen]/i.test(trimmed));
       if (shouldIgnore) {
         continue;
       }
@@ -7474,7 +7480,7 @@ const appendMergeChunk = (text, type = "output") => {
 
       const parsed = safeParseJson(line);
       if (!parsed) {
-        const passthrough = stripQwenCliOutput(rawLine).trim();
+        const passthrough = stripQwenCliOutput(rawLine, { stripQwenMetaLines: false }).trim();
         if (passthrough) {
           displayLines.push(passthrough);
         }
