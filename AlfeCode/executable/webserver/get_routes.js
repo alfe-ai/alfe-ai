@@ -2688,7 +2688,7 @@ ${cleanedFinalOutput}`;
         const openRouterReferer = (req.query.openRouterReferer || "").toString().trim();
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
-        const enginePreference = ["auto", "qwen", "codex"].includes(engineParam) ? engineParam : "auto";
+        const enginePreference = ["auto", "qwen", "codex", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
         const includeMeta = includeMetaParam === "1" || includeMetaParam === "true";
         const gitFpushParam = (req.query.gitFpush || "").toString().trim().toLowerCase();
@@ -3003,9 +3003,9 @@ ${cleanedFinalOutput}`;
             emit({ event: "meta", data: `${invalidModelReason} Falling back to ${defaultCodexModel}.` });
             model = defaultCodexModel;
         }
-        const useQwenCli = enginePreference === "qwen"
+        const useQwenCli = enginePreference === "qwen" || enginePreference === "sterling"
             ? true
-            : enginePreference === "codex"
+            : enginePreference === "codex" || enginePreference === "blackbox"
                 ? false
                 : resolveQwenCliFlag(model);
         runRecord.qwenCli = useQwenCli;
