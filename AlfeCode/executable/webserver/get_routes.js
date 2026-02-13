@@ -3062,6 +3062,13 @@ ${cleanedFinalOutput}`;
             finalizeStream("Agent run aborted before start.");
             return;
         }
+
+        const baseSpawnOptions = {
+            cwd: codexToolsDir,
+            env: { ...process.env, ...envOverrides },
+            stdio: ["ignore", "pipe", "pipe"],
+        };
+
         if (enginePreference === "cline") {
             // Handle Cline engine - run cline CLI with proper permissions
             const clineCommand = `export CLINE_COMMAND_PERMISSIONS='{"allow": [], "deny": ["*"]}' && cline -y "${prompt}"`;
@@ -3108,12 +3115,6 @@ ${cleanedFinalOutput}`;
             emit({ event: "meta", data: "Using qwen CLI for this run." });
         }
         args.push(prompt);
-
-        const baseSpawnOptions = {
-            cwd: codexToolsDir,
-            env: { ...process.env, ...envOverrides },
-            stdio: ["ignore", "pipe", "pipe"],
-        };
 
         baseSpawnOptions.env.CODEX_SHOW_META = includeMeta ? "1" : "0";
 
