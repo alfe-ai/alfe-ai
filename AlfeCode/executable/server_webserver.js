@@ -1981,3 +1981,8 @@ if (projectViewEnabled) {
 } else {
   console.debug("[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED; /ProjectView routes not mounted.");
 }
+
+// Snake Game Route
+app.get("/snake", (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, "public", "snake.html"));
+});
