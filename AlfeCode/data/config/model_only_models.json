@@ -256,7 +256,8 @@
       },
       "engine_options": [
         "auto",
-        "qwen"
+        "qwen",
+        "cline"
       ],
       "qwen_cli": true,
       "plus_model": false,
