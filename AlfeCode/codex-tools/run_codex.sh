@@ -648,13 +648,20 @@ run_qwen() {
   fi
   local -a display_args=()
   local expects_model_arg=false
+  local expects_approval_mode_arg=false
   local model_value=""
+  local approval_mode_value=""
   for arg in "${display_cmd[@]}"; do
     if $expects_model_arg; then
       arg="$(strip_free_suffix "$arg")"
       expects_model_arg=false
+    elif $expects_approval_mode_arg; then
+      approval_mode_value="$arg"
+      expects_approval_mode_arg=false
     elif [[ "$arg" == "-m" || "$arg" == "--model" ]]; then
       expects_model_arg=true
+    elif [[ "$arg" == "--approval-mode" ]]; then
+      expects_approval_mode_arg=true
     elif [[ "$arg" == OPENAI_MODEL=* ]]; then
       model_value="${arg#OPENAI_MODEL=}"
       arg="OPENAI_MODEL=$(strip_free_suffix "$model_value")"
@@ -674,6 +681,9 @@ run_qwen() {
   printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     printf '[qwen] model=%s\n' "$display_qwen_model_value"
+  fi
+  if [[ -n "$approval_mode_value" ]]; then
+    printf '[qwen] approval-mode=%s\n' "$approval_mode_value"
   fi
   printf '[qwen] meta=%s\n' "${CODEX_SHOW_META:-0}"
   "${cmd[@]}" 2>&1
