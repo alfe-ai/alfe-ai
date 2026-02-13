@@ -938,6 +938,42 @@ function setupGetRoutes(deps) {
         return lines.slice(index).join("\n");
     };
 
+    const extractQwenCliResultFromStreamJson = (text) => {
+        if (typeof text !== "string" || !text) {
+            return "";
+        }
+
+        const lines = text.replace(/\r/g, "").split("\n");
+        let resolvedResult = "";
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line || line.charAt(0) !== "{" || !line.includes('"type"')) {
+                continue;
+            }
+
+            let parsed;
+            try {
+                parsed = JSON.parse(line);
+            } catch {
+                continue;
+            }
+
+            if (parsed?.type !== "result") {
+                continue;
+            }
+
+            if (typeof parsed.result === "string") {
+                const cleanedResult = parsed.result.replace(/\r/g, "").trim();
+                if (cleanedResult) {
+                    resolvedResult = cleanedResult;
+                }
+            }
+        }
+
+        return resolvedResult;
+    };
+
     const resolveQwenCliFinalOutput = (record) => {
         if (!record || typeof record !== "object") {
             return "";
@@ -953,12 +989,16 @@ function setupGetRoutes(deps) {
             return "";
         }
 
-        if (stdoutText && stderrText) {
-            const separator = stdoutText.endsWith("\n") ? "" : "\n";
-            return `${stdoutText}${separator}${stderrText}`;
+        const combinedText = stdoutText && stderrText
+            ? `${stdoutText}${stdoutText.endsWith("\n") ? "" : "\n"}${stderrText}`
+            : (stdoutText || stderrText);
+
+        const resultFromStreamJson = extractQwenCliResultFromStreamJson(combinedText);
+        if (resultFromStreamJson) {
+            return resultFromStreamJson;
         }
 
-        return stdoutText || stderrText;
+        return combinedText;
     };
 
     const resolveFinalOutputTextForCommit = async (record) => {

@@ -6933,11 +6933,14 @@ const appendMergeChunk = (text, type = "output") => {
   let followupQwenCliRunActive = false;
   let qwenCliOutputText = "";
   let followupQwenCliOutputText = "";
+  let qwenCliJsonBuffer = "";
+  let followupQwenCliJsonBuffer = "";
   const FINAL_OUTPUT_LOADING_MESSAGE = "Final output is still generating…";
 
   const getActiveFinalOutputText = () => (followupRunActive ? followupFinalOutputText : finalOutputText);
   const getActiveQwenCliRunActive = () => (followupRunActive ? followupQwenCliRunActive : qwenCliRunActive);
   const getActiveQwenCliOutputText = () => (followupRunActive ? followupQwenCliOutputText : qwenCliOutputText);
+  const getActiveQwenCliJsonBuffer = () => (followupRunActive ? followupQwenCliJsonBuffer : qwenCliJsonBuffer);
 
   const setActiveFinalOutputText = (value) => {
     if (followupRunActive) {
@@ -6963,12 +6966,22 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
+  const setActiveQwenCliJsonBuffer = (value) => {
+    if (followupRunActive) {
+      followupQwenCliJsonBuffer = value;
+    } else {
+      qwenCliJsonBuffer = value;
+    }
+  };
+
   const resetFinalOutput = () => {
     stderrCommitBuffer = "";
     finalOutputText = "";
     followupFinalOutputText = "";
     qwenCliOutputText = "";
     followupQwenCliOutputText = "";
+    qwenCliJsonBuffer = "";
+    followupQwenCliJsonBuffer = "";
     qwenCliRunActive = false;
     followupQwenCliRunActive = false;
     if (stdoutOutputEl) {
@@ -7170,6 +7183,36 @@ const appendMergeChunk = (text, type = "output") => {
     return stripGitPullOutput(cleanedFinalOutput);
   };
 
+  const extractQwenResultFromStreamJson = (text) => {
+    if (typeof text !== "string" || !text) {
+      return "";
+    }
+
+    const lines = text.replace(/\r/g, "").split("\n");
+    let resolvedResult = "";
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line || line.charAt(0) !== "{" || !line.includes('"type"')) {
+        continue;
+      }
+
+      const parsed = safeParseJson(line);
+      if (!parsed || parsed.type !== "result") {
+        continue;
+      }
+
+      if (typeof parsed.result === "string") {
+        const cleaned = parsed.result.replace(/\r/g, "").trim();
+        if (cleaned) {
+          resolvedResult = cleaned;
+        }
+      }
+    }
+
+    return resolvedResult;
+  };
+
   const resolveFinalOutputForSavedRun = (run) => {
     if (!run || typeof run !== "object") {
       return "";
@@ -7223,12 +7266,15 @@ const appendMergeChunk = (text, type = "output") => {
     if (run.qwenCli === true) {
       const stdoutText = typeof run.stdout === "string" ? run.stdout : "";
       const stderrText = typeof run.stderr === "string" ? run.stderr : "";
-      if (stdoutText && stderrText) {
-        const separator = stdoutText.endsWith("\n") ? "" : "\n";
-        return stripGitFpushOutput(stripQwenCliOutput(`${stdoutText}${separator}${stderrText}`));
+      const combinedText = stdoutText && stderrText
+        ? `${stdoutText}${stdoutText.endsWith("\n") ? "" : "\n"}${stderrText}`
+        : (stdoutText || stderrText);
+      const streamJsonResult = extractQwenResultFromStreamJson(combinedText);
+      if (streamJsonResult) {
+        return stripGitPullOutput(stripInitialHeaders(streamJsonResult));
       }
-      if (stdoutText || stderrText) {
-        return stripGitFpushOutput(stripQwenCliOutput(stdoutText || stderrText));
+      if (combinedText) {
+        return stripGitFpushOutput(stripQwenCliOutput(combinedText));
       }
     }
 
@@ -7339,16 +7385,25 @@ const appendMergeChunk = (text, type = "output") => {
     if (typeof chunk !== "string" || !chunk) {
       return;
     }
-    const filteredChunk = stripGitFpushOutput(stripQwenCliOutput(chunk, { preserveTrailingNewlines: true }), {
-      preserveTrailingNewlines: true,
-    });
-    const cleanedChunk = stripGitPullOutput(filteredChunk, { preserveTrailingNewlines: true });
-    if (!cleanedChunk) {
+    const updatedBuffer = `${getActiveQwenCliJsonBuffer()}${chunk}`;
+    setActiveQwenCliJsonBuffer(updatedBuffer);
+
+    const lastNewline = updatedBuffer.lastIndexOf("\n");
+    if (lastNewline < 0) {
       return;
     }
-    const updated = `${getActiveQwenCliOutputText()}${cleanedChunk}`;
-    setActiveQwenCliOutputText(updated);
-    setActiveFinalOutputText(updated);
+
+    const completeText = updatedBuffer.slice(0, lastNewline + 1);
+    const remainder = updatedBuffer.slice(lastNewline + 1);
+    setActiveQwenCliJsonBuffer(remainder);
+
+    const parsedResult = extractQwenResultFromStreamJson(completeText);
+    if (!parsedResult) {
+      return;
+    }
+
+    setActiveQwenCliOutputText(parsedResult);
+    setActiveFinalOutputText(parsedResult);
     updateFinalOutputDisplay();
   };
 
@@ -8012,6 +8067,18 @@ const appendMergeChunk = (text, type = "output") => {
       streamClosedByServer = true;
       runInFlight = false;
       const message = event.data || "Agent run complete.";
+
+      if (getActiveQwenCliRunActive()) {
+        const trailingQwenJson = getActiveQwenCliJsonBuffer();
+        if (trailingQwenJson) {
+          const parsedResult = extractQwenResultFromStreamJson(trailingQwenJson);
+          if (parsedResult) {
+            setActiveQwenCliOutputText(parsedResult);
+            setActiveFinalOutputText(parsedResult);
+          }
+          setActiveQwenCliJsonBuffer("");
+        }
+      }
       const hasFinalOutput =
         typeof getActiveFinalOutputText === "function"
           && typeof getActiveFinalOutputText() === "string"
