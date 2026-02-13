@@ -2760,7 +2760,7 @@ ${cleanedFinalOutput}`;
         const openRouterReferer = (req.query.openRouterReferer || "").toString().trim();
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
-        const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
+        const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "kilo", "blackbox"].includes(engineParam) ? engineParam : "auto";
         const qwenDebugEnvParam = (req.query.qwenDebugEnv || "").toString().trim().toLowerCase();
         const qwenDebugEnvEnabled = qwenDebugEnvParam === "1" || qwenDebugEnvParam === "true";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
