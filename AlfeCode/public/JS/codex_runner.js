@@ -41,7 +41,6 @@
   const promptHintsFromLocal = (localStorage.getItem('showPromptHints') !== null) ? (localStorage.getItem('showPromptHints') === 'true') : undefined;
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
   const ENGINE_STORAGE_KEY = 'enginePreference';
-  const QWEN_SANDBOX_APPROVAL_MODE_STORAGE_KEY = 'qwenSandboxApprovalMode';
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const normalizeEnginePreference = (value) => {
@@ -53,8 +52,6 @@
   };
   const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
   let enginePreference = engineFromLocal;
-  const qwenSandboxApprovalModeFromLocal = localStorage.getItem(QWEN_SANDBOX_APPROVAL_MODE_STORAGE_KEY);
-  let qwenSandboxApprovalModeEnabled = qwenSandboxApprovalModeFromLocal === 'true';
   const qwenDebugEnvFromLocal = localStorage.getItem(QWEN_DEBUG_ENV_STORAGE_KEY);
   let qwenDebugEnvEnabled = qwenDebugEnvFromLocal === 'true';
 
@@ -337,9 +334,6 @@
         if (engineSelectInline) {
           engineSelectInline.value = enginePreference;
         }
-      }
-      if (d.key === 'qwenSandboxApprovalMode') {
-        qwenSandboxApprovalModeEnabled = (d.value === true || d.value === 'true');
       }
       if (d.key === 'qwenDebugEnv') {
         qwenDebugEnvEnabled = (d.value === true || d.value === 'true');
@@ -7958,9 +7952,6 @@ const appendMergeChunk = (text, type = "output") => {
     }
     if (enginePreference && enginePreference !== "auto") {
       params.append("engine", enginePreference);
-    }
-    if (qwenSandboxApprovalModeEnabled) {
-      params.append("qwenSandboxApprovalMode", "1");
     }
     if (qwenDebugEnvEnabled) {
       params.append("qwenDebugEnv", "1");
