@@ -266,7 +266,7 @@
     {
       "id": "kat-coder-air-v1",
       "label": "KwaiPilot: KAT Coder Air",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 128000,
       "engine_options": [
         "auto",
