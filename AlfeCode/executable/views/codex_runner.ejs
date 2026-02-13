@@ -3523,30 +3523,32 @@
                 </p>
             </div>
             <div class="prompt-model-row">
-                <div class="prompt-model-item">
-                    <div class="model-select-wrapper">
-                        <button
-                            id="modelPromptSelectButton"
-                            type="button"
-                            class="model-select-button"
-                            aria-haspopup="listbox"
-                            aria-expanded="false"
-                        >
-                            <span class="model-select-button__text">Loading models…</span>
-                            <span class="model-select-button__caret">▼</span>
-                        </button>
-                        <div id="modelPromptSelectMenu" class="model-select-menu is-hidden" role="listbox" aria-label="Model list"></div>
+                <% if (!agentModelDropdownDisabled) { %>
+                    <div class="prompt-model-item">
+                        <div class="model-select-wrapper">
+                            <button
+                                id="modelPromptSelectButton"
+                                type="button"
+                                class="model-select-button"
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                            >
+                                <span class="model-select-button__text">Loading models…</span>
+                                <span class="model-select-button__caret">▼</span>
+                            </button>
+                            <div id="modelPromptSelectMenu" class="model-select-menu is-hidden" role="listbox" aria-label="Model list"></div>
+                        </div>
+                        <select id="modelPromptSelect" name="modelPromptSelect" class="model-select-native" disabled aria-disabled="true">
+                            <% codexModelGroups.forEach((group) => { %>
+                                <optgroup label="<%= group.label %>">
+                                    <% group.models.forEach((model) => { const modelId = typeof model === "string" ? model : model.id; const modelLabel = typeof model === "string" ? model : (model.label || model.id); %>
+                                        <option value="<%= modelId %>" <%= modelId === defaultCodexModel ? "selected" : "" %>><%= modelLabel %></option>
+                                    <% }) %>
+                                </optgroup>
+                            <% }) %>
+                        </select>
                     </div>
-                    <select id="modelPromptSelect" name="modelPromptSelect" class="model-select-native" disabled aria-disabled="true">
-                        <% codexModelGroups.forEach((group) => { %>
-                            <optgroup label="<%= group.label %>">
-                                <% group.models.forEach((model) => { const modelId = typeof model === "string" ? model : model.id; const modelLabel = typeof model === "string" ? model : (model.label || model.id); %>
-                                    <option value="<%= modelId %>" <%= modelId === defaultCodexModel ? "selected" : "" %>><%= modelLabel %></option>
-                                <% }) %>
-                            </optgroup>
-                        <% }) %>
-                    </select>
-                </div>
+                <% } %>
                 <% if (showEngineOnAgent) { %>
                     <div class="prompt-model-item prompt-engine-item">
                         <select id="engineSelectInline" name="engineSelectInline">
