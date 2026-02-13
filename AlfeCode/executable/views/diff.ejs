@@ -1093,8 +1093,10 @@
 
     const files = structuredDiff.map((file) => {
         const rows = normalizeRows(file);
+        const fullPath = file.newPath || file.oldPath || 'Untracked file';
         return {
-            label: file.newPath || file.oldPath || 'Untracked file',
+            label: fullPath,
+            fullPath,
             rows,
             stats: computeFileStats(rows),
         };
@@ -1301,7 +1303,7 @@
             btn.type = 'button';
             btn.className = index === focusedFileIndex ? 'active' : '';
             btn.setAttribute('aria-current', index === focusedFileIndex ? 'true' : 'false');
-            btn.setAttribute('title', file.newPath || file.oldPath || '');
+            btn.setAttribute('title', file.fullPath || file.label || '');
 
             const label = document.createElement('span');
             label.className = 'file-label';
