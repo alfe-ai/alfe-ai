@@ -5576,6 +5576,46 @@ res.render("editor", {
         }
     });
 
+    /* ---------- File Tree view ---------- */
+    app.get("/:repoName/chat/:chatNumber/file-tree", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) {
+            return res.status(404).send("Chat not found.");
+        }
+
+        const repoCfg = loadSingleRepoConfig(repoName, sessionId);
+        if (!repoCfg) {
+            return res.status(400).send(`Repository '${repoName}' not found.`);
+        }
+
+        // Determine effective project directory: prefer validated query param when provided
+        let effectiveProjectDir = repoCfg.gitRepoLocalPath;
+        try {
+            const projectDirParam = (req.query && req.query.projectDir) ? req.query.projectDir.toString() : '';
+            if (projectDirParam) {
+                const resolved = path.resolve(projectDirParam);
+                const allowedBase = path.resolve('/git/sterling');
+                if (resolved === allowedBase || resolved.startsWith(allowedBase + path.sep)) {
+                    try {
+                        if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+                            effectiveProjectDir = resolved;
+                        }
+                    } catch (e) { /* ignore invalid path */ }
+                }
+            }
+        } catch (e) { /* ignore */ }
+
+        res.render("file_tree", {
+            gitRepoNameCLI: repoName,
+            chatNumber,
+            projectDir: effectiveProjectDir,
+            environment: res.locals.environment,
+        });
+    });
+
     /* ---------- Code-flow visualiser ---------- */
     app.get("/code_flow", (_req, res) => {
         const routes = analyzeCodeFlow(app);

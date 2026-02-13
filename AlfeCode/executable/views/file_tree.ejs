@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= gitRepoNameCLI %> · File Tree · Chat <%= chatNumber %></title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/CSS/chat.css">
+    <link rel="stylesheet" href="/CSS/file-tree.css">
+</head>
+<body>
+    <%- include('partials/session_banner') %>
+    
+    <header class="editor-header">
+        <div class="editor-header-left">
+            <button id="backToChatButton" class="back-to-diff-button" type="button" title="Back to chat">
+                <span aria-hidden="true">←</span>
+                <span>Back to chat</span>
+            </button>
+            <div>
+                <h1><%= gitRepoNameCLI %> - File Tree</h1>
+            </div>
+        </div>
+    </header>
+
+    <div class="file-tree-layout">
+        <main class="file-tree-main">
+            <div class="file-tree-header">
+                <div class="project-info">
+                    <span>Project Directory: <strong id="projectDirDisplay"><%= projectDir %></strong></span>
+                </div>
+            </div>
+            
+            <div id="fileTreeContainer" class="file-tree-container">
+                <div class="loading">Loading file tree...</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        window.FILE_TREE_CONFIG = {
+            repoName: "<%= gitRepoNameCLI %>",
+            chatNumber: "<%= chatNumber %>",
+            projectDir: "<%= projectDir %>"
+        };
+    </script>
+    <script src="/JS/file-tree.js"></script>
+</body>
+</html>

@@ -77,6 +77,12 @@
             Open in Editor
         </button>
     <% } %>
+        <button
+            id="openFileTreeButton"
+            class="sidebar-button"
+            onclick="window.open('/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/file-tree', '_blank')">
+            File Tree
+        </button>
         <% if (sterlingCodexLink) { %>
         <button
             type="button"

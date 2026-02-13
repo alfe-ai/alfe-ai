@@ -1959,6 +1959,30 @@ function setupPostRoutes(deps) {
         res.redirect(`/environment/${repoName}/chat/${chatNumber}`);
     });
 
+    /* ---------- toggle file attachment ---------- */
+    app.post("/:repoName/chat/:chatNumber/toggle_attached", (req, res) => {
+        const { repoName, chatNumber } = req.params;
+        const { filePath } = req.body || {};
+        const sessionId = resolveSessionId(req);
+        const dataObj = loadRepoJson(repoName, sessionId);
+        const chatData = dataObj[chatNumber];
+        if (!chatData) return res.status(404).send("Chat not found.");
+
+        if (!filePath) return res.status(400).json({ error: "File path required." });
+
+        const attachedFiles = chatData.attachedFiles || [];
+        const idx = attachedFiles.findIndex(p => p === filePath);
+        if (idx === -1) {
+            attachedFiles.push(filePath);
+        } else {
+            attachedFiles.splice(idx, 1);
+        }
+        chatData.attachedFiles = attachedFiles;
+        dataObj[chatNumber] = chatData;
+        saveRepoJson(repoName, dataObj, sessionId);
+        res.json({ success: true, filePath, isAttached: idx === -1 });
+    });
+
     /* ---------- /:repoName/git_switch_branch ---------- */
     app.post("/:repoName/git_switch_branch", (req, res) => {
         const { repoName } = req.params;
