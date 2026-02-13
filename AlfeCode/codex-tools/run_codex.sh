@@ -1019,11 +1019,7 @@ if $USE_QWEN_CLI; then
     exit 1
   fi
   QWEN_ARGS=()
-  if [[ ${#APPROVAL_MODE_ARGS[@]} -gt 0 ]]; then
-    QWEN_ARGS+=("${APPROVAL_MODE_ARGS[@]}")
-  else
-    QWEN_ARGS+=(--approval-mode auto-edit)
-  fi
+  QWEN_ARGS+=(--approval-mode auto-edit)
   QWEN_ARGS+=(-p "$TASK")
   case "${QWEN_STREAM_JSON,,}" in
     1|true|yes|on)
