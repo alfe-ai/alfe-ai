@@ -7212,6 +7212,8 @@ const appendMergeChunk = (text, type = "output") => {
       return [];
     }
 
+    const suppressToolOutput = (toolName) => toolName === "todo_write";
+
     const messages = [];
 
     if (parsed.type === "assistant" && parsed.message && Array.isArray(parsed.message.content)) {
@@ -7228,7 +7230,9 @@ const appendMergeChunk = (text, type = "output") => {
         }
 
         if (contentItem.type === "tool_use" && typeof contentItem.name === "string" && contentItem.name) {
-          messages.push(`Using tool: ${contentItem.name}`);
+          if (!suppressToolOutput(contentItem.name)) {
+            messages.push(`Using tool: ${contentItem.name}`);
+          }
         }
       }
     }
@@ -7238,9 +7242,12 @@ const appendMergeChunk = (text, type = "output") => {
         if (!contentItem || typeof contentItem !== "object") {
           continue;
         }
+
         if (contentItem.type === "tool_result" && typeof contentItem.content === "string") {
           const normalized = normalizeQwenDisplayText(contentItem.content).trim();
-          if (normalized) {
+          const isTodoWriteReminder = normalized.includes("Todos have been modified successfully")
+            && normalized.includes("continue to use the todo list");
+          if (!isTodoWriteReminder && normalized) {
             messages.push(normalized);
           }
         }
