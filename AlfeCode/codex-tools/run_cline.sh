@@ -2,6 +2,8 @@
 
 # run_cline.sh
 # Script to run Cline CLI with proper permissions and error handling
+# Auth setup example:
+# cline auth -p openai -k "OPENAI_API_KEY" -b "OPENAI_API_URL" -m "OPENAI_MODEL"
 # See https://chatgpt.com/c/698e8057-42d4-8332-a7ce-e195d7f68894 for details
 
 set -e
