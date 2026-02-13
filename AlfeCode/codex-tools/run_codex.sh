@@ -34,6 +34,8 @@ ALFECODE_VM_SSH_PORT="${ALFECODE_VM_SSH_PORT:-}"
 ALFECODE_VM_USER="${ALFECODE_VM_USER:-root}"
 USE_QWEN_CLI=false
 APPROVAL_MODE=""
+QWEN_ARGS=()
+QWEN_MODEL=""
 
 escape_config_value() {
   local value="$1"
@@ -319,6 +321,7 @@ Default: first model in data/config/model_only_models.json (fallback: openrouter
 
 Use --qwen-cli to run qwen directly instead of the Agent CLI.
 Use --qwen-model to supply a qwen model id when running with --qwen-cli.
+Use --approval-mode to set the approval mode (e.g., auto-edit).
 
 If no task is provided, an interactive Agent session is started.
 
@@ -445,6 +448,9 @@ while [[ $# -gt 0 ]]; do
     --qwen-model)
       [[ $# -ge 2 ]] || { echo "Error: --qwen-model requires a model id" >&2; exit 1; }
       QWEN_MODEL="$2"; shift 2 ;;
+    --approval-mode)
+      [[ $# -ge 2 ]] || { echo "Error: --approval-mode requires a mode value" >&2; exit 1; }
+      APPROVAL_MODE="$2"; shift 2 ;;
     --help|-h)
       usage; exit 0 ;;
     --) shift; break ;;
@@ -659,13 +665,20 @@ run_qwen() {
   fi
   local -a display_args=()
   local expects_model_arg=false
+  local expects_approval_mode_arg=false
   local model_value=""
+  local approval_mode_value=""
   for arg in "${display_cmd[@]}"; do
     if $expects_model_arg; then
       arg="$(strip_free_suffix "$arg")"
       expects_model_arg=false
+    elif $expects_approval_mode_arg; then
+      approval_mode_value="$arg"
+      expects_approval_mode_arg=false
     elif [[ "$arg" == "-m" || "$arg" == "--model" ]]; then
       expects_model_arg=true
+    elif [[ "$arg" == "--approval-mode" ]]; then
+      expects_approval_mode_arg=true
     elif [[ "$arg" == OPENAI_MODEL=* ]]; then
       model_value="${arg#OPENAI_MODEL=}"
       arg="OPENAI_MODEL=$(strip_free_suffix "$model_value")"
@@ -695,6 +708,9 @@ run_qwen() {
   printf '[qwen] log=%s\n' "$qwen_log_path"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     printf '[qwen] model=%s\n' "$display_qwen_model_value"
+  fi
+  if [[ -n "$approval_mode_value" ]]; then
+    printf '[qwen] approval-mode=%s\n' "$approval_mode_value"
   fi
   case "${QWEN_STREAM_JSON,,}" in
     1|true|yes|on)
@@ -1003,8 +1019,13 @@ if $USE_QWEN_CLI; then
     exit 1
   fi
   QWEN_ARGS=()
-  QWEN_ARGS+=(--approval-mode auto-edit)
+  if [[ ${#APPROVAL_MODE_ARGS[@]} -gt 0 ]]; then
+    QWEN_ARGS+=("${APPROVAL_MODE_ARGS[@]}")
+  fi
   QWEN_ARGS+=(-p "$TASK")
+  if [[ ${#APPROVAL_MODE_ARGS[@]} -eq 0 ]]; then
+    QWEN_ARGS+=(-y)
+  fi
   case "${QWEN_STREAM_JSON,,}" in
     1|true|yes|on)
       QWEN_ARGS+=(--output-format stream-json)
@@ -1020,7 +1041,7 @@ if [[ -z "$TASK" ]] && ! $USE_QWEN_CLI; then
   echo "Starting interactive Agent session..."
   log_meta "Using Agent model: $MODEL"
   # Interactive
-  run_with_filtered_stderr "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}"
+  run_with_filtered_stderr "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" "${APPROVAL_MODE_ARGS[@]}"
   exit $?
 fi
 
@@ -1031,7 +1052,7 @@ if $USE_QWEN_CLI; then
   run_with_filtered_streams "${QWEN_ARGS[@]}"
 else
   log_meta "Using Agent model: $MODEL"
-  run_with_filtered_streams exec "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" --full-auto --skip-git-repo-check --sandbox workspace-write "$TASK"
+  run_with_filtered_streams exec "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" "${APPROVAL_MODE_ARGS[@]}" --full-auto --skip-git-repo-check --sandbox workspace-write "$TASK"
 fi
 CMD_STATUS=$?
 set -e

@@ -388,6 +388,11 @@
       </label>
       <span id="helpButtonVisibleFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
       <label style="font-weight:600;display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input type="checkbox" id="qwenSandboxApprovalModeCheckbox" name="qwenSandboxApprovalMode">
+        <span>Enable <code>--approval-mode sandbox</code> for Qwen</span>
+      </label>
+      <span id="qwenSandboxApprovalModeFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
+      <label style="font-weight:600;display:flex;align-items:center;gap:8px;margin-top:8px;">
         <input type="checkbox" id="qwenDebugEnvCheckbox" name="qwenDebugEnv">
         <span>Enable Qwen <code>DEBUG</code>/<code>DEBUG_MODE</code> env vars</span>
       </label>
@@ -784,6 +789,54 @@
             clearFeedbackTimeout();
             showFeedback('Saving...');
             try{ localStorage.setItem(STORAGE_KEY_DEMO_REPOS, checkbox.checked ? 'true' : 'false'); }catch(e){}
+            send(checkbox.checked);
+            feedbackTimeout = setTimeout(function(){
+              showFeedback('Saved', 'success');
+              feedbackTimeout = null;
+            }, 300);
+          });
+        }catch(e){ /* noop */ }
+      }catch(e){ /* noop */ }
+    })();
+    </script>
+    <script>
+    (function(){
+      try{
+        const STORAGE_KEY_QWEN_SANDBOX_APPROVAL_MODE = 'qwenSandboxApprovalMode';
+        const checkbox = document.getElementById('qwenSandboxApprovalModeCheckbox');
+        const feedback = document.getElementById('qwenSandboxApprovalModeFeedback');
+        let feedbackTimeout = null;
+        function send(val){ try{ window.parent.postMessage({type:'sterling:settings', key:'qwenSandboxApprovalMode', value:val}, '*'); }catch(e){} }
+        function clearFeedbackTimeout(){
+          if (!feedbackTimeout) return;
+          clearTimeout(feedbackTimeout);
+          feedbackTimeout = null;
+        }
+        function showFeedback(message, type){
+          if (!feedback) return;
+          if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('hidden');
+            feedback.classList.remove('success', 'error');
+            return;
+          }
+          feedback.textContent = message;
+          feedback.classList.remove('hidden', 'success', 'error');
+          if (type === 'success') {
+            feedback.classList.add('success');
+          } else if (type === 'error') {
+            feedback.classList.add('error');
+          }
+        }
+        try{
+          let cur = (function(){ try{ return localStorage.getItem(STORAGE_KEY_QWEN_SANDBOX_APPROVAL_MODE); }catch(e){ return null; } })();
+          if (cur === null) { cur = 'false'; }
+          if (checkbox) checkbox.checked = (cur === 'true');
+          send(checkbox ? checkbox.checked : (cur === 'true'));
+          if (checkbox) checkbox.addEventListener('change', function(){
+            clearFeedbackTimeout();
+            showFeedback('Saving...');
+            try{ localStorage.setItem(STORAGE_KEY_QWEN_SANDBOX_APPROVAL_MODE, checkbox.checked ? 'true' : 'false'); }catch(e){}
             send(checkbox.checked);
             feedbackTimeout = setTimeout(function(){
               showFeedback('Saved', 'success');
