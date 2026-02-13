@@ -108,3 +108,9 @@ return change information.
 The order of models shown in the reasoning tooltip can be customized.
 Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
 `chatModels` and `reasoningModels` arrays to suit your preferences.
+
+## Qwen CLI upgrade notes
+
+For Qwen run-path comments and upgrade context, see:
+https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
+

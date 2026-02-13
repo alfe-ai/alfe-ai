@@ -3038,6 +3038,8 @@ ${cleanedFinalOutput}`;
             emit({ event: "meta", data: `${invalidModelReason} Falling back to ${defaultCodexModel}.` });
             model = defaultCodexModel;
         }
+        // Qwen CLI upgrade context/instructions thread:
+        // https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
         const useQwenCli = enginePreference === "qwen" || enginePreference === "sterling"
             ? true
             : enginePreference === "cline"
@@ -3086,6 +3088,8 @@ ${cleanedFinalOutput}`;
             const clineScriptPath = path.join(PROJECT_ROOT, "codex-tools", "run_cline.sh");
             scriptPath = clineScriptPath;
         } else if (useQwenCli) {
+            // Keep this argument wiring aligned with the Qwen upgrade notes:
+            // https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
             args.push("--qwen-cli");
             const qwenCliModel = resolveQwenCliModel(model, { force: enginePreference === "qwen" });
             if (qwenCliModel) {

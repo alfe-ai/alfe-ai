@@ -607,6 +607,8 @@ run_codex() {
 }
 
 run_qwen() {
+  # Qwen CLI upgrade context/instructions thread:
+  # https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
   load_qwen_env
   local openai_api_key_value="${OPENAI_API_KEY:-}"
   local openai_base_url_value="${OPENAI_BASE_URL:-}"
@@ -631,6 +633,8 @@ run_qwen() {
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     display_qwen_model_value="$(strip_free_suffix "$QWEN_MODEL")"
   fi
+  # Keep command construction in sync with the Qwen upgrade notes:
+  # https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
   local -a cmd=(qwen "$@")
   local -a display_cmd=("${cmd[@]}")
   if command -v stdbuf >/dev/null 2>&1; then
