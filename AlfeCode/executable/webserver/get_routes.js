@@ -2761,8 +2761,6 @@ ${cleanedFinalOutput}`;
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
         const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
-        const qwenSandboxApprovalModeParam = (req.query.qwenSandboxApprovalMode || "").toString().trim().toLowerCase();
-        const qwenSandboxApprovalModeEnabled = qwenSandboxApprovalModeParam === "1" || qwenSandboxApprovalModeParam === "true";
         const qwenDebugEnvParam = (req.query.qwenDebugEnv || "").toString().trim().toLowerCase();
         const qwenDebugEnvEnabled = qwenDebugEnvParam === "1" || qwenDebugEnvParam === "true";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
@@ -2807,7 +2805,6 @@ ${cleanedFinalOutput}`;
             openRouterReferer,
             openRouterTitle,
             enginePreference,
-            qwenSandboxApprovalModeEnabled,
             qwenDebugEnvEnabled,
             followupParentId: followupParentIdRaw,
             statusHistory: [],
@@ -3167,14 +3164,12 @@ ${cleanedFinalOutput}`;
                 args.push("--openrouter-title", openRouterTitle);
             }
         }
-        if (qwenSandboxApprovalModeEnabled) {
+        if (useQwenCli) {
             args.push("--approval-mode", "auto-edit");
             if (includeMeta) {
                 emit({ event: "meta", data: "Qwen auto-edit approval mode is enabled." });
+                emit({ event: "meta", data: "Using qwen CLI for this run." });
             }
-        }
-        if (useQwenCli && includeMeta) {
-            emit({ event: "meta", data: "Using qwen CLI for this run." });
         }
         args.push(prompt);
 
