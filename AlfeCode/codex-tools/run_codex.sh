@@ -32,6 +32,7 @@ ALFECODE_VM_HOST="${ALFECODE_VM_HOST:-127.0.0.1}"
 ALFECODE_VM_SSH_PORT="${ALFECODE_VM_SSH_PORT:-}"
 ALFECODE_VM_USER="${ALFECODE_VM_USER:-root}"
 USE_QWEN_CLI=false
+APPROVAL_MODE=""
 QWEN_ARGS=()
 QWEN_MODEL=""
 
@@ -319,6 +320,7 @@ Default: first model in data/config/model_only_models.json (fallback: openrouter
 
 Use --qwen-cli to run qwen directly instead of the Agent CLI.
 Use --qwen-model to supply a qwen model id when running with --qwen-cli.
+Use --approval-mode to set the approval mode (e.g., auto-edit).
 
 If no task is provided, an interactive Agent session is started.
 
@@ -445,6 +447,9 @@ while [[ $# -gt 0 ]]; do
     --qwen-model)
       [[ $# -ge 2 ]] || { echo "Error: --qwen-model requires a model id" >&2; exit 1; }
       QWEN_MODEL="$2"; shift 2 ;;
+    --approval-mode)
+      [[ $# -ge 2 ]] || { echo "Error: --approval-mode requires a mode value" >&2; exit 1; }
+      APPROVAL_MODE="$2"; shift 2 ;;
     --help|-h)
       usage; exit 0 ;;
     --) shift; break ;;
@@ -485,8 +490,12 @@ fi
 
 MODEL_ARGS=()
 CONFIG_ARGS=()
+APPROVAL_MODE_ARGS=()
 if ! $USE_QWEN_CLI && [[ -n "$EFFECTIVE_MODEL" ]]; then
   MODEL_ARGS=(--model "$EFFECTIVE_MODEL")
+fi
+if ! $USE_QWEN_CLI && [[ -n "$APPROVAL_MODE" ]]; then
+  APPROVAL_MODE_ARGS=(--approval-mode "$APPROVAL_MODE")
 fi
 
 MODEL_BASE_URL=""
@@ -978,7 +987,7 @@ if [[ -z "$TASK" ]] && ! $USE_QWEN_CLI; then
   echo "Starting interactive Agent session..."
   log_meta "Using Agent model: $MODEL"
   # Interactive
-  run_with_filtered_stderr "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}"
+  run_with_filtered_stderr "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" "${APPROVAL_MODE_ARGS[@]}"
   exit $?
 fi
 
@@ -989,7 +998,7 @@ if $USE_QWEN_CLI; then
   run_with_filtered_streams "${QWEN_ARGS[@]}"
 else
   log_meta "Using Agent model: $MODEL"
-  run_with_filtered_streams exec "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" --full-auto --skip-git-repo-check --sandbox workspace-write "$TASK"
+  run_with_filtered_streams exec "${MODEL_ARGS[@]}" "${CONFIG_ARGS[@]}" "${APPROVAL_MODE_ARGS[@]}" --full-auto --skip-git-repo-check --sandbox workspace-write "$TASK"
 fi
 CMD_STATUS=$?
 set -e
