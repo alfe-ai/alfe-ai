@@ -264,6 +264,20 @@
       "usage": "free"
     },
     {
+      "id": "kat-coder-air-v1",
+      "label": "KwaiPilot: KAT Coder Air V1",
+      "disabled": false,
+      "contextTokens": 128000,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "qwen_cli": true,
+      "plus_model": false,
+      "list_order": 1,
+      "usage": "free"
+    },
+    {
       "id": "openrouter/mistralai/devstral-2512:free",
       "label": "Mistral AI: Devstral 2512 (Free)",
       "disabled": true,
