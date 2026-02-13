@@ -2718,7 +2718,7 @@ ${cleanedFinalOutput}`;
         const openRouterReferer = (req.query.openRouterReferer || "").toString().trim();
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
-        const enginePreference = ["auto", "qwen", "codex", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
+        const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
         const includeMeta = includeMetaParam === "1" || includeMetaParam === "true";
         const gitFpushParam = (req.query.gitFpush || "").toString().trim().toLowerCase();
@@ -3035,6 +3035,8 @@ ${cleanedFinalOutput}`;
         }
         const useQwenCli = enginePreference === "qwen" || enginePreference === "sterling"
             ? true
+            : enginePreference === "cline"
+                ? false  // Cline will be handled separately
             : enginePreference === "codex" || enginePreference === "blackbox"
                 ? false
                 : resolveQwenCliFlag(model);
@@ -3060,7 +3062,18 @@ ${cleanedFinalOutput}`;
             finalizeStream("Agent run aborted before start.");
             return;
         }
-        if (useQwenCli) {
+        if (enginePreference === "cline") {
+            // Handle Cline engine - run cline CLI with proper permissions
+            const clineCommand = `export CLINE_COMMAND_PERMISSIONS='{"allow": [], "deny": ["*"]}' && cline -y "${prompt}"`;
+            if (includeMeta) {
+                emit({ event: "meta", data: "Using Cline CLI for this run." });
+            }
+            // Store the Cline command for execution in the child process
+            baseSpawnOptions.env.CLINE_COMMAND = clineCommand;
+            // Use a different script path for Cline execution
+            const clineScriptPath = path.join(PROJECT_ROOT, "codex-tools", "run_cline.sh");
+            scriptPath = clineScriptPath;
+        } else if (useQwenCli) {
             args.push("--qwen-cli");
             const qwenCliModel = resolveQwenCliModel(model, { force: enginePreference === "qwen" });
             if (qwenCliModel) {
