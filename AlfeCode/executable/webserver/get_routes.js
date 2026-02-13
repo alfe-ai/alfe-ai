@@ -2719,6 +2719,8 @@ ${cleanedFinalOutput}`;
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
         const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
+        const qwenSandboxApprovalModeParam = (req.query.qwenSandboxApprovalMode || "").toString().trim().toLowerCase();
+        const qwenSandboxApprovalModeEnabled = qwenSandboxApprovalModeParam === "1" || qwenSandboxApprovalModeParam === "true";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
         const includeMeta = includeMetaParam === "1" || includeMetaParam === "true";
         const gitFpushParam = (req.query.gitFpush || "").toString().trim().toLowerCase();
@@ -2761,6 +2763,7 @@ ${cleanedFinalOutput}`;
             openRouterReferer,
             openRouterTitle,
             enginePreference,
+            qwenSandboxApprovalModeEnabled,
             followupParentId: followupParentIdRaw,
             statusHistory: [],
             metaMessages: [],
@@ -3109,6 +3112,12 @@ ${cleanedFinalOutput}`;
             }
             if (openRouterTitle) {
                 args.push("--openrouter-title", openRouterTitle);
+            }
+        }
+        if (qwenSandboxApprovalModeEnabled) {
+            args.push("--approval-mode", "sandbox");
+            if (includeMeta) {
+                emit({ event: "meta", data: "Qwen sandbox approval mode is enabled." });
             }
         }
         if (useQwenCli && includeMeta) {
