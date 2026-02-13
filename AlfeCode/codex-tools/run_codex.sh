@@ -26,6 +26,7 @@ DETECTED_API_KEY_VAR=""
 CODEX_SHOW_META="${CODEX_SHOW_META:-0}"
 SHOW_QWEN_CLI_ARGS="${SHOW_QWEN_CLI_ARGS:-false}"
 ENABLE_TRACE="${ENABLE_TRACE:-}"
+QWEN_STREAM_JSON="${QWEN_STREAM_JSON:-true}"
 OPENROUTER_HTTP_REFERER_OVERRIDE=""
 OPENROUTER_TITLE_OVERRIDE=""
 ALFECODE_VM_HOST="${ALFECODE_VM_HOST:-127.0.0.1}"
@@ -693,6 +694,11 @@ run_qwen() {
   if [[ -n "$approval_mode_value" ]]; then
     printf '[qwen] approval-mode=%s\n' "$approval_mode_value"
   fi
+  case "${QWEN_STREAM_JSON,,}" in
+    1|true|yes|on)
+      printf '[qwen] output-format=stream-json (partial-messages enabled)\n'
+      ;;
+  esac
   printf '[qwen] meta=%s\n' "${CODEX_SHOW_META:-0}"
   "${cmd[@]}" 2>&1 | tee "$qwen_log_path"
 }
@@ -999,6 +1005,11 @@ if $USE_QWEN_CLI; then
     QWEN_ARGS+=("${APPROVAL_MODE_ARGS[@]}")
   fi
   QWEN_ARGS+=(-p "$TASK" -y)
+  case "${QWEN_STREAM_JSON,,}" in
+    1|true|yes|on)
+      QWEN_ARGS+=(--output-format stream-json --include-partial-messages)
+      ;;
+  esac
   if [[ -n "$QWEN_MODEL" ]]; then
     QWEN_ARGS=(-m "$QWEN_MODEL" "${QWEN_ARGS[@]}")
   fi
