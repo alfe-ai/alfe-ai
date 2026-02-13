@@ -42,6 +42,7 @@
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const QWEN_SANDBOX_APPROVAL_MODE_STORAGE_KEY = 'qwenSandboxApprovalMode';
+  const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const normalizeEnginePreference = (value) => {
     const normalized = (value || '').toString().trim().toLowerCase();
@@ -54,6 +55,8 @@
   let enginePreference = engineFromLocal;
   const qwenSandboxApprovalModeFromLocal = localStorage.getItem(QWEN_SANDBOX_APPROVAL_MODE_STORAGE_KEY);
   let qwenSandboxApprovalModeEnabled = qwenSandboxApprovalModeFromLocal === 'true';
+  const qwenDebugEnvFromLocal = localStorage.getItem(QWEN_DEBUG_ENV_STORAGE_KEY);
+  let qwenDebugEnvEnabled = qwenDebugEnvFromLocal === 'true';
 
   let currentRunContext = null;
   let runsSidebarSelectedRunId = null;
@@ -337,6 +340,9 @@
       }
       if (d.key === 'qwenSandboxApprovalMode') {
         qwenSandboxApprovalModeEnabled = (d.value === true || d.value === 'true');
+      }
+      if (d.key === 'qwenDebugEnv') {
+        qwenDebugEnvEnabled = (d.value === true || d.value === 'true');
       }
       if (d.key === 'openAuthModal') {
         const preferredStep = d.value === 'login' ? 'login' : 'signup';
@@ -7796,6 +7802,9 @@ const appendMergeChunk = (text, type = "output") => {
     }
     if (qwenSandboxApprovalModeEnabled) {
       params.append("qwenSandboxApprovalMode", "1");
+    }
+    if (qwenDebugEnvEnabled) {
+      params.append("qwenDebugEnv", "1");
     }
 
     const url = `/agent/stream?${params.toString()}`;
