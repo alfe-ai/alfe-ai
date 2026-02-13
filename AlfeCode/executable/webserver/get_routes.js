@@ -2566,6 +2566,36 @@ ${cleanedFinalOutput}`;
         }
     });
 
+    app.get("/agent/file-tree/view", (req, res) => {
+        const projectDir = (req.query.projectDir || "").toString().trim();
+
+        if (!projectDir) {
+            res.status(400).send("Project directory is required.");
+            return;
+        }
+
+        const resolvedPath = path.resolve(projectDir);
+        let stats;
+        try {
+            stats = fs.statSync(resolvedPath);
+        } catch (err) {
+            res.status(404).send(`Project directory not found: ${projectDir}`);
+            return;
+        }
+
+        if (!stats.isDirectory()) {
+            res.status(400).send("Provided project directory is not a directory.");
+            return;
+        }
+
+        res.render("file_tree", {
+            gitRepoNameCLI: "Agent",
+            chatNumber: "N/A",
+            projectDir: resolvedPath,
+            environment: res.locals.environment,
+        });
+    });
+
     app.get("/agent/test-python", async (_req, res) => {
         const commandsToTry = [
             { binary: "python", args: ["--version"] },

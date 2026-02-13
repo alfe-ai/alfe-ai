@@ -3323,6 +3323,9 @@
                             </span>
                           </button>
                         <% } %>
+                          <button id="openFileTreeButton" class="nav-button" type="button" title="Open File Tree" aria-label="Open File Tree" onclick="window.open('/agent/file-tree/view?projectDir=' + encodeURIComponent(document.getElementById('projectDir').value || ''), '_blank')">
+                              File Tree
+                          </button>
                           <button id="openGitTreeButton" class="nav-button" type="button" title="Open Git Log" aria-label="Open Git Log">
                               Git Log
                           </button>

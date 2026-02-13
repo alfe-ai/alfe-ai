@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
         projectDirDisplay.textContent = config.projectDir;
     }
 
+    // Check if we're in agent mode (no repoName or chatNumber)
+    const isAgentMode = !config.repoName || !config.chatNumber;
+
     /**
      * Recursively render the file tree structure
      */
@@ -74,6 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cb?.addEventListener('change', async () => {
                 console.debug(`[FileTree Debug] Checkbox changed for: ${node.path}, new checked state: ${cb.checked}`);
+
+                if (isAgentMode) {
+                    console.debug("[FileTree Debug] Agent mode: File attachment toggle disabled");
+                    // In agent mode, just show a message and prevent the toggle
+                    alert("File attachment toggle is not available in Agent mode. This feature is only available in Chat mode.");
+                    cb.checked = !cb.checked; // Revert the checkbox
+                    return;
+                }
+
                 try {
                     console.debug(`[FileTree Debug] Sending POST to toggle attachment for file: ${node.path}`);
                     const resp = await fetch(`/${config.repoName}/chat/${config.chatNumber}/toggle_attached`, {
@@ -112,74 +124,134 @@ document.addEventListener('DOMContentLoaded', () => {
         fileTreeContainer.innerHTML = '<div class="loading">Loading file tree...</div>';
 
         try {
-            // First get the sterling chat URL
-            const r = await fetch(`/api/settings/sterling_chat_url`);
-            if (!r.ok) {
-                fileTreeContainer.innerHTML = '<div class="error">No sterling_chat_url found. Create a chat first.</div>';
-                return;
-            }
-
-            const { value: urlVal } = await r.json();
-            if (!urlVal) {
-                fileTreeContainer.innerHTML = '<div class="error">No sterling_chat_url set. Create a chat first.</div>';
-                return;
-            }
-
-            // Parse the URL to get repo name and chat number
-            const splitted = urlVal.split('/');
-            const chatNumber = splitted.pop();
-            splitted.pop(); // Remove 'chat'
-            const repoName = decodeURIComponent(splitted.pop());
-
-            // Fetch the file tree from Sterling
-            // Note: Sterling's buildFileTree function already handles .gitignore filtering
-            const treeRes = await fetch(`http://localhost:3444/api/listFileTree/${repoName}/${chatNumber}`);
-            if (!treeRes.ok) {
-                fileTreeContainer.innerHTML = '<div class="error">Error fetching file tree from Sterling.</div>';
-                return;
-            }
-
-            const data = await treeRes.json();
-            if (!data.success) {
-                fileTreeContainer.innerHTML = `<div class="error">Sterling error: ${JSON.stringify(data)}</div>`;
-                return;
-            }
-
-            // Clear container and render tree
-            fileTreeContainer.innerHTML = '';
-            const rootLi = document.createElement('li');
-            const rootExpander = document.createElement('span');
-            rootExpander.textContent = '[-] ';
-            rootExpander.className = 'expander';
-            rootExpander.style.cursor = 'pointer';
-            rootLi.appendChild(rootExpander);
-
-            const rootLabel = document.createElement('span');
-            rootLabel.textContent = config.projectDir || repoName;
-            rootLabel.className = 'directory';
-            rootLabel.style.fontWeight = 'bold';
-            rootLi.appendChild(rootLabel);
-
-            const rootUl = document.createElement('ul');
-            rootLi.appendChild(rootUl);
-
-            // Add event listener for root expander
-            rootExpander?.addEventListener('click', () => {
-                if (rootUl.style.display === 'none') {
-                    rootUl.style.display = '';
-                    rootExpander.textContent = '[-] ';
-                } else {
-                    rootUl.style.display = 'none';
-                    rootExpander.textContent = '[+] ';
+            if (isAgentMode) {
+                // In agent mode, try to load from the agent file-tree API
+                const projectDir = config.projectDir;
+                if (!projectDir) {
+                    fileTreeContainer.innerHTML = '<div class="error">No project directory specified.</div>';
+                    return;
                 }
-            });
 
-            // Add all children to root
-            data.tree.children.forEach(childNode => {
-                rootUl.appendChild(createTreeNode(childNode));
-            });
+                const treeRes = await fetch(`/agent/file-tree?projectDir=${encodeURIComponent(projectDir)}`);
+                if (!treeRes.ok) {
+                    fileTreeContainer.innerHTML = '<div class="error">Error fetching file tree from Agent API.</div>';
+                    return;
+                }
 
-            fileTreeContainer.appendChild(rootLi);
+                const data = await treeRes.json();
+                if (!data.fileTree) {
+                    fileTreeContainer.innerHTML = `<div class="error">Agent API error: ${JSON.stringify(data)}</div>`;
+                    return;
+                }
+
+                // Clear container and render tree
+                fileTreeContainer.innerHTML = '';
+                const rootLi = document.createElement('li');
+                const rootExpander = document.createElement('span');
+                rootExpander.textContent = '[-] ';
+                rootExpander.className = 'expander';
+                rootExpander.style.cursor = 'pointer';
+                rootLi.appendChild(rootExpander);
+
+                const rootLabel = document.createElement('span');
+                rootLabel.textContent = config.projectDir || 'Agent Project';
+                rootLabel.className = 'directory';
+                rootLabel.style.fontWeight = 'bold';
+                rootLi.appendChild(rootLabel);
+
+                const rootUl = document.createElement('ul');
+                rootLi.appendChild(rootUl);
+
+                // Add event listener for root expander
+                rootExpander?.addEventListener('click', () => {
+                    if (rootUl.style.display === 'none') {
+                        rootUl.style.display = '';
+                        rootExpander.textContent = '[-] ';
+                    } else {
+                        rootUl.style.display = 'none';
+                        rootExpander.textContent = '[+] ';
+                    }
+                });
+
+                // Add all children to root
+                if (data.fileTree.children) {
+                    data.fileTree.children.forEach(childNode => {
+                        rootUl.appendChild(createTreeNode(childNode));
+                    });
+                }
+
+                fileTreeContainer.appendChild(rootLi);
+            } else {
+                // Original chat mode logic
+                // First get the sterling chat URL
+                const r = await fetch(`/api/settings/sterling_chat_url`);
+                if (!r.ok) {
+                    fileTreeContainer.innerHTML = '<div class="error">No sterling_chat_url found. Create a chat first.</div>';
+                    return;
+                }
+
+                const { value: urlVal } = await r.json();
+                if (!urlVal) {
+                    fileTreeContainer.innerHTML = '<div class="error">No sterling_chat_url set. Create a chat first.</div>';
+                    return;
+                }
+
+                // Parse the URL to get repo name and chat number
+                const splitted = urlVal.split('/');
+                const chatNumber = splitted.pop();
+                splitted.pop(); // Remove 'chat'
+                const repoName = decodeURIComponent(splitted.pop());
+
+                // Fetch the file tree from Sterling
+                // Note: Sterling's buildFileTree function already handles .gitignore filtering
+                const treeRes = await fetch(`http://localhost:3444/api/listFileTree/${repoName}/${chatNumber}`);
+                if (!treeRes.ok) {
+                    fileTreeContainer.innerHTML = '<div class="error">Error fetching file tree from Sterling.</div>';
+                    return;
+                }
+
+                const data = await treeRes.json();
+                if (!data.success) {
+                    fileTreeContainer.innerHTML = `<div class="error">Sterling error: ${JSON.stringify(data)}</div>`;
+                    return;
+                }
+
+                // Clear container and render tree
+                fileTreeContainer.innerHTML = '';
+                const rootLi = document.createElement('li');
+                const rootExpander = document.createElement('span');
+                rootExpander.textContent = '[-] ';
+                rootExpander.className = 'expander';
+                rootExpander.style.cursor = 'pointer';
+                rootLi.appendChild(rootExpander);
+
+                const rootLabel = document.createElement('span');
+                rootLabel.textContent = config.projectDir || repoName;
+                rootLabel.className = 'directory';
+                rootLabel.style.fontWeight = 'bold';
+                rootLi.appendChild(rootLabel);
+
+                const rootUl = document.createElement('ul');
+                rootLi.appendChild(rootUl);
+
+                // Add event listener for root expander
+                rootExpander?.addEventListener('click', () => {
+                    if (rootUl.style.display === 'none') {
+                        rootUl.style.display = '';
+                        rootExpander.textContent = '[-] ';
+                    } else {
+                        rootUl.style.display = 'none';
+                        rootExpander.textContent = '[+] ';
+                    }
+                });
+
+                // Add all children to root
+                data.tree.children.forEach(childNode => {
+                    rootUl.appendChild(createTreeNode(childNode));
+                });
+
+                fileTreeContainer.appendChild(rootLi);
+            }
 
         } catch (err) {
             console.error("Error loading file tree:", err);
@@ -193,8 +265,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add back to chat button functionality
     const backToChatButton = document.getElementById('backToChatButton');
     if (backToChatButton) {
-        backToChatButton.addEventListener('click', () => {
-            window.location.href = `/${config.repoName}/chat/${config.chatNumber}`;
-        });
+        if (isAgentMode) {
+            // In agent mode, close the window or go to agent page
+            backToChatButton.addEventListener('click', () => {
+                if (window.opener) {
+                    window.close();
+                } else {
+                    window.location.href = '/agent';
+                }
+            });
+        } else {
+            // Original chat mode logic
+            backToChatButton.addEventListener('click', () => {
+                window.location.href = `/${config.repoName}/chat/${config.chatNumber}`;
+            });
+        }
     }
 });
