@@ -1025,7 +1025,7 @@ if $USE_QWEN_CLI; then
   QWEN_ARGS+=(-p "$TASK" -y)
   case "${QWEN_STREAM_JSON,,}" in
     1|true|yes|on)
-      QWEN_ARGS+=(--output-format stream-json --include-partial-messages)
+      QWEN_ARGS+=(--output-format stream-json)
       ;;
   esac
   if [[ -n "$QWEN_MODEL" ]]; then
