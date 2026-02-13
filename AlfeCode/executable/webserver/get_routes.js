@@ -2727,7 +2727,7 @@ ${cleanedFinalOutput}`;
         const agentInstructionsRaw = (req.query.agentInstructions || "").toString();
         const followupParentIdRaw = (req.query.followupParentId || "").toString().trim();
 
-        const scriptPath = codexScriptPath;
+        let scriptPath = codexScriptPath;
         const defaultCodexModel = resolveDefaultCodexModel(sessionId);
         let model = defaultCodexModel;
         let invalidModelReason = "";
