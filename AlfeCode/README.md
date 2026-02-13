@@ -74,6 +74,11 @@ found 0 vulnerabilities
 
 7. Add a git repository to work on with http://localhost:3001/repositories/add , paste in the SSH url for the git repository to work on.
 
+### Qwen CLI upgrade notes
+
+For comments and implementation touchpoints related to Qwen run behavior, see this thread with upgrade instructions: 
+https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
+
 <!-- 8. In new chats, you can copy Agent Instructions from here: https://github.com/alfe-ai (This will soon be integrated with the app)--><!--, I implemented this in an older branch, multiple agent support.)-->
 
 ### Environment variables
