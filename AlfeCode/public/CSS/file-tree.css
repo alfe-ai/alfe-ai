@@ -1,0 +1,104 @@
+.file-tree-layout {
+    display: flex;
+    height: calc(100vh - 60px);
+}
+
+.file-tree-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background-color: var(--bg-color, #ffffff);
+    color: var(--text-color, #333);
+}
+
+.file-tree-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.project-info {
+    font-size: 14px;
+    color: var(--muted-text-color, #666);
+}
+
+.project-info strong {
+    color: var(--text-color, #333);
+}
+
+.file-tree-container {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    padding: 15px;
+    background-color: var(--panel-bg-color, #f8f9fa);
+}
+
+.loading {
+    text-align: center;
+    color: var(--muted-text-color, #666);
+    font-style: italic;
+    padding: 20px;
+}
+
+.file-tree-container ul {
+    list-style: none;
+    padding-left: 20px;
+    margin: 0;
+}
+
+.file-tree-container li {
+    margin: 5px 0;
+    padding: 2px 0;
+}
+
+.file-tree-container .directory {
+    font-weight: bold;
+    color: var(--primary-color, #007bff);
+    cursor: pointer;
+}
+
+.file-tree-container .file {
+    color: var(--text-color, #333);
+}
+
+.file-tree-container .expander {
+    cursor: pointer;
+    user-select: none;
+    margin-right: 5px;
+    color: var(--muted-text-color, #666);
+}
+
+.file-tree-container .hidden {
+    display: none;
+}
+
+.file-tree-container input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.back-to-diff-button {
+    background: var(--primary-color, #007bff);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.back-to-diff-button:hover {
+    background: var(--primary-hover-color, #0056b3);
+}
+
+.back-to-diff-button span[aria-hidden="true"] {
+    font-size: 18px;
+}
