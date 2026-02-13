@@ -7183,6 +7183,61 @@ const appendMergeChunk = (text, type = "output") => {
     return stripGitPullOutput(cleanedFinalOutput);
   };
 
+  const normalizeQwenDisplayText = (value) => {
+    if (typeof value !== "string" || !value) {
+      return "";
+    }
+    return value
+      .replace(/\r/g, "")
+      .replace(/\\n/g, "\n")
+      .replace(/\\t/g, "\t")
+      .replace(/\\\"/g, "\"")
+      .replace(/\\\\/g, "\\");
+  };
+
+  const collectQwenDisplayMessagesFromEvent = (parsed) => {
+    if (!parsed || typeof parsed !== "object") {
+      return [];
+    }
+
+    const messages = [];
+
+    if (parsed.type === "assistant" && parsed.message && Array.isArray(parsed.message.content)) {
+      for (const contentItem of parsed.message.content) {
+        if (!contentItem || typeof contentItem !== "object") {
+          continue;
+        }
+        if (contentItem.type === "text" && typeof contentItem.text === "string") {
+          const normalized = normalizeQwenDisplayText(contentItem.text).trim();
+          if (normalized) {
+            messages.push(normalized);
+          }
+          continue;
+        }
+
+        if (contentItem.type === "tool_use" && typeof contentItem.name === "string" && contentItem.name) {
+          messages.push(`Using tool: ${contentItem.name}`);
+        }
+      }
+    }
+
+    if (parsed.type === "user" && parsed.message && Array.isArray(parsed.message.content)) {
+      for (const contentItem of parsed.message.content) {
+        if (!contentItem || typeof contentItem !== "object") {
+          continue;
+        }
+        if (contentItem.type === "tool_result" && typeof contentItem.content === "string") {
+          const normalized = normalizeQwenDisplayText(contentItem.content).trim();
+          if (normalized) {
+            messages.push(normalized);
+          }
+        }
+      }
+    }
+
+    return messages;
+  };
+
   const extractQwenResultFromStreamJson = (text) => {
     if (typeof text !== "string" || !text) {
       return "";
@@ -7203,7 +7258,7 @@ const appendMergeChunk = (text, type = "output") => {
       }
 
       if (typeof parsed.result === "string") {
-        const cleaned = parsed.result.replace(/\r/g, "").trim();
+        const cleaned = normalizeQwenDisplayText(parsed.result).trim();
         if (cleaned) {
           resolvedResult = cleaned;
         }
@@ -7377,34 +7432,52 @@ const appendMergeChunk = (text, type = "output") => {
 
   const appendQwenCliOutputChunk = (chunk) => {
     if (!getActiveQwenCliRunActive()) {
-      return;
+      return chunk;
     }
     if (gitFpushActive) {
-      return;
+      return "";
     }
     if (typeof chunk !== "string" || !chunk) {
-      return;
+      return "";
     }
+
+    const displayLines = [];
     const updatedBuffer = `${getActiveQwenCliJsonBuffer()}${chunk}`;
-    setActiveQwenCliJsonBuffer(updatedBuffer);
-
-    const lastNewline = updatedBuffer.lastIndexOf("\n");
-    if (lastNewline < 0) {
-      return;
-    }
-
-    const completeText = updatedBuffer.slice(0, lastNewline + 1);
-    const remainder = updatedBuffer.slice(lastNewline + 1);
+    const lines = updatedBuffer.replace(/\r/g, "").split("\n");
+    const remainder = lines.pop() || "";
     setActiveQwenCliJsonBuffer(remainder);
 
-    const parsedResult = extractQwenResultFromStreamJson(completeText);
-    if (!parsedResult) {
-      return;
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) {
+        continue;
+      }
+
+      const parsed = safeParseJson(line);
+      if (!parsed) {
+        const passthrough = stripQwenCliOutput(rawLine).trim();
+        if (passthrough) {
+          displayLines.push(passthrough);
+        }
+        continue;
+      }
+
+      const eventMessages = collectQwenDisplayMessagesFromEvent(parsed);
+      if (eventMessages.length) {
+        displayLines.push(...eventMessages);
+      }
+
+      if (parsed.type === "result" && typeof parsed.result === "string") {
+        const parsedResult = normalizeQwenDisplayText(parsed.result).trim();
+        if (parsedResult) {
+          setActiveQwenCliOutputText(parsedResult);
+          setActiveFinalOutputText(parsedResult);
+          updateFinalOutputDisplay();
+        }
+      }
     }
 
-    setActiveQwenCliOutputText(parsedResult);
-    setActiveFinalOutputText(parsedResult);
-    updateFinalOutputDisplay();
+    return displayLines.join("\n");
   };
 
   const handleSnapshotProjectDirDetected = (snapshotDir) => {
@@ -8016,8 +8089,10 @@ const appendMergeChunk = (text, type = "output") => {
       if (typeof sanitizedText === "string") {
         handleGitFpushCompletionMessage(sanitizedText);
         captureGitFpushRevisionFromText(sanitizedText);
-        appendChunk(sanitizedText);
-        appendQwenCliOutputChunk(sanitizedText);
+        const displayText = appendQwenCliOutputChunk(sanitizedText);
+        if (displayText) {
+          appendChunk(displayText);
+        }
         if (gitFpushActive) {
           captureGitFpushDiffCandidates(
             sanitizedText,
@@ -8042,8 +8117,10 @@ const appendMergeChunk = (text, type = "output") => {
         handleGitFpushCompletionMessage(sanitizedText);
         captureGitFpushRevisionFromText(sanitizedText);
         processCommitMessageChunk(sanitizedText);
-        appendQwenCliOutputChunk(sanitizedText);
-        appendChunk(sanitizedText, "stderr");
+        const displayText = appendQwenCliOutputChunk(sanitizedText);
+        if (displayText) {
+          appendChunk(displayText, "stderr");
+        }
       }
     });
 
