@@ -584,7 +584,7 @@ run_codex() {
   local -a cmd=(npm exec --prefix "$CODEX_DIR" codex -- "$@")
   local unset_openai=false
   if command -v stdbuf >/dev/null 2>&1; then
-    cmd=(stdbuf -o0 -e0 "${cmd[@]}")
+    cmd=(stdbuf -oL -eL "${cmd[@]}")
   fi
   if [[ "$REQUESTED_PROVIDER" == "openrouter" && "$DETECTED_API_KEY_VAR" == "OPENROUTER_API_KEY" ]]; then
     unset_openai=true
@@ -609,6 +609,9 @@ run_qwen() {
   load_qwen_env
   local openai_api_key_value="${OPENAI_API_KEY:-}"
   local openai_base_url_value="${OPENAI_BASE_URL:-}"
+  local qwen_debug_value="${DEBUG:-${DEBUG_MODE:-1}}"
+  local qwen_debug_mode_value="${DEBUG_MODE:-${DEBUG:-1}}"
+  local qwen_log_path="${QWEN_LOG_PATH:-/tmp/qwen.log}"
   if [[ -n "${MODEL_BASE_URL:-}" ]]; then
     openai_base_url_value="${MODEL_BASE_URL}"
   fi
@@ -630,10 +633,12 @@ run_qwen() {
   local -a cmd=(qwen "$@")
   local -a display_cmd=("${cmd[@]}")
   if command -v stdbuf >/dev/null 2>&1; then
-    cmd=(stdbuf -o0 -e0 "${cmd[@]}")
+    cmd=(stdbuf -oL -eL "${cmd[@]}")
   fi
   cmd=(
     env
+    "DEBUG=${qwen_debug_value}"
+    "DEBUG_MODE=${qwen_debug_mode_value}"
     "OPENAI_API_KEY=${openai_api_key_value}"
     "OPENAI_BASE_URL=${openai_base_url_value}"
     "OPENAI_MODEL=${openai_model_value}"
@@ -679,6 +684,9 @@ run_qwen() {
   #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
   printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
   printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
+  printf '[qwen] env DEBUG=%s\n' "$qwen_debug_value"
+  printf '[qwen] env DEBUG_MODE=%s\n' "$qwen_debug_mode_value"
+  printf '[qwen] log=%s\n' "$qwen_log_path"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     printf '[qwen] model=%s\n' "$display_qwen_model_value"
   fi
@@ -686,7 +694,7 @@ run_qwen() {
     printf '[qwen] approval-mode=%s\n' "$approval_mode_value"
   fi
   printf '[qwen] meta=%s\n' "${CODEX_SHOW_META:-0}"
-  "${cmd[@]}" 2>&1
+  "${cmd[@]}" 2>&1 | tee "$qwen_log_path"
 }
 
 run_codex_in_vm() {
