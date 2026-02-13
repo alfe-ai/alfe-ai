@@ -44,7 +44,7 @@
   const accountsEnabled = config.accountsEnabled !== false;
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Plus', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
-  const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex', 'cline', 'sterling', 'kilo', 'blackbox'];
+  const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex', 'cline', 'sterling', 'kilo'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const USAGE_LIMITS = {

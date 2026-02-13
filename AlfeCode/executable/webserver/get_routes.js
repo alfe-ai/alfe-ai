@@ -2760,7 +2760,7 @@ ${cleanedFinalOutput}`;
         const openRouterReferer = (req.query.openRouterReferer || "").toString().trim();
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
-        const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "kilo", "blackbox"].includes(engineParam) ? engineParam : "auto";
+        const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "kilo"].includes(engineParam) ? engineParam : "auto";
         const qwenDebugEnvParam = (req.query.qwenDebugEnv || "").toString().trim().toLowerCase();
         const qwenDebugEnvEnabled = qwenDebugEnvParam === "1" || qwenDebugEnvParam === "true";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
@@ -3084,7 +3084,7 @@ ${cleanedFinalOutput}`;
             ? true
             : enginePreference === "cline"
                 ? false  // Cline will be handled separately
-            : enginePreference === "codex" || enginePreference === "blackbox"
+            : enginePreference === "codex"
                 ? false
                 : resolveQwenCliFlag(model);
         runRecord.qwenCli = useQwenCli;
