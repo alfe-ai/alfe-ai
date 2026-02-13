@@ -2762,7 +2762,7 @@ ${cleanedFinalOutput}`;
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
         const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "blackbox"].includes(engineParam) ? engineParam : "auto";
         const qwenSandboxApprovalModeParam = (req.query.qwenSandboxApprovalMode || "").toString().trim().toLowerCase();
-        const qwenSandboxApprovalModeEnabled = qwenSandboxApprovalModeParam === "1" || qwenSandboxApprovalModeParam === "true";
+        const qwenSandboxApprovalModeEnabled = true;
         const qwenDebugEnvParam = (req.query.qwenDebugEnv || "").toString().trim().toLowerCase();
         const qwenDebugEnvEnabled = qwenDebugEnvParam === "1" || qwenDebugEnvParam === "true";
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
