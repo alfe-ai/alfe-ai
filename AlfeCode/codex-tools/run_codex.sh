@@ -494,7 +494,7 @@ APPROVAL_MODE_ARGS=()
 if ! $USE_QWEN_CLI && [[ -n "$EFFECTIVE_MODEL" ]]; then
   MODEL_ARGS=(--model "$EFFECTIVE_MODEL")
 fi
-if ! $USE_QWEN_CLI && [[ -n "$APPROVAL_MODE" ]]; then
+if [[ -n "$APPROVAL_MODE" ]]; then
   APPROVAL_MODE_ARGS=(--approval-mode "$APPROVAL_MODE")
 fi
 
@@ -976,7 +976,11 @@ if $USE_QWEN_CLI; then
     usage
     exit 1
   fi
-  QWEN_ARGS=(-p "$TASK" -y)
+  QWEN_ARGS=()
+  if [[ ${#APPROVAL_MODE_ARGS[@]} -gt 0 ]]; then
+    QWEN_ARGS+=("${APPROVAL_MODE_ARGS[@]}")
+  fi
+  QWEN_ARGS+=(-p "$TASK" -y)
   if [[ -n "$QWEN_MODEL" ]]; then
     QWEN_ARGS=(-m "$QWEN_MODEL" "${QWEN_ARGS[@]}")
   fi
