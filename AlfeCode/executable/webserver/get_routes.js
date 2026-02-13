@@ -2381,6 +2381,7 @@ ${cleanedFinalOutput}`;
         const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         const accountButtonEnabled = accountsEnabled;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
+        const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
@@ -2408,6 +2409,7 @@ ${cleanedFinalOutput}`;
             showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
             showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
             agentModelDropdownDisabled,
+            fileTreeButtonVisible,
         });
     };
 
