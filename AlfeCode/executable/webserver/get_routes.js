@@ -283,7 +283,7 @@ function setupGetRoutes(deps) {
         'Do not ask to commit changes, we run a script to automatically stage, commit, and push after you finish.',
         'Do not ask anything like "Do you want me to run `git commit` with a message?"',
         'Do not mention anything like "The file is staged."',
-        'Python command is available via "python3 --version" – Python 3.11.2',
+        'Python command is available via "python3" Python 3.11.2',
         'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
         'When starting, please check AGENTS.md in repository root for further instructions.',
         'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
