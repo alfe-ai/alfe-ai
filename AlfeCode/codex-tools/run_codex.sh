@@ -623,6 +623,13 @@ run_qwen() {
   if [[ -n "${QWEN_MODEL:-}" ]]; then
     openai_model_value="$QWEN_MODEL"
   fi
+
+  # Resolve URL from model_only_models.json using the final Qwen model value.
+  # This makes per-model `url` override any global OPENAI_BASE_URL from .env.
+  local qwen_model_base_url=""
+  if qwen_model_base_url="$(resolve_model_only_url "$openai_model_value")"; then
+    openai_base_url_value="$qwen_model_base_url"
+  fi
   local strip_free_suffix
   strip_free_suffix() {
     local value="$1"
