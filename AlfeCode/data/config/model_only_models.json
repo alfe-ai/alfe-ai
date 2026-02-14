@@ -61,7 +61,7 @@
     {
       "id": "openrouter/xiaomi/mimo-v2-flash",
       "label": "Xiaomi: MiMo V2 Flash",
-      "disabled": true,
+      "disabled": false,
       "contextTokens": 262144,
       "engine_options": [
         "auto",
@@ -72,7 +72,7 @@
         "outputPerMTokens": 0.29
       },
       "qwen_cli": true,
-      "list_order": 1,
+      "list_order": 900,
       "plus_model": false,
       "usage": "medium"
     },
