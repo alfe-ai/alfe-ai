@@ -168,7 +168,7 @@
     },
     {
       "id": "openrouter/qwen/qwen-turbo",
-      "label": "Qwen: Qwen Turbo",
+      "label": "Qwen Turbo",
       "disabled": false,
       "engine_options": [
         "auto",
@@ -186,7 +186,7 @@
     },
     {
       "id": "openrouter/qwen/qwen3-14b",
-      "label": "Qwen: Qwen 3 14B",
+      "label": "Qwen 3 14B",
       "disabled": false,
       "engine_options": [
         "auto",
