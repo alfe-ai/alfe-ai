@@ -205,6 +205,12 @@ for candidate in candidates:
             trace(f"matched model {candidate} with url {url}")
             print(url.strip())
             sys.exit(0)
+        # Fallback to base URL from model if no explicit URL found
+        base_url = model.get("base_url")
+        if isinstance(base_url, str) and base_url.strip():
+            trace(f"using base URL {base_url} for model {candidate}")
+            print(base_url.strip())
+            sys.exit(0)
 
 trace("no matching model url found")
 sys.exit(1)
