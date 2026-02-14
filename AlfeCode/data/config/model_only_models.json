@@ -419,7 +419,7 @@
     {
       "id": "openrouter/google/gemma-3-27b-it",
       "label": "Google: Gemma 3 27B",
-      "disabled": false,
+      "disabled": true,
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 24,
@@ -447,7 +447,8 @@
         "outputPerMTokens": 0.16
       },
       "plus_model": false,
-      "list_order": 25
+      "list_order": 25,
+      "usage": "free"
     },
     {
       "id": "openrouter/arcee-ai/trinity-mini:free",
