@@ -303,11 +303,14 @@
   function createUsageBadge(usage) {
     const badge = resolveUsageBadge(usage);
     if (!badge) return null;
-    const label = badge.label
-      .split(' ')
-      .filter(Boolean)
-      .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-      .join(' ');
+    const normalizedUsage = (usage || '').toString().trim().toLowerCase();
+    const label = normalizedUsage === 'free'
+      ? 'Unlimited'
+      : badge.label
+          .split(' ')
+          .filter(Boolean)
+          .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+          .join(' ');
     const badgeEl = document.createElement('span');
     badgeEl.className = `usage-badge ${badge.className}`;
     badgeEl.textContent = `${label} usage`;
@@ -618,7 +621,7 @@
     option.value = modelId;
     const label = model ? (model.plus_model ? `[Pro] ${model.label}` : model.label) : modelId;
     const usageText = model?.usage
-      ? `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)} usage`
+      ? `${model.usage === 'free' ? 'Unlimited' : `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)}`} usage`
       : '';
     const labelParts = [label];
     if (usageText) {
