@@ -5315,11 +5315,17 @@ const appendMergeChunk = (text, type = "output") => {
     });
 
     if (run.stdout) {
-      appendLinesToElement(session.outputLogEl, run.stdout, "output");
+      const stdoutText = run.qwenCli ? parseSavedQwenCliOutput(run.stdout) : run.stdout;
+      if (stdoutText) {
+        appendLinesToElement(session.outputLogEl, stdoutText, "output");
+      }
     }
 
     if (run.stderr) {
-      appendLinesToElement(session.outputLogEl, run.stderr, "stderr");
+      const stderrText = run.qwenCli ? parseSavedQwenCliOutput(run.stderr) : run.stderr;
+      if (stderrText) {
+        appendLinesToElement(session.outputLogEl, stderrText, "stderr");
+      }
     }
 
     if (run.finalMessage && !run.error) {
@@ -5552,7 +5558,10 @@ const appendMergeChunk = (text, type = "output") => {
     });
 
     if (run.stdout) {
-      appendChunk(run.stdout, "output");
+      const stdoutText = run.qwenCli ? parseSavedQwenCliOutput(run.stdout) : run.stdout;
+      if (stdoutText) {
+        appendChunk(stdoutText, "output");
+      }
       captureGitFpushRevisionFromText(run.stdout);
       if (run.stdoutTruncated) {
         appendChunk("Stored stdout truncated for history view.", "status");
@@ -5560,7 +5569,10 @@ const appendMergeChunk = (text, type = "output") => {
     }
 
     if (run.stderr) {
-      appendChunk(run.stderr, "stderr");
+      const stderrText = run.qwenCli ? parseSavedQwenCliOutput(run.stderr) : run.stderr;
+      if (stderrText) {
+        appendChunk(stderrText, "stderr");
+      }
       captureGitFpushRevisionFromText(run.stderr);
       if (run.stderrTruncated) {
         appendChunk("Stored stderr truncated for history view.", "status");
@@ -7508,6 +7520,38 @@ const appendMergeChunk = (text, type = "output") => {
     // Ensure each parsed Qwen JSON section is newline-terminated so subsequent
     // streamed sections never get concatenated onto the same rendered line.
     return `${displayLines.join("\n")}\n`;
+  };
+
+  const parseSavedQwenCliOutput = (text) => {
+    if (typeof text !== "string" || !text) {
+      return "";
+    }
+
+    const displayLines = [];
+    const lines = text.replace(/\r/g, "").split("\n");
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) {
+        continue;
+      }
+
+      const parsed = safeParseJson(line);
+      if (!parsed) {
+        const passthrough = stripQwenCliOutput(rawLine, { stripQwenMetaLines: false }).trim();
+        if (passthrough) {
+          displayLines.push(passthrough);
+        }
+        continue;
+      }
+
+      const eventMessages = collectQwenDisplayMessagesFromEvent(parsed);
+      if (eventMessages.length) {
+        displayLines.push(...eventMessages);
+      }
+    }
+
+    return displayLines.join("\n");
   };
 
   const handleSnapshotProjectDirDetected = (snapshotDir) => {
