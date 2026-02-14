@@ -366,6 +366,8 @@ resolve_codex_api_key_var() {
   local search_order=("${CODEX_API_KEY_VARS[@]}")
   if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
     search_order=("OPENROUTER_API_KEY")
+  elif [[ "$REQUESTED_PROVIDER" == "litellm" ]]; then
+    search_order=("LITELLM_API_KEY")
   fi
 
   local var_name
