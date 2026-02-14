@@ -61,7 +61,7 @@
     {
       "id": "openrouter/xiaomi/mimo-v2-flash",
       "label": "Xiaomi: MiMo V2 Flash",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 262144,
       "engine_options": [
         "auto",
@@ -296,7 +296,7 @@
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 999,
-      "usage": "very high"
+      "usage": "high"
     },
     {
       "id": "kat-coder-air-v1",
@@ -357,7 +357,7 @@
       "qwen_cli": true,
       "contextTokens": 131072,
       "plus_model": false,
-      "usage": "low",
+      "usage": "medium",
       "url": "https://litellm.alfe.sh/v1"
     },
     {
