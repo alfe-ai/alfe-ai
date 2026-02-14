@@ -187,7 +187,7 @@
     {
       "id": "qwen3-8b",
       "label": "Qwen 3 8B",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -455,7 +455,7 @@
     {
       "id": "openrouter/nvidia/nemotron-nano-9b-v2",
       "label": "NVIDIA: Nemotron Nano 9B V2",
-      "disabled": false,
+      "disabled": true,
       "qwen_cli": true,
       "engine_options": [
         "auto",
