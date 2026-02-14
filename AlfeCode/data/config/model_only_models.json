@@ -435,7 +435,7 @@
     },
     {
       "id": "openrouter/nvidia/nemotron-nano-9b-v2",
-      "label": "NVIDIA: Nemotron Nano 9B V2 (Free)",
+      "label": "NVIDIA: Nemotron Nano 9B V2",
       "disabled": false,
       "qwen_cli": true,
       "engine_options": [
