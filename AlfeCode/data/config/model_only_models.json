@@ -179,7 +179,7 @@
         "outputPerMTokens": 0.20
       },
       "qwen_cli": true,
-      "list_order": 6,
+      "list_order": 0,
       "plus_model": false,
       "usage": "free"
     },
@@ -291,12 +291,11 @@
       "engine_options": [
         "auto",
         "qwen",
-        "cline"
       ],
       "qwen_cli": true,
       "plus_model": false,
-      "list_order": 0,
-      "usage": "free"
+      "list_order": 999,
+      "usage": "high"
     },
     {
       "id": "kat-coder-air-v1",
