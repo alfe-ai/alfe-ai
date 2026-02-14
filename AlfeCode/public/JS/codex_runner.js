@@ -91,12 +91,18 @@
     return { label: normalized, className: "usage-low" };
   };
 
+  const resolveFreeUsageBadgeLabel = () => {
+    const normalizedPlan = getUsagePlanName().toString().trim().toLowerCase();
+    const isPaidPlan = normalizedPlan === "lite" || normalizedPlan === "plus" || normalizedPlan === "pro";
+    return isPaidPlan ? "Unlimited" : "Free";
+  };
+
   const createUsageBadge = (usage) => {
     const badge = resolveUsageBadge(usage);
     if (!badge) return null;
     const normalizedUsage = (usage || "").toString().trim().toLowerCase();
     const label = normalizedUsage === "free"
-      ? "Unlimited"
+      ? resolveFreeUsageBadgeLabel()
       : badge.label
           .split(" ")
           .filter(Boolean)

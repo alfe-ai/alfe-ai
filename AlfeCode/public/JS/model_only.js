@@ -300,12 +300,18 @@
     return { label: normalized, className: 'usage-low' };
   }
 
+  function resolveFreeUsageBadgeLabel() {
+    const normalizedPlan = (currentUsagePlan || '').toString().trim().toLowerCase();
+    const isPaidPlan = normalizedPlan === 'lite' || normalizedPlan === 'plus' || normalizedPlan === 'pro';
+    return isPaidPlan ? 'Unlimited' : 'Free';
+  }
+
   function createUsageBadge(usage) {
     const badge = resolveUsageBadge(usage);
     if (!badge) return null;
     const normalizedUsage = (usage || '').toString().trim().toLowerCase();
     const label = normalizedUsage === 'free'
-      ? 'Unlimited'
+      ? resolveFreeUsageBadgeLabel()
       : badge.label
           .split(' ')
           .filter(Boolean)
@@ -621,7 +627,7 @@
     option.value = modelId;
     const label = model ? (model.plus_model ? `[Pro] ${model.label}` : model.label) : modelId;
     const usageText = model?.usage
-      ? `${model.usage === 'free' ? 'Unlimited' : `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)}`} usage`
+      ? `${model.usage === 'free' ? resolveFreeUsageBadgeLabel() : `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)}`} usage`
       : '';
     const labelParts = [label];
     if (usageText) {
