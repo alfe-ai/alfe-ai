@@ -21,7 +21,7 @@
       "url": "https://openrouter.ai/api/v1"
     },
     {
-      "id": "openrouter/openai/gpt-oss-120b",
+      "id": "openrouter/openai/gpt-oss-120b:exacto",
       "label": "OpenAI: gpt-oss-120b",
       "created": "2025-08-05",
       "contextTokens": 131072,
