@@ -328,9 +328,13 @@
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air",
-      "label": "[Backup] Z.ai: GLM 4.5 Air",
-      "disabled": true,
+      "label": "Z.ai: GLM 4.5 Air",
+      "disabled": false,
       "list_order": 21,
+      "pricing": {
+        "inputPerMTokens": 0.13,
+        "outputPerMTokens": 0.85
+      },
       "engine_options": [
         "auto",
         "qwen"
