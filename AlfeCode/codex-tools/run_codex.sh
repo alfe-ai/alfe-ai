@@ -714,7 +714,7 @@ run_qwen() {
   fi
   case "${QWEN_STREAM_JSON,,}" in
     1|true|yes|on)
-      printf '[qwen] output-format=stream-json (partial-messages enabled)\n'
+      printf '[qwen] output-format=stream-json\n'
       ;;
   esac
   printf '[qwen] meta=%s\n' "${CODEX_SHOW_META:-0}"
