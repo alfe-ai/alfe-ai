@@ -341,7 +341,8 @@
       ],
       "qwen_cli": true,
       "contextTokens": 131072,
-      "plus_model": false
+      "plus_model": false,
+      "usage": "free"
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
