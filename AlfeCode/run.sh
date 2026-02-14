@@ -14,6 +14,13 @@ git pull
 git --no-pager log -n 3
 bash -c "npm install"
 
+# Run the fun game
+if [ -f "AlfeCode/game.py" ]; then
+    python3 AlfeCode/game.py
+else
+    echo "Game not found" >&2
+fi
+
 # Start local git server daemon if available
 GITHOST_SCRIPT="$(dirname "$0")/githost/git-server.sh"
 if [ -x "$GITHOST_SCRIPT" ]; then
