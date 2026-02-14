@@ -179,7 +179,7 @@
         "outputPerMTokens": 0.20
       },
       "qwen_cli": true,
-      "list_order": 2,
+      "list_order": 1,
       "plus_model": false,
       "usage": "low",
       "contextTokens": 131072
@@ -197,9 +197,9 @@
         "outputPerMTokens": 0.22
       },
       "qwen_cli": true,
-      "list_order": 1,
+      "list_order": 0,
       "plus_model": false,
-      "usage": "low"
+      "usage": "free"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
@@ -447,7 +447,7 @@
         "outputPerMTokens": 0.16
       },
       "plus_model": false,
-      "list_order": 0,
+      "list_order": 2,
       "usage": "free"
     },
     {
