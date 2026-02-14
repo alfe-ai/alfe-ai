@@ -167,7 +167,7 @@
       "usage": "high"
     },
     {
-      "id": "openrouter/qwen/qwen-turbo",
+      "id": "qwen/qwen-turbo",
       "label": "Qwen Turbo",
       "disabled": false,
       "engine_options": [
