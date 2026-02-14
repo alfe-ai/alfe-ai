@@ -203,7 +203,7 @@
       "url": "https://litellm.alfe.sh/v1"
     },
     {
-      "id": "openrouter/qwen/qwen3-14b",
+      "id": "qwen3-14b",
       "label": "Qwen 3 14B",
       "disabled": false,
       "engine_options": [
