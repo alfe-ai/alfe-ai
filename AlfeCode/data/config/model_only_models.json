@@ -182,7 +182,8 @@
       "list_order": 2,
       "plus_model": false,
       "usage": "low",
-      "contextTokens": 131072
+      "contextTokens": 131072,
+      "url": "https://openrouter.ai/api/v1"
     },
     {
       "id": "qwen3-8b",
@@ -218,7 +219,7 @@
       "list_order": 1,
       "plus_model": false,
       "usage": "low",
-      "url": "https://openrouter.ai/api/v1"
+      "url": "https://litellm.alfe.sh/v1"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
@@ -315,7 +316,8 @@
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 999,
-      "usage": "high"
+      "usage": "high",
+      "url": "https://openrouter.ai/api/v1"
     },
     {
       "id": "kat-coder-air-v1",
@@ -395,7 +397,8 @@
       "qwen_cli": true,
       "contextTokens": 131072,
       "plus_model": false,
-      "usage": "medium"
+      "usage": "medium",
+      "url": "https://openrouter.ai/api/v1"
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
