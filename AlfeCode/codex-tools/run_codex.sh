@@ -627,7 +627,14 @@ run_qwen() {
   # Resolve URL from model_only_models.json using the final Qwen model value.
   # This makes per-model `url` override any global OPENAI_BASE_URL from .env.
   local qwen_model_base_url=""
-  if qwen_model_base_url="$(resolve_model_only_url "$openai_model_value")"; then
+  local openai_model_no_free="${openai_model_value%:free}"
+  local qwen_url_lookup_model="$openai_model_value"
+  if qwen_model_base_url="$(resolve_model_only_url \
+    "$openai_model_value" \
+    "$openai_model_no_free" \
+    "openrouter/$openai_model_value" \
+    "openrouter/$openai_model_no_free"
+  )"; then
     openai_base_url_value="$qwen_model_base_url"
   fi
   local strip_free_suffix
@@ -703,6 +710,12 @@ run_qwen() {
   #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
   printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
   printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
+  printf '[qwen] model-only-url lookup model=%s\n' "$qwen_url_lookup_model"
+  if [[ -n "$qwen_model_base_url" ]]; then
+    printf '[qwen] model-only-url from-json=%s\n' "$qwen_model_base_url"
+  else
+    printf '[qwen] model-only-url from-json=<none>\n'
+  fi
   case "${qwen_pass_debug_env,,}" in
     1|true|yes|on)
       printf '[qwen] env DEBUG=%s\n' "$qwen_debug_value"
