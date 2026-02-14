@@ -470,7 +470,8 @@
       },
       "plus_model": false,
       "list_order": 3,
-      "usage": "low"
+      "usage": "low",
+      "note": "Disabled for now because the AI removed code chunks and replaced with [Code section unchanged] which is not ideal for code generation tasks. Will re-enable once this is fixed."
     },
     {
       "id": "openrouter/arcee-ai/trinity-mini:free",
