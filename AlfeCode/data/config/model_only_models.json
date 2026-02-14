@@ -290,7 +290,7 @@
       },
       "engine_options": [
         "auto",
-        "qwen",
+        "qwen"
       ],
       "qwen_cli": true,
       "plus_model": false,
