@@ -383,12 +383,21 @@
       "list_order": 23
     },
     {
-      "id": "openrouter/google/gemma-3-27b-it:free",
-      "label": "Google: Gemma 3 27B (Free)",
-      "disabled": true,
-      "qwen_cli": false,
+      "id": "openrouter/google/gemma-3-27b-it",
+      "label": "Google: Gemma 3 27B",
+      "disabled": false,
+      "qwen_cli": true,
       "plus_model": false,
-      "list_order": 24
+      "list_order": 24,
+      "usage": "free",
+      "pricing": {
+        "inputPerMTokens": 0.04,
+        "outputPerMTokens": 0.15
+      },
+        "engine_options": [
+            "auto",
+            "qwen"
+        ]
     },
     {
       "id": "openrouter/nvidia/nemotron-nano-9b-v2:free",
