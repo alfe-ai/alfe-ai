@@ -7221,8 +7221,13 @@ const appendMergeChunk = (text, type = "output") => {
         if (!contentItem || typeof contentItem !== "object") {
           continue;
         }
-        if (contentItem.type === "text" && typeof contentItem.text === "string") {
-          const normalized = normalizeQwenDisplayText(contentItem.text).trim();
+        const isTextLikeContent =
+          (contentItem.type === "text" && typeof contentItem.text === "string")
+          || (contentItem.type === "thinking" && typeof contentItem.thinking === "string");
+
+        if (isTextLikeContent) {
+          const rawText = contentItem.type === "thinking" ? contentItem.thinking : contentItem.text;
+          const normalized = normalizeQwenDisplayText(rawText).trim();
           if (normalized) {
             messages.push(normalized);
           }
