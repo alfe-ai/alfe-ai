@@ -1,21 +1,21 @@
 model_list:
-  - model_name: glm-4.5-air
+  - model_name: qwen3-14b
     litellm_params:
-      model: openrouter/z-ai/glm-4.5-air:free
+      model: openrouter/qwen/qwen3-14b
       api_base: https://openrouter.ai/api/v1
       api_key: "os.environ/OPENROUTER_API_KEY"
       headers:
         HTTP-Referer: "https://alfe.sh"
         X-Title: "Alfe AI"
 
-  - model_name: glm-4.5-air-fallback
-    litellm_params:
-      model: openrouter/z-ai/glm-4.5-air
-      api_base: https://openrouter.ai/api/v1
-      api_key: "os.environ/OPENROUTER_API_KEY"
-      headers:
-        HTTP-Referer: "https://alfe.sh"
-        X-Title: "Alfe AI"
+#  - model_name: glm-4.5-air-fallback
+#    litellm_params:
+#      model: openrouter/z-ai/glm-4.5-air
+#      api_base: https://openrouter.ai/api/v1
+#      api_key: "os.environ/OPENROUTER_API_KEY"
+#      headers:
+#        HTTP-Referer: "https://alfe.sh"
+#        X-Title: "Alfe AI"
 
 # global proxy settings (timeout etc.)
 litellm_settings:
@@ -24,8 +24,8 @@ litellm_settings:
 # routing/reliability settings (retries + fallbacks)
 router_settings:
   num_retries: 2
-  fallbacks:
-    - {"glm-4.5-air": ["glm-4.5-air-fallback"]}
+#  fallbacks:
+#    - {"glm-4.5-air": ["glm-4.5-air-fallback"]}
 
 general_settings:
   master_key: "os.environ/LITELLM_MASTER_KEY"

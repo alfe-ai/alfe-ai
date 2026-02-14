@@ -185,7 +185,7 @@
       "contextTokens": 131072
     },
     {
-      "id": "openrouter/qwen/qwen3-14b",
+      "id": "qwen3-14b",
       "label": "Qwen 3 14B",
       "disabled": false,
       "engine_options": [
