@@ -726,7 +726,9 @@
     if (codeUsageUnlimitedText) {
       codeUsageUnlimitedText.textContent = isProPlanActive
         ? 'Code usage of basic models is Unlimited*'
-        : 'Code usage is Unlimited*';
+        : (isFreePlan || isLoggedOut
+          ? 'Code usage is Free*'
+          : 'Code usage is Unlimited*');
     }
     if (codeUsageUnlimitedNote) {
       codeUsageUnlimitedNote.classList.toggle('hidden', !isPaidPlan);
