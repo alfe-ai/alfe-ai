@@ -197,7 +197,7 @@
         "outputPerMTokens": 0.22
       },
       "qwen_cli": true,
-      "list_order": 0,
+      "list_order": 1,
       "plus_model": false,
       "usage": "free"
     },
@@ -447,7 +447,7 @@
         "outputPerMTokens": 0.16
       },
       "plus_model": false,
-      "list_order": 1,
+      "list_order": 0,
       "usage": "free"
     },
     {
