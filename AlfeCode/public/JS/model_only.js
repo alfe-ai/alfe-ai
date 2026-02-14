@@ -305,7 +305,7 @@
     if (!badge) return null;
     const normalizedUsage = (usage || '').toString().trim().toLowerCase();
     const label = normalizedUsage === 'free'
-      ? 'Unlimited'
+      ? 'Free'
       : badge.label
           .split(' ')
           .filter(Boolean)
@@ -725,8 +725,8 @@
     }
     if (codeUsageUnlimitedText) {
       codeUsageUnlimitedText.textContent = isProPlanActive
-        ? 'Code usage of basic models is Unlimited*'
-        : 'Code usage is Unlimited*';
+        ? 'Code usage of basic models is Free*'
+        : 'Code usage is Free*';
     }
     if (codeUsageUnlimitedNote) {
       codeUsageUnlimitedNote.classList.toggle('hidden', !isPaidPlan);
