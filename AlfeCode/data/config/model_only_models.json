@@ -218,7 +218,7 @@
       "list_order": 1,
       "plus_model": false,
       "usage": "low",
-      "url": "https://openrouter.ai/api/v1"
+      "url": "https://litellm.alfe.sh/v1"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
