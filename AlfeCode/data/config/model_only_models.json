@@ -296,7 +296,7 @@
       "qwen_cli": true,
       "plus_model": false,
       "list_order": 999,
-      "usage": "high"
+      "usage": "very high"
     },
     {
       "id": "kat-coder-air-v1",
@@ -376,7 +376,7 @@
       "qwen_cli": true,
       "contextTokens": 131072,
       "plus_model": false,
-      "usage": "medium"
+      "usage": "high"
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
