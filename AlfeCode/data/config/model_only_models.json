@@ -364,7 +364,7 @@
       "id": "openrouter/z-ai/glm-4.5-air",
       "label": "Z.ai: GLM 4.5 Air",
       "disabled": false,
-      "list_order": 998,
+      "list_order": 996,
       "pricing": {
         "inputPerMTokens": 0.13,
         "outputPerMTokens": 0.85
