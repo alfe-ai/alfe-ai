@@ -203,7 +203,7 @@
       "url": "https://litellm.alfe.sh/v1"
     },
     {
-      "id": "qwen3-14b",
+      "id": "openrouter/qwen/qwen3-14b",
       "label": "Qwen 3 14B",
       "disabled": false,
       "engine_options": [
@@ -217,7 +217,8 @@
       "qwen_cli": true,
       "list_order": 1,
       "plus_model": false,
-      "usage": "low"
+      "usage": "low",
+      "url": "https://openrouter.ai/api/v1"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
