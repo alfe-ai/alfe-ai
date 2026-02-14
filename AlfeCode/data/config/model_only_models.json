@@ -25,7 +25,7 @@
       "label": "OpenAI: gpt-oss-120b",
       "created": "2025-08-05",
       "contextTokens": 131072,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
