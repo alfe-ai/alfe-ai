@@ -766,7 +766,7 @@
     sortedModels.forEach((model) => {
       const label = formatModelLabel(model);
       const isDisabled = shouldDisableModel(model, planName, limits, usageCount);
-      const isProDisabled = model.plus_model && !hasPlusModelAccess(currentAccountPlan);
+      const isProDisabled = model.plus_model && !hasPlusModelAccess(planName);
 
       selects.forEach((select) => {
         const option = document.createElement("option");
