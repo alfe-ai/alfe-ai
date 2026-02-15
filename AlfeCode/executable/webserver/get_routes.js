@@ -2421,7 +2421,7 @@ ${cleanedFinalOutput}`;
         const showEngineOnAgent = parseBooleanFlag(process.env.SHOW_ENGINE_ON_AGENT);
         const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         const accountButtonEnabled = accountsEnabled;
-        const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
+        const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED) && process.env.USER_PLAN !== 'Lite';
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
         res.render("codex_runner", {
             codexScriptPath,
@@ -2459,7 +2459,7 @@ ${cleanedFinalOutput}`;
     app.get('/agent/model-only', (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const engineDropdownHidden = parseBooleanFlag(process.env.ENGINE_DROPDOWN_HIDDEN);
-        const modelDropdownHidden = parseBooleanFlag(process.env.MODEL_DROPDOWN_HIDDEN);
+        const modelDropdownHidden = parseBooleanFlag(process.env.MODEL_DROPDOWN_HIDDEN) && process.env.USER_PLAN !== 'Lite';
         const apiPanelEnabled = parseBooleanFlag(process.env.API_PANEL_ENABLED);
         const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
