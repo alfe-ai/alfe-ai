@@ -353,8 +353,17 @@
         }
       }
       if (d.key === 'openSubscribeModal') {
-        hideSettingsModal();
-        showSubscribeModal();
+        const shouldCloseSettingsFirst = d.value && typeof d.value === 'object'
+          ? d.value.closeSettingsFirst !== false
+          : true;
+        if (shouldCloseSettingsFirst) {
+          hideSettingsModal();
+          window.setTimeout(() => {
+            showSubscribeModal();
+          }, 0);
+        } else {
+          showSubscribeModal();
+        }
       }
       if (d.key === 'closeSettingsModal') {
         hideSettingsModal();
