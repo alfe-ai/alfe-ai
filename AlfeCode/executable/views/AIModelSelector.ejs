@@ -9,6 +9,11 @@
         <% 
             const filtered = (AIModels || []).filter(m => {
                 const id = m && typeof m.id === 'string' ? m.id : '';
+                // Allow Lite/Plus/Pro users to see plus_model: true models
+                if (['Lite', 'Plus', 'Pro'].includes(chatData.plan)) {
+                    return m.plus_model;
+                }
+                // Default to existing filter for other plans
                 return id.toLowerCase().includes('gpt-5');
             });
         %>
