@@ -26,6 +26,7 @@ DETECTED_API_KEY_VAR=""
 MODEL_KEY_SOURCE=""
 MODEL_KEY_VALUE=""
 CODEX_SHOW_META="${CODEX_SHOW_META:-0}"
+CODEX_SHOW_API_KEY="${CODEX_SHOW_API_KEY:-0}"
 SHOW_QWEN_CLI_ARGS="${SHOW_QWEN_CLI_ARGS:-false}"
 ENABLE_TRACE="${ENABLE_TRACE:-}"
 QWEN_STREAM_JSON="${QWEN_STREAM_JSON:-true}"
@@ -417,6 +418,7 @@ Use --approval-mode to set the approval mode (e.g., auto-edit).
 If no task is provided, an interactive Agent session is started.
 
 This script now always loads OPENAI_API_KEY or OPENROUTER_API_KEY from the nearest .env (project dir → cwd → script dir).
+Set CODEX_SHOW_API_KEY=1 to print OPENAI_API_KEY in [qwen] env output (disabled by default).
 --model MODEL  : OpenAI/OpenRouter model ID to pass to Agent (ex: openrouter/openai/gpt-5-mini, openai/gpt-4o-mini).
 USAGE
 }
@@ -833,7 +835,11 @@ run_qwen() {
   if [[ "${SHOW_QWEN_CLI_ARGS:-false}" == "true" ]]; then
     printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
   fi
-  #printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
+  case "${CODEX_SHOW_API_KEY,,}" in
+    1|true|yes|on)
+      printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
+      ;;
+  esac
   printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
   printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
   printf '[qwen] model-only-url lookup model=%s\n' "$qwen_url_lookup_model"
