@@ -172,6 +172,7 @@
 
 
   function requestSubscribeModal() {
+    requestCloseSettingsModal();
     let opened = false;
     try {
       if (window.parent && window.parent !== window) {
@@ -189,6 +190,19 @@
       opened = true;
     }
     return opened;
+  }
+
+  function requestCloseSettingsModal() {
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.postMessage(
+          { type: 'sterling:settings', key: 'closeSettingsModal', value: true },
+          '*',
+        );
+      } catch (error) {
+        console.warn('Failed to notify parent to close settings modal.', error);
+      }
+    }
   }
 
   function sendEnginePreference(value) {
@@ -1284,9 +1298,7 @@
   modelSelect.addEventListener('change', function(){
     const selectedOption = modelSelect.options[modelSelect.selectedIndex];
     if (selectedOption && selectedOption.dataset.proModelDisabled === 'true') {
-      if (window.showUsageLimitModal) {
-        window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
-      }
+      requestSubscribeModal();
       const fallback = lastValidModelSelection || getFirstAvailableModelValue();
       if (fallback) {
         modelSelect.value = fallback;
