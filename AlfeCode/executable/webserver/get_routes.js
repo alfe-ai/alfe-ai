@@ -204,6 +204,7 @@ function setupGetRoutes(deps) {
             sessionId: account.session_id,
             totpEnabled: Boolean(account.totp_secret),
             everSubscribed: Boolean(account.ever_subscribed),
+            openrouterApiKey: (account.openrouter_api_key || "").toString(),
         });
     });
     app.get("/api/support", async (req, res) => {

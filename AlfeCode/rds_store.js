@@ -98,7 +98,8 @@ class RdsStore {
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free',
-        ever_subscribed BOOLEAN DEFAULT false
+        ever_subscribed BOOLEAN DEFAULT false,
+        openrouter_api_key TEXT DEFAULT ''
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PROJECTVIEW_JSON_TABLE} (
         session_id TEXT PRIMARY KEY,
@@ -116,6 +117,10 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${ACCOUNTS_TABLE}
          ADD COLUMN IF NOT EXISTS ever_subscribed BOOLEAN DEFAULT false`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS openrouter_api_key TEXT DEFAULT ''`
       );
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
@@ -250,7 +255,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key
          FROM ${ACCOUNTS_TABLE}
          WHERE email = $1
          LIMIT 1`,
@@ -327,6 +332,21 @@ class RdsStore {
     }
   }
 
+  async setAccountOpenrouterApiKey(id, openrouterApiKey) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    try {
+      await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET openrouter_api_key = $1
+         WHERE id = $2`,
+        [(openrouterApiKey || "").toString().trim(), id]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to update account OpenRouter API key:", error?.message || error);
+    }
+  }
+
   async getAccountBySession(sessionId) {
     if (!this.enabled) return null;
     await this.ensureReady();
@@ -334,7 +354,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key
          FROM ${ACCOUNTS_TABLE}
          WHERE session_id = $1
          LIMIT 1`,

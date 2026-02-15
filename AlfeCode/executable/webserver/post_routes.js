@@ -335,6 +335,25 @@ function setupPostRoutes(deps) {
         return res.json({ success: true, everSubscribed });
     });
 
+
+    app.post("/api/account/openrouter-key", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Account update is not configured on this server." });
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        const openrouterApiKey = typeof req.body?.openrouterApiKey === "string"
+            ? req.body.openrouterApiKey.trim()
+            : "";
+        const account = await rdsStore.getAccountBySession(sessionId);
+        if (!account) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey);
+        return res.json({ success: true, openrouterApiKey });
+    });
     app.post("/api/support", async (req, res) => {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Support requests are not configured on this server." });
