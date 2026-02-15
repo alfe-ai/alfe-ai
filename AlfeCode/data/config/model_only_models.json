@@ -171,7 +171,7 @@
     {
       "id": "openrouter/qwen/qwen-turbo",
       "label": "Qwen Turbo",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -308,7 +308,7 @@
     {
       "id": "openrouter/kwaipilot/kat-coder-pro",
       "label": "KwaiPilot: KAT Coder Pro",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 256000,
       "pricing": {
         "inputPerMTokens": 0.207,
@@ -391,7 +391,7 @@
     {
       "id": "openrouter/z-ai/glm-4.5-air",
       "label": "Z.ai: GLM 4.5 Air",
-      "disabled": false,
+      "disabled": true,
       "list_order": 996,
       "pricing": {
         "inputPerMTokens": 0.13,
