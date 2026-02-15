@@ -6,20 +6,26 @@
         <option value="deepseek local" <%= chatData.aiProvider.toLowerCase() === 'deepseek local' ? 'selected' : '' %>>DeepSeek Local</option>
     </select>
     <select name="aiModel" id="aiModel" onchange="this.form.submit()">
-        <% 
+        <%
+            const userPlan = chatData.plan || 'Lite'; // Default to Lite if not present
             const filtered = (AIModels || []).filter(m => {
                 const id = m && typeof m.id === 'string' ? m.id : '';
-                return id.toLowerCase().includes('gpt-5');
+                // Check if the model is allowed based on the user's plan
+                if (userPlan === 'Lite') {
+                    return !m.plus_model; // Only show models that are not plus_model
+                } else {
+                    return true; // Show all models for Plus/Pro
+                }
             });
         %>
         <% if (filtered && filtered.length > 0) { %>
             <% filtered.forEach(function(model) { %>
-                <option value="<%= model.id %>" <%= model.id === aiModel ? 'selected' : '' %>>
+                <option value="<%= model.id %}" <%= model.id === aiModel ? 'selected' : '' %>>
                     <%= model.name || model.id %><% if (model.contextLimitLabel && model.contextLimitLabel !== 'N/A') { %> (<span class="context-limit"><%= model.contextLimitLabel %></span>)<% } %>
                 </option>
             <% }); %>
         <% } else { %>
-            <option value="<%= aiModel %>" selected><%= aiModel %></option>
+            <option value="<%= aiModel %}" selected><%= aiModel %></option>
         <% } %>
     </select>
 </div>
