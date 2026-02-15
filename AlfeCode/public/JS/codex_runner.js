@@ -120,9 +120,6 @@
 
   const isModelEnabled = (model) => {
     if (!model) return false;
-    if (typeof model.enabled === "boolean") {
-      return model.enabled;
-    }
     if (typeof model.disabled === "boolean") {
       return !model.disabled;
     }
