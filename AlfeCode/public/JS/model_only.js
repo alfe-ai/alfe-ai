@@ -31,6 +31,9 @@
   const accountPlanFeedback = document.getElementById('accountPlanFeedback');
   const accountEverSubscribedSelect = document.getElementById('accountEverSubscribedSelect');
   const accountEverSubscribedFeedback = document.getElementById('accountEverSubscribedFeedback');
+  const accountOpenrouterApiKey = document.getElementById('accountOpenrouterApiKey');
+  const editOpenrouterApiKeyButton = document.getElementById('editOpenrouterApiKeyButton');
+  const accountOpenrouterApiKeyFeedback = document.getElementById('accountOpenrouterApiKeyFeedback');
   const accountSession = document.getElementById('accountSession');
   const refreshSessionButton = document.getElementById('refreshSessionButton');
   const resetUsageButton = document.getElementById('resetUsageButton');
@@ -864,6 +867,27 @@
     }
   }
 
+  function showAccountOpenrouterApiKeyFeedback(message, type) {
+    if (!accountOpenrouterApiKeyFeedback) return;
+    if (!message) {
+      accountOpenrouterApiKeyFeedback.textContent = '';
+      accountOpenrouterApiKeyFeedback.classList.add('hidden');
+      accountOpenrouterApiKeyFeedback.classList.remove('error', 'success');
+      return;
+    }
+    accountOpenrouterApiKeyFeedback.textContent = message;
+    accountOpenrouterApiKeyFeedback.classList.remove('hidden', 'error', 'success');
+    if (type === 'error') {
+      accountOpenrouterApiKeyFeedback.classList.add('error');
+    } else if (type === 'success') {
+      accountOpenrouterApiKeyFeedback.classList.add('success');
+    }
+  }
+
+  function setAccountOpenrouterApiKeyValue(value) {
+    setAccountField(accountOpenrouterApiKey, value || '');
+  }
+
   function setAccountPlanValue(value) {
     if (!accountPlanSelect) return;
     const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
@@ -986,6 +1010,32 @@
     }
   }
 
+  async function saveOpenrouterApiKey(openrouterApiKey) {
+    if (!editOpenrouterApiKeyButton) return;
+    showAccountOpenrouterApiKeyFeedback('Saving key...');
+    editOpenrouterApiKeyButton.disabled = true;
+    try {
+      const response = await fetch('/api/account/openrouter-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ openrouterApiKey }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to save key (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+      setAccountOpenrouterApiKeyValue(payload?.openrouterApiKey || openrouterApiKey);
+      showAccountOpenrouterApiKeyFeedback('Saved.', 'success');
+    } catch (error) {
+      console.error('Failed to save Openrouter API key:', error);
+      showAccountOpenrouterApiKeyFeedback(error.message || 'Failed to save key.', 'error');
+    } finally {
+      editOpenrouterApiKeyButton.disabled = false;
+    }
+  }
+
   async function loadUsageLimits() {
     applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
     setAccountVisibility(true);
@@ -1012,6 +1062,7 @@
         setAccountField(accountEmail, payload.email);
         setAccountPlanValue(payload.plan);
         setAccountEverSubscribedValue(payload.everSubscribed);
+        setAccountOpenrouterApiKeyValue(payload.openrouterApiKey);
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         const hasAccount = Boolean(payload.email);
@@ -1023,6 +1074,9 @@
         }
         if (logoutButton) {
           logoutButton.disabled = !hasAccount;
+        }
+        if (editOpenrouterApiKeyButton) {
+          editOpenrouterApiKeyButton.disabled = !hasAccount;
         }
         if (refreshSessionButton) {
           refreshSessionButton.disabled = !payload.sessionId;
@@ -1333,6 +1387,7 @@
       setAccountField(accountEmail, '');
       setAccountPlanValue('Free');
       setAccountEverSubscribedValue(false);
+      setAccountOpenrouterApiKeyValue('');
       setAccountField(accountSession, '');
       setAccountVisibility(false);
       if (accountEverSubscribedSelect) {
@@ -1340,6 +1395,9 @@
       }
       if (refreshSessionButton) {
         refreshSessionButton.disabled = true;
+      }
+      if (editOpenrouterApiKeyButton) {
+        editOpenrouterApiKeyButton.disabled = true;
       }
       if (window.parent && window.parent !== window) {
         try {
@@ -1413,6 +1471,17 @@
   if (refreshSessionButton) {
     refreshSessionButton.addEventListener('click', function() {
       void handleSessionRefresh();
+    });
+  }
+
+  if (editOpenrouterApiKeyButton) {
+    editOpenrouterApiKeyButton.addEventListener('click', function() {
+      const currentKey = accountOpenrouterApiKey ? (accountOpenrouterApiKey.textContent || '').trim() : '';
+      const nextKey = window.prompt('Enter your Openrouter.ai API key', currentKey === '—' ? '' : currentKey);
+      if (nextKey === null) {
+        return;
+      }
+      void saveOpenrouterApiKey(nextKey.trim());
     });
   }
 
