@@ -597,13 +597,44 @@ if [[ -n "$APPROVAL_MODE" ]]; then
 fi
 
 MODEL_BASE_URL=""
-if MODEL_BASE_URL="$(resolve_model_only_url "${QWEN_MODEL:-}" "${MODEL:-}" "${EFFECTIVE_MODEL:-}")"; then
+MODEL_LOOKUP_CANDIDATES=()
+add_model_lookup_candidate() {
+  local candidate="$1"
+  [[ -n "$candidate" ]] || return 0
+  local existing
+  for existing in "${MODEL_LOOKUP_CANDIDATES[@]}"; do
+    [[ "$existing" == "$candidate" ]] && return 0
+  done
+  MODEL_LOOKUP_CANDIDATES+=("$candidate")
+}
+
+add_model_lookup_candidate "${QWEN_MODEL:-}"
+add_model_lookup_candidate "${MODEL:-}"
+add_model_lookup_candidate "${EFFECTIVE_MODEL:-}"
+
+if [[ -n "${QWEN_MODEL:-}" ]]; then
+  add_model_lookup_candidate "openrouter/${QWEN_MODEL}"
+  add_model_lookup_candidate "${QWEN_MODEL%:free}"
+  add_model_lookup_candidate "openrouter/${QWEN_MODEL%:free}"
+fi
+if [[ -n "${MODEL:-}" ]]; then
+  add_model_lookup_candidate "openrouter/${MODEL}"
+  add_model_lookup_candidate "${MODEL%:free}"
+  add_model_lookup_candidate "openrouter/${MODEL%:free}"
+fi
+if [[ -n "${EFFECTIVE_MODEL:-}" ]]; then
+  add_model_lookup_candidate "openrouter/${EFFECTIVE_MODEL}"
+  add_model_lookup_candidate "${EFFECTIVE_MODEL%:free}"
+  add_model_lookup_candidate "openrouter/${EFFECTIVE_MODEL%:free}"
+fi
+
+if MODEL_BASE_URL="$(resolve_model_only_url "${MODEL_LOOKUP_CANDIDATES[@]}")"; then
   trace_log "model-only url resolved to ${MODEL_BASE_URL}"
 else
   MODEL_BASE_URL=""
 fi
 
-if MODEL_KEY_SOURCE="$(resolve_model_only_key "${QWEN_MODEL:-}" "${MODEL:-}" "${EFFECTIVE_MODEL:-}")"; then
+if MODEL_KEY_SOURCE="$(resolve_model_only_key "${MODEL_LOOKUP_CANDIDATES[@]}")"; then
   trace_log "model-only key resolved to ${MODEL_KEY_SOURCE}"
 else
   MODEL_KEY_SOURCE=""
