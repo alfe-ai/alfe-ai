@@ -418,7 +418,7 @@ Use --approval-mode to set the approval mode (e.g., auto-edit).
 If no task is provided, an interactive Agent session is started.
 
 This script now always loads OPENAI_API_KEY or OPENROUTER_API_KEY from the nearest .env (project dir → cwd → script dir).
-Set CODEX_SHOW_API_KEY=1 to print OPENAI_API_KEY in [qwen] env output (disabled by default).
+Set CODEX_SHOW_API_KEY=1 to print OPENAI_API_KEY in [info] env output (disabled by default).
 --model MODEL  : OpenAI/OpenRouter model ID to pass to Agent (ex: openrouter/openai/gpt-5-mini, openai/gpt-4o-mini).
 USAGE
 }
@@ -850,54 +850,54 @@ run_qwen() {
     fi
     display_args+=("$arg")
   done
-  printf '[qwen] Launching qwen CLI...\n'
+  printf '[info] Launching qwen CLI...\n'
   local qwen_version
   qwen_version="$(qwen -v 2>&1)"
-  printf '[qwen] qwen -v: %s\n' "$qwen_version"
-  printf '[qwen] cwd=%s\n' "$(pwd)"
+  printf '[info] qwen -v: %s\n' "$qwen_version"
+  printf '[info] cwd=%s\n' "$(pwd)"
   if [[ "${SHOW_QWEN_CLI_ARGS:-false}" == "true" ]]; then
-    printf '[qwen] args=%s\n' "$(build_shell_command "${display_args[@]}")"
+    printf '[info] args=%s\n' "$(build_shell_command "${display_args[@]}")"
   fi
-  printf '[qwen] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
-  printf '[qwen] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
-  printf '[qwen] model-only-url lookup model=%s\n' "$qwen_url_lookup_model"
+  printf '[info] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
+  printf '[info] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
+  printf '[info] model-only-url lookup model=%s\n' "$qwen_url_lookup_model"
   if [[ -n "$qwen_model_base_url" ]]; then
-    printf '[qwen] model-only-url from-json=%s\n' "$qwen_model_base_url"
+    printf '[info] model-only-url from-json=%s\n' "$qwen_model_base_url"
   else
-    printf '[qwen] model-only-url from-json=<none>\n'
+    printf '[info] model-only-url from-json=<none>\n'
   fi
   if [[ -n "$qwen_model_key_source" ]]; then
-    printf '[qwen] "key" from json=%s\n' "$qwen_model_key_source"
+    printf '[info] "key" from json=%s\n' "$qwen_model_key_source"
   else
-    printf '[qwen] "key" from json=<none>\n'
+    printf '[info] "key" from json=<none>\n'
   fi
   case "${CODEX_SHOW_API_KEY,,}" in
     1|true|yes|on)
-      printf '[qwen] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
+      printf '[info] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
       ;;
   esac
   case "${qwen_pass_debug_env,,}" in
     1|true|yes|on)
-      printf '[qwen] env DEBUG=%s\n' "$qwen_debug_value"
-      printf '[qwen] env DEBUG_MODE=%s\n' "$qwen_debug_mode_value"
+      printf '[info] env DEBUG=%s\n' "$qwen_debug_value"
+      printf '[info] env DEBUG_MODE=%s\n' "$qwen_debug_mode_value"
       ;;
     *)
-      printf '[qwen] env DEBUG vars disabled\n'
+      printf '[info] env DEBUG vars disabled\n'
       ;;
   esac
-  printf '[qwen] log=%s\n' "$qwen_log_path"
+  printf '[info] log=%s\n' "$qwen_log_path"
   if [[ -n "${QWEN_MODEL:-}" ]]; then
-    printf '[qwen] model=%s\n' "$display_qwen_model_value"
+    printf '[info] model=%s\n' "$display_qwen_model_value"
   fi
   if [[ -n "$approval_mode_value" ]]; then
-    printf '[qwen] approval-mode=%s\n' "$approval_mode_value"
+    printf '[info] approval-mode=%s\n' "$approval_mode_value"
   fi
   case "${QWEN_STREAM_JSON,,}" in
     1|true|yes|on)
-      printf '[qwen] output-format=stream-json\n'
+      printf '[info] output-format=stream-json\n'
       ;;
   esac
-  printf '[qwen] meta=%s\n' "${CODEX_SHOW_META:-0}"
+  printf '[info] meta=%s\n' "${CODEX_SHOW_META:-0}"
   "${cmd[@]}" 2>&1 | tee "$qwen_log_path"
 }
 

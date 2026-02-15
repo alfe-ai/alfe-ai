@@ -7161,7 +7161,7 @@ const appendMergeChunk = (text, type = "output") => {
         continue;
       }
       const shouldIgnore = ignoreMatchers.some((matcher) => matcher.test(trimmed))
-        || (stripQwenMetaLines && /^\[qwen]/i.test(trimmed));
+        || (stripQwenMetaLines && /^\[info]/i.test(trimmed));
       if (shouldIgnore) {
         continue;
       }
