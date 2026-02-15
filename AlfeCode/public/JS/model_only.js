@@ -578,8 +578,9 @@
           const isCurrentlyProDisabled = optionButton.classList.contains('pro-model-disabled');
           if (isCurrentlyUsageDisabled || isUsageLimitRestrictedModel(model.id, optionButton) || isCurrentlyProDisabled) {
             event.preventDefault();
-            if (window.showUsageLimitModal) {
-              window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
+            closeModelDropdown();
+            if (window.showSubscribeModal) {
+              window.showSubscribeModal();
             }
             return;
           }
