@@ -860,11 +860,11 @@ run_qwen() {
   fi
   printf '[info] env OPENAI_BASE_URL=%s\n' "$openai_base_url_value"
   printf '[info] env OPENAI_MODEL=%s\n' "$display_openai_model_value"
-  printf '[info] model-only-url lookup model=%s\n' "$qwen_url_lookup_model"
+  printf '[info] lookup model=%s\n' "$qwen_url_lookup_model"
   if [[ -n "$qwen_model_base_url" ]]; then
-    printf '[info] model-only-url from-json=%s\n' "$qwen_model_base_url"
+    printf '[info] url-from-json=%s\n' "$qwen_model_base_url"
   else
-    printf '[info] model-only-url from-json=<none>\n'
+    printf '[info] url-from-json=<none>\n'
   fi
   if [[ -n "$qwen_model_key_source" ]]; then
     printf '[info] "key" from json=%s\n' "$qwen_model_key_source"
