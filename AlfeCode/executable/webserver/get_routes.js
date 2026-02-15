@@ -2095,6 +2095,27 @@ ${cleanedFinalOutput}`;
             });
         }
 
+        const existingModelIds = new Set(
+            groups.flatMap((group) =>
+                group.models
+                    .map((model) => (typeof model === "string" ? model : model.id))
+                    .filter(Boolean),
+            ),
+        );
+        const modelOnlyConfigModels = loadModelOnlyModels({ includePlus: true })
+            .filter((model) => model && !model.disabled)
+            .filter((model) => !existingModelIds.has(model.id))
+            .map((model) => ({
+                id: model.id,
+                label: model.label || model.id,
+            }));
+        if (modelOnlyConfigModels.length > 0) {
+            groups.unshift({
+                label: "Model-only config",
+                models: modelOnlyConfigModels,
+            });
+        }
+
         if (defaultCodexModel) {
             const hasDefault = groups.some((group) =>
                 group.models.some((model) =>
