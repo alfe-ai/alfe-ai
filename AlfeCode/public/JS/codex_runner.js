@@ -356,6 +356,9 @@
         hideSettingsModal();
         showSubscribeModal();
       }
+      if (d.key === 'closeSettingsModal') {
+        hideSettingsModal();
+      }
     }catch(e){}
   });
 
