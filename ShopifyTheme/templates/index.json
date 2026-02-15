@@ -1,0 +1,16 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-subscription-home",
+      "settings": {
+        "heading": "Alfe AI Subscription",
+        "copy": "Unlimited use of Qwen 3 14B on Alfe AI Code platform with cloud IDE development environment, Git branch management, and AI chat access.",
+        "cta_text": "Shop subscription",
+        "cta_link": "/products/alfe-ai-subscription"
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}
