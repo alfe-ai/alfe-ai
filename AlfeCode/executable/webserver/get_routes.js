@@ -2393,7 +2393,7 @@ ${cleanedFinalOutput}`;
         return defaultCodexProjectDir;
     };
 
-    const renderCodexRunner = (req, res) => {
+    const renderCodexRunner = async (req, res) => {
         // Defer git cache prewarm until after the response is finished so the UI
         // can be rendered immediately. The prewarm is best-effort and may be
         // performed after the response has been sent.
