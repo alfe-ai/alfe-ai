@@ -1,5 +1,6 @@
 model_list:
   - model_name: qwen/qwen3-14b
+    plus_model: true
     litellm_params:
       model: openrouter/qwen/qwen3-14b
       api_base: https://openrouter.ai/api/v1
@@ -8,7 +9,14 @@ model_list:
         HTTP-Referer: "https://alfe.sh"
         X-Title: "Alfe AI"
 
-#  - model_name: qwen/qwen3-8b
+  - model_name: qwen/qwen3-8b
+    litellm_params:
+      model: openrouter/qwen/qwen3-8b
+      api_base: https://openrouter.ai/api/v1
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      headers:
+        HTTP-Referer: "https://alfe.sh"
+        X-Title: "Alfe AI"
 #    litellm_params:
 #      model: openrouter/qwen/qwen3-8b
 #      api_base: https://openrouter.ai/api/v1

@@ -12,5 +12,6 @@
 - 500 Web Searches per month
 - Access to Support
 - No Pro code access (code usage matches Lite)
+- Plus models now available on Lite plan
 
 *May be rate-limited; “unlimited” may change in the future.
