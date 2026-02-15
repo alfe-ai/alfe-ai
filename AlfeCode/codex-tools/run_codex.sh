@@ -20,9 +20,11 @@ CODEX_MODEL_DEFAULT_FALLBACK='openrouter/openai/gpt-5-mini'
 CODEX_MODEL_DEFAULT=''
 MODEL=""
 CODEX_SNAPSHOT_MARKER='::CODEX_RUNNER_PROJECT_DIR::'
-CODEX_API_KEY_VARS=("OPENAI_API_KEY" "OPENROUTER_API_KEY")
+CODEX_API_KEY_VARS=("OPENAI_API_KEY" "OPENROUTER_API_KEY" "LITELLM_API_KEY")
 REQUESTED_PROVIDER=""
 DETECTED_API_KEY_VAR=""
+MODEL_KEY_SOURCE=""
+MODEL_KEY_VALUE=""
 CODEX_SHOW_META="${CODEX_SHOW_META:-0}"
 SHOW_QWEN_CLI_ARGS="${SHOW_QWEN_CLI_ARGS:-false}"
 ENABLE_TRACE="${ENABLE_TRACE:-}"
@@ -215,6 +217,95 @@ PY
   return 1
 }
 
+resolve_model_only_key() {
+  local config_path="${STERLING_ROOT}/data/config/model_only_models.json"
+  local resolved_path=""
+
+  if [[ -f "$config_path" ]]; then
+    resolved_path="$config_path"
+  fi
+
+  if [[ -z "$resolved_path" ]]; then
+    return 1
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$resolved_path" "$@" <<'PY'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+candidates = [c for c in sys.argv[2:] if c]
+def trace(message):
+    if os.getenv("ENABLE_TRACE", "").lower() not in ("1", "true", "yes", "on"):
+        return
+    print(f"[trace] model-only key: {message}", file=sys.stderr)
+
+def infer_key_from_url(value):
+    if not isinstance(value, str):
+        return None
+    lower = value.lower()
+    if "litellm.alfe.sh" in lower:
+        return "litellm"
+    if "openrouter.ai" in lower:
+        return "openrouter"
+    return None
+
+trace(f"loading model list from {path}")
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+except Exception:
+    trace("failed to parse JSON model list")
+    sys.exit(1)
+
+if isinstance(data, dict):
+    models = data.get("models", data)
+elif isinstance(data, list):
+    models = data
+else:
+    trace(f"unexpected JSON root type: {type(data).__name__}")
+    sys.exit(1)
+
+if isinstance(models, dict):
+    models = list(models.values())
+
+if not isinstance(models, list):
+    trace(f"unexpected models type: {type(models).__name__}")
+    sys.exit(1)
+
+if not candidates:
+    trace("no candidate model ids provided")
+    sys.exit(1)
+
+for candidate in candidates:
+    for model in models:
+        if not isinstance(model, dict):
+            continue
+        if model.get("id") != candidate:
+            continue
+        key = model.get("key")
+        if isinstance(key, str) and key.strip():
+            normalized = key.strip().lower()
+            trace(f"matched model {candidate} with explicit key {normalized}")
+            print(normalized)
+            sys.exit(0)
+        inferred = infer_key_from_url(model.get("url"))
+        if inferred:
+            trace(f"matched model {candidate} and inferred key {inferred} from url")
+            print(inferred)
+            sys.exit(0)
+
+trace("no matching model key found")
+sys.exit(1)
+PY
+    return $?
+  fi
+
+  return 1
+}
+
 if CODEX_MODEL_DEFAULT="$(resolve_model_only_default)"; then
   CODEX_MODEL_DEFAULT="${CODEX_MODEL_DEFAULT:-$CODEX_MODEL_DEFAULT_FALLBACK}"
 else
@@ -364,7 +455,11 @@ infer_codex_provider() {
 
 resolve_codex_api_key_var() {
   local search_order=("${CODEX_API_KEY_VARS[@]}")
-  if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+  if [[ "$MODEL_KEY_SOURCE" == "litellm" ]]; then
+    search_order=("LITELLM_API_KEY")
+  elif [[ "$MODEL_KEY_SOURCE" == "openrouter" ]]; then
+    search_order=("OPENROUTER_API_KEY")
+  elif [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
     search_order=("OPENROUTER_API_KEY")
   fi
 
@@ -506,6 +601,24 @@ else
   MODEL_BASE_URL=""
 fi
 
+if MODEL_KEY_SOURCE="$(resolve_model_only_key "${QWEN_MODEL:-}" "${MODEL:-}" "${EFFECTIVE_MODEL:-}")"; then
+  trace_log "model-only key resolved to ${MODEL_KEY_SOURCE}"
+else
+  MODEL_KEY_SOURCE=""
+fi
+
+case "${MODEL_KEY_SOURCE:-}" in
+  litellm)
+    MODEL_KEY_VALUE="${LITELLM_API_KEY:-}"
+    ;;
+  openrouter)
+    MODEL_KEY_VALUE="${OPENROUTER_API_KEY:-}"
+    ;;
+  *)
+    MODEL_KEY_VALUE=""
+    ;;
+esac
+
 if ! $USE_QWEN_CLI && [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
   raw_referer_override="${OPENROUTER_HTTP_REFERER_OVERRIDE:-${OPENROUTER_HTTP_REFERER:-${HTTP_REFERER:-}}}"
   if [[ -n "${raw_referer_override}" ]]; then
@@ -564,10 +677,14 @@ fi
 
 # Optionally load API key
 if $API_KEY_MODE && ! $USE_QWEN_CLI; then
-  if [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
+  if [[ "$MODEL_KEY_SOURCE" == "litellm" ]]; then
+    failure_message="Error: Agent runs for models with key=litellm require LITELLM_API_KEY. Export one or place it in a nearby .env file."
+  elif [[ "$MODEL_KEY_SOURCE" == "openrouter" ]]; then
+    failure_message="Error: Agent runs for models with key=openrouter require OPENROUTER_API_KEY. Export one or place it in a nearby .env file."
+  elif [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
     failure_message="Error: Agent runs for OpenRouter models require OPENROUTER_API_KEY. Export one or place it in a nearby .env file."
   else
-    failure_message="Error: Agent runs require OPENAI_API_KEY or OPENROUTER_API_KEY. Export one or place it in a nearby .env file."
+    failure_message="Error: Agent runs require OPENAI_API_KEY, OPENROUTER_API_KEY, or LITELLM_API_KEY. Export one or place it in a nearby .env file."
   fi
   if ! ensure_codex_api_key "$failure_message"; then
     exit 1
@@ -584,10 +701,11 @@ run_codex() {
   # npx lacks a stable --prefix; use npm exec with --prefix to target the install. :contentReference[oaicite:2]{index=2}
   local -a cmd=(npm exec --prefix "$CODEX_DIR" codex -- "$@")
   local unset_openai=false
+  local mapped_openai_key="${MODEL_KEY_VALUE:-}"
   if command -v stdbuf >/dev/null 2>&1; then
     cmd=(stdbuf -oL -eL "${cmd[@]}")
   fi
-  if [[ "$REQUESTED_PROVIDER" == "openrouter" && "$DETECTED_API_KEY_VAR" == "OPENROUTER_API_KEY" ]]; then
+  if [[ "$REQUESTED_PROVIDER" == "openrouter" && "$DETECTED_API_KEY_VAR" == "OPENROUTER_API_KEY" && -z "$mapped_openai_key" ]]; then
     unset_openai=true
   fi
   local -a env_prefix=()
@@ -597,11 +715,16 @@ run_codex() {
   if [[ -n "${MODEL_BASE_URL:-}" ]]; then
     env_prefix+=("OPENAI_BASE_URL=${MODEL_BASE_URL}")
   fi
+  if [[ -n "$mapped_openai_key" ]]; then
+    env_prefix+=("OPENAI_API_KEY=${mapped_openai_key}")
+  fi
   if [[ ${#env_prefix[@]} -gt 0 ]]; then
     cmd=(env "${env_prefix[@]}" "${cmd[@]}")
   fi
   if $unset_openai; then
     log_meta "$META_OPENROUTER_UNSET_MSG"
+  elif [[ -n "$mapped_openai_key" ]]; then
+    log_meta "OPENAI_API_KEY overwritten from ${MODEL_KEY_SOURCE^^}_API_KEY for this run."
   fi
   "${cmd[@]}"
 }
@@ -618,6 +741,9 @@ run_qwen() {
   local qwen_log_path="${QWEN_LOG_PATH:-/tmp/qwen.log}"
   if [[ -n "${MODEL_BASE_URL:-}" ]]; then
     openai_base_url_value="${MODEL_BASE_URL}"
+  fi
+  if [[ -n "${MODEL_KEY_VALUE:-}" ]]; then
+    openai_api_key_value="${MODEL_KEY_VALUE}"
   fi
   local openai_model_value="${EFFECTIVE_MODEL:-}"
   if [[ -n "${QWEN_MODEL:-}" ]]; then

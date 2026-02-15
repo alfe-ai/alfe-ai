@@ -18,7 +18,8 @@
       "list_order": 20,
       "plus_model": false,
       "usage": "low",
-      "url": "https://openrouter.ai/api/v1"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "openrouter/openai/gpt-oss-120b:exacto",
@@ -38,7 +39,8 @@
       "list_order": 2,
       "plus_model": false,
       "usage": "free",
-      "url": "https://openrouter.ai/api/v1"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "openrouter/openai/gpt-oss-20b",
@@ -176,14 +178,15 @@
       ],
       "pricing": {
         "inputPerMTokens": 0.05,
-        "outputPerMTokens": 0.20
+        "outputPerMTokens": 0.2
       },
       "qwen_cli": true,
       "list_order": 2,
       "plus_model": false,
       "usage": "low",
       "contextTokens": 131072,
-      "url": "https://openrouter.ai/api/v1"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "qwen3-8b",
@@ -195,13 +198,14 @@
       ],
       "pricing": {
         "inputPerMTokens": 0.05,
-        "outputPerMTokens": 0.40
+        "outputPerMTokens": 0.4
       },
       "qwen_cli": true,
       "list_order": 1,
       "plus_model": false,
       "usage": "free",
-      "url": "https://litellm.alfe.sh/v1"
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "openrouter/qwen/qwen3-14b",
@@ -219,7 +223,8 @@
       "list_order": 0,
       "plus_model": false,
       "usage": "free",
-      "url": "https://litellm.alfe.sh/v1"
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
@@ -317,7 +322,8 @@
       "plus_model": false,
       "list_order": 999,
       "usage": "high",
-      "url": "https://openrouter.ai/api/v1"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "kat-coder-air-v1",
@@ -379,7 +385,8 @@
       "contextTokens": 131072,
       "plus_model": false,
       "usage": "medium",
-      "url": "https://litellm.alfe.sh/v1"
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air",
@@ -398,7 +405,8 @@
       "contextTokens": 131072,
       "plus_model": false,
       "usage": "medium",
-      "url": "https://openrouter.ai/api/v1"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "openrouter/z-ai/glm-4.5-air:free",
@@ -450,10 +458,10 @@
         "inputPerMTokens": 0.04,
         "outputPerMTokens": 0.15
       },
-        "engine_options": [
-            "auto",
-            "qwen"
-        ]
+      "engine_options": [
+        "auto",
+        "qwen"
+      ]
     },
     {
       "id": "openrouter/nvidia/nemotron-nano-9b-v2",
