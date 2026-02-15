@@ -172,12 +172,11 @@
 
 
   function requestSubscribeModal() {
-    requestCloseSettingsModal();
     let opened = false;
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(
-          { type: 'sterling:settings', key: 'openSubscribeModal', value: true },
+          { type: 'sterling:settings', key: 'openSubscribeModal', value: { closeSettingsFirst: true } },
           '*',
         );
         opened = true;
@@ -190,19 +189,6 @@
       opened = true;
     }
     return opened;
-  }
-
-  function requestCloseSettingsModal() {
-    if (window.parent && window.parent !== window) {
-      try {
-        window.parent.postMessage(
-          { type: 'sterling:settings', key: 'closeSettingsModal', value: true },
-          '*',
-        );
-      } catch (error) {
-        console.warn('Failed to notify parent to close settings modal.', error);
-      }
-    }
   }
 
   function sendEnginePreference(value) {
