@@ -447,6 +447,8 @@
   const promptInput = document.getElementById("prompt");
   const usageLimitModal = document.getElementById("usageLimitModal");
   const usageLimitModalCloseButton = document.getElementById("usageLimitModalCloseButton");
+  const subscribeModal = document.getElementById("subscribeModal");
+  const subscribeModalCloseButton = document.getElementById("subscribeModalCloseButton");
   const usageLimitCodeUsageLimit = document.getElementById("usageLimitCodeUsageLimit");
   const usageLimitCodeUsageBarFill = document.getElementById("usageLimitCodeUsageBarFill");
   const usageLimitCodeUsageLimited = document.getElementById("usageLimitCodeUsageLimited");
@@ -628,6 +630,18 @@
     document.body.style.overflow = "";
   };
 
+  const showSubscribeModal = () => {
+    if (!subscribeModal) return;
+    subscribeModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+  };
+
+  const hideSubscribeModal = () => {
+    if (!subscribeModal) return;
+    subscribeModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
   const isUsageLimitMessage = (message) => {
     if (!message) return false;
     const normalized = message.toString().toLowerCase();
@@ -676,9 +690,7 @@
     const selectedOption = source && source.options ? source.options[source.selectedIndex] : null;
     const selectedValue = (selectedOption && selectedOption.value) || (source && source.value) || "";
     if (selectedOption && selectedOption.dataset.proModelDisabled === "true") {
-      if (window.showUsageLimitModal) {
-        window.showUsageLimitModal("code", "Usage limit reached. Please try again later.");
-      }
+      showSubscribeModal();
       const fallback = lastValidModelSelection || getFirstAvailableModelValue();
       if (fallback) {
         updateModelSelectValue(fallback);
@@ -813,7 +825,9 @@
         optionButton.addEventListener("click", (event) => {
           if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id) || blockedByPlan) {
             event.preventDefault();
-            if (window.showUsageLimitModal) {
+            if (blockedByPlan) {
+              showSubscribeModal();
+            } else if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
             }
             return;
@@ -8847,6 +8861,21 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  if (subscribeModalCloseButton && subscribeModal) {
+    subscribeModalCloseButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideSubscribeModal();
+    });
+  }
+
+  if (subscribeModal) {
+    subscribeModal.addEventListener("click", (event) => {
+      if (event.target === subscribeModal) {
+        hideSubscribeModal();
+      }
+    });
+  }
+
   const updateAccountButton = (info) => {
     if (!signUpLogInBtn) {
       return;
@@ -9168,6 +9197,8 @@ const appendMergeChunk = (text, type = "output") => {
       hideAccountModal();
     } else if (event.key === "Escape" && usageLimitModal && !usageLimitModal.classList.contains("is-hidden")) {
       hideUsageLimitModal();
+    } else if (event.key === "Escape" && subscribeModal && !subscribeModal.classList.contains("is-hidden")) {
+      hideSubscribeModal();
     }
   });
 
