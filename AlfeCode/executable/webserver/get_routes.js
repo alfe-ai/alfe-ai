@@ -2060,7 +2060,7 @@ ${cleanedFinalOutput}`;
         return fallbackCodexModel;
     };
 
-    const buildCodexModelGroups = (defaultCodexModel) => {
+    const buildCodexModelGroups = (defaultCodexModel, account) => {
         const modelLabelLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
             if (entry && entry.id) {
                 acc[entry.id] = entry.label || entry.id;
@@ -2102,13 +2102,19 @@ ${cleanedFinalOutput}`;
                     .filter(Boolean),
             ),
         );
-        const modelOnlyConfigModels = loadModelOnlyModels({ includePlus: true })
+        let modelOnlyConfigModels = loadModelOnlyModels({ includePlus: true })
             .filter((model) => model && !model.disabled)
             .filter((model) => !existingModelIds.has(model.id))
             .map((model) => ({
                 id: model.id,
                 label: model.label || model.id,
             }));
+        
+        // Filter plus_model based on account plan
+        if (account && account.plan && account.plan !== "Lite" && account.plan !== "Plus" && account.plan !== "Pro") {
+            modelOnlyConfigModels = modelOnlyConfigModels.filter((model) => !model.plus_model);
+        }
+        
         if (modelOnlyConfigModels.length > 0) {
             groups.unshift({
                 label: "Model-only config",
@@ -2444,11 +2450,20 @@ ${cleanedFinalOutput}`;
         const accountButtonEnabled = accountsEnabled;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
+        
+        let account = null;
+        if (rdsStore?.enabled) {
+            const sessionId = getSessionIdFromRequest(req);
+            if (sessionId) {
+                account = await rdsStore.getAccountBySession(sessionId);
+            }
+        }
+        
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
             defaultProjectDir: resolvedDefaultProjectDir,
-            codexModelGroups: buildCodexModelGroups(defaultCodexModel),
+            codexModelGroups: buildCodexModelGroups(defaultCodexModel, account),
             defaultCodexModel,
             defaultAgentInstructions,
             defaultOpenRouterReferer,
