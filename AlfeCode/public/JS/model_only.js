@@ -625,7 +625,7 @@
     const model = normaliseModelEntry(raw);
     const option = document.createElement('option');
     option.value = modelId;
-    const label = model ? (model.plus_model ? `[Pro] ${model.label}` : model.label) : modelId;
+    const label = model ? (model.plus_model ? model.label : `[Pro] ${model.label}`) : modelId;
     const usageText = model?.usage
       ? `${model.usage === 'free' ? resolveFreeUsageBadgeLabel() : `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)}`} usage`
       : '';
