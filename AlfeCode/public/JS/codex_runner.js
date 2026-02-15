@@ -352,6 +352,10 @@
           openAuthModal({ preferredStep });
         }
       }
+      if (d.key === 'openSubscribeModal') {
+        hideSettingsModal();
+        showSubscribeModal();
+      }
     }catch(e){}
   });
 

@@ -170,6 +170,27 @@
     return opened;
   }
 
+
+  function requestSubscribeModal() {
+    let opened = false;
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { type: 'sterling:settings', key: 'openSubscribeModal', value: true },
+          '*',
+        );
+        opened = true;
+      }
+    } catch (error) {
+      console.warn('Failed to notify parent to open subscribe modal.', error);
+    }
+    if (!opened && typeof window.showSubscribeModal === 'function') {
+      window.showSubscribeModal();
+      opened = true;
+    }
+    return opened;
+  }
+
   function sendEnginePreference(value) {
     if (window.parent && window.parent !== window) {
       try {
@@ -579,8 +600,10 @@
           if (isCurrentlyUsageDisabled || isUsageLimitRestrictedModel(model.id, optionButton) || isCurrentlyProDisabled) {
             event.preventDefault();
             closeModelDropdown();
-            if (window.showSubscribeModal) {
-              window.showSubscribeModal();
+            if (isCurrentlyProDisabled) {
+              requestSubscribeModal();
+            } else if (window.showUsageLimitModal) {
+              window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
             }
             return;
           }
@@ -687,7 +710,10 @@
         const isProDisabled = optionButton.classList.contains('pro-model-disabled');
         if (optionButton.dataset.usageLimitDisabled === 'true' || isProDisabled) {
           event.preventDefault();
-          if (window.showUsageLimitModal) {
+          closeModelDropdown();
+          if (isProDisabled) {
+            requestSubscribeModal();
+          } else if (window.showUsageLimitModal) {
             window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
           }
           return;
