@@ -574,7 +574,9 @@
           optionButton.appendChild(metaRow);
         }
         optionButton.addEventListener('click', (event) => {
-          if (isUsageLimitDisabled || isUsageLimitRestrictedModel(model.id, optionButton) || blockedByPlan) {
+          const isCurrentlyUsageDisabled = optionButton.dataset.usageLimitDisabled === 'true';
+          const isCurrentlyProDisabled = optionButton.classList.contains('pro-model-disabled');
+          if (isCurrentlyUsageDisabled || isUsageLimitRestrictedModel(model.id, optionButton) || isCurrentlyProDisabled) {
             event.preventDefault();
             if (window.showUsageLimitModal) {
               window.showUsageLimitModal('code', 'Usage limit reached. Please try again later.');
