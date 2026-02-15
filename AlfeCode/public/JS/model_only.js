@@ -174,6 +174,14 @@
   function requestSubscribeModal() {
     let opened = false;
     try {
+      if (window.parent && window.parent !== window && typeof window.parent.alfeOpenSubscribeModal === 'function') {
+        window.parent.alfeOpenSubscribeModal({ closeSettingsFirst: true });
+        opened = true;
+      }
+    } catch (error) {
+      opened = false;
+    }
+    try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(
           { type: 'sterling:settings', key: 'openSubscribeModal', value: { closeSettingsFirst: true } },
