@@ -96,6 +96,11 @@
     return isPaidPlan ? "Unlimited" : "Free";
   };
 
+  const hasPlusModelAccess = (plan) => {
+    const normalizedPlan = (plan || "").toString().trim().toLowerCase();
+    return normalizedPlan === "lite" || normalizedPlan === "plus" || normalizedPlan === "pro";
+  };
+
   const createUsageBadge = (usage) => {
     const badge = resolveUsageBadge(usage);
     if (!badge) return null;
@@ -764,7 +769,7 @@
     sortedModels.forEach((model) => {
       const label = formatModelLabel(model);
       const isDisabled = shouldDisableModel(model, planName, limits, usageCount);
-      const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
+      const isProDisabled = model.plus_model && !hasPlusModelAccess(currentAccountPlan);
 
       selects.forEach((select) => {
         const option = document.createElement("option");
