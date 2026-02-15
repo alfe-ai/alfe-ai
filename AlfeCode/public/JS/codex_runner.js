@@ -9069,6 +9069,12 @@ const appendMergeChunk = (text, type = "output") => {
     window.alfeOpenAuthModal = (preferredStep = "signup") => {
       openAuthModal({ preferredStep });
     };
+    window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true } = {}) => {
+      if (closeSettingsFirst) {
+        hideSettingsModal();
+      }
+      showSubscribeModal();
+    };
   }
 
   if (usageLimitModal) {
