@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Theme settings",
+    "settings": [
+      {
+        "type": "text",
+        "id": "theme_name",
+        "label": "Theme profile",
+        "default": "AlfeCode Dark Nexum"
+      }
+    ]
+  }
+]
