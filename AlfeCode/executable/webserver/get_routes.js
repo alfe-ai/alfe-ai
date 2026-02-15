@@ -2465,6 +2465,7 @@ ${cleanedFinalOutput}`;
         const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
         const allowModelOrderEdit = isIpAllowed(getRequestIp(req), configIpWhitelist);
         const allowVmRunsLink = allowModelOrderEdit;
+        const qwenDebugEnabled = process.env.QWEN_DEBUG_ENABLED === 'true';
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
             engineDropdownHidden,
@@ -2476,6 +2477,7 @@ ${cleanedFinalOutput}`;
             accountsEnabled: parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true),
             allowModelOrderEdit,
             allowVmRunsLink,
+            qwenDebugEnabled,
         });
     });
     app.get('/agent/model-only/order', (req, res) => {
@@ -2763,8 +2765,7 @@ ${cleanedFinalOutput}`;
         const openRouterTitle = (req.query.openRouterTitle || "").toString().trim();
         const engineParam = (req.query.engine || "").toString().trim().toLowerCase();
         const enginePreference = ["auto", "qwen", "codex", "cline", "sterling", "kilo"].includes(engineParam) ? engineParam : "auto";
-        const qwenDebugEnvParam = (req.query.qwenDebugEnv || "").toString().trim().toLowerCase();
-        const qwenDebugEnvEnabled = qwenDebugEnvParam === "1" || qwenDebugEnvParam === "true";
+        const qwenDebugEnvEnabled = process.env.QWEN_DEBUG_ENABLED === 'true';
         const includeMetaParam = (req.query.includeMeta || "").toString().trim().toLowerCase();
         const includeMeta = includeMetaParam === "1" || includeMetaParam === "true";
         const gitFpushParam = (req.query.gitFpush || "").toString().trim().toLowerCase();
