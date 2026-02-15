@@ -3849,7 +3849,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
 
     <div id="subscribeModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Subscribe">
         <div class="modal-content">
-            <button class="modal-close" type="button" id="subscribeModalCloseButton">×</button>
+            <button class="modal-close" type="button" id="subscribeModalCloseButton" onclick="document.getElementById('subscribeModal').classList.add('is-hidden'); document.body.style.overflow = '';">×</button>
             <p>Subscribe to Alfe AI to access advanced models.</p>
         </div>
     </div>
