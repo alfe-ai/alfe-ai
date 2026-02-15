@@ -52,8 +52,7 @@
   };
   const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
   let enginePreference = engineFromLocal;
-  const qwenDebugEnvFromLocal = localStorage.getItem(QWEN_DEBUG_ENV_STORAGE_KEY);
-  let qwenDebugEnvEnabled = qwenDebugEnvFromLocal === 'true';
+  const qwenDebugEnvEnabled = window.MODEL_ONLY_CONFIG && window.MODEL_ONLY_CONFIG.qwenDebugEnabled;
 
   let currentRunContext = null;
   let runsSidebarSelectedRunId = null;
@@ -343,9 +342,6 @@
         if (engineSelectInline) {
           engineSelectInline.value = enginePreference;
         }
-      }
-      if (d.key === 'qwenDebugEnv') {
-        qwenDebugEnvEnabled = (d.value === true || d.value === 'true');
       }
       if (d.key === 'openAuthModal') {
         const preferredStep = d.value === 'login' ? 'login' : 'signup';
