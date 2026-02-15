@@ -1,0 +1,21 @@
+<header class="site-header">
+  <a class="brand" href="{{ routes.root_url }}">{{ shop.name | default: 'Alfe AI' }}</a>
+  <nav class="site-nav" aria-label="Primary navigation">
+    {% for link in section.settings.menu.links %}
+      <a href="{{ link.url }}">{{ link.title }}</a>
+    {% endfor %}
+  </nav>
+</header>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Menu"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,32 @@
+<section class="subscription-product">
+  <div>
+    <h1 class="subscription-product__title">{{ product.title }}</h1>
+    <p class="subscription-product__price">{{ product.selected_or_first_available_variant.price | money }}</p>
+
+    {% form 'product', product %}
+      <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+
+      <div class="subscription-actions">
+        <div class="quantity-wrap" aria-label="Quantity selector">
+          <button type="button" aria-label="Decrease quantity" onclick="this.nextElementSibling.stepDown();">−</button>
+          <input type="number" name="quantity" value="1" min="1">
+          <button type="button" aria-label="Increase quantity" onclick="this.previousElementSibling.stepUp();">+</button>
+        </div>
+
+        <button class="btn btn--primary" type="submit">Add to cart</button>
+        <button class="btn btn--secondary" type="submit" name="checkout">Buy it now</button>
+      </div>
+    {% endform %}
+
+    <div class="subscription-product__description">
+      {{ product.description }}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Main product (subscription)",
+  "settings": []
+}
+{% endschema %}
