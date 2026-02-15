@@ -182,7 +182,7 @@
       },
       "qwen_cli": true,
       "list_order": 2,
-      "plus_model": false,
+      "plus_model": true,
       "usage": "low",
       "contextTokens": 131072,
       "url": "https://openrouter.ai/api/v1",
@@ -319,7 +319,7 @@
         "qwen"
       ],
       "qwen_cli": true,
-      "plus_model": false,
+      "plus_model": true,
       "list_order": 999,
       "usage": "high",
       "url": "https://openrouter.ai/api/v1",
@@ -403,7 +403,7 @@
       ],
       "qwen_cli": true,
       "contextTokens": 131072,
-      "plus_model": false,
+      "plus_model": true,
       "usage": "medium",
       "url": "https://openrouter.ai/api/v1",
       "key": "openrouter"
