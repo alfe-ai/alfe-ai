@@ -86,8 +86,9 @@
     return ENGINE_OPTIONS.has(normalized) ? normalized : 'auto';
   }
 
-  function isProPlan(plan) {
-    return plan === 'Pro';
+  function hasPlusModelAccess(plan) {
+    const normalized = (plan || '').toString().trim();
+    return normalized === 'Lite' || normalized === 'Plus' || normalized === 'Pro';
   }
 
   function isLoggedOutPlan(plan) {
@@ -524,7 +525,7 @@
 
       // Apply disabling logic for free/logged-out users at limit
       const isDisabled = shouldDisableModel(model, currentUsagePlan, currentUsageLimits, usageCount);
-      if (model.plus_model && !isProPlan(currentAccountPlan)) {
+      if (model.plus_model && !hasPlusModelAccess(currentAccountPlan)) {
         o.dataset.proModelDisabled = 'true';
         o.classList.add('pro-model-disabled');
       } else if (isDisabled) {
@@ -544,7 +545,7 @@
         }
 
         const isUsageLimitDisabled = isDisabled;
-        const isProDisabled = model.plus_model && !isProPlan(currentAccountPlan);
+        const isProDisabled = model.plus_model && !hasPlusModelAccess(currentAccountPlan);
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
         optionButton.disabled = false;
         optionButton.classList.toggle('usage-limit-disabled', isUsageLimitDisabled);
@@ -643,7 +644,7 @@
 
     // Apply disabling logic for free/logged-out users at limit
     const isDisabled = shouldDisableModel(model, currentUsagePlan, currentUsageLimits, getStoredCodeUsageCount());
-    if (model && model.plus_model && !isProPlan(currentAccountPlan)) {
+    if (model && model.plus_model && !hasPlusModelAccess(currentAccountPlan)) {
       option.dataset.plusModel = 'true';
       option.dataset.proModelDisabled = 'true';
       option.classList.add('pro-model-disabled');
@@ -659,7 +660,7 @@
       optionButton.className = 'model-select-option';
       optionButton.dataset.modelId = modelId;
       const isUsageLimitDisabled = isDisabled;
-      const isProDisabled = model?.plus_model && !isProPlan(currentAccountPlan);
+      const isProDisabled = model?.plus_model && !hasPlusModelAccess(currentAccountPlan);
       if (model?.plus_model) {
         optionButton.dataset.plusModel = 'true';
       }
@@ -912,7 +913,7 @@
 
   function updateProModelOptions() {
     if (!modelSelect) return;
-    const allowPro = isProPlan(currentAccountPlan);
+    const allowPro = hasPlusModelAccess(currentAccountPlan);
     Array.from(modelSelect.options).forEach(option => {
       const isPlusModel = option.dataset.plusModel === 'true';
       if (!isPlusModel) return;
