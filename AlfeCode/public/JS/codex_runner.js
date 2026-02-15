@@ -69,7 +69,7 @@
 
   const formatModelLabel = (model) => {
     if (!model) return "";
-    return model.plus_model ? `[Pro] ${model.label}` : model.label;
+    return model.label;
   };
 
   const resolveUsageBadge = (usage) => {

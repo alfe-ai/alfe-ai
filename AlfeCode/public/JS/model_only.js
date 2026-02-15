@@ -332,7 +332,7 @@
     if (!textWrapper) return;
     textWrapper.textContent = '';
     const labelText = model
-      ? (model.plus_model ? `[Pro] ${model.label}` : model.label)
+      ? model.label
       : 'Select model';
     const labelSpan = document.createElement('span');
     labelSpan.textContent = labelText;
@@ -515,7 +515,7 @@
         o.dataset.usage = model.usage;
       }
       const pricingText = formatPricing(model.pricing);
-      const modelLabel = model.plus_model ? `[Pro] ${model.label}` : model.label;
+      const modelLabel = model.label;
       const labelParts = [modelLabel];
       if (pricingText) {
         labelParts.push(`— ${pricingText}`);
@@ -628,7 +628,7 @@
     const model = normaliseModelEntry(raw);
     const option = document.createElement('option');
     option.value = modelId;
-    const label = model ? (model.plus_model ? `[Pro] ${model.label}` : model.label) : modelId;
+    const label = model ? model.label : modelId;
     const usageText = model?.usage
       ? `${model.usage === 'free' ? resolveFreeUsageBadgeLabel() : `${model.usage.charAt(0).toUpperCase()}${model.usage.slice(1)}`} usage`
       : '';
