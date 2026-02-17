@@ -9174,8 +9174,7 @@ const appendMergeChunk = (text, type = "output") => {
   if (subscribeButton) {
     subscribeButton.addEventListener("click", (event) => {
       event.preventDefault();
-      const url = subscribeButton.dataset.subscribeUrl || "/agent/model-only";
-      window.open(url, "_blank", "noopener,noreferrer");
+      showSubscribeModal();
     });
   }
 
