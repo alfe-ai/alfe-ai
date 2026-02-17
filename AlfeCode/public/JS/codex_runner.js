@@ -316,23 +316,6 @@
       }
     }
   };
-  function closeRepoAddModalUi() {
-    const repoAddModal = document.getElementById('repoAddModal');
-    const repoAddIframe = document.getElementById('repoAddIframe');
-    const repoAddLoader = document.getElementById('repoAddLoader');
-    if (repoAddModal) {
-      repoAddModal.classList.add('is-hidden');
-    }
-    document.body.style.overflow = '';
-    if (repoAddIframe) {
-      repoAddIframe.classList.remove('is-loading');
-      repoAddIframe.src = '';
-    }
-    if (repoAddLoader) {
-      repoAddLoader.classList.add('is-hidden');
-    }
-  }
-
   // Listen for settings from the settings iframe to update submit-on-enter default
   function openAuthModalFromMessage(preferredStep = 'signup') {
     const maxAttempts = 30;
@@ -407,7 +390,20 @@
             : 'signup';
         const shouldCloseRepoAddFirst = openAuthConfig.closeRepoAddFirst === true;
         if (shouldCloseRepoAddFirst) {
-          closeRepoAddModalUi();
+          const repoAddModal = document.getElementById('repoAddModal');
+          const repoAddIframe = document.getElementById('repoAddIframe');
+          const repoAddLoader = document.getElementById('repoAddLoader');
+          if (repoAddModal) {
+            repoAddModal.classList.add('is-hidden');
+          }
+          document.body.style.overflow = '';
+          if (repoAddIframe) {
+            repoAddIframe.classList.remove('is-loading');
+            repoAddIframe.src = '';
+          }
+          if (repoAddLoader) {
+            repoAddLoader.classList.add('is-hidden');
+          }
         }
         hideSettingsModal();
         openAuthModalFromMessage(preferredStep);
@@ -429,7 +425,20 @@
         hideSettingsModal();
       }
       if (d.key === 'closeRepoAddModal') {
-        closeRepoAddModalUi();
+        const repoAddModal = document.getElementById('repoAddModal');
+        const repoAddIframe = document.getElementById('repoAddIframe');
+        const repoAddLoader = document.getElementById('repoAddLoader');
+        if (repoAddModal) {
+          repoAddModal.classList.add('is-hidden');
+        }
+        document.body.style.overflow = '';
+        if (repoAddIframe) {
+          repoAddIframe.classList.remove('is-loading');
+          repoAddIframe.src = '';
+        }
+        if (repoAddLoader) {
+          repoAddLoader.classList.add('is-hidden');
+        }
       }
       if (d.key === 'logoutComplete') {
         hideSettingsModal();
@@ -9154,15 +9163,7 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   if (typeof window !== "undefined") {
-    window.alfeOpenAuthModal = (preferredStepOrOptions = "signup", maybeOptions = {}) => {
-      const isConfigObject = preferredStepOrOptions && typeof preferredStepOrOptions === "object";
-      const options = isConfigObject ? preferredStepOrOptions : maybeOptions;
-      const preferredStep = isConfigObject
-        ? preferredStepOrOptions.preferredStep
-        : preferredStepOrOptions;
-      if (options && options.closeRepoAddFirst === true) {
-        closeRepoAddModalUi();
-      }
+    window.alfeOpenAuthModal = (preferredStep = "signup") => {
       openAuthModal({ preferredStep });
     };
     window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true } = {}) => {
