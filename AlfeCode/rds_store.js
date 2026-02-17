@@ -99,7 +99,8 @@ class RdsStore {
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free',
         ever_subscribed BOOLEAN DEFAULT false,
-        openrouter_api_key TEXT DEFAULT ''
+        openrouter_api_key TEXT DEFAULT '',
+        disabled BOOLEAN DEFAULT false
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PROJECTVIEW_JSON_TABLE} (
         session_id TEXT PRIMARY KEY,
@@ -123,9 +124,18 @@ class RdsStore {
          ADD COLUMN IF NOT EXISTS openrouter_api_key TEXT DEFAULT ''`
       );
       await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false`
+      );
+      await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
          SET ever_subscribed = false
          WHERE ever_subscribed IS NULL`
+      );
+      await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET disabled = false
+         WHERE disabled IS NULL`
       );
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SUPPORT_REQUESTS_TABLE} (
         id SERIAL PRIMARY KEY,
@@ -255,7 +265,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, disabled
          FROM ${ACCOUNTS_TABLE}
          WHERE email = $1
          LIMIT 1`,
@@ -354,13 +364,23 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, disabled
          FROM ${ACCOUNTS_TABLE}
          WHERE session_id = $1
          LIMIT 1`,
         [normalized]
       );
-      return result.rows[0] || null;
+      const account = result.rows[0] || null;
+      if (account && account.disabled) {
+        await this.pool.query(
+          `UPDATE ${ACCOUNTS_TABLE}
+           SET session_id = ''
+           WHERE id = $1`,
+          [account.id]
+        );
+        return null;
+      }
+      return account;
     } catch (error) {
       console.error("[RdsStore] Failed to load account by session:", error?.message || error);
       return null;

@@ -1952,6 +1952,9 @@ app.post("/api/login", async (req, res) => {
     if (!account || !verifyPassword(password, account.password_hash)) {
       return res.status(400).json({ error: "invalid credentials" });
     }
+    if (account.disabled) {
+      return res.status(403).json({ error: "account disabled" });
+    }
 
     const disable2fa = process.env.DISABLE_2FA === 'true' || process.env.DISABLE_2FA === '1';
     if (account.totp_secret && !disable2fa) {
