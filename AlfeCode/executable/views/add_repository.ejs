@@ -458,6 +458,13 @@
                 }
                 event.preventDefault();
                 try {
+                    window.parent.postMessage(
+                        {
+                            type: 'sterling:settings',
+                            key: 'closeRepoAddModal',
+                        },
+                        '*',
+                    );
                     if (window.parent && typeof window.parent.alfeOpenAuthModal === 'function') {
                         window.parent.alfeOpenAuthModal('signup', { closeRepoAddFirst: true });
                         return;
@@ -474,7 +481,17 @@
                         '*',
                     );
                 } catch (error) {
-                    window.location.href = loggedOutAuthLink.getAttribute('href') || '/';
+                    window.parent.postMessage(
+                        {
+                            type: 'sterling:settings',
+                            key: 'openAuthModal',
+                            value: {
+                                preferredStep: 'signup',
+                                closeRepoAddFirst: true,
+                            },
+                        },
+                        '*',
+                    );
                 }
             });
         }
