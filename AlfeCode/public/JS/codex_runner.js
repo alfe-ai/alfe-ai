@@ -8806,6 +8806,8 @@ const appendMergeChunk = (text, type = "output") => {
     : new URLSearchParams(window.location.search || "").get("sessionId");
 
   const AUTH_MODAL_STATE_KEY = "alfe.authModalState";
+  const PENDING_AUTH_REQUESTS_KEY = "__alfePendingAuthModalRequests";
+  const AUTH_MODAL_READY_KEY = "__alfeAuthModalReady";
   let authEmailValue = "";
   let authModalStep = "email";
   let accountInfo = null;
