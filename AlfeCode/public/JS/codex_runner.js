@@ -42,6 +42,7 @@
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
+  const QWEN_SHOW_DEBUG_INFO_STORAGE_KEY = 'qwenShowDebugInfo';
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const normalizeEnginePreference = (value) => {
     const normalized = (value || '').toString().trim().toLowerCase();
@@ -53,6 +54,10 @@
   const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
   let enginePreference = engineFromLocal;
   const qwenDebugEnvEnabled = window.MODEL_ONLY_CONFIG && window.MODEL_ONLY_CONFIG.qwenDebugEnabled;
+  const qwenShowDebugInfoFromLocal = (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) !== null)
+    ? (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) === 'true')
+    : undefined;
+  let qwenShowDebugInfo = (typeof qwenShowDebugInfoFromLocal !== 'undefined') ? qwenShowDebugInfoFromLocal : false;
 
   let currentRunContext = null;
   let runsSidebarSelectedRunId = null;
@@ -322,6 +327,12 @@
       if (d.key === 'showPromptHints') {
         try{ showPromptHints = (d.value === true || d.value === 'true'); }catch(e){}
         updatePromptPlaceholder();
+      }
+      if (d.key === 'qwenShowDebugInfo') {
+        try {
+          qwenShowDebugInfo = (d.value === true || d.value === 'true');
+          localStorage.setItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY, qwenShowDebugInfo ? 'true' : 'false');
+        } catch (e) {}
       }
       if(d.key === 'defaultModel'){
         var newDefaultModel = typeof d.value === 'string' ? d.value.trim() : '';
@@ -7159,7 +7170,7 @@ const appendMergeChunk = (text, type = "output") => {
     text,
     {
       preserveTrailingNewlines = false,
-      stripQwenMetaLines = true,
+      stripQwenMetaLines = !qwenShowDebugInfo,
     } = {},
   ) => {
     if (typeof text !== "string" || !text) {

@@ -387,6 +387,11 @@
         <span>Help (?) button on top right</span>
       </label>
       <span id="helpButtonVisibleFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
+      <label style="font-weight:600;display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input type="checkbox" id="qwenShowDebugInfoCheckbox" name="qwenShowDebugInfo">
+        <span>Qwen: Show debug [info]</span>
+      </label>
+      <span id="qwenShowDebugInfoFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
     </div>
     <% if (apiPanelEnabled) { %>
     <h3 class="section-title">API</h3>
@@ -742,6 +747,54 @@
             clearFeedbackTimeout();
             showFeedback('Saving...');
             try{ localStorage.setItem(STORAGE_KEY_HELP_BUTTON, checkbox.checked ? 'true' : 'false'); }catch(e){}
+            send(checkbox.checked);
+            feedbackTimeout = setTimeout(function(){
+              showFeedback('Saved', 'success');
+              feedbackTimeout = null;
+            }, 300);
+          });
+        }catch(e){ /* noop */ }
+      }catch(e){ /* noop */ }
+    })();
+    </script>
+    <script>
+    (function(){
+      try{
+        const STORAGE_KEY_QWEN_DEBUG_INFO = 'qwenShowDebugInfo';
+        const checkbox = document.getElementById('qwenShowDebugInfoCheckbox');
+        const feedback = document.getElementById('qwenShowDebugInfoFeedback');
+        let feedbackTimeout = null;
+        function send(val){ try{ window.parent.postMessage({type:'sterling:settings', key:'qwenShowDebugInfo', value:val}, '*'); }catch(e){} }
+        function clearFeedbackTimeout(){
+          if (!feedbackTimeout) return;
+          clearTimeout(feedbackTimeout);
+          feedbackTimeout = null;
+        }
+        function showFeedback(message, type){
+          if (!feedback) return;
+          if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('hidden');
+            feedback.classList.remove('success', 'error');
+            return;
+          }
+          feedback.textContent = message;
+          feedback.classList.remove('hidden', 'success', 'error');
+          if (type === 'success') {
+            feedback.classList.add('success');
+          } else if (type === 'error') {
+            feedback.classList.add('error');
+          }
+        }
+        try{
+          let cur = (function(){ try{ return localStorage.getItem(STORAGE_KEY_QWEN_DEBUG_INFO); }catch(e){ return null; } })();
+          if (cur === null) { cur = 'false'; }
+          if (checkbox) checkbox.checked = (cur === 'true');
+          send(checkbox ? checkbox.checked : (cur === 'true'));
+          if (checkbox) checkbox.addEventListener('change', function(){
+            clearFeedbackTimeout();
+            showFeedback('Saving...');
+            try{ localStorage.setItem(STORAGE_KEY_QWEN_DEBUG_INFO, checkbox.checked ? 'true' : 'false'); }catch(e){}
             send(checkbox.checked);
             feedbackTimeout = setTimeout(function(){
               showFeedback('Saved', 'success');
