@@ -18,127 +18,37 @@
         <button id="logged-out-login" type="button" class="primary">Sign Up / Log In</button>
       </div>
       <div class="app">
-        <main class="app__main">
-        <div class="tabs__wrapper">
-          <div class="tabs__rows">
-            <div id="sterling-tabs-row" class="tabs__row tabs__row--sterling" hidden>
-              <span id="sterling-tabs-label" class="tabs__row-label">Git Projects</span>
-              <nav
-                id="sterling-tabs"
-                class="tabs tabs--sterling"
-                aria-labelledby="sterling-tabs-label"
-                aria-label="Sterling Git project tabs"
-              ></nav>
-            </div>
-            <div id="regular-tabs-row" class="tabs__row">
-              <span id="regular-tabs-label" class="tabs__row-label">Projects</span>
-              <nav
-                id="tabs"
-                class="tabs"
-                aria-labelledby="regular-tabs-label"
-                aria-label="Project tabs"
-              ></nav>
-            </div>
-          </div>
-          <a class="tabs__import-link" href="import/">Import JSON</a>
-          <button id="download-current-json" type="button" class="tabs__download-button">Download JSON</button>
-          <button
-            id="new-project"
-            type="button"
-            class="tabs__new-project primary"
-            aria-haspopup="dialog"
-            aria-controls="new-project-dialog"
-          >
-            + New Project
-          </button>
-        </div>
-        <details id="archived-projects" class="archived-projects">
-          <summary>
-            Archived Projects
-            <span id="archived-projects-count" class="archived-projects__count"
-              >(0)</span
-            >
-          </summary>
-          <p id="archived-projects-empty" class="archived-projects__empty">
-            No archived projects.
-          </p>
-          <ul id="archived-projects-list" class="archived-projects__list"></ul>
-        </details>
-        <section class="task-panel" aria-live="polite">
-          <div class="task-panel__header">
-            <h2 id="project-title">Select a project</h2>
-            <div class="task-panel__actions">
-              <button id="add-task" type="button">Add Task</button>
-              <button id="add-task-top" type="button">Add Task to Top</button>
-              <button id="rename-project" type="button">Rename Project</button>
-              <button id="archive-project" type="button" class="button--danger">
-                Archive Project
-              </button>
-            </div>
-          </div>
-          <div class="task-panel__body">
-            <table class="task-table">
-              <thead>
-                <tr>
-                  <th scope="col" class="task-table__drag-header">
-                    <span class="sr-only">Reorder</span>
-                  </th>
-                  <th scope="col" class="col-task-id">Task ID</th>
-                  <th scope="col">Title</th>
-                  <th scope="col" class="col-done">Done</th>
-                  <th scope="col" class="task-table__actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="task-table-body"></tbody>
-            
-            </table>
-            <div class="task-panel__footer">
-              <button id="add-task-bottom" type="button" class="primary">Add Task</button>
-            </div>
-          </div>
-          <p id="status-message" role="status" aria-live="assertive"></p>
-        </section>
-      </main>
-      </div>
-      <dialog id="new-project-dialog" class="modal" aria-labelledby="new-project-dialog-title">
-      <form id="new-project-form" class="modal__content" method="dialog">
-        <h2 id="new-project-dialog-title">Create a new project</h2>
-        <label class="modal__label" for="new-project-name">Project name</label>
-        <input
-          id="new-project-name"
-          name="projectName"
-          type="text"
-          required
-          placeholder="e.g. Project Delta"
-        />
-        <div class="modal__actions">
-          <button id="new-project-cancel" type="button">Cancel</button>
-          <button type="submit" class="primary">Create Project</button>
-        </div>
-      </form>
-      </dialog>
-      <dialog id="task-detail-dialog" class="modal" aria-labelledby="task-detail-title">
-      <form id="task-detail-form" class="modal__content" method="dialog">
-        <h2 id="task-detail-title">Task Detail</h2>
-        <div class="editor-toolbar" role="toolbar" aria-label="Editor toolbar">
-          <button type="button" data-cmd="bold">Bold</button>
-          <button type="button" data-cmd="italic">Italic</button>
-          <button type="button" data-cmd="underline">Underline</button>
-          <button type="button" id="insert-image-button">Insert Image</button>
-          <input id="insert-image-input" type="file" accept="image/*" style="display:none" />
-        </div>
-        <div id="task-description-editor" class="rich-editor" contenteditable="true" aria-label="Task description editor"></div>
-        <label class="modal__label" for="task-attachments-input">Attachments</label>
-        <input id="task-attachments-input" type="file" accept="image/*" multiple />
-        <div id="task-attachments-list" class="attachments-list"></div>
-        <div class="modal__actions">
-          <button type="button" id="task-detail-cancel">Cancel</button>
-          <button type="submit" id="task-detail-save" class="primary">Save</button>
-        </div>
-      </form>
-      </dialog>
+        <!-- Top right Subscribe button -->
+        <button id="subscribe-button" type="button" class="primary">Subscribe</button>
 
-            <script src="app.js" defer></script>
+        <!-- Subscribe modal -->
+        <dialog id="subscribe-modal" class="modal" aria-labelledby="subscribe-modal-title">
+          <form class="modal__content" method="dialog">
+            <h2 id="subscribe-modal-title">Subscribe to Alfe AI</h2>
+            <p>Join thousands of developers using Alfe AI to streamline their workflows.</p>
+            <div class="modal__actions">
+              <button type="button" id="subscribe-cancel">Cancel</button>
+              <button type="submit" class="primary">Subscribe Now</button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- Existing content -->
+        <div id="project-view">
+          <!-- Project view content goes here -->
+        </div>
+      </div>
     </div>
+    <script>
+      // Show subscribe modal when button is clicked
+      document.getElementById('subscribe-button').addEventListener('click', () => {
+        document.getElementById('subscribe-modal').showModal();
+      });
+
+      // Close modal when cancel is clicked
+      document.getElementById('subscribe-cancel').addEventListener('click', () => {
+        document.getElementById('subscribe-modal').close();
+      });
+    </script>
   </body>
 </html>
