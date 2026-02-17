@@ -343,6 +343,23 @@
     tryOpenModal();
   }
 
+  const closeRepoAddModal = () => {
+    const repoAddModal = document.getElementById('repoAddModal');
+    const repoAddIframe = document.getElementById('repoAddIframe');
+    const repoAddLoader = document.getElementById('repoAddLoader');
+    if (repoAddModal) {
+      repoAddModal.classList.add('is-hidden');
+    }
+    document.body.style.overflow = '';
+    if (repoAddIframe) {
+      repoAddIframe.classList.remove('is-loading');
+      repoAddIframe.src = '';
+    }
+    if (repoAddLoader) {
+      repoAddLoader.classList.add('is-hidden');
+    }
+  };
+
   window.addEventListener('message', function(ev){
     try{
       var d = ev && ev.data;
@@ -390,20 +407,7 @@
             : 'signup';
         const shouldCloseRepoAddFirst = openAuthConfig.closeRepoAddFirst === true;
         if (shouldCloseRepoAddFirst) {
-          const repoAddModal = document.getElementById('repoAddModal');
-          const repoAddIframe = document.getElementById('repoAddIframe');
-          const repoAddLoader = document.getElementById('repoAddLoader');
-          if (repoAddModal) {
-            repoAddModal.classList.add('is-hidden');
-          }
-          document.body.style.overflow = '';
-          if (repoAddIframe) {
-            repoAddIframe.classList.remove('is-loading');
-            repoAddIframe.src = '';
-          }
-          if (repoAddLoader) {
-            repoAddLoader.classList.add('is-hidden');
-          }
+          closeRepoAddModal();
         }
         hideSettingsModal();
         openAuthModalFromMessage(preferredStep);
@@ -425,20 +429,7 @@
         hideSettingsModal();
       }
       if (d.key === 'closeRepoAddModal') {
-        const repoAddModal = document.getElementById('repoAddModal');
-        const repoAddIframe = document.getElementById('repoAddIframe');
-        const repoAddLoader = document.getElementById('repoAddLoader');
-        if (repoAddModal) {
-          repoAddModal.classList.add('is-hidden');
-        }
-        document.body.style.overflow = '';
-        if (repoAddIframe) {
-          repoAddIframe.classList.remove('is-loading');
-          repoAddIframe.src = '';
-        }
-        if (repoAddLoader) {
-          repoAddLoader.classList.add('is-hidden');
-        }
+        closeRepoAddModal();
       }
       if (d.key === 'logoutComplete') {
         hideSettingsModal();
@@ -9141,10 +9132,13 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
-  const openAuthModal = ({ preferredStep } = {}) => {
+  const openAuthModal = ({ preferredStep, closeRepoAddFirst = false } = {}) => {
     if (!accountButtonEnabled) {
       showToast("Accounts are disabled on this server.");
       return;
+    }
+    if (closeRepoAddFirst) {
+      closeRepoAddModal();
     }
     hideSettingsModal();
     const saved = loadAuthModalState();
@@ -9163,8 +9157,9 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   if (typeof window !== "undefined") {
-    window.alfeOpenAuthModal = (preferredStep = "signup") => {
-      openAuthModal({ preferredStep });
+    window.alfeOpenAuthModal = (preferredStep = "signup", options = {}) => {
+      const closeRepoAddFirst = Boolean(options && options.closeRepoAddFirst === true);
+      openAuthModal({ preferredStep, closeRepoAddFirst });
     };
     window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true } = {}) => {
       if (closeSettingsFirst) {
