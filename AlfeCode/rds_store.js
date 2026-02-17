@@ -373,11 +373,29 @@ class RdsStore {
     if (!targetId || !sourceId || targetId === sourceId) {
       return;
     }
+    const client = await this.pool.connect();
     try {
-      await this.pool.query(`DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1`, [targetId]);
-      await this.pool.query(`UPDATE ${SESSION_SETTINGS_TABLE} SET session_id = $1 WHERE session_id = $2`, [targetId, sourceId]);
+      await client.query("BEGIN");
+      await client.query(
+        `INSERT INTO ${SESSION_SETTINGS_TABLE} (session_id, key, value)
+         SELECT $1, key, value
+         FROM ${SESSION_SETTINGS_TABLE}
+         WHERE session_id = $2
+         ON CONFLICT (session_id, key) DO UPDATE
+         SET value = EXCLUDED.value`,
+        [targetId, sourceId]
+      );
+      await client.query(`DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1`, [sourceId]);
+      await client.query("COMMIT");
     } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("[RdsStore] Failed to rollback session merge:", rollbackError?.message || rollbackError);
+      }
       console.error("[RdsStore] Failed to merge sessions:", error?.message || error);
+    } finally {
+      client.release();
     }
   }
 
