@@ -9332,9 +9332,21 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  const getModalCloseButtonFromEvent = (event) => {
+    const target = event && event.target;
+    if (target instanceof Element) {
+      return target.closest(".modal-close");
+    }
+    if (event && typeof event.composedPath === "function") {
+      const path = event.composedPath();
+      return path.find((node) => node instanceof Element && node.classList.contains("modal-close")) || null;
+    }
+    return null;
+  };
+
   if (authModal) {
     authModal.addEventListener("click", (event) => {
-      const closeButton = event.target.closest(".modal-close");
+      const closeButton = getModalCloseButtonFromEvent(event);
       if (closeButton) {
         event.preventDefault();
         hideAuthModal();
@@ -9348,7 +9360,7 @@ const appendMergeChunk = (text, type = "output") => {
 
   if (accountModal) {
     accountModal.addEventListener("click", (event) => {
-      const closeButton = event.target.closest(".modal-close");
+      const closeButton = getModalCloseButtonFromEvent(event);
       if (closeButton) {
         event.preventDefault();
         hideAccountModal();
