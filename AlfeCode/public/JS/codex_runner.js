@@ -317,6 +317,19 @@
     }
   };
   // Listen for settings from the settings iframe to update submit-on-enter default
+  function openAuthModalFromMessage(preferredStep = 'signup') {
+    if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal === 'function') {
+      window.alfeOpenAuthModal(preferredStep);
+      return;
+    }
+
+    window.setTimeout(() => {
+      if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal === 'function') {
+        window.alfeOpenAuthModal(preferredStep);
+      }
+    }, 0);
+  }
+
   window.addEventListener('message', function(ev){
     try{
       var d = ev && ev.data;
@@ -380,9 +393,7 @@
           }
         }
         hideSettingsModal();
-        if (typeof openAuthModal === 'function') {
-          openAuthModal({ preferredStep });
-        }
+        openAuthModalFromMessage(preferredStep);
       }
       if (d.key === 'openSubscribeModal') {
         const shouldCloseSettingsFirst = d.value && typeof d.value === 'object'
