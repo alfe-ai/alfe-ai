@@ -457,41 +457,22 @@
                     return;
                 }
                 event.preventDefault();
+                const openAuthPayload = {
+                    type: 'sterling:settings',
+                    key: 'openAuthModal',
+                    value: {
+                        preferredStep: 'signup',
+                        closeRepoAddFirst: true,
+                    },
+                };
                 try {
-                    window.parent.postMessage(
-                        {
-                            type: 'sterling:settings',
-                            key: 'closeRepoAddModal',
-                        },
-                        '*',
-                    );
                     if (window.parent && typeof window.parent.alfeOpenAuthModal === 'function') {
                         window.parent.alfeOpenAuthModal('signup', { closeRepoAddFirst: true });
                         return;
                     }
-                    window.parent.postMessage(
-                        {
-                            type: 'sterling:settings',
-                            key: 'openAuthModal',
-                            value: {
-                                preferredStep: 'signup',
-                                closeRepoAddFirst: true,
-                            },
-                        },
-                        '*',
-                    );
+                    window.parent.postMessage(openAuthPayload, '*');
                 } catch (error) {
-                    window.parent.postMessage(
-                        {
-                            type: 'sterling:settings',
-                            key: 'openAuthModal',
-                            value: {
-                                preferredStep: 'signup',
-                                closeRepoAddFirst: true,
-                            },
-                        },
-                        '*',
-                    );
+                    window.parent.postMessage(openAuthPayload, '*');
                 }
             });
         }
