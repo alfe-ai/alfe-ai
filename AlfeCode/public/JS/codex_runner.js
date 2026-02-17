@@ -379,6 +379,20 @@
       if (d.key === 'closeSettingsModal') {
         hideSettingsModal();
       }
+      if (d.key === 'logoutComplete') {
+        hideSettingsModal();
+        try {
+          const url = new URL(window.location.href);
+          const isAgentPage = url.pathname === '/agent' || url.pathname.startsWith('/agent/');
+          if (isAgentPage) {
+            window.location.reload();
+          } else {
+            window.location.assign('/agent');
+          }
+        } catch (error) {
+          window.location.assign('/agent');
+        }
+      }
     }catch(e){}
   });
 
