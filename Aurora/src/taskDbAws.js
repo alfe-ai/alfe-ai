@@ -289,7 +289,8 @@ export default class TaskDBAws {
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
-        plan TEXT DEFAULT 'Free'
+        plan TEXT DEFAULT 'Free',
+        disabled BOOLEAN DEFAULT false
       );`);
 
       await client.query(`CREATE TABLE IF NOT EXISTS upwork_jobs (
@@ -366,6 +367,8 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS totp_secret TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Free';");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false;");
+      await client.query("UPDATE accounts SET disabled = false WHERE disabled IS NULL;");
       await client.query("ALTER TABLE sterlingproxy ADD COLUMN IF NOT EXISTS runs INTEGER DEFAULT 0;");
 
     } finally {
@@ -1004,7 +1007,13 @@ export default class TaskDBAws {
   async getAccountBySession(sessionId) {
     if (!sessionId) return null;
     const { rows } = await this.pool.query('SELECT * FROM accounts WHERE session_id = $1', [sessionId]);
-    return rows[0] || null;
+    const account = rows[0] || null;
+    if (!account) return null;
+    if (account.disabled) {
+      await this.pool.query("UPDATE accounts SET session_id = '' WHERE id = $1", [account.id]);
+      return null;
+    }
+    return account;
   }
 
   async mergeSessions(targetId, sourceId) {
