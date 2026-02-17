@@ -7539,7 +7539,7 @@ const appendMergeChunk = (text, type = "output") => {
 
       const parsed = safeParseJson(line);
       if (!parsed) {
-        const passthrough = stripQwenCliOutput(rawLine, { stripQwenMetaLines: false }).trim();
+        const passthrough = stripQwenCliOutput(rawLine).trim();
         if (passthrough) {
           displayLines.push(passthrough);
         }
@@ -7586,7 +7586,7 @@ const appendMergeChunk = (text, type = "output") => {
 
       const parsed = safeParseJson(line);
       if (!parsed) {
-        const passthrough = stripQwenCliOutput(rawLine, { stripQwenMetaLines: false }).trim();
+        const passthrough = stripQwenCliOutput(rawLine).trim();
         if (passthrough) {
           displayLines.push(passthrough);
         }
