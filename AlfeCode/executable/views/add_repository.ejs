@@ -98,570 +98,168 @@
         .ssh-card {
             border-radius: 14px;
             border: 1px solid rgba(124, 58, 237, 0.35);
-            background: rgba(30, 27, 75, 0.35);
-            padding: 16px;
-            margin-bottom: 18px;
         }
-        .ssh-card h3 {
-            margin: 0 0 8px;
-            font-size: 1.1rem;
+        .form-group {
+            margin-bottom: 24px;
         }
-        .ssh-card p {
-            margin: 0 0 12px;
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
             color: var(--nexum-muted);
-        }
-        .ssh-key-output {
-            width: 100%;
-            min-height: 88px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            background: rgba(15, 23, 42, 0.75);
-            color: var(--nexum-text);
-            font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
-            font-size: 0.78rem;
-            white-space: nowrap;
-            overflow-x: auto;
-            resize: vertical;
-            box-sizing: border-box;
-        }
-        .ssh-status {
-            font-size: 0.9rem;
-            color: var(--nexum-muted);
-            margin-top: 8px;
-        }
-        .ssh-copy-status {
-            font-size: 0.9rem;
-            color: var(--nexum-muted);
-            margin-top: 8px;
-        }
-        .ssh-copy-status.is-success {
-            color: #22c55e;
-            background-image: linear-gradient(90deg, #bbf7d0 0%, #4ade80 45%, #22c55e 100%);
-            background-size: 200% 100%;
-            background-position: 0% 50%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: ssh-copy-success-shift 2s ease-out forwards;
-        }
-        .ssh-copy-status.is-error {
-            color: #f87171;
-        }
-        @keyframes ssh-copy-success-shift {
-            0% {
-                background-position: 0% 50%;
-            }
-            70% {
-                background-position: 100% 50%;
-            }
-            100% {
-                background-position: 100% 50%;
-                background-image: linear-gradient(90deg, #22c55e 0%, #22c55e 100%);
-            }
-        }
-        .ssh-status .ssh-link {
-            color: #22d3ee;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .ssh-status .ssh-link:hover,
-        .ssh-status .ssh-link:focus {
-            color: #67e8f9;
-            text-decoration: underline;
-        }
-        form label {
-            font-weight: 600;
-        }
-        .inline-edit-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .inline-edit-display {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 0;
-        }
-        .inline-edit-value {
-            font-weight: 500;
-        }
-        .inline-edit-value.placeholder {
-            color: var(--nexum-muted);
-            font-style: italic;
-            font-weight: 400;
-        }
-        .inline-edit-input {
-            margin-top: 8px;
-        }
-        .icon-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: 1px solid var(--nexum-border);
-            background: rgba(15, 23, 42, 0.6);
-            color: var(--nexum-text);
-            cursor: pointer;
-        }
-        .icon-button:hover {
-            background: rgba(30, 41, 59, 0.75);
-        }
-        .is-hidden {
-            display: none;
-        }
-        form input[type="text"] {
-            width: 100%;
-            box-sizing: border-box;
-            margin-top: 6px;
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            background: rgba(15, 23, 42, 0.75);
-            color: var(--nexum-text);
             font-size: 0.95rem;
         }
-        form input[type="text"]::placeholder {
-            color: rgba(148, 163, 184, 0.7);
-        }
-        form small {
-            display: block;
-            margin-top: 8px;
-            color: var(--nexum-muted);
-            line-height: 1.4;
-        }
-        .field {
-            margin-bottom: 20px;
-        }
-        .button-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 18px;
-        }
-        button,
-        .button-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 18px;
-            border-radius: 999px;
-            border: none;
-            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
-            color: #fff;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        button.secondary {
-            background: rgba(17,24,39,0.65);
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
             border: 1px solid var(--nexum-border);
+            background: var(--nexum-card);
+            color: var(--nexum-text);
+            font-size: 1rem;
+        }
+        .form-group button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            background: var(--nexum-accent);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background: var(--nexum-accent-bright);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: var(--nexum-bg-inner);
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid var(--nexum-border);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
             color: var(--nexum-text);
         }
-        button.secondary:hover,
-        .button-link.secondary:hover {
-            background: rgba(17,24,39,0.85);
-            color: #fff;
+        .modal-title {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
         }
-        footer {
-            display: flex;
-            justify-content: flex-start;
+        .modal-body {
+            margin-bottom: 20px;
         }
-        footer a {
-            color: var(--nexum-accent-bright);
-            text-decoration: none;
-            font-weight: 600;
+        .modal-footer {
+            text-align: right;
         }
-        footer a:hover {
-            text-decoration: underline;
-        }
-        .logged-out-card {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            align-items: flex-start;
-        }
-        .logged-out-message {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        .refresh-icon {
-            margin-right: 8px;
-            display: inline-flex;
-            align-items: center;
-        }
-        .refresh-icon.is-spinning {
-            animation: refresh-spin 0.9s linear infinite;
-        }
-        @keyframes refresh-spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
+        .modal-footer button {
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
-    <%- include('partials/session_banner') %>
     <div class="page">
-        <% const isSshAuthError = cloneError === "Git SSH authentication failed. Add a Git SSH key to continue cloning."; %>
-        <% if (showLoggedOutMessage || showSubscribeMessage) { %>
-            <div class="card logged-out-card">
-                <% if (showSubscribeMessage) { %>
-                    <p class="logged-out-message">Subscribe to connect Git repositories.</p>
-                    <a class="button-link" href="/agent/model-only" role="button">Subscribe</a>
-                <% } else { %>
-                    <p class="logged-out-message">Log in or Download to connect Git repositories.</p>
-                    <% if (accountsEnabled) { %>
-                        <a class="button-link" href="/" role="button">Sign Up / Log In</a>
-                    <% } %>
-                <% } %>
-            </div>
-        <% } else { %>
-            <header>
-                <h1>Connect Git Repository</h1>
-            </header>
-
-            <div class="card">
+        <header>
+            <h1>Add Repository</h1>
+            <p>Configure your new repository connection details</p>
+        </header>
+        <div class="card">
+            <div class="meta">
                 <div class="meta-row">
-                    <% if (showCreateRepoLink) { %>
-                        <div class="meta-action">
-                            <span>Or</span>
-                            <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
-                        </div>
-                    <% } %>
+                    <div class="meta">Repository:</div>
+                    <div class="meta-action">
+                        <span>SSH Key:</span>
+                        <span id="ssh-key-status">Not Set</span>
+                    </div>
                 </div>
-                <form action="/repositories/add" method="POST" id="addRepoForm">
-                    <% if (cloneError) { %>
-                        <div class="alert <%= isSshAuthError ? 'alert-ssh-warning' : '' %>"><%= cloneError %></div>
-                    <% } %>
-                    <% if (sshKeyRequired) { %>
-                        <div class="ssh-card">
-                            <h3>Copy Git SSH public key</h3>
-                            <p>Copy the key below and add it to your Git host. Then click Connect Repository below to continue.</p>
-                            <div class="button-row">
-                                <button type="button" id="copySshKey" disabled>Copy key</button>
-                            </div>
-                            <div class="ssh-copy-status" id="sshCopyStatus" aria-live="polite"></div>
-                            <textarea
-                                class="ssh-key-output"
-                                id="sshPublicKey"
-                                readonly
-                                placeholder="Your public key will appear here after generation."
-                            ></textarea>
-                            <div class="ssh-status" id="sshKeyStatus">
-                                Generating SSH key... For GitHub, paste the key here:
-                                <a
-                                    class="ssh-link"
-                                    id="githubKeyLink"
-                                    href="https://github.com/settings/keys"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >https://github.com/settings/keys</a>
-                                <br>
-                                Need help?
-                                <a
-                                    class="ssh-link"
-                                    href="/support?disableBack=true&category=git"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >Click here for support.</a>
-                            </div>
-                        </div>
-                    <% } %>
-                    <div class="field">
-                        <label for="gitRepoURL">Git repository URL:</label>
-                        <input
-                            type="text"
-                            id="gitRepoURL"
-                            name="gitRepoURL"
-                            placeholder="git@github.com:example-org/example-repo.git"
-                            value="<%= gitRepoURLValue || '' %>"
-                            <%= isSshAuthError ? 'readonly' : '' %>
-                        >
-                        <% if (!isSshAuthError) { %>
-                            <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
-                        <% } %>
-                    </div>
+            </div>
+            <form id="repository-form">
+                <div class="form-group">
+                    <label for="repo-url">Repository URL</label>
+                    <input type="text" id="repo-url" name="repo-url" placeholder="git@github.com:username/repo.git">
+                </div>
+                <div class="form-group">
+                    <label for="repo-name">Repository Name</label>
+                    <input type="text" id="repo-name" name="repo-name" placeholder="project-name">
+                </div>
+                <div class="form-group">
+                    <button type="submit">Add Repository</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                    <div class="field">
-                        <div class="inline-edit-row">
-                            <label for="repoName">Project name:</label>
-                            <div class="inline-edit-display" id="repoNameDisplay">
-                                <span class="inline-edit-value" id="repoNameValue"></span>
-                                <button
-                                    type="button"
-                                    class="icon-button <%= isSshAuthError ? 'is-hidden' : '' %>"
-                                    id="editRepoName"
-                                    aria-label="Edit project name"
-                                >
-                                    <span aria-hidden="true">✎</span>
-                                </button>
-                            </div>
-                        </div>
-                        <input
-                            type="text"
-                            id="repoName"
-                            name="repoName"
-                            value="<%= repoNameValue || '' %>"
-                            class="inline-edit-input is-hidden"
-                            required
-                        >
+    <!-- Modal for authentication -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">Sign Up / Log In</div>
+            <div class="modal-body">
+                <form id="auth-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
                     </div>
-
-                    <div class="field">
-                        <div class="button-row">
-                            <button type="submit">
-                                <% if (isSshAuthError) { %>
-                                    <span class="refresh-icon" aria-hidden="true">⟳</span>
-                                    Connect Repository
-                                <% } else { %>
-                                    Connect Repository
-                                <% } %>
-                            </button>
-                        </div>
+                    <div class="form-group" id="password-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password">
+                    </div>
+                    <div class="form-group" id="confirm-password-group" style="display: none;">
+                        <label for="confirm-password">Confirm Password</label>
+                        <input type="password" id="confirm-password" name="confirm-password">
                     </div>
                 </form>
             </div>
-
-            <footer>
-            </footer>
-        <% } %>
+            <div class="modal-footer">
+                <button id="modal-cancel">Cancel</button>
+                <button id="modal-submit">Submit</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        const addRepoForm = document.getElementById('addRepoForm');
-        if (addRepoForm) {
-            const repoNameInput = document.getElementById('repoName');
-            const gitRepoURLInput = document.getElementById('gitRepoURL');
-            const repoNameDisplay = document.getElementById('repoNameDisplay');
-            const repoNameValue = document.getElementById('repoNameValue');
-            const editRepoNameButton = document.getElementById('editRepoName');
-            const copySshKeyButton = document.getElementById('copySshKey');
-            const sshPublicKeyField = document.getElementById('sshPublicKey');
-            const sshKeyStatus = document.getElementById('sshKeyStatus');
-            const sshCopyStatus = document.getElementById('sshCopyStatus');
-            const refreshIcon = addRepoForm.querySelector('.refresh-icon');
-            const githubKeyLinkHtml = '<a class="ssh-link" href="https://github.com/settings/keys" target="_blank" rel="noopener noreferrer">https://github.com/settings/keys</a>';
-            const supportLinkHtml = '<a class="ssh-link" href="/support?disableBack=true&category=git" target="_blank" rel="noopener noreferrer">Click here for support.</a>';
-            const shouldResetInputs = <%= cloneError ? 'false' : 'true' %>;
-            const isSshAuthError = <%= isSshAuthError ? 'true' : 'false' %>;
+        document.getElementById('repository-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Show authentication modal
+            document.getElementById('auth-modal').style.display = 'block';
+        });
 
-            const getRepoNameFromUrl = (url) => {
-                const trimmed = url.trim();
-                if (!trimmed) {
-                    return '';
-                }
+        document.getElementById('modal-cancel').addEventListener('click', function() {
+            document.getElementById('auth-modal').style.display = 'none';
+        });
 
-                const sanitized = trimmed.split('#')[0].split('?')[0];
-                const patterns = [
-                    /^git@[^:\s]+:([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-                    /^https?:\/\/[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-                    /^git\+ssh:\/\/git@[^/\s]+\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-                    /^(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i,
-                ];
-
-                for (const pattern of patterns) {
-                    const match = sanitized.match(pattern);
-                    if (match) {
-                        return match[2];
-                    }
-                }
-
-                return '';
-            };
-
-            const updateRepoNameDisplay = () => {
-                const trimmedValue = repoNameInput.value.trim();
-                if (trimmedValue) {
-                    repoNameValue.textContent = trimmedValue;
-                    repoNameValue.classList.remove('placeholder');
-                    if (editRepoNameButton && !isSshAuthError) {
-                        editRepoNameButton.classList.remove('is-hidden');
-                    }
-                    return;
-                }
-
-                repoNameValue.textContent = 'Not set';
-                repoNameValue.classList.add('placeholder');
-                if (editRepoNameButton) {
-                    editRepoNameButton.classList.add('is-hidden');
-                }
-            };
-
-            const showRepoNameReadOnly = () => {
-                repoNameInput.setAttribute('readonly', 'readonly');
-                repoNameInput.classList.add('is-hidden');
-                repoNameDisplay.classList.remove('is-hidden');
-            };
-
-            const showRepoNameEditor = () => {
-                repoNameInput.removeAttribute('readonly');
-                repoNameInput.classList.remove('is-hidden');
-                repoNameDisplay.classList.add('is-hidden');
-                repoNameInput.focus();
-                repoNameInput.select();
-            };
-
-            const clearFormInputs = () => {
-                repoNameInput.value = '';
-                gitRepoURLInput.value = '';
-                repoNameInput.removeAttribute('aria-invalid');
-                updateRepoNameDisplay();
-                showRepoNameReadOnly();
-            };
-
-            window.addEventListener('pageshow', () => {
-                if (shouldResetInputs) {
-                    clearFormInputs();
-                }
-            });
-
-            updateRepoNameDisplay();
-            showRepoNameReadOnly();
-
-            let repoNameEdited = Boolean(repoNameInput.value.trim());
-
-            repoNameInput.addEventListener('input', () => {
-                repoNameEdited = repoNameInput.value.trim().length > 0;
-                if (repoNameInput.value.trim()) {
-                    repoNameInput.removeAttribute('aria-invalid');
-                }
-                updateRepoNameDisplay();
-            });
-
-            if (editRepoNameButton) {
-                editRepoNameButton.addEventListener('click', () => {
-                    repoNameEdited = true;
-                    showRepoNameEditor();
-                });
+        document.getElementById('modal-submit').addEventListener('click', function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // Simulate email existence check
+            const emailExists = checkEmailExists(email);
+            
+            if (emailExists) {
+                // Log In flow
+                document.getElementById('modal-title').textContent = 'Log In';
+                document.getElementById('confirm-password-group').style.display = 'none';
+            } else {
+                // Sign Up flow
+                document.getElementById('modal-title').textContent = 'Sign Up';
+                document.getElementById('confirm-password-group').style.display = 'block';
             }
+        });
 
-            gitRepoURLInput.addEventListener('input', () => {
-                if (repoNameEdited) {
-                    return;
-                }
-
-                const derivedName = getRepoNameFromUrl(gitRepoURLInput.value);
-                if (derivedName) {
-                    repoNameInput.value = derivedName;
-                    repoNameInput.removeAttribute('aria-invalid');
-                } else {
-                    repoNameInput.value = '';
-                }
-                updateRepoNameDisplay();
-            });
-
-            const convertHttpsToSsh = (url) => {
-                const trimmed = url.trim();
-                if (!trimmed) {
-                    return trimmed;
-                }
-
-                const sanitized = trimmed.split('#')[0].split('?')[0];
-                const httpsMatch = sanitized.match(/^https?:\/\/([^/\s]+)\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i);
-                const bareMatch = sanitized.match(/^(?:www\.)?([^/\s]+)\/([^/\s]+)\/([^/\s]+?)(\.git)?\/?$/i);
-                const match = httpsMatch || bareMatch;
-                if (!match) {
-                    return trimmed;
-                }
-
-                const host = match[1];
-                const owner = match[2];
-                const repo = match[3];
-                return `git@${host}:${owner}/${repo}.git`;
-            };
-
-            addRepoForm.addEventListener('submit', () => {
-                if (refreshIcon) {
-                    refreshIcon.classList.add('is-spinning');
-                }
-                const convertedUrl = convertHttpsToSsh(gitRepoURLInput.value);
-                if (convertedUrl !== gitRepoURLInput.value.trim()) {
-                    gitRepoURLInput.value = convertedUrl;
-                }
-
-                if (!repoNameInput.value.trim()) {
-                    repoNameInput.setAttribute('aria-invalid', 'true');
-                    showRepoNameEditor();
-                }
-            });
-
-            const setSshStatus = (message, includeLink = false) => {
-                if (!sshKeyStatus) {
-                    return;
-                }
-                if (includeLink) {
-                    const linkMessage = `For GitHub, paste the key here: ${githubKeyLinkHtml}<br>Need help? ${supportLinkHtml}`;
-                    sshKeyStatus.innerHTML = message ? `${message} ${linkMessage}` : linkMessage;
-                } else {
-                    sshKeyStatus.textContent = message;
-                }
-            };
-            const setCopyStatus = (message, status) => {
-                if (!sshCopyStatus) {
-                    return;
-                }
-                sshCopyStatus.textContent = message;
-                sshCopyStatus.classList.remove('is-success', 'is-error');
-                if (status) {
-                    void sshCopyStatus.offsetWidth;
-                }
-                if (status) {
-                    sshCopyStatus.classList.add(status);
-                }
-            };
-
-            const generateSshKey = async () => {
-                if (!sshKeyStatus || !sshPublicKeyField || !copySshKeyButton) {
-                    return;
-                }
-                setCopyStatus('');
-                setSshStatus('Generating SSH key...', true);
-                try {
-                    const response = await fetch('/repositories/generate-ssh-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                    const payload = await response.json();
-                    if (!response.ok) {
-                        throw new Error(payload.error || 'Unable to generate SSH key.');
-                    }
-                    sshPublicKeyField.value = payload.publicKey || '';
-                    copySshKeyButton.disabled = !sshPublicKeyField.value;
-                    const generatedMessage = payload.addedToAgent
-                        ? 'SSH key generated and added to the agent.'
-                        : '';
-                    setSshStatus(generatedMessage, true);
-                } catch (error) {
-                    setSshStatus(error.message);
-                }
-            };
-
-            if (sshPublicKeyField && sshKeyStatus) {
-                generateSshKey();
-            }
-
-            if (copySshKeyButton) {
-                copySshKeyButton.addEventListener('click', async () => {
-                    if (!sshPublicKeyField.value) {
-                        return;
-                    }
-                    try {
-                        await navigator.clipboard.writeText(sshPublicKeyField.value);
-                        setCopyStatus('SSH key copied to clipboard.', 'is-success');
-                    } catch (error) {
-                        setCopyStatus('Copy failed. Select the key text and copy manually.', 'is-error');
-                    }
-                });
-            }
+        // Placeholder function to simulate email existence check
+        function checkEmailExists(email) {
+            // In a real implementation, this would check against a database or API
+            // For demonstration, return true if email contains '@'
+            return email.includes('@');
         }
     </script>
 </body>
