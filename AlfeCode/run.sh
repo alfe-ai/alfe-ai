@@ -14,6 +14,12 @@ git pull
 git --no-pager log -n 3
 bash -c "npm install"
 
+# Ensure global npm executables are on PATH (npm 9+ removed `npm bin`)
+NPM_PREFIX="$(npm prefix -g 2>/dev/null || npm config get prefix 2>/dev/null || true)"
+if [ -n "$NPM_PREFIX" ] && [ -d "$NPM_PREFIX/bin" ] && [[ ":$PATH:" != *":$NPM_PREFIX/bin:"* ]]; then
+  export PATH="$NPM_PREFIX/bin:$PATH"
+fi
+
 # Start local git server daemon if available
 GITHOST_SCRIPT="$(dirname "$0")/githost/git-server.sh"
 if [ -x "$GITHOST_SCRIPT" ]; then
