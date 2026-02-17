@@ -357,7 +357,28 @@
         }
       }
       if (d.key === 'openAuthModal') {
-        const preferredStep = d.value === 'login' ? 'login' : 'signup';
+        const openAuthConfig = d.value && typeof d.value === 'object' ? d.value : {};
+        const preferredStep =
+          (typeof d.value === 'string' ? d.value : openAuthConfig.preferredStep) === 'login'
+            ? 'login'
+            : 'signup';
+        const shouldCloseRepoAddFirst = openAuthConfig.closeRepoAddFirst === true;
+        if (shouldCloseRepoAddFirst) {
+          const repoAddModal = document.getElementById('repoAddModal');
+          const repoAddIframe = document.getElementById('repoAddIframe');
+          const repoAddLoader = document.getElementById('repoAddLoader');
+          if (repoAddModal) {
+            repoAddModal.classList.add('is-hidden');
+          }
+          document.body.style.overflow = '';
+          if (repoAddIframe) {
+            repoAddIframe.classList.remove('is-loading');
+            repoAddIframe.src = '';
+          }
+          if (repoAddLoader) {
+            repoAddLoader.classList.add('is-hidden');
+          }
+        }
         hideSettingsModal();
         if (typeof openAuthModal === 'function') {
           openAuthModal({ preferredStep });
