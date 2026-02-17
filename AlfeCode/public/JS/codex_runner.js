@@ -318,6 +318,7 @@
   };
   // Listen for settings from the settings iframe to update submit-on-enter default
   const PENDING_AUTH_REQUESTS_KEY = '__alfePendingAuthModalRequests';
+  const AUTH_MODAL_READY_KEY = '__alfeAuthModalReady';
 
   const enqueueAuthModalRequest = (preferredStep = 'signup', options = {}) => {
     try {
@@ -334,6 +335,10 @@
     }
   };
 
+  if (typeof window !== 'undefined') {
+    window[AUTH_MODAL_READY_KEY] = false;
+  }
+
   if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal !== 'function') {
     window.alfeOpenAuthModal = (preferredStep = 'signup', options = {}) => {
       enqueueAuthModalRequest(preferredStep, options);
@@ -341,7 +346,12 @@
   }
 
   function openAuthModalFromMessage(preferredStep = 'signup', options = {}) {
-    if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal === 'function') {
+    const isAuthModalReady =
+      typeof window !== 'undefined' &&
+      window[AUTH_MODAL_READY_KEY] === true &&
+      typeof window.alfeOpenAuthModal === 'function';
+
+    if (isAuthModalReady) {
       window.alfeOpenAuthModal(preferredStep, options);
       return;
     }
@@ -9190,6 +9200,7 @@ const appendMergeChunk = (text, type = "output") => {
       const closeRepoAddFirst = Boolean(options && options.closeRepoAddFirst === true);
       openAuthModal({ preferredStep, closeRepoAddFirst });
     };
+    window[AUTH_MODAL_READY_KEY] = true;
     drainPendingAuthModalRequests();
 
     window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true, closeRepoAddFirst = false } = {}) => {
