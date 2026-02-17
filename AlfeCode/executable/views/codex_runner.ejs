@@ -3745,13 +3745,9 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
           const loginForm = document.getElementById('loginForm');
           const signupForm = document.getElementById('signupForm');
 
-          // Check if forms are visible using a more reliable method
-          const loginVisible = loginForm && !loginForm.classList.contains('hidden');
-          const signupVisible = signupForm && !signupForm.classList.contains('hidden');
-
-          if (loginVisible) {
+          if (loginForm && loginForm.style.display !== 'none') {
             titleElement.textContent = 'Log In';
-          } else if (signupVisible) {
+          } else if (signupForm && signupForm.style.display !== 'none') {
             titleElement.textContent = 'Sign Up';
           } else {
             titleElement.textContent = 'Sign Up / Log In';
@@ -3765,41 +3761,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
         document.getElementById('authEmailContinueBtn').addEventListener('click', updateAuthModalTitle);
         document.getElementById('loginChangeEmailBtn').addEventListener('click', updateAuthModalTitle);
         document.getElementById('signupChangeEmailBtn').addEventListener('click', updateAuthModalTitle);
-
-        // Ensure title updates when modal is initially rendered
-        window.addEventListener('DOMContentLoaded', updateAuthModalTitle);
-
-        // Force title update if modal is already visible
-        if (document.getElementById('authModal').classList.contains('is-visible')) {
-          updateAuthModalTitle();
-        }
-
-        // Add fallback for async form loading
-        setTimeout(updateAuthModalTitle, 500);
-
-        // Add fallback for async form loading
-        setTimeout(updateAuthModalTitle, 100);
-
-        // Add debug logging
-        console.log('Auth modal title initialized with:', {
-          loginForm: loginForm ? {
-            display: loginForm.style.display,
-            className: loginForm.className
-          } : 'null',
-          signupForm: signupForm ? {
-            display: signupForm.style.display,
-            className: signupForm.className
-          } : 'null',
-          modalState: document.getElementById('authModal').classList.contains('is-visible')
-        });
-
-        // Add additional event listeners for any other form toggle triggers
-        document.querySelectorAll('[data-toggle-form]').forEach(button => {
-          button.addEventListener('click', updateAuthModalTitle);
-        });
-
-        // Add fallback for async form loading
-        setTimeout(updateAuthModalTitle, 500);
       </script>
         <div class="modal-content modal-content--auth">
             <button class="modal-close" type="button" id="authModalCloseButton">×</button>
