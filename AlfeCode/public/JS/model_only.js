@@ -350,6 +350,7 @@
           .filter(Boolean)
           .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
           .join(' ');
+    if (!label) return null;
     const badgeEl = document.createElement('span');
     badgeEl.className = `usage-badge ${badge.className}`;
     badgeEl.textContent = `${label} usage`;
