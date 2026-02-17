@@ -2138,7 +2138,10 @@ async function logout(){
   hideModal(document.getElementById("settingsModal"));
   updateAccountButton(null);
   showToast("Logged out");
-  setTimeout(() => location.reload(), 500);
+  // Close modal first, then refresh the page to show user as logged out
+  setTimeout(() => {
+    window.location.href = window.location.pathname;
+  }, 500);
 }
 
 let limitCountdownTimer = null;
