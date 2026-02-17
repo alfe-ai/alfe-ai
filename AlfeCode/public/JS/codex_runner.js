@@ -379,6 +379,22 @@
       if (d.key === 'closeSettingsModal') {
         hideSettingsModal();
       }
+      if (d.key === 'closeRepoAddModal') {
+        const repoAddModal = document.getElementById('repoAddModal');
+        const repoAddIframe = document.getElementById('repoAddIframe');
+        const repoAddLoader = document.getElementById('repoAddLoader');
+        if (repoAddModal) {
+          repoAddModal.classList.add('is-hidden');
+        }
+        document.body.style.overflow = '';
+        if (repoAddIframe) {
+          repoAddIframe.classList.remove('is-loading');
+          repoAddIframe.src = '';
+        }
+        if (repoAddLoader) {
+          repoAddLoader.classList.add('is-hidden');
+        }
+      }
       if (d.key === 'logoutComplete') {
         hideSettingsModal();
         try {

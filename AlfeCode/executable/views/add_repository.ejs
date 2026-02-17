@@ -321,7 +321,7 @@
                     <p class="logged-out-message">Log in or Download to connect Git repositories.</p>
                     <div class="button-row">
                         <% if (accountsEnabled) { %>
-                            <a class="button-link" href="/" role="button">Sign Up / Log In</a>
+                            <a class="button-link" id="loggedOutAuthLink" href="/" role="button">Sign Up / Log In</a>
                         <% } %>
                         <button type="button" class="github-link-button" onclick="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer');" oncontextmenu="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer'); return false;" title="Open Alfe AI on GitHub" aria-label="Open Alfe AI on GitHub">
                             GitHub
@@ -450,6 +450,22 @@
     </div>
 
     <script>
+        const loggedOutAuthLink = document.getElementById('loggedOutAuthLink');
+        if (loggedOutAuthLink) {
+            loggedOutAuthLink.addEventListener('click', (event) => {
+                if (window.self === window.top) {
+                    return;
+                }
+                event.preventDefault();
+                try {
+                    window.parent.postMessage({ type: 'sterling:settings', key: 'closeRepoAddModal' }, '*');
+                    window.parent.postMessage({ type: 'sterling:settings', key: 'openAuthModal', value: 'signup' }, '*');
+                } catch (error) {
+                    window.location.href = loggedOutAuthLink.getAttribute('href') || '/';
+                }
+            });
+        }
+
         const addRepoForm = document.getElementById('addRepoForm');
         if (addRepoForm) {
             const repoNameInput = document.getElementById('repoName');
