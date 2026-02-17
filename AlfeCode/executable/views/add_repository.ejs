@@ -450,6 +450,50 @@
     </div>
 
     <script>
+        function requestParentAuthModal(preferredStep = 'signup') {
+            const normalizedStep = preferredStep === 'login' ? 'login' : 'signup';
+            const openAuthPayload = {
+                type: 'sterling:settings',
+                key: 'openAuthModal',
+                value: {
+                    preferredStep: normalizedStep,
+                    closeRepoAddFirst: true,
+                },
+            };
+            let opened = false;
+
+            try {
+                if (window.parent && window.parent !== window && typeof window.parent.alfeOpenAuthModal === 'function') {
+                    window.parent.alfeOpenAuthModal(normalizedStep, { closeRepoAddFirst: true });
+                    opened = true;
+                }
+            } catch (error) {
+                opened = false;
+            }
+
+            if (window.parent && window.parent !== window) {
+                try {
+                    window.parent.postMessage(openAuthPayload, '*');
+                    opened = true;
+                } catch (error) {
+                    console.warn('Failed to notify parent to open auth modal from add repository modal.', error);
+                }
+            }
+
+            if (!opened) {
+                try {
+                    if (typeof window.alfeOpenAuthModal === 'function') {
+                        window.alfeOpenAuthModal(normalizedStep, { closeRepoAddFirst: true });
+                        opened = true;
+                    }
+                } catch (error) {
+                    opened = false;
+                }
+            }
+
+            return opened;
+        }
+
         const loggedOutAuthLink = document.getElementById('loggedOutAuthLink');
         if (loggedOutAuthLink) {
             loggedOutAuthLink.addEventListener('click', (event) => {
@@ -457,23 +501,7 @@
                     return;
                 }
                 event.preventDefault();
-                const openAuthPayload = {
-                    type: 'sterling:settings',
-                    key: 'openAuthModal',
-                    value: {
-                        preferredStep: 'signup',
-                        closeRepoAddFirst: true,
-                    },
-                };
-                try {
-                    if (window.parent && typeof window.parent.alfeOpenAuthModal === 'function') {
-                        window.parent.alfeOpenAuthModal('signup', { closeRepoAddFirst: true });
-                        return;
-                    }
-                    window.parent.postMessage(openAuthPayload, '*');
-                } catch (error) {
-                    window.parent.postMessage(openAuthPayload, '*');
-                }
+                requestParentAuthModal('signup');
             });
         }
 
