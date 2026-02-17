@@ -18,6 +18,12 @@ bash -c "npm install"
 GITHOST_SCRIPT="$(dirname "$0")/githost/git-server.sh"
 if [ -x "$GITHOST_SCRIPT" ]; then
     echo "Starting local git server daemon..."
+fi
+
+# Add Qwen CLI to PATH if not already present
+if [[ ":$PATH:" != *":/usr/local/qwen/bin:"* ]]; then
+    export PATH="/usr/local/qwen/bin:$PATH"
+fi
     sudo "$GITHOST_SCRIPT" start-daemon || echo "git-server start-daemon failed or requires sudo"
 fi
 
