@@ -318,16 +318,29 @@
   };
   // Listen for settings from the settings iframe to update submit-on-enter default
   function openAuthModalFromMessage(preferredStep = 'signup') {
-    if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal === 'function') {
-      window.alfeOpenAuthModal(preferredStep);
-      return;
-    }
+    const maxAttempts = 30;
+    const retryDelayMs = 100;
+    let attempts = 0;
 
-    window.setTimeout(() => {
+    const tryOpenModal = () => {
+      attempts += 1;
       if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal === 'function') {
         window.alfeOpenAuthModal(preferredStep);
+        return;
       }
-    }, 0);
+
+      if (attempts < maxAttempts) {
+        window.setTimeout(tryOpenModal, retryDelayMs);
+        return;
+      }
+
+      const authModalTrigger = document.getElementById('signUpLogInBtn');
+      if (authModalTrigger) {
+        authModalTrigger.click();
+      }
+    };
+
+    tryOpenModal();
   }
 
   window.addEventListener('message', function(ev){
