@@ -405,7 +405,9 @@
           (typeof d.value === 'string' ? d.value : openAuthConfig.preferredStep) === 'login'
             ? 'login'
             : 'signup';
-        const shouldCloseRepoAddFirst = openAuthConfig.closeRepoAddFirst === true;
+        const repoAddIframe = document.getElementById('repoAddIframe');
+        const isRepoAddMessageSource = !!(repoAddIframe && ev && ev.source === repoAddIframe.contentWindow);
+        const shouldCloseRepoAddFirst = openAuthConfig.closeRepoAddFirst === true || isRepoAddMessageSource;
         if (shouldCloseRepoAddFirst) {
           closeRepoAddModal();
         }
