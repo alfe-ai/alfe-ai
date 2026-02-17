@@ -2597,6 +2597,19 @@ function openTabOptionsMenu(tab, anchor){
     makeItem(tab.favorite ? 'Remove Favorite' : 'Add to Favorites', () => toggleFavoriteTab(tab.id, !tab.favorite));
   }
   makeItem(tab.archived ? 'Unarchive' : 'Archive', () => toggleArchiveTab(tab.id, tab.archived ? 0 : 1));
+  if(tab.archived){
+    makeItem('Delete', async () => {
+      const confirmed = await showConfirmDialog({
+        title: 'Delete Archived Chat',
+        message: 'Warning: this will permanently remove this archived chat and all its messages.',
+        confirmText: 'Permanantly Delete',
+        cancelText: 'Cancel',
+        danger: true
+      });
+      if(!confirmed) return;
+      await deleteTab(tab.id, { skipConfirm: true });
+    });
+  }
 
   document.body.appendChild(tabOptionsMenu);
 
@@ -4274,8 +4287,18 @@ async function duplicateTab(tabId){
     updatePageTitle();
   }
 }
-async function deleteTab(tabId){
-  if(!confirm("Are you sure you want to delete this tab (and all its messages)?")) return;
+async function deleteTab(tabId, options = {}){
+  const { skipConfirm = false } = options;
+  if(!skipConfirm){
+    const confirmed = await showConfirmDialog({
+      title: "Delete Chat",
+      message: "Are you sure you want to delete this tab (and all its messages)?",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      danger: true
+    });
+    if(!confirmed) return;
+  }
   const r = await fetch(`/api/chat/tabs/${tabId}?sessionId=${encodeURIComponent(sessionId)}`, { method: "DELETE" });
   if(r.ok){
     await loadTabs();
@@ -5207,7 +5230,15 @@ function addArchivedRow(container, tab, indented=false, hasChildren=false){
   deleteBtn.title = "Delete this chat permanently";
   deleteBtn?.addEventListener("click", async e => {
     e.stopPropagation();
-    await deleteTab(tab.id);
+    const confirmed = await showConfirmDialog({
+      title: "Delete Archived Chat",
+      message: "Warning: this will permanently remove this archived chat and all its messages.",
+      confirmText: "Permanantly Delete",
+      cancelText: "Cancel",
+      danger: true
+    });
+    if(!confirmed) return;
+    await deleteTab(tab.id, { skipConfirm: true });
   });
 
   const taskIdSpan = document.createElement("span");
