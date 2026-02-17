@@ -458,8 +458,14 @@
                 }
                 event.preventDefault();
                 try {
-                    window.parent.postMessage({ type: 'sterling:settings', key: 'closeRepoAddModal' }, '*');
-                    window.parent.postMessage({ type: 'sterling:settings', key: 'openAuthModal', value: 'signup' }, '*');
+                    window.parent.postMessage(
+                        {
+                            type: 'sterling:settings',
+                            key: 'openAuthModal',
+                            value: { preferredStep: 'signup', closeRepoAddFirst: true },
+                        },
+                        '*',
+                    );
                 } catch (error) {
                     window.location.href = loggedOutAuthLink.getAttribute('href') || '/';
                 }
