@@ -461,8 +461,15 @@
                     window.parent.postMessage(
                         {
                             type: 'sterling:settings',
+                            key: 'closeRepoAddModal',
+                        },
+                        '*',
+                    );
+                    window.parent.postMessage(
+                        {
+                            type: 'sterling:settings',
                             key: 'openAuthModal',
-                            value: { preferredStep: 'signup', closeRepoAddFirst: true },
+                            value: 'signup',
                         },
                         '*',
                     );
