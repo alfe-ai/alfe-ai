@@ -452,16 +452,18 @@
     <script>
         function requestParentAuthModal(preferredStep = 'signup') {
             const normalizedStep = preferredStep === 'login' ? 'login' : 'signup';
+            const openAuthPayload = {
+                type: 'sterling:settings',
+                key: 'openAuthModal',
+                value: {
+                    preferredStep: normalizedStep,
+                    closeRepoAddFirst: true,
+                },
+            };
             let opened = false;
 
             try {
-                if (window.parent && window.parent !== window && typeof window.parent.alfeRequestAuthModal === 'function') {
-                    window.parent.alfeRequestAuthModal(normalizedStep, {
-                        closeRepoAddFirst: true,
-                        closeSettingsFirst: true,
-                    });
-                    opened = true;
-                } else if (window.parent && window.parent !== window && typeof window.parent.alfeOpenAuthModal === 'function') {
+                if (window.parent && window.parent !== window && typeof window.parent.alfeOpenAuthModal === 'function') {
                     window.parent.alfeOpenAuthModal(normalizedStep, { closeRepoAddFirst: true });
                     opened = true;
                 }
@@ -471,15 +473,7 @@
 
             if (window.parent && window.parent !== window) {
                 try {
-                    window.parent.postMessage({
-                        type: 'sterling:settings',
-                        key: 'openAuthModal',
-                        value: {
-                            preferredStep: normalizedStep,
-                            closeRepoAddFirst: true,
-                            closeSettingsFirst: true,
-                        },
-                    }, '*');
+                    window.parent.postMessage(openAuthPayload, '*');
                     opened = true;
                 } catch (error) {
                     console.warn('Failed to notify parent to open auth modal from add repository modal.', error);

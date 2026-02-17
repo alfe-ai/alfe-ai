@@ -364,22 +364,6 @@
     }
   }
 
-  function requestAuthModalOpen(preferredStep = 'signup', options = {}) {
-    const closeRepoAddFirst = Boolean(options && options.closeRepoAddFirst === true);
-    const closeSettingsFirst = options && options.closeSettingsFirst !== false;
-
-    if (closeRepoAddFirst) {
-      closeRepoAddModal();
-    }
-    if (closeSettingsFirst) {
-      hideSettingsModal();
-    }
-
-    window.setTimeout(() => {
-      openAuthModalFromMessage(preferredStep, { closeRepoAddFirst });
-    }, 0);
-  }
-
   const closeRepoAddModal = () => {
     const repoAddModal = document.getElementById('repoAddModal');
     const repoAddIframe = document.getElementById('repoAddIframe');
@@ -445,10 +429,11 @@
         const repoAddIframe = document.getElementById('repoAddIframe');
         const isRepoAddMessageSource = !!(repoAddIframe && ev && ev.source === repoAddIframe.contentWindow);
         const shouldCloseRepoAddFirst = openAuthConfig.closeRepoAddFirst === true || isRepoAddMessageSource;
-        requestAuthModalOpen(preferredStep, {
-          closeRepoAddFirst: shouldCloseRepoAddFirst,
-          closeSettingsFirst: openAuthConfig.closeSettingsFirst !== false,
-        });
+        if (shouldCloseRepoAddFirst) {
+          closeRepoAddModal();
+        }
+        hideSettingsModal();
+        openAuthModalFromMessage(preferredStep, { closeRepoAddFirst: shouldCloseRepoAddFirst });
       }
       if (d.key === 'openSubscribeModal') {
         const openSubscribeConfig = d.value && typeof d.value === 'object' ? d.value : {};
@@ -9214,9 +9199,6 @@ const appendMergeChunk = (text, type = "output") => {
     window.alfeOpenAuthModal = (preferredStep = "signup", options = {}) => {
       const closeRepoAddFirst = Boolean(options && options.closeRepoAddFirst === true);
       openAuthModal({ preferredStep, closeRepoAddFirst });
-    };
-    window.alfeRequestAuthModal = (preferredStep = "signup", options = {}) => {
-      requestAuthModalOpen(preferredStep, options || {});
     };
     window[AUTH_MODAL_READY_KEY] = true;
     drainPendingAuthModalRequests();
