@@ -3739,29 +3739,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     </div>
 
     <div id="authModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Sign Up or Log In">
-      <script>
-        function updateAuthModalTitle() {
-          const titleElement = document.getElementById('authModalTitle');
-          const loginForm = document.getElementById('loginForm');
-          const signupForm = document.getElementById('signupForm');
-
-          if (loginForm && loginForm.style.display !== 'none') {
-            titleElement.textContent = 'Log In';
-          } else if (signupForm && signupForm.style.display !== 'none') {
-            titleElement.textContent = 'Sign Up';
-          } else {
-            titleElement.textContent = 'Sign Up / Log In';
-          }
-        }
-
-        // Initial title setup
-        updateAuthModalTitle();
-
-        // Update title when forms are shown/hidden
-        document.getElementById('authEmailContinueBtn').addEventListener('click', updateAuthModalTitle);
-        document.getElementById('loginChangeEmailBtn').addEventListener('click', updateAuthModalTitle);
-        document.getElementById('signupChangeEmailBtn').addEventListener('click', updateAuthModalTitle);
-      </script>
         <div class="modal-content modal-content--auth">
             <button class="modal-close" type="button" id="authModalCloseButton">×</button>
             <div class="modal-title-row">

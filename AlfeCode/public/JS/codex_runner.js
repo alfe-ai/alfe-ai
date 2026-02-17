@@ -8685,6 +8685,7 @@ const appendMergeChunk = (text, type = "output") => {
   const accountButtonEnabled = config.accountButtonEnabled !== false;
   const authModal = document.getElementById("authModal");
   const authModalCloseButton = document.getElementById("authModalCloseButton");
+  const authModalTitle = document.getElementById("authModalTitle");
   const accountModal = document.getElementById("accountModal");
   const accountModalCloseButton = document.getElementById("accountModalCloseButton");
   const sterlingSettingsModal = document.getElementById("sterlingSettingsModal");
@@ -8982,6 +8983,9 @@ const appendMergeChunk = (text, type = "output") => {
     if (authEmailInput) {
       authEmailInput.focus();
     }
+    if (authModalTitle) {
+      authModalTitle.textContent = "Sign Up / Log In";
+    }
   };
 
   const showSignupForm = () => {
@@ -9009,6 +9013,9 @@ const appendMergeChunk = (text, type = "output") => {
     }
     if (signup) {
       signup.style.display = "block";
+    }
+    if (authModalTitle) {
+      authModalTitle.textContent = "Sign Up";
     }
   };
 
@@ -9041,6 +9048,9 @@ const appendMergeChunk = (text, type = "output") => {
     const totpLabel = document.getElementById("totpLoginLabel");
     if (totpLabel) {
       totpLabel.style.display = "none";
+    }
+    if (authModalTitle) {
+      authModalTitle.textContent = "Log In";
     }
   };
 
