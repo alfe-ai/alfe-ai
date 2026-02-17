@@ -11,14 +11,17 @@ def main():
     else:
         image_path = 'Minimalist_favicon_design_featuring_a_single_styli.png'
 
-    print(f"[DEBUG] Using image: {image_path}")
+    if SHOW_DEBUG_INFO:
+        print(f"[DEBUG] Using image: {image_path}")
 
     # Use the current working directory as the output location
     favicon_dir = os.getcwd()
-    print(f"[DEBUG] Using output directory for favicons => {favicon_dir}")
+    if SHOW_DEBUG_INFO:
+        print(f"[DEBUG] Using output directory for favicons => {favicon_dir}")
 
     if not os.path.exists(favicon_dir):
-        print(f"[DEBUG] Creating directory => {favicon_dir}")
+        if SHOW_DEBUG_INFO:
+            print(f"[DEBUG] Creating directory => {favicon_dir}")
         os.makedirs(favicon_dir, exist_ok=True)
 
     # Attempt to open the image
