@@ -375,9 +375,8 @@ class RdsStore {
     }
     try {
       await this.pool.query(
-        `UPDATE ${SESSION_SETTINGS_TABLE}
-         SET session_id = $1
-         WHERE session_id = $2`,
+        `DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1;
+        UPDATE ${SESSION_SETTINGS_TABLE} SET session_id = $1 WHERE session_id = $2`,
         [targetId, sourceId]
       );
     } catch (error) {
