@@ -9334,6 +9334,12 @@ const appendMergeChunk = (text, type = "output") => {
 
   if (authModal) {
     authModal.addEventListener("click", (event) => {
+      const closeButton = event.target.closest(".modal-close");
+      if (closeButton) {
+        event.preventDefault();
+        hideAuthModal();
+        return;
+      }
       if (event.target === authModal) {
         hideAuthModal();
       }
@@ -9342,6 +9348,12 @@ const appendMergeChunk = (text, type = "output") => {
 
   if (accountModal) {
     accountModal.addEventListener("click", (event) => {
+      const closeButton = event.target.closest(".modal-close");
+      if (closeButton) {
+        event.preventDefault();
+        hideAccountModal();
+        return;
+      }
       if (event.target === accountModal) {
         hideAccountModal();
       }
