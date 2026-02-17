@@ -1443,6 +1443,11 @@
             { type: 'sterling:settings', key: 'logoutComplete' },
             '*',
           );
+          try {
+            window.parent.location.reload();
+          } catch (reloadError) {
+            window.parent.location.assign('/agent');
+          }
           parentHandledLogout = true;
         } catch (error) {
           console.warn('Failed to notify parent after logout.', error);
