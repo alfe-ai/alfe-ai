@@ -415,9 +415,14 @@
         openAuthModalFromMessage(preferredStep);
       }
       if (d.key === 'openSubscribeModal') {
-        const shouldCloseSettingsFirst = d.value && typeof d.value === 'object'
-          ? d.value.closeSettingsFirst !== false
-          : true;
+        const openSubscribeConfig = d.value && typeof d.value === 'object' ? d.value : {};
+        const repoAddIframe = document.getElementById('repoAddIframe');
+        const isRepoAddMessageSource = !!(repoAddIframe && ev && ev.source === repoAddIframe.contentWindow);
+        const shouldCloseRepoAddFirst = openSubscribeConfig.closeRepoAddFirst === true || isRepoAddMessageSource;
+        const shouldCloseSettingsFirst = openSubscribeConfig.closeSettingsFirst !== false;
+        if (shouldCloseRepoAddFirst) {
+          closeRepoAddModal();
+        }
         if (shouldCloseSettingsFirst) {
           hideSettingsModal();
           window.setTimeout(() => {
@@ -9163,7 +9168,10 @@ const appendMergeChunk = (text, type = "output") => {
       const closeRepoAddFirst = Boolean(options && options.closeRepoAddFirst === true);
       openAuthModal({ preferredStep, closeRepoAddFirst });
     };
-    window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true } = {}) => {
+    window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true, closeRepoAddFirst = false } = {}) => {
+      if (closeRepoAddFirst) {
+        closeRepoAddModal();
+      }
       if (closeSettingsFirst) {
         hideSettingsModal();
       }
