@@ -413,7 +413,6 @@
   });
 
   const incrementCodeUsageCount = () => {
-    // Check if current model has usage: "free"
     let currentModelId = "";
     try {
       currentModelId = (modelSelect && modelSelect.value) || "";
@@ -422,8 +421,10 @@
     }
 
     const currentModel = modelOnlyLookup && modelOnlyLookup.get(currentModelId);
-    if (currentModel && currentModel.usage === "free") {
-      // Don't increment usage count for free models
+    const normalizedPlan = getUsagePlanName().toString().trim().toLowerCase();
+    const isLimitedPlan = normalizedPlan === "logged-out session" || normalizedPlan === "free";
+    if (currentModel && currentModel.usage === "free" && !isLimitedPlan) {
+      // Free-tier models are unlimited for paid plans.
       return;
     }
 
