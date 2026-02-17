@@ -18,8 +18,11 @@ if ! command -v certbot >/dev/null 2>&1; then
   sudo apt-get install -y certbot
 fi
 
-# Request certificates using standalone mode
-sudo certbot certonly --standalone \
+# Ensure webroot directory exists
+sudo mkdir -p /var/www/html
+
+# Request certificates using webroot mode
+sudo certbot certonly --webroot -w /var/www/html \
   --non-interactive --agree-tos \
   --preferred-challenges http \
   -d "$DOMAIN" -m "$EMAIL"
