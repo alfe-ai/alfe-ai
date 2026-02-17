@@ -632,7 +632,7 @@ function setupPostRoutes(deps) {
         }
 
         if (account.session_id && sessionId && account.session_id !== sessionId) {
-            await rdsStore.mergeSessions(account.session_id, sessionId);
+            await rdsStore.mergeSessions(account.session_id, sessionId); // Fixed to use separate queries in rds_store.js
             sessionId = account.session_id;
         }
 

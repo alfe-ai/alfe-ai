@@ -1704,8 +1704,8 @@ export default class TaskDB {
   mergeSessions(targetId, sourceId) {
     if (!targetId || !sourceId || targetId === sourceId) return;
 
-    this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
-    this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    await this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    await this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
 
     const srcStart = this.getImageSessionStart(sourceId);
     const tgtStart = this.getImageSessionStart(targetId);
