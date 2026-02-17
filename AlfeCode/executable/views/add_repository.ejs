@@ -458,18 +458,18 @@
                 }
                 event.preventDefault();
                 try {
-                    window.parent.postMessage(
-                        {
-                            type: 'sterling:settings',
-                            key: 'closeRepoAddModal',
-                        },
-                        '*',
-                    );
+                    if (window.parent && typeof window.parent.alfeOpenAuthModal === 'function') {
+                        window.parent.alfeOpenAuthModal('signup', { closeRepoAddFirst: true });
+                        return;
+                    }
                     window.parent.postMessage(
                         {
                             type: 'sterling:settings',
                             key: 'openAuthModal',
-                            value: 'signup',
+                            value: {
+                                preferredStep: 'signup',
+                                closeRepoAddFirst: true,
+                            },
                         },
                         '*',
                     );
