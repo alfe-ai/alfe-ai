@@ -317,7 +317,7 @@
     }
   };
   // Listen for settings from the settings iframe to update submit-on-enter default
-  function openAuthModalFromMessage(preferredStep = 'signup') {
+  function openAuthModalFromMessage(preferredStep = 'signup', options = {}) {
     const maxAttempts = 30;
     const retryDelayMs = 100;
     let attempts = 0;
@@ -325,7 +325,7 @@
     const tryOpenModal = () => {
       attempts += 1;
       if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal === 'function') {
-        window.alfeOpenAuthModal(preferredStep);
+        window.alfeOpenAuthModal(preferredStep, options);
         return;
       }
 
@@ -412,7 +412,7 @@
           closeRepoAddModal();
         }
         hideSettingsModal();
-        openAuthModalFromMessage(preferredStep);
+        openAuthModalFromMessage(preferredStep, { closeRepoAddFirst: shouldCloseRepoAddFirst });
       }
       if (d.key === 'openSubscribeModal') {
         const openSubscribeConfig = d.value && typeof d.value === 'object' ? d.value : {};
