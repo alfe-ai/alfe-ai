@@ -336,7 +336,7 @@
   function resolveFreeUsageBadgeLabel() {
     const normalizedPlan = (currentUsagePlan || '').toString().trim().toLowerCase();
     const isPaidPlan = normalizedPlan === 'lite' || normalizedPlan === 'plus' || normalizedPlan === 'pro';
-    return isPaidPlan ? 'Unlimited' : 'Free';
+    return isPaidPlan ? 'Unlimited' : '';
   }
 
   function createUsageBadge(usage) {
