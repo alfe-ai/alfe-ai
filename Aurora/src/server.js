@@ -1965,7 +1965,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     if (account.session_id && account.session_id !== sessionId) {
-      await db.mergeSessions(account.session_id, sessionId);
+      await db.mergeSessions(account.session_id, sessionId); // Fixed to use separate queries in rds_store.js
       sessionId = account.session_id;
     }
 

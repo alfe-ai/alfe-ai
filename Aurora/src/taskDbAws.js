@@ -1010,14 +1010,8 @@ export default class TaskDBAws {
   async mergeSessions(targetId, sourceId) {
     if (!targetId || !sourceId || targetId === sourceId) return;
     await this._initPromise;
-    await this.pool.query('UPDATE chat_tabs SET session_id = $1 WHERE session_id = $2', [
-      targetId,
-      sourceId
-    ]);
-    await this.pool.query('UPDATE chat_pairs SET session_id = $1 WHERE session_id = $2', [
-      targetId,
-      sourceId
-    ]);
+    await this.pool.query('UPDATE chat_tabs SET session_id = $1 WHERE session_id = $2', [targetId, sourceId]);
+    await this.pool.query('UPDATE chat_pairs SET session_id = $1 WHERE session_id = $2', [targetId, sourceId]);
 
     const srcStart = await this.getImageSessionStartAsync(sourceId);
     const tgtStart = await this.getImageSessionStartAsync(targetId);

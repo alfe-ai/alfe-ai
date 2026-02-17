@@ -374,11 +374,8 @@ class RdsStore {
       return;
     }
     try {
-      await this.pool.query(
-        `DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1;
-        UPDATE ${SESSION_SETTINGS_TABLE} SET session_id = $1 WHERE session_id = $2`,
-        [targetId, sourceId]
-      );
+      await this.pool.query(`DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1`, [sourceId]);
+      await this.pool.query(`UPDATE ${SESSION_SETTINGS_TABLE} SET session_id = $1 WHERE session_id = $2`, [targetId, sourceId]);
     } catch (error) {
       console.error("[RdsStore] Failed to merge sessions:", error?.message || error);
     }
