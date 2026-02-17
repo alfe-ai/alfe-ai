@@ -1436,12 +1436,28 @@
       if (editOpenrouterApiKeyButton) {
         editOpenrouterApiKeyButton.disabled = true;
       }
+      let parentHandledLogout = false;
       if (window.parent && window.parent !== window) {
         try {
-          window.parent.location.assign('/agent');
+          window.parent.postMessage(
+            { type: 'sterling:settings', key: 'logoutComplete' },
+            '*',
+          );
+          parentHandledLogout = true;
         } catch (error) {
-          console.warn('Failed to refresh parent after logout.', error);
+          console.warn('Failed to notify parent after logout.', error);
         }
+        if (!parentHandledLogout) {
+          try {
+            window.parent.location.assign('/agent');
+            parentHandledLogout = true;
+          } catch (error) {
+            console.warn('Failed to refresh parent after logout.', error);
+          }
+        }
+      }
+      if (!parentHandledLogout) {
+        window.location.assign('/agent');
       }
     } catch (error) {
       console.error('Failed to log out:', error);
