@@ -34,8 +34,9 @@
                     Alfe AI
                 <% } %>
             </a>
+            <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
         </h1>
-        <% if (appVersion) { %>
+        <% if (typeof appVersion !== "undefined" && appVersion) { %>
             <p class="sidebar-version"><%= appVersion %></p>
         <% } %>
         <p class="breadcrumb">
@@ -167,9 +168,9 @@
 
     <!-- Version info at bottom left -->
     <div style="margin-top: 1em; font-size: 0.9em; color: #ccc;">
-        <p class="repo-local-path"><strong>Alfe Sterling CWD:</strong> <%= appCWD %></p>
-        <p class="repo-revision"><strong>Alfe Revision:</strong> <%= gitRevision %></p>
-        <p class="repo-git-tag"><strong>Latest Git Tag:</strong> <%= gitTag %></p>
+        <p class="repo-local-path"><strong>Alfe Sterling CWD:</strong> <%= (typeof appCWD !== "undefined" && appCWD) ? appCWD : "N/A" %></p>
+        <p class="repo-revision"><strong>Alfe Revision:</strong> <%= (typeof gitRevision !== "undefined" && gitRevision) ? gitRevision : "N/A" %></p>
+        <p class="repo-git-tag"><strong>Latest Git Tag:</strong> <%= (typeof gitTag !== "undefined" && gitTag) ? gitTag : "N/A" %></p>
     </div>
     <script>
       (function(){
