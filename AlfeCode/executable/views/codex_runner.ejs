@@ -3850,7 +3850,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     <div id="subscribeModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Subscribe">
         <div class="modal-content">
             <button class="modal-close" type="button" id="subscribeModalCloseButton" onclick="document.getElementById('subscribeModal').classList.add('is-hidden'); document.body.style.overflow = '';">×</button>
-            <p>Subscribe to Alfe AI to access advanced models.</p>
+            <iframe id="subscribeModalIframe" class="modal-iframe" src="/agent/model-only" title="Subscribe to Alfe AI"></iframe>
         </div>
     </div>
 
@@ -4290,6 +4290,21 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       document.body.style.overflow = '';
       if(aboutModalIframe){
         aboutModalIframe.src = '';
+      }
+    });
+  }
+
+  // Subscribe modal handlers
+  const subscribeModal = document.getElementById('subscribeModal');
+  const subscribeModalIframe = document.getElementById('subscribeModalIframe');
+  const subscribeModalCloseButton = document.getElementById('subscribeModalCloseButton');
+  if(subscribeModalCloseButton && subscribeModal){
+    subscribeModalCloseButton.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      subscribeModal.classList.add('is-hidden');
+      document.body.style.overflow = '';
+      if(subscribeModalIframe){
+        subscribeModalIframe.src = '';
       }
     });
   }

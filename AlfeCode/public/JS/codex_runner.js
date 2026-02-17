@@ -9175,7 +9175,17 @@ const appendMergeChunk = (text, type = "output") => {
     subscribeButton.addEventListener("click", (event) => {
       event.preventDefault();
       const url = subscribeButton.dataset.subscribeUrl || "/agent/model-only";
-      window.open(url, "_blank", "noopener,noreferrer");
+      const subscribeModal = document.getElementById("subscribeModal");
+      const subscribeModalIframe = document.getElementById("subscribeModalIframe");
+      
+      if (subscribeModal && subscribeModalIframe) {
+        subscribeModalIframe.src = url;
+        subscribeModal.classList.remove("is-hidden");
+        document.body.style.overflow = "hidden";
+      } else {
+        // Fallback to opening in new tab if modal elements don't exist
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     });
   }
 
