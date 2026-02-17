@@ -631,11 +631,13 @@ function setupPostRoutes(deps) {
             }
         }
 
-        if (account.session_id && sessionId && account.session_id !== sessionId) {
-            await rdsStore.mergeSessions(sessionId, account.session_id);
-        }
-
-        if (sessionId) {
+        let resolvedSessionId = sessionId;
+        if (account.session_id) {
+            resolvedSessionId = account.session_id;
+            if (sessionId && account.session_id !== sessionId) {
+                await rdsStore.mergeSessions(account.session_id, sessionId);
+            }
+        } else if (sessionId) {
             await rdsStore.setAccountSession(account.id, sessionId);
         }
 
@@ -645,7 +647,7 @@ function setupPostRoutes(deps) {
             email: account.email,
             plan: account.plan,
             timezone: account.timezone,
-            sessionId,
+            sessionId: resolvedSessionId,
         });
     });
 
