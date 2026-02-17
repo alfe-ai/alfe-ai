@@ -334,6 +334,13 @@
           localStorage.setItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY, qwenShowDebugInfo ? 'true' : 'false');
         } catch (e) {}
       }
+      
+      // Add this block to conditionally log debug info based on the setting
+      if (qwenShowDebugInfo) {
+        console.log('Debug info: qwenShowDebugInfo is enabled');
+      } else {
+        console.log('Debug info: qwenShowDebugInfo is disabled');
+      }
       if(d.key === 'defaultModel'){
         var newDefaultModel = typeof d.value === 'string' ? d.value.trim() : '';
         if(newDefaultModel){
