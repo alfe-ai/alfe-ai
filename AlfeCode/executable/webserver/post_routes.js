@@ -641,6 +641,15 @@ function setupPostRoutes(deps) {
             await rdsStore.setAccountSession(account.id, sessionId);
         }
 
+        if (resolvedSessionId) {
+            const hostname = req.hostname
+                || (typeof req.headers?.host === "string" ? req.headers.host.split(":")[0] : "");
+            const cookie = buildSessionCookie(resolvedSessionId, hostname);
+            if (cookie) {
+                res.append("Set-Cookie", cookie);
+            }
+        }
+
         return res.json({
             success: true,
             id: account.id,
