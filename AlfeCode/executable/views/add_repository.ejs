@@ -450,21 +450,13 @@
     </div>
 
     <script>
-        function requestParentAuthModal(preferredStep = 'signup') {
+        function requestAuthModal(preferredStep = 'signup') {
             const normalizedStep = preferredStep === 'login' ? 'login' : 'signup';
-            const openAuthPayload = {
-                type: 'sterling:settings',
-                key: 'openAuthModal',
-                value: {
-                    preferredStep: normalizedStep,
-                    closeRepoAddFirst: true,
-                },
-            };
             let opened = false;
 
             try {
                 if (window.parent && window.parent !== window && typeof window.parent.alfeOpenAuthModal === 'function') {
-                    window.parent.alfeOpenAuthModal(normalizedStep, { closeRepoAddFirst: true });
+                    window.parent.alfeOpenAuthModal(normalizedStep);
                     opened = true;
                 }
             } catch (error) {
@@ -473,7 +465,10 @@
 
             if (window.parent && window.parent !== window) {
                 try {
-                    window.parent.postMessage(openAuthPayload, '*');
+                    window.parent.postMessage(
+                        { type: 'sterling:settings', key: 'openAuthModal', value: normalizedStep },
+                        '*',
+                    );
                     opened = true;
                 } catch (error) {
                     console.warn('Failed to notify parent to open auth modal from add repository modal.', error);
@@ -483,7 +478,7 @@
             if (!opened) {
                 try {
                     if (typeof window.alfeOpenAuthModal === 'function') {
-                        window.alfeOpenAuthModal(normalizedStep, { closeRepoAddFirst: true });
+                        window.alfeOpenAuthModal(normalizedStep);
                         opened = true;
                     }
                 } catch (error) {
@@ -492,6 +487,10 @@
             }
 
             return opened;
+        }
+
+        function requestParentAuthModal(preferredStep = 'signup') {
+            return requestAuthModal(preferredStep);
         }
 
         const loggedOutAuthLink = document.getElementById('loggedOutAuthLink');
