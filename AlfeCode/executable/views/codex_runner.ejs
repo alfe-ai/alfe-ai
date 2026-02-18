@@ -2284,11 +2284,29 @@
 
         #subscribeModal .subscription-copy {
             margin: 0;
-            white-space: pre-line;
             font-size: 1.02rem;
             line-height: 1.55;
             color: #e2e8f0;
             text-wrap: pretty;
+        }
+
+        #subscribeModal .subscription-copy-heading {
+            margin: 0;
+            font-size: 1.17rem;
+            font-weight: 700;
+            line-height: 1.35;
+            color: #f8fafc;
+        }
+
+        #subscribeModal .subscription-copy-heading + .subscription-copy-heading {
+            margin-top: 12px;
+        }
+
+        #subscribeModal .subscription-copy-detail {
+            margin: 6px 0 0;
+            font-size: 0.99rem;
+            line-height: 1.5;
+            color: #cbd5e1;
         }
 
         #subscribeModal .subscription-copy::after {
@@ -3959,13 +3977,12 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 <h2>Alfe AI Subscription</h2>
             </div>
             <p class="subscription-price">$10.00 / month</p>
-            <p class="subscription-copy">Unlimited use of the Alfe AI Code platform.
-
-Alfe AI Code platform includes an in-browser AI agent, IDE cloud development environment, Git repository management, Git history, Git branch management and merging, Task/project management backlog.
-
-Unlimited Git repository connections with security sandboxing to keep your code private.
-
-Unlimited AI chats on Alfe AI chat.</p>
+            <div class="subscription-copy">
+                <p class="subscription-copy-heading">Unlimited use of the Alfe AI Code platform</p>
+                <p class="subscription-copy-detail">Alfe AI Code platform includes an in-browser AI agent, IDE cloud development environment, Git repository management, Git history, Git branch management and merging, Task/project management backlog.</p>
+                <p class="subscription-copy-heading">Unlimited Git repository connections with security sandboxing to keep your code private</p>
+                <p class="subscription-copy-heading">Unlimited AI chats on Alfe AI chat</p>
+            </div>
             <button type="button" id="subscribeModalActionButton" class="subscribe-now-button" onclick="document.getElementById('subscribeModal').classList.add('is-hidden'); document.body.style.overflow = ''; if (window.alfeOpenAuthModal) { window.alfeOpenAuthModal('signup'); }">Subscribe Now</button>
         </div>
     </div>
