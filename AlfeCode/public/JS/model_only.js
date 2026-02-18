@@ -1621,7 +1621,7 @@
     });
   }
 
-  const inlineAuthButtons = Array.from(document.querySelectorAll('.subscribe-button--inline'));
+  const inlineAuthButtons = Array.from(document.querySelectorAll('button.subscribe-button--inline'));
   if (inlineAuthButtons.length) {
     inlineAuthButtons.forEach(button => {
       button.addEventListener('click', () => {
