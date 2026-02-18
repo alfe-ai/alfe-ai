@@ -1061,8 +1061,12 @@
 
   async function saveAccountEverSubscribed(everSubscribed) {
     if (!accountEverSubscribedSelect) return;
+    if (!accountPlanEditable) {
+      updateAccountEverSubscribedControl(Boolean(accountEmail && accountEmail.textContent && accountEmail.textContent.trim()));
+      return;
+    }
     showAccountEverSubscribedFeedback('Saving…');
-    accountEverSubscribedSelect.disabled = true;
+    updateAccountEverSubscribedControl(true, true);
     try {
       const response = await fetch('/api/account/ever-subscribed', {
         method: 'POST',
@@ -1081,7 +1085,7 @@
       console.error('Failed to save ever subscribed:', error);
       showAccountEverSubscribedFeedback(error.message || 'Failed to save.', 'error');
     } finally {
-      accountEverSubscribedSelect.disabled = false;
+      updateAccountEverSubscribedControl(true);
     }
   }
 
@@ -1143,9 +1147,6 @@
         const hasAccount = Boolean(payload.email);
         updateAccountPlanControl(hasAccount);
         updateAccountEverSubscribedControl(hasAccount);
-        if (accountEverSubscribedSelect) {
-          accountEverSubscribedSelect.disabled = !hasAccount;
-        }
         if (logoutButton) {
           logoutButton.disabled = !hasAccount;
         }
@@ -1434,6 +1435,10 @@
 
   if (accountEverSubscribedSelect) {
     accountEverSubscribedSelect.addEventListener('change', function() {
+      if (!accountPlanEditable) {
+        updateAccountEverSubscribedControl(Boolean(accountEmail && accountEmail.textContent && accountEmail.textContent.trim()));
+        return;
+      }
       const selectedValue = accountEverSubscribedSelect.value === 'true';
       void saveAccountEverSubscribed(selectedValue);
     });
