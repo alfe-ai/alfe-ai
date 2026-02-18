@@ -130,9 +130,16 @@
   function handleSupportActionClick() {
     if (!supportActionButton) return;
     const action = supportActionButton.dataset.action || supportActionState;
-    if (action !== 'support') return;
-    const supportUrl = supportActionButton.dataset.supportUrl || '/support';
-    window.location.assign(supportUrl);
+    if (action === 'support') {
+      const supportUrl = supportActionButton.dataset.supportUrl || '/support';
+      window.location.assign(supportUrl);
+      return;
+    }
+    if (action === 'subscribe') {
+      requestSubscribeModal();
+      return;
+    }
+    requestAuthModal('signup');
   }
 
   function requestAuthModal(preferredStep = 'signup') {
@@ -1546,13 +1553,6 @@
   if (resetUsageButton) {
     resetUsageButton.addEventListener('click', function() {
       void handleResetUsage();
-    });
-  }
-
-  if (supportActionButton) {
-    supportActionButton.addEventListener('click', function() {
-      if (!isLoggedOutPlan(currentAccountPlan)) return;
-      requestAuthModal('signup');
     });
   }
 
