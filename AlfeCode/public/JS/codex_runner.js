@@ -8820,6 +8820,10 @@ const appendMergeChunk = (text, type = "output") => {
   const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
   const signupChangeEmailBtn = document.getElementById("signupChangeEmailBtn");
   const toastEl = document.getElementById("toast");
+  const usageLimitModal = document.getElementById("usageLimitModal");
+  const usageLimitModalCloseButton = document.getElementById("usageLimitModalCloseButton");
+  const subscribeModal = document.getElementById("subscribeModal");
+  const subscribeModalCloseButton = document.getElementById("subscribeModalCloseButton");
   const currentSessionId = (typeof window !== "undefined" && window.currentSessionId)
     ? window.currentSessionId
     : new URLSearchParams(window.location.search || "").get("sessionId");
@@ -8830,6 +8834,59 @@ const appendMergeChunk = (text, type = "output") => {
   let authEmailValue = "";
   let authModalStep = "email";
   let accountInfo = null;
+
+  const closeRepoAddModal = () => {
+    const repoAddModal = document.getElementById("repoAddModal");
+    const repoAddFrame = document.getElementById("repoAddFrame");
+    const repoAddLoader = document.getElementById("repoAddLoader");
+    if (!repoAddModal) {
+      return;
+    }
+    repoAddModal.classList.add("is-hidden");
+    if (repoAddFrame) {
+      repoAddFrame.src = "";
+    }
+    if (repoAddLoader) {
+      repoAddLoader.classList.add("is-hidden");
+    }
+    document.body.style.overflow = "";
+  };
+
+  const hideUsageLimitModal = () => {
+    if (!usageLimitModal) {
+      return;
+    }
+    usageLimitModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
+  const showSubscribeModal = () => {
+    if (!subscribeModal) {
+      return false;
+    }
+    subscribeModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+    return true;
+  };
+
+  const hideSubscribeModal = () => {
+    if (!subscribeModal) {
+      return;
+    }
+    subscribeModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
+  const triggerSubscribeModal = ({ closeSettingsFirst = true, closeRepoAddFirst = false } = {}) => {
+    if (closeRepoAddFirst) {
+      closeRepoAddModal();
+    }
+    if (closeSettingsFirst) {
+      hideSettingsModal();
+    }
+    showSubscribeModal();
+    return true;
+  };
 
   const showToast = (msg, duration = 1500) => {
     if (!toastEl) {
