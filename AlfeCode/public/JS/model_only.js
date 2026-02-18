@@ -45,6 +45,7 @@
   const supportActionButton = document.getElementById('supportActionButton');
   const config = window.MODEL_ONLY_CONFIG || {};
   const accountsEnabled = config.accountsEnabled !== false;
+  const accountPlanEditable = config.accountPlanEditable === true;
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Plus', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex', 'cline', 'sterling', 'kilo'];
@@ -934,6 +935,23 @@
     setAccountField(accountOpenrouterApiKey, value || '');
   }
 
+  function updateAccountPlanControl(hasAccount, forceDisabled = false) {
+    if (!accountPlanSelect) return;
+    const canEdit = Boolean(hasAccount) && accountPlanEditable && !forceDisabled;
+    accountPlanSelect.disabled = !canEdit;
+    if (!hasAccount) {
+      showAccountPlanFeedback('');
+      return;
+    }
+    if (!accountPlanEditable) {
+      showAccountPlanFeedback('Plan changes are only available from whitelisted IP addresses.', 'error');
+      return;
+    }
+    if ((accountPlanFeedback?.textContent || '').includes('whitelisted IP addresses')) {
+      showAccountPlanFeedback('');
+    }
+  }
+
   function setAccountPlanValue(value) {
     if (!accountPlanSelect) return;
     const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
@@ -1004,7 +1022,7 @@
     }
 
     showAccountPlanFeedback('Saving plan…');
-    accountPlanSelect.disabled = true;
+    updateAccountPlanControl(true, true);
 
     try {
       const response = await fetch('/api/account/plan', {
@@ -1026,7 +1044,7 @@
       console.error('Failed to save account plan:', error);
       showAccountPlanFeedback(error.message || 'Failed to save plan.', 'error');
     } finally {
-      accountPlanSelect.disabled = false;
+      updateAccountPlanControl(true);
     }
   }
 
@@ -1112,9 +1130,7 @@
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         const hasAccount = Boolean(payload.email);
-        if (accountPlanSelect) {
-          accountPlanSelect.disabled = !hasAccount;
-        }
+        updateAccountPlanControl(hasAccount);
         if (accountEverSubscribedSelect) {
           accountEverSubscribedSelect.disabled = !hasAccount;
         }
