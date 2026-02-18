@@ -2501,6 +2501,7 @@ ${cleanedFinalOutput}`;
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
         const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
         const allowModelOrderEdit = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowAccountPlanEdit = allowModelOrderEdit;
         const allowVmRunsLink = allowModelOrderEdit;
         const qwenDebugEnabled = process.env.QWEN_DEBUG_ENABLED === 'true';
         res.render('model_only', {
@@ -2513,6 +2514,7 @@ ${cleanedFinalOutput}`;
             imagesEnabled2026,
             accountsEnabled: parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true),
             allowModelOrderEdit,
+            allowAccountPlanEdit,
             allowVmRunsLink,
             qwenDebugEnabled,
         });

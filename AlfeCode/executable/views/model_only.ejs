@@ -594,6 +594,7 @@
   <script>
     window.MODEL_ONLY_CONFIG = {
       accountsEnabled: <%- JSON.stringify(typeof accountsEnabled === "undefined" ? true : accountsEnabled) %>,
+      accountPlanEditable: <%- JSON.stringify(Boolean(allowAccountPlanEdit)) %>,
       qwenDebugEnabled: <%- JSON.stringify(typeof qwenDebugEnabled === "undefined" ? false : qwenDebugEnabled) %>,
     };
   </script>

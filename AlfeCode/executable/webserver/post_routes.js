@@ -279,6 +279,9 @@ function setupPostRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
         }
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ error: "Plan changes are restricted to whitelisted IP addresses." });
+        }
         const sessionId = getSessionIdFromRequest(req);
         if (!sessionId) {
             return res.status(401).json({ error: "not logged in" });
