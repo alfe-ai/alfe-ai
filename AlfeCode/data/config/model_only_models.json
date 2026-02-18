@@ -532,7 +532,7 @@
       "qwen_cli": true,
       "plus_model": true,
       "list_order": 1000,
-      "usage": "medium",
+      "usage": "free",
       "url": "https://openrouter.ai/api/v1",
       "key": "openrouter"
     },
