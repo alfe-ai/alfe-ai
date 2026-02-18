@@ -317,7 +317,7 @@
                 <% if (showSubscribeMessage) { %>
                     <p class="logged-out-message">Subscribe or Download to connect Git repositories.</p>
                     <div class="button-row">
-                        <a class="button-link" href="/agent/model-only" role="button">Subscribe</a>
+                        <a class="button-link" id="subscribeLink" href="/agent/model-only" role="button">Subscribe</a>
                         <button type="button" class="github-link-button" onclick="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer');" oncontextmenu="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer'); return false;" title="Open Alfe AI on GitHub" aria-label="Open Alfe AI on GitHub">
                             Download on GitHub
                             <span aria-hidden="true" class="github-link-icon">
@@ -506,6 +506,52 @@
             return requestAuthModal(preferredStep);
         }
 
+        function requestSubscribeModal() {
+            let opened = false;
+
+            try {
+                if (window.parent && window.parent !== window && typeof window.parent.alfeOpenSubscribeModal === 'function') {
+                    window.parent.alfeOpenSubscribeModal({ closeRepoAddFirst: true });
+                    opened = true;
+                }
+            } catch (error) {
+                opened = false;
+            }
+
+            if (window.parent && window.parent !== window) {
+                try {
+                    window.parent.postMessage(
+                        {
+                            type: 'sterling:settings',
+                            key: 'openSubscribeModal',
+                            value: { closeRepoAddFirst: true },
+                        },
+                        '*',
+                    );
+                    opened = true;
+                } catch (error) {
+                    console.warn('Failed to notify parent to open subscribe modal from add repository modal.', error);
+                }
+            }
+
+            if (!opened) {
+                try {
+                    if (typeof window.alfeOpenSubscribeModal === 'function') {
+                        window.alfeOpenSubscribeModal({ closeRepoAddFirst: true });
+                        opened = true;
+                    }
+                } catch (error) {
+                    opened = false;
+                }
+            }
+
+            return opened;
+        }
+
+        function requestParentSubscribeModal() {
+            return requestSubscribeModal();
+        }
+
         const loggedOutAuthLink = document.getElementById('loggedOutAuthLink');
         if (loggedOutAuthLink) {
             loggedOutAuthLink.addEventListener('click', (event) => {
@@ -514,6 +560,17 @@
                 }
                 event.preventDefault();
                 requestParentAuthModal('signup');
+            });
+        }
+
+        const subscribeLink = document.getElementById('subscribeLink');
+        if (subscribeLink) {
+            subscribeLink.addEventListener('click', (event) => {
+                if (window.self === window.top) {
+                    return;
+                }
+                event.preventDefault();
+                requestParentSubscribeModal();
             });
         }
 
