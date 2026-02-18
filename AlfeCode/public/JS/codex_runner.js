@@ -9384,7 +9384,10 @@ const appendMergeChunk = (text, type = "output") => {
       hideSubscribeModal();
       if (subscriptionCheckoutUrl) {
         window.setTimeout(() => {
-          window.location.href = subscriptionCheckoutUrl;
+          const checkoutTab = window.open(subscriptionCheckoutUrl, "_blank", "noopener,noreferrer");
+          if (!checkoutTab) {
+            window.location.href = subscriptionCheckoutUrl;
+          }
         }, 120);
         return;
       }
