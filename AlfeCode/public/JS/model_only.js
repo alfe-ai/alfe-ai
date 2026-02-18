@@ -46,6 +46,7 @@
   const config = window.MODEL_ONLY_CONFIG || {};
   const accountsEnabled = config.accountsEnabled !== false;
   const accountPlanEditable = config.accountPlanEditable === true;
+  const allowConfigIpControls = config.allowConfigIpControls === true;
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Plus', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex', 'cline', 'sterling', 'kilo'];
@@ -1090,6 +1091,10 @@
   }
 
   async function saveOpenrouterApiKey(openrouterApiKey) {
+    if (!allowConfigIpControls) {
+      showAccountOpenrouterApiKeyFeedback('Forbidden.', 'error');
+      return;
+    }
     if (!editOpenrouterApiKeyButton) return;
     showAccountOpenrouterApiKeyFeedback('Saving key...');
     editOpenrouterApiKeyButton.disabled = true;
@@ -1151,10 +1156,10 @@
           logoutButton.disabled = !hasAccount;
         }
         if (editOpenrouterApiKeyButton) {
-          editOpenrouterApiKeyButton.disabled = !hasAccount;
+          editOpenrouterApiKeyButton.disabled = !hasAccount || !allowConfigIpControls;
         }
         if (refreshSessionButton) {
-          refreshSessionButton.disabled = !payload.sessionId;
+          refreshSessionButton.disabled = !payload.sessionId || !allowConfigIpControls;
         }
       }
     } catch (error) {
@@ -1518,6 +1523,10 @@
   }
 
   async function handleSessionRefresh() {
+    if (!allowConfigIpControls) {
+      showSessionRefreshFeedback('Forbidden.', 'error');
+      return;
+    }
     if (!refreshSessionButton) return;
     refreshSessionButton.disabled = true;
     showSessionRefreshFeedback('Refreshing session…');
@@ -1545,10 +1554,24 @@
   }
 
   async function handleResetUsage() {
+    if (!allowConfigIpControls) {
+      showResetUsageFeedback('Forbidden.', 'error');
+      return;
+    }
     if (!resetUsageButton) return;
     resetUsageButton.disabled = true;
     showResetUsageFeedback('Resetting usage...', 'info');
     try {
+      const response = await fetch('/api/usage/reset', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to reset usage (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+
       // Reset the code usage count to 0
       setStoredCodeUsageCount(0);
 

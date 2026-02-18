@@ -526,6 +526,7 @@
               <span id="accountEverSubscribedFeedback" class="hidden" style="font-size:0.75rem;color:#94a3b8;">Saved.</span>
             </div>
           </div>
+          <% if (allowConfigIpControls) { %>
           <div style="display:flex;justify-content:space-between;gap:12px;">
             <span style="font-size:0.85rem;color:#94a3b8;">NodeAddress</span>
             <span style="font-size:0.85rem;color:#e2e8f0;word-break:break-all;">0.0.0.0</span>
@@ -540,14 +541,17 @@
           <div style="display:flex;justify-content:flex-end;">
             <span id="accountOpenrouterApiKeyFeedback" class="hidden" style="font-size:0.75rem;color:#94a3b8;"></span>
           </div>
+          <% } %>
           <div style="display:flex;justify-content:space-between;gap:12px;">
             <span style="font-size:0.85rem;color:#94a3b8;">Session</span>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
               <span id="accountSession" style="font-size:0.85rem;color:#e2e8f0;word-break:break-all;">—</span>
+              <% if (allowConfigIpControls) { %>
               <button type="button" id="refreshSessionButton" class="logout-button" style="padding:0.35rem 0.7rem;font-size:0.75rem;">Refresh Session ID</button>
               <button type="button" id="resetUsageButton" class="logout-button" style="padding:0.35rem 0.7rem;font-size:0.75rem;">Reset Usage</button>
               <span id="refreshSessionFeedback" class="logout-feedback hidden" aria-live="polite"></span>
               <span id="resetUsageFeedback" class="logout-feedback hidden" aria-live="polite"></span>
+              <% } %>
             </div>
           </div>
         </div>
@@ -596,6 +600,7 @@
     window.MODEL_ONLY_CONFIG = {
       accountsEnabled: <%- JSON.stringify(typeof accountsEnabled === "undefined" ? true : accountsEnabled) %>,
       accountPlanEditable: <%- JSON.stringify(Boolean(allowAccountPlanEdit)) %>,
+      allowConfigIpControls: <%- JSON.stringify(Boolean(allowConfigIpControls)) %>,
       qwenDebugEnabled: <%- JSON.stringify(typeof qwenDebugEnabled === "undefined" ? false : qwenDebugEnabled) %>,
     };
   </script>
