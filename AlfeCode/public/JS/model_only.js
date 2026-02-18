@@ -944,11 +944,8 @@
       return;
     }
     if (!accountPlanEditable) {
-      showAccountPlanFeedback('Plan changes are only available from whitelisted IP addresses.', 'error');
+      showAccountPlanFeedback('Plan changes are not available.', 'error');
       return;
-    }
-    if ((accountPlanFeedback?.textContent || '').includes('whitelisted IP addresses')) {
-      showAccountPlanFeedback('');
     }
   }
 
