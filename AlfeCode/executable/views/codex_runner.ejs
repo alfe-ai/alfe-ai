@@ -2242,6 +2242,82 @@
             right: 10px;
         }
 
+        #subscribeModal .modal-content {
+            background:
+                radial-gradient(circle at 92% 12%, rgba(124, 58, 237, 0.24) 0%, rgba(124, 58, 237, 0) 34%),
+                linear-gradient(180deg, #15213b 0%, #0a1730 58%, #081328 100%);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 28px 85px rgba(5, 10, 25, 0.78), inset 0 1px 0 rgba(148, 163, 184, 0.2);
+        }
+
+        #subscribeModal .modal-title-row {
+            margin-bottom: 2px;
+        }
+
+        #subscribeModal h2 {
+            margin: 0;
+            font-size: clamp(1.75rem, 2.3vw, 2.1rem);
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            color: #f8fafc;
+        }
+
+        #subscribeModal .subscription-price {
+            margin: 0 0 18px;
+            color: #c4b5fd;
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: 0.01em;
+        }
+
+        #subscribeModal .subscription-copy {
+            margin: 0;
+            white-space: pre-line;
+            font-size: 1.02rem;
+            line-height: 1.55;
+            color: rgba(226, 232, 240, 0.97);
+            text-wrap: pretty;
+        }
+
+        #subscribeModal .subscription-copy::after {
+            content: "";
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            border-top: 1px solid rgba(148, 163, 184, 0.24);
+        }
+
+        #subscribeModal .subscribe-now-button {
+            margin-top: 18px;
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #a78bfa;
+            border-radius: 12px;
+            padding: 11px 22px;
+            background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.98rem;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            box-shadow: 0 14px 28px rgba(91, 33, 182, 0.36);
+            transition: transform 120ms ease, box-shadow 160ms ease, filter 160ms ease;
+        }
+
+        #subscribeModal .subscribe-now-button:hover,
+        #subscribeModal .subscribe-now-button:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            box-shadow: 0 18px 34px rgba(91, 33, 182, 0.48);
+        }
+
+        #subscribeModal .subscribe-now-button:focus-visible {
+            outline: 2px solid rgba(196, 181, 253, 0.9);
+            outline-offset: 2px;
+        }
+
         #switchBranchModal {
             align-items: center;
             justify-content: center;
@@ -3870,13 +3946,15 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             <div class="modal-title-row">
                 <h2>Alfe AI Subscription</h2>
             </div>
-            <p style="white-space:pre-line;">Unlimited use of the Alfe AI Code platform.
+            <p class="subscription-price">$10.00 / month</p>
+            <p class="subscription-copy">Unlimited use of the Alfe AI Code platform.
 
 Alfe AI Code platform includes an in-browser AI agent, IDE cloud development environment, Git repository management, Git history, Git branch management and merging, Task/project management backlog.
 
 Unlimited Git repository connections with security sandboxing to keep your code private.
 
 Unlimited AI chats on Alfe AI chat.</p>
+            <button type="button" id="subscribeModalActionButton" class="subscribe-now-button" onclick="document.getElementById('subscribeModal').classList.add('is-hidden'); document.body.style.overflow = ''; if (window.alfeOpenAuthModal) { window.alfeOpenAuthModal('signup'); }">Subscribe Now</button>
         </div>
     </div>
 
