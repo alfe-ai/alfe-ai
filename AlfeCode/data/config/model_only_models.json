@@ -208,23 +208,23 @@
       "key": "litellm"
     },
     {
-      "id": "openrouter/qwen/qwen3-14b",
-      "label": "Qwen 3 14B",
+      "id": "openrouter/qwen/qwen3-32b",
+      "label": "Qwen 3 32B",
       "disabled": false,
       "engine_options": [
         "auto",
         "qwen"
       ],
       "pricing": {
-        "inputPerMTokens": 0.05,
-        "outputPerMTokens": 0.22
+        "inputPerMTokens": 0.08,
+        "outputPerMTokens": 0.24
       },
       "qwen_cli": true,
       "list_order": 0,
       "plus_model": false,
       "usage": "free",
-      "url": "https://litellm.alfe.sh/v1",
-      "key": "litellm"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
