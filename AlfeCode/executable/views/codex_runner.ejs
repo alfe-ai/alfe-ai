@@ -2204,6 +2204,16 @@
             position: relative;
         }
 
+        #authModal {
+            background: #020617;
+        }
+
+        #authModal .modal-content {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: 0 24px 80px #020617;
+        }
+
         .modal-content--auth .modal-title-row {
             display: flex;
             align-items: center;
@@ -2212,7 +2222,7 @@
         }
 
         .modal-content--auth .auth-benefits {
-            background: rgba(15, 23, 42, 0.45);
+            background: #0f172a;
             border: 1px solid var(--surface-border);
             border-radius: 14px;
             padding: 12px 14px;
@@ -2243,11 +2253,13 @@
         }
 
         #subscribeModal .modal-content {
-            background:
-                radial-gradient(circle at 92% 12%, rgba(124, 58, 237, 0.24) 0%, rgba(124, 58, 237, 0) 34%),
-                linear-gradient(180deg, #15213b 0%, #0a1730 58%, #081328 100%);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            box-shadow: 0 28px 85px rgba(5, 10, 25, 0.78), inset 0 1px 0 rgba(148, 163, 184, 0.2);
+            background: linear-gradient(180deg, #15213b 0%, #0a1730 58%, #081328 100%);
+            border: 1px solid #64748b;
+            box-shadow: 0 28px 85px #050a19;
+        }
+
+        #subscribeModal {
+            background: #020617;
         }
 
         #subscribeModal .modal-title-row {
@@ -2275,7 +2287,7 @@
             white-space: pre-line;
             font-size: 1.02rem;
             line-height: 1.55;
-            color: rgba(226, 232, 240, 0.97);
+            color: #e2e8f0;
             text-wrap: pretty;
         }
 
@@ -2284,7 +2296,7 @@
             display: block;
             width: 100%;
             margin-top: 16px;
-            border-top: 1px solid rgba(148, 163, 184, 0.24);
+            border-top: 1px solid #64748b;
         }
 
         #subscribeModal .subscribe-now-button {
