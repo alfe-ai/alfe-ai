@@ -28,6 +28,7 @@
   const accountEmail = document.getElementById('accountEmail');
   const accountPlanSelect = document.getElementById('accountPlanSelect');
   const accountPlanPlusOption = document.getElementById('accountPlanPlusOption');
+  const manageSubscriptionButton = document.getElementById('manageSubscriptionButton');
   const accountPlanFeedback = document.getElementById('accountPlanFeedback');
   const accountEverSubscribedSelect = document.getElementById('accountEverSubscribedSelect');
   const accountEverSubscribedFeedback = document.getElementById('accountEverSubscribedFeedback');
@@ -89,6 +90,11 @@
   }
 
   function hasPlusModelAccess(plan) {
+    const normalized = (plan || '').toString().trim();
+    return normalized === 'Lite' || normalized === 'Plus' || normalized === 'Pro';
+  }
+
+  function hasManageSubscriptionAccess(plan) {
     const normalized = (plan || '').toString().trim();
     return normalized === 'Lite' || normalized === 'Plus' || normalized === 'Pro';
   }
@@ -974,6 +980,9 @@
     }
     accountPlanSelect.value = planValue;
     currentAccountPlan = planValue;
+    if (manageSubscriptionButton) {
+      manageSubscriptionButton.classList.toggle('hidden', !hasManageSubscriptionAccess(planValue));
+    }
     updateProModelOptions();
     updateSupportCallToAction(planValue, currentAccountEverSubscribed);
   }
