@@ -216,13 +216,14 @@ function setupGetRoutes(deps) {
         }
 
         const params = new URLSearchParams();
+        params.set("id", variantId);
+        params.set("quantity", quantity.toString());
         if (sellingPlanId) {
             params.set("selling_plan", sellingPlanId);
         }
-        params.set("skip_shop_pay", "true");
         params.set("return_to", "/checkout");
 
-        return `${storeBaseUrl}/cart/${encodeURIComponent(variantId)}:${quantity}?${params.toString()}`;
+        return `${storeBaseUrl}/cart/add?${params.toString()}`;
     };
     const isLoggedOutPlan = (plan) => {
         if (!plan) {
