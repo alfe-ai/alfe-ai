@@ -153,6 +153,20 @@ function setupGetRoutes(deps) {
         }
         return trimmed.replace(/\/+$/, "");
     };
+    const normalizeShopifyGidToNumericId = (value, resourceName) => {
+        if (value == null) {
+            return "";
+        }
+        const trimmed = value.toString().trim();
+        if (!trimmed) {
+            return "";
+        }
+        if (/^\d+$/.test(trimmed)) {
+            return trimmed;
+        }
+        const gidMatch = trimmed.match(new RegExp(`^gid://shopify/${resourceName}/(\\d+)$`, "i"));
+        return gidMatch ? gidMatch[1] : "";
+    };
     const buildShopifySubscriptionCheckoutUrl = () => {
         const configuredPermalink =
             typeof process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL === "string"
@@ -167,17 +181,30 @@ function setupGetRoutes(deps) {
             || process.env.SHOPIFY_STORE_URL
             || process.env.SHOPIFY_SHOP_URL
         );
-        const variantId = (process.env.SHOPIFY_SUBSCRIPTION_VARIANT_ID || "").toString().trim();
-        const sellingPlanId = (process.env.SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID || "").toString().trim();
+        const variantId = normalizeShopifyGidToNumericId(
+            process.env.SHOPIFY_SUBSCRIPTION_VARIANT_ID,
+            "ProductVariant"
+        );
+        const sellingPlanId = normalizeShopifyGidToNumericId(
+            process.env.SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID,
+            "SellingPlan"
+        );
         const quantityRaw = (process.env.SHOPIFY_SUBSCRIPTION_QUANTITY || "1").toString().trim();
         const quantityParsed = Number.parseInt(quantityRaw, 10);
         const quantity = Number.isInteger(quantityParsed) && quantityParsed > 0 ? quantityParsed : 1;
 
-        if (!storeBaseUrl || !variantId || !sellingPlanId) {
+        if (!storeBaseUrl || !variantId) {
             return "";
         }
 
-        return `${storeBaseUrl}/cart/${encodeURIComponent(variantId)}:${quantity}?selling_plan=${encodeURIComponent(sellingPlanId)}`;
+        const params = new URLSearchParams();
+        if (sellingPlanId) {
+            params.set("selling_plan", sellingPlanId);
+        }
+        params.set("skip_shop_pay", "true");
+        params.set("return_to", "/checkout");
+
+        return `${storeBaseUrl}/cart/${encodeURIComponent(variantId)}:${quantity}?${params.toString()}`;
     };
     const isLoggedOutPlan = (plan) => {
         if (!plan) {
