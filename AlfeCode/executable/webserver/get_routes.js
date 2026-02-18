@@ -215,15 +215,21 @@ function setupGetRoutes(deps) {
             return "";
         }
 
-        const params = new URLSearchParams();
-        params.set("id", variantId);
-        params.set("quantity", quantity.toString());
+        const addParams = new URLSearchParams();
+        addParams.set("id", variantId);
+        addParams.set("quantity", quantity.toString());
         if (sellingPlanId) {
-            params.set("selling_plan", sellingPlanId);
+            addParams.set("selling_plan", sellingPlanId);
         }
-        params.set("return_to", "/checkout");
+        addParams.set("return_to", "/checkout");
 
-        return `${storeBaseUrl}/cart/add?${params.toString()}`;
+        const addPath = `/cart/add?${addParams.toString()}`;
+        const clearParams = new URLSearchParams();
+        clearParams.set("return_to", addPath);
+
+        // Option C workaround: clear cart before adding the subscription line item so
+        // repeat clicks do not increment quantity.
+        return `${storeBaseUrl}/cart/clear?${clearParams.toString()}`;
     };
     const isLoggedOutPlan = (plan) => {
         if (!plan) {
