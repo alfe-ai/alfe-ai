@@ -520,6 +520,51 @@
       "qwen_cli": false,
       "plus_model": false,
       "list_order": 28
+    },
+    {
+      "id": "openrouter/qwen/qwen3-32b",
+      "label": "Qwen: Qwen3 32B",
+      "disabled": false,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "qwen_cli": true,
+      "plus_model": true,
+      "list_order": 1000,
+      "usage": "high",
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
+    },
+    {
+      "id": "openrouter/qwen/qwen3-235b-a22b",
+      "label": "Qwen: Qwen3 235B A22B",
+      "disabled": false,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "qwen_cli": true,
+      "plus_model": true,
+      "list_order": 1001,
+      "usage": "very high",
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
+    },
+    {
+      "id": "openrouter/qwen/qwen3-coder-plus",
+      "label": "Qwen: Qwen3 Coder Plus",
+      "disabled": false,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "qwen_cli": true,
+      "plus_model": true,
+      "list_order": 1002,
+      "usage": "high",
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     }
   ]
 }
