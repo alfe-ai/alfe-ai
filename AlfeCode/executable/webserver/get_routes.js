@@ -153,6 +153,32 @@ function setupGetRoutes(deps) {
         }
         return trimmed.replace(/\/+$/, "");
     };
+    const buildShopifySubscriptionCheckoutUrl = () => {
+        const configuredPermalink =
+            typeof process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL === "string"
+                ? process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL.trim()
+                : "";
+        if (configuredPermalink) {
+            return configuredPermalink;
+        }
+
+        const storeBaseUrl = normalizeBaseUrl(
+            process.env.SHOPIFY_STORE_BASE_URL
+            || process.env.SHOPIFY_STORE_URL
+            || process.env.SHOPIFY_SHOP_URL
+        );
+        const variantId = (process.env.SHOPIFY_SUBSCRIPTION_VARIANT_ID || "").toString().trim();
+        const sellingPlanId = (process.env.SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID || "").toString().trim();
+        const quantityRaw = (process.env.SHOPIFY_SUBSCRIPTION_QUANTITY || "1").toString().trim();
+        const quantityParsed = Number.parseInt(quantityRaw, 10);
+        const quantity = Number.isInteger(quantityParsed) && quantityParsed > 0 ? quantityParsed : 1;
+
+        if (!storeBaseUrl || !variantId || !sellingPlanId) {
+            return "";
+        }
+
+        return `${storeBaseUrl}/cart/${encodeURIComponent(variantId)}:${quantity}?selling_plan=${encodeURIComponent(sellingPlanId)}`;
+    };
     const isLoggedOutPlan = (plan) => {
         if (!plan) {
             return false;
@@ -2450,6 +2476,7 @@ ${cleanedFinalOutput}`;
         const accountButtonEnabled = accountsEnabled;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
+        const subscriptionCheckoutUrl = buildShopifySubscriptionCheckoutUrl();
         
         let account = null;
         if (rdsStore?.enabled) {
@@ -2487,6 +2514,7 @@ ${cleanedFinalOutput}`;
             showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
             agentModelDropdownDisabled,
             fileTreeButtonVisible,
+            subscriptionCheckoutUrl,
         });
     };
 

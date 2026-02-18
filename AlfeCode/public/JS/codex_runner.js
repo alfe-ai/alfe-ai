@@ -8824,6 +8824,7 @@ const appendMergeChunk = (text, type = "output") => {
   const usageLimitModalCloseButton = document.getElementById("usageLimitModalCloseButton");
   const subscribeModal = document.getElementById("subscribeModal");
   const subscribeModalCloseButton = document.getElementById("subscribeModalCloseButton");
+  const subscribeModalActionButton = document.getElementById("subscribeModalActionButton");
   const currentSessionId = (typeof window !== "undefined" && window.currentSessionId)
     ? window.currentSessionId
     : new URLSearchParams(window.location.search || "").get("sessionId");
@@ -8887,6 +8888,10 @@ const appendMergeChunk = (text, type = "output") => {
     showSubscribeModal();
     return true;
   };
+
+  const subscriptionCheckoutUrl = typeof config.subscriptionCheckoutUrl === "string"
+    ? config.subscriptionCheckoutUrl.trim()
+    : "";
 
   const showToast = (msg, duration = 1500) => {
     if (!toastEl) {
@@ -9370,6 +9375,21 @@ const appendMergeChunk = (text, type = "output") => {
     subscribeButton.addEventListener("click", (event) => {
       event.preventDefault();
       triggerSubscribeModal();
+    });
+  }
+
+  if (subscribeModalActionButton) {
+    subscribeModalActionButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideSubscribeModal();
+      if (subscriptionCheckoutUrl) {
+        window.setTimeout(() => {
+          window.location.href = subscriptionCheckoutUrl;
+        }, 120);
+        return;
+      }
+      showToast("Subscription checkout is unavailable right now.");
+      openAuthModal({ preferredStep: "signup" });
     });
   }
 

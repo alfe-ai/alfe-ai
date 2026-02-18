@@ -3987,7 +3987,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 <p class="subscription-copy-heading">Unlimited Git repository connections with security sandboxing to keep your code private</p>
                 <p class="subscription-copy-heading">Unlimited AI chats on Alfe AI chat</p>
             </div>
-            <button type="button" id="subscribeModalActionButton" class="subscribe-now-button" onclick="document.getElementById('subscribeModal').classList.add('is-hidden'); document.body.style.overflow = ''; if (window.alfeOpenAuthModal) { window.alfeOpenAuthModal('signup'); }">Subscribe Now</button>
+            <button type="button" id="subscribeModalActionButton" class="subscribe-now-button">Subscribe Now</button>
         </div>
     </div>
 
@@ -4115,6 +4115,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 accountButtonEnabled: <%- JSON.stringify(typeof accountButtonEnabled === "undefined" ? true : accountButtonEnabled) %>,
                 userPromptVisibleCodex: <%- JSON.stringify(typeof userPromptVisibleCodex === "undefined" ? false : userPromptVisibleCodex) %>,
                 agentModelDropdownDisabled: <%- JSON.stringify(typeof agentModelDropdownDisabled !== 'undefined' ? agentModelDropdownDisabled : false) %>,
+                subscriptionCheckoutUrl: <%- JSON.stringify(subscriptionCheckoutUrl || "") %>,
             }
         );
     </script>
