@@ -518,6 +518,7 @@
                 id="accountEverSubscribedSelect"
                 aria-label="Ever subscribed"
                 style="font-size:0.85rem;color:#e2e8f0;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:4px 8px;"
+                <%= allowAccountPlanEdit ? '' : 'disabled' %>
               >
                 <option value="false">False</option>
                 <option value="true">True</option>

@@ -949,6 +949,20 @@
     }
   }
 
+  function updateAccountEverSubscribedControl(hasAccount, forceDisabled = false) {
+    if (!accountEverSubscribedSelect) return;
+    const canEdit = Boolean(hasAccount) && accountPlanEditable && !forceDisabled;
+    accountEverSubscribedSelect.disabled = !canEdit;
+    if (!hasAccount) {
+      showAccountEverSubscribedFeedback('');
+      return;
+    }
+    if (!accountPlanEditable) {
+      showAccountEverSubscribedFeedback('');
+      return;
+    }
+  }
+
   function setAccountPlanValue(value) {
     if (!accountPlanSelect) return;
     const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
@@ -1128,6 +1142,7 @@
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         const hasAccount = Boolean(payload.email);
         updateAccountPlanControl(hasAccount);
+        updateAccountEverSubscribedControl(hasAccount);
         if (accountEverSubscribedSelect) {
           accountEverSubscribedSelect.disabled = !hasAccount;
         }
