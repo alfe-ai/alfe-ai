@@ -1560,6 +1560,11 @@
   if (inlineAuthButtons.length) {
     inlineAuthButtons.forEach(button => {
       button.addEventListener('click', () => {
+        const action = (button.dataset.ctaAction || '').toString().trim().toLowerCase();
+        if (action === 'subscribe') {
+          requestSubscribeModal();
+          return;
+        }
         requestAuthModal('signup');
       });
     });
