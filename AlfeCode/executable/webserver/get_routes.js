@@ -2503,6 +2503,7 @@ ${cleanedFinalOutput}`;
         const allowModelOrderEdit = isIpAllowed(getRequestIp(req), configIpWhitelist);
         const allowAccountPlanEdit = allowModelOrderEdit;
         const allowVmRunsLink = allowModelOrderEdit;
+        const allowSensitiveSettings = isIpAllowed(getRequestIp(req), configIpWhitelist);
         const qwenDebugEnabled = process.env.QWEN_DEBUG_ENABLED === 'true';
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
@@ -2516,6 +2517,7 @@ ${cleanedFinalOutput}`;
             allowModelOrderEdit,
             allowAccountPlanEdit,
             allowVmRunsLink,
+            allowSensitiveSettings,
             qwenDebugEnabled,
         });
     });

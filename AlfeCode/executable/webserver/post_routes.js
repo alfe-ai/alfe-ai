@@ -343,6 +343,9 @@ function setupPostRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
         }
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ error: "OpenRouter API key editing is restricted to whitelisted IP addresses." });
+        }
         const sessionId = getSessionIdFromRequest(req);
         if (!sessionId) {
             return res.status(401).json({ error: "not logged in" });
@@ -482,6 +485,9 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/session/refresh", async (req, res) => {
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ error: "Session refresh is restricted to whitelisted IP addresses." });
+        }
         const currentSessionId = getSessionIdFromRequest(req);
         if (rdsStore?.enabled && currentSessionId) {
             const account = await rdsStore.getAccountBySession(currentSessionId);
