@@ -3415,7 +3415,7 @@
                             aria-label="Subscribe"
                             data-subscribe-url="/agent/model-only"
                             style="display:none;"
-                            onclick="(function(){ if (window.alfeOpenSubscribeModal) { window.alfeOpenSubscribeModal(); return; } var modal = document.getElementById('subscribeModal'); if (modal) { modal.classList.remove('is-hidden'); document.body.style.overflow = 'hidden'; } })()"
+                            onclick="(function(){ if (window.alfeTriggerSubscribeModal) { window.alfeTriggerSubscribeModal(); return; } if (window.alfeOpenSubscribeModal) { window.alfeOpenSubscribeModal(); return; } try { if (window.parent && window.parent !== window && window.parent.alfeOpenSubscribeModal) { window.parent.alfeOpenSubscribeModal(); return; } } catch (error) {} var modal = document.getElementById('subscribeModal'); if (modal) { modal.classList.remove('is-hidden'); document.body.style.overflow = 'hidden'; } })()"
                         >
                             Subscribe
                         </button>

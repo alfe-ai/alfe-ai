@@ -764,6 +764,25 @@
     document.body.style.overflow = "";
   };
 
+  const triggerSubscribeModal = ({ closeSettingsFirst = true, closeRepoAddFirst = false } = {}) => {
+    if (typeof window !== "undefined" && typeof window.alfeOpenSubscribeModal === "function") {
+      window.alfeOpenSubscribeModal({ closeSettingsFirst, closeRepoAddFirst });
+      return true;
+    }
+
+    try {
+      if (window.parent && window.parent !== window && typeof window.parent.alfeOpenSubscribeModal === "function") {
+        window.parent.alfeOpenSubscribeModal({ closeSettingsFirst, closeRepoAddFirst });
+        return true;
+      }
+    } catch (error) {
+      // Ignore cross-frame access issues and keep local fallback behavior.
+    }
+
+    showSubscribeModal();
+    return true;
+  };
+
   const isUsageLimitMessage = (message) => {
     if (!message) return false;
     const normalized = message.toString().toLowerCase();
@@ -9214,6 +9233,7 @@ const appendMergeChunk = (text, type = "output") => {
       }
       showSubscribeModal();
     };
+    window.alfeTriggerSubscribeModal = (options = {}) => triggerSubscribeModal(options);
   }
 
   if (usageLimitModal) {
@@ -9292,7 +9312,7 @@ const appendMergeChunk = (text, type = "output") => {
   if (subscribeButton) {
     subscribeButton.addEventListener("click", (event) => {
       event.preventDefault();
-      showSubscribeModal();
+      triggerSubscribeModal();
     });
   }
 
