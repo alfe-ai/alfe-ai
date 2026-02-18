@@ -167,6 +167,15 @@ function setupGetRoutes(deps) {
         const gidMatch = trimmed.match(new RegExp(`^gid://shopify/${resourceName}/(\\d+)$`, "i"));
         return gidMatch ? gidMatch[1] : "";
     };
+    const firstNonEmptyEnv = (...keys) => {
+        for (const key of keys) {
+            const value = process.env[key];
+            if (typeof value === "string" && value.trim()) {
+                return value.trim();
+            }
+        }
+        return "";
+    };
     const buildShopifySubscriptionCheckoutUrl = () => {
         const configuredPermalink =
             typeof process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL === "string"
@@ -182,11 +191,20 @@ function setupGetRoutes(deps) {
             || process.env.SHOPIFY_SHOP_URL
         );
         const variantId = normalizeShopifyGidToNumericId(
-            process.env.SHOPIFY_SUBSCRIPTION_VARIANT_ID,
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_VARIANT_ID",
+                "SHOPIFY_VARIANT_ID",
+                "SHOPIFY_SUBSCRIPTION_VARIANT"
+            ),
             "ProductVariant"
         );
         const sellingPlanId = normalizeShopifyGidToNumericId(
-            process.env.SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID,
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID",
+                "SHOPIFY_SELLING_PLAN_ID",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_GID"
+            ),
             "SellingPlan"
         );
         const quantityRaw = (process.env.SHOPIFY_SUBSCRIPTION_QUANTITY || "1").toString().trim();
