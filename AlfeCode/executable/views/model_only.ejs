@@ -419,11 +419,11 @@
             </div>
             <div id="freeCodeUsageUpsell" class="hidden" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
               <span style="font-size:0.95rem;color:#e2e8f0;font-weight:600;">Subscribe for Unlimited use.</span>
-              <button type="button" class="subscribe-button subscribe-button--inline">Subscribe Now</button>
+              <button type="button" class="subscribe-button subscribe-button--inline" data-cta-action="subscribe">Subscribe Now</button>
             </div>
             <div id="loggedOutCodeUsageUpsell" class="hidden" style="margin-top:8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
               <span style="font-size:0.95rem;color:#e2e8f0;font-weight:600;">Log in for increased limits.</span>
-              <button type="button" class="subscribe-button subscribe-button--inline">Sign Up / Log In</button>
+              <button type="button" class="subscribe-button subscribe-button--inline" data-cta-action="auth">Sign Up / Log In</button>
             </div>
             <hr id="codeUsageDivider" class="hidden" style="border:0;border-top:1px solid #1e293b;margin:8px 0;">
             <div id="codeUsageUnlimited" class="hidden" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
@@ -452,7 +452,7 @@
             </div>
             <div id="searchLockedNotice" class="usage-locked hidden">
               <span>You must be logged in to use Search.</span>
-              <button type="button" class="subscribe-button subscribe-button--inline">Sign Up / Log In</button>
+              <button type="button" class="subscribe-button subscribe-button--inline" data-cta-action="auth">Sign Up / Log In</button>
             </div>
           </div>
           <% } %>
@@ -467,7 +467,7 @@
             </div>
             <div id="imageLockedNotice" class="usage-locked hidden">
               <span>You must be logged in to use Image Design.</span>
-              <button type="button" class="subscribe-button subscribe-button--inline">Sign Up / Log In</button>
+              <button type="button" class="subscribe-button subscribe-button--inline" data-cta-action="auth">Sign Up / Log In</button>
             </div>
           </div>
           <% } %>
