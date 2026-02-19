@@ -176,7 +176,7 @@ function setupGetRoutes(deps) {
         }
         return "";
     };
-    const buildShopifySubscriptionCheckoutUrl = () => {
+    const buildShopifySubscriptionCheckoutUrl = (accountEmail = "") => {
         const configuredPermalink =
             typeof process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL === "string"
                 ? process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL.trim()
@@ -221,7 +221,14 @@ function setupGetRoutes(deps) {
         if (sellingPlanId) {
             addParams.set("selling_plan", sellingPlanId);
         }
-        addParams.set("return_to", "/checkout");
+        const checkoutParams = new URLSearchParams();
+        if (typeof accountEmail === "string" && accountEmail.trim()) {
+            checkoutParams.set("checkout[email]", accountEmail.trim());
+        }
+        const returnToTarget = checkoutParams.toString()
+            ? `/checkout?${checkoutParams.toString()}`
+            : "/checkout";
+        addParams.set("return_to", returnToTarget);
 
         const addPath = `/cart/add?${addParams.toString()}`;
         const clearParams = new URLSearchParams();
@@ -2528,8 +2535,6 @@ ${cleanedFinalOutput}`;
         const accountButtonEnabled = accountsEnabled;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
-        const subscriptionCheckoutUrl = buildShopifySubscriptionCheckoutUrl();
-        
         let account = null;
         if (rdsStore?.enabled) {
             const sessionId = getSessionIdFromRequest(req);
@@ -2537,6 +2542,8 @@ ${cleanedFinalOutput}`;
                 account = await rdsStore.getAccountBySession(sessionId);
             }
         }
+        const accountEmail = typeof account?.email === "string" ? account.email : "";
+        const subscriptionCheckoutUrl = buildShopifySubscriptionCheckoutUrl(accountEmail);
         
         res.render("codex_runner", {
             codexScriptPath,
