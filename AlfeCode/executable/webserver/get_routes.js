@@ -244,6 +244,12 @@ function setupGetRoutes(deps) {
         }
         return plan.toString().trim().toLowerCase().replace(/[-\s]+/g, " ") === "logged out session";
     };
+    const normalizeCheckoutEmail = (value) => {
+        if (typeof value !== "string") {
+            return "";
+        }
+        return value.trim();
+    };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
@@ -2579,6 +2585,30 @@ ${cleanedFinalOutput}`;
 
     app.get("/agent", renderCodexRunner);
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
+    app.get('/checkout', async (req, res) => {
+        try {
+            const queryEmail = normalizeCheckoutEmail(req.query?.email);
+            let fallbackAccountEmail = "";
+            if (!queryEmail && rdsStore?.enabled) {
+                const sessionId = getSessionIdFromRequest(req);
+                if (sessionId) {
+                    const account = await rdsStore.getAccountBySession(sessionId);
+                    fallbackAccountEmail = normalizeCheckoutEmail(account?.email);
+                }
+            }
+
+            const checkoutUrl = buildShopifySubscriptionCheckoutUrl(queryEmail || fallbackAccountEmail);
+            if (!checkoutUrl) {
+                res.status(503).send("Subscription checkout is unavailable right now.");
+                return;
+            }
+
+            res.redirect(checkoutUrl);
+        } catch (error) {
+            console.error("Failed to build Shopify checkout redirect:", error);
+            res.status(500).send("Unable to open subscription checkout.");
+        }
+    });
     app.get('/agent/model-only', async (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const engineDropdownHidden = parseBooleanFlag(process.env.ENGINE_DROPDOWN_HIDDEN);
