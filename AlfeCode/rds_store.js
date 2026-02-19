@@ -312,26 +312,6 @@ class RdsStore {
     }
   }
 
-  async setAccountEmail(id, email) {
-    if (!this.enabled) return;
-    await this.ensureReady();
-    const normalized = (email || "").toString().trim().toLowerCase();
-    if (!normalized) {
-      throw new Error("Email required.");
-    }
-    try {
-      await this.pool.query(
-        `UPDATE ${ACCOUNTS_TABLE}
-         SET email = $1
-         WHERE id = $2`,
-        [normalized, id]
-      );
-    } catch (error) {
-      console.error("[RdsStore] Failed to update account email:", error?.message || error);
-      throw error;
-    }
-  }
-
   async setAccountPlan(id, plan) {
     if (!this.enabled) return;
     await this.ensureReady();

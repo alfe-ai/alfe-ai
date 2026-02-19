@@ -275,44 +275,6 @@ function setupPostRoutes(deps) {
         return res.json({ exists: !!account });
     });
 
-    app.post("/api/account/email", async (req, res) => {
-        if (!rdsStore?.enabled) {
-            return res.status(503).json({ error: "Account update is not configured on this server." });
-        }
-        const sessionId = getSessionIdFromRequest(req);
-        if (!sessionId) {
-            return res.status(401).json({ error: "not logged in" });
-        }
-        const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
-        if (!email) {
-            return res.status(400).json({ error: "Email required." });
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            return res.status(400).json({ error: "Enter a valid email address." });
-        }
-        const account = await rdsStore.getAccountBySession(sessionId);
-        if (!account) {
-            return res.status(401).json({ error: "not logged in" });
-        }
-        if (account.email === email) {
-            return res.json({ success: true, email });
-        }
-        const existingAccount = await rdsStore.getAccountByEmail(email);
-        if (existingAccount && existingAccount.id !== account.id) {
-            return res.status(409).json({ error: "An account with that email already exists." });
-        }
-        try {
-            await rdsStore.setAccountEmail(account.id, email);
-            return res.json({ success: true, email });
-        } catch (error) {
-            if (error && error.code === "23505") {
-                return res.status(409).json({ error: "An account with that email already exists." });
-            }
-            console.error("Failed to update account email:", error?.message || error);
-            return res.status(500).json({ error: "Failed to update account email." });
-        }
-    });
-
     app.post("/api/account/plan", async (req, res) => {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });

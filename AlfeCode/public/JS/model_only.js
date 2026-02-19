@@ -25,9 +25,7 @@
   const searchLockedNotice = document.getElementById('searchLockedNotice');
   const imageLockedNotice = document.getElementById('imageLockedNotice');
   const accountPanel = document.getElementById('accountPanel');
-  const accountEmailInput = document.getElementById('accountEmailInput');
-  const accountEmailSaveButton = document.getElementById('accountEmailSaveButton');
-  const accountEmailFeedback = document.getElementById('accountEmailFeedback');
+  const accountEmail = document.getElementById('accountEmail');
   const accountPlanSelect = document.getElementById('accountPlanSelect');
   const accountPlanPlusOption = document.getElementById('accountPlanPlusOption');
   const manageSubscriptionButton = document.getElementById('manageSubscriptionButton');
@@ -55,7 +53,6 @@
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex', 'cline', 'sterling', 'kilo'];
   const ENGINE_OPTIONS = new Set(ENGINE_OPTION_ORDER);
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
-  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const USAGE_LIMITS = {
     loggedOut: { code: 10, search: 0, images: 0 },
     free: { code: 20, search: 10, images: 10 },
@@ -829,39 +826,9 @@
     accountPanel.classList.toggle('hidden', !visible);
   }
 
-
   function setAccountField(el, value) {
     if (!el) return;
     el.textContent = value && value.toString().trim().length ? value : '—';
-  }
-
-  function showAccountEmailFeedback(message, type) {
-    if (!accountEmailFeedback) return;
-    if (!message) {
-      accountEmailFeedback.textContent = '';
-      accountEmailFeedback.classList.add('hidden');
-      accountEmailFeedback.classList.remove('error', 'success');
-      return;
-    }
-    accountEmailFeedback.textContent = message;
-    accountEmailFeedback.classList.remove('hidden', 'error', 'success');
-    if (type === 'error') {
-      accountEmailFeedback.classList.add('error');
-    } else if (type === 'success') {
-      accountEmailFeedback.classList.add('success');
-    }
-  }
-
-  function setAccountEmailValue(value) {
-    if (!accountEmailInput) return;
-    accountEmailInput.value = value && value.toString().trim().length ? value.toString().trim() : '';
-  }
-
-  function updateManageSubscriptionLink(email) {
-    if (!manageSubscriptionButton) return;
-    const normalizedEmail = typeof email === 'string' ? email.trim() : '';
-    const loginHint = encodeURIComponent(normalizedEmail);
-    manageSubscriptionButton.href = `https://subscription.alfe.bot/customer_authentication/login?return_to=%2Ftools%2Fmemberships&locale=en&ui_hint=full&login_hint=${loginHint}`;
   }
 
   function handleUsageEvent(event) {
@@ -975,19 +942,6 @@
     setAccountField(accountOpenrouterApiKey, value || '');
   }
 
-  function updateAccountEmailControl(hasAccount, forceDisabled = false) {
-    const canEdit = Boolean(hasAccount) && !forceDisabled;
-    if (accountEmailInput) {
-      accountEmailInput.disabled = !canEdit;
-    }
-    if (accountEmailSaveButton) {
-      accountEmailSaveButton.disabled = !canEdit;
-    }
-    if (!hasAccount) {
-      showAccountEmailFeedback('');
-    }
-  }
-
   function updateAccountPlanControl(hasAccount, forceDisabled = false) {
     if (!accountPlanSelect) return;
     const canEdit = Boolean(hasAccount) && accountPlanEditable && !forceDisabled;
@@ -1080,43 +1034,6 @@
     }
   }
 
-  async function saveAccountEmail(newEmail) {
-    if (!accountEmailInput) return;
-    const normalizedEmail = typeof newEmail === 'string' ? newEmail.trim().toLowerCase() : '';
-    if (!normalizedEmail) {
-      showAccountEmailFeedback('Email is required.', 'error');
-      return;
-    }
-    if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      showAccountEmailFeedback('Enter a valid email address.', 'error');
-      return;
-    }
-    showAccountEmailFeedback('Saving...');
-    updateAccountEmailControl(true, true);
-    try {
-      const response = await fetch('/api/account/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ email: normalizedEmail }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const errorMessage = payload?.error || `Failed to save email (status ${response.status}).`;
-        throw new Error(errorMessage);
-      }
-      const savedEmail = payload?.email || normalizedEmail;
-      setAccountEmailValue(savedEmail);
-      updateManageSubscriptionLink(savedEmail);
-      showAccountEmailFeedback('Saved.', 'success');
-    } catch (error) {
-      console.error('Failed to save account email:', error);
-      showAccountEmailFeedback(error.message || 'Failed to save email.', 'error');
-    } finally {
-      updateAccountEmailControl(true);
-    }
-  }
-
   async function saveAccountPlan(newPlan) {
     if (!accountPlanSelect) return;
     if (!ACCOUNT_PLANS.includes(newPlan)) {
@@ -1155,7 +1072,7 @@
   async function saveAccountEverSubscribed(everSubscribed) {
     if (!accountEverSubscribedSelect) return;
     if (!accountPlanEditable) {
-      updateAccountEverSubscribedControl(Boolean(accountEmailInput && accountEmailInput.value && accountEmailInput.value.trim()));
+      updateAccountEverSubscribedControl(Boolean(accountEmail && accountEmail.textContent && accountEmail.textContent.trim()));
       return;
     }
     showAccountEverSubscribedFeedback('Saving…');
@@ -1215,9 +1132,6 @@
   async function loadUsageLimits() {
     applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
     setAccountVisibility(true);
-    updateAccountEmailControl(false, true);
-    setAccountEmailValue('');
-    updateManageSubscriptionLink('');
     if (accountPlanSelect) {
       accountPlanSelect.disabled = true;
       setAccountPlanValue('Free');
@@ -1238,15 +1152,13 @@
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
         applyUsageLimits(resolveUsageLimits(payload.plan), payload.plan);
-        setAccountEmailValue(payload.email);
-        updateManageSubscriptionLink(payload.email);
+        setAccountField(accountEmail, payload.email);
         setAccountPlanValue(payload.plan);
         setAccountEverSubscribedValue(payload.everSubscribed);
         setAccountOpenrouterApiKeyValue(payload.openrouterApiKey);
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         const hasAccount = Boolean(payload.email);
-        updateAccountEmailControl(hasAccount);
         updateAccountPlanControl(hasAccount);
         updateAccountEverSubscribedControl(hasAccount);
         if (logoutButton) {
@@ -1526,21 +1438,6 @@
     supportActionButton.addEventListener('click', handleSupportActionClick);
   }
 
-  if (accountEmailSaveButton) {
-    accountEmailSaveButton.addEventListener('click', function() {
-      const nextEmail = accountEmailInput ? accountEmailInput.value : '';
-      void saveAccountEmail(nextEmail);
-    });
-  }
-
-  if (accountEmailInput) {
-    accountEmailInput.addEventListener('keydown', function(event) {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      void saveAccountEmail(accountEmailInput.value);
-    });
-  }
-
   if (accountPlanSelect) {
     accountPlanSelect.addEventListener('change', function() {
       const selectedPlan = accountPlanSelect.value;
@@ -1553,7 +1450,7 @@
   if (accountEverSubscribedSelect) {
     accountEverSubscribedSelect.addEventListener('change', function() {
       if (!accountPlanEditable) {
-        updateAccountEverSubscribedControl(Boolean(accountEmailInput && accountEmailInput.value && accountEmailInput.value.trim()));
+        updateAccountEverSubscribedControl(Boolean(accountEmail && accountEmail.textContent && accountEmail.textContent.trim()));
         return;
       }
       const selectedValue = accountEverSubscribedSelect.value === 'true';
@@ -1578,9 +1475,7 @@
       }
       showLogoutFeedback('Logged out.', 'success');
       applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
-      setAccountEmailValue('');
-      updateManageSubscriptionLink('');
-      updateAccountEmailControl(false, true);
+      setAccountField(accountEmail, '');
       setAccountPlanValue('Free');
       setAccountEverSubscribedValue(false);
       setAccountOpenrouterApiKeyValue('');
