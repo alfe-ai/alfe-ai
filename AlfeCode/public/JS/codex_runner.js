@@ -9383,11 +9383,23 @@ const appendMergeChunk = (text, type = "output") => {
       event.preventDefault();
       hideSubscribeModal();
       if (subscriptionCheckoutUrl) {
-        window.setTimeout(() => {
-          const checkoutTab = window.open(subscriptionCheckoutUrl, "_blank", "noopener,noreferrer");
-          if (!checkoutTab) {
-            window.location.href = subscriptionCheckoutUrl;
+        let checkoutTab = null;
+        try {
+          checkoutTab = window.open("about:blank", "_blank");
+          if (checkoutTab) {
+            checkoutTab.opener = null;
           }
+        } catch (error) {
+          checkoutTab = null;
+        }
+
+        if (!checkoutTab) {
+          window.location.href = subscriptionCheckoutUrl;
+          return;
+        }
+
+        window.setTimeout(() => {
+          checkoutTab.location.href = subscriptionCheckoutUrl;
         }, 120);
         return;
       }
