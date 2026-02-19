@@ -300,8 +300,23 @@ function setupGetRoutes(deps) {
 
     const resolveShopifyAuthClientId = () => {
         return firstNonEmptyEnv(
+            "SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID",
             "SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID",
             "SHOPIFY_CUSTOMER_ACCOUNTS_CLIENT_ID"
+        );
+    };
+
+    const resolveShopifyAuthorizationEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_AUTHORIZATION_ENDPOINT
+        );
+    };
+
+    const resolveShopifyTokenEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_TOKEN_ENDPOINT
         );
     };
 
@@ -400,6 +415,15 @@ function setupGetRoutes(deps) {
     };
 
     const discoverShopifyAuthEndpoints = async (shopDomain) => {
+        const configuredAuthorizationEndpoint = resolveShopifyAuthorizationEndpoint();
+        const configuredTokenEndpoint = resolveShopifyTokenEndpoint();
+        if (configuredAuthorizationEndpoint && configuredTokenEndpoint) {
+            return {
+                authorization_endpoint: configuredAuthorizationEndpoint,
+                token_endpoint: configuredTokenEndpoint,
+            };
+        }
+
         const normalizedDomain = (shopDomain || "").toString().trim().toLowerCase();
         const now = Date.now();
         if (
