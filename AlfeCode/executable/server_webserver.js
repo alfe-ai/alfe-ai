@@ -1975,9 +1975,9 @@ projectViewRouter.get("*", (_req, res) => {
   res.sendFile(path.join(projectViewPublicDir, "index.html"));
 });
 
-const projectViewEnabled = parseBooleanEnv(process.env.AURORA_PROJECTVIEW_ENABLED, true);
+const projectViewEnabled = parseBooleanEnv(process.env.AURORA_PROJECTVIEW_ENABLED, true) && parseBooleanEnv(process.env.BACKLOG_BUTTON_VISIBLE, true);
 if (projectViewEnabled) {
   app.use("/ProjectView", projectViewRouter);
 } else {
-  console.debug("[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED; /ProjectView routes not mounted.");
+  console.debug("[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED or BACKLOG_BUTTON_VISIBLE; /ProjectView routes not mounted.");
 }

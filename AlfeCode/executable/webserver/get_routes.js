@@ -2765,6 +2765,7 @@ ${cleanedFinalOutput}`;
         const accountButtonEnabled = accountsEnabled;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
+        const backlogButtonVisible = parseBooleanFlagWithDefault(process.env.BACKLOG_BUTTON_VISIBLE, true);
         let account = null;
         if (rdsStore?.enabled) {
             const sessionId = getSessionIdFromRequest(req);
@@ -2803,6 +2804,7 @@ ${cleanedFinalOutput}`;
             showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
             agentModelDropdownDisabled,
             fileTreeButtonVisible,
+            backlogButtonVisible,
             subscriptionCheckoutUrl,
             shopifyAuthEnabled: true,
             shopifyAuthStartUrl: "/auth/shopify/start",
