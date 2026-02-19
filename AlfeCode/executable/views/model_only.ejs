@@ -30,6 +30,16 @@
       margin:0 0 6px 0;
     }
     select{font-size:1rem;padding:10px;margin:6px 0 0 0;width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,0.25);border-radius:8px;}
+    .account-meta-select:disabled{
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      background-image:none;
+      padding-right:8px;
+    }
+    .account-meta-select:disabled::-ms-expand{
+      display:none;
+    }
     label{font-size:0.85rem;color:#94a3b8;display:block;margin-top:8px;}
     .footer{
       margin-top:auto;
@@ -500,6 +510,7 @@
               <select
                 id="accountPlanSelect"
                 aria-label="Account plan"
+                class="account-meta-select"
                 style="font-size:0.85rem;color:#e2e8f0;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:4px 8px;"
               >
                 <option value="Logged-out Session">Logged-out Session</option>
@@ -527,6 +538,7 @@
               <select
                 id="accountEverSubscribedSelect"
                 aria-label="Ever subscribed"
+                class="account-meta-select"
                 style="font-size:0.85rem;color:#e2e8f0;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:4px 8px;"
                 <%= allowAccountPlanEdit ? '' : 'disabled' %>
               >
