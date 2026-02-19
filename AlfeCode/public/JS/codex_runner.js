@@ -8894,6 +8894,14 @@ const appendMergeChunk = (text, type = "output") => {
     ? config.subscriptionCheckoutUrl.trim()
     : "";
 
+  const buildSubscriptionAuthenticationUrl = () => {
+    const accountEmail = (accountInfo && typeof accountInfo.email === "string"
+      ? accountInfo.email
+      : "").trim();
+    const encodedEmail = encodeURIComponent(accountEmail);
+    return `https://subscription.alfe.bot/customer_authentication/login?return_to=%2Fpages%2Fcheckout-js&locale=en&ui_hint=full&login_hint=${encodedEmail}`;
+  };
+
   const showToast = (msg, duration = 1500) => {
     if (!toastEl) {
       return;
@@ -9383,7 +9391,9 @@ const appendMergeChunk = (text, type = "output") => {
     subscribeModalActionButton.addEventListener("click", (event) => {
       event.preventDefault();
       hideSubscribeModal();
-      if (subscriptionCheckoutUrl) {
+      const subscriptionAuthenticationUrl = buildSubscriptionAuthenticationUrl();
+      if (subscriptionAuthenticationUrl || subscriptionCheckoutUrl) {
+        const destinationUrl = subscriptionAuthenticationUrl || subscriptionCheckoutUrl;
         let checkoutTab = null;
         try {
           checkoutTab = window.open("about:blank", "_blank");
@@ -9395,12 +9405,12 @@ const appendMergeChunk = (text, type = "output") => {
         }
 
         if (!checkoutTab) {
-          window.location.href = subscriptionCheckoutUrl;
+          window.location.href = destinationUrl;
           return;
         }
 
         window.setTimeout(() => {
-          checkoutTab.location.href = subscriptionCheckoutUrl;
+          checkoutTab.location.href = destinationUrl;
         }, 120);
         return;
       }
