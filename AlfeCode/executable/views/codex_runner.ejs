@@ -3326,7 +3326,9 @@
                     </div>
                 </div>
                 <div class="runs-sidebar__actions">
+<% if (backlogButtonVisible) { %>
 <button type="button" id="backlogButton" class="runs-sidebar__icon-button" aria-label="Backlog" title="Backlog" onclick="window.open(window.location.origin + '/ProjectView/', '_blank')">Backlog</button>
+<% } %>
 <button type="button" id="runsSidebarOpenRunsButton" class="runs-sidebar__icon-button is-hidden" aria-label="Detail run" title="Detail run">
                         Detail
                     </button>
