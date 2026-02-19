@@ -244,7 +244,6 @@ function setupGetRoutes(deps) {
         }
         return plan.toString().trim().toLowerCase().replace(/[-\s]+/g, " ") === "logged out session";
     };
-<<<<<<< HEAD
     const normalizeCheckoutEmail = (value) => {
         if (typeof value !== "string") {
             return "";
@@ -279,7 +278,6 @@ function setupGetRoutes(deps) {
         };
 
         return `'use strict';\n(function (global) {\n  const config = ${JSON.stringify(scriptConfig)};\n\n  const normalizeEmail = (value) => typeof value === 'string' ? value.trim() : '';\n\n  const buildCheckoutUrl = () => {\n    const checkoutUrl = new URL('/checkout', global.location.origin);\n    const query = new URLSearchParams(global.location.search || '');\n    const email = normalizeEmail(query.get('email') || query.get('checkout[email]'));\n    if (email) {\n      checkoutUrl.searchParams.set('checkout[email]', email);\n    }\n    return checkoutUrl.toString();\n  };\n\n  const clearCart = async () => {\n    const response = await global.fetch('/cart/clear.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: { 'Accept': 'application/json' },\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to clear cart.');\n    }\n  };\n\n  const addSubscriptionItem = async () => {\n    if (!config.variantId) {\n      throw new Error('Missing Shopify subscription variant ID.');\n    }\n\n    const lineItem = {\n      id: Number(config.variantId),\n      quantity: config.quantity,\n    };\n\n    if (config.sellingPlanId) {\n      lineItem.selling_plan = Number(config.sellingPlanId);\n    }\n\n    const response = await global.fetch('/cart/add.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: {\n        'Accept': 'application/json',\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify({ items: [lineItem] }),\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to add subscription line item to cart.');\n    }\n  };\n\n  const run = async () => {\n    const checkoutUrl = buildCheckoutUrl();\n\n    try {\n      await clearCart();\n      await addSubscriptionItem();\n      global.location.assign(checkoutUrl);\n    } catch (error) {\n      console.error('[alfe-checkout] Unable to complete checkout flow.', error);\n      global.location.assign(checkoutUrl);\n    }\n  };\n\n  global.AlfeCheckout = Object.freeze({ run });\n\n  run();\n})(window);\n`;
-=======
 
     const resolveShopifyAuthLoginUrl = () => {
         const configured = normalizeBaseUrl(
@@ -321,7 +319,6 @@ function setupGetRoutes(deps) {
         }
         const normalizedPath = candidate.startsWith("/") ? candidate : `/${candidate}`;
         return `${origin}${normalizedPath}`;
->>>>>>> origin/codex/integrate-shopify-for-authentication
     };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
