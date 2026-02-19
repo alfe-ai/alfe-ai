@@ -250,6 +250,35 @@ function setupGetRoutes(deps) {
         }
         return value.trim();
     };
+    const buildShopifyCheckoutAssetScript = () => {
+        const variantId = normalizeShopifyGidToNumericId(
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_VARIANT_ID",
+                "SHOPIFY_VARIANT_ID",
+                "SHOPIFY_SUBSCRIPTION_VARIANT"
+            ),
+            "ProductVariant"
+        );
+        const sellingPlanId = normalizeShopifyGidToNumericId(
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID",
+                "SHOPIFY_SELLING_PLAN_ID",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_GID"
+            ),
+            "SellingPlan"
+        );
+        const quantityRaw = (process.env.SHOPIFY_SUBSCRIPTION_QUANTITY || "1").toString().trim();
+        const quantityParsed = Number.parseInt(quantityRaw, 10);
+        const quantity = Number.isInteger(quantityParsed) && quantityParsed > 0 ? quantityParsed : 1;
+        const scriptConfig = {
+            variantId,
+            sellingPlanId,
+            quantity,
+        };
+
+        return `'use strict';\n(function (global) {\n  const config = ${JSON.stringify(scriptConfig)};\n\n  const normalizeEmail = (value) => typeof value === 'string' ? value.trim() : '';\n\n  const buildCheckoutUrl = () => {\n    const checkoutUrl = new URL('/checkout', global.location.origin);\n    const query = new URLSearchParams(global.location.search || '');\n    const email = normalizeEmail(query.get('email') || query.get('checkout[email]'));\n    if (email) {\n      checkoutUrl.searchParams.set('checkout[email]', email);\n    }\n    return checkoutUrl.toString();\n  };\n\n  const clearCart = async () => {\n    const response = await global.fetch('/cart/clear.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: { 'Accept': 'application/json' },\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to clear cart.');\n    }\n  };\n\n  const addSubscriptionItem = async () => {\n    if (!config.variantId) {\n      throw new Error('Missing Shopify subscription variant ID.');\n    }\n\n    const lineItem = {\n      id: Number(config.variantId),\n      quantity: config.quantity,\n    };\n\n    if (config.sellingPlanId) {\n      lineItem.selling_plan = Number(config.sellingPlanId);\n    }\n\n    const response = await global.fetch('/cart/add.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: {\n        'Accept': 'application/json',\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify({ items: [lineItem] }),\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to add subscription line item to cart.');\n    }\n  };\n\n  const run = async () => {\n    const checkoutUrl = buildCheckoutUrl();\n\n    try {\n      await clearCart();\n      await addSubscriptionItem();\n      global.location.assign(checkoutUrl);\n    } catch (error) {\n      console.error('[alfe-checkout] Unable to complete checkout flow.', error);\n      global.location.assign(checkoutUrl);\n    }\n  };\n\n  global.AlfeCheckout = Object.freeze({ run });\n\n  run();\n})(window);\n`;
+    };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
@@ -2608,6 +2637,12 @@ ${cleanedFinalOutput}`;
             console.error("Failed to build Shopify checkout redirect:", error);
             res.status(500).send("Unable to open subscription checkout.");
         }
+    });
+    app.get('/checkout_js', (req, res) => {
+        const script = buildShopifyCheckoutAssetScript();
+        res.set('Cache-Control', 'no-store');
+        res.type('application/javascript');
+        res.send(script);
     });
     app.get('/agent/model-only', async (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
