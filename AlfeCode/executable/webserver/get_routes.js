@@ -450,6 +450,30 @@ function setupGetRoutes(deps) {
         };
         return payload;
     };
+    const normalizeAccountEmail = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
+    const hashPassword = (password) => {
+        const salt = crypto.randomBytes(16).toString("hex");
+        const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, "sha256").toString("hex");
+        return `${salt}$${hash}`;
+    };
+    const parseJwtPayload = (token) => {
+        if (typeof token !== "string" || !token.trim()) {
+            return null;
+        }
+        const pieces = token.trim().split(".");
+        if (pieces.length < 2) {
+            return null;
+        }
+        try {
+            const payload = pieces[1].replace(/-/g, "+").replace(/_/g, "/");
+            const padded = payload.padEnd(Math.ceil(payload.length / 4) * 4, "=");
+            const decoded = Buffer.from(padded, "base64").toString("utf8");
+            const parsed = JSON.parse(decoded);
+            return parsed && typeof parsed === "object" ? parsed : null;
+        } catch (_error) {
+            return null;
+        }
+    };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
@@ -2922,11 +2946,68 @@ ${cleanedFinalOutput}`;
             }
 
             const tokenPayload = await tokenResponse.json();
+            const idTokenPayload = parseJwtPayload(tokenPayload?.id_token || "");
+            const shopifyEmail = normalizeAccountEmail(idTokenPayload?.email);
+
+            if (shopifyEmail && rdsStore?.enabled) {
+                try {
+                    let account = await rdsStore.getAccountByEmail(shopifyEmail);
+                    if (!account) {
+                        const generatedPassword = randomUUID();
+                        const createdAccount = await rdsStore.createAccount({
+                            email: shopifyEmail,
+                            passwordHash: hashPassword(generatedPassword),
+                            sessionId: "",
+                        });
+                        account = createdAccount
+                            ? await rdsStore.getAccountByEmail(shopifyEmail)
+                            : null;
+                    }
+
+                    if (account?.disabled) {
+                        console.warn("[Shopify callback] Account exists but is disabled.", {
+                            callbackRequestId,
+                            email: shopifyEmail,
+                        });
+                    } else if (account) {
+                        const incomingSessionId = getSessionIdFromRequest(req);
+                        let resolvedSessionId = incomingSessionId;
+
+                        if (account.session_id) {
+                            resolvedSessionId = account.session_id;
+                            if (incomingSessionId && incomingSessionId !== account.session_id) {
+                                await rdsStore.mergeSessions(account.session_id, incomingSessionId);
+                            }
+                        } else {
+                            resolvedSessionId = incomingSessionId || randomUUID();
+                            await rdsStore.setAccountSession(account.id, resolvedSessionId);
+                        }
+
+                        if (resolvedSessionId) {
+                            const hostname = req.hostname
+                                || (typeof req.headers?.host === "string" ? req.headers.host.split(":")[0] : "");
+                            const cookie = buildSessionCookie(resolvedSessionId, hostname);
+                            if (cookie) {
+                                res.append("Set-Cookie", cookie);
+                            }
+                        }
+                    }
+                } catch (accountError) {
+                    console.error("[Shopify callback] Failed to provision or attach account.", {
+                        callbackRequestId,
+                        email: shopifyEmail,
+                        error: accountError,
+                    });
+                }
+            }
+
             console.info("[Shopify callback] Token exchange succeeded", {
                 callbackRequestId,
                 payloadKeys: Object.keys(tokenPayload || {}),
                 hasAccessToken: Boolean(tokenPayload?.access_token),
                 hasIdToken: Boolean(tokenPayload?.id_token),
+                hasEmail: Boolean(shopifyEmail),
+                emailPreview: sanitizeValueForLog(shopifyEmail),
                 redirectTo: returnTo,
             });
             return res.redirect(returnTo);
