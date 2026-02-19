@@ -215,21 +215,22 @@ function setupGetRoutes(deps) {
             return "";
         }
 
+        const checkoutPath = "/checkout";
+        let returnToTarget = checkoutPath;
+        if (typeof sessionId === "string" && sessionId.trim()) {
+            const updateParams = new URLSearchParams();
+            updateParams.set("attributes[saas_user_id]", sessionId.trim());
+            updateParams.set("return_to", checkoutPath);
+            returnToTarget = `/cart/update?${updateParams.toString()}`;
+        }
+
         const addParams = new URLSearchParams();
         addParams.set("id", variantId);
         addParams.set("quantity", quantity.toString());
         if (sellingPlanId) {
             addParams.set("selling_plan", sellingPlanId);
         }
-        const checkoutParams = new URLSearchParams();
-        const returnToTarget = checkoutParams.toString()
-            ? `/checkout?${checkoutParams.toString()}`
-            : "/checkout";
         addParams.set("return_to", returnToTarget);
-        if (typeof sessionId === "string" && sessionId.trim()) {
-            addParams.set("attributes[saas_user_id]", sessionId.trim());
-        }
-
         const addPath = `/cart/add?${addParams.toString()}`;
         const clearParams = new URLSearchParams();
         clearParams.set("return_to", addPath);
