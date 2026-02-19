@@ -321,6 +321,22 @@ function setupGetRoutes(deps) {
         const normalizedPath = candidate.startsWith("/") ? candidate : `/${candidate}`;
         return `${origin}${normalizedPath}`;
     };
+
+    const buildShopifyAuthCallbackUrl = (req, finalReturnTo) => {
+        const origin = resolveRequestOrigin(req);
+        if (!origin) {
+            if (!finalReturnTo) {
+                return "/auth/shopify/callback";
+            }
+            const params = new URLSearchParams({ returnTo: finalReturnTo });
+            return `/auth/shopify/callback?${params.toString()}`;
+        }
+        const callbackUrl = new URL("/auth/shopify/callback", origin);
+        if (finalReturnTo) {
+            callbackUrl.searchParams.set("returnTo", finalReturnTo);
+        }
+        return callbackUrl.toString();
+    };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
         "qwen/qwen3-coder",
@@ -2658,22 +2674,32 @@ ${cleanedFinalOutput}`;
 
     app.get("/auth/shopify/start", (req, res) => {
         const loginBase = resolveShopifyAuthLoginUrl();
-        const returnTo = resolveAuthReturnTo(req);
+        const finalReturnTo = resolveAuthReturnTo(req);
         const preferredStep = typeof req?.query?.preferredStep === "string" ? req.query.preferredStep.trim() : "";
         let loginUrl;
         try {
             loginUrl = new URL(loginBase);
         } catch (error) {
             console.warn("Invalid Shopify customer account login URL.", error);
-            return res.redirect(returnTo || "/agent");
+            return res.redirect(finalReturnTo || "/agent");
         }
-        if (returnTo) {
-            loginUrl.searchParams.set("return_url", returnTo);
+
+        const callbackUrl = buildShopifyAuthCallbackUrl(req, finalReturnTo);
+        if (callbackUrl) {
+            loginUrl.searchParams.set("return_url", callbackUrl);
         }
         if (preferredStep) {
             loginUrl.searchParams.set("alfe_step", preferredStep);
         }
         return res.redirect(loginUrl.toString());
+    });
+
+    app.get("/auth/shopify/callback", (req, res) => {
+        const returnTo = typeof req?.query?.returnTo === "string" ? req.query.returnTo.trim() : "";
+        if (!returnTo) {
+            return res.redirect("/agent");
+        }
+        return res.redirect(returnTo);
     });
 
     app.get("/agent", renderCodexRunner);
