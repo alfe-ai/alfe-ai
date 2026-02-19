@@ -152,6 +152,30 @@ function setupGetRoutes(deps) {
         });
         return cookies.sessionId || "";
     };
+    const getRequestCookies = (req) => {
+        const header = req?.headers?.cookie || "";
+        const cookies = {};
+        header.split(";").forEach((cookie) => {
+            const idx = cookie.indexOf("=");
+            if (idx === -1) return;
+            const name = cookie.slice(0, idx).trim();
+            if (!name) return;
+            cookies[name] = decodeURIComponent(cookie.slice(idx + 1).trim());
+        });
+        return cookies;
+    };
+    const buildExpiredSessionCookie = (hostname) => {
+        const parts = [
+            "sessionId=",
+            "Path=/",
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Max-Age=0",
+        ];
+        if (hostname === "alfe.sh" || hostname.endsWith(".alfe.sh")) {
+            parts.push("Domain=.alfe.sh");
+        }
+        return parts.join("; ");
+    };
     const normalizeBaseUrl = (value) => {
         if (typeof value !== "string") {
             return "";
@@ -317,6 +341,13 @@ function setupGetRoutes(deps) {
         return normalizeBaseUrl(
             process.env.SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT
             || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_TOKEN_ENDPOINT
+        );
+    };
+
+    const resolveShopifyLogoutEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_LOGOUT_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_LOGOUT_ENDPOINT
         );
     };
 
@@ -2951,6 +2982,16 @@ ${cleanedFinalOutput}`;
             const idTokenPayload = parseJwtPayload(tokenPayload?.id_token || "");
             const shopifyEmail = normalizeAccountEmail(idTokenPayload?.email);
 
+            if (tokenPayload?.id_token) {
+                const secureCookie = req.secure || String(req.headers?.["x-forwarded-proto"] || "").includes("https");
+                res.cookie("alfe_shopify_id_token", tokenPayload.id_token, {
+                    httpOnly: true,
+                    secure: secureCookie,
+                    sameSite: "lax",
+                    path: "/",
+                });
+            }
+
             if (shopifyEmail && rdsStore?.enabled) {
                 try {
                     let account = await rdsStore.getAccountByEmail(shopifyEmail);
@@ -3018,6 +3059,52 @@ ${cleanedFinalOutput}`;
                 callbackRequestId,
                 error,
             });
+            return res.redirect(returnTo);
+        }
+    });
+
+    app.get("/auth/shopify/logout", async (req, res) => {
+        const returnTo = resolveAuthReturnTo(req);
+        const cookies = getRequestCookies(req);
+        const idToken = typeof cookies.alfe_shopify_id_token === "string" ? cookies.alfe_shopify_id_token : "";
+
+        const sessionId = getSessionIdFromRequest(req);
+        if (rdsStore?.enabled && sessionId) {
+            const account = await rdsStore.getAccountBySession(sessionId);
+            if (account) {
+                await rdsStore.setAccountSession(account.id, "");
+            }
+        }
+
+        const hostname = normalizeHostname(req);
+        res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
+        res.clearCookie("alfe_shopify_id_token", {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+        });
+
+        if (!idToken) {
+            return res.redirect(returnTo);
+        }
+
+        try {
+            const configuredLogoutEndpoint = resolveShopifyLogoutEndpoint();
+            let logoutEndpoint = configuredLogoutEndpoint;
+            if (!logoutEndpoint) {
+                const discovery = await discoverShopifyAuthEndpoints(resolveShopifyAuthDomain());
+                logoutEndpoint = discovery?.end_session_endpoint || "";
+            }
+            if (!logoutEndpoint) {
+                return res.redirect(returnTo);
+            }
+
+            const logoutUrl = new URL(logoutEndpoint);
+            logoutUrl.searchParams.set("id_token_hint", idToken);
+            logoutUrl.searchParams.set("post_logout_redirect_uri", returnTo);
+            return res.redirect(logoutUrl.toString());
+        } catch (error) {
+            console.error("Shopify logout redirect failed.", error);
             return res.redirect(returnTo);
         }
     });
