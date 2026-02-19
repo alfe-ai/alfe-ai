@@ -9244,9 +9244,32 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
+  const startShopifyAuth = ({ preferredStep = "signup" } = {}) => {
+    const authStartPath = typeof config.shopifyAuthStartUrl === "string" && config.shopifyAuthStartUrl.trim()
+      ? config.shopifyAuthStartUrl.trim()
+      : "/auth/shopify/start";
+    const returnTo = `${window.location.pathname || "/agent"}${window.location.search || ""}${window.location.hash || ""}`;
+    try {
+      const url = new URL(authStartPath, window.location.origin);
+      url.searchParams.set("returnTo", returnTo || "/agent");
+      if (preferredStep) {
+        url.searchParams.set("preferredStep", preferredStep);
+      }
+      window.location.assign(url.toString());
+      return true;
+    } catch (error) {
+      console.warn("Unable to start Shopify auth redirect.", error);
+      return false;
+    }
+  };
+
   const openAuthModal = ({ preferredStep, closeRepoAddFirst = false } = {}) => {
     if (!accountButtonEnabled) {
       showToast("Accounts are disabled on this server.");
+      return;
+    }
+    const shopifyAuthEnabled = config.shopifyAuthEnabled !== false;
+    if (shopifyAuthEnabled && startShopifyAuth({ preferredStep: preferredStep || "signup" })) {
       return;
     }
     if (closeRepoAddFirst) {
