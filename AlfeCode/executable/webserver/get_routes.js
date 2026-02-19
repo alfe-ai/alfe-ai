@@ -6936,4 +6936,6 @@ ${err}`;
     });
 }
 
+}
+
 module.exports = { setupGetRoutes };
