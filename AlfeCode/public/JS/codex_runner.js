@@ -1486,26 +1486,26 @@
   const runsSidebarArchiveToggle = document.getElementById("runsSidebarArchiveToggle");
   const projectInfoButton = document.getElementById("projectInfo");
   const projectInfoText = document.getElementById("projectInfoText");
-  let runsSidebarShowArchived = (new URLSearchParams(window.location.search).get('archived') === '1') || (window.location.pathname || '').endsWith('/archived');
+  let runsSidebarShowArchive = (new URLSearchParams(window.location.search).get('archive') === '1') || (window.location.pathname || '').endsWith('/archive');
   // Ensure the initial toggle element reflects the parsed state once it exists.
   const backToCurrentTasksLink = document.getElementById('backToCurrentTasksLink');
   const updateArchivedUI = () => {
     if (runsSidebarArchiveToggle) {
-      runsSidebarArchiveToggle.setAttribute('aria-pressed', runsSidebarShowArchived ? 'true' : 'false');
+      runsSidebarArchiveToggle.setAttribute('aria-pressed', runsSidebarShowArchive ? 'true' : 'false');
     }
     if (backToCurrentTasksLink) {
-      if (runsSidebarShowArchived) { backToCurrentTasksLink.classList.remove('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','false'); } else { backToCurrentTasksLink.classList.add('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','true'); }
+      if (runsSidebarShowArchive) { backToCurrentTasksLink.classList.remove('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','false'); } else { backToCurrentTasksLink.classList.add('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','true'); }
     }
     // If the URL was /archived, normalize to /agent with query param so refresh keeps state
     try {
       const url = new URL(window.location.href);
       if ((window.location.pathname || '').endsWith('/archived')) {
         url.pathname = '/environment';
-        url.searchParams.set('archived', runsSidebarShowArchived ? '1' : '0');
+        url.searchParams.set('archived', runsSidebarShowArchive ? '1' : '0');
         window.history.replaceState({}, '', url.toString());
       } else {
         // keep query param in sync
-        if (runsSidebarShowArchived) { url.searchParams.set('archived', '1'); } else { url.searchParams.delete('archived'); }
+        if (runsSidebarShowArchive) { url.searchParams.set('archived', '1'); } else { url.searchParams.delete('archived'); }
         window.history.replaceState({}, '', url.toString());
       }
     } catch(e) { /* ignore */ }
@@ -6185,7 +6185,7 @@ const appendMergeChunk = (text, type = "output") => {
     const afterMatch = Array.isArray(followupFilteredRuns)
       ? followupFilteredRuns.filter((run) => doesRunMatchFilter(run, filterValue))
       : [];
-    const filteredByArchiveState = afterMatch.filter((run) => runsSidebarShowArchived ? Boolean(run && run.archived) : !Boolean(run && run.archived));
+    const filteredByArchiveState = afterMatch.filter((run) => runsSidebarShowArchive ? Boolean(run && run.archived) : !Boolean(run && run.archived));
     const currentRepoDir = normaliseProjectDir(currentSearchParams.get("repo_directory") || "");
     const filteredByRepository = filteredByArchiveState.filter((run) => doesRunMatchRepository(run, currentRepoDir));
     const filteredRuns = filteredByRepository;
@@ -6220,8 +6220,8 @@ const appendMergeChunk = (text, type = "output") => {
     if (runsSidebarEmptyEl) {
       if (!runsSidebarFilteredTotal) {
         runsSidebarEmptyEl.textContent = filterValue
-          ? (runsSidebarShowArchived ? "No archived runs match your search." : "No runs match your search.")
-          : (runsSidebarShowArchived ? "No archived runs." : "No runs recorded yet.");
+          ? (runsSidebarShowArchive ? "No archived runs match your search." : "No runs match your search.")
+          : (runsSidebarShowArchive ? "No archived runs." : "No runs recorded yet.");
         runsSidebarEmptyEl.classList.remove("is-hidden");
       } else {
         runsSidebarEmptyEl.classList.add("is-hidden");
@@ -6570,8 +6570,8 @@ const appendMergeChunk = (text, type = "output") => {
 
   if (runsSidebarArchiveToggle) {
     runsSidebarArchiveToggle.addEventListener("click", () => {
-      runsSidebarShowArchived = !runsSidebarShowArchived;
-      runsSidebarArchiveToggle.setAttribute('aria-pressed', runsSidebarShowArchived ? 'true' : 'false');
+      runsSidebarShowArchive = !runsSidebarShowArchive;
+      runsSidebarArchiveToggle.setAttribute('aria-pressed', runsSidebarShowArchive ? 'true' : 'false');
       // Update archived UI visibility and reload the runs list to reflect archived / active view
       updateArchivedUI();
       loadRunsSidebar({ projectDir: getProjectDirHintForHistory(), force: true, resetPage: true });
@@ -6628,7 +6628,7 @@ const appendMergeChunk = (text, type = "output") => {
   if (backToCurrentTasksLink) {
     backToCurrentTasksLink.addEventListener('click', (ev) => {
       ev.preventDefault();
-      runsSidebarShowArchived = false;
+      runsSidebarShowArchive = false;
       updateArchivedUI();
       loadRunsSidebar({ projectDir: getProjectDirHintForHistory(), force: true, resetPage: true });
     });
