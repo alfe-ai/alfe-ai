@@ -3059,14 +3059,40 @@
 
 
         .runs-sidebar__back-link {
-            display: inline-block;
-            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            min-height: 48px;
+            margin-top: 0;
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(167, 139, 250, 0.6);
+            background: linear-gradient(135deg, rgba(76, 29, 149, 0.92) 0%, rgba(91, 33, 182, 0.95) 100%);
             color: #fff;
+            font-size: 0.95rem;
             font-weight: 600;
+            letter-spacing: 0.01em;
             text-decoration: none;
             cursor: pointer;
-            padding-left: 6px;
+            white-space: nowrap;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+            box-shadow: 0 16px 28px rgba(76, 29, 149, 0.26);
         }
+
+        .runs-sidebar__back-link:hover,
+        .runs-sidebar__back-link:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            box-shadow: 0 20px 34px rgba(76, 29, 149, 0.32);
+            outline: none;
+        }
+
+        .runs-sidebar__back-link:active {
+            transform: translateY(0);
+            box-shadow: 0 12px 22px rgba(76, 29, 149, 0.24);
+        }
+
         .runs-sidebar__back-link.is-hidden { display: none; }
 
 
@@ -3348,7 +3374,7 @@
                     <span class="runs-sidebar__new-task-label">New Task</span>
                 </button>
                 <% } %>
-                <button type="button" id="backToCurrentTasksLink" class="runs-sidebar__back-link is-hidden" aria-hidden="true">&lt;-- Back to Current Tasks</button>
+                <button type="button" id="backToCurrentTasksLink" class="runs-sidebar__back-link is-hidden" aria-hidden="true">← Back to Current Tasks</button>
 
             </div>
             <div class="runs-sidebar__body">
