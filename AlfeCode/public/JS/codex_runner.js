@@ -8899,7 +8899,7 @@ const appendMergeChunk = (text, type = "output") => {
       ? accountInfo.email
       : "").trim();
     const encodedEmail = encodeURIComponent(accountEmail);
-    return `https://subscription.alfe.bot/customer_authentication/login?return_to=https://code.alfe.bot/checkout?email=${encodedEmail}&locale=en&ui_hint=full&login_hint=${encodedEmail}`;
+    return `https://subscription.alfe.bot/customer_authentication/login?return_to=%2Fpages%2Fcheckout-js&locale=en&ui_hint=full&login_hint=${encodedEmail}`;
   };
 
   const showToast = (msg, duration = 1500) => {
