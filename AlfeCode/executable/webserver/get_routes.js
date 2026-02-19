@@ -176,7 +176,7 @@ function setupGetRoutes(deps) {
         }
         return "";
     };
-    const buildShopifySubscriptionCheckoutUrl = (sessionId = "") => {
+    const buildShopifySubscriptionCheckoutUrl = (accountEmail = "") => {
         const configuredPermalink =
             typeof process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL === "string"
                 ? process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL.trim()
@@ -222,13 +222,13 @@ function setupGetRoutes(deps) {
             addParams.set("selling_plan", sellingPlanId);
         }
         const checkoutParams = new URLSearchParams();
+        if (typeof accountEmail === "string" && accountEmail.trim()) {
+            checkoutParams.set("checkout[email]", accountEmail.trim());
+        }
         const returnToTarget = checkoutParams.toString()
             ? `/checkout?${checkoutParams.toString()}`
             : "/checkout";
         addParams.set("return_to", returnToTarget);
-        if (typeof sessionId === "string" && sessionId.trim()) {
-            addParams.set("attributes[saas_user_id]", sessionId.trim());
-        }
 
         const addPath = `/cart/add?${addParams.toString()}`;
         const clearParams = new URLSearchParams();
@@ -2542,7 +2542,8 @@ ${cleanedFinalOutput}`;
                 account = await rdsStore.getAccountBySession(sessionId);
             }
         }
-        const subscriptionCheckoutUrl = buildShopifySubscriptionCheckoutUrl(sessionId);
+        const accountEmail = typeof account?.email === "string" ? account.email : "";
+        const subscriptionCheckoutUrl = buildShopifySubscriptionCheckoutUrl(accountEmail);
         
         res.render("codex_runner", {
             codexScriptPath,
