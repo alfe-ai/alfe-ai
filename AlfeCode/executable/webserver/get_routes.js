@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { randomUUID } = require("crypto");
 const { formatTokenLimit } = require("./utils");
 
@@ -99,6 +100,12 @@ function setupGetRoutes(deps) {
     ]);
     const SHOPIFY_AUTH_STATE_TTL_MS = 10 * 60 * 1000;
     const shopifyAuthStateStore = new Map();
+    let shopifyDiscoveryCache = {
+        domain: "",
+        fetchedAt: 0,
+        payload: null,
+    };
+    const SHOPIFY_DISCOVERY_CACHE_TTL_MS = 5 * 60 * 1000;
     const MAX_FILE_TREE_DEPTH = 5;
 
     const getRequestIp = (req) => {
@@ -282,16 +289,42 @@ function setupGetRoutes(deps) {
         return `'use strict';\n(function (global) {\n  const config = ${JSON.stringify(scriptConfig)};\n\n  const normalizeEmail = (value) => typeof value === 'string' ? value.trim() : '';\n\n  const buildCheckoutUrl = () => {\n    const checkoutUrl = new URL('/checkout', global.location.origin);\n    const query = new URLSearchParams(global.location.search || '');\n    const email = normalizeEmail(query.get('email') || query.get('checkout[email]'));\n    if (email) {\n      checkoutUrl.searchParams.set('checkout[email]', email);\n    }\n    return checkoutUrl.toString();\n  };\n\n  const clearCart = async () => {\n    const response = await global.fetch('/cart/clear.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: { 'Accept': 'application/json' },\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to clear cart.');\n    }\n  };\n\n  const addSubscriptionItem = async () => {\n    if (!config.variantId) {\n      throw new Error('Missing Shopify subscription variant ID.');\n    }\n\n    const lineItem = {\n      id: Number(config.variantId),\n      quantity: config.quantity,\n    };\n\n    if (config.sellingPlanId) {\n      lineItem.selling_plan = Number(config.sellingPlanId);\n    }\n\n    const response = await global.fetch('/cart/add.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: {\n        'Accept': 'application/json',\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify({ items: [lineItem] }),\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to add subscription line item to cart.');\n    }\n  };\n\n  const run = async () => {\n    const checkoutUrl = buildCheckoutUrl();\n\n    try {\n      await clearCart();\n      await addSubscriptionItem();\n      global.location.assign(checkoutUrl);\n    } catch (error) {\n      console.error('[alfe-checkout] Unable to complete checkout flow.', error);\n      global.location.assign(checkoutUrl);\n    }\n  };\n\n  global.AlfeCheckout = Object.freeze({ run });\n\n  run();\n})(window);\n`;
     };
 
-    const resolveShopifyAuthLoginUrl = () => {
-        const configured = normalizeBaseUrl(
-            process.env.SHOPIFY_CUSTOMER_ACCOUNT_LOGIN_URL
-                || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_LOGIN_URL
-                || process.env.SHOPIFY_CUSTOMER_AUTH_URL
+    const resolveShopifyAuthDomain = () => {
+        const configured = firstNonEmptyEnv(
+            "SHOPIFY_CUSTOMER_ACCOUNTS_DOMAIN",
+            "SHOPIFY_CUSTOMER_ACCOUNT_DOMAIN",
+            "SHOPIFY_CUSTOMER_AUTH_DOMAIN"
         );
-        if (configured) {
-            return configured;
-        }
-        return "https://account.alfe.bot/authentication/login";
+        return configured || "account.alfe.bot";
+    };
+
+    const resolveShopifyAuthClientId = () => {
+        return firstNonEmptyEnv(
+            "SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID",
+            "SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID",
+            "SHOPIFY_CUSTOMER_ACCOUNTS_CLIENT_ID"
+        );
+    };
+
+    const resolveShopifyAuthorizationEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_AUTHORIZATION_ENDPOINT
+        );
+    };
+
+    const resolveShopifyTokenEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_TOKEN_ENDPOINT
+        );
+    };
+
+    const resolveShopifyAuthScope = () => {
+        return firstNonEmptyEnv(
+            "SHOPIFY_CUSTOMER_ACCOUNT_SCOPES",
+            "SHOPIFY_CUSTOMER_ACCOUNTS_SCOPES"
+        ) || "openid email customer-account-api:full";
     };
 
     const resolveRequestOrigin = (req) => {
@@ -324,10 +357,26 @@ function setupGetRoutes(deps) {
         return `${origin}${normalizedPath}`;
     };
 
-    const storeShopifyAuthState = (returnTo) => {
+    const base64UrlEncode = (input) => {
+        const source = Buffer.isBuffer(input) ? input : Buffer.from(String(input || ""));
+        return source
+            .toString("base64")
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/g, "");
+    };
+
+    const buildPkceVerifier = () => base64UrlEncode(crypto.randomBytes(32));
+
+    const buildPkceChallenge = (verifier) => {
+        return base64UrlEncode(crypto.createHash("sha256").update(verifier).digest());
+    };
+
+    const storeShopifyAuthState = ({ returnTo, codeVerifier }) => {
         const state = randomUUID();
         shopifyAuthStateStore.set(state, {
             returnTo,
+            codeVerifier,
             createdAt: Date.now(),
         });
         return state;
@@ -349,12 +398,57 @@ function setupGetRoutes(deps) {
     };
 
     const buildShopifyAuthCallbackUrl = (req) => {
+        const configured = normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_REDIRECT_URI
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_REDIRECT_URI
+            || process.env.SHOPIFY_CUSTOMER_AUTH_REDIRECT_URI
+        );
+        if (configured) {
+            return configured;
+        }
         const origin = resolveRequestOrigin(req);
         if (!origin) {
             return "/auth/shopify/callback";
         }
         const callbackUrl = new URL("/auth/shopify/callback", origin);
         return callbackUrl.toString();
+    };
+
+    const discoverShopifyAuthEndpoints = async (shopDomain) => {
+        const configuredAuthorizationEndpoint = resolveShopifyAuthorizationEndpoint();
+        const configuredTokenEndpoint = resolveShopifyTokenEndpoint();
+        if (configuredAuthorizationEndpoint && configuredTokenEndpoint) {
+            return {
+                authorization_endpoint: configuredAuthorizationEndpoint,
+                token_endpoint: configuredTokenEndpoint,
+            };
+        }
+
+        const normalizedDomain = (shopDomain || "").toString().trim().toLowerCase();
+        const now = Date.now();
+        if (
+            shopifyDiscoveryCache.payload
+            && shopifyDiscoveryCache.domain === normalizedDomain
+            && (now - shopifyDiscoveryCache.fetchedAt) < SHOPIFY_DISCOVERY_CACHE_TTL_MS
+        ) {
+            return shopifyDiscoveryCache.payload;
+        }
+
+        const discoveryUrl = `https://${normalizedDomain}/.well-known/openid-configuration`;
+        const response = await fetch(discoveryUrl);
+        if (!response.ok) {
+            throw new Error(`Shopify discovery failed (${response.status}) for ${normalizedDomain}.`);
+        }
+        const payload = await response.json();
+        if (!payload || !payload.authorization_endpoint || !payload.token_endpoint) {
+            throw new Error(`Shopify discovery missing endpoints for ${normalizedDomain}.`);
+        }
+        shopifyDiscoveryCache = {
+            domain: normalizedDomain,
+            fetchedAt: now,
+            payload,
+        };
+        return payload;
     };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
@@ -2691,35 +2785,85 @@ ${cleanedFinalOutput}`;
         });
     };
 
-    app.get("/auth/shopify/start", (req, res) => {
-        const loginBase = resolveShopifyAuthLoginUrl();
+    app.get("/auth/shopify/start", async (req, res) => {
         const finalReturnTo = resolveAuthReturnTo(req);
-        const state = storeShopifyAuthState(finalReturnTo);
-        const preferredStep = typeof req?.query?.preferredStep === "string" ? req.query.preferredStep.trim() : "";
-        let loginUrl;
-        try {
-            loginUrl = new URL(loginBase);
-        } catch (error) {
-            console.warn("Invalid Shopify customer account login URL.", error);
+        const clientId = resolveShopifyAuthClientId();
+        const shopDomain = resolveShopifyAuthDomain();
+        const callbackUrl = buildShopifyAuthCallbackUrl(req);
+        if (!clientId || !callbackUrl) {
+            console.warn("Shopify auth start skipped: missing customer account client ID or callback URL.");
             return res.redirect(finalReturnTo || "/agent");
         }
 
-        const callbackUrl = buildShopifyAuthCallbackUrl(req);
-        if (callbackUrl) {
-            loginUrl.searchParams.set("return_url", callbackUrl);
+        const preferredStep = typeof req?.query?.preferredStep === "string" ? req.query.preferredStep.trim() : "";
+        const codeVerifier = buildPkceVerifier();
+        const codeChallenge = buildPkceChallenge(codeVerifier);
+        const state = storeShopifyAuthState({ returnTo: finalReturnTo, codeVerifier });
+
+        try {
+            const discovery = await discoverShopifyAuthEndpoints(shopDomain);
+            const authorizeUrl = new URL(discovery.authorization_endpoint);
+            authorizeUrl.searchParams.set("client_id", clientId);
+            authorizeUrl.searchParams.set("response_type", "code");
+            authorizeUrl.searchParams.set("redirect_uri", callbackUrl);
+            authorizeUrl.searchParams.set("scope", resolveShopifyAuthScope());
+            authorizeUrl.searchParams.set("state", state);
+            authorizeUrl.searchParams.set("code_challenge", codeChallenge);
+            authorizeUrl.searchParams.set("code_challenge_method", "S256");
+            if (preferredStep) {
+                authorizeUrl.searchParams.set("alfe_step", preferredStep);
+            }
+            return res.redirect(authorizeUrl.toString());
+        } catch (error) {
+            console.error("Shopify customer account authorization start failed.", error);
+            return res.redirect(finalReturnTo || "/agent");
         }
-        loginUrl.searchParams.set("state", state);
-        if (preferredStep) {
-            loginUrl.searchParams.set("alfe_step", preferredStep);
-        }
-        return res.redirect(loginUrl.toString());
     });
 
-    app.get("/auth/shopify/callback", (req, res) => {
+    app.get("/auth/shopify/callback", async (req, res) => {
         const state = typeof req?.query?.state === "string" ? req.query.state.trim() : "";
+        const code = typeof req?.query?.code === "string" ? req.query.code.trim() : "";
         const authState = consumeShopifyAuthState(state);
         const returnTo = authState?.returnTo || "/agent";
-        return res.redirect(returnTo);
+        if (!authState || !code) {
+            return res.status(400).send("Invalid state or missing code.");
+        }
+
+        const clientId = resolveShopifyAuthClientId();
+        const shopDomain = resolveShopifyAuthDomain();
+        const callbackUrl = buildShopifyAuthCallbackUrl(req);
+        if (!clientId || !callbackUrl) {
+            console.warn("Shopify auth callback missing configuration.");
+            return res.redirect(returnTo);
+        }
+
+        try {
+            const discovery = await discoverShopifyAuthEndpoints(shopDomain);
+            const tokenBody = new URLSearchParams();
+            tokenBody.set("grant_type", "authorization_code");
+            tokenBody.set("client_id", clientId);
+            tokenBody.set("redirect_uri", callbackUrl);
+            tokenBody.set("code", code);
+            tokenBody.set("code_verifier", authState.codeVerifier || "");
+
+            const tokenResponse = await fetch(discovery.token_endpoint, {
+                method: "POST",
+                headers: { "content-type": "application/x-www-form-urlencoded" },
+                body: tokenBody,
+            });
+
+            if (!tokenResponse.ok) {
+                const failureBody = await tokenResponse.text();
+                console.error("Shopify token exchange failed.", tokenResponse.status, failureBody);
+                return res.status(500).send("Token exchange failed.");
+            }
+
+            await tokenResponse.json();
+            return res.redirect(returnTo);
+        } catch (error) {
+            console.error("Shopify auth callback failed.", error);
+            return res.redirect(returnTo);
+        }
     });
 
     app.get("/agent", renderCodexRunner);
