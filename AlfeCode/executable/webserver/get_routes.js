@@ -97,6 +97,8 @@ function setupGetRoutes(deps) {
         "venv",
         ".venv",
     ]);
+    const SHOPIFY_AUTH_STATE_TTL_MS = 10 * 60 * 1000;
+    const shopifyAuthStateStore = new Map();
     const MAX_FILE_TREE_DEPTH = 5;
 
     const getRequestIp = (req) => {
@@ -322,19 +324,36 @@ function setupGetRoutes(deps) {
         return `${origin}${normalizedPath}`;
     };
 
-    const buildShopifyAuthCallbackUrl = (req, finalReturnTo) => {
+    const storeShopifyAuthState = (returnTo) => {
+        const state = randomUUID();
+        shopifyAuthStateStore.set(state, {
+            returnTo,
+            createdAt: Date.now(),
+        });
+        return state;
+    };
+
+    const consumeShopifyAuthState = (state) => {
+        if (!state) {
+            return null;
+        }
+        const savedState = shopifyAuthStateStore.get(state);
+        shopifyAuthStateStore.delete(state);
+        if (!savedState) {
+            return null;
+        }
+        if ((Date.now() - savedState.createdAt) > SHOPIFY_AUTH_STATE_TTL_MS) {
+            return null;
+        }
+        return savedState;
+    };
+
+    const buildShopifyAuthCallbackUrl = (req) => {
         const origin = resolveRequestOrigin(req);
         if (!origin) {
-            if (!finalReturnTo) {
-                return "/auth/shopify/callback";
-            }
-            const params = new URLSearchParams({ returnTo: finalReturnTo });
-            return `/auth/shopify/callback?${params.toString()}`;
+            return "/auth/shopify/callback";
         }
         const callbackUrl = new URL("/auth/shopify/callback", origin);
-        if (finalReturnTo) {
-            callbackUrl.searchParams.set("returnTo", finalReturnTo);
-        }
         return callbackUrl.toString();
     };
     const QWEN_CODEX_PATCH_MODELS = new Set([
@@ -2675,6 +2694,7 @@ ${cleanedFinalOutput}`;
     app.get("/auth/shopify/start", (req, res) => {
         const loginBase = resolveShopifyAuthLoginUrl();
         const finalReturnTo = resolveAuthReturnTo(req);
+        const state = storeShopifyAuthState(finalReturnTo);
         const preferredStep = typeof req?.query?.preferredStep === "string" ? req.query.preferredStep.trim() : "";
         let loginUrl;
         try {
@@ -2684,10 +2704,11 @@ ${cleanedFinalOutput}`;
             return res.redirect(finalReturnTo || "/agent");
         }
 
-        const callbackUrl = buildShopifyAuthCallbackUrl(req, finalReturnTo);
+        const callbackUrl = buildShopifyAuthCallbackUrl(req);
         if (callbackUrl) {
             loginUrl.searchParams.set("return_url", callbackUrl);
         }
+        loginUrl.searchParams.set("state", state);
         if (preferredStep) {
             loginUrl.searchParams.set("alfe_step", preferredStep);
         }
@@ -2695,10 +2716,9 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/auth/shopify/callback", (req, res) => {
-        const returnTo = typeof req?.query?.returnTo === "string" ? req.query.returnTo.trim() : "";
-        if (!returnTo) {
-            return res.redirect("/agent");
-        }
+        const state = typeof req?.query?.state === "string" ? req.query.state.trim() : "";
+        const authState = consumeShopifyAuthState(state);
+        const returnTo = authState?.returnTo || "/agent";
         return res.redirect(returnTo);
     });
 
