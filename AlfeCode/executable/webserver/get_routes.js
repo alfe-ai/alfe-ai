@@ -2572,7 +2572,7 @@ ${cleanedFinalOutput}`;
 
     app.get("/agent", renderCodexRunner);
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
-    app.get('/agent/model-only', (req, res) => {
+    app.get('/agent/model-only', async (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const engineDropdownHidden = parseBooleanFlag(process.env.ENGINE_DROPDOWN_HIDDEN);
         const modelDropdownHidden = parseBooleanFlag(process.env.MODEL_DROPDOWN_HIDDEN);
@@ -2585,6 +2585,14 @@ ${cleanedFinalOutput}`;
         const allowAccountPlanEdit = allowModelOrderEdit;
         const allowVmRunsLink = allowModelOrderEdit;
         const qwenDebugEnabled = process.env.QWEN_DEBUG_ENABLED === 'true';
+        let account = null;
+        if (rdsStore?.enabled) {
+            const sessionId = getSessionIdFromRequest(req);
+            if (sessionId) {
+                account = await rdsStore.getAccountBySession(sessionId);
+            }
+        }
+
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
             engineDropdownHidden,
@@ -2599,7 +2607,7 @@ ${cleanedFinalOutput}`;
             allowAccountPlanEdit,
             allowVmRunsLink,
             qwenDebugEnabled,
-            account: req.account, // Add account object to template context
+            account
         });
     });
     app.get('/agent/model-only/order', (req, res) => {
