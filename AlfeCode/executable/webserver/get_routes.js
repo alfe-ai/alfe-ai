@@ -2599,6 +2599,7 @@ ${cleanedFinalOutput}`;
             allowAccountPlanEdit,
             allowVmRunsLink,
             qwenDebugEnabled,
+            account: req.account, // Add account object to template context
         });
     });
     app.get('/agent/model-only/order', (req, res) => {
