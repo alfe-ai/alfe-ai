@@ -4126,6 +4126,8 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 userPromptVisibleCodex: <%- JSON.stringify(typeof userPromptVisibleCodex === "undefined" ? false : userPromptVisibleCodex) %>,
                 agentModelDropdownDisabled: <%- JSON.stringify(typeof agentModelDropdownDisabled !== 'undefined' ? agentModelDropdownDisabled : false) %>,
                 subscriptionCheckoutUrl: <%- JSON.stringify(subscriptionCheckoutUrl || "") %>,
+                shopifyAuthEnabled: <%- JSON.stringify(typeof shopifyAuthEnabled === "undefined" ? true : shopifyAuthEnabled) %>,
+                shopifyAuthStartUrl: <%- JSON.stringify(shopifyAuthStartUrl || "/auth/shopify/start") %>,
             }
         );
     </script>

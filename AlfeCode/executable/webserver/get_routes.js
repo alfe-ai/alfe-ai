@@ -244,6 +244,7 @@ function setupGetRoutes(deps) {
         }
         return plan.toString().trim().toLowerCase().replace(/[-\s]+/g, " ") === "logged out session";
     };
+<<<<<<< HEAD
     const normalizeCheckoutEmail = (value) => {
         if (typeof value !== "string") {
             return "";
@@ -278,6 +279,49 @@ function setupGetRoutes(deps) {
         };
 
         return `'use strict';\n(function (global) {\n  const config = ${JSON.stringify(scriptConfig)};\n\n  const normalizeEmail = (value) => typeof value === 'string' ? value.trim() : '';\n\n  const buildCheckoutUrl = () => {\n    const checkoutUrl = new URL('/checkout', global.location.origin);\n    const query = new URLSearchParams(global.location.search || '');\n    const email = normalizeEmail(query.get('email') || query.get('checkout[email]'));\n    if (email) {\n      checkoutUrl.searchParams.set('checkout[email]', email);\n    }\n    return checkoutUrl.toString();\n  };\n\n  const clearCart = async () => {\n    const response = await global.fetch('/cart/clear.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: { 'Accept': 'application/json' },\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to clear cart.');\n    }\n  };\n\n  const addSubscriptionItem = async () => {\n    if (!config.variantId) {\n      throw new Error('Missing Shopify subscription variant ID.');\n    }\n\n    const lineItem = {\n      id: Number(config.variantId),\n      quantity: config.quantity,\n    };\n\n    if (config.sellingPlanId) {\n      lineItem.selling_plan = Number(config.sellingPlanId);\n    }\n\n    const response = await global.fetch('/cart/add.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: {\n        'Accept': 'application/json',\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify({ items: [lineItem] }),\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to add subscription line item to cart.');\n    }\n  };\n\n  const run = async () => {\n    const checkoutUrl = buildCheckoutUrl();\n\n    try {\n      await clearCart();\n      await addSubscriptionItem();\n      global.location.assign(checkoutUrl);\n    } catch (error) {\n      console.error('[alfe-checkout] Unable to complete checkout flow.', error);\n      global.location.assign(checkoutUrl);\n    }\n  };\n\n  global.AlfeCheckout = Object.freeze({ run });\n\n  run();\n})(window);\n`;
+=======
+
+    const resolveShopifyAuthLoginUrl = () => {
+        const configured = normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_LOGIN_URL
+                || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_LOGIN_URL
+                || process.env.SHOPIFY_CUSTOMER_AUTH_URL
+        );
+        if (configured) {
+            return configured;
+        }
+        return "https://account.alfe.bot/authentication/login";
+    };
+
+    const resolveRequestOrigin = (req) => {
+        const forwardedProtoHeader = (req && req.headers && req.headers["x-forwarded-proto"]) || "";
+        const forwardedProto = forwardedProtoHeader
+            .toString()
+            .split(",")
+            .map((part) => part.trim())
+            .find(Boolean);
+        const protocol = forwardedProto || req?.protocol || (req?.secure ? "https" : "http");
+        const host = req?.get?.("host") || req?.headers?.host || "";
+        if (!host) {
+            return "";
+        }
+        return `${protocol}://${host}`;
+    };
+
+    const resolveAuthReturnTo = (req) => {
+        const fallback = req?.get?.("referer") || "/agent";
+        const requested = typeof req?.query?.returnTo === "string" ? req.query.returnTo.trim() : "";
+        const candidate = requested || fallback || "/agent";
+        if (/^https?:\/\//i.test(candidate)) {
+            return candidate;
+        }
+        const origin = resolveRequestOrigin(req);
+        if (!origin) {
+            return candidate.startsWith("/") ? candidate : `/${candidate}`;
+        }
+        const normalizedPath = candidate.startsWith("/") ? candidate : `/${candidate}`;
+        return `${origin}${normalizedPath}`;
+>>>>>>> origin/codex/integrate-shopify-for-authentication
     };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
@@ -2609,8 +2653,30 @@ ${cleanedFinalOutput}`;
             agentModelDropdownDisabled,
             fileTreeButtonVisible,
             subscriptionCheckoutUrl,
+            shopifyAuthEnabled: true,
+            shopifyAuthStartUrl: "/auth/shopify/start",
         });
     };
+
+    app.get("/auth/shopify/start", (req, res) => {
+        const loginBase = resolveShopifyAuthLoginUrl();
+        const returnTo = resolveAuthReturnTo(req);
+        const preferredStep = typeof req?.query?.preferredStep === "string" ? req.query.preferredStep.trim() : "";
+        let loginUrl;
+        try {
+            loginUrl = new URL(loginBase);
+        } catch (error) {
+            console.warn("Invalid Shopify customer account login URL.", error);
+            return res.redirect(returnTo || "/agent");
+        }
+        if (returnTo) {
+            loginUrl.searchParams.set("return_url", returnTo);
+        }
+        if (preferredStep) {
+            loginUrl.searchParams.set("alfe_step", preferredStep);
+        }
+        return res.redirect(loginUrl.toString());
+    });
 
     app.get("/agent", renderCodexRunner);
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
