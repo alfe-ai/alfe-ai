@@ -4612,7 +4612,7 @@ function renderFavoritesGroup(container, favorites, indented = true){
   const archivedToggle = document.createElement('button');
   archivedToggle.className = 'favorites-archived-toggle';
   archivedToggle.type = 'button';
-  archivedToggle.textContent = 'Archived';
+  archivedToggle.textContent = 'Archive';
   archivedToggle.setAttribute('aria-pressed', showArchivedTabs ? 'true' : 'false');
   archivedToggle.classList.toggle('active', showArchivedTabs);
   archivedToggle.addEventListener('click', async (e) => {
