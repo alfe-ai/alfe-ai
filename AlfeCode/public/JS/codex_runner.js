@@ -1484,6 +1484,7 @@
   const runsSidebarFilterInput = document.getElementById("runsSidebarFilter");
   const runsSidebarOpenRunsButton = document.getElementById("runsSidebarOpenRunsButton");
   const runsSidebarArchiveToggle = document.getElementById("runsSidebarArchiveToggle");
+  const runsSidebarNewTaskButton = document.getElementById("runsSidebarNewTaskButton");
   const projectInfoButton = document.getElementById("projectInfo");
   const projectInfoText = document.getElementById("projectInfoText");
   let runsSidebarShowArchived = (new URLSearchParams(window.location.search).get('archived') === '1') || (window.location.pathname || '').endsWith('/archived');
@@ -1495,6 +1496,15 @@
     }
     if (backToCurrentTasksLink) {
       if (runsSidebarShowArchived) { backToCurrentTasksLink.classList.remove('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','false'); } else { backToCurrentTasksLink.classList.add('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','true'); }
+    }
+    if (runsSidebarNewTaskButton) {
+      if (runsSidebarShowArchived) {
+        runsSidebarNewTaskButton.classList.add('is-hidden');
+        runsSidebarNewTaskButton.setAttribute('aria-hidden', 'true');
+      } else {
+        runsSidebarNewTaskButton.classList.remove('is-hidden');
+        runsSidebarNewTaskButton.setAttribute('aria-hidden', 'false');
+      }
     }
     // If the URL was /archived, normalize to /agent with query param so refresh keeps state
     try {
@@ -1511,8 +1521,6 @@
     } catch(e) { /* ignore */ }
   };
 
-
-  const runsSidebarNewTaskButton = document.getElementById("runsSidebarNewTaskButton");
   const collapsedNewTaskBtn = document.getElementById("collapsedNewTaskBtn");
   const runsSidebarRefreshButton = document.getElementById("runsSidebarRefreshButton");
   const promptPreviewEl = document.getElementById("userPromptPreview");
