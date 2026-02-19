@@ -510,7 +510,7 @@
               </select>
               <a
                 id="manageSubscriptionButton"
-                href="https://subscription.alfe.bot/customer_authentication/login?return_to=%2Ftools%2Fmemberships&locale=en&ui_hint=full"
+                href="https://subscription.alfe.bot/customer_authentication/login?return_to=%2Ftools%2Fmemberships&locale=en&ui_hint=full&login_hint=<%= encodeURIComponent(account.email) %>"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="subscribe-button subscribe-button--inline hidden"
