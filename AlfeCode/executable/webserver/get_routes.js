@@ -2821,11 +2821,47 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/auth/shopify/callback", async (req, res) => {
+        const callbackRequestId = randomUUID();
+        const callbackQueryKeys = Object.keys(req?.query || {});
+        const sanitizeValueForLog = (value) => {
+            if (typeof value !== "string") {
+                return "";
+            }
+            if (value.length <= 8) {
+                return "***";
+            }
+            return `${value.slice(0, 4)}...${value.slice(-4)}`;
+        };
+
+        console.info("[Shopify callback] Incoming request", {
+            callbackRequestId,
+            method: req.method,
+            path: req.path,
+            host: req.headers?.host || "",
+            queryKeys: callbackQueryKeys,
+            hasCode: typeof req?.query?.code === "string" && req.query.code.trim().length > 0,
+            hasState: typeof req?.query?.state === "string" && req.query.state.trim().length > 0,
+            error: typeof req?.query?.error === "string" ? req.query.error.trim() : "",
+            errorDescription: typeof req?.query?.error_description === "string" ? req.query.error_description.trim() : "",
+        });
+
         const state = typeof req?.query?.state === "string" ? req.query.state.trim() : "";
         const code = typeof req?.query?.code === "string" ? req.query.code.trim() : "";
         const authState = consumeShopifyAuthState(state);
         const returnTo = authState?.returnTo || "/agent";
+        console.info("[Shopify callback] Parsed callback state", {
+            callbackRequestId,
+            statePreview: sanitizeValueForLog(state),
+            codePreview: sanitizeValueForLog(code),
+            hasStoredState: Boolean(authState),
+            returnTo,
+        });
         if (!authState || !code) {
+            console.warn("[Shopify callback] Invalid callback payload", {
+                callbackRequestId,
+                hasStoredState: Boolean(authState),
+                hasCode: Boolean(code),
+            });
             return res.status(400).send("Invalid state or missing code.");
         }
 
@@ -2833,11 +2869,20 @@ ${cleanedFinalOutput}`;
         const shopDomain = resolveShopifyAuthDomain();
         const callbackUrl = buildShopifyAuthCallbackUrl(req);
         if (!clientId || !callbackUrl) {
-            console.warn("Shopify auth callback missing configuration.");
+            console.warn("[Shopify callback] Missing configuration.", {
+                callbackRequestId,
+                hasClientId: Boolean(clientId),
+                hasCallbackUrl: Boolean(callbackUrl),
+            });
             return res.redirect(returnTo);
         }
 
         try {
+            console.info("[Shopify callback] Discovering OAuth endpoints", {
+                callbackRequestId,
+                shopDomain,
+                callbackUrl,
+            });
             const discovery = await discoverShopifyAuthEndpoints(shopDomain);
             const tokenBody = new URLSearchParams();
             tokenBody.set("grant_type", "authorization_code");
@@ -2846,22 +2891,50 @@ ${cleanedFinalOutput}`;
             tokenBody.set("code", code);
             tokenBody.set("code_verifier", authState.codeVerifier || "");
 
+            console.info("[Shopify callback] Exchanging authorization code", {
+                callbackRequestId,
+                tokenEndpoint: discovery.token_endpoint,
+                redirectUri: callbackUrl,
+                hasCodeVerifier: Boolean(authState.codeVerifier),
+                codeLength: code.length,
+            });
+
             const tokenResponse = await fetch(discovery.token_endpoint, {
                 method: "POST",
                 headers: { "content-type": "application/x-www-form-urlencoded" },
                 body: tokenBody,
             });
 
+            console.info("[Shopify callback] Token endpoint response received", {
+                callbackRequestId,
+                status: tokenResponse.status,
+                ok: tokenResponse.ok,
+            });
+
             if (!tokenResponse.ok) {
                 const failureBody = await tokenResponse.text();
-                console.error("Shopify token exchange failed.", tokenResponse.status, failureBody);
+                console.error("[Shopify callback] Token exchange failed.", {
+                    callbackRequestId,
+                    status: tokenResponse.status,
+                    body: failureBody,
+                });
                 return res.status(500).send("Token exchange failed.");
             }
 
-            await tokenResponse.json();
+            const tokenPayload = await tokenResponse.json();
+            console.info("[Shopify callback] Token exchange succeeded", {
+                callbackRequestId,
+                payloadKeys: Object.keys(tokenPayload || {}),
+                hasAccessToken: Boolean(tokenPayload?.access_token),
+                hasIdToken: Boolean(tokenPayload?.id_token),
+                redirectTo: returnTo,
+            });
             return res.redirect(returnTo);
         } catch (error) {
-            console.error("Shopify auth callback failed.", error);
+            console.error("[Shopify callback] Callback handling failed.", {
+                callbackRequestId,
+                error,
+            });
             return res.redirect(returnTo);
         }
     });
