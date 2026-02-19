@@ -150,6 +150,16 @@
       border-color:#f87171;
       box-shadow:0 10px 22px rgba(248,113,113,0.2);
     }
+    .logout-button--danger{
+      border-color:rgba(248,113,113,0.8);
+      background:rgba(127,29,29,0.45);
+      color:#fee2e2;
+    }
+    .logout-button--danger:hover,
+    .logout-button--danger:focus-visible{
+      border-color:#fca5a5;
+      box-shadow:0 10px 22px rgba(239,68,68,0.32);
+    }
     .logout-feedback{
       font-size:0.75rem;
       color:#94a3b8;
@@ -579,7 +589,7 @@
         </div>
       </div>
       <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
-        <button type="button" id="logoutButton" class="logout-button">Log out</button>
+        <button type="button" id="logoutButton" class="logout-button logout-button--danger">Log out</button>
         <span id="logoutFeedback" class="logout-feedback hidden" aria-live="polite"></span>
       </div>
     </div>

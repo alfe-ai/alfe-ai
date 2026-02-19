@@ -1461,63 +1461,20 @@
   async function handleLogout() {
     if (!logoutButton) return;
     logoutButton.disabled = true;
-    showLogoutFeedback('Logging out…');
+    showLogoutFeedback('Redirecting to logout…');
     showSessionRefreshFeedback('');
     try {
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        credentials: 'same-origin',
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const errorMessage = payload?.error || `Failed to log out (status ${response.status}).`;
-        throw new Error(errorMessage);
-      }
-      showLogoutFeedback('Logged out.', 'success');
-      applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
-      setAccountField(accountEmail, '');
-      setAccountPlanValue('Free');
-      setAccountEverSubscribedValue(false);
-      setAccountOpenrouterApiKeyValue('');
-      setAccountField(accountSession, '');
-      setAccountVisibility(false);
-      if (accountEverSubscribedSelect) {
-        accountEverSubscribedSelect.disabled = true;
-      }
-      if (refreshSessionButton) {
-        refreshSessionButton.disabled = true;
-      }
-      if (editOpenrouterApiKeyButton) {
-        editOpenrouterApiKeyButton.disabled = true;
-      }
-      let parentHandledLogout = false;
+      const logoutUrl = new URL('/auth/shopify/logout', window.location.origin);
+      logoutUrl.searchParams.set('returnTo', '/agent');
       if (window.parent && window.parent !== window) {
         try {
-          window.parent.postMessage(
-            { type: 'sterling:settings', key: 'logoutComplete' },
-            '*',
-          );
-          try {
-            window.parent.location.reload();
-          } catch (reloadError) {
-            window.parent.location.assign('/agent');
-          }
-          parentHandledLogout = true;
-        } catch (error) {
-          console.warn('Failed to notify parent after logout.', error);
-        }
-        if (!parentHandledLogout) {
-          try {
-            window.parent.location.assign('/agent');
-            parentHandledLogout = true;
-          } catch (error) {
-            console.warn('Failed to refresh parent after logout.', error);
-          }
+          window.parent.location.assign(logoutUrl.toString());
+          return;
+        } catch (parentError) {
+          console.warn('Unable to redirect parent window during logout.', parentError);
         }
       }
-      if (!parentHandledLogout) {
-        window.location.assign('/agent');
-      }
+      window.location.assign(logoutUrl.toString());
     } catch (error) {
       console.error('Failed to log out:', error);
       showLogoutFeedback(error.message || 'Failed to log out.', 'error');
