@@ -471,8 +471,12 @@ function setupGetRoutes(deps) {
             throw new Error(`Shopify discovery failed (${response.status}) for ${normalizedDomain}.`);
         }
         const payload = await response.json();
+        console.info(`[Shopify discovery] OpenID configuration for ${normalizedDomain}: ${JSON.stringify(payload)}`);
         if (!payload || !payload.authorization_endpoint || !payload.token_endpoint) {
             throw new Error(`Shopify discovery missing endpoints for ${normalizedDomain}.`);
+        }
+        if (!payload.end_session_endpoint) {
+            console.warn(`[Shopify discovery] end_session_endpoint missing for ${normalizedDomain}.`);
         }
         shopifyDiscoveryCache = {
             domain: normalizedDomain,
@@ -3102,6 +3106,11 @@ ${cleanedFinalOutput}`;
             const logoutUrl = new URL(logoutEndpoint);
             logoutUrl.searchParams.set("id_token_hint", idToken);
             logoutUrl.searchParams.set("post_logout_redirect_uri", returnTo);
+            const logoutDebugUrl = new URL(logoutUrl.toString());
+            if (logoutDebugUrl.searchParams.has("id_token_hint")) {
+                logoutDebugUrl.searchParams.set("id_token_hint", "<redacted>");
+            }
+            console.info(`[Shopify logout] Redirecting to end_session_endpoint: ${logoutDebugUrl.toString()}`);
             return res.redirect(logoutUrl.toString());
         } catch (error) {
             console.error("Shopify logout redirect failed.", error);
