@@ -486,11 +486,6 @@ function setupGetRoutes(deps) {
         return payload;
     };
     const normalizeAccountEmail = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
-    const hashPassword = (password) => {
-        const salt = crypto.randomBytes(16).toString("hex");
-        const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, "sha256").toString("hex");
-        return `${salt}$${hash}`;
-    };
     const parseJwtPayload = (token) => {
         if (typeof token !== "string" || !token.trim()) {
             return null;
@@ -3000,10 +2995,9 @@ ${cleanedFinalOutput}`;
                 try {
                     let account = await rdsStore.getAccountByEmail(shopifyEmail);
                     if (!account) {
-                        const generatedPassword = randomUUID();
                         const createdAccount = await rdsStore.createAccount({
                             email: shopifyEmail,
-                            passwordHash: hashPassword(generatedPassword),
+                            passwordHash: null,
                             sessionId: "",
                         });
                         account = createdAccount
