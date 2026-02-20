@@ -365,7 +365,9 @@
         <h2>Settings</h2>
         <span id="logoutFeedback" class="logout-feedback hidden" aria-live="polite"></span>
       </div>
+      <% if (account && account.email) { %>
       <button type="button" id="logoutButton" class="logout-button logout-button--danger">Log Out</button>
+      <% } %>
     </div>
     <div style="<%= modelDropdownHidden ? 'display:none;' : '' %>">
       <h3 style="margin:0 0 6px 0;font-size:1rem;color:#e2e8f0;">Model</h3>
