@@ -34,7 +34,6 @@ can change the model globally via the new `image_gen_model` setting which accept
 `dalle2`, or `dalle3`.
 If the model returns a base64 string instead of a URL, the server automatically decodes and saves the image.
 The server also includes an optional color swatch detector that can trim any palette band from the bottom of generated images. This feature is disabled by default and can be enabled via the `remove_color_swatches` setting.
-The software development component is coming soon, and is available now as a Pre-release on GitHub.
 
 ![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)  
 
