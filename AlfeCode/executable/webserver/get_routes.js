@@ -3257,6 +3257,17 @@ ${cleanedFinalOutput}`;
             res.status(500).json({ message: err.message });
         }
     });
+    app.get('/help.html', async (req, res) => {
+        let account = null;
+        if (rdsStore?.enabled) {
+            const sessionId = getSessionIdFromRequest(req);
+            if (sessionId) {
+                account = await rdsStore.getAccountBySession(sessionId);
+            }
+        }
+        res.render('help', { account });
+    });
+
     app.get('/support', async (req, res) => {
         const account = await requireSupportPlan(req, res);
         if (!account) {
