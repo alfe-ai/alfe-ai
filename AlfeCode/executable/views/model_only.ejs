@@ -29,6 +29,22 @@
     .card h2{
       margin:0 0 6px 0;
     }
+    .settings-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .settings-header__title-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .settings-header .logout-button{
+      align-self:auto;
+      margin:0;
+      white-space:nowrap;
+    }
     select{font-size:1rem;padding:10px;margin:6px 0 0 0;width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,0.25);border-radius:8px;}
     .account-meta-select:disabled{
       appearance:none;
@@ -344,7 +360,13 @@
 <body>
   <div id="__alfe_root" style="width:100%;display:flex;flex-direction:column;align-items:center;">
   <div class="card">
-    <h2>Settings</h2>
+    <div class="settings-header">
+      <div class="settings-header__title-wrap">
+        <h2>Settings</h2>
+        <span id="logoutFeedback" class="logout-feedback hidden" aria-live="polite"></span>
+      </div>
+      <button type="button" id="logoutButton" class="logout-button logout-button--danger">Log Out</button>
+    </div>
     <div style="<%= modelDropdownHidden ? 'display:none;' : '' %>">
       <h3 style="margin:0 0 6px 0;font-size:1rem;color:#e2e8f0;">Model</h3>
       <div class="model-select-wrapper">
@@ -587,10 +609,6 @@
             </div>
           </div>
         </div>
-      </div>
-      <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
-        <button type="button" id="logoutButton" class="logout-button logout-button--danger">Log out</button>
-        <span id="logoutFeedback" class="logout-feedback hidden" aria-live="polite"></span>
       </div>
     </div>
     <footer class="footer">
