@@ -444,7 +444,12 @@
     <% } %>
     <h3 class="section-title">Help and Support</h3>
     <div class="support-ticket" aria-live="polite">
-      <a href="/help.html" class="subscribe-button">View Help Guide</a>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <a href="/help.html" class="subscribe-button">View Help Guide</a>
+        <% if (account && (['Lite', 'Plus', 'Pro'].includes((account.plan || '').toString().trim()) || account.everSubscribed)) { %>
+        <a href="/support" class="subscribe-button">Contact Support</a>
+        <% } %>
+      </div>
       <hr style="border:0;border-top:1px solid #1e293b;margin:8px 0;">
       <p id="supportPlanNotice">You must be logged in to send a support ticket.</p>
       <button type="button" id="supportActionButton" class="subscribe-button" data-support-url="/support">Sign Up / Log In</button>
