@@ -92,7 +92,7 @@ class RdsStore {
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${ACCOUNTS_TABLE} (
         id SERIAL PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
+        password_hash TEXT,
         session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
@@ -136,6 +136,10 @@ class RdsStore {
         `UPDATE ${ACCOUNTS_TABLE}
          SET disabled = false
          WHERE disabled IS NULL`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ALTER COLUMN password_hash DROP NOT NULL`
       );
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SUPPORT_REQUESTS_TABLE} (
         id SERIAL PRIMARY KEY,
@@ -288,7 +292,7 @@ class RdsStore {
         `INSERT INTO ${ACCOUNTS_TABLE} (email, password_hash, session_id, created_at, timezone, plan)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id, email, session_id, created_at`,
-        [normalized, passwordHash, sessionId || '', new Date().toISOString(), '', 'Free']
+        [normalized, typeof passwordHash === "string" && passwordHash ? passwordHash : null, sessionId || '', new Date().toISOString(), '', 'Free']
       );
       return result.rows[0] || null;
     } catch (error) {
