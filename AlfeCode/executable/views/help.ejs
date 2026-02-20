@@ -35,11 +35,26 @@
       transform:translateY(-1px);
       box-shadow:0 10px 22px rgba(124,58,237,0.22);
     }
+    .help-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .help-header h1{
+      margin:0;
+    }
   </style>
 </head>
 <body>
   <div class="help-card">
-    <h1>Help Guide</h1>
+    <div class="help-header">
+      <h1>Help Guide</h1>
+      <% if (account && (['Lite', 'Plus', 'Pro'].includes((account.plan || '').toString().trim()) || account.ever_subscribed)) { %>
+      <a href="/support" class="subscribe-button">Contact Support</a>
+      <% } %>
+    </div>
 
     <div class="section-grid">
       <section class="help-section">
