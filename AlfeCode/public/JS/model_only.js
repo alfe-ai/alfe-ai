@@ -122,7 +122,7 @@
     }
     if (supportActionButton) {
       if (isSupportEligible) {
-        supportActionButton.textContent = 'Go to Support';
+        supportActionButton.textContent = 'Contact Support';
         supportActionState = 'support';
       } else if (isLoggedOut) {
         supportActionButton.textContent = 'Sign Up / Log In';
