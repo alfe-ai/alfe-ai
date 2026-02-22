@@ -487,16 +487,8 @@ export default class TaskDB {
 
     this.db.exec("UPDATE accounts SET disabled=0 WHERE disabled IS NULL;");
 
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS upwork_jobs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        link TEXT DEFAULT '',
-        bid TEXT DEFAULT '',
-        status TEXT DEFAULT 'Bidding',
-        notes TEXT DEFAULT ''
-      );
-    `);
+    // Migration: remove the deprecated upwork_jobs table if it exists.
+    this.db.exec('DROP TABLE IF EXISTS upwork_jobs;');
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS amazon_skus (

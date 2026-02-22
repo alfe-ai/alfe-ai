@@ -293,15 +293,6 @@ export default class TaskDBAws {
         disabled BOOLEAN DEFAULT false
       );`);
 
-      await client.query(`CREATE TABLE IF NOT EXISTS upwork_jobs (
-        id SERIAL PRIMARY KEY,
-        title TEXT NOT NULL,
-        link TEXT DEFAULT '',
-        bid TEXT DEFAULT '',
-        status TEXT DEFAULT 'Bidding',
-        notes TEXT DEFAULT ''
-      );`);
-
       await client.query(`CREATE TABLE IF NOT EXISTS amazon_skus (
         id SERIAL PRIMARY KEY,
         sku TEXT UNIQUE,
@@ -309,6 +300,9 @@ export default class TaskDBAws {
         title TEXT DEFAULT '',
         created_at TEXT NOT NULL
       );`);
+
+      // Migration: remove the deprecated upwork_jobs table if it exists.
+      await client.query("DROP TABLE IF EXISTS upwork_jobs;");
 
       await client.query(`CREATE TABLE IF NOT EXISTS sterlingproxy (
         id SERIAL PRIMARY KEY,
