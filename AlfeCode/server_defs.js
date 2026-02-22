@@ -96,7 +96,6 @@ const CODEX_MODEL_PATTERN = /^[A-Za-z0-9._:+-]+(?:\/[A-Za-z0-9._:+-]+)*$/;
 const SESSION_DATA_ROOT = path.join(__dirname, 'data', 'sessions');
 const SESSION_FALLBACK_KEY = 'default';
 const CODEX_RUN_HISTORY_FILENAME = 'codex_runs.json';
-const CODEX_RUNS_SESSION_KEY = 'codex_runs';
 const CODEX_SETTINGS_MODEL_KEY = 'codex_default_model';
 const CODEX_SETTINGS_INSTRUCTIONS_KEY = 'codex_default_agent_instructions';
 let hasLoggedModelValidationDisabled = false;
@@ -653,25 +652,11 @@ function loadCodexRunsFromFile(sessionId) {
 function loadCodexRuns(sessionId) {
     const safeSessionId = sanitizeSessionId(sessionId);
     if (rdsStore.enabled) {
-        const stored = rdsStore.getSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY);
-        if (typeof stored === 'string' && stored.trim()) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) {
-                    return parsed;
-                }
-            } catch (error) {
-                console.error(`[ERROR] loadCodexRuns: ${error.message}`);
-            }
+        const storedRuns = rdsStore.getSessionRuns(safeSessionId);
+        if (Array.isArray(storedRuns)) {
+            return storedRuns;
         }
-        if (stored === undefined) {
-            rdsStore.prefetchSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY);
-            const fallback = loadCodexRunsFromFile(sessionId);
-            if (fallback.length) {
-                rdsStore.setSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY, JSON.stringify(fallback));
-            }
-            return fallback;
-        }
+        rdsStore.prefetchSessionRuns(safeSessionId);
         return [];
     }
 
@@ -682,7 +667,7 @@ function saveCodexRuns(sessionId, runs) {
     const safeSessionId = sanitizeSessionId(sessionId);
     if (rdsStore.enabled) {
         try {
-            rdsStore.setSessionSetting(safeSessionId, CODEX_RUNS_SESSION_KEY, JSON.stringify(runs));
+            rdsStore.setSessionRuns(safeSessionId, runs);
             return;
         } catch (error) {
             console.error(`[ERROR] saveCodexRuns: ${error.message}`);
