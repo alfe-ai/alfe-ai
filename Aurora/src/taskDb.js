@@ -1809,4 +1809,28 @@ export default class TaskDB {
       .all(limit);
     return { columns, rows, limit, rowCount: rows.length };
   }
+
+  runReadOnlyQuery(sqlText, limit = 200) {
+    const sql = typeof sqlText === "string" ? sqlText.trim() : "";
+    if (!sql) {
+      throw new Error("Query is required.");
+    }
+    const lowered = sql.toLowerCase();
+    if (!/^(select|with|pragma|explain)\b/.test(lowered)) {
+      throw new Error("Only read-only SELECT/WITH/PRAGMA/EXPLAIN queries are allowed.");
+    }
+
+    const statement = this.db.prepare(sql);
+    const rows = statement.all();
+    const columns = statement.columns().map((col) => col.name);
+    const limitedRows = rows.slice(0, limit);
+
+    return {
+      columns,
+      rows: limitedRows,
+      limit,
+      rowCount: limitedRows.length,
+      totalRows: rows.length
+    };
+  }
 }
