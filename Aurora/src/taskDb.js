@@ -1729,30 +1729,16 @@ export default class TaskDB {
     this.db.prepare('DELETE FROM image_sessions WHERE session_id=?').run(sourceId);
   }
 
-  addUpworkJob(job) {
-    const { lastInsertRowid } = this.db
-      .prepare(
-        `INSERT INTO upwork_jobs (title, link, bid, status, notes)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      )
-      .run(
-        job.title,
-        job.link || '',
-        job.bid || '',
-        job.status || 'Bidding',
-        job.notes || ''
-      );
-    return lastInsertRowid;
+  addUpworkJob() {
+    throw new Error('upwork_jobs has been removed from the database schema.');
   }
 
   listUpworkJobs() {
-    return this.db
-      .prepare('SELECT * FROM upwork_jobs ORDER BY id DESC')
-      .all();
+    return [];
   }
 
-  deleteUpworkJob(id) {
-    this.db.prepare('DELETE FROM upwork_jobs WHERE id=?').run(id);
+  deleteUpworkJob() {
+    return;
   }
 
   insertAmazonSkus(list) {
