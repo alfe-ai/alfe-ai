@@ -154,29 +154,6 @@ export default class TaskDBAws {
       return;
     }
     try {
-      await client.query(`CREATE TABLE IF NOT EXISTS issues (
-        id SERIAL PRIMARY KEY,
-        github_id BIGINT UNIQUE,
-        repository TEXT,
-        number INTEGER,
-        title TEXT,
-        html_url TEXT,
-        codex_url TEXT,
-        task_id_slug TEXT,
-        priority_number REAL,
-        priority TEXT DEFAULT 'Medium',
-        hidden INTEGER DEFAULT 0,
-        project TEXT DEFAULT '',
-        sprint TEXT DEFAULT '',
-        fib_points INTEGER,
-        assignee TEXT,
-        created_at TEXT,
-        closed INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'Not Started',
-        dependencies TEXT DEFAULT '',
-        blocking TEXT DEFAULT ''
-      );`);
-
       await client.query(`CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
@@ -245,15 +222,6 @@ export default class TaskDBAws {
         image_hidden INTEGER DEFAULT 0
       );`);
 
-      await client.query(`CREATE TABLE IF NOT EXISTS chat_subroutines (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        trigger_text TEXT DEFAULT '',
-        action_text TEXT DEFAULT '',
-        action_hook TEXT DEFAULT '',
-        created_at TEXT NOT NULL
-      );`);
-
       await client.query(`CREATE TABLE IF NOT EXISTS image_sessions (
         session_id TEXT PRIMARY KEY,
         start_time TEXT NOT NULL
@@ -262,23 +230,6 @@ export default class TaskDBAws {
       await client.query(`CREATE TABLE IF NOT EXISTS upscaled_images (
         original TEXT PRIMARY KEY,
         upscaled TEXT NOT NULL
-      );`);
-
-      await client.query(`CREATE TABLE IF NOT EXISTS feedback (
-        id SERIAL PRIMARY KEY,
-        message TEXT NOT NULL,
-        type TEXT NOT NULL DEFAULT 'misc',
-        timestamp TEXT NOT NULL
-      );`);
-
-      await client.query(`CREATE TABLE IF NOT EXISTS project_branches (
-        project TEXT PRIMARY KEY,
-        base_branch TEXT DEFAULT ''
-      );`);
-
-      await client.query(`CREATE TABLE IF NOT EXISTS project_meta (
-        project TEXT PRIMARY KEY,
-        archived INTEGER DEFAULT 0
       );`);
 
       await client.query(`CREATE TABLE IF NOT EXISTS accounts (
@@ -293,13 +244,13 @@ export default class TaskDBAws {
         disabled BOOLEAN DEFAULT false
       );`);
 
-      await client.query(`CREATE TABLE IF NOT EXISTS amazon_skus (
-        id SERIAL PRIMARY KEY,
-        sku TEXT UNIQUE,
-        asin TEXT,
-        title TEXT DEFAULT '',
-        created_at TEXT NOT NULL
-      );`);
+      // Migration: remove deprecated task-planning tables if they exist.
+      await client.query('DROP TABLE IF EXISTS project_branches;');
+      await client.query('DROP TABLE IF EXISTS project_meta;');
+      await client.query('DROP TABLE IF EXISTS chat_subroutines;');
+      await client.query('DROP TABLE IF EXISTS feedback;');
+      await client.query('DROP TABLE IF EXISTS amazon_skus;');
+      await client.query('DROP TABLE IF EXISTS issues;');
 
       // Migration: remove the deprecated upwork_jobs table if it exists.
       await client.query("DROP TABLE IF EXISTS upwork_jobs;");
@@ -307,11 +258,7 @@ export default class TaskDBAws {
       // Migration: remove deprecated sterlingproxy table if it exists.
       await client.query("DROP TABLE IF EXISTS sterlingproxy;");
 
-      await client.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_github ON issues(github_id);');
-      await client.query('CREATE INDEX IF NOT EXISTS idx_issues_priority ON issues(priority_number);');
       await client.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_tabs_uuid ON chat_tabs(tab_uuid);');
-
-      await client.query("ALTER TABLE issues ADD COLUMN IF NOT EXISTS codex_url TEXT;");
       await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS archived INTEGER DEFAULT 0;");
       await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS archived_at TEXT;");
       await client.query("ALTER TABLE chat_tabs ADD COLUMN IF NOT EXISTS generate_images INTEGER DEFAULT 1;");
@@ -345,11 +292,6 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS project_context TEXT;");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_hidden INTEGER DEFAULT 0;");
 
-      await client.query("ALTER TABLE chat_subroutines ADD COLUMN IF NOT EXISTS trigger_text TEXT DEFAULT '';");
-      await client.query("ALTER TABLE chat_subroutines ADD COLUMN IF NOT EXISTS action_text TEXT DEFAULT '';");
-      await client.query("ALTER TABLE chat_subroutines ADD COLUMN IF NOT EXISTS action_hook TEXT DEFAULT '';");
-
-      await client.query("ALTER TABLE feedback ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'misc';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS totp_secret TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Free';");
@@ -430,145 +372,32 @@ export default class TaskDBAws {
   }
 
   async upsertIssue(issue, repositorySlug) {
-    const { rows } = await this.pool.query(
-      'SELECT priority_number, priority, project, sprint, status, dependencies, blocking, codex_url FROM issues WHERE github_id = $1',
-      [issue.id]
-    );
-    const existing = rows[0];
-    let priorityNum = existing?.priority_number;
-    if (!priorityNum) {
-      const res = await this.pool.query('SELECT MAX(priority_number) AS m FROM issues');
-      const max = res.rows[0].m || 0;
-      priorityNum = max + 1;
-    }
-    const row = {
-      github_id: issue.id,
-      repository: repositorySlug,
-      number: issue.number,
-      title: issue.title,
-      html_url: issue.html_url,
-      codex_url: existing?.codex_url ?? null,
-      task_id_slug: `${repositorySlug}#${issue.number}`,
-      priority_number: priorityNum,
-      priority: existing?.priority ?? 'Medium',
-      hidden: 0,
-      project: existing?.project ?? null,
-      sprint: existing?.sprint ?? null,
-      fib_points: null,
-      assignee: issue.assignee?.login || null,
-      created_at: issue.created_at,
-      closed: 0,
-      status: existing?.status ?? 'Not Started',
-      dependencies: existing?.dependencies ?? '',
-      blocking: existing?.blocking ?? ''
-    };
-    await this.pool.query(
-      `INSERT INTO issues (
-        github_id, repository, number, title, html_url, codex_url,
-        task_id_slug, priority_number, priority, hidden,
-        project, sprint, fib_points, assignee, created_at, closed, status,
-        dependencies, blocking
-      ) VALUES (
-        $1,$2,$3,$4,$5,$6,
-        $7,$8,$9,$10,
-        $11,$12,$13,$14,$15,$16,$17,
-        $18,$19
-      )
-      ON CONFLICT(github_id) DO UPDATE SET
-        repository      = excluded.repository,
-        number          = excluded.number,
-        title           = excluded.title,
-        html_url        = excluded.html_url,
-        task_id_slug    = excluded.task_id_slug,
-        priority_number = excluded.priority_number,
-        priority        = excluded.priority,
-        assignee        = excluded.assignee,
-        created_at      = excluded.created_at,
-        closed          = 0,
-        status          = issues.status,
-        dependencies    = issues.dependencies,
-        blocking        = issues.blocking`,
-      [
-        row.github_id,
-        row.repository,
-        row.number,
-        row.title,
-        row.html_url,
-        row.codex_url,
-        row.task_id_slug,
-        row.priority_number,
-        row.priority,
-        row.hidden,
-        row.project,
-        row.sprint,
-        row.fib_points,
-        row.assignee,
-        row.created_at,
-        row.closed,
-        row.status,
-        row.dependencies,
-        row.blocking
-      ]
-    );
+    void issue;
+    void repositorySlug;
   }
 
   async markClosedExcept(openGithubIds) {
-    let client;
-    try {
-      client = await this.pool.connect();
-    } catch (err) {
-      console.error('[TaskDBAws] Failed to connect to DB:', err && err.message ? err.message : err);
-      console.error('[TaskDBAws] Connection config:', JSON.stringify(this.pool.options || {}));
-      throw err;
-    }
-    try {
-      // Only auto-close tasks that originated from GitHub.
-      // Locally created tasks have a NULL github_id and should not be affected.
-      if (!openGithubIds.length) {
-        await client.query('UPDATE issues SET closed = 1 WHERE github_id IS NOT NULL AND closed = 0');
-      } else {
-        const placeholders = openGithubIds.map((_, i) => `$${i + 1}`).join(',');
-        await client.query(
-          `UPDATE issues SET closed = 1 WHERE github_id IS NOT NULL AND github_id NOT IN (${placeholders})`,
-          openGithubIds
-        );
-      }
-    } finally {
-      client.release();
-    }
+    void openGithubIds;
   }
 
   async listTasks(includeHidden = false) {
-    await this._initPromise;
-    const baseSql = includeHidden
-      ? 'SELECT * FROM issues WHERE closed = 0 ORDER BY priority_number'
-      : 'SELECT * FROM issues WHERE closed = 0 AND hidden = 0 ORDER BY priority_number';
-    const { rows } = await this.pool.query(baseSql);
-    return rows;
+    void includeHidden;
+    return [];
   }
 
   async getTaskById(id) {
-    await this._initPromise;
-    const { rows } = await this.pool.query('SELECT * FROM issues WHERE id = $1', [id]);
-    return rows[0];
+    void id;
+    return null;
   }
 
   async listTasksByProject(project) {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      'SELECT * FROM issues WHERE project = $1 AND closed = 0 ORDER BY priority_number',
-      [project]
-    );
-    return rows;
+    void project;
+    return [];
   }
 
   async listTasksBySprint(sprint) {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      'SELECT * FROM issues WHERE sprint = $1 AND closed = 0 ORDER BY priority_number',
-      [sprint]
-    );
-    return rows;
+    void sprint;
+    return [];
   }
 
   async createChatTab(
@@ -872,9 +701,7 @@ export default class TaskDBAws {
   }
 
   async listChatSubroutines() {
-    await this._initPromise;
-    const { rows } = await this.pool.query('SELECT * FROM chat_subroutines ORDER BY id ASC');
-    return rows;
+    return [];
   }
 
   getSetting(key) {
@@ -1052,46 +879,20 @@ export default class TaskDBAws {
   }
 
   async createTask(title, project = '', sprint = '') {
-    let client;
-    try {
-      client = await this.pool.connect();
-    } catch (err) {
-      console.error('[TaskDBAws] Failed to connect to DB:', err && err.message ? err.message : err);
-      console.error('[TaskDBAws] Connection config:', JSON.stringify(this.pool.options || {}));
-      throw err;
-    }
-    try {
-      const { rows } = await client.query('SELECT MAX(priority_number) AS m FROM issues');
-      const priority_number = (rows[0].m || 0) + 1;
-      const numRes = await client.query('SELECT MAX(number) AS m FROM issues');
-      const number = (numRes.rows[0].m || 0) + 1;
-      const created_at = new Date().toISOString();
-      const { rows: inserted } = await client.query(
-        `INSERT INTO issues (
-           github_id, repository, number, title, html_url, codex_url,
-           task_id_slug, priority_number, priority, hidden,
-           project, sprint, fib_points, assignee, created_at, closed, status,
-           dependencies, blocking
-         ) VALUES (
-           NULL, 'local', $1, $2, '#', '',
-           $3, $4, 'Medium', 0,
-           $5, $6, NULL, NULL, $7, 0, 'Not Started',
-           '', ''
-         ) RETURNING id`,
-        [number, title, `local#${number}`, priority_number, project, sprint, created_at]
-      );
-      return inserted[0].id;
-    } finally {
-      client.release();
-    }
+    void title;
+    void project;
+    void sprint;
+    return null;
   }
 
   async setTitle(id, newTitle) {
-    await this.pool.query('UPDATE issues SET title=$1 WHERE id=$2', [newTitle, id]);
+    void id;
+    void newTitle;
   }
 
   async setCodexUrl(id, url) {
-    await this.pool.query('UPDATE issues SET codex_url=$1 WHERE id=$2', [url, id]);
+    void id;
+    void url;
   }
 
   listProjects(includeArchived = false) {
@@ -1111,28 +912,8 @@ export default class TaskDBAws {
   }
 
   async listProjectsAsync(includeArchived = false) {
-    await this._initPromise;
-    const query = `
-      SELECT p.project,
-             COALESCE(c.count, 0) AS count,
-             COALESCE(pm.archived, 0) AS archived
-      FROM (
-        SELECT project FROM project_meta
-        UNION
-        SELECT project FROM issues WHERE project <> ''
-      ) p
-      LEFT JOIN (
-        SELECT project, COUNT(*) AS count
-        FROM issues
-        WHERE closed = 0 AND hidden = 0
-        GROUP BY project
-      ) c ON c.project = p.project
-      LEFT JOIN project_meta pm ON pm.project = p.project
-      ${includeArchived ? '' : 'WHERE COALESCE(pm.archived, 0) = 0'}
-      ORDER BY count DESC, p.project ASC;
-    `;
-    const { rows } = await this.pool.query(query);
-    return rows;
+    void includeArchived;
+    return [];
   }
 
   listSprints() {
@@ -1150,18 +931,7 @@ export default class TaskDBAws {
   }
 
   async listSprintsAsync() {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      `SELECT
-         sprint,
-         COUNT(*)::int AS count
-       FROM issues
-       WHERE closed = 0 AND hidden = 0
-       GROUP BY sprint
-       HAVING sprint <> ''
-       ORDER BY count DESC`
-    );
-    return rows;
+    return [];
   }
 
   logActivity(action, details) {
