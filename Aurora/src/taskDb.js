@@ -119,6 +119,9 @@ export default class TaskDB {
         `CREATE INDEX IF NOT EXISTS idx_issues_priority ON issues(priority_number);`
     );
 
+    // Migration: remove deprecated sterlingproxy table.
+    this.db.exec("DROP TABLE IF EXISTS sterlingproxy;");
+
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS activity_timeline (
                                                      id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -653,52 +656,7 @@ export default class TaskDB {
         hidden ? 1 : 0,
         id
     );
-
-    try {
-      this.db.exec(
-        `CREATE TABLE IF NOT EXISTS sterlingproxy (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT NOT NULL,
-          ip_address TEXT DEFAULT '',
-          start_timestamp TEXT NOT NULL,
-          last_used_timestamp TEXT NOT NULL,
-          status TEXT DEFAULT 'Running',
-          assigned_port INTEGER DEFAULT NULL,
-          runs INTEGER DEFAULT 0
-        );`
-      );
-      console.debug("[TaskDB Debug] Created sterlingproxy table");
-    } catch(e) {}
-
-    try {
-      this.db.exec('ALTER TABLE sterlingproxy ADD COLUMN runs INTEGER DEFAULT 0;');
-      console.debug("[TaskDB Debug] Added sterlingproxy.runs column");
-    } catch(e) {}
-
   }
-  ensureSterlingProxy(sessionId) {
-      if (!sessionId) return;
-      const exists = this.db.prepare("SELECT 1 FROM sterlingproxy WHERE session_id=?").get(sessionId);
-      if (!exists) {
-        const now = new Date().toISOString();
-        this.db.prepare("INSERT INTO sterlingproxy (session_id, ip_address, start_timestamp, last_used_timestamp, status) VALUES (?, ?, ?, ?, ?)").run(sessionId, '', now, now, 'Running');
-      }
-    }
-
-    upsertSterlingProxy(sessionId, ipAddress, assignedPort) {
-      if (!sessionId) return;
-      const now = new Date().toISOString();
-      const row = this.db.prepare("SELECT id FROM sterlingproxy WHERE session_id=?").get(sessionId);
-      if (row) {
-        this.db.prepare("UPDATE sterlingproxy SET ip_address=?, last_used_timestamp=?, assigned_port=? WHERE session_id=?").run(ipAddress||'', now, assignedPort||null, sessionId);
-      } else {
-        this.db.prepare("INSERT INTO sterlingproxy (session_id, ip_address, start_timestamp, last_used_timestamp, status, assigned_port) VALUES (?, ?, ?, ?, ?, ?)").run(sessionId, ipAddress||'', now, now, 'Running', assignedPort||null);
-      }
-    }
-
-    listSterlingProxy() {
-      return this.db.prepare("SELECT session_id, ip_address, start_timestamp, last_used_timestamp, status, assigned_port, runs FROM sterlingproxy ORDER BY start_timestamp DESC").all();
-    }
 
   setPoints(id, points) {
     this.db.prepare("UPDATE issues SET fib_points = ? WHERE id = ?").run(

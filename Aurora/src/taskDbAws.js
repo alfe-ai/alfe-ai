@@ -304,16 +304,8 @@ export default class TaskDBAws {
       // Migration: remove the deprecated upwork_jobs table if it exists.
       await client.query("DROP TABLE IF EXISTS upwork_jobs;");
 
-      await client.query(`CREATE TABLE IF NOT EXISTS sterlingproxy (
-        id SERIAL PRIMARY KEY,
-        session_id TEXT NOT NULL,
-        ip_address TEXT DEFAULT '',
-        start_timestamp TEXT NOT NULL,
-        last_used_timestamp TEXT NOT NULL,
-        status TEXT DEFAULT 'Running',
-        assigned_port INTEGER DEFAULT NULL,
-        runs INTEGER DEFAULT 0
-      );`);
+      // Migration: remove deprecated sterlingproxy table if it exists.
+      await client.query("DROP TABLE IF EXISTS sterlingproxy;");
 
       await client.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_github ON issues(github_id);');
       await client.query('CREATE INDEX IF NOT EXISTS idx_issues_priority ON issues(priority_number);');
@@ -363,8 +355,6 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Free';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false;");
       await client.query("UPDATE accounts SET disabled = false WHERE disabled IS NULL;");
-      await client.query("ALTER TABLE sterlingproxy ADD COLUMN IF NOT EXISTS runs INTEGER DEFAULT 0;");
-
     } finally {
       client.release();
     }
