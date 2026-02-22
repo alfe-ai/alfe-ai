@@ -1557,42 +1557,22 @@ app.delete("/api/projectBranches/:project", (req, res) => {
   }
 });
 
-app.get("/api/upworkJobs", (req, res) => {
-  try {
-    const jobs = db.listUpworkJobs();
-    res.json(jobs);
-  } catch (err) {
-    console.error("[AlfeChat] /api/upworkJobs failed:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+app.get("/api/upworkJobs", (_req, res) => {
+  res.status(410).json({
+    error: "upwork_jobs has been removed from Aurora and this API is deprecated."
+  });
 });
 
-app.post("/api/upworkJobs", (req, res) => {
-  try {
-    const { title, link, bid, status, notes } = req.body || {};
-    if (!title) {
-      return res.status(400).json({ error: "Title required" });
-    }
-    const id = db.addUpworkJob({ title, link, bid, status, notes });
-    res.json({ success: true, id });
-  } catch (err) {
-    console.error("[AlfeChat] POST /api/upworkJobs failed:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+app.post("/api/upworkJobs", (_req, res) => {
+  res.status(410).json({
+    error: "upwork_jobs has been removed from Aurora and this API is deprecated."
+  });
 });
 
-app.delete("/api/upworkJobs/:id", (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (!Number.isInteger(id)) {
-      return res.status(400).json({ error: "Invalid id" });
-    }
-    db.deleteUpworkJob(id);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("[AlfeChat] DELETE /api/upworkJobs/:id failed:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+app.delete("/api/upworkJobs/:id", (_req, res) => {
+  res.status(410).json({
+    error: "upwork_jobs has been removed from Aurora and this API is deprecated."
+  });
 });
 
 app.post("/api/tasks/hidden", (req, res) => {
