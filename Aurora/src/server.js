@@ -1473,6 +1473,30 @@ app.get("/api/db/table/:name", (req, res) => {
   })();
 });
 
+app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] POST /api/db/query blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  console.debug("[Server Debug] POST /api/db/query called.");
+  (async () => {
+    try {
+      if (typeof db.runReadOnlyQuery !== "function") {
+        return res.status(501).json({ error: "Database query execution not supported." });
+      }
+      const sql = typeof req.body?.query === "string" ? req.body.query : "";
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 200, 1000));
+      const data = await Promise.resolve(db.runReadOnlyQuery(sql, limit));
+      res.json(data);
+    } catch (err) {
+      console.error("[Server Debug] POST /api/db/query error:", err);
+      const message = err?.message || "Internal server error";
+      const isClientError = /query is required|only read-only/i.test(message);
+      res.status(isClientError ? 400 : 500).json({ error: message });
+    }
+  })();
+});
+
 app.get("/api/db/info", (req, res) => {
   if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
     console.warn("[Server Debug] GET /api/db/info blocked by CONFIG_IP_WHITELIST");

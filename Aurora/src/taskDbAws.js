@@ -411,6 +411,34 @@ export default class TaskDBAws {
     }
   }
 
+  async runReadOnlyQuery(sqlText, limit = 200) {
+    await this._initPromise;
+    const sql = typeof sqlText === 'string' ? sqlText.trim() : '';
+    if (!sql) {
+      throw new Error('Query is required.');
+    }
+    const lowered = sql.toLowerCase();
+    if (!/^(select|with|explain)\b/.test(lowered)) {
+      throw new Error('Only read-only SELECT/WITH/EXPLAIN queries are allowed.');
+    }
+
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(sql);
+      const columns = (result.fields || []).map((field) => field.name);
+      const rows = result.rows || [];
+      return {
+        columns,
+        rows: rows.slice(0, limit),
+        limit,
+        rowCount: Math.min(rows.length, limit),
+        totalRows: rows.length
+      };
+    } finally {
+      client.release();
+    }
+  }
+
   async upsertIssue(issue, repositorySlug) {
     const { rows } = await this.pool.query(
       'SELECT priority_number, priority, project, sprint, status, dependencies, blocking, codex_url FROM issues WHERE github_id = $1',
