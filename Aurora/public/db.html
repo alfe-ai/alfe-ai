@@ -399,12 +399,20 @@
         return true;
       }
 
+      if (tableName === "chat_tabs" && columnName === "name") {
+        return true;
+      }
+
       return tableName === "chat_pairs" && (columnName === "user_text" || columnName === "ai_text");
     }
 
     function getRevealButtonLabel(tableName, columnName) {
       if (tableName === "accounts" && columnName === "email") {
         return "View Email";
+      }
+
+      if (tableName === "chat_tabs" && columnName === "name") {
+        return "View Name";
       }
 
       if (tableName === "chat_pairs" && columnName === "user_text") {
