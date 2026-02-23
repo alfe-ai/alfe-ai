@@ -5064,6 +5064,16 @@ app.get("/db", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/db.html"));
 });
 
+app.get("/db/:table", (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /db/:table blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).send("Forbidden");
+  }
+  const tableName = req.params.table;
+  console.debug(`[Server Debug] GET /db/:table => Serving db.html for table: ${tableName}`);
+  res.sendFile(path.join(__dirname, "../public/db.html"));
+});
+
 app.get("/ai_models", (req, res) => {
   console.debug("[Server Debug] GET /ai_models => Serving ai_models.html");
   res.sendFile(path.join(__dirname, "../public/ai_models.html"));
