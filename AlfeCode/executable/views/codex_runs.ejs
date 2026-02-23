@@ -696,15 +696,23 @@
                 statusCell.setAttribute('data-label', 'Status');
                 const latestStatusText = getLatestStatus(run) || '';
                 const mergeSucceeded = hasSuccessfulMerge(run, latestStatusText);
+                // Use the run.status field if available (contains logical status)
+                // Otherwise, fall back to determining status from conditions
+                const runStatus = run.status || '';
                 if (isRunning) {
                     const tag = document.createElement('span');
                     tag.className = 'tag running';
                     tag.textContent = 'Running';
                     statusCell.appendChild(tag);
-                } else if (mergeSucceeded) {
+                } else if (runStatus.toLowerCase() === 'merged') {
                     const tag = document.createElement('span');
                     tag.className = 'tag status-merged';
                     tag.textContent = 'Merged';
+                    statusCell.appendChild(tag);
+                } else if (runStatus.toLowerCase() === 'failed' || runStatus.toLowerCase() === 'merge failed') {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag status-failed';
+                    tag.textContent = 'Failed';
                     statusCell.appendChild(tag);
                 } else if (Number(run.gitFpushExitCode) === 0 || /developed|dev|implemented/i.test(latestStatusText)) {
                     const tag = document.createElement('span');
@@ -723,9 +731,11 @@
 
                 const latestStatus = latestStatusText;
                 if (isRunning) {
-                    messageCell.textContent = run.error || latestStatus || 'Agent running…';
+                    // For running runs, use status if available, otherwise fall back to latest status or default message
+                    messageCell.textContent = run.error || run.status || latestStatus || 'Agent running…';
                 } else {
-                    messageCell.textContent = run.finalMessage || run.error || latestStatus || '—';
+                    // For finished runs, prioritize finalMessage, then error, then status, then latest status
+                    messageCell.textContent = run.finalMessage || run.error || run.status || latestStatus || '—';
                 }
                 row.appendChild(messageCell);
                 const promptCell = document.createElement('td');
