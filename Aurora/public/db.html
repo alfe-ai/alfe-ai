@@ -492,7 +492,7 @@
         activeTable.textContent = `Table: ${name}`;
         rowMeta.textContent = "";
 
-        if (name === "chat_pairs" && !forceLoad) {
+        if ((name === "chat_pairs" || name === "activity_timeline") && !forceLoad) {
           dataStatus.textContent = "Large table. Click View Table to load rows.";
           renderDeferredTableButton(name);
           return;
