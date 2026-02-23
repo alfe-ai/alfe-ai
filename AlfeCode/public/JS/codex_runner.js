@@ -9539,40 +9539,65 @@ const appendMergeChunk = (text, type = "output") => {
     return plan.trim().toLowerCase();
   };
 
+  const applyAccountResponse = ({ resp, data, previousPlan, reloadOnPlanChange }) => {
+    if (resp.ok && data?.disabled) {
+      disabledAccountLogoutInFlight = true;
+      const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
+      logoutUrl.searchParams.set("returnTo", "/agent");
+      logoutUrl.searchParams.set("reason", "disabled-account");
+      window.location.assign(logoutUrl.toString());
+      return true;
+    }
+    if (resp.ok && data?.email) {
+      const nextPlan = normalizeAccountPlan(data.plan);
+      if (reloadOnPlanChange && previousPlan && nextPlan && previousPlan !== nextPlan) {
+        window.location.reload();
+        return true;
+      }
+      setAccountInfo({
+        email: data.email,
+        plan: data.plan,
+        sessionId: data.sessionId,
+        timezone: data.timezone
+      });
+      return true;
+    }
+    return false;
+  };
+
   const fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
     if (disabledAccountLogoutInFlight) {
       return;
     }
     const previousPlan = normalizeAccountPlan(accountInfo?.plan);
     try {
-      const params = currentSessionId
-        ? `?sessionId=${encodeURIComponent(currentSessionId)}`
-        : "";
-      const resp = await fetch(`/api/account${params}`, { cache: "no-store" });
-      const data = await resp.json().catch(() => null);
-      if (resp.ok && data?.disabled) {
-        disabledAccountLogoutInFlight = true;
-        const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
-        logoutUrl.searchParams.set("returnTo", "/agent");
-        logoutUrl.searchParams.set("reason", "disabled-account");
-        window.location.assign(logoutUrl.toString());
+      const defaultResp = await fetch("/api/account", { cache: "no-store" });
+      const defaultData = await defaultResp.json().catch(() => null);
+      if (applyAccountResponse({
+        resp: defaultResp,
+        data: defaultData,
+        previousPlan,
+        reloadOnPlanChange
+      })) {
         return;
       }
-      if (resp.ok && data?.email) {
-        const nextPlan = normalizeAccountPlan(data.plan);
-        if (reloadOnPlanChange && previousPlan && nextPlan && previousPlan !== nextPlan) {
-          window.location.reload();
+
+      if (currentSessionId) {
+        const fallbackResp = await fetch(`/api/account?sessionId=${encodeURIComponent(currentSessionId)}`, {
+          cache: "no-store"
+        });
+        const fallbackData = await fallbackResp.json().catch(() => null);
+        if (applyAccountResponse({
+          resp: fallbackResp,
+          data: fallbackData,
+          previousPlan,
+          reloadOnPlanChange
+        })) {
           return;
         }
-        setAccountInfo({
-          email: data.email,
-          plan: data.plan,
-          sessionId: data.sessionId,
-          timezone: data.timezone
-        });
-      } else {
-        setAccountInfo(null);
       }
+
+      setAccountInfo(null);
     } catch (err) {
       console.error("Account lookup failed", err);
       setAccountInfo(null);
