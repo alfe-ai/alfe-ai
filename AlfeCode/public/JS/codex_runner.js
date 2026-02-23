@@ -6090,13 +6090,60 @@ const appendMergeChunk = (text, type = "output") => {
       }
     } catch (_err) { /* ignore */ }
 
-    if (Number(run.gitFpushExitCode) === 0 || Number(run.exitCode) === 0 || run.finalMessage) {
+    // Only declare "Complete" if the run is actually finished (has finishedAt)
+    if (run.finishedAt) {
+      // Check for agent failure
+      if (typeof run.exitCode === 'number' && run.exitCode !== 0) {
+        return { text: `Exit ${run.exitCode}`, variant: "error" };
+      }
+
+      // Check for merge failure
+      const gitMergeExitCode = typeof run.git_merge_parent_exit_code === 'number'
+        ? run.git_merge_parent_exit_code
+        : run.gitMergeExitCode;
+      if (typeof gitMergeExitCode === 'number' && gitMergeExitCode !== 0) {
+        return { text: "Merge Failed", variant: "error" };
+      }
+
+      // Check for git_fpush failure
+      if (typeof run.gitFpushExitCode === 'number' && run.gitFpushExitCode !== 0) {
+        return { text: "Git Push Failed", variant: "error" };
+      }
+
+      // If error is set (and non-empty), mark as Failed
+      if (run.error && typeof run.error === 'string' && run.error.trim()) {
+        return { text: "Error", variant: "error" };
+      }
+
+      // Success: either Merged or Complete
+      if (typeof gitMergeExitCode === 'number' && gitMergeExitCode === 0) {
+        return { text: "Merged", variant: "merged" };
+      }
       return { text: "Complete", variant: "success" };
+    } else {
+      // Not finished yet — return running (unless canceled logic applies)
+      // Cancellation checks still apply
+      try {
+        const cancellationPatterns = [/connection closed/i, /connection interrupted/i, /connection (?:closed|interrupted)/i, /run cancell?ed by user/i, /run cancell?ed/i];
+        const textCandidates = [];
+        if (latestStatusText) textCandidates.push(latestStatusText);
+        if (run?.finalMessage) textCandidates.push(String(run.finalMessage));
+        if (Array.isArray(run?.statusHistory)) run.statusHistory.forEach((s) => { if (s) textCandidates.push(String(s)); });
+        const isCanceled = textCandidates.some((candidate) => {
+          if (!candidate && candidate !== 0) return false;
+          try {
+            const text = String(candidate);
+            return cancellationPatterns.some((pattern) => pattern.test(text));
+          } catch (e) {
+            return false;
+          }
+        });
+        if (isCanceled) {
+          return { text: "Canceled", variant: "canceled" };
+        }
+      } catch (_err) { /* ignore */ }
+      return { text: "Running", variant: "running" };
     }
-    if (Number.isFinite(Number(run.exitCode))) {
-      return { text: `Exit ${run.exitCode}`, variant: "error" };
-    }
-    return null;
   };
 
   const doesRunMatchFilter = (run, filterValue) => {

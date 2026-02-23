@@ -3825,13 +3825,14 @@ ${cleanedFinalOutput}`;
                 return;
             }
             codexStreamTerminated = true;
+            // Set finishedAt FIRST to ensure the run is marked as complete
+            runRecord.finishedAt = new Date().toISOString();
             if (!runRecord.finalOutput && runRecord.qwenCli) {
                 runRecord.finalOutput = resolveQwenCliFinalOutput(runRecord);
             }
             if (typeof message === "string" && message) {
                 runRecord.finalMessage = message;
             }
-            runRecord.finishedAt = runRecord.finishedAt || new Date().toISOString();
             emit({ event: "end", data: message });
             closeStream();
             persistRunRecord({ ensureFinished: true, force: true });
