@@ -747,14 +747,11 @@ function upsertCodexRun(sessionId, runRecord, maxEntries = 200) {
         if (Number.isFinite(existing.numericId) && !Number.isFinite(merged.numericId)) {
             merged.numericId = existing.numericId;
         }
-        // If statusHistory is provided, update status from the latest entry
-        if (runRecord.statusHistory && Array.isArray(runRecord.statusHistory)) {
-            const statusHistory = merged.statusHistory || [];
-            if (statusHistory.length > 0) {
-                merged.status = String(statusHistory[statusHistory.length - 1] || '').trim() || 'active';
-            }
-        } else if (runRecord.status && typeof runRecord.status === 'string') {
-            // If status itself is provided, use it
+        // If status is explicitly provided in the update, use it.
+        // Otherwise, preserve the existing status.
+        // Note: statusHistory is for logging/script status messages and should not
+        // be used to derive the main status field, which should be logical (e.g., 'Running', 'Complete', 'Merged').
+        if (runRecord.status !== undefined) {
             merged.status = runRecord.status;
         }
         assignNumericId(nextRuns, merged);
