@@ -3711,33 +3711,28 @@
     return m ? m[0] : null;
   };
 
-  const getFinalOutputForDiff = () => {
-    const activeFinalOutput = getActiveFinalOutputText();
-    if (typeof activeFinalOutput !== "string") {
-      return "";
+  const appendCurrentRunReferenceToDiffParams = (params) => {
+    if (!params || typeof params.set !== 'function') {
+      return;
     }
-    if (!activeFinalOutput.trim()) {
-      return "";
+    const runId = currentRunContext && currentRunContext.runId
+      ? String(currentRunContext.runId).trim()
+      : '';
+    if (runId) {
+      params.set('run_id', runId);
     }
-    return activeFinalOutput;
+    const rowIndexRaw = currentRunContext && (
+      currentRunContext.rowIndex
+      || currentRunContext.runRowIndex
+      || currentRunContext.runIndex
+    );
+    const rowIndex = Number.isFinite(Number(rowIndexRaw)) ? Number(rowIndexRaw) : null;
+    if (rowIndex !== null) {
+      params.set('rowIndex', String(rowIndex));
+    }
   };
 
-  const getFinalOutputFromRunRecord = async (runId, projectDirValue) => {
-    try {
-      const run = await fetchRunFromHistory(runId, projectDirValue);
-      if (run) {
-        const resolved = resolveFinalOutputForSavedRun(run);
-        if (resolved) {
-          return resolved;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to fetch final output from run record:', e);
-    }
-    return null;
-  };
-
-  const buildMergeDiffUrl = (hash, projectDirValue, finalOutput) => {
+  const buildMergeDiffUrl = (hash, projectDirValue) => {
     if (!hash) return '';
     const baseRev = `${hash}^`;
     const params = new URLSearchParams({ baseRev, compRev: hash });
@@ -3748,14 +3743,11 @@
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
     }
-    const finalOutputForDiff = finalOutput || getFinalOutputForDiff();
-    if (finalOutputForDiff) {
-      params.set('finalOutput', finalOutputForDiff);
-    }
+    appendCurrentRunReferenceToDiffParams(params);
 
     return `/agent/git-diff?${params.toString()}`;
   };
-  const buildMergeDiffUrlForBranch = (branch, projectDirValue, finalOutput) => {
+  const buildMergeDiffUrlForBranch = (branch, projectDirValue) => {
     if (!branch) return '';
     const params = new URLSearchParams({ branch });
     const dir = normaliseProjectDir(projectDirValue) || normaliseProjectDir(currentSnapshotProjectDir) || (currentRunContext && currentRunContext.projectDir) || '';
@@ -3765,10 +3757,7 @@
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
     }
-    const finalOutputForDiff = finalOutput || getFinalOutputForDiff();
-    if (finalOutputForDiff) {
-      params.set('finalOutput', finalOutputForDiff);
-    }
+    appendCurrentRunReferenceToDiffParams(params);
 
     // Use a server-side resolver to find the parent-merge commit for this branch
     return `/agent/git-diff-branch-merge?${params.toString()}`;
@@ -3790,17 +3779,17 @@
     }
   };
 
-  const enableMergeDiffAfterPrefetch = ({ branch, hash, projectDirValue, finalOutput }) => {
+  const enableMergeDiffAfterPrefetch = ({ branch, hash, projectDirValue }) => {
     const useBranch = Boolean(branch);
     const diffUrl = useBranch
-      ? buildMergeDiffUrlForBranch(branch, projectDirValue || "", finalOutput)
-      : buildMergeDiffUrl(hash, projectDirValue || "", finalOutput);
+      ? buildMergeDiffUrlForBranch(branch, projectDirValue || "")
+      : buildMergeDiffUrl(hash, projectDirValue || "");
 
     if (!diffUrl) {
       if (useBranch) {
-        enableMergeDiffButtonForBranch(branch, projectDirValue || "", finalOutput);
+        enableMergeDiffButtonForBranch(branch, projectDirValue || "");
       } else if (hash) {
-        enableMergeDiffButtonForHash(hash, projectDirValue || "", finalOutput);
+        enableMergeDiffButtonForHash(hash, projectDirValue || "");
       }
       return;
     }
@@ -3809,9 +3798,9 @@
       .catch(() => false)
       .finally(() => {
         if (useBranch) {
-          enableMergeDiffButtonForBranch(branch, projectDirValue || "", finalOutput);
+          enableMergeDiffButtonForBranch(branch, projectDirValue || "");
         } else if (hash) {
-          enableMergeDiffButtonForHash(hash, projectDirValue || "", finalOutput);
+          enableMergeDiffButtonForHash(hash, projectDirValue || "");
         }
       });
   };
@@ -4237,20 +4226,18 @@
 
     if (branch) {
       if (options.prefetchFirst) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, branchProjectDir);
-        enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir });
       } else {
-        enableMergeDiffButtonForBranch(branch, branchProjectDir, null);
+        enableMergeDiffButtonForBranch(branch, branchProjectDir);
       }
       return true;
     }
 
     if (hash) {
       if (options.prefetchFirst) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, hashProjectDir);
-        enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir });
       } else {
-        enableMergeDiffButtonForHash(hash, hashProjectDir, null);
+        enableMergeDiffButtonForHash(hash, hashProjectDir);
       }
       return true;
     }
@@ -4258,7 +4245,7 @@
     return false;
   };
 
-  const enableMergeDiffButtonForBranch = (branch, projectDirValue, finalOutput) => {
+  const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4272,7 +4259,7 @@
       mergeDiffButton.classList.add('is-hidden');
       return;
     }
-    const url = buildMergeDiffUrlForBranch(branch, projectDirValue || '', finalOutput);
+    const url = buildMergeDiffUrlForBranch(branch, projectDirValue || '');
     if (!url) {
       mergeDiffButton.disabled = true;
       mergeDiffButton.setAttribute('aria-disabled', 'true');
@@ -4299,7 +4286,7 @@
   };
 
 
-  const enableMergeDiffButtonForHash = (hash, projectDirValue, finalOutput) => {
+  const enableMergeDiffButtonForHash = (hash, projectDirValue) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4313,7 +4300,7 @@
       mergeDiffButton.classList.add('is-hidden');
       return;
     }
-    const url = buildMergeDiffUrl(hash, projectDirValue || '', finalOutput);
+    const url = buildMergeDiffUrl(hash, projectDirValue || '');
     if (!url) {
       mergeDiffButton.disabled = true;
       mergeDiffButton.setAttribute('aria-disabled', 'true');
@@ -4333,10 +4320,10 @@
     }
   };
 
-  const tryEnableMergeDiffFromText = (text, projectDirValue, finalOutput) => {
+  const tryEnableMergeDiffFromText = (text, projectDirValue) => {
     const hash = extractFirstHashFromText(text || '');
     if (hash) {
-      enableMergeDiffButtonForHash(hash, projectDirValue, finalOutput);
+      enableMergeDiffButtonForHash(hash, projectDirValue);
     }
   };
 
@@ -4422,7 +4409,7 @@
     mergeDiffLockedAfterMerge = false;
     applyMergeButtonState();
     // Disable merge-diff button when merge state resets
-    enableMergeDiffButtonForHash("", "", null);
+    enableMergeDiffButtonForHash("", "");
     gitFpushActive = false;
     gitFpushDetectedChanges = false;
     gitFpushDetectedNoChanges = false;
@@ -4462,7 +4449,7 @@
         || detectGitNoChangeIndicator(message));
       if (!hasDetectedChanges) {
         setMergeReady(false);
-        enableMergeDiffButtonForHash("", "", null);
+        enableMergeDiffButtonForHash("", "");
         pendingGitFpushHash = "";
         pendingGitFpushHashProjectDir = "";
         pendingGitFpushBranch = "";
@@ -4487,16 +4474,14 @@
       const branch = extractBranchFromText(message);
       enableAutoOpenMergeDiffIfAllowed();
       if (branch) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, effectiveProjectDir);
-        enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir });
         consumePendingGitFpushDiff({ prefetchFirst: true });
         markGitFpushPhaseComplete();
         return;
       }
 
       if (detectedHash) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, effectiveProjectDir);
-        enableMergeDiffAfterPrefetch({ hash: detectedHash, projectDirValue: effectiveProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ hash: detectedHash, projectDirValue: effectiveProjectDir });
         consumePendingGitFpushDiff({ prefetchFirst: true });
         markGitFpushPhaseComplete();
         return;
@@ -4568,7 +4553,7 @@
       || candidateTexts.some((candidate) => detectGitChangeIndicator(candidate));
     if (hasExplicitNoChanges || !hasGitChanges) {
       setMergeReady(false);
-      enableMergeDiffButtonForHash("", "", null);
+      enableMergeDiffButtonForHash("", "");
       return;
     }
 
@@ -4576,15 +4561,14 @@
 
     const branchFromRun = extractBranchFromRun(run);
     if (branchFromRun) {
-      const finalOutput = resolveFinalOutputForSavedRun(run);
-      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir, finalOutput);
+      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir);
     }
 
     for (const candidate of candidateTexts) {
       if (hasActiveMergeDiffLink()) {
         return;
       }
-      tryEnableMergeDiffFromText(candidate, diffProjectDir, null);
+      tryEnableMergeDiffFromText(candidate, diffProjectDir);
     }
   };
 
@@ -5782,7 +5766,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (run.gitMergeStdout) {
       appendMergeChunk(`\n--- Merge stdout ---\n${run.gitMergeStdout}`, "output");
     }
-    tryEnableMergeDiffFromText(run.gitMergeStdout, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '', null);
+    tryEnableMergeDiffFromText(run.gitMergeStdout, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '');
 
     // After restoring a saved run ensure run controls and merge button state are refreshed.
     try { setRunControlsDisabledState(false, { forceRefresh: true }); } catch (e) { /* ignore */ }
@@ -7907,12 +7891,12 @@ const appendMergeChunk = (text, type = "output") => {
           "status",
         );
         // Attempt to locate a merge commit hash in the merge output and enable the Merge Diff button
-        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir, null);
+        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
 
         // Set merged status in UI
         try { setStatus('Merged.', 'merged'); } catch (e) { console.warn('Failed to set merged status', e); }
         // Attempt to locate a merge commit hash in the merge output and enable the Merge Diff button
-        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir, null);
+        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
 
         // If a merge diff was detected and the button is enabled, open the modal to show the merge commit diff
         try {
