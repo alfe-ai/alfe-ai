@@ -390,8 +390,32 @@
       });
     }
 
-    function shouldMaskEmailCell(tableName, columnName, value) {
-      return tableName === "accounts" && columnName === "email" && value !== null && typeof value !== "undefined";
+    function shouldMaskSensitiveCell(tableName, columnName, value) {
+      if (value === null || typeof value === "undefined") {
+        return false;
+      }
+
+      if (tableName === "accounts" && columnName === "email") {
+        return true;
+      }
+
+      return tableName === "chat_pairs" && (columnName === "user_text" || columnName === "ai_text");
+    }
+
+    function getRevealButtonLabel(tableName, columnName) {
+      if (tableName === "accounts" && columnName === "email") {
+        return "View Email";
+      }
+
+      if (tableName === "chat_pairs" && columnName === "user_text") {
+        return "View User Text";
+      }
+
+      if (tableName === "chat_pairs" && columnName === "ai_text") {
+        return "View AI Text";
+      }
+
+      return "View";
     }
 
     function renderTable(columns, rows, tableName = "") {
@@ -425,11 +449,11 @@
           columns.forEach((col) => {
             const td = document.createElement("td");
             const value = row[col];
-            if (shouldMaskEmailCell(tableName, col, value)) {
+            if (shouldMaskSensitiveCell(tableName, col, value)) {
               const button = document.createElement("button");
               button.type = "button";
               button.className = "reveal-email-btn";
-              button.textContent = "View Email";
+              button.textContent = getRevealButtonLabel(tableName, col);
               button.addEventListener("click", () => {
                 td.textContent = String(value);
               });
