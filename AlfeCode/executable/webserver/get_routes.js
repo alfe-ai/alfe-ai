@@ -1374,6 +1374,23 @@ function setupGetRoutes(deps) {
         return 'Complete';
     };
 
+    const resolveScriptStatus = (record) => {
+        if (!record || typeof record !== "object") {
+            return "";
+        }
+
+        if (Array.isArray(record.statusHistory) && record.statusHistory.length > 0) {
+            const latest = record.statusHistory[record.statusHistory.length - 1];
+            return typeof latest === "string" ? latest : String(latest || "");
+        }
+
+        if (typeof record.scriptStatus === "string") {
+            return record.scriptStatus;
+        }
+
+        return "";
+    };
+
     const resolveQwenCliFinalOutput = (record) => {
         if (!record || typeof record !== "object") {
             return "";
@@ -3672,7 +3689,8 @@ ${cleanedFinalOutput}`;
                 }
             }
 
-            // Update the run status based on the current state before persisting
+            // Keep script status and logical status in separate fields.
+            runRecord.scriptStatus = resolveScriptStatus(runRecord);
             runRecord.status = resolveRunStatus(runRecord);
 
             const now = Date.now();

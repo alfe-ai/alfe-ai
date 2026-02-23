@@ -114,6 +114,7 @@ class RdsStore {
         run_id TEXT NOT NULL,
         numeric_id BIGINT,
         status TEXT DEFAULT '',
+        script_status TEXT DEFAULT '',
         final_output_message TEXT DEFAULT '',
         created_at TEXT DEFAULT '',
         updated_at TEXT DEFAULT '',
@@ -158,6 +159,10 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS model TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS script_status TEXT DEFAULT ''`
       );
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
@@ -223,7 +228,7 @@ class RdsStore {
 
   async loadAllSessionRuns() {
     const result = await this.pool.query(
-      `SELECT session_id, payload_json
+      `SELECT session_id, status, script_status, payload_json
        FROM ${ALFECODE_RUNS_TABLE}
        ORDER BY updated_at DESC, numeric_id DESC NULLS LAST`
     );
@@ -238,6 +243,12 @@ class RdsStore {
         continue;
       }
       if (!parsed || typeof parsed !== "object") continue;
+      if (typeof row.status === "string" && row.status.trim()) {
+        parsed.status = row.status;
+      }
+      if (typeof row.script_status === "string" && row.script_status.trim()) {
+        parsed.scriptStatus = row.script_status;
+      }
       const existing = this.sessionRuns.get(row.session_id) || [];
       existing.push(parsed);
       this.sessionRuns.set(row.session_id, existing);
@@ -316,7 +327,7 @@ class RdsStore {
     if (!this.enabled) return;
     try {
       const result = await this.pool.query(
-        `SELECT payload_json
+        `SELECT status, script_status, payload_json
          FROM ${ALFECODE_RUNS_TABLE}
          WHERE session_id = $1
          ORDER BY updated_at DESC, numeric_id DESC NULLS LAST`,
@@ -327,6 +338,12 @@ class RdsStore {
         try {
           const parsed = JSON.parse(row.payload_json || "{}");
           if (parsed && typeof parsed === "object") {
+            if (typeof row.status === "string" && row.status.trim()) {
+              parsed.status = row.status;
+            }
+            if (typeof row.script_status === "string" && row.script_status.trim()) {
+              parsed.scriptStatus = row.script_status;
+            }
             parsedRuns.push(parsed);
           }
         } catch (parseError) {
@@ -386,6 +403,11 @@ class RdsStore {
         const runId = (run.id || run.runId || `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).toString();
         const numericId = Number.isFinite(Number(run.numericId)) ? Number(run.numericId) : null;
         const status = typeof run.status === "string" ? run.status : "";
+        const scriptStatus = typeof run.scriptStatus === "string"
+          ? run.scriptStatus
+          : (Array.isArray(run.statusHistory) && run.statusHistory.length
+            ? String(run.statusHistory[run.statusHistory.length - 1] || "")
+            : "");
         const finalOutputMessage = typeof run.finalOutputMessage === "string"
           ? run.finalOutputMessage
           : (typeof run.finalOutput === "string" ? run.finalOutput : "");
@@ -402,13 +424,14 @@ class RdsStore {
 
         await client.query(
           `INSERT INTO ${ALFECODE_RUNS_TABLE}
-           (session_id, run_id, numeric_id, status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+           (session_id, run_id, numeric_id, status, script_status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
           [
             sessionId,
             runId,
             numericId,
             status,
+            scriptStatus,
             finalOutputMessage,
             createdAt,
             updatedAt,
