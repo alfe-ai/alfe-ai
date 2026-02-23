@@ -532,7 +532,7 @@
         activeTable.textContent = `Table: ${name}`;
         rowMeta.textContent = "";
 
-        if ((name === "chat_pairs" || name === "activity_timeline") && !forceLoad) {
+        if (name === "chat_pairs" && !forceLoad) {
           dataStatus.textContent = "";
           renderDeferredTableButton(name);
           return;

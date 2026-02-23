@@ -164,12 +164,8 @@ export default class TaskDBAws {
         PRIMARY KEY (session_id, key)
       );`);
 
-      await client.query(`CREATE TABLE IF NOT EXISTS activity_timeline (
-        id SERIAL PRIMARY KEY,
-        timestamp TEXT NOT NULL,
-        action TEXT NOT NULL,
-        details TEXT
-      );`);
+      // Migration: remove deprecated activity_timeline table.
+      await client.query('DROP TABLE IF EXISTS activity_timeline;');
 
       await client.query(`CREATE TABLE IF NOT EXISTS chat_tabs (
         id SERIAL PRIMARY KEY,
@@ -931,49 +927,24 @@ export default class TaskDBAws {
   }
 
   logActivity(action, details) {
-    void this.logActivityAsync(action, details).catch((err) => {
-      console.warn('[TaskDBAws] Failed to log activity:', err);
-    });
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
   }
 
   async logActivityAsync(action, details) {
-    await this._initPromise;
-    const timestamp = new Date().toISOString();
-    await this.pool.query(
-      'INSERT INTO activity_timeline (timestamp, action, details) VALUES ($1, $2, $3)',
-      [timestamp, action, details ?? '']
-    );
-    const cached = this.activityCache;
-    if (cached?.length) {
-      cached.unshift({
-        id: null,
-        timestamp,
-        action,
-        details: details ?? ''
-      });
-    }
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
+    return;
   }
 
   getActivity() {
-    if (this.activityCache.length) {
-      return this.activityCache;
-    }
-    void this.getActivityAsync()
-        .then((rows) => {
-          this.activityCache = rows;
-        })
-        .catch((err) => {
-          console.warn('[TaskDBAws] Failed to load activity timeline:', err);
-        });
     return [];
   }
 
   async getActivityAsync() {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      'SELECT * FROM activity_timeline ORDER BY id DESC'
-    );
-    return rows;
+    return [];
   }
 
   ensureImageSession(sessionId) {
