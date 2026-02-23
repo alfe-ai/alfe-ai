@@ -11,7 +11,8 @@ SCREEN_NAME="alfeDEV"
 
 clear
 git stash || true
-git pull
+git fetch
+git checkout 'origin/INTERNAL'
 
 git --no-pager log -n 3
 bash -c "npm install"
