@@ -333,6 +333,116 @@
         color: #38bdf8;
       }
     }
+    .writable-indicator {
+      display: inline-block;
+      margin-left: 1rem;
+      font-size: 0.8rem;
+      color: #dc2626;
+      font-weight: 600;
+      background: #fee2e2;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .writable-indicator {
+        background: #450a0a;
+        color: #fca5a5;
+      }
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal {
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 90%;
+    }
+    @media (prefers-color-scheme: dark) {
+      .modal {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+      }
+    }
+    .modal h3 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+    }
+    .modal label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    @media (prefers-color-scheme: dark) {
+      .modal label {
+        color: #94a3b8;
+      }
+    }
+    .modal input[type="password"] {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    @media (prefers-color-scheme: dark) {
+      .modal input[type="password"] {
+        background: #111827;
+        color: #e2e8f0;
+        border-color: #334155;
+      }
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+    .modal-actions button {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .modal-actions button.primary {
+      background: #dc2626;
+      color: #fff;
+      border: none;
+    }
+    .modal-actions button.primary:hover {
+      background: #b91c1c;
+    }
+    .modal-actions button.secondary {
+      background: #f1f5f9;
+      color: #0f172a;
+      border: none;
+    }
+    @media (prefers-color-scheme: dark) {
+      .modal-actions button.secondary {
+        background: #1e293b;
+        color: #e2e8f0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -348,10 +458,14 @@
     </aside>
     <main>
       <div class="query-editor">
-        <label for="queryInput">Manual query (read-only)</label>
-        <textarea id="queryInput" placeholder="SELECT * FROM your_table LIMIT 200;"></textarea>
+        <label for="queryInput">Manual query</label>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <textarea id="queryInput" placeholder="SELECT * FROM your_table LIMIT 200;"></textarea>
+          <span id="writableIndicator" class="writable-indicator" style="display: none;">Writable</span>
+        </div>
         <div class="query-actions">
           <button type="button" id="runQueryBtn">Run query</button>
+          <button type="button" id="toggleWritableBtn" class="secondary">Enable Writable Queries</button>
           <button type="button" class="secondary" id="clearQueryBtn">Clear</button>
         </div>
       </div>
@@ -372,6 +486,19 @@
     </div>
   </footer>
 
+  <!-- Modal for admin token -->
+  <div class="modal-overlay" id="tokenModalOverlay">
+    <div class="modal" id="tokenModal">
+      <h3>Enable Writable Queries</h3>
+      <label for="adminTokenInput">Admin Token</label>
+      <input type="password" id="adminTokenInput" placeholder="Enter admin token" />
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancelTokenBtn">Cancel</button>
+        <button type="button" class="primary" id="submitTokenBtn">Enable</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const tableList = document.getElementById("tableList");
     const tableStatus = document.getElementById("tableStatus");
@@ -383,6 +510,16 @@
     const queryInput = document.getElementById("queryInput");
     const runQueryBtn = document.getElementById("runQueryBtn");
     const clearQueryBtn = document.getElementById("clearQueryBtn");
+    const toggleWritableBtn = document.getElementById("toggleWritableBtn");
+    const writableIndicator = document.getElementById("writableIndicator");
+    const tokenModalOverlay = document.getElementById("tokenModalOverlay");
+    const tokenModal = document.getElementById("tokenModal");
+    const adminTokenInput = document.getElementById("adminTokenInput");
+    const cancelTokenBtn = document.getElementById("cancelTokenBtn");
+    const submitTokenBtn = document.getElementById("submitTokenBtn");
+
+    let writableMode = false;
+    let writableToken = null;
 
     function setActiveButton(name) {
       document.querySelectorAll(".table-list button").forEach((btn) => {
@@ -523,18 +660,30 @@
       rowMeta.textContent = "";
       tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
       try {
-        const res = await fetch("/api/db/query", {
+        const endpoint = writableMode ? "/api/db/query/write" : "/api/db/query";
+        const payload = writableMode
+          ? { query, token: writableToken }
+          : { query };
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query })
+          body: JSON.stringify(payload)
         });
-        const payload = await res.json();
+        const result = await res.json();
         if (!res.ok) {
-          throw new Error(payload.error || "Query failed");
+          if (writableMode && res.status === 403 && result.error?.includes("token")) {
+            writableMode = false;
+            writableToken = null;
+            writableIndicator.style.display = "none";
+            toggleWritableBtn.disabled = false;
+            toggleWritableBtn.textContent = "Enable Writable Queries";
+            throw new Error("Invalid admin token. Writable mode disabled.");
+          }
+          throw new Error(result.error || "Query failed");
         }
-        const columns = payload.columns || [];
-        const rows = payload.rows || [];
-        const totalRows = typeof payload.totalRows === "number" ? payload.totalRows : rows.length;
+        const columns = result.columns || [];
+        const rows = result.rows || [];
+        const totalRows = typeof result.totalRows === "number" ? result.totalRows : rows.length;
         dataStatus.textContent = "";
         rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}${totalRows > rows.length ? ` (showing first ${rows.length} of ${totalRows})` : ""}`;
         renderTable(columns, rows, "");
@@ -602,6 +751,71 @@
     clearQueryBtn.addEventListener("click", () => {
       queryInput.value = "";
       queryInput.focus();
+    });
+
+    // Writable mode toggle
+    toggleWritableBtn.addEventListener("click", () => {
+      if (writableMode) {
+        // Disable writable mode
+        writableMode = false;
+        writableToken = null;
+        writableIndicator.style.display = "none";
+        toggleWritableBtn.textContent = "Enable Writable Queries";
+      } else {
+        // Show modal to enter token
+        tokenModalOverlay.classList.add("active");
+        adminTokenInput.value = "";
+        adminTokenInput.focus();
+      }
+    });
+
+    // Modal close handlers
+    const closeTokenModal = () => {
+      tokenModalOverlay.classList.remove("active");
+    };
+    cancelTokenBtn.addEventListener("click", closeTokenModal);
+    tokenModalOverlay.addEventListener("click", (e) => {
+      if (e.target === tokenModalOverlay) closeTokenModal();
+    });
+
+    // Submit token
+    submitTokenBtn.addEventListener("click", async () => {
+      const token = adminTokenInput.value.trim();
+      if (!token) {
+        alert("Please enter the admin token.");
+        return;
+      }
+
+      toggleWritableBtn.disabled = true;
+      toggleWritableBtn.textContent = "Verifying token...";
+
+      try {
+        const res = await fetch("/api/db/query/write", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: "SELECT 1 as test", token })
+        });
+        const result = await res.json();
+
+        if (res.ok) {
+          writableMode = true;
+          writableToken = token;
+          writableIndicator.style.display = "inline-block";
+          toggleWritableBtn.textContent = "Disable Writable Queries";
+          toggleWritableBtn.classList.remove("secondary");
+          toggleWritableBtn.classList.add("view-table-btn");
+          closeTokenModal();
+          dataStatus.textContent = "Writable queries enabled!";
+        } else {
+          toggleWritableBtn.disabled = false;
+          toggleWritableBtn.textContent = "Enable Writable Queries";
+          alert(result.error || "Invalid token. Please try again.");
+        }
+      } catch (err) {
+        toggleWritableBtn.disabled = false;
+        toggleWritableBtn.textContent = "Enable Writable Queries";
+        alert("Error verifying token: " + err.message);
+      }
     });
 
     loadTables();

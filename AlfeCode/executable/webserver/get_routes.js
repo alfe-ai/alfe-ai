@@ -6625,6 +6625,8 @@ res.render("editor", {
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         const comparisonFinalOutputParam = typeof req.query.finalOutput === "string" ? req.query.finalOutput : "";
+        const runIdQuery = (req.query.run_id || "").toString().trim();
+        const rowIndexQuery = (req.query.rowIndex || req.query.row_index || "").toString().trim();
         const comparisonFinalOutputFromQuery = comparisonFinalOutputParam
             ? normalizeFinalOutputForDiff(comparisonFinalOutputParam)
             : "";
@@ -6862,6 +6864,14 @@ ${err}`;
             }
             const comparisonFinalOutput = comparisonFinalOutputFromQuery
                 || normalizeFinalOutputForDiff(
+                    await extractFinalOutputForRunReference(
+                        sessionId,
+                        resolvedProjectDir,
+                        runIdQuery,
+                        rowIndexQuery
+                    )
+                )
+                || normalizeFinalOutputForDiff(
                     await extractFinalOutputForCommit(
                         sessionId,
                         resolvedProjectDir,
@@ -6945,6 +6955,61 @@ ${err}`;
         }
     };
 
+    const extractFinalOutputForRunReference = async (sessionId, projectDir, runId, rowIndex) => {
+        if (!sessionId) {
+            return "";
+        }
+
+        try {
+            const runs = typeof loadCodexRuns === "function" ? loadCodexRuns(sessionId) : [];
+            if (!Array.isArray(runs) || !runs.length) {
+                return "";
+            }
+
+            const normalisedRunId = typeof runId === "string" ? runId.trim() : "";
+            if (normalisedRunId) {
+                const matchedById = runs.find((run) => run && String(run.id || "").trim() === normalisedRunId);
+                if (matchedById) {
+                    return await resolveFinalOutputTextForCommit(matchedById);
+                }
+            }
+
+            const numericRowIndex = Number.isFinite(Number(rowIndex)) ? Number(rowIndex) : null;
+            if (numericRowIndex === null || numericRowIndex < 0) {
+                return "";
+            }
+
+            const resolvedProjectDir = projectDir ? path.resolve(projectDir) : "";
+            const projectRuns = runs.filter((run) => {
+                if (!run || typeof run !== "object") {
+                    return false;
+                }
+                if (!resolvedProjectDir) {
+                    return true;
+                }
+                const runProjectDir = run.projectDir || run.requestedProjectDir || run.effectiveProjectDir || "";
+                if (!runProjectDir) {
+                    return false;
+                }
+                try {
+                    return path.resolve(runProjectDir) === resolvedProjectDir;
+                } catch (_err) {
+                    return false;
+                }
+            });
+
+            const matchedByRowIndex = projectRuns[numericRowIndex] || runs[numericRowIndex];
+            if (!matchedByRowIndex) {
+                return "";
+            }
+
+            return await resolveFinalOutputTextForCommit(matchedByRowIndex);
+        } catch (err) {
+            console.error("Failed to extract final output for run reference:", err);
+            return "";
+        }
+    };
+
     app.get("/agent/git-diff", async (req, res) => {
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
@@ -6953,6 +7018,8 @@ ${err}`;
         const mergeReady = isTruthyFlag(req.query.mergeReady);
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
+        const runIdQuery = (req.query.run_id || "").toString().trim();
+        const rowIndexQuery = (req.query.rowIndex || req.query.row_index || "").toString().trim();
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
 
         let errorMessage = "";
@@ -7107,8 +7174,14 @@ ${err}`;
         const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         let comparisonFinalOutput = "";
         if (!errorMessage) {
+            const fromRunReference = await extractFinalOutputForRunReference(
+                sessionId,
+                resolvedProjectDir,
+                runIdQuery,
+                rowIndexQuery
+            );
             comparisonFinalOutput = normalizeFinalOutputForDiff(
-                await extractFinalOutputForCommit(
+                fromRunReference || await extractFinalOutputForCommit(
                     sessionId,
                     resolvedProjectDir,
                     compMeta.hash || compRev
