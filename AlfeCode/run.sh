@@ -10,6 +10,7 @@ fi
 SCREEN_NAME="alfeDEV"
 
 clear
+git stash || true
 git fetch
 git checkout 'origin/INTERNAL'
 
