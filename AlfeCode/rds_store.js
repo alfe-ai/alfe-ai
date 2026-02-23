@@ -120,6 +120,7 @@ class RdsStore {
         payload_json TEXT NOT NULL,
         account_id INTEGER,
         branch TEXT DEFAULT '',
+        model TEXT DEFAULT '',
         PRIMARY KEY (session_id, run_id)
       );`);
       await this.pool.query(
@@ -153,6 +154,10 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS branch TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS model TEXT DEFAULT ''`
       );
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
@@ -392,10 +397,13 @@ class RdsStore {
         // Extract branch from run
         const branch = ((run.branchName || run.gitBranch || run.branch || '') ?? '').toString().trim();
 
+        // Extract model from run
+        const model = (run.model || run.modelId || '').toString().trim();
+
         await client.query(
           `INSERT INTO ${ALFECODE_RUNS_TABLE}
-           (session_id, run_id, numeric_id, status, final_output_message, created_at, updated_at, payload_json, account_id, branch)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+           (session_id, run_id, numeric_id, status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [
             sessionId,
             runId,
@@ -407,6 +415,7 @@ class RdsStore {
             JSON.stringify(run),
             accountId,
             branch,
+            model,
           ]
         );
       }
