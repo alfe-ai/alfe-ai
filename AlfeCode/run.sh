@@ -56,6 +56,13 @@ if [ -x "$GITHOST_SCRIPT" ]; then
     sudo "$GITHOST_SCRIPT" start-daemon || echo "git-server start-daemon failed or requires sudo"
 fi
 
+# Check if snake game is requested
+if [[ "$*" == *"snake"* ]]; then
+    echo "Starting Snake Game..."
+    node snake.js
+    exit 0
+fi
+
 while true; do
     echo "Starting webserver..."
     node executable/server_webserver.js
