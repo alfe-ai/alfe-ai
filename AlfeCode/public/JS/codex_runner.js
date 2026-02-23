@@ -9663,7 +9663,22 @@ const appendMergeChunk = (text, type = "output") => {
         lbl.style.display = "block";
       }
     }
+    // Show account disabled message when account is disabled
+    if (data?.error === "account disabled") {
+      const accountDisabledMessage = document.getElementById("accountDisabledMessage");
+      if (accountDisabledMessage) {
+        accountDisabledMessage.style.display = "block";
+      }
+    }
     showToast(data?.error || "Login failed");
+    
+    // Hide account disabled message when login is re-attempted
+    if (data?.error !== "account disabled") {
+      const accountDisabledMessage = document.getElementById("accountDisabledMessage");
+      if (accountDisabledMessage) {
+        accountDisabledMessage.style.display = "none";
+      }
+    }
   };
 
   const attemptLogin = async ({ email, password, token }) => {
