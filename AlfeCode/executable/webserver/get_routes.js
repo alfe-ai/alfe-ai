@@ -545,6 +545,7 @@ function setupGetRoutes(deps) {
             id: account.id,
             email: account.email,
             plan: account.plan,
+            disabled: Boolean(account.disabled),
             timezone: account.timezone,
             sessionId: account.session_id,
             totpEnabled: Boolean(account.totp_secret),
