@@ -365,6 +365,34 @@ export default class TaskDBAws {
     }
   }
 
+  async runWriteQuery(sqlText) {
+    await this._initPromise;
+    const sql = typeof sqlText === 'string' ? sqlText.trim() : '';
+    if (!sql) {
+      throw new Error('Query is required.');
+    }
+    const lowered = sql.toLowerCase();
+    const allowedStarts = ['insert', 'update', 'delete', 'create', 'drop', 'alter', 'begin', 'commit', 'rollback'];
+    if (!allowedStarts.some(start => lowered.startsWith(start))) {
+      throw new Error('Only writable queries (INSERT, UPDATE, DELETE, etc.) are allowed.');
+    }
+
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(sql);
+      const columns = (result.fields || []).map((field) => field.name);
+      const rows = result.rows || [];
+      return {
+        columns,
+        rows: rows,
+        rowCount: result.rowCount || (rows.length > 0 ? rows.length : result.command === 'UPDATE' ? result.rowCount : 0),
+        totalRows: rows.length
+      };
+    } finally {
+      client.release();
+    }
+  }
+
   async upsertIssue(issue, repositorySlug) {
     void issue;
     void repositorySlug;
