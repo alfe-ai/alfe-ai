@@ -3523,6 +3523,7 @@ ${cleanedFinalOutput}`;
             enginePreference,
             qwenDebugEnvEnabled,
             followupParentId: followupParentIdRaw,
+            status: 'pending',
             statusHistory: [],
             metaMessages: [],
             stdout: "",

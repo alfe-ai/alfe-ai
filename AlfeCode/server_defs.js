@@ -747,6 +747,16 @@ function upsertCodexRun(sessionId, runRecord, maxEntries = 200) {
         if (Number.isFinite(existing.numericId) && !Number.isFinite(merged.numericId)) {
             merged.numericId = existing.numericId;
         }
+        // If statusHistory is provided, update status from the latest entry
+        if (runRecord.statusHistory && Array.isArray(runRecord.statusHistory)) {
+            const statusHistory = merged.statusHistory || [];
+            if (statusHistory.length > 0) {
+                merged.status = String(statusHistory[statusHistory.length - 1] || '').trim() || 'active';
+            }
+        } else if (runRecord.status && typeof runRecord.status === 'string') {
+            // If status itself is provided, use it
+            merged.status = runRecord.status;
+        }
         assignNumericId(nextRuns, merged);
         // Merge updates in place and preserve ordering by start time.
         nextRuns[existingIndex] = merged;
