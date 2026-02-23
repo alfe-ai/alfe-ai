@@ -1539,7 +1539,10 @@
   let runsSidebarFilter = "";
   let runsSidebarIsLoading = false;
   let runsSidebarRefreshIntervalId = null;
+  let accountStatusHeartbeatIntervalId = null;
+  let disabledAccountLogoutInFlight = false;
   const RUNS_SIDEBAR_REFRESH_INTERVAL_MS = 2000;
+  const ACCOUNT_STATUS_HEARTBEAT_MS = 2000;
   const RUNS_SIDEBAR_PAGE_SIZE = 20;
   let runsSidebarCurrentPage = 1;
   let runsSidebarTotalPages = 1;
@@ -6664,9 +6667,14 @@ const appendMergeChunk = (text, type = "output") => {
           force: true,
           skipIfLoading: true,
         });
-        fetchAccountInfo({ reloadOnPlanChange: true });
       }, RUNS_SIDEBAR_REFRESH_INTERVAL_MS);
     }
+  }
+
+  if (!accountStatusHeartbeatIntervalId) {
+    accountStatusHeartbeatIntervalId = window.setInterval(() => {
+      fetchAccountInfo({ reloadOnPlanChange: true });
+    }, ACCOUNT_STATUS_HEARTBEAT_MS);
   }
 
   if (fullOutputTabButton) {
@@ -9548,6 +9556,9 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
+    if (disabledAccountLogoutInFlight) {
+      return;
+    }
     const previousPlan = normalizeAccountPlan(accountInfo?.plan);
     try {
       const params = currentSessionId
@@ -9555,6 +9566,14 @@ const appendMergeChunk = (text, type = "output") => {
         : "";
       const resp = await fetch(`/api/account${params}`, { cache: "no-store" });
       const data = await resp.json().catch(() => null);
+      if (resp.ok && data?.disabled) {
+        disabledAccountLogoutInFlight = true;
+        const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
+        logoutUrl.searchParams.set("returnTo", "/agent");
+        logoutUrl.searchParams.set("reason", "disabled-account");
+        window.location.assign(logoutUrl.toString());
+        return;
+      }
       if (resp.ok && data?.email) {
         const nextPlan = normalizeAccountPlan(data.plan);
         if (reloadOnPlanChange && previousPlan && nextPlan && previousPlan !== nextPlan) {
