@@ -475,20 +475,6 @@
       tableWrap.appendChild(table);
     }
 
-    function renderDeferredTableButton(name) {
-      tableWrap.innerHTML = "";
-      const container = document.createElement("div");
-      container.className = "deferred-table-wrap";
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "view-table-btn";
-      button.textContent = "View Table";
-      button.addEventListener("click", () => loadTableData(name, true));
-      container.appendChild(button);
-      tableWrap.appendChild(container);
-    }
-
-
     async function runManualQuery() {
       const query = queryInput.value.trim();
       if (!query) {
@@ -550,17 +536,11 @@
       }
     }
 
-    async function loadTableData(name, forceLoad = false) {
+    async function loadTableData(name) {
       try {
         setActiveButton(name);
         activeTable.textContent = `Table: ${name}`;
         rowMeta.textContent = "";
-
-        if (name === "chat_pairs" && !forceLoad) {
-          dataStatus.textContent = "";
-          renderDeferredTableButton(name);
-          return;
-        }
 
         dataStatus.textContent = "Loading data…";
         tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
