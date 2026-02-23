@@ -2837,6 +2837,14 @@ ${cleanedFinalOutput}`;
             fileTreeButtonVisible,
             backlogButtonVisible,
             subscriptionCheckoutUrl,
+            initialAccountInfo: account
+                ? {
+                    email: account.email,
+                    plan: account.plan,
+                    sessionId: account.session_id,
+                    timezone: account.timezone,
+                }
+                : null,
             shopifyAuthEnabled: true,
             shopifyAuthStartUrl: "/auth/shopify/start",
         });

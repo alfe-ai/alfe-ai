@@ -8835,7 +8835,9 @@ const appendMergeChunk = (text, type = "output") => {
   const AUTH_MODAL_READY_KEY = "__alfeAuthModalReady";
   let authEmailValue = "";
   let authModalStep = "email";
-  let accountInfo = null;
+  let accountInfo = config.initialAccountInfo && config.initialAccountInfo.email
+    ? config.initialAccountInfo
+    : null;
 
   const closeRepoAddModal = () => {
     const repoAddModal = document.getElementById("repoAddModal");
@@ -9794,5 +9796,10 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  if (accountInfo) {
+    setAccountInfo(accountInfo);
+  } else {
+    updateAccountButton(null);
+  }
   fetchAccountInfo();
 })();
