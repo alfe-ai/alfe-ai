@@ -407,6 +407,14 @@
         return true;
       }
 
+      if (tableName === "support_request_replies" && columnName === "message") {
+        return true;
+      }
+
+      if (tableName === "support_requests" && (columnName === "message" || columnName === "email")) {
+        return true;
+      }
+
       return tableName === "chat_pairs" && (columnName === "user_text" || columnName === "ai_text");
     }
 
@@ -425,6 +433,18 @@
 
       if (tableName === "chat_tabs" && columnName === "name") {
         return "View Name";
+      }
+
+      if (tableName === "support_request_replies" && columnName === "message") {
+        return "View Message";
+      }
+
+      if (tableName === "support_requests" && columnName === "message") {
+        return "View Message";
+      }
+
+      if (tableName === "support_requests" && columnName === "email") {
+        return "View Email";
       }
 
       if (tableName === "chat_pairs" && columnName === "user_text") {
