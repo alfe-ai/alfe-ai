@@ -118,11 +118,16 @@ class RdsStore {
         created_at TEXT DEFAULT '',
         updated_at TEXT DEFAULT '',
         payload_json TEXT NOT NULL,
+        model TEXT DEFAULT '',
         PRIMARY KEY (session_id, run_id)
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
          ON ${ALFECODE_RUNS_TABLE} (session_id, updated_at DESC)`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS model TEXT DEFAULT ''`
       );
       await this.pool.query(
         `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
@@ -376,10 +381,11 @@ class RdsStore {
           ? run.updatedAt
           : (typeof run.endedAt === "string" ? run.endedAt : (typeof run.createdAt === "string" ? run.createdAt : new Date().toISOString()));
 
+        const model = typeof run.model === "string" ? run.model : "";
         await client.query(
           `INSERT INTO ${ALFECODE_RUNS_TABLE}
-           (session_id, run_id, numeric_id, status, final_output_message, created_at, updated_at, payload_json)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           (session_id, run_id, numeric_id, status, final_output_message, created_at, updated_at, payload_json, model)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             sessionId,
             runId,
@@ -389,6 +395,7 @@ class RdsStore {
             createdAt,
             updatedAt,
             JSON.stringify(run),
+            model,
           ]
         );
       }
