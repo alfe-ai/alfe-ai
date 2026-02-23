@@ -521,6 +521,29 @@
     let writableMode = false;
     let writableToken = null;
 
+    // URL hash-based table selection
+    function getTableFromHash() {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/db/')) {
+        const tableName = decodeURIComponent(hash.substring(5));
+        return tableName || null;
+      }
+      return null;
+    }
+
+    function updateHashForTable(tableName) {
+      if (tableName) {
+        const newHash = '#/db/' + encodeURIComponent(tableName);
+        if (window.location.hash !== newHash) {
+          window.location.hash = newHash;
+        }
+      } else {
+        if (window.location.hash && window.location.hash.startsWith('#/db/')) {
+          window.location.hash = '';
+        }
+      }
+    }
+
     function setActiveButton(name) {
       document.querySelectorAll(".table-list button").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.table === name);
@@ -713,7 +736,13 @@
           tableList.appendChild(li);
         });
         if (tables.length) {
-          loadTableData(tables[0]);
+          // Check for table name in URL hash on initial load
+          const tableFromHash = getTableFromHash();
+          if (tableFromHash) {
+            loadTableData(tableFromHash);
+          } else {
+            loadTableData(tables[0]);
+          }
         }
       } catch (err) {
         tableStatus.textContent = "Unable to load tables.";
@@ -729,6 +758,9 @@
 
         dataStatus.textContent = "Loading data…";
         tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
+
+        // Update URL hash to reflect current table selection
+        updateHashForTable(name);
 
         const res = await fetch(`/api/db/table/${encodeURIComponent(name)}`);
         if (!res.ok) {
@@ -751,6 +783,14 @@
     clearQueryBtn.addEventListener("click", () => {
       queryInput.value = "";
       queryInput.focus();
+    });
+
+    // Handle hash changes for browser navigation
+    window.addEventListener('hashchange', () => {
+      const tableFromHash = getTableFromHash();
+      if (tableFromHash) {
+        loadTableData(tableFromHash);
+      }
     });
 
     // Writable mode toggle
