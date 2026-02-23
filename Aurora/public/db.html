@@ -395,6 +395,10 @@
         return false;
       }
 
+      if (tableName === "alfecode_runs" && (columnName === "final_output_message" || columnName === "payload_json")) {
+        return true;
+      }
+
       if (tableName === "accounts" && columnName === "email") {
         return true;
       }
@@ -407,6 +411,14 @@
     }
 
     function getRevealButtonLabel(tableName, columnName) {
+      if (tableName === "alfecode_runs" && columnName === "final_output_message") {
+        return "View Final Output";
+      }
+
+      if (tableName === "alfecode_runs" && columnName === "payload_json") {
+        return "View Payload JSON";
+      }
+
       if (tableName === "accounts" && columnName === "email") {
         return "View Email";
       }

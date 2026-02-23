@@ -166,7 +166,6 @@ class RdsStore {
         email TEXT DEFAULT '',
         category TEXT NOT NULL,
         message TEXT NOT NULL,
-        user_agent TEXT DEFAULT '',
         status TEXT NOT NULL DEFAULT '${SUPPORT_REQUEST_DEFAULT_STATUS}'
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SUPPORT_REQUEST_REPLIES_TABLE} (
@@ -567,7 +566,7 @@ class RdsStore {
     }
   }
 
-  async createSupportRequest({ sessionId, accountId, email, category, message, userAgent, status }) {
+  async createSupportRequest({ sessionId, accountId, email, category, message, status }) {
     if (!this.enabled) return null;
     await this.ensureReady();
     const normalizedCategory = (category || "").toString().trim();
@@ -577,8 +576,8 @@ class RdsStore {
     try {
       const result = await this.pool.query(
         `INSERT INTO ${SUPPORT_REQUESTS_TABLE}
-         (created_at, session_id, account_id, email, category, message, user_agent, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         (created_at, session_id, account_id, email, category, message, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id, created_at, status`,
         [
           new Date().toISOString(),
@@ -587,7 +586,6 @@ class RdsStore {
           (email || "").toString().trim().toLowerCase(),
           normalizedCategory,
           normalizedMessage,
-          (userAgent || "").toString().trim(),
           normalizedStatus,
         ]
       );
