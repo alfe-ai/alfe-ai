@@ -730,12 +730,11 @@
                 row.appendChild(statusCell);
 
                 const latestStatus = latestStatusText;
+                const scriptStatus = run.scriptStatus || latestStatus;
                 if (isRunning) {
-                    // For running runs, use status if available, otherwise fall back to latest status or default message
-                    messageCell.textContent = run.error || run.status || latestStatus || 'Agent running…';
+                    messageCell.textContent = run.error || scriptStatus || run.status || 'Agent running…';
                 } else {
-                    // For finished runs, prioritize finalMessage, then error, then status, then latest status
-                    messageCell.textContent = run.finalMessage || run.error || run.status || latestStatus || '—';
+                    messageCell.textContent = run.finalMessage || run.error || scriptStatus || run.status || '—';
                 }
                 row.appendChild(messageCell);
                 const promptCell = document.createElement('td');
