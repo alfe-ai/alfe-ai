@@ -1799,4 +1799,27 @@ export default class TaskDB {
       totalRows: rows.length
     };
   }
+
+  runWriteQuery(sqlText) {
+    const sql = typeof sqlText === "string" ? sqlText.trim() : "";
+    if (!sql) {
+      throw new Error("Query is required.");
+    }
+    const lowered = sql.toLowerCase();
+    const allowedStarts = ["insert", "update", "delete", "create", "drop", "alter", "begin", "commit", "rollback"];
+    if (!allowedStarts.some(start => lowered.startsWith(start))) {
+      throw new Error("Only writable queries (INSERT, UPDATE, DELETE, etc.) are allowed.");
+    }
+
+    const statement = this.db.prepare(sql);
+    const result = statement.run();
+    const columns = statement.columns().map((col) => col.name);
+
+    return {
+      columns,
+      rows: [],
+      rowCount: result.changes,
+      totalRows: 0
+    };
+  }
 }

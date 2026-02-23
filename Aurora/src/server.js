@@ -1497,6 +1497,45 @@ app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
   })();
 });
 
+app.post("/api/db/query/write", express.json({ limit: "200kb" }), (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] POST /api/db/query/write blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const dbAdminWriteToken = process.env.DB_ADMIN_WRITE_TOKEN;
+  const providedToken = req.body?.token;
+
+  if (!dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write: DB_ADMIN_WRITE_TOKEN not configured");
+    return res.status(500).json({ error: "Server not configured for writable queries" });
+  }
+
+  if (!providedToken || providedToken !== dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write: Invalid or missing token");
+    return res.status(403).json({ error: "Invalid or missing admin token" });
+  }
+
+  console.debug("[Server Debug] POST /api/db/query/write called with valid token.");
+  (async () => {
+    try {
+      if (typeof db.runWriteQuery !== "function") {
+        return res.status(501).json({ error: "Database write query execution not supported." });
+      }
+      const sql = typeof req.body?.query === "string" ? req.body.query : "";
+      if (!sql) {
+        return res.status(400).json({ error: "Query is required." });
+      }
+      const data = await Promise.resolve(db.runWriteQuery(sql));
+      res.json(data);
+    } catch (err) {
+      console.error("[Server Debug] POST /api/db/query/write error:", err);
+      const message = err?.message || "Internal server error";
+      res.status(400).json({ error: message });
+    }
+  })();
+});
+
 app.get("/api/db/info", (req, res) => {
   if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
     console.warn("[Server Debug] GET /api/db/info blocked by CONFIG_IP_WHITELIST");
