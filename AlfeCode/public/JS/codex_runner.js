@@ -9544,31 +9544,41 @@ const appendMergeChunk = (text, type = "output") => {
       return;
     }
     const previousPlan = normalizeAccountPlan(accountInfo?.plan);
+    const accountEndpoints = currentSessionId
+      ? [
+        `/api/account?sessionId=${encodeURIComponent(currentSessionId)}`,
+        "/api/account"
+      ]
+      : ["/api/account"];
     try {
-      const params = currentSessionId
-        ? `?sessionId=${encodeURIComponent(currentSessionId)}`
-        : "";
-      const resp = await fetch(`/api/account${params}`, { cache: "no-store" });
-      const data = await resp.json().catch(() => null);
-      if (resp.ok && data?.disabled) {
-        disabledAccountLogoutInFlight = true;
-        const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
-        logoutUrl.searchParams.set("returnTo", "/agent");
-        logoutUrl.searchParams.set("reason", "disabled-account");
-        window.location.assign(logoutUrl.toString());
-        return;
+      let accountData = null;
+      for (const endpoint of accountEndpoints) {
+        const resp = await fetch(endpoint, { cache: "no-store" });
+        const data = await resp.json().catch(() => null);
+        if (resp.ok && data?.disabled) {
+          disabledAccountLogoutInFlight = true;
+          const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
+          logoutUrl.searchParams.set("returnTo", "/agent");
+          logoutUrl.searchParams.set("reason", "disabled-account");
+          window.location.assign(logoutUrl.toString());
+          return;
+        }
+        if (resp.ok && data?.email) {
+          accountData = data;
+          break;
+        }
       }
-      if (resp.ok && data?.email) {
-        const nextPlan = normalizeAccountPlan(data.plan);
+      if (accountData?.email) {
+        const nextPlan = normalizeAccountPlan(accountData.plan);
         if (reloadOnPlanChange && previousPlan && nextPlan && previousPlan !== nextPlan) {
           window.location.reload();
           return;
         }
         setAccountInfo({
-          email: data.email,
-          plan: data.plan,
-          sessionId: data.sessionId,
-          timezone: data.timezone
+          email: accountData.email,
+          plan: accountData.plan,
+          sessionId: accountData.sessionId,
+          timezone: accountData.timezone
         });
       } else {
         setAccountInfo(null);
