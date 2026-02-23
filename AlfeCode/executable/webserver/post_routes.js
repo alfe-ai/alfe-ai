@@ -906,12 +906,16 @@ function setupPostRoutes(deps) {
             MAX_STATUS_HISTORY,
         );
 
+        // Determine the current status based on the merge result
+        const mergeStatus = exitCode === 0 ? 'Merged' : 'Merge Failed';
+
         const updatePayload = {
             id: normalisedRunId,
             gitMergeExitCode: exitCode,
             gitMergeExit: exitCode,
             git_merge_parent_exit_code: exitCode,
             statusHistory: nextStatusHistory,
+            status: mergeStatus,  // Set the logical status for the run
         };
 
         if (stdout) {

@@ -1321,6 +1321,59 @@ function setupGetRoutes(deps) {
         return resolvedResult;
     };
 
+    // Determine the current status of the run based on exit codes and final message.
+    // This function returns the logical status (e.g., 'Running', 'Complete', 'Merged', 'Failed').
+    const resolveRunStatus = (record) => {
+        if (!record || typeof record !== "object") {
+            return 'Unknown';
+        }
+
+        // If the run hasn't finished yet
+        if (!record.finishedAt) {
+            // Check if the run has started (has output or is in running state)
+            const hasOutput = (record.stdout && record.stdout.length > 0) || (record.stderr && record.stderr.length > 0);
+            if (hasOutput) {
+                return 'Running';
+            }
+            // If no output yet, keep the existing status (e.g., 'pending')
+            if (record.status) {
+                return record.status;
+            }
+            return 'Running';
+        }
+
+        // Check for agent failure first
+        if (typeof record.exitCode === 'number' && record.exitCode !== 0) {
+            return 'Failed';
+        }
+
+        // Check for merge failure
+        const gitMergeExitCode = typeof record.git_merge_parent_exit_code === 'number'
+            ? record.git_merge_parent_exit_code
+            : record.gitMergeExitCode;
+        if (typeof gitMergeExitCode === 'number' && gitMergeExitCode !== 0) {
+            return 'Merge Failed';
+        }
+
+        // Check for git_fpush failure
+        if (typeof record.gitFpushExitCode === 'number' && record.gitFpushExitCode !== 0) {
+            return 'Git Push Failed';
+        }
+
+        // If the run finished with an error
+        if (record.error && typeof record.error === 'string' && record.error.trim()) {
+            return 'Failed';
+        }
+
+        // If we reached here, the run completed successfully
+        // If there was a merge, it succeeded, so status is 'Merged'
+        // If no merge was needed, status is 'Complete'
+        if (typeof gitMergeExitCode === 'number' && gitMergeExitCode === 0) {
+            return 'Merged';
+        }
+        return 'Complete';
+    };
+
     const resolveQwenCliFinalOutput = (record) => {
         if (!record || typeof record !== "object") {
             return "";
@@ -3618,6 +3671,9 @@ ${cleanedFinalOutput}`;
                     updateRunBranchFromDir(branchTargetDir, { force: true, skipPersist: true });
                 }
             }
+
+            // Update the run status based on the current state before persisting
+            runRecord.status = resolveRunStatus(runRecord);
 
             const now = Date.now();
             if (!force && runPersisted && now - lastRunRecordPersistTs < RUN_RECORD_PERSIST_INTERVAL_MS) {
