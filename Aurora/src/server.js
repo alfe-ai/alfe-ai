@@ -2585,9 +2585,6 @@ app.post("/api/chat", async (req, res) => {
     const userMessage = req.body.message || "";
     const chatTabId = req.body.tabId || 1;
     const sessionId = req.body.sessionId || "";
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
-        .split(",")[0]
-        .trim();
     const tabInfo = await db.getChatTab(chatTabId, sessionId || null);
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
@@ -2602,16 +2599,6 @@ app.post("/api/chat", async (req, res) => {
             error: "Search limit reached for this session",
             type: "search_session_limit",
             counts: { sessionCount: sessionSearchCount, sessionLimit: FREE_SEARCH_LIMIT }
-          });
-        }
-      }
-      if (ipAddress) {
-        const ipSearchCount = db.countSearchesForIp(ipAddress);
-        if (ipSearchCount >= FREE_SEARCH_LIMIT) {
-          return res.status(429).json({
-            error: "Search limit reached for this IP",
-            type: "search_ip_limit",
-            counts: { ipCount: ipSearchCount, ipLimit: FREE_SEARCH_LIMIT }
           });
         }
       }
@@ -2679,8 +2666,7 @@ app.post("/api/chat", async (req, res) => {
         chatTabId,
         systemContext,
         projectContext,
-        sessionId,
-        ipAddress
+        sessionId
     );
     conversation.push({ role: "user", content: finalUserMessage });
     db.logActivity("User chat", JSON.stringify({ tabId: chatTabId, message: userMessage, userTime }));
@@ -2874,9 +2860,6 @@ app.post("/api/chat/pairs/prefab", async (req, res) => {
     const sessionId = req.body.sessionId || "";
     const text = (req.body.text || "").trim();
     const kind = (req.body.kind || "prefab").toLowerCase();
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
-        .split(",")[0]
-        .trim();
 
     if (!text) {
       return res.status(400).json({ error: "Missing text" });
@@ -2891,7 +2874,7 @@ app.post("/api/chat/pairs/prefab", async (req, res) => {
     }
 
     const { systemContext, projectContext } = await buildContextsForTab(tabInfo);
-    const pairId = await db.createChatPair('', chatTabId, systemContext, projectContext, sessionId, ipAddress);
+    const pairId = await db.createChatPair('', chatTabId, systemContext, projectContext, sessionId);
     const modelLabel = kind === 'greeting' ? 'prefab/greeting' : 'prefab/manual';
     await db.finalizeChatPair(pairId, text, modelLabel, new Date().toISOString());
     db.logActivity("AI chat (prefab)", JSON.stringify({ tabId: chatTabId, response: text, kind }));
@@ -3382,16 +3365,12 @@ app.post("/api/upload", upload.single("myfile"), (req, res) => {
   }
 
   const sessionId = getSessionIdFromRequest(req);
-  const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
-    .split(",")[0]
-    .trim();
-
   if (sessionId) {
     db.ensureImageSession(sessionId);
   }
 
   const url = `/uploads/${req.file.filename}`;
-  db.createImagePair(url, "", 1, "", "Uploaded", sessionId, ipAddress, "", 0, "", "");
+  db.createImagePair(url, "", 1, "", "Uploaded", sessionId, "", 0, "", "");
 
   db.logActivity("File upload", JSON.stringify({ filename: req.file.originalname }));
   res.json({ success: true, file: req.file });
@@ -3445,11 +3424,10 @@ app.get("/api/upload/list", async (req, res) => {
 app.get("/api/image/counts", (req, res) => {
   try {
     const sessionId = req.query.sessionId || "";
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     const sessionCount = sessionId ? db.countImagesForSession(sessionId) : 0;
-    const ipCount = ipAddress ? db.countImagesForIp(ipAddress) : 0;
+    const ipCount = 0;
     const searchSessionCount = sessionId ? db.countSearchesForSession(sessionId) : 0;
-    const searchIpCount = ipAddress ? db.countSearchesForIp(ipAddress) : 0;
+    const searchIpCount = 0;
 
     const sessionLimit = sessionId
       ? db.imageLimitForSession(sessionId, FREE_IMAGE_LIMIT)
@@ -4409,7 +4387,6 @@ app.post("/api/image/generate", async (req, res) => {
   try {
     const { prompt, n, size, model, provider, tabId, sessionId } = req.body || {};
     const finalPrompt = (prompt || "").trim();
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     console.debug(
       "[Server Debug] /api/image/generate =>",
       JSON.stringify({ prompt, n, size, model, provider, tabId, sessionId })
@@ -4458,16 +4435,6 @@ app.post("/api/image/generate", async (req, res) => {
       }
     }
 
-    if (ipAddress) {
-      const ipCount = db.countImagesForIp(ipAddress);
-      if (ipCount >= FREE_IMAGE_LIMIT) {
-        return res.status(429).json({
-          error: 'Image generation limit reached for this IP',
-          type: 'image_ip_limit',
-          counts: { ipCount, ipLimit: FREE_IMAGE_LIMIT }
-        });
-      }
-    }
 
     if (service === "stable-diffusion") {
       const sdBase = process.env.STABLE_DIFFUSION_URL;
@@ -4498,7 +4465,7 @@ app.post("/api/image/generate", async (req, res) => {
       const tab = tabRecord ? tabRecord.id : parseInt(tabId, 10) || 1;
       const imageTitle = await deriveImageTitle(prompt);
       const modelId = model ? `stable-diffusion/${model}` : 'stable-diffusion';
-      db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, ipAddress, modelId, 1);
+      db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, modelId, 1);
       return res.json({ success: true, url: localUrl, title: imageTitle });
     }
 
@@ -4616,7 +4583,7 @@ app.post("/api/image/generate", async (req, res) => {
     const tab = tabRecord ? tabRecord.id : parseInt(tabId, 10) || 1;
     const imageTitle = await deriveImageTitle(prompt, openaiClient);
     const modelId = `openai/${modelName}`;
-    db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, ipAddress, modelId, 1);
+    db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, modelId, 1);
 
     res.json({ success: true, url: localUrl, title: imageTitle });
   } catch (err) {
