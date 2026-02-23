@@ -34,35 +34,50 @@
         footer {
           font-size: 14px;
         }
+        .error-message {
+          background-color: #ffebee;
+          color: #c62828;
+          padding: 15px;
+          border: 1px solid #ffcdd2;
+          border-radius: 4px;
+          margin: 20px 0;
+        }
     </style>
 </head>
 <body>
-<%- include('partials/session_banner') %>
-<h1>Alfe</h1>
-<p><a href="/global_instructions">Global Agent Instructions</a></p>
-<p><a href="/about.html" target="_blank">About</a></p>
-<p><a href="/agent" target="_blank" rel="noopener noreferrer">Run Agent from Sterling</a></p>
-<p><a href="/sterling/storage" target="_blank" rel="noopener noreferrer">Storage</a></p>
-<hr>
+<% if (accountDisabled) { %>
+  <div class="error-message">
+    <h2>Account Disabled</h2>
+    <p>Your account has been disabled. Please check your email for further details.</p>
+  </div>
+<% } else { %>
+  <%- include('partials/session_banner') %>
+  <h1>Alfe</h1>
+  <p><a href="/global_instructions">Global Agent Instructions</a></p>
+  <p><a href="/about.html" target="_blank">About</a></p>
+  <p><a href="/agent" target="_blank" rel="noopener noreferrer">Run Agent from Sterling</a></p>
+  <p><a href="/sterling/storage" target="_blank" rel="noopener noreferrer">Storage</a></p>
+  <hr>
 
-<h2>Available Repositories:</h2>
-<ul>
-    <% repoNames.forEach(function(repo) { %>
-        <li>
-            <a href="/<%= repo %>"><%= repo %></a>
-        </li>
-    <% }); %>
-</ul>
+  <h2>Available Repositories:</h2>
+  <ul>
+      <% repoNames.forEach(function(repo) { %>
+          <li>
+              <a href="/<%= repo %>"><%= repo %></a>
+          </li>
+      <% }); %>
+  </ul>
 
-<h2>Active Chats:</h2>
-<!-- TODO: The active chats listing is incomplete in code, but left as is. -->
+  <h2>Active Chats:</h2>
+  <!-- TODO: The active chats listing is incomplete in code, but left as is. -->
 
-<br/>
-<hr>
-<br/>
-<footer>
-    <a href="/repositories">View All Repositories</a>
-</footer>
+  <br/>
+  <hr>
+  <br/>
+  <footer>
+      <a href="/repositories">View All Repositories</a>
+  </footer>
+<% } %>
 
 <!-- Button to swap the favicon to a rotating play triangle -->
 <button id="startButton">Start</button>

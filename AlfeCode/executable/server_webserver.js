@@ -623,10 +623,26 @@ function ensureSessionIdCookie(req, res) {
     return { sessionId, created };
 }
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     const { sessionId } = ensureSessionIdCookie(req, res);
     req.sessionId = sessionId;
     res.locals.sessionId = sessionId;
+    
+    // Check if the session is associated with a disabled account
+    if (rdsStore.enabled && sessionId) {
+        try {
+            // Get account associated with session
+            const account = await rdsStore.getAccountBySession(sessionId);
+            if (account && account.disabled) {
+                // Set a flag to show disabled message in the template
+                res.locals.accountDisabled = true;
+                // You might want to delete the current session cookie to prevent further access
+                res.clearCookie("sessionId");
+            }
+        } catch (error) {
+            console.error("Error checking account status:", error);
+        }
+    }
     next();
 });
 
