@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { randomUUID } = require("crypto");
 const { formatTokenLimit } = require("./utils");
 
@@ -97,6 +98,14 @@ function setupGetRoutes(deps) {
         "venv",
         ".venv",
     ]);
+    const SHOPIFY_AUTH_STATE_TTL_MS = 10 * 60 * 1000;
+    const shopifyAuthStateStore = new Map();
+    let shopifyDiscoveryCache = {
+        domain: "",
+        fetchedAt: 0,
+        payload: null,
+    };
+    const SHOPIFY_DISCOVERY_CACHE_TTL_MS = 5 * 60 * 1000;
     const MAX_FILE_TREE_DEPTH = 5;
 
     const getRequestIp = (req) => {
@@ -143,6 +152,30 @@ function setupGetRoutes(deps) {
         });
         return cookies.sessionId || "";
     };
+    const getRequestCookies = (req) => {
+        const header = req?.headers?.cookie || "";
+        const cookies = {};
+        header.split(";").forEach((cookie) => {
+            const idx = cookie.indexOf("=");
+            if (idx === -1) return;
+            const name = cookie.slice(0, idx).trim();
+            if (!name) return;
+            cookies[name] = decodeURIComponent(cookie.slice(idx + 1).trim());
+        });
+        return cookies;
+    };
+    const buildExpiredSessionCookie = (hostname) => {
+        const parts = [
+            "sessionId=",
+            "Path=/",
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "Max-Age=0",
+        ];
+        if (hostname === "alfe.sh" || hostname.endsWith(".alfe.sh")) {
+            parts.push("Domain=.alfe.sh");
+        }
+        return parts.join("; ");
+    };
     const normalizeBaseUrl = (value) => {
         if (typeof value !== "string") {
             return "";
@@ -153,11 +186,323 @@ function setupGetRoutes(deps) {
         }
         return trimmed.replace(/\/+$/, "");
     };
+    const normalizeShopifyGidToNumericId = (value, resourceName) => {
+        if (value == null) {
+            return "";
+        }
+        const trimmed = value.toString().trim();
+        if (!trimmed) {
+            return "";
+        }
+        if (/^\d+$/.test(trimmed)) {
+            return trimmed;
+        }
+        const gidMatch = trimmed.match(new RegExp(`^gid://shopify/${resourceName}/(\\d+)$`, "i"));
+        return gidMatch ? gidMatch[1] : "";
+    };
+    const firstNonEmptyEnv = (...keys) => {
+        for (const key of keys) {
+            const value = process.env[key];
+            if (typeof value === "string" && value.trim()) {
+                return value.trim();
+            }
+        }
+        return "";
+    };
+    const buildShopifySubscriptionCheckoutUrl = (accountEmail = "") => {
+        const configuredPermalink =
+            typeof process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL === "string"
+                ? process.env.SHOPIFY_SUBSCRIPTION_CART_PERMALINK_URL.trim()
+                : "";
+        if (configuredPermalink) {
+            return configuredPermalink;
+        }
+
+        const storeBaseUrl = normalizeBaseUrl(
+            process.env.SHOPIFY_STORE_BASE_URL
+            || process.env.SHOPIFY_STORE_URL
+            || process.env.SHOPIFY_SHOP_URL
+        );
+        const variantId = normalizeShopifyGidToNumericId(
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_VARIANT_ID",
+                "SHOPIFY_VARIANT_ID",
+                "SHOPIFY_SUBSCRIPTION_VARIANT"
+            ),
+            "ProductVariant"
+        );
+        const sellingPlanId = normalizeShopifyGidToNumericId(
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID",
+                "SHOPIFY_SELLING_PLAN_ID",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_GID"
+            ),
+            "SellingPlan"
+        );
+        const quantityRaw = (process.env.SHOPIFY_SUBSCRIPTION_QUANTITY || "1").toString().trim();
+        const quantityParsed = Number.parseInt(quantityRaw, 10);
+        const quantity = Number.isInteger(quantityParsed) && quantityParsed > 0 ? quantityParsed : 1;
+
+        if (!storeBaseUrl || !variantId) {
+            return "";
+        }
+
+        const addParams = new URLSearchParams();
+        addParams.set("id", variantId);
+        addParams.set("quantity", quantity.toString());
+        if (sellingPlanId) {
+            addParams.set("selling_plan", sellingPlanId);
+        }
+        const checkoutParams = new URLSearchParams();
+        if (typeof accountEmail === "string" && accountEmail.trim()) {
+            checkoutParams.set("checkout[email]", accountEmail.trim());
+        }
+        const returnToTarget = checkoutParams.toString()
+            ? `/checkout?${checkoutParams.toString()}`
+            : "/checkout";
+        addParams.set("return_to", returnToTarget);
+
+        const addPath = `/cart/add?${addParams.toString()}`;
+        const clearParams = new URLSearchParams();
+        clearParams.set("return_to", addPath);
+
+        // Option C workaround: clear cart before adding the subscription line item so
+        // repeat clicks do not increment quantity.
+        return `${storeBaseUrl}/cart/clear?${clearParams.toString()}`;
+    };
     const isLoggedOutPlan = (plan) => {
         if (!plan) {
             return false;
         }
         return plan.toString().trim().toLowerCase().replace(/[-\s]+/g, " ") === "logged out session";
+    };
+    const normalizeCheckoutEmail = (value) => {
+        if (typeof value !== "string") {
+            return "";
+        }
+        return value.trim();
+    };
+    const buildShopifyCheckoutAssetScript = () => {
+        const variantId = normalizeShopifyGidToNumericId(
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_VARIANT_ID",
+                "SHOPIFY_VARIANT_ID",
+                "SHOPIFY_SUBSCRIPTION_VARIANT"
+            ),
+            "ProductVariant"
+        );
+        const sellingPlanId = normalizeShopifyGidToNumericId(
+            firstNonEmptyEnv(
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_ID",
+                "SHOPIFY_SELLING_PLAN_ID",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN",
+                "SHOPIFY_SUBSCRIPTION_SELLING_PLAN_GID"
+            ),
+            "SellingPlan"
+        );
+        const quantityRaw = (process.env.SHOPIFY_SUBSCRIPTION_QUANTITY || "1").toString().trim();
+        const quantityParsed = Number.parseInt(quantityRaw, 10);
+        const quantity = Number.isInteger(quantityParsed) && quantityParsed > 0 ? quantityParsed : 1;
+        const scriptConfig = {
+            variantId,
+            sellingPlanId,
+            quantity,
+        };
+
+        return `'use strict';\n(function (global) {\n  const config = ${JSON.stringify(scriptConfig)};\n\n  const normalizeEmail = (value) => typeof value === 'string' ? value.trim() : '';\n\n  const buildCheckoutUrl = () => {\n    const checkoutUrl = new URL('/checkout', global.location.origin);\n    const query = new URLSearchParams(global.location.search || '');\n    const email = normalizeEmail(query.get('email') || query.get('checkout[email]'));\n    if (email) {\n      checkoutUrl.searchParams.set('checkout[email]', email);\n    }\n    return checkoutUrl.toString();\n  };\n\n  const clearCart = async () => {\n    const response = await global.fetch('/cart/clear.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: { 'Accept': 'application/json' },\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to clear cart.');\n    }\n  };\n\n  const addSubscriptionItem = async () => {\n    if (!config.variantId) {\n      throw new Error('Missing Shopify subscription variant ID.');\n    }\n\n    const lineItem = {\n      id: Number(config.variantId),\n      quantity: config.quantity,\n    };\n\n    if (config.sellingPlanId) {\n      lineItem.selling_plan = Number(config.sellingPlanId);\n    }\n\n    const response = await global.fetch('/cart/add.js', {\n      method: 'POST',\n      credentials: 'same-origin',\n      headers: {\n        'Accept': 'application/json',\n        'Content-Type': 'application/json',\n      },\n      body: JSON.stringify({ items: [lineItem] }),\n    });\n\n    if (!response.ok) {\n      throw new Error('Failed to add subscription line item to cart.');\n    }\n  };\n\n  const run = async () => {\n    const checkoutUrl = buildCheckoutUrl();\n\n    try {\n      await clearCart();\n      await addSubscriptionItem();\n      global.location.assign(checkoutUrl);\n    } catch (error) {\n      console.error('[alfe-checkout] Unable to complete checkout flow.', error);\n      global.location.assign(checkoutUrl);\n    }\n  };\n\n  global.AlfeCheckout = Object.freeze({ run });\n\n  run();\n})(window);\n`;
+    };
+
+    const resolveShopifyAuthDomain = () => {
+        const configured = firstNonEmptyEnv(
+            "SHOPIFY_CUSTOMER_ACCOUNTS_DOMAIN",
+            "SHOPIFY_CUSTOMER_ACCOUNT_DOMAIN",
+            "SHOPIFY_CUSTOMER_AUTH_DOMAIN"
+        );
+        return configured || "account.alfe.bot";
+    };
+
+    const resolveShopifyAuthClientId = () => {
+        return firstNonEmptyEnv(
+            "SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID",
+            "SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID",
+            "SHOPIFY_CUSTOMER_ACCOUNTS_CLIENT_ID"
+        );
+    };
+
+    const resolveShopifyAuthorizationEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_AUTHORIZATION_ENDPOINT
+        );
+    };
+
+    const resolveShopifyTokenEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_TOKEN_ENDPOINT
+        );
+    };
+
+    const resolveShopifyLogoutEndpoint = () => {
+        return normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_LOGOUT_ENDPOINT
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_LOGOUT_ENDPOINT
+        );
+    };
+
+    const resolveShopifyAuthScope = () => {
+        return firstNonEmptyEnv(
+            "SHOPIFY_CUSTOMER_ACCOUNT_SCOPES",
+            "SHOPIFY_CUSTOMER_ACCOUNTS_SCOPES"
+        ) || "openid email customer-account-api:full";
+    };
+
+    const resolveRequestOrigin = (req) => {
+        const forwardedProtoHeader = (req && req.headers && req.headers["x-forwarded-proto"]) || "";
+        const forwardedProto = forwardedProtoHeader
+            .toString()
+            .split(",")
+            .map((part) => part.trim())
+            .find(Boolean);
+        const protocol = forwardedProto || req?.protocol || (req?.secure ? "https" : "http");
+        const host = req?.get?.("host") || req?.headers?.host || "";
+        if (!host) {
+            return "";
+        }
+        return `${protocol}://${host}`;
+    };
+
+    const resolveAuthReturnTo = (req) => {
+        const fallback = req?.get?.("referer") || "/agent";
+        const requested = typeof req?.query?.returnTo === "string" ? req.query.returnTo.trim() : "";
+        const candidate = requested || fallback || "/agent";
+        if (/^https?:\/\//i.test(candidate)) {
+            return candidate;
+        }
+        const origin = resolveRequestOrigin(req);
+        if (!origin) {
+            return candidate.startsWith("/") ? candidate : `/${candidate}`;
+        }
+        const normalizedPath = candidate.startsWith("/") ? candidate : `/${candidate}`;
+        return `${origin}${normalizedPath}`;
+    };
+
+    const base64UrlEncode = (input) => {
+        const source = Buffer.isBuffer(input) ? input : Buffer.from(String(input || ""));
+        return source
+            .toString("base64")
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/g, "");
+    };
+
+    const buildPkceVerifier = () => base64UrlEncode(crypto.randomBytes(32));
+
+    const buildPkceChallenge = (verifier) => {
+        return base64UrlEncode(crypto.createHash("sha256").update(verifier).digest());
+    };
+
+    const storeShopifyAuthState = ({ returnTo, codeVerifier }) => {
+        const state = randomUUID();
+        shopifyAuthStateStore.set(state, {
+            returnTo,
+            codeVerifier,
+            createdAt: Date.now(),
+        });
+        return state;
+    };
+
+    const consumeShopifyAuthState = (state) => {
+        if (!state) {
+            return null;
+        }
+        const savedState = shopifyAuthStateStore.get(state);
+        shopifyAuthStateStore.delete(state);
+        if (!savedState) {
+            return null;
+        }
+        if ((Date.now() - savedState.createdAt) > SHOPIFY_AUTH_STATE_TTL_MS) {
+            return null;
+        }
+        return savedState;
+    };
+
+    const buildShopifyAuthCallbackUrl = (req) => {
+        const configured = normalizeBaseUrl(
+            process.env.SHOPIFY_CUSTOMER_ACCOUNT_REDIRECT_URI
+            || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_REDIRECT_URI
+            || process.env.SHOPIFY_CUSTOMER_AUTH_REDIRECT_URI
+        );
+        if (configured) {
+            return configured;
+        }
+        const origin = resolveRequestOrigin(req);
+        if (!origin) {
+            return "/auth/shopify/callback";
+        }
+        const callbackUrl = new URL("/auth/shopify/callback", origin);
+        return callbackUrl.toString();
+    };
+
+    const discoverShopifyAuthEndpoints = async (shopDomain) => {
+        const configuredAuthorizationEndpoint = resolveShopifyAuthorizationEndpoint();
+        const configuredTokenEndpoint = resolveShopifyTokenEndpoint();
+        if (configuredAuthorizationEndpoint && configuredTokenEndpoint) {
+            return {
+                authorization_endpoint: configuredAuthorizationEndpoint,
+                token_endpoint: configuredTokenEndpoint,
+            };
+        }
+
+        const normalizedDomain = (shopDomain || "").toString().trim().toLowerCase();
+        const now = Date.now();
+        if (
+            shopifyDiscoveryCache.payload
+            && shopifyDiscoveryCache.domain === normalizedDomain
+            && (now - shopifyDiscoveryCache.fetchedAt) < SHOPIFY_DISCOVERY_CACHE_TTL_MS
+        ) {
+            return shopifyDiscoveryCache.payload;
+        }
+
+        const discoveryUrl = `https://${normalizedDomain}/.well-known/openid-configuration`;
+        const response = await fetch(discoveryUrl);
+        if (!response.ok) {
+            throw new Error(`Shopify discovery failed (${response.status}) for ${normalizedDomain}.`);
+        }
+        const payload = await response.json();
+        console.info(`[Shopify discovery] OpenID configuration for ${normalizedDomain}: ${JSON.stringify(payload)}`);
+        if (!payload || !payload.authorization_endpoint || !payload.token_endpoint) {
+            throw new Error(`Shopify discovery missing endpoints for ${normalizedDomain}.`);
+        }
+        if (!payload.end_session_endpoint) {
+            console.warn(`[Shopify discovery] end_session_endpoint missing for ${normalizedDomain}.`);
+        }
+        shopifyDiscoveryCache = {
+            domain: normalizedDomain,
+            fetchedAt: now,
+            payload,
+        };
+        return payload;
+    };
+    const normalizeAccountEmail = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
+    const parseJwtPayload = (token) => {
+        if (typeof token !== "string" || !token.trim()) {
+            return null;
+        }
+        const pieces = token.trim().split(".");
+        if (pieces.length < 2) {
+            return null;
+        }
+        try {
+            const payload = pieces[1].replace(/-/g, "+").replace(/_/g, "/");
+            const padded = payload.padEnd(Math.ceil(payload.length / 4) * 4, "=");
+            const decoded = Buffer.from(padded, "base64").toString("utf8");
+            const parsed = JSON.parse(decoded);
+            return parsed && typeof parsed === "object" ? parsed : null;
+        } catch (_error) {
+            return null;
+        }
     };
     const QWEN_CODEX_PATCH_MODELS = new Set([
         "openrouter/qwen/qwen3-coder",
@@ -2450,7 +2795,7 @@ ${cleanedFinalOutput}`;
         const accountButtonEnabled = accountsEnabled;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
-        
+        const backlogButtonVisible = parseBooleanFlagWithDefault(process.env.BACKLOG_BUTTON_VISIBLE, true);
         let account = null;
         if (rdsStore?.enabled) {
             const sessionId = getSessionIdFromRequest(req);
@@ -2458,6 +2803,8 @@ ${cleanedFinalOutput}`;
                 account = await rdsStore.getAccountBySession(sessionId);
             }
         }
+        const accountEmail = typeof account?.email === "string" ? account.email : "";
+        const subscriptionCheckoutUrl = buildShopifySubscriptionCheckoutUrl(accountEmail);
         
         res.render("codex_runner", {
             codexScriptPath,
@@ -2487,12 +2834,317 @@ ${cleanedFinalOutput}`;
             showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
             agentModelDropdownDisabled,
             fileTreeButtonVisible,
+            backlogButtonVisible,
+            subscriptionCheckoutUrl,
+            shopifyAuthEnabled: true,
+            shopifyAuthStartUrl: "/auth/shopify/start",
         });
     };
 
+    app.get("/auth/shopify/start", async (req, res) => {
+        const finalReturnTo = resolveAuthReturnTo(req);
+        const clientId = resolveShopifyAuthClientId();
+        const shopDomain = resolveShopifyAuthDomain();
+        const callbackUrl = buildShopifyAuthCallbackUrl(req);
+        if (!clientId || !callbackUrl) {
+            console.warn("Shopify auth start skipped: missing customer account client ID or callback URL.");
+            return res.redirect(finalReturnTo || "/agent");
+        }
+
+        const preferredStep = typeof req?.query?.preferredStep === "string" ? req.query.preferredStep.trim() : "";
+        const codeVerifier = buildPkceVerifier();
+        const codeChallenge = buildPkceChallenge(codeVerifier);
+        const state = storeShopifyAuthState({ returnTo: finalReturnTo, codeVerifier });
+
+        try {
+            const discovery = await discoverShopifyAuthEndpoints(shopDomain);
+            const authorizeUrl = new URL(discovery.authorization_endpoint);
+            authorizeUrl.searchParams.set("client_id", clientId);
+            authorizeUrl.searchParams.set("response_type", "code");
+            authorizeUrl.searchParams.set("redirect_uri", callbackUrl);
+            authorizeUrl.searchParams.set("scope", resolveShopifyAuthScope());
+            authorizeUrl.searchParams.set("state", state);
+            authorizeUrl.searchParams.set("code_challenge", codeChallenge);
+            authorizeUrl.searchParams.set("code_challenge_method", "S256");
+            if (preferredStep) {
+                authorizeUrl.searchParams.set("alfe_step", preferredStep);
+            }
+            return res.redirect(authorizeUrl.toString());
+        } catch (error) {
+            console.error("Shopify customer account authorization start failed.", error);
+            return res.redirect(finalReturnTo || "/agent");
+        }
+    });
+
+    app.get("/auth/shopify/callback", async (req, res) => {
+        const callbackRequestId = randomUUID();
+        const callbackQueryKeys = Object.keys(req?.query || {});
+        const sanitizeValueForLog = (value) => {
+            if (typeof value !== "string") {
+                return "";
+            }
+            if (value.length <= 8) {
+                return "***";
+            }
+            return `${value.slice(0, 4)}...${value.slice(-4)}`;
+        };
+
+        console.info("[Shopify callback] Incoming request", {
+            callbackRequestId,
+            method: req.method,
+            path: req.path,
+            host: req.headers?.host || "",
+            queryKeys: callbackQueryKeys,
+            hasCode: typeof req?.query?.code === "string" && req.query.code.trim().length > 0,
+            hasState: typeof req?.query?.state === "string" && req.query.state.trim().length > 0,
+            error: typeof req?.query?.error === "string" ? req.query.error.trim() : "",
+            errorDescription: typeof req?.query?.error_description === "string" ? req.query.error_description.trim() : "",
+        });
+
+        const state = typeof req?.query?.state === "string" ? req.query.state.trim() : "";
+        const code = typeof req?.query?.code === "string" ? req.query.code.trim() : "";
+        const authState = consumeShopifyAuthState(state);
+        const returnTo = authState?.returnTo || "/agent";
+        console.info("[Shopify callback] Parsed callback state", {
+            callbackRequestId,
+            statePreview: sanitizeValueForLog(state),
+            codePreview: sanitizeValueForLog(code),
+            hasStoredState: Boolean(authState),
+            returnTo,
+        });
+        if (!authState || !code) {
+            console.warn("[Shopify callback] Invalid callback payload", {
+                callbackRequestId,
+                hasStoredState: Boolean(authState),
+                hasCode: Boolean(code),
+            });
+            return res.status(400).send("Invalid state or missing code.");
+        }
+
+        const clientId = resolveShopifyAuthClientId();
+        const shopDomain = resolveShopifyAuthDomain();
+        const callbackUrl = buildShopifyAuthCallbackUrl(req);
+        if (!clientId || !callbackUrl) {
+            console.warn("[Shopify callback] Missing configuration.", {
+                callbackRequestId,
+                hasClientId: Boolean(clientId),
+                hasCallbackUrl: Boolean(callbackUrl),
+            });
+            return res.redirect(returnTo);
+        }
+
+        try {
+            console.info("[Shopify callback] Discovering OAuth endpoints", {
+                callbackRequestId,
+                shopDomain,
+                callbackUrl,
+            });
+            const discovery = await discoverShopifyAuthEndpoints(shopDomain);
+            const tokenBody = new URLSearchParams();
+            tokenBody.set("grant_type", "authorization_code");
+            tokenBody.set("client_id", clientId);
+            tokenBody.set("redirect_uri", callbackUrl);
+            tokenBody.set("code", code);
+            tokenBody.set("code_verifier", authState.codeVerifier || "");
+
+            console.info("[Shopify callback] Exchanging authorization code", {
+                callbackRequestId,
+                tokenEndpoint: discovery.token_endpoint,
+                redirectUri: callbackUrl,
+                hasCodeVerifier: Boolean(authState.codeVerifier),
+                codeLength: code.length,
+            });
+
+            const tokenResponse = await fetch(discovery.token_endpoint, {
+                method: "POST",
+                headers: { "content-type": "application/x-www-form-urlencoded" },
+                body: tokenBody,
+            });
+
+            console.info("[Shopify callback] Token endpoint response received", {
+                callbackRequestId,
+                status: tokenResponse.status,
+                ok: tokenResponse.ok,
+            });
+
+            if (!tokenResponse.ok) {
+                const failureBody = await tokenResponse.text();
+                console.error("[Shopify callback] Token exchange failed.", {
+                    callbackRequestId,
+                    status: tokenResponse.status,
+                    body: failureBody,
+                });
+                return res.status(500).send("Token exchange failed.");
+            }
+
+            const tokenPayload = await tokenResponse.json();
+            const idTokenPayload = parseJwtPayload(tokenPayload?.id_token || "");
+            const shopifyEmail = normalizeAccountEmail(idTokenPayload?.email);
+
+            if (tokenPayload?.id_token) {
+                const secureCookie = req.secure || String(req.headers?.["x-forwarded-proto"] || "").includes("https");
+                res.cookie("alfe_shopify_id_token", tokenPayload.id_token, {
+                    httpOnly: true,
+                    secure: secureCookie,
+                    sameSite: "lax",
+                    path: "/",
+                });
+            }
+
+            if (shopifyEmail && rdsStore?.enabled) {
+                try {
+                    let account = await rdsStore.getAccountByEmail(shopifyEmail);
+                    if (!account) {
+                        const createdAccount = await rdsStore.createAccount({
+                            email: shopifyEmail,
+                            passwordHash: null,
+                            sessionId: "",
+                        });
+                        account = createdAccount
+                            ? await rdsStore.getAccountByEmail(shopifyEmail)
+                            : null;
+                    }
+
+                    if (account?.disabled) {
+                        console.warn("[Shopify callback] Account exists but is disabled.", {
+                            callbackRequestId,
+                            email: shopifyEmail,
+                        });
+                    } else if (account) {
+                        const incomingSessionId = getSessionIdFromRequest(req);
+                        let resolvedSessionId = incomingSessionId;
+
+                        if (account.session_id) {
+                            resolvedSessionId = account.session_id;
+                            if (incomingSessionId && incomingSessionId !== account.session_id) {
+                                await rdsStore.mergeSessions(account.session_id, incomingSessionId);
+                            }
+                        } else {
+                            resolvedSessionId = incomingSessionId || randomUUID();
+                            await rdsStore.setAccountSession(account.id, resolvedSessionId);
+                        }
+
+                        if (resolvedSessionId) {
+                            const hostname = req.hostname
+                                || (typeof req.headers?.host === "string" ? req.headers.host.split(":")[0] : "");
+                            const cookie = buildSessionCookie(resolvedSessionId, hostname);
+                            if (cookie) {
+                                res.append("Set-Cookie", cookie);
+                            }
+                        }
+                    }
+                } catch (accountError) {
+                    console.error("[Shopify callback] Failed to provision or attach account.", {
+                        callbackRequestId,
+                        email: shopifyEmail,
+                        error: accountError,
+                    });
+                }
+            }
+
+            console.info("[Shopify callback] Token exchange succeeded", {
+                callbackRequestId,
+                payloadKeys: Object.keys(tokenPayload || {}),
+                hasAccessToken: Boolean(tokenPayload?.access_token),
+                hasIdToken: Boolean(tokenPayload?.id_token),
+                hasEmail: Boolean(shopifyEmail),
+                emailPreview: sanitizeValueForLog(shopifyEmail),
+                redirectTo: returnTo,
+            });
+            return res.redirect(returnTo);
+        } catch (error) {
+            console.error("[Shopify callback] Callback handling failed.", {
+                callbackRequestId,
+                error,
+            });
+            return res.redirect(returnTo);
+        }
+    });
+
+    app.get("/auth/shopify/logout", async (req, res) => {
+        const returnTo = resolveAuthReturnTo(req);
+        const cookies = getRequestCookies(req);
+        const idToken = typeof cookies.alfe_shopify_id_token === "string" ? cookies.alfe_shopify_id_token : "";
+
+        const sessionId = getSessionIdFromRequest(req);
+        if (rdsStore?.enabled && sessionId) {
+            const account = await rdsStore.getAccountBySession(sessionId);
+            if (account) {
+                await rdsStore.setAccountSession(account.id, "");
+            }
+        }
+
+        const hostname = normalizeHostname(req);
+        res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
+        res.clearCookie("alfe_shopify_id_token", {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+        });
+
+        if (!idToken) {
+            return res.redirect(returnTo);
+        }
+
+        try {
+            const configuredLogoutEndpoint = resolveShopifyLogoutEndpoint();
+            let logoutEndpoint = configuredLogoutEndpoint;
+            if (!logoutEndpoint) {
+                const discovery = await discoverShopifyAuthEndpoints(resolveShopifyAuthDomain());
+                logoutEndpoint = discovery?.end_session_endpoint || "";
+            }
+            if (!logoutEndpoint) {
+                return res.redirect(returnTo);
+            }
+
+            const logoutUrl = new URL(logoutEndpoint);
+            logoutUrl.searchParams.set("id_token_hint", idToken);
+            logoutUrl.searchParams.set("post_logout_redirect_uri", returnTo);
+            const logoutDebugUrl = new URL(logoutUrl.toString());
+            if (logoutDebugUrl.searchParams.has("id_token_hint")) {
+                logoutDebugUrl.searchParams.set("id_token_hint", "<redacted>");
+            }
+            console.info(`[Shopify logout] Redirecting to end_session_endpoint: ${logoutDebugUrl.toString()}`);
+            return res.redirect(logoutUrl.toString());
+        } catch (error) {
+            console.error("Shopify logout redirect failed.", error);
+            return res.redirect(returnTo);
+        }
+    });
+
     app.get("/agent", renderCodexRunner);
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
-    app.get('/agent/model-only', (req, res) => {
+    app.get('/checkout', async (req, res) => {
+        try {
+            const queryEmail = normalizeCheckoutEmail(req.query?.email);
+            let fallbackAccountEmail = "";
+            if (!queryEmail && rdsStore?.enabled) {
+                const sessionId = getSessionIdFromRequest(req);
+                if (sessionId) {
+                    const account = await rdsStore.getAccountBySession(sessionId);
+                    fallbackAccountEmail = normalizeCheckoutEmail(account?.email);
+                }
+            }
+
+            const checkoutUrl = buildShopifySubscriptionCheckoutUrl(queryEmail || fallbackAccountEmail);
+            if (!checkoutUrl) {
+                res.status(503).send("Subscription checkout is unavailable right now.");
+                return;
+            }
+
+            res.redirect(checkoutUrl);
+        } catch (error) {
+            console.error("Failed to build Shopify checkout redirect:", error);
+            res.status(500).send("Unable to open subscription checkout.");
+        }
+    });
+    app.get('/checkout_js', (req, res) => {
+        const script = buildShopifyCheckoutAssetScript();
+        res.set('Cache-Control', 'no-store');
+        res.type('application/javascript');
+        res.send(script);
+    });
+    app.get('/agent/model-only', async (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const engineDropdownHidden = parseBooleanFlag(process.env.ENGINE_DROPDOWN_HIDDEN);
         const modelDropdownHidden = parseBooleanFlag(process.env.MODEL_DROPDOWN_HIDDEN);
@@ -2501,8 +3153,18 @@ ${cleanedFinalOutput}`;
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
         const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
         const allowModelOrderEdit = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowConfigIpControls = allowModelOrderEdit;
+        const allowAccountPlanEdit = allowModelOrderEdit;
         const allowVmRunsLink = allowModelOrderEdit;
         const qwenDebugEnabled = process.env.QWEN_DEBUG_ENABLED === 'true';
+        let account = null;
+        if (rdsStore?.enabled) {
+            const sessionId = getSessionIdFromRequest(req);
+            if (sessionId) {
+                account = await rdsStore.getAccountBySession(sessionId);
+            }
+        }
+
         res.render('model_only', {
             showGitLogButtonTarget: !hideGitLogButtonTarget,
             engineDropdownHidden,
@@ -2513,8 +3175,11 @@ ${cleanedFinalOutput}`;
             imagesEnabled2026,
             accountsEnabled: parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true),
             allowModelOrderEdit,
+            allowConfigIpControls,
+            allowAccountPlanEdit,
             allowVmRunsLink,
             qwenDebugEnabled,
+            account
         });
     });
     app.get('/agent/model-only/order', (req, res) => {
@@ -2592,6 +3257,17 @@ ${cleanedFinalOutput}`;
             res.status(500).json({ message: err.message });
         }
     });
+    app.get('/help.html', async (req, res) => {
+        let account = null;
+        if (rdsStore?.enabled) {
+            const sessionId = getSessionIdFromRequest(req);
+            if (sessionId) {
+                account = await rdsStore.getAccountBySession(sessionId);
+            }
+        }
+        res.render('help', { account });
+    });
+
     app.get('/support', async (req, res) => {
         const account = await requireSupportPlan(req, res);
         if (!account) {

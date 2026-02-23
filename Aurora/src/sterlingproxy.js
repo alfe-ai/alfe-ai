@@ -139,15 +139,6 @@ router.get('/', (req, res) => {
 
       }
 
-      // Persist into Aurora DB sterlingproxy table when available
-      try {
-        if (typeof db !== 'undefined' && db && typeof db.upsertSterlingProxy === 'function') {
-          const safeIp = ip || 'unknown';
-          db.upsertSterlingProxy(sessionId, safeIp, auroraSessions.find(s=>s.sessionId===sessionId)?.assignedPort || null);
-        }
-      } catch (e) {
-        console.error('[SterlingProxy] Failed to upsert sterlingproxy row:', e);
-      }
     }
   }
 

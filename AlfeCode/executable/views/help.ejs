@@ -35,13 +35,50 @@
       transform:translateY(-1px);
       box-shadow:0 10px 22px rgba(124,58,237,0.22);
     }
+    .help-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .help-header h1{
+      margin:0;
+    }
+    .subscribe-button{
+      align-self:flex-start;
+      padding:0.5rem 0.9rem;
+      border-radius:10px;
+      border:1px solid rgba(167,139,250,0.7);
+      background:linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(99,102,241,0.4) 100%);
+      color:#f8fafc;
+      font-weight:600;
+      cursor:pointer;
+      text-decoration:none;
+      transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .subscribe-button:hover,
+    .subscribe-button:focus-visible{
+      transform:translateY(-1px);
+      border-color:#c4b5fd;
+      box-shadow:0 10px 22px rgba(124,58,237,0.22);
+    }
   </style>
 </head>
 <body>
   <div class="help-card">
-    <h1>Help Guide</h1>
+    <div class="help-header">
+      <h1>Help Guide</h1>
+      <% if (account && (['Lite', 'Plus', 'Pro'].includes((account.plan || '').toString().trim()) || account.ever_subscribed)) { %>
+      <a href="/support" class="subscribe-button">Contact Support</a>
+      <% } %>
+    </div>
 
     <div class="section-grid">
+      <section class="help-section">
+        <h2>Known Issues</h2>
+        <p class="placeholder">Coming soon.</p>
+      </section>
       <section class="help-section">
         <h2>Git Repository Configuration</h2>
         <p class="placeholder">Coming soon.</p>
@@ -82,10 +119,6 @@
       </section>
       <section class="help-section">
         <h2>Chat</h2>
-        <p class="placeholder">Coming soon.</p>
-      </section>
-      <section class="help-section">
-        <h2>Support</h2>
         <p class="placeholder">Coming soon.</p>
       </section>
     </div>

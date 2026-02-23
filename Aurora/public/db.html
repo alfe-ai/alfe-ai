@@ -92,6 +92,49 @@
       color: #475569;
       font-size: 0.95rem;
     }
+
+    .query-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .query-editor label {
+      font-size: 0.9rem;
+      color: #475569;
+      font-weight: 600;
+    }
+    .query-editor textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.65rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.88rem;
+      box-sizing: border-box;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .query-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .query-actions button {
+      border: 1px solid #cbd5e1;
+      background: #0f172a;
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.45rem 0.8rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+    }
+    .query-actions button.secondary {
+      background: #fff;
+      color: #0f172a;
+    }
     .status {
       font-size: 0.9rem;
       color: #64748b;
@@ -220,6 +263,24 @@
       .db-info-grid span {
         color: #f8fafc;
       }
+
+      .query-editor label {
+        color: #94a3b8;
+      }
+      .query-editor textarea {
+        background: #111827;
+        color: #e2e8f0;
+        border-color: #334155;
+      }
+      .query-actions button {
+        background: #e2e8f0;
+        color: #0f172a;
+        border-color: #64748b;
+      }
+      .query-actions button.secondary {
+        background: transparent;
+        color: #e2e8f0;
+      }
       a {
         color: #38bdf8;
       }
@@ -238,6 +299,14 @@
       <ul class="table-list" id="tableList"></ul>
     </aside>
     <main>
+      <div class="query-editor">
+        <label for="queryInput">Manual query (read-only)</label>
+        <textarea id="queryInput" placeholder="SELECT * FROM your_table LIMIT 200;"></textarea>
+        <div class="query-actions">
+          <button type="button" id="runQueryBtn">Run query</button>
+          <button type="button" class="secondary" id="clearQueryBtn">Clear</button>
+        </div>
+      </div>
       <div class="toolbar">
         <span id="activeTable">Select a table to view its contents.</span>
         <span id="rowMeta"></span>
@@ -263,6 +332,9 @@
     const dataStatus = document.getElementById("dataStatus");
     const tableWrap = document.getElementById("tableWrap");
     const dbInfo = document.getElementById("dbInfo");
+    const queryInput = document.getElementById("queryInput");
+    const runQueryBtn = document.getElementById("runQueryBtn");
+    const clearQueryBtn = document.getElementById("clearQueryBtn");
 
     function setActiveButton(name) {
       document.querySelectorAll(".table-list button").forEach((btn) => {
@@ -318,6 +390,41 @@
       tableWrap.appendChild(table);
     }
 
+
+    async function runManualQuery() {
+      const query = queryInput.value.trim();
+      if (!query) {
+        dataStatus.textContent = "Enter a query to run.";
+        return;
+      }
+      setActiveButton("");
+      activeTable.textContent = "Custom query";
+      dataStatus.textContent = "Running query…";
+      rowMeta.textContent = "";
+      tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
+      try {
+        const res = await fetch("/api/db/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query })
+        });
+        const payload = await res.json();
+        if (!res.ok) {
+          throw new Error(payload.error || "Query failed");
+        }
+        const columns = payload.columns || [];
+        const rows = payload.rows || [];
+        const totalRows = typeof payload.totalRows === "number" ? payload.totalRows : rows.length;
+        dataStatus.textContent = "";
+        rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}${totalRows > rows.length ? ` (showing first ${rows.length} of ${totalRows})` : ""}`;
+        renderTable(columns, rows);
+      } catch (err) {
+        dataStatus.textContent = err?.message || "Unable to run query.";
+        tableWrap.innerHTML = "<div class='empty'>No data available.</div>";
+        console.error(err);
+      }
+    }
+
     async function loadTables() {
       try {
         const res = await fetch("/api/db/tables");
@@ -369,6 +476,12 @@
         console.error(err);
       }
     }
+
+    runQueryBtn.addEventListener("click", runManualQuery);
+    clearQueryBtn.addEventListener("click", () => {
+      queryInput.value = "";
+      queryInput.focus();
+    });
 
     loadTables();
 

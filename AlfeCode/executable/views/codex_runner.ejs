@@ -203,6 +203,21 @@
             color: var(--accent-strong);
         }
 
+        .sidebar-beta-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.12rem 0.5rem;
+            border-radius: 999px;
+            background: #7e22ce;
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
         .sidebar-version {
             margin: 0;
             font-size: 0.82rem;
@@ -2189,6 +2204,16 @@
             position: relative;
         }
 
+        #authModal {
+            background: #020617;
+        }
+
+        #authModal .modal-content {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: 0 24px 80px #020617;
+        }
+
         .modal-content--auth .modal-title-row {
             display: flex;
             align-items: center;
@@ -2197,7 +2222,7 @@
         }
 
         .modal-content--auth .auth-benefits {
-            background: rgba(15, 23, 42, 0.45);
+            background: #0f172a;
             border: 1px solid var(--surface-border);
             border-radius: 14px;
             padding: 12px 14px;
@@ -2225,6 +2250,106 @@
         .auth-modal .modal-close {
             top: 10px;
             right: 10px;
+        }
+
+        #subscribeModal .modal-content {
+            background: linear-gradient(180deg, #15213b 0%, #0a1730 58%, #081328 100%);
+            border: 1px solid #64748b;
+            box-shadow: 0 28px 85px #050a19;
+        }
+
+        #subscribeModal {
+            background: #020617;
+        }
+
+        #subscribeModal .modal-title-row {
+            margin-bottom: 2px;
+        }
+
+        #subscribeModal h2 {
+            margin: 0;
+            font-size: clamp(1.75rem, 2.3vw, 2.1rem);
+            line-height: 1.15;
+            letter-spacing: -0.02em;
+            color: #f8fafc;
+        }
+
+        #subscribeModal .subscription-price {
+            margin: 0 0 18px;
+            color: #c4b5fd;
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: 0.01em;
+        }
+
+        #subscribeModal .subscription-copy {
+            margin: 0;
+            font-size: 1.02rem;
+            line-height: 1.55;
+            color: #e2e8f0;
+            text-wrap: pretty;
+        }
+
+        #subscribeModal .subscription-copy-heading {
+            margin: 0;
+            font-size: 1.17rem;
+            font-weight: 700;
+            line-height: 1.35;
+            color: #f8fafc;
+        }
+
+        #subscribeModal .subscription-copy-heading + .subscription-copy-heading {
+            margin-top: 12px;
+        }
+
+        #subscribeModal .subscription-copy-detail {
+            margin: 6px 0 0;
+            font-size: 0.99rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        #subscribeModal .subscription-copy-detail + .subscription-copy-heading {
+            margin-top: 18px;
+        }
+
+        #subscribeModal .subscription-copy::after {
+            content: "";
+            display: block;
+            width: 100%;
+            margin-top: 16px;
+            border-top: 1px solid #64748b;
+        }
+
+        #subscribeModal .subscribe-now-button {
+            margin-top: 18px;
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #a78bfa;
+            border-radius: 12px;
+            padding: 11px 22px;
+            background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.47rem;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            box-shadow: 0 14px 28px rgba(91, 33, 182, 0.36);
+            transition: transform 120ms ease, box-shadow 160ms ease, filter 160ms ease;
+        }
+
+        #subscribeModal .subscribe-now-button:hover,
+        #subscribeModal .subscribe-now-button:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            box-shadow: 0 18px 34px rgba(91, 33, 182, 0.48);
+        }
+
+        #subscribeModal .subscribe-now-button:focus-visible {
+            outline: 2px solid rgba(196, 181, 253, 0.9);
+            outline-offset: 2px;
         }
 
         #switchBranchModal {
@@ -2934,14 +3059,40 @@
 
 
         .runs-sidebar__back-link {
-            display: inline-block;
-            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            min-height: 48px;
+            margin-top: 0;
+            padding: 12px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(167, 139, 250, 0.6);
+            background: linear-gradient(135deg, rgba(76, 29, 149, 0.92) 0%, rgba(91, 33, 182, 0.95) 100%);
             color: #fff;
+            font-size: 0.95rem;
             font-weight: 600;
+            letter-spacing: 0.01em;
             text-decoration: none;
             cursor: pointer;
-            padding-left: 6px;
+            white-space: nowrap;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+            box-shadow: 0 16px 28px rgba(76, 29, 149, 0.26);
         }
+
+        .runs-sidebar__back-link:hover,
+        .runs-sidebar__back-link:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.06);
+            box-shadow: 0 20px 34px rgba(76, 29, 149, 0.32);
+            outline: none;
+        }
+
+        .runs-sidebar__back-link:active {
+            transform: translateY(0);
+            box-shadow: 0 12px 22px rgba(76, 29, 149, 0.24);
+        }
+
         .runs-sidebar__back-link.is-hidden { display: none; }
 
 
@@ -3092,6 +3243,7 @@
                                 <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
                             <% } %>
                             <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="Alfe AI" onclick="if(event){event.preventDefault();}">Alfe AI</a>
+                            <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
                         </h1>
                     </div>
                 </div>
@@ -3200,11 +3352,13 @@
                     </div>
                 </div>
                 <div class="runs-sidebar__actions">
+<% if (backlogButtonVisible) { %>
 <button type="button" id="backlogButton" class="runs-sidebar__icon-button" aria-label="Backlog" title="Backlog" onclick="window.open(window.location.origin + '/ProjectView/', '_blank')">Backlog</button>
+<% } %>
 <button type="button" id="runsSidebarOpenRunsButton" class="runs-sidebar__icon-button is-hidden" aria-label="Detail run" title="Detail run">
                         Detail
                     </button>
-<button type="button" id="runsSidebarArchiveToggle" class="runs-sidebar__icon-button" aria-pressed="false" aria-label="Archived" title="Archived">Archived</button>
+<button type="button" id="runsSidebarArchiveToggle" class="runs-sidebar__icon-button" aria-pressed="false" aria-label="Archive" title="Archive">Archive</button>
 
                 </div>
             </div>
@@ -3220,7 +3374,7 @@
                     <span class="runs-sidebar__new-task-label">New Task</span>
                 </button>
                 <% } %>
-                <button type="button" id="backToCurrentTasksLink" class="runs-sidebar__back-link is-hidden" aria-hidden="true">&lt;-- Back to Current Tasks</button>
+                <button type="button" id="backToCurrentTasksLink" class="runs-sidebar__back-link is-hidden" aria-hidden="true">← Back to Current Tasks</button>
 
             </div>
             <div class="runs-sidebar__body">
@@ -3399,6 +3553,7 @@
                             aria-label="Subscribe"
                             data-subscribe-url="/agent/model-only"
                             style="display:none;"
+                            onclick="(function(){ if (window.alfeTriggerSubscribeModal) { window.alfeTriggerSubscribeModal(); return; } if (window.alfeOpenSubscribeModal) { window.alfeOpenSubscribeModal(); return; } try { if (window.parent && window.parent !== window && window.parent.alfeOpenSubscribeModal) { window.parent.alfeOpenSubscribeModal(); return; } } catch (error) {} var modal = document.getElementById('subscribeModal'); if (modal) { modal.classList.remove('is-hidden'); document.body.style.overflow = 'hidden'; } })()"
                         >
                             Subscribe
                         </button>
@@ -3742,8 +3897,9 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
         <div class="modal-content modal-content--auth">
             <button class="modal-close" type="button" id="authModalCloseButton">×</button>
             <div class="modal-title-row">
-              <h2>Sign Up / Log In</h2>
+              <h2 id="authModalTitle">Sign Up / Log In</h2>
             </div>
+            <p>Create an account to keep access to your chats.</p>
             <div id="authEmailStep">
               <label class="auth-email-label">Email:<br/>
                 <input type="email" id="authEmailInput" style="width:100%;" />
@@ -3847,10 +4003,29 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
         </div>
     </div>
 
-    <div id="subscribeModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Subscribe">
-        <div class="modal-content">
+    <div id="subscribeModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Alfe AI Subscription">
+        <div class="modal-content modal-content--auth">
             <button class="modal-close" type="button" id="subscribeModalCloseButton" onclick="document.getElementById('subscribeModal').classList.add('is-hidden'); document.body.style.overflow = '';">×</button>
-            <p>Subscribe to Alfe AI to access advanced models.</p>
+            <div class="modal-title-row">
+                <h2>Alfe AI Subscription</h2>
+            </div>
+            <p class="subscription-price">$10.00 / month</p>
+            <div class="subscription-copy">
+                <p class="subscription-copy-heading">Unlimited use of the Alfe AI Code platform</p>
+                <p class="subscription-copy-detail">Alfe AI Code platform includes:</p>
+                <ul class="subscription-copy-detail">
+                    <li>In-browser cloud AI agent</li>
+                    <li>In-browser IDE, cloud development environment</li>
+                    <li>Git repository management</li>
+                    <li>Git history</li>
+                    <li>Git branch management and merging</li>
+                    <li>Task/project management</li>
+                </ul>
+                <p class="subscription-copy-heading">Unlimited Git repository connections</p>
+                <p class="subscription-copy-detail">Security sandboxing keeps your code private</p>
+                <p class="subscription-copy-heading">Unlimited AI chats on Alfe AI chat</p>
+            </div>
+            <button type="button" id="subscribeModalActionButton" class="subscribe-now-button">Subscribe Now</button>
         </div>
     </div>
 
@@ -3978,6 +4153,9 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 accountButtonEnabled: <%- JSON.stringify(typeof accountButtonEnabled === "undefined" ? true : accountButtonEnabled) %>,
                 userPromptVisibleCodex: <%- JSON.stringify(typeof userPromptVisibleCodex === "undefined" ? false : userPromptVisibleCodex) %>,
                 agentModelDropdownDisabled: <%- JSON.stringify(typeof agentModelDropdownDisabled !== 'undefined' ? agentModelDropdownDisabled : false) %>,
+                subscriptionCheckoutUrl: <%- JSON.stringify(subscriptionCheckoutUrl || "") %>,
+                shopifyAuthEnabled: <%- JSON.stringify(typeof shopifyAuthEnabled === "undefined" ? true : shopifyAuthEnabled) %>,
+                shopifyAuthStartUrl: <%- JSON.stringify(shopifyAuthStartUrl || "/auth/shopify/start") %>,
             }
         );
     </script>

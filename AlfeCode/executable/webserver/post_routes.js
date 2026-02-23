@@ -279,6 +279,9 @@ function setupPostRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
         }
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ error: "Plan changes are restricted to whitelisted IP addresses." });
+        }
         const sessionId = getSessionIdFromRequest(req);
         if (!sessionId) {
             return res.status(401).json({ error: "not logged in" });
@@ -339,6 +342,9 @@ function setupPostRoutes(deps) {
     app.post("/api/account/openrouter-key", async (req, res) => {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
+        }
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ error: "Openrouter key updates are restricted to whitelisted IP addresses." });
         }
         const sessionId = getSessionIdFromRequest(req);
         if (!sessionId) {
@@ -479,6 +485,9 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/session/refresh", async (req, res) => {
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ error: "Session refresh is restricted to whitelisted IP addresses." });
+        }
         const currentSessionId = getSessionIdFromRequest(req);
         if (rdsStore?.enabled && currentSessionId) {
             const account = await rdsStore.getAccountBySession(currentSessionId);
@@ -502,6 +511,13 @@ function setupPostRoutes(deps) {
             console.error(`Failed to initialize default repo for refreshed session: ${error?.message || error}`);
         }
         return res.json({ success: true, sessionId: freshSessionId });
+    });
+
+    app.post("/api/usage/reset", (req, res) => {
+        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+            return res.status(403).json({ error: "Usage reset is restricted to whitelisted IP addresses." });
+        }
+        return res.json({ success: true });
     });
 
     app.post("/api/register", async (req, res) => {
@@ -615,6 +631,9 @@ function setupPostRoutes(deps) {
         if (!account || !verifyPassword(password, account.password_hash)) {
             return res.status(400).json({ error: "invalid credentials" });
         }
+        if (account.disabled) {
+            return res.status(403).json({ error: "account disabled" });
+        }
 
         const disable2fa = process.env.DISABLE_2FA === "true" || process.env.DISABLE_2FA === "1";
         if (account.totp_secret && !disable2fa) {
@@ -631,13 +650,23 @@ function setupPostRoutes(deps) {
             }
         }
 
-        if (account.session_id && sessionId && account.session_id !== sessionId) {
-            await rdsStore.mergeSessions(account.session_id, sessionId);
-            sessionId = account.session_id;
+        let resolvedSessionId = sessionId;
+        if (account.session_id) {
+            resolvedSessionId = account.session_id;
+            if (sessionId && account.session_id !== sessionId) {
+                await rdsStore.mergeSessions(account.session_id, sessionId);
+            }
+        } else if (sessionId) {
+            await rdsStore.setAccountSession(account.id, sessionId);
         }
 
-        if (sessionId) {
-            await rdsStore.setAccountSession(account.id, sessionId);
+        if (resolvedSessionId) {
+            const hostname = req.hostname
+                || (typeof req.headers?.host === "string" ? req.headers.host.split(":")[0] : "");
+            const cookie = buildSessionCookie(resolvedSessionId, hostname);
+            if (cookie) {
+                res.append("Set-Cookie", cookie);
+            }
         }
 
         return res.json({
@@ -646,7 +675,7 @@ function setupPostRoutes(deps) {
             email: account.email,
             plan: account.plan,
             timezone: account.timezone,
-            sessionId,
+            sessionId: resolvedSessionId,
         });
     });
 

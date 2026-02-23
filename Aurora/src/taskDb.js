@@ -119,6 +119,9 @@ export default class TaskDB {
         `CREATE INDEX IF NOT EXISTS idx_issues_priority ON issues(priority_number);`
     );
 
+    // Migration: remove deprecated sterlingproxy table.
+    this.db.exec("DROP TABLE IF EXISTS sterlingproxy;");
+
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS activity_timeline (
                                                      id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -452,7 +455,8 @@ export default class TaskDB {
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
-        plan TEXT DEFAULT 'Free'
+        plan TEXT DEFAULT 'Free',
+        disabled INTEGER DEFAULT 0
       );
     `);
 
@@ -477,16 +481,17 @@ export default class TaskDB {
       // column exists
     }
 
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS upwork_jobs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        link TEXT DEFAULT '',
-        bid TEXT DEFAULT '',
-        status TEXT DEFAULT 'Bidding',
-        notes TEXT DEFAULT ''
-      );
-    `);
+    try {
+      this.db.exec("ALTER TABLE accounts ADD COLUMN disabled INTEGER DEFAULT 0;");
+      console.debug("[TaskDB Debug] Added accounts.disabled column");
+    } catch(e) {
+      // column exists
+    }
+
+    this.db.exec("UPDATE accounts SET disabled=0 WHERE disabled IS NULL;");
+
+    // Migration: remove the deprecated upwork_jobs table if it exists.
+    this.db.exec('DROP TABLE IF EXISTS upwork_jobs;');
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS amazon_skus (
@@ -651,52 +656,7 @@ export default class TaskDB {
         hidden ? 1 : 0,
         id
     );
-
-    try {
-      this.db.exec(
-        `CREATE TABLE IF NOT EXISTS sterlingproxy (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT NOT NULL,
-          ip_address TEXT DEFAULT '',
-          start_timestamp TEXT NOT NULL,
-          last_used_timestamp TEXT NOT NULL,
-          status TEXT DEFAULT 'Running',
-          assigned_port INTEGER DEFAULT NULL,
-          runs INTEGER DEFAULT 0
-        );`
-      );
-      console.debug("[TaskDB Debug] Created sterlingproxy table");
-    } catch(e) {}
-
-    try {
-      this.db.exec('ALTER TABLE sterlingproxy ADD COLUMN runs INTEGER DEFAULT 0;');
-      console.debug("[TaskDB Debug] Added sterlingproxy.runs column");
-    } catch(e) {}
-
   }
-  ensureSterlingProxy(sessionId) {
-      if (!sessionId) return;
-      const exists = this.db.prepare("SELECT 1 FROM sterlingproxy WHERE session_id=?").get(sessionId);
-      if (!exists) {
-        const now = new Date().toISOString();
-        this.db.prepare("INSERT INTO sterlingproxy (session_id, ip_address, start_timestamp, last_used_timestamp, status) VALUES (?, ?, ?, ?, ?)").run(sessionId, '', now, now, 'Running');
-      }
-    }
-
-    upsertSterlingProxy(sessionId, ipAddress, assignedPort) {
-      if (!sessionId) return;
-      const now = new Date().toISOString();
-      const row = this.db.prepare("SELECT id FROM sterlingproxy WHERE session_id=?").get(sessionId);
-      if (row) {
-        this.db.prepare("UPDATE sterlingproxy SET ip_address=?, last_used_timestamp=?, assigned_port=? WHERE session_id=?").run(ipAddress||'', now, assignedPort||null, sessionId);
-      } else {
-        this.db.prepare("INSERT INTO sterlingproxy (session_id, ip_address, start_timestamp, last_used_timestamp, status, assigned_port) VALUES (?, ?, ?, ?, ?, ?)").run(sessionId, ipAddress||'', now, now, 'Running', assignedPort||null);
-      }
-    }
-
-    listSterlingProxy() {
-      return this.db.prepare("SELECT session_id, ip_address, start_timestamp, last_used_timestamp, status, assigned_port, runs FROM sterlingproxy ORDER BY start_timestamp DESC").all();
-    }
 
   setPoints(id, points) {
     this.db.prepare("UPDATE issues SET fib_points = ? WHERE id = ?").run(
@@ -1698,14 +1658,20 @@ export default class TaskDB {
   }
 
   getAccountBySession(sessionId) {
-    return this.db.prepare('SELECT * FROM accounts WHERE session_id=?').get(sessionId);
+    const account = this.db.prepare('SELECT * FROM accounts WHERE session_id=?').get(sessionId);
+    if (!account) return null;
+    if (account.disabled) {
+      this.db.prepare("UPDATE accounts SET session_id='' WHERE id=?").run(account.id);
+      return null;
+    }
+    return account;
   }
 
   mergeSessions(targetId, sourceId) {
     if (!targetId || !sourceId || targetId === sourceId) return;
 
-    this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
-    this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    await this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    await this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
 
     const srcStart = this.getImageSessionStart(sourceId);
     const tgtStart = this.getImageSessionStart(targetId);
@@ -1721,30 +1687,16 @@ export default class TaskDB {
     this.db.prepare('DELETE FROM image_sessions WHERE session_id=?').run(sourceId);
   }
 
-  addUpworkJob(job) {
-    const { lastInsertRowid } = this.db
-      .prepare(
-        `INSERT INTO upwork_jobs (title, link, bid, status, notes)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      )
-      .run(
-        job.title,
-        job.link || '',
-        job.bid || '',
-        job.status || 'Bidding',
-        job.notes || ''
-      );
-    return lastInsertRowid;
+  addUpworkJob() {
+    throw new Error('upwork_jobs has been removed from the database schema.');
   }
 
   listUpworkJobs() {
-    return this.db
-      .prepare('SELECT * FROM upwork_jobs ORDER BY id DESC')
-      .all();
+    return [];
   }
 
-  deleteUpworkJob(id) {
-    this.db.prepare('DELETE FROM upwork_jobs WHERE id=?').run(id);
+  deleteUpworkJob() {
+    return;
   }
 
   insertAmazonSkus(list) {
@@ -1792,5 +1744,29 @@ export default class TaskDB {
       .prepare(`SELECT * FROM ${safeName} LIMIT ?`)
       .all(limit);
     return { columns, rows, limit, rowCount: rows.length };
+  }
+
+  runReadOnlyQuery(sqlText, limit = 200) {
+    const sql = typeof sqlText === "string" ? sqlText.trim() : "";
+    if (!sql) {
+      throw new Error("Query is required.");
+    }
+    const lowered = sql.toLowerCase();
+    if (!/^(select|with|pragma|explain)\b/.test(lowered)) {
+      throw new Error("Only read-only SELECT/WITH/PRAGMA/EXPLAIN queries are allowed.");
+    }
+
+    const statement = this.db.prepare(sql);
+    const rows = statement.all();
+    const columns = statement.columns().map((col) => col.name);
+    const limitedRows = rows.slice(0, limit);
+
+    return {
+      columns,
+      rows: limitedRows,
+      limit,
+      rowCount: limitedRows.length,
+      totalRows: rows.length
+    };
   }
 }

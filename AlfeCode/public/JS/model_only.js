@@ -28,6 +28,7 @@
   const accountEmail = document.getElementById('accountEmail');
   const accountPlanSelect = document.getElementById('accountPlanSelect');
   const accountPlanPlusOption = document.getElementById('accountPlanPlusOption');
+  const manageSubscriptionButton = document.getElementById('manageSubscriptionButton');
   const accountPlanFeedback = document.getElementById('accountPlanFeedback');
   const accountEverSubscribedSelect = document.getElementById('accountEverSubscribedSelect');
   const accountEverSubscribedFeedback = document.getElementById('accountEverSubscribedFeedback');
@@ -45,6 +46,8 @@
   const supportActionButton = document.getElementById('supportActionButton');
   const config = window.MODEL_ONLY_CONFIG || {};
   const accountsEnabled = config.accountsEnabled !== false;
+  const accountPlanEditable = config.accountPlanEditable === true;
+  const allowConfigIpControls = config.allowConfigIpControls === true;
   const ACCOUNT_PLANS = ['Logged-out Session', 'Free', 'Lite', 'Plus', 'Pro'];
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const ENGINE_OPTION_ORDER = ['auto', 'qwen', 'codex', 'cline', 'sterling', 'kilo'];
@@ -91,6 +94,11 @@
     return normalized === 'Lite' || normalized === 'Plus' || normalized === 'Pro';
   }
 
+  function hasManageSubscriptionAccess(plan) {
+    const normalized = (plan || '').toString().trim();
+    return normalized === 'Lite' || normalized === 'Plus' || normalized === 'Pro';
+  }
+
   function isLoggedOutPlan(plan) {
     const normalized = (plan || '').toString().trim();
     return !['Free', 'Lite', 'Plus', 'Pro'].includes(normalized);
@@ -114,7 +122,7 @@
     }
     if (supportActionButton) {
       if (isSupportEligible) {
-        supportActionButton.textContent = 'Go to Support';
+        supportActionButton.textContent = 'Contact Support';
         supportActionState = 'support';
       } else if (isLoggedOut) {
         supportActionButton.textContent = 'Sign Up / Log In';
@@ -130,9 +138,16 @@
   function handleSupportActionClick() {
     if (!supportActionButton) return;
     const action = supportActionButton.dataset.action || supportActionState;
-    if (action !== 'support') return;
-    const supportUrl = supportActionButton.dataset.supportUrl || '/support';
-    window.location.assign(supportUrl);
+    if (action === 'support') {
+      const supportUrl = supportActionButton.dataset.supportUrl || '/support';
+      window.location.assign(supportUrl);
+      return;
+    }
+    if (action === 'subscribe') {
+      requestSubscribeModal();
+      return;
+    }
+    requestAuthModal('signup');
   }
 
   function requestAuthModal(preferredStep = 'signup') {
@@ -336,7 +351,7 @@
   function resolveFreeUsageBadgeLabel() {
     const normalizedPlan = (currentUsagePlan || '').toString().trim().toLowerCase();
     const isPaidPlan = normalizedPlan === 'lite' || normalizedPlan === 'plus' || normalizedPlan === 'pro';
-    return isPaidPlan ? 'Unlimited' : 'Free';
+    return isPaidPlan ? 'Unlimited' : '';
   }
 
   function createUsageBadge(usage) {
@@ -350,6 +365,7 @@
           .filter(Boolean)
           .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
           .join(' ');
+    if (!label) return null;
     const badgeEl = document.createElement('span');
     badgeEl.className = `usage-badge ${badge.className}`;
     badgeEl.textContent = `${label} usage`;
@@ -926,6 +942,34 @@
     setAccountField(accountOpenrouterApiKey, value || '');
   }
 
+  function updateAccountPlanControl(hasAccount, forceDisabled = false) {
+    if (!accountPlanSelect) return;
+    const canEdit = Boolean(hasAccount) && accountPlanEditable && !forceDisabled;
+    accountPlanSelect.disabled = !canEdit;
+    if (!hasAccount) {
+      showAccountPlanFeedback('');
+      return;
+    }
+    if (!accountPlanEditable) {
+      showAccountPlanFeedback('');
+      return;
+    }
+  }
+
+  function updateAccountEverSubscribedControl(hasAccount, forceDisabled = false) {
+    if (!accountEverSubscribedSelect) return;
+    const canEdit = Boolean(hasAccount) && accountPlanEditable && !forceDisabled;
+    accountEverSubscribedSelect.disabled = !canEdit;
+    if (!hasAccount) {
+      showAccountEverSubscribedFeedback('');
+      return;
+    }
+    if (!accountPlanEditable) {
+      showAccountEverSubscribedFeedback('');
+      return;
+    }
+  }
+
   function setAccountPlanValue(value) {
     if (!accountPlanSelect) return;
     const planValue = ACCOUNT_PLANS.includes(value) ? value : 'Free';
@@ -936,6 +980,9 @@
     }
     accountPlanSelect.value = planValue;
     currentAccountPlan = planValue;
+    if (manageSubscriptionButton) {
+      manageSubscriptionButton.classList.toggle('hidden', !hasManageSubscriptionAccess(planValue));
+    }
     updateProModelOptions();
     updateSupportCallToAction(planValue, currentAccountEverSubscribed);
   }
@@ -996,7 +1043,7 @@
     }
 
     showAccountPlanFeedback('Saving plan…');
-    accountPlanSelect.disabled = true;
+    updateAccountPlanControl(true, true);
 
     try {
       const response = await fetch('/api/account/plan', {
@@ -1018,14 +1065,18 @@
       console.error('Failed to save account plan:', error);
       showAccountPlanFeedback(error.message || 'Failed to save plan.', 'error');
     } finally {
-      accountPlanSelect.disabled = false;
+      updateAccountPlanControl(true);
     }
   }
 
   async function saveAccountEverSubscribed(everSubscribed) {
     if (!accountEverSubscribedSelect) return;
+    if (!accountPlanEditable) {
+      updateAccountEverSubscribedControl(Boolean(accountEmail && accountEmail.textContent && accountEmail.textContent.trim()));
+      return;
+    }
     showAccountEverSubscribedFeedback('Saving…');
-    accountEverSubscribedSelect.disabled = true;
+    updateAccountEverSubscribedControl(true, true);
     try {
       const response = await fetch('/api/account/ever-subscribed', {
         method: 'POST',
@@ -1044,11 +1095,15 @@
       console.error('Failed to save ever subscribed:', error);
       showAccountEverSubscribedFeedback(error.message || 'Failed to save.', 'error');
     } finally {
-      accountEverSubscribedSelect.disabled = false;
+      updateAccountEverSubscribedControl(true);
     }
   }
 
   async function saveOpenrouterApiKey(openrouterApiKey) {
+    if (!allowConfigIpControls) {
+      showAccountOpenrouterApiKeyFeedback('Forbidden.', 'error');
+      return;
+    }
     if (!editOpenrouterApiKeyButton) return;
     showAccountOpenrouterApiKeyFeedback('Saving key...');
     editOpenrouterApiKeyButton.disabled = true;
@@ -1104,20 +1159,16 @@
         setAccountField(accountSession, payload.sessionId);
         setAccountVisibility(Boolean(payload.email || payload.sessionId));
         const hasAccount = Boolean(payload.email);
-        if (accountPlanSelect) {
-          accountPlanSelect.disabled = !hasAccount;
-        }
-        if (accountEverSubscribedSelect) {
-          accountEverSubscribedSelect.disabled = !hasAccount;
-        }
+        updateAccountPlanControl(hasAccount);
+        updateAccountEverSubscribedControl(hasAccount);
         if (logoutButton) {
           logoutButton.disabled = !hasAccount;
         }
         if (editOpenrouterApiKeyButton) {
-          editOpenrouterApiKeyButton.disabled = !hasAccount;
+          editOpenrouterApiKeyButton.disabled = !hasAccount || !allowConfigIpControls;
         }
         if (refreshSessionButton) {
-          refreshSessionButton.disabled = !payload.sessionId;
+          refreshSessionButton.disabled = !payload.sessionId || !allowConfigIpControls;
         }
       }
     } catch (error) {
@@ -1398,6 +1449,10 @@
 
   if (accountEverSubscribedSelect) {
     accountEverSubscribedSelect.addEventListener('change', function() {
+      if (!accountPlanEditable) {
+        updateAccountEverSubscribedControl(Boolean(accountEmail && accountEmail.textContent && accountEmail.textContent.trim()));
+        return;
+      }
       const selectedValue = accountEverSubscribedSelect.value === 'true';
       void saveAccountEverSubscribed(selectedValue);
     });
@@ -1406,42 +1461,20 @@
   async function handleLogout() {
     if (!logoutButton) return;
     logoutButton.disabled = true;
-    showLogoutFeedback('Logging out…');
+    showLogoutFeedback('Redirecting to logout…');
     showSessionRefreshFeedback('');
     try {
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        credentials: 'same-origin',
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const errorMessage = payload?.error || `Failed to log out (status ${response.status}).`;
-        throw new Error(errorMessage);
-      }
-      showLogoutFeedback('Logged out.', 'success');
-      applyUsageLimits(USAGE_LIMITS.loggedOut, 'Logged-out Session');
-      setAccountField(accountEmail, '');
-      setAccountPlanValue('Free');
-      setAccountEverSubscribedValue(false);
-      setAccountOpenrouterApiKeyValue('');
-      setAccountField(accountSession, '');
-      setAccountVisibility(false);
-      if (accountEverSubscribedSelect) {
-        accountEverSubscribedSelect.disabled = true;
-      }
-      if (refreshSessionButton) {
-        refreshSessionButton.disabled = true;
-      }
-      if (editOpenrouterApiKeyButton) {
-        editOpenrouterApiKeyButton.disabled = true;
-      }
+      const logoutUrl = new URL('/auth/shopify/logout', window.location.origin);
+      logoutUrl.searchParams.set('returnTo', '/agent');
       if (window.parent && window.parent !== window) {
         try {
-          window.parent.location.assign('/agent');
-        } catch (error) {
-          console.warn('Failed to refresh parent after logout.', error);
+          window.parent.location.assign(logoutUrl.toString());
+          return;
+        } catch (parentError) {
+          console.warn('Unable to redirect parent window during logout.', parentError);
         }
       }
+      window.location.assign(logoutUrl.toString());
     } catch (error) {
       console.error('Failed to log out:', error);
       showLogoutFeedback(error.message || 'Failed to log out.', 'error');
@@ -1456,6 +1489,10 @@
   }
 
   async function handleSessionRefresh() {
+    if (!allowConfigIpControls) {
+      showSessionRefreshFeedback('Forbidden.', 'error');
+      return;
+    }
     if (!refreshSessionButton) return;
     refreshSessionButton.disabled = true;
     showSessionRefreshFeedback('Refreshing session…');
@@ -1483,10 +1520,24 @@
   }
 
   async function handleResetUsage() {
+    if (!allowConfigIpControls) {
+      showResetUsageFeedback('Forbidden.', 'error');
+      return;
+    }
     if (!resetUsageButton) return;
     resetUsageButton.disabled = true;
     showResetUsageFeedback('Resetting usage...', 'info');
     try {
+      const response = await fetch('/api/usage/reset', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const errorMessage = payload?.error || `Failed to reset usage (status ${response.status}).`;
+        throw new Error(errorMessage);
+      }
+
       // Reset the code usage count to 0
       setStoredCodeUsageCount(0);
 
@@ -1527,17 +1578,15 @@
     });
   }
 
-  if (supportActionButton) {
-    supportActionButton.addEventListener('click', function() {
-      if (!isLoggedOutPlan(currentAccountPlan)) return;
-      requestAuthModal('signup');
-    });
-  }
-
-  const inlineAuthButtons = Array.from(document.querySelectorAll('.subscribe-button--inline'));
+  const inlineAuthButtons = Array.from(document.querySelectorAll('button.subscribe-button--inline'));
   if (inlineAuthButtons.length) {
     inlineAuthButtons.forEach(button => {
       button.addEventListener('click', () => {
+        const action = (button.dataset.ctaAction || '').toString().trim().toLowerCase();
+        if (action === 'subscribe') {
+          requestSubscribeModal();
+          return;
+        }
         requestAuthModal('signup');
       });
     });

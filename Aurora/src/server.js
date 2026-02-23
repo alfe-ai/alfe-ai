@@ -1473,6 +1473,30 @@ app.get("/api/db/table/:name", (req, res) => {
   })();
 });
 
+app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] POST /api/db/query blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  console.debug("[Server Debug] POST /api/db/query called.");
+  (async () => {
+    try {
+      if (typeof db.runReadOnlyQuery !== "function") {
+        return res.status(501).json({ error: "Database query execution not supported." });
+      }
+      const sql = typeof req.body?.query === "string" ? req.body.query : "";
+      const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 200, 1000));
+      const data = await Promise.resolve(db.runReadOnlyQuery(sql, limit));
+      res.json(data);
+    } catch (err) {
+      console.error("[Server Debug] POST /api/db/query error:", err);
+      const message = err?.message || "Internal server error";
+      const isClientError = /query is required|only read-only/i.test(message);
+      res.status(isClientError ? 400 : 500).json({ error: message });
+    }
+  })();
+});
+
 app.get("/api/db/info", (req, res) => {
   if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
     console.warn("[Server Debug] GET /api/db/info blocked by CONFIG_IP_WHITELIST");
@@ -1557,42 +1581,22 @@ app.delete("/api/projectBranches/:project", (req, res) => {
   }
 });
 
-app.get("/api/upworkJobs", (req, res) => {
-  try {
-    const jobs = db.listUpworkJobs();
-    res.json(jobs);
-  } catch (err) {
-    console.error("[AlfeChat] /api/upworkJobs failed:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+app.get("/api/upworkJobs", (_req, res) => {
+  res.status(410).json({
+    error: "upwork_jobs has been removed from Aurora and this API is deprecated."
+  });
 });
 
-app.post("/api/upworkJobs", (req, res) => {
-  try {
-    const { title, link, bid, status, notes } = req.body || {};
-    if (!title) {
-      return res.status(400).json({ error: "Title required" });
-    }
-    const id = db.addUpworkJob({ title, link, bid, status, notes });
-    res.json({ success: true, id });
-  } catch (err) {
-    console.error("[AlfeChat] POST /api/upworkJobs failed:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+app.post("/api/upworkJobs", (_req, res) => {
+  res.status(410).json({
+    error: "upwork_jobs has been removed from Aurora and this API is deprecated."
+  });
 });
 
-app.delete("/api/upworkJobs/:id", (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (!Number.isInteger(id)) {
-      return res.status(400).json({ error: "Invalid id" });
-    }
-    db.deleteUpworkJob(id);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("[AlfeChat] DELETE /api/upworkJobs/:id failed:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+app.delete("/api/upworkJobs/:id", (_req, res) => {
+  res.status(410).json({
+    error: "upwork_jobs has been removed from Aurora and this API is deprecated."
+  });
 });
 
 app.post("/api/tasks/hidden", (req, res) => {
@@ -1952,6 +1956,9 @@ app.post("/api/login", async (req, res) => {
     if (!account || !verifyPassword(password, account.password_hash)) {
       return res.status(400).json({ error: "invalid credentials" });
     }
+    if (account.disabled) {
+      return res.status(403).json({ error: "account disabled" });
+    }
 
     const disable2fa = process.env.DISABLE_2FA === 'true' || process.env.DISABLE_2FA === '1';
     if (account.totp_secret && !disable2fa) {
@@ -1965,7 +1972,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     if (account.session_id && account.session_id !== sessionId) {
-      await db.mergeSessions(account.session_id, sessionId);
+      await db.mergeSessions(account.session_id, sessionId); // Fixed to use separate queries in rds_store.js
       sessionId = account.session_id;
     }
 

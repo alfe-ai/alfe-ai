@@ -42,6 +42,7 @@
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
+  const QWEN_SHOW_DEBUG_INFO_STORAGE_KEY = 'qwenShowDebugInfo';
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
   const normalizeEnginePreference = (value) => {
     const normalized = (value || '').toString().trim().toLowerCase();
@@ -53,6 +54,10 @@
   const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
   let enginePreference = engineFromLocal;
   const qwenDebugEnvEnabled = window.MODEL_ONLY_CONFIG && window.MODEL_ONLY_CONFIG.qwenDebugEnabled;
+  const qwenShowDebugInfoFromLocal = (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) !== null)
+    ? (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) === 'true')
+    : undefined;
+  let qwenShowDebugInfo = (typeof qwenShowDebugInfoFromLocal !== 'undefined') ? qwenShowDebugInfoFromLocal : false;
 
   let currentRunContext = null;
   let runsSidebarSelectedRunId = null;
@@ -312,6 +317,70 @@
     }
   };
   // Listen for settings from the settings iframe to update submit-on-enter default
+  const PENDING_AUTH_REQUESTS_KEY = '__alfePendingAuthModalRequests';
+  const AUTH_MODAL_READY_KEY = '__alfeAuthModalReady';
+
+  const enqueueAuthModalRequest = (preferredStep = 'signup', options = {}) => {
+    try {
+      if (typeof window === 'undefined') {
+        return;
+      }
+      const pending = Array.isArray(window[PENDING_AUTH_REQUESTS_KEY])
+        ? window[PENDING_AUTH_REQUESTS_KEY]
+        : [];
+      pending.push({ preferredStep, options });
+      window[PENDING_AUTH_REQUESTS_KEY] = pending;
+    } catch (error) {
+      console.warn('Failed to queue auth modal request', error);
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window[AUTH_MODAL_READY_KEY] = false;
+  }
+
+  if (typeof window !== 'undefined' && typeof window.alfeOpenAuthModal !== 'function') {
+    window.alfeOpenAuthModal = (preferredStep = 'signup', options = {}) => {
+      enqueueAuthModalRequest(preferredStep, options);
+    };
+  }
+
+  function openAuthModalFromMessage(preferredStep = 'signup', options = {}) {
+    const isAuthModalReady =
+      typeof window !== 'undefined' &&
+      window[AUTH_MODAL_READY_KEY] === true &&
+      typeof window.alfeOpenAuthModal === 'function';
+
+    if (isAuthModalReady) {
+      window.alfeOpenAuthModal(preferredStep, options);
+      return;
+    }
+
+    enqueueAuthModalRequest(preferredStep, options);
+
+    const authModalTrigger = document.getElementById('signUpLogInBtn');
+    if (authModalTrigger) {
+      authModalTrigger.click();
+    }
+  }
+
+  const closeRepoAddModal = () => {
+    const repoAddModal = document.getElementById('repoAddModal');
+    const repoAddIframe = document.getElementById('repoAddIframe');
+    const repoAddLoader = document.getElementById('repoAddLoader');
+    if (repoAddModal) {
+      repoAddModal.classList.add('is-hidden');
+    }
+    document.body.style.overflow = '';
+    if (repoAddIframe) {
+      repoAddIframe.classList.remove('is-loading');
+      repoAddIframe.src = '';
+    }
+    if (repoAddLoader) {
+      repoAddLoader.classList.add('is-hidden');
+    }
+  };
+
   window.addEventListener('message', function(ev){
     try{
       var d = ev && ev.data;
@@ -322,6 +391,12 @@
       if (d.key === 'showPromptHints') {
         try{ showPromptHints = (d.value === true || d.value === 'true'); }catch(e){}
         updatePromptPlaceholder();
+      }
+      if (d.key === 'qwenShowDebugInfo') {
+        try {
+          qwenShowDebugInfo = (d.value === true || d.value === 'true');
+          localStorage.setItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY, qwenShowDebugInfo ? 'true' : 'false');
+        } catch (e) {}
       }
       if(d.key === 'defaultModel'){
         var newDefaultModel = typeof d.value === 'string' ? d.value.trim() : '';
@@ -346,16 +421,29 @@
         }
       }
       if (d.key === 'openAuthModal') {
-        const preferredStep = d.value === 'login' ? 'login' : 'signup';
-        hideSettingsModal();
-        if (typeof openAuthModal === 'function') {
-          openAuthModal({ preferredStep });
+        const openAuthConfig = d.value && typeof d.value === 'object' ? d.value : {};
+        const preferredStep =
+          (typeof d.value === 'string' ? d.value : openAuthConfig.preferredStep) === 'login'
+            ? 'login'
+            : 'signup';
+        const repoAddIframe = document.getElementById('repoAddIframe');
+        const isRepoAddMessageSource = !!(repoAddIframe && ev && ev.source === repoAddIframe.contentWindow);
+        const shouldCloseRepoAddFirst = openAuthConfig.closeRepoAddFirst === true || isRepoAddMessageSource;
+        if (shouldCloseRepoAddFirst) {
+          closeRepoAddModal();
         }
+        hideSettingsModal();
+        openAuthModalFromMessage(preferredStep, { closeRepoAddFirst: shouldCloseRepoAddFirst });
       }
       if (d.key === 'openSubscribeModal') {
-        const shouldCloseSettingsFirst = d.value && typeof d.value === 'object'
-          ? d.value.closeSettingsFirst !== false
-          : true;
+        const openSubscribeConfig = d.value && typeof d.value === 'object' ? d.value : {};
+        const repoAddIframe = document.getElementById('repoAddIframe');
+        const isRepoAddMessageSource = !!(repoAddIframe && ev && ev.source === repoAddIframe.contentWindow);
+        const shouldCloseRepoAddFirst = openSubscribeConfig.closeRepoAddFirst === true || isRepoAddMessageSource;
+        const shouldCloseSettingsFirst = openSubscribeConfig.closeSettingsFirst !== false;
+        if (shouldCloseRepoAddFirst) {
+          closeRepoAddModal();
+        }
         if (shouldCloseSettingsFirst) {
           hideSettingsModal();
           window.setTimeout(() => {
@@ -368,11 +456,27 @@
       if (d.key === 'closeSettingsModal') {
         hideSettingsModal();
       }
+      if (d.key === 'closeRepoAddModal') {
+        closeRepoAddModal();
+      }
+      if (d.key === 'logoutComplete') {
+        hideSettingsModal();
+        try {
+          const url = new URL(window.location.href);
+          const isAgentPage = url.pathname === '/agent' || url.pathname.startsWith('/agent/');
+          if (isAgentPage) {
+            window.location.reload();
+          } else {
+            window.location.assign('/agent');
+          }
+        } catch (error) {
+          window.location.assign('/agent');
+        }
+      }
     }catch(e){}
   });
 
   const incrementCodeUsageCount = () => {
-    // Check if current model has usage: "free"
     let currentModelId = "";
     try {
       currentModelId = (modelSelect && modelSelect.value) || "";
@@ -381,8 +485,10 @@
     }
 
     const currentModel = modelOnlyLookup && modelOnlyLookup.get(currentModelId);
-    if (currentModel && currentModel.usage === "free") {
-      // Don't increment usage count for free models
+    const normalizedPlan = getUsagePlanName().toString().trim().toLowerCase();
+    const isLimitedPlan = normalizedPlan === "logged-out session" || normalizedPlan === "free";
+    if (currentModel && currentModel.usage === "free" && !isLimitedPlan) {
+      // Free-tier models are unlimited for paid plans.
       return;
     }
 
@@ -656,6 +762,25 @@
     if (!subscribeModal) return;
     subscribeModal.classList.add("is-hidden");
     document.body.style.overflow = "";
+  };
+
+  const triggerSubscribeModal = ({ closeSettingsFirst = true, closeRepoAddFirst = false } = {}) => {
+    if (typeof window !== "undefined" && typeof window.alfeOpenSubscribeModal === "function") {
+      window.alfeOpenSubscribeModal({ closeSettingsFirst, closeRepoAddFirst });
+      return true;
+    }
+
+    try {
+      if (window.parent && window.parent !== window && typeof window.parent.alfeOpenSubscribeModal === "function") {
+        window.parent.alfeOpenSubscribeModal({ closeSettingsFirst, closeRepoAddFirst });
+        return true;
+      }
+    } catch (error) {
+      // Ignore cross-frame access issues and keep local fallback behavior.
+    }
+
+    showSubscribeModal();
+    return true;
   };
 
   const isUsageLimitMessage = (message) => {
@@ -1359,6 +1484,7 @@
   const runsSidebarFilterInput = document.getElementById("runsSidebarFilter");
   const runsSidebarOpenRunsButton = document.getElementById("runsSidebarOpenRunsButton");
   const runsSidebarArchiveToggle = document.getElementById("runsSidebarArchiveToggle");
+  const runsSidebarNewTaskButton = document.getElementById("runsSidebarNewTaskButton");
   const projectInfoButton = document.getElementById("projectInfo");
   const projectInfoText = document.getElementById("projectInfoText");
   let runsSidebarShowArchived = (new URLSearchParams(window.location.search).get('archived') === '1') || (window.location.pathname || '').endsWith('/archived');
@@ -1370,6 +1496,15 @@
     }
     if (backToCurrentTasksLink) {
       if (runsSidebarShowArchived) { backToCurrentTasksLink.classList.remove('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','false'); } else { backToCurrentTasksLink.classList.add('is-hidden'); backToCurrentTasksLink.setAttribute('aria-hidden','true'); }
+    }
+    if (runsSidebarNewTaskButton) {
+      if (runsSidebarShowArchived) {
+        runsSidebarNewTaskButton.classList.add('is-hidden');
+        runsSidebarNewTaskButton.setAttribute('aria-hidden', 'true');
+      } else {
+        runsSidebarNewTaskButton.classList.remove('is-hidden');
+        runsSidebarNewTaskButton.setAttribute('aria-hidden', 'false');
+      }
     }
     // If the URL was /archived, normalize to /agent with query param so refresh keeps state
     try {
@@ -1386,8 +1521,6 @@
     } catch(e) { /* ignore */ }
   };
 
-
-  const runsSidebarNewTaskButton = document.getElementById("runsSidebarNewTaskButton");
   const collapsedNewTaskBtn = document.getElementById("collapsedNewTaskBtn");
   const runsSidebarRefreshButton = document.getElementById("runsSidebarRefreshButton");
   const promptPreviewEl = document.getElementById("userPromptPreview");
@@ -6531,6 +6664,7 @@ const appendMergeChunk = (text, type = "output") => {
           force: true,
           skipIfLoading: true,
         });
+        fetchAccountInfo({ reloadOnPlanChange: true });
       }, RUNS_SIDEBAR_REFRESH_INTERVAL_MS);
     }
   }
@@ -7159,7 +7293,7 @@ const appendMergeChunk = (text, type = "output") => {
     text,
     {
       preserveTrailingNewlines = false,
-      stripQwenMetaLines = true,
+      stripQwenMetaLines = !qwenShowDebugInfo,
     } = {},
   ) => {
     if (typeof text !== "string" || !text) {
@@ -7528,7 +7662,7 @@ const appendMergeChunk = (text, type = "output") => {
 
       const parsed = safeParseJson(line);
       if (!parsed) {
-        const passthrough = stripQwenCliOutput(rawLine, { stripQwenMetaLines: false }).trim();
+        const passthrough = stripQwenCliOutput(rawLine).trim();
         if (passthrough) {
           displayLines.push(passthrough);
         }
@@ -7575,7 +7709,7 @@ const appendMergeChunk = (text, type = "output") => {
 
       const parsed = safeParseJson(line);
       if (!parsed) {
-        const passthrough = stripQwenCliOutput(rawLine, { stripQwenMetaLines: false }).trim();
+        const passthrough = stripQwenCliOutput(rawLine).trim();
         if (passthrough) {
           displayLines.push(passthrough);
         }
@@ -8685,6 +8819,7 @@ const appendMergeChunk = (text, type = "output") => {
   const accountButtonEnabled = config.accountButtonEnabled !== false;
   const authModal = document.getElementById("authModal");
   const authModalCloseButton = document.getElementById("authModalCloseButton");
+  const authModalTitle = document.getElementById("authModalTitle");
   const accountModal = document.getElementById("accountModal");
   const accountModalCloseButton = document.getElementById("accountModalCloseButton");
   const sterlingSettingsModal = document.getElementById("sterlingSettingsModal");
@@ -8694,14 +8829,86 @@ const appendMergeChunk = (text, type = "output") => {
   const loginChangeEmailBtn = document.getElementById("loginChangeEmailBtn");
   const signupChangeEmailBtn = document.getElementById("signupChangeEmailBtn");
   const toastEl = document.getElementById("toast");
+  const usageLimitModal = document.getElementById("usageLimitModal");
+  const usageLimitModalCloseButton = document.getElementById("usageLimitModalCloseButton");
+  const subscribeModal = document.getElementById("subscribeModal");
+  const subscribeModalCloseButton = document.getElementById("subscribeModalCloseButton");
+  const subscribeModalActionButton = document.getElementById("subscribeModalActionButton");
   const currentSessionId = (typeof window !== "undefined" && window.currentSessionId)
     ? window.currentSessionId
     : new URLSearchParams(window.location.search || "").get("sessionId");
 
   const AUTH_MODAL_STATE_KEY = "alfe.authModalState";
+  const PENDING_AUTH_REQUESTS_KEY = "__alfePendingAuthModalRequests";
+  const AUTH_MODAL_READY_KEY = "__alfeAuthModalReady";
   let authEmailValue = "";
   let authModalStep = "email";
   let accountInfo = null;
+
+  const closeRepoAddModal = () => {
+    const repoAddModal = document.getElementById("repoAddModal");
+    const repoAddFrame = document.getElementById("repoAddFrame");
+    const repoAddLoader = document.getElementById("repoAddLoader");
+    if (!repoAddModal) {
+      return;
+    }
+    repoAddModal.classList.add("is-hidden");
+    if (repoAddFrame) {
+      repoAddFrame.src = "";
+    }
+    if (repoAddLoader) {
+      repoAddLoader.classList.add("is-hidden");
+    }
+    document.body.style.overflow = "";
+  };
+
+  const hideUsageLimitModal = () => {
+    if (!usageLimitModal) {
+      return;
+    }
+    usageLimitModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
+  const showSubscribeModal = () => {
+    if (!subscribeModal) {
+      return false;
+    }
+    subscribeModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+    return true;
+  };
+
+  const hideSubscribeModal = () => {
+    if (!subscribeModal) {
+      return;
+    }
+    subscribeModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+  };
+
+  const triggerSubscribeModal = ({ closeSettingsFirst = true, closeRepoAddFirst = false } = {}) => {
+    if (closeRepoAddFirst) {
+      closeRepoAddModal();
+    }
+    if (closeSettingsFirst) {
+      hideSettingsModal();
+    }
+    showSubscribeModal();
+    return true;
+  };
+
+  const subscriptionCheckoutUrl = typeof config.subscriptionCheckoutUrl === "string"
+    ? config.subscriptionCheckoutUrl.trim()
+    : "";
+
+  const buildSubscriptionAuthenticationUrl = () => {
+    const accountEmail = (accountInfo && typeof accountInfo.email === "string"
+      ? accountInfo.email
+      : "").trim();
+    const encodedEmail = encodeURIComponent(accountEmail);
+    return `https://subscription.alfe.bot/customer_authentication/login?return_to=%2Fpages%2Fcheckout-js&locale=en&ui_hint=full&login_hint=${encodedEmail}`;
+  };
 
   const showToast = (msg, duration = 1500) => {
     if (!toastEl) {
@@ -8982,6 +9189,9 @@ const appendMergeChunk = (text, type = "output") => {
     if (authEmailInput) {
       authEmailInput.focus();
     }
+    if (authModalTitle) {
+      authModalTitle.textContent = "Sign Up / Log In";
+    }
   };
 
   const showSignupForm = () => {
@@ -9009,6 +9219,9 @@ const appendMergeChunk = (text, type = "output") => {
     }
     if (signup) {
       signup.style.display = "block";
+    }
+    if (authModalTitle) {
+      authModalTitle.textContent = "Sign Up";
     }
   };
 
@@ -9042,12 +9255,41 @@ const appendMergeChunk = (text, type = "output") => {
     if (totpLabel) {
       totpLabel.style.display = "none";
     }
+    if (authModalTitle) {
+      authModalTitle.textContent = "Log In";
+    }
   };
 
-  const openAuthModal = ({ preferredStep } = {}) => {
+  const startShopifyAuth = ({ preferredStep = "signup" } = {}) => {
+    const authStartPath = typeof config.shopifyAuthStartUrl === "string" && config.shopifyAuthStartUrl.trim()
+      ? config.shopifyAuthStartUrl.trim()
+      : "/auth/shopify/start";
+    const returnTo = `${window.location.pathname || "/agent"}${window.location.search || ""}${window.location.hash || ""}`;
+    try {
+      const url = new URL(authStartPath, window.location.origin);
+      url.searchParams.set("returnTo", returnTo || "/agent");
+      if (preferredStep) {
+        url.searchParams.set("preferredStep", preferredStep);
+      }
+      window.location.assign(url.toString());
+      return true;
+    } catch (error) {
+      console.warn("Unable to start Shopify auth redirect.", error);
+      return false;
+    }
+  };
+
+  const openAuthModal = ({ preferredStep, closeRepoAddFirst = false } = {}) => {
     if (!accountButtonEnabled) {
       showToast("Accounts are disabled on this server.");
       return;
+    }
+    const shopifyAuthEnabled = config.shopifyAuthEnabled !== false;
+    if (shopifyAuthEnabled && startShopifyAuth({ preferredStep: preferredStep || "signup" })) {
+      return;
+    }
+    if (closeRepoAddFirst) {
+      closeRepoAddModal();
     }
     hideSettingsModal();
     const saved = loadAuthModalState();
@@ -9066,15 +9308,34 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   if (typeof window !== "undefined") {
-    window.alfeOpenAuthModal = (preferredStep = "signup") => {
-      openAuthModal({ preferredStep });
+    const drainPendingAuthModalRequests = () => {
+      const pending = Array.isArray(window[PENDING_AUTH_REQUESTS_KEY]) ? window[PENDING_AUTH_REQUESTS_KEY] : [];
+      window[PENDING_AUTH_REQUESTS_KEY] = [];
+      pending.forEach((request) => {
+        const preferredStep = request && request.preferredStep;
+        const options = request && request.options;
+        const closeRepoAddFirst = Boolean(options && options.closeRepoAddFirst === true);
+        openAuthModal({ preferredStep, closeRepoAddFirst });
+      });
     };
-    window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true } = {}) => {
+
+    window.alfeOpenAuthModal = (preferredStep = "signup", options = {}) => {
+      const closeRepoAddFirst = Boolean(options && options.closeRepoAddFirst === true);
+      openAuthModal({ preferredStep, closeRepoAddFirst });
+    };
+    window[AUTH_MODAL_READY_KEY] = true;
+    drainPendingAuthModalRequests();
+
+    window.alfeOpenSubscribeModal = ({ closeSettingsFirst = true, closeRepoAddFirst = false } = {}) => {
+      if (closeRepoAddFirst) {
+        closeRepoAddModal();
+      }
       if (closeSettingsFirst) {
         hideSettingsModal();
       }
       showSubscribeModal();
     };
+    window.alfeTriggerSubscribeModal = (options = {}) => triggerSubscribeModal(options);
   }
 
   if (usageLimitModal) {
@@ -9153,8 +9414,39 @@ const appendMergeChunk = (text, type = "output") => {
   if (subscribeButton) {
     subscribeButton.addEventListener("click", (event) => {
       event.preventDefault();
-      const url = subscribeButton.dataset.subscribeUrl || "/agent/model-only";
-      window.open(url, "_blank", "noopener,noreferrer");
+      triggerSubscribeModal();
+    });
+  }
+
+  if (subscribeModalActionButton) {
+    subscribeModalActionButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideSubscribeModal();
+      const subscriptionAuthenticationUrl = buildSubscriptionAuthenticationUrl();
+      if (subscriptionAuthenticationUrl || subscriptionCheckoutUrl) {
+        const destinationUrl = subscriptionAuthenticationUrl || subscriptionCheckoutUrl;
+        let checkoutTab = null;
+        try {
+          checkoutTab = window.open("about:blank", "_blank");
+          if (checkoutTab) {
+            checkoutTab.opener = null;
+          }
+        } catch (error) {
+          checkoutTab = null;
+        }
+
+        if (!checkoutTab) {
+          window.location.href = destinationUrl;
+          return;
+        }
+
+        window.setTimeout(() => {
+          checkoutTab.location.href = destinationUrl;
+        }, 120);
+        return;
+      }
+      showToast("Subscription checkout is unavailable right now.");
+      openAuthModal({ preferredStep: "signup" });
     });
   }
 
@@ -9196,8 +9488,26 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  const getModalCloseButtonFromEvent = (event) => {
+    const target = event && event.target;
+    if (target instanceof Element) {
+      return target.closest(".modal-close");
+    }
+    if (event && typeof event.composedPath === "function") {
+      const path = event.composedPath();
+      return path.find((node) => node instanceof Element && node.classList.contains("modal-close")) || null;
+    }
+    return null;
+  };
+
   if (authModal) {
     authModal.addEventListener("click", (event) => {
+      const closeButton = getModalCloseButtonFromEvent(event);
+      if (closeButton) {
+        event.preventDefault();
+        hideAuthModal();
+        return;
+      }
       if (event.target === authModal) {
         hideAuthModal();
       }
@@ -9206,6 +9516,12 @@ const appendMergeChunk = (text, type = "output") => {
 
   if (accountModal) {
     accountModal.addEventListener("click", (event) => {
+      const closeButton = getModalCloseButtonFromEvent(event);
+      if (closeButton) {
+        event.preventDefault();
+        hideAccountModal();
+        return;
+      }
       if (event.target === accountModal) {
         hideAccountModal();
       }
@@ -9224,7 +9540,15 @@ const appendMergeChunk = (text, type = "output") => {
     }
   });
 
-  const fetchAccountInfo = async () => {
+  const normalizeAccountPlan = (plan) => {
+    if (typeof plan !== "string") {
+      return "";
+    }
+    return plan.trim().toLowerCase();
+  };
+
+  const fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
+    const previousPlan = normalizeAccountPlan(accountInfo?.plan);
     try {
       const params = currentSessionId
         ? `?sessionId=${encodeURIComponent(currentSessionId)}`
@@ -9232,6 +9556,11 @@ const appendMergeChunk = (text, type = "output") => {
       const resp = await fetch(`/api/account${params}`, { cache: "no-store" });
       const data = await resp.json().catch(() => null);
       if (resp.ok && data?.email) {
+        const nextPlan = normalizeAccountPlan(data.plan);
+        if (reloadOnPlanChange && previousPlan && nextPlan && previousPlan !== nextPlan) {
+          window.location.reload();
+          return;
+        }
         setAccountInfo({
           email: data.email,
           plan: data.plan,
