@@ -274,7 +274,7 @@
     },
     {
       "id": "openrouter/qwen/qwen3-coder-30b-a3b-instruct",
-      "label": "Qwen: Qwen3 Coder 30B A3B Instruct",
+      "label": "Qwen3 Coder 30B A3B Instruct",
       "created": "2025-07-31",
       "contextTokens": 160000,
       "disabled": false,
