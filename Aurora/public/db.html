@@ -204,6 +204,27 @@
       color: #94a3b8;
       text-align: center;
     }
+    .deferred-table-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .view-table-btn {
+      border: 1px solid #dc2626;
+      background: #dc2626;
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.55rem 0.9rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .view-table-btn:hover,
+    .view-table-btn:focus {
+      background: #b91c1c;
+      border-color: #b91c1c;
+      outline: none;
+    }
     a {
       color: #2563eb;
       text-decoration: none;
@@ -390,6 +411,19 @@
       tableWrap.appendChild(table);
     }
 
+    function renderDeferredTableButton(name) {
+      tableWrap.innerHTML = "";
+      const container = document.createElement("div");
+      container.className = "deferred-table-wrap";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "view-table-btn";
+      button.textContent = "View Table";
+      button.addEventListener("click", () => loadTableData(name, true));
+      container.appendChild(button);
+      tableWrap.appendChild(container);
+    }
+
 
     async function runManualQuery() {
       const query = queryInput.value.trim();
@@ -452,12 +486,19 @@
       }
     }
 
-    async function loadTableData(name) {
+    async function loadTableData(name, forceLoad = false) {
       try {
         setActiveButton(name);
         activeTable.textContent = `Table: ${name}`;
-        dataStatus.textContent = "Loading data…";
         rowMeta.textContent = "";
+
+        if (name === "chat_pairs" && !forceLoad) {
+          dataStatus.textContent = "Large table. Click View Table to load rows.";
+          renderDeferredTableButton(name);
+          return;
+        }
+
+        dataStatus.textContent = "Loading data…";
         tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
 
         const res = await fetch(`/api/db/table/${encodeURIComponent(name)}`);
