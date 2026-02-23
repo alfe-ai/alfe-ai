@@ -287,7 +287,7 @@
         "outputPerMTokens": 0.27
       },
       "qwen_cli": true,
-      "list_order": 13,
+      "list_order": 0,
       "plus_model": false,
       "usage": "low",
         "url": "https://openrouter.ai/api/v1",
@@ -591,7 +591,7 @@
       },
       "qwen_cli": true,
       "plus_model": true,
-      "list_order": 0,
+      "list_order": 13,
       "usage": "medium",
       "url": "https://openrouter.ai/api/v1",
       "key": "openrouter"
