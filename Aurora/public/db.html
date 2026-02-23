@@ -407,7 +407,11 @@
         return true;
       }
 
-      return tableName === "chat_pairs" && (columnName === "user_text" || columnName === "ai_text");
+      if (tableName === "support_requests" && (columnName === "message" || columnName === "email")) {
+        return true;
+      }
+
+      return tableName === "support_request_replies" && columnName === "message";
     }
 
     function getRevealButtonLabel(tableName, columnName) {
@@ -433,6 +437,18 @@
 
       if (tableName === "chat_pairs" && columnName === "ai_text") {
         return "View AI Text";
+      }
+
+      if (tableName === "support_requests" && columnName === "message") {
+        return "View Message";
+      }
+
+      if (tableName === "support_requests" && columnName === "email") {
+        return "View Email";
+      }
+
+      if (tableName === "support_request_replies" && columnName === "message") {
+        return "View Message";
       }
 
       return "View";
