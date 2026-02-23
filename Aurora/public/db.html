@@ -521,6 +521,47 @@
     let writableMode = false;
     let writableToken = null;
 
+    // URL-based table selection (supports both hash and pathname routes)
+    function getTableFromHash() {
+      const hash = window.location.hash;
+      if (hash.startsWith('#/db/')) {
+        const tableName = decodeURIComponent(hash.substring(5));
+        return tableName || null;
+      }
+      return null;
+    }
+
+    function getTableFromPathname() {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/db/')) {
+        const tableName = decodeURIComponent(pathname.substring(4));
+        return tableName || null;
+      }
+      return null;
+    }
+
+    function updateHashForTable(tableName) {
+      if (tableName) {
+        const newHash = '#/db/' + encodeURIComponent(tableName);
+        if (window.location.hash !== newHash) {
+          window.location.hash = newHash;
+        }
+        // Also update pathname to support direct linking
+        const newPathname = '/db/' + encodeURIComponent(tableName);
+        if (window.location.pathname !== newPathname) {
+          history.pushState(null, '', newPathname);
+        }
+      } else {
+        if (window.location.hash && window.location.hash.startsWith('#/db/')) {
+          window.location.hash = '';
+        }
+        // Clear pathname if no table selected
+        if (window.location.pathname.startsWith('/db/')) {
+          history.pushState(null, '', '/db');
+        }
+      }
+    }
+
     function setActiveButton(name) {
       document.querySelectorAll(".table-list button").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.table === name);
@@ -713,7 +754,15 @@
           tableList.appendChild(li);
         });
         if (tables.length) {
-          loadTableData(tables[0]);
+          // Check for table name in URL (hash or pathname) on initial load
+          const tableFromHash = getTableFromHash();
+          const tableFromPathname = getTableFromPathname();
+          const tableFromUrl = tableFromHash || tableFromPathname;
+          if (tableFromUrl) {
+            loadTableData(tableFromUrl);
+          } else {
+            loadTableData(tables[0]);
+          }
         }
       } catch (err) {
         tableStatus.textContent = "Unable to load tables.";
@@ -729,6 +778,9 @@
 
         dataStatus.textContent = "Loading data…";
         tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
+
+        // Update URL hash to reflect current table selection
+        updateHashForTable(name);
 
         const res = await fetch(`/api/db/table/${encodeURIComponent(name)}`);
         if (!res.ok) {
@@ -751,6 +803,26 @@
     clearQueryBtn.addEventListener("click", () => {
       queryInput.value = "";
       queryInput.focus();
+    });
+
+    // Handle hash changes for browser navigation
+    window.addEventListener('hashchange', () => {
+      const tableFromHash = getTableFromHash();
+      const tableFromPathname = getTableFromPathname();
+      const tableFromUrl = tableFromHash || tableFromPathname;
+      if (tableFromUrl) {
+        loadTableData(tableFromUrl);
+      }
+    });
+
+    // Handle browser back/forward navigation for hash routes
+    window.addEventListener('popstate', () => {
+      const tableFromHash = getTableFromHash();
+      const tableFromPathname = getTableFromPathname();
+      const tableFromUrl = tableFromHash || tableFromPathname;
+      if (tableFromUrl) {
+        loadTableData(tableFromUrl);
+      }
     });
 
     // Writable mode toggle
