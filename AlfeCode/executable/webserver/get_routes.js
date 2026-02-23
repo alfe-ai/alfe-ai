@@ -4701,6 +4701,19 @@ ${cleanedFinalOutput}`;
         return `/${encodeURIComponent(safeRepo)}/chat/${encodeURIComponent(safeChat)}/editor`;
     };
 
+    const splitGeneratedRunRepoName = (name) => {
+        if (typeof name !== "string") {
+            return null;
+        }
+        const trimmed = name.trim();
+        const match = trimmed.match(/^(.*)-(\d{10,})$/);
+        if (!match) {
+            return null;
+        }
+        const baseName = (match[1] || "").trim();
+        return baseName || null;
+    };
+
     const resolveEditorTargetForProjectDir = (projectDir, sessionId) => {
         const rawDir = typeof projectDir === "string" ? projectDir.trim() : "";
         if (!rawDir) {
@@ -4818,6 +4831,18 @@ ${cleanedFinalOutput}`;
                         } catch (_e) { /* ignore */ }
                         if (repoName) {
                             break;
+                        }
+                    }
+
+                    if (!repoName) {
+                        const baseName = normalizeRepoBase(path.basename(resolvedDir));
+                        const baseFromGeneratedName = splitGeneratedRunRepoName(baseName);
+                        if (baseFromGeneratedName && repoConfig[baseFromGeneratedName]) {
+                            repoName = baseFromGeneratedName;
+                            const existingPath = repoConfig[baseFromGeneratedName]?.gitRepoLocalPath;
+                            if (typeof existingPath === "string" && existingPath.trim()) {
+                                resolvedDir = path.resolve(existingPath);
+                            }
                         }
                     }
 
@@ -6014,9 +6039,23 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoConfig = loadRepoConfig(sessionId);
         const repoList = [];
+        const isGeneratedRunRepoName = (name) => {
+            if (typeof name !== "string") {
+                return false;
+            }
+            const trimmed = name.trim();
+            if (!trimmed) {
+                return false;
+            }
+            const baseName = splitGeneratedRunRepoName(trimmed);
+            return Boolean(baseName && repoConfig && repoConfig[baseName]);
+        };
         if (repoConfig) {
             for (const repoName in repoConfig) {
                 if (Object.prototype.hasOwnProperty.call(repoConfig, repoName)) {
+                    if (isGeneratedRunRepoName(repoName)) {
+                        continue;
+                    }
                     repoList.push({
                         name: repoName,
                         gitRepoLocalPath: repoConfig[repoName].gitRepoLocalPath,
