@@ -122,14 +122,8 @@ export default class TaskDB {
     // Migration: remove deprecated sterlingproxy table.
     this.db.exec("DROP TABLE IF EXISTS sterlingproxy;");
 
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS activity_timeline (
-                                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                     timestamp TEXT NOT NULL,
-                                                     action TEXT NOT NULL,
-                                                     details TEXT
-      );
-    `);
+    // Migration: remove deprecated activity_timeline table.
+    this.db.exec("DROP TABLE IF EXISTS activity_timeline;");
 
     this.db.exec(`
         CREATE TABLE IF NOT EXISTS chat_tabs (
@@ -871,15 +865,13 @@ export default class TaskDB {
   }
 
   logActivity(action, details) {
-    this.db
-        .prepare("INSERT INTO activity_timeline (timestamp, action, details) VALUES (?, ?, ?)")
-        .run(new Date().toISOString(), action, details ?? "");
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
   }
 
   getActivity() {
-    return this.db
-        .prepare("SELECT * FROM activity_timeline ORDER BY id DESC")
-        .all();
+    return [];
   }
 
   addFeedback(message, type = 'misc') {
