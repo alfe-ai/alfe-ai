@@ -385,7 +385,11 @@ class RdsStore {
         }
         const runId = (run.id || run.runId || `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).toString();
         const numericId = Number.isFinite(Number(run.numericId)) ? Number(run.numericId) : null;
-        const status = typeof run.status === "string" ? run.status : "";
+        const status = (typeof run.status === "string" && run.status.trim())
+          ? run.status.trim()
+          : (Array.isArray(run.statusHistory) && run.statusHistory.length > 0
+              ? String(run.statusHistory[run.statusHistory.length - 1]).trim()
+              : "");
         const finalOutputMessage = typeof run.finalOutputMessage === "string"
           ? run.finalOutputMessage
           : (typeof run.finalOutput === "string" ? run.finalOutput : "");
