@@ -6015,8 +6015,24 @@ ${cleanedFinalOutput}`;
         const repoConfig = loadRepoConfig(sessionId);
         const repoList = [];
         if (repoConfig) {
+            // Define the allowed repositories to display
+            const allowedRepos = new Set([
+                "Default",
+                "Demo",
+                "alfe-ai"
+            ]);
+            
+            // Add the alfe-ai pattern repositories (these are typically timestamped directories)
+            const alfeAiPatternRepos = Object.keys(repoConfig).filter(name => 
+                name.startsWith("alfe-ai-") && name.length === 22 // 10 digit timestamp in this case
+            );
+            
+            // Combine all allowed repo names to display
+            const allAllowedRepoNames = new Set([...allowedRepos, ...alfeAiPatternRepos]);
+            
             for (const repoName in repoConfig) {
-                if (Object.prototype.hasOwnProperty.call(repoConfig, repoName)) {
+                if (Object.prototype.hasOwnProperty.call(repoConfig, repoName) && 
+                    allAllowedRepoNames.has(repoName)) {
                     repoList.push({
                         name: repoName,
                         gitRepoLocalPath: repoConfig[repoName].gitRepoLocalPath,
