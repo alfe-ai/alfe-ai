@@ -122,14 +122,8 @@ export default class TaskDB {
     // Migration: remove deprecated sterlingproxy table.
     this.db.exec("DROP TABLE IF EXISTS sterlingproxy;");
 
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS activity_timeline (
-                                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                     timestamp TEXT NOT NULL,
-                                                     action TEXT NOT NULL,
-                                                     details TEXT
-      );
-    `);
+    // Migration: remove deprecated activity_timeline table.
+    this.db.exec("DROP TABLE IF EXISTS activity_timeline;");
 
     this.db.exec(`
         CREATE TABLE IF NOT EXISTS chat_tabs (
@@ -358,12 +352,6 @@ export default class TaskDB {
       //console.debug("[TaskDB Debug] chat_pairs.session_id column exists, skipping.", e.message);
     }
     try {
-      this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN ip_address TEXT DEFAULT '';`);
-      console.debug("[TaskDB Debug] Added chat_pairs.ip_address column");
-    } catch(e) {
-      //console.debug("[TaskDB Debug] chat_pairs.ip_address column exists, skipping.", e.message);
-    }
-    try {
       this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN image_uuid TEXT DEFAULT '';`);
       console.debug("[TaskDB Debug] Added chat_pairs.image_uuid column");
     } catch(e) {
@@ -399,6 +387,8 @@ export default class TaskDB {
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_pairs.image_hidden column exists, skipping.", e.message);
     }
+
+    this.dropChatPairsIpAddressColumn();
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS image_sessions (
@@ -875,15 +865,13 @@ export default class TaskDB {
   }
 
   logActivity(action, details) {
-    this.db
-        .prepare("INSERT INTO activity_timeline (timestamp, action, details) VALUES (?, ?, ?)")
-        .run(new Date().toISOString(), action, details ?? "");
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
   }
 
   getActivity() {
-    return this.db
-        .prepare("SELECT * FROM activity_timeline ORDER BY id DESC")
-        .all();
+    return [];
   }
 
   addFeedback(message, type = 'misc') {
@@ -892,25 +880,83 @@ export default class TaskDB {
         .run(message, type, new Date().toISOString());
   }
 
+  dropChatPairsIpAddressColumn() {
+    const columns = this.db.prepare("PRAGMA table_info(chat_pairs)").all();
+    const hasIpAddress = columns.some((column) => column.name === 'ip_address');
+    if (!hasIpAddress) {
+      return;
+    }
+
+    this.db.exec('BEGIN');
+    try {
+      this.db.exec('DROP TABLE IF EXISTS chat_pairs_new;');
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS chat_pairs_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_text TEXT NOT NULL,
+          ai_text TEXT,
+          model TEXT,
+          timestamp TEXT NOT NULL,
+          ai_timestamp TEXT,
+          chat_tab_id INTEGER DEFAULT 1,
+          system_context TEXT,
+          project_context TEXT,
+          token_info TEXT,
+          citations_json TEXT,
+          image_url TEXT,
+          image_alt TEXT DEFAULT '',
+          image_title TEXT DEFAULT '',
+          image_status TEXT DEFAULT '',
+          session_id TEXT DEFAULT '',
+          image_uuid TEXT DEFAULT '',
+          publish_portfolio INTEGER DEFAULT 0,
+          product_url TEXT DEFAULT '',
+          ebay_url TEXT DEFAULT '',
+          image_hidden INTEGER DEFAULT 0
+        );
+      `);
+      this.db.exec(`
+        INSERT INTO chat_pairs_new (
+          id, user_text, ai_text, model, timestamp, ai_timestamp,
+          chat_tab_id, system_context, project_context, token_info,
+          citations_json, image_url, image_alt, image_title, image_status,
+          session_id, image_uuid, publish_portfolio, product_url, ebay_url, image_hidden
+        )
+        SELECT
+          id, user_text, ai_text, model, timestamp, ai_timestamp,
+          chat_tab_id, system_context, project_context, token_info,
+          citations_json, image_url, image_alt, image_title, image_status,
+          session_id, image_uuid, publish_portfolio, product_url, ebay_url, COALESCE(image_hidden, 0)
+        FROM chat_pairs;
+      `);
+      this.db.exec('DROP TABLE chat_pairs;');
+      this.db.exec('ALTER TABLE chat_pairs_new RENAME TO chat_pairs;');
+      this.db.exec('COMMIT');
+      console.debug('[TaskDB Debug] Removed chat_pairs.ip_address column');
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      console.warn('[TaskDB Debug] Failed to remove chat_pairs.ip_address column:', error.message);
+    }
+  }
+
   async createChatPair(
       userText,
       chatTabId = 1,
       systemContext = "",
       projectContext = "",
-      sessionId = "",
-      ipAddress = ""
+      sessionId = ""
   ) {
     const timestamp = new Date().toISOString();
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
-        citations_json, image_url, image_alt, image_title, session_id, ip_address
+        citations_json, image_url, image_alt, image_title, session_id
       )
       VALUES (
         @user_text, '', '', @timestamp, NULL,
         @chat_tab_id, @system_context, @project_context, NULL,
-        NULL, NULL, '', '', @session_id, @ip_address
+        NULL, NULL, '', '', @session_id
       )
     `).run({
       user_text: userText,
@@ -919,8 +965,7 @@ export default class TaskDB {
       system_context: systemContext,
       project_context: projectContext,
       citations_json: null,
-      session_id: sessionId,
-      ip_address: ipAddress
+      session_id: sessionId
     });
     return lastInsertRowid;
   }
@@ -944,16 +989,16 @@ export default class TaskDB {
     });
   }
 
-  createImagePair(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', ipAddress = '', model = '', publish = 0, productUrl = '', ebayUrl = '') {
+  createImagePair(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', model = '', publish = 0, productUrl = '', ebayUrl = '') {
     const ts = new Date().toISOString();
     const uuid = randomUUID().split('-')[0];
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
-        citations_json, image_url, image_alt, image_title, image_status, session_id, ip_address, image_uuid, publish_portfolio, product_url, ebay_url
-      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', '', NULL, NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url, @ebay_url)
-    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, ip_address: ipAddress, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl, citations_json: null });
+        citations_json, image_url, image_alt, image_title, image_status, session_id, image_uuid, publish_portfolio, product_url, ebay_url
+      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', '', NULL, NULL, @url, @alt, @title, @status, @session_id, @uuid, @publish, @product_url, @ebay_url)
+    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl, citations_json: null });
     return lastInsertRowid;
   }
 
@@ -1236,12 +1281,12 @@ export default class TaskDB {
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, image_status,
-        session_id, ip_address, image_uuid, publish_portfolio, product_url
+        session_id, image_uuid, publish_portfolio, product_url
       )
       SELECT user_text, ai_text, model, timestamp, ai_timestamp,
         @new_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, image_status,
-        session_id, ip_address, image_uuid, publish_portfolio, product_url
+        session_id, image_uuid, publish_portfolio, product_url
       FROM chat_pairs WHERE chat_tab_id=@old_id
     `).run({ new_id: lastInsertRowid, old_id: tabId });
 
@@ -1485,14 +1530,8 @@ export default class TaskDB {
     return row ? row.count : 0;
   }
 
-  countImagesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const row = this.db
-        .prepare(
-            "SELECT COUNT(*) AS count FROM chat_pairs WHERE ip_address=? AND image_url IS NOT NULL"
-        )
-        .get(ipAddress);
-    return row ? row.count : 0;
+  countImagesForIp() {
+    return 0;
   }
 
   countSearchesForSession(sessionId) {
@@ -1508,24 +1547,15 @@ export default class TaskDB {
     return row ? row.count : 0;
   }
 
-  countSearchesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const row = this.db
-        .prepare(
-            `SELECT COUNT(*) AS count
-               FROM chat_pairs cp
-               JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
-              WHERE cp.ip_address = ? AND ct.tab_type = 'search'`
-        )
-        .get(ipAddress);
-    return row ? row.count : 0;
+  countSearchesForIp() {
+    return 0;
   }
 
   setImageStatus(url, status) {
     const stmt = this.db.prepare("UPDATE chat_pairs SET image_status=? WHERE image_url=?");
     const info = stmt.run(status, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', status, '', '', '', 0, '', '');
+      this.createImagePair(url, '', 1, '', status, '', '', 0, '', '');
     }
   }
 
@@ -1533,7 +1563,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET image_title=? WHERE image_url=?");
     const info = stmt.run(title, url);
     if (info.changes === 0) {
-      this.createImagePair(url, '', 1, title, '', '', '', '', 0, '', '');
+      this.createImagePair(url, '', 1, title, '', '', '', 0, '', '');
     }
   }
 
@@ -1541,7 +1571,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET publish_portfolio=? WHERE image_url=?");
     const info = stmt.run(flag ? 1 : 0, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', flag ? 1 : 0, '', '');
+      this.createImagePair(url, '', 1, '', '', '', '', flag ? 1 : 0, '', '');
     }
   }
 
@@ -1549,7 +1579,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET product_url=? WHERE image_url=?");
     const info = stmt.run(productUrl, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', 0, productUrl, '');
+      this.createImagePair(url, '', 1, '', '', '', '', 0, productUrl, '');
     }
   }
 
@@ -1564,7 +1594,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET ebay_url=? WHERE image_url=?");
     const info = stmt.run(ebayUrl, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', 0, '', ebayUrl);
+      this.createImagePair(url, '', 1, '', '', '', '', 0, '', ebayUrl);
     }
   }
 
@@ -1587,7 +1617,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET image_hidden=? WHERE image_url=?");
     const info = stmt.run(hidden ? 1 : 0, url);
     if(info.changes === 0){
-      const id = this.createImagePair(url, '', 1, '', '', '', '', '', 0, '', '');
+      const id = this.createImagePair(url, '', 1, '', '', '', '', 0, '', '');
       this.db.prepare("UPDATE chat_pairs SET image_hidden=? WHERE id=?").run(hidden ? 1 : 0, id);
     }
   }

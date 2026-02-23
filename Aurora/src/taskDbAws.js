@@ -81,9 +81,7 @@ export default class TaskDBAws {
     this.activityCache = [];
     this.imageSessionStartCache = new Map();
     this.imageCountCache = new Map();
-    this.ipImageCountCache = new Map();
     this.searchCountCache = new Map();
-    this.ipSearchCountCache = new Map();
     this.imageTitleCache = new Map();
     this.imageStatusCache = new Map();
     this.imagePortfolioCache = new Map();
@@ -166,12 +164,8 @@ export default class TaskDBAws {
         PRIMARY KEY (session_id, key)
       );`);
 
-      await client.query(`CREATE TABLE IF NOT EXISTS activity_timeline (
-        id SERIAL PRIMARY KEY,
-        timestamp TEXT NOT NULL,
-        action TEXT NOT NULL,
-        details TEXT
-      );`);
+      // Migration: remove deprecated activity_timeline table.
+      await client.query('DROP TABLE IF EXISTS activity_timeline;');
 
       await client.query(`CREATE TABLE IF NOT EXISTS chat_tabs (
         id SERIAL PRIMARY KEY,
@@ -214,7 +208,6 @@ export default class TaskDBAws {
         image_title TEXT DEFAULT '',
         image_status TEXT DEFAULT '',
         session_id TEXT DEFAULT '',
-        ip_address TEXT DEFAULT '',
         image_uuid TEXT DEFAULT '',
         publish_portfolio INTEGER DEFAULT 0,
         product_url TEXT DEFAULT '',
@@ -284,13 +277,14 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_title TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_status TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS session_id TEXT DEFAULT '';");
-      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS ip_address TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_uuid TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS publish_portfolio INTEGER DEFAULT 0;");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS product_url TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS ebay_url TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS project_context TEXT;");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_hidden INTEGER DEFAULT 0;");
+
+      await client.query('ALTER TABLE chat_pairs DROP COLUMN IF EXISTS ip_address;');
 
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS totp_secret TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT '';");
@@ -562,8 +556,7 @@ export default class TaskDBAws {
       chatTabId = 1,
       systemContext = "",
       projectContext = "",
-      sessionId = "",
-      ipAddress = ""
+      sessionId = ""
   ) {
     await this._initPromise;
     const timestamp = new Date().toISOString();
@@ -571,12 +564,12 @@ export default class TaskDBAws {
       `INSERT INTO chat_pairs (
          user_text, ai_text, model, timestamp, ai_timestamp,
          chat_tab_id, system_context, project_context, token_info,
-         citations_json, image_url, image_alt, image_title, session_id, ip_address
+         citations_json, image_url, image_alt, image_title, session_id
        )
        VALUES (
          $1, '', '', $2, NULL,
          $3, $4, $5, NULL,
-         NULL, NULL, '', '', $6, $7
+         NULL, NULL, '', '', $6
        )
        RETURNING id`,
       [
@@ -585,8 +578,7 @@ export default class TaskDBAws {
         chatTabId,
         systemContext,
         projectContext,
-        sessionId,
-        ipAddress
+        sessionId
       ]
     );
     return rows[0]?.id ?? null;
@@ -935,49 +927,24 @@ export default class TaskDBAws {
   }
 
   logActivity(action, details) {
-    void this.logActivityAsync(action, details).catch((err) => {
-      console.warn('[TaskDBAws] Failed to log activity:', err);
-    });
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
   }
 
   async logActivityAsync(action, details) {
-    await this._initPromise;
-    const timestamp = new Date().toISOString();
-    await this.pool.query(
-      'INSERT INTO activity_timeline (timestamp, action, details) VALUES ($1, $2, $3)',
-      [timestamp, action, details ?? '']
-    );
-    const cached = this.activityCache;
-    if (cached?.length) {
-      cached.unshift({
-        id: null,
-        timestamp,
-        action,
-        details: details ?? ''
-      });
-    }
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
+    return;
   }
 
   getActivity() {
-    if (this.activityCache.length) {
-      return this.activityCache;
-    }
-    void this.getActivityAsync()
-        .then((rows) => {
-          this.activityCache = rows;
-        })
-        .catch((err) => {
-          console.warn('[TaskDBAws] Failed to load activity timeline:', err);
-        });
     return [];
   }
 
   async getActivityAsync() {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      'SELECT * FROM activity_timeline ORDER BY id DESC'
-    );
-    return rows;
+    return [];
   }
 
   ensureImageSession(sessionId) {
@@ -1340,29 +1307,12 @@ export default class TaskDBAws {
     return rows[0]?.count ?? 0;
   }
 
-  countImagesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const cached = this.ipImageCountCache.get(ipAddress);
-    if (typeof cached === 'number') {
-      return cached;
-    }
-    void this.countImagesForIpAsync(ipAddress)
-        .then((count) => {
-          this.ipImageCountCache.set(ipAddress, count);
-        })
-        .catch((err) => {
-          console.warn('[TaskDBAws] Failed to count images for IP:', err);
-        });
+  countImagesForIp() {
     return 0;
   }
 
-  async countImagesForIpAsync(ipAddress) {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      'SELECT COUNT(*)::int AS count FROM chat_pairs WHERE ip_address = $1 AND image_url IS NOT NULL',
-      [ipAddress]
-    );
-    return rows[0]?.count ?? 0;
+  async countImagesForIpAsync() {
+    return 0;
   }
 
   countSearchesForSession(sessionId) {
@@ -1393,32 +1343,12 @@ export default class TaskDBAws {
     return rows[0]?.count ?? 0;
   }
 
-  countSearchesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const cached = this.ipSearchCountCache.get(ipAddress);
-    if (typeof cached === 'number') {
-      return cached;
-    }
-    void this.countSearchesForIpAsync(ipAddress)
-        .then((count) => {
-          this.ipSearchCountCache.set(ipAddress, count);
-        })
-        .catch((err) => {
-          console.warn('[TaskDBAws] Failed to count searches for IP:', err);
-        });
+  countSearchesForIp() {
     return 0;
   }
 
-  async countSearchesForIpAsync(ipAddress) {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      `SELECT COUNT(*)::int AS count
-         FROM chat_pairs cp
-         JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
-        WHERE cp.ip_address = $1 AND ct.tab_type = 'search'`,
-      [ipAddress]
-    );
-    return rows[0]?.count ?? 0;
+  async countSearchesForIpAsync() {
+    return 0;
   }
 
   ensureDesignChatTab() {

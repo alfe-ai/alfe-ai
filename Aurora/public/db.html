@@ -204,6 +204,44 @@
       color: #94a3b8;
       text-align: center;
     }
+    .deferred-table-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .view-table-btn {
+      border: 1px solid #dc2626;
+      background: #dc2626;
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.55rem 0.9rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .view-table-btn:hover,
+    .view-table-btn:focus {
+      background: #b91c1c;
+      border-color: #b91c1c;
+      outline: none;
+    }
+    .reveal-email-btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .reveal-email-btn:hover,
+    .reveal-email-btn:focus {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      outline: none;
+    }
     a {
       color: #2563eb;
       text-decoration: none;
@@ -281,6 +319,16 @@
         background: transparent;
         color: #e2e8f0;
       }
+      .reveal-email-btn {
+        background: transparent;
+        color: #e2e8f0;
+        border-color: #475569;
+      }
+      .reveal-email-btn:hover,
+      .reveal-email-btn:focus {
+        background: #1e293b;
+        border-color: #64748b;
+      }
       a {
         color: #38bdf8;
       }
@@ -342,7 +390,43 @@
       });
     }
 
-    function renderTable(columns, rows) {
+    function shouldMaskSensitiveCell(tableName, columnName, value) {
+      if (value === null || typeof value === "undefined") {
+        return false;
+      }
+
+      if (tableName === "accounts" && columnName === "email") {
+        return true;
+      }
+
+      if (tableName === "chat_tabs" && columnName === "name") {
+        return true;
+      }
+
+      return tableName === "chat_pairs" && (columnName === "user_text" || columnName === "ai_text");
+    }
+
+    function getRevealButtonLabel(tableName, columnName) {
+      if (tableName === "accounts" && columnName === "email") {
+        return "View Email";
+      }
+
+      if (tableName === "chat_tabs" && columnName === "name") {
+        return "View Name";
+      }
+
+      if (tableName === "chat_pairs" && columnName === "user_text") {
+        return "View User Text";
+      }
+
+      if (tableName === "chat_pairs" && columnName === "ai_text") {
+        return "View AI Text";
+      }
+
+      return "View";
+    }
+
+    function renderTable(columns, rows, tableName = "") {
       if (!columns.length) {
         tableWrap.innerHTML = "<div class='empty'>No columns found.</div>";
         return;
@@ -373,7 +457,16 @@
           columns.forEach((col) => {
             const td = document.createElement("td");
             const value = row[col];
-            if (value && typeof value === "object") {
+            if (shouldMaskSensitiveCell(tableName, col, value)) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.className = "reveal-email-btn";
+              button.textContent = getRevealButtonLabel(tableName, col);
+              button.addEventListener("click", () => {
+                td.textContent = String(value);
+              });
+              td.appendChild(button);
+            } else if (value && typeof value === "object") {
               const pre = document.createElement("pre");
               pre.textContent = JSON.stringify(value, null, 2);
               td.appendChild(pre);
@@ -389,7 +482,6 @@
       tableWrap.innerHTML = "";
       tableWrap.appendChild(table);
     }
-
 
     async function runManualQuery() {
       const query = queryInput.value.trim();
@@ -417,7 +509,7 @@
         const totalRows = typeof payload.totalRows === "number" ? payload.totalRows : rows.length;
         dataStatus.textContent = "";
         rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}${totalRows > rows.length ? ` (showing first ${rows.length} of ${totalRows})` : ""}`;
-        renderTable(columns, rows);
+        renderTable(columns, rows, "");
       } catch (err) {
         dataStatus.textContent = err?.message || "Unable to run query.";
         tableWrap.innerHTML = "<div class='empty'>No data available.</div>";
@@ -456,8 +548,9 @@
       try {
         setActiveButton(name);
         activeTable.textContent = `Table: ${name}`;
-        dataStatus.textContent = "Loading data…";
         rowMeta.textContent = "";
+
+        dataStatus.textContent = "Loading data…";
         tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
 
         const res = await fetch(`/api/db/table/${encodeURIComponent(name)}`);
@@ -469,7 +562,7 @@
         const rows = data.rows || [];
         dataStatus.textContent = "";
         rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"} (limit ${data.limit || 0})`;
-        renderTable(columns, rows);
+        renderTable(columns, rows, name);
       } catch (err) {
         dataStatus.textContent = "Unable to load table data.";
         tableWrap.innerHTML = "<div class='empty'>No data available.</div>";
