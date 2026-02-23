@@ -915,7 +915,8 @@ function setupPostRoutes(deps) {
             gitMergeExit: exitCode,
             git_merge_parent_exit_code: exitCode,
             statusHistory: nextStatusHistory,
-            status: mergeStatus,  // Set the logical status for the run
+            scriptStatus: defaultStatusMessage,
+            status: mergeStatus,
         };
 
         if (stdout) {
