@@ -776,9 +776,10 @@ run_qwen() {
     openai_api_key_value="$qwen_model_key_value"
   fi
 
-  # If webserver injected an account-level OpenAI key, prefer it for Qwen runs
-  # unless a model-specific provider key was explicitly selected above.
-  if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" && -z "$qwen_model_key_value" ]]; then
+  # If webserver injected an account-level OpenAI key, force it for this run
+  # so OPENAI_API_KEY is consistently overridden before env/debug printing.
+  if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" ]]; then
+    printf '[info] overriding OPENAI_API_KEY from ACCOUNT_DB_OPENAI_API_KEY\n'
     openai_api_key_value="$ACCOUNT_DB_OPENAI_API_KEY"
     export OPENAI_API_KEY="$ACCOUNT_DB_OPENAI_API_KEY"
   fi
