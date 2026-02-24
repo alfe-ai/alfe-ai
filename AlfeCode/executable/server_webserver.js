@@ -1387,6 +1387,11 @@ setupPostRoutes({
 
 app.use("/vm_runs", vmRunsRouter);
 
+// Add route for PlayDoh game
+app.get("/playdoh", (req, res) => {
+    res.sendFile(path.join(PROJECT_ROOT, "public", "playdoh.html"));
+});
+
 /* ------------- REGISTER GET ROUTES (new) ------------- */
 const { setupGetRoutes } = require("./webserver/get_routes");
 setupGetRoutes({

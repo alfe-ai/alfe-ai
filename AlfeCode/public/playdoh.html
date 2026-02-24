@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayDoh Game</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 90%;
+            width: 800px;
+            text-align: center;
+        }
+        
+        h1 {
+            margin-top: 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            font-size: 1.2rem;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .color-option.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+        
+        .canvas-container {
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+        }
+        
+        #playdohCanvas {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            cursor: crosshair;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 0 10px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+        }
+        
+        .instructions ul {
+            text-align: left;
+            padding-left: 20px;
+        }
+        
+        .color-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 10px;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎨 PlayDoh Game</h1>
+        
+        <div class="game-info">
+            <div>Color: <span id="currentColor" class="color-preview"></span> <span id="activeColorName">-</span></div>
+            <div>Brush Size: <span id="brushSize">15</span>px</div>
+        </div>
+        
+        <div class="color-picker">
+            <div class="color-option active" style="background-color: #FF6B6B;" data-color="#FF6B6B" title="Red"></div>
+            <div class="color-option" style="background-color: #4ECDC4;" data-color="#4ECDC4" title="Teal"></div>
+            <div class="color-option" style="background-color: #45B7D1;" data-color="#45B7D1" title="Blue"></div>
+            <div class="color-option" style="background-color: #96CEB4;" data-color="#96CEB4" title="Green"></div>
+            <div class="color-option" style="background-color: #FFEAA7;" data-color="#FFEAA7" title="Yellow"></div>
+            <div class="color-option" style="background-color: #DDA0DD;" data-color="#DDA0DD" title="Purple"></div>
+            <div class="color-option" style="background-color: #FFB3BA;" data-color="#FFB3BA" title="Pink"></div>
+            <div class="color-option" style="background-color: #98D8C8;" data-color="#98D8C8" title="Light Green"></div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="playdohCanvas" width="700" height="500"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button id="clearBtn">Clear Canvas</button>
+            <button id="downloadBtn">Download Art</button>
+            <button id="brushSizePlus">+</button>
+            <button id="brushSizeMinus">-</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Play</h3>
+            <ul>
+                <li>Select a color using the color palette</li>
+                <li>Drawing on the canvas with your mouse creates PlayDoh shapes</li>
+                <li>Adjust size with the + and - buttons</li>
+                <li>Clear the canvas to start over</li>
+                <li>Download your masterpiece when ready!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/JS/playdoh.js"></script>
+</body>
+</html>

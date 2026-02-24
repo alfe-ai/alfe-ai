@@ -109,6 +109,10 @@ The order of models shown in the reasoning tooltip can be customized.
 Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
 `chatModels` and `reasoningModels` arrays to suit your preferences.
 
+## PlayDoh Game
+
+A fun PlayDoh drawing game is available at `/playdoh` route. Create colorful drawings with different brush sizes and colors.
+
 ## Qwen CLI upgrade notes
 
 For Qwen run-path comments and upgrade context, see:
