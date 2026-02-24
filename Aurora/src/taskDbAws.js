@@ -164,6 +164,11 @@ export default class TaskDBAws {
         PRIMARY KEY (session_id, key)
       );`);
 
+      await client.query(`CREATE TABLE IF NOT EXISTS session_views (
+        session_id TEXT PRIMARY KEY,
+        view_count INTEGER NOT NULL DEFAULT 0
+      );`);
+
       // Migration: remove deprecated activity_timeline table.
       await client.query('DROP TABLE IF EXISTS activity_timeline;');
 
@@ -824,6 +829,18 @@ export default class TaskDBAws {
        VALUES ($1, $2, $3)
        ON CONFLICT (session_id, key) DO UPDATE SET value = EXCLUDED.value`,
       [sessionId, key, val]
+    );
+  }
+
+  async incrementSessionViewCount(sessionId) {
+    if (!sessionId) return;
+    await this._initPromise;
+    await this.pool.query(
+      `INSERT INTO session_views (session_id, view_count)
+       VALUES ($1, 1)
+       ON CONFLICT (session_id)
+       DO UPDATE SET view_count = session_views.view_count + 1`,
+      [sessionId]
     );
   }
 

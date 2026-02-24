@@ -7,6 +7,7 @@ const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
 const PROJECTVIEW_JSON_TABLE = "projectview_json";
 const ALFECODE_RUNS_TABLE = "alfecode_runs";
+const SESSION_VIEWS_TABLE = "session_views";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
@@ -123,6 +124,10 @@ class RdsStore {
         branch TEXT DEFAULT '',
         model TEXT DEFAULT '',
         PRIMARY KEY (session_id, run_id)
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SESSION_VIEWS_TABLE} (
+        session_id TEXT PRIMARY KEY,
+        view_count INTEGER NOT NULL DEFAULT 0
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
@@ -379,6 +384,21 @@ class RdsStore {
       );
     } catch (error) {
       console.error("[RdsStore] Failed to upsert session setting:", error?.message || error);
+    }
+  }
+
+  async incrementSessionViewCount(sessionId) {
+    if (!this.enabled || !sessionId) return;
+    try {
+      await this.pool.query(
+        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count)
+         VALUES ($1, 1)
+         ON CONFLICT (session_id)
+         DO UPDATE SET view_count = ${SESSION_VIEWS_TABLE}.view_count + 1`,
+        [sessionId]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to increment session view count:", error?.message || error);
     }
   }
 

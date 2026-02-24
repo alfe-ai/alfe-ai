@@ -652,6 +652,21 @@ if(sterlingProxyTarget){
 app.use(compression());
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
+
+app.use((req, res, next) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  req.sessionId = sessionId;
+  res.locals.sessionId = sessionId;
+
+  if (isPageViewRequest(req)) {
+    Promise.resolve(db.incrementSessionViewCount(sessionId)).catch((error) => {
+      console.error("[Server Debug] Failed to increment session view count:", error);
+    });
+  }
+
+  next();
+});
+
 const jobHistoryPath = path.join(__dirname, "../jobsHistory.json");
 const jobManager = new JobManager({ historyPath: jobHistoryPath });
 
@@ -925,6 +940,21 @@ function getSessionIdFromRequest(req) {
     cookies[name] = val;
   });
   return cookies.sessionId || "";
+}
+
+function isPageViewRequest(req) {
+  if ((req.method || "").toUpperCase() !== "GET") {
+    return false;
+  }
+  const reqPath = req.path || req.url || "";
+  if (!reqPath || reqPath.startsWith("/api/")) {
+    return false;
+  }
+  if (/\.(?:js|mjs|css|png|jpe?g|gif|webp|svg|ico|map|json|txt|woff2?|ttf|eot)$/i.test(reqPath)) {
+    return false;
+  }
+  const accept = (req.headers.accept || "").toLowerCase();
+  return accept.includes("text/html") || accept.includes("application/xhtml+xml");
 }
 
 function resolveTabPath(tab) {

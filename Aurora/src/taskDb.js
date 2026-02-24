@@ -112,6 +112,13 @@ export default class TaskDB {
       );
     `);
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_views (
+                                            session_id TEXT PRIMARY KEY,
+                                            view_count INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+
     this.db.exec(
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_github ON issues(github_id);`
     );
@@ -756,6 +763,18 @@ export default class TaskDB {
             "INSERT OR REPLACE INTO session_settings (session_id, key, value) VALUES (?, ?, ?)"
         )
         .run(sessionId, key, val);
+  }
+
+  incrementSessionViewCount(sessionId) {
+    if (!sessionId) return;
+    this.db
+      .prepare(
+        `INSERT INTO session_views (session_id, view_count)
+         VALUES (?, 1)
+         ON CONFLICT(session_id)
+         DO UPDATE SET view_count = view_count + 1`
+      )
+      .run(sessionId);
   }
 
   listProjects(includeArchived = false) {

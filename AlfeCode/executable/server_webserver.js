@@ -583,6 +583,21 @@ function getSessionIdFromRequest(req) {
     return cookies.sessionId || "";
 }
 
+function isPageViewRequest(req) {
+    if ((req.method || "").toUpperCase() !== "GET") {
+        return false;
+    }
+    const reqPath = req.path || req.url || "";
+    if (!reqPath || reqPath.startsWith("/api/")) {
+        return false;
+    }
+    if (/\.(?:js|mjs|css|png|jpe?g|gif|webp|svg|ico|map|json|txt|woff2?|ttf|eot)$/i.test(reqPath)) {
+        return false;
+    }
+    const accept = (req.headers.accept || "").toLowerCase();
+    return accept.includes("text/html") || accept.includes("application/xhtml+xml");
+}
+
 function ensureSessionIdCookie(req, res) {
     let sessionId = getSessionIdFromRequest(req);
     let created = false;
@@ -627,6 +642,11 @@ app.use((req, res, next) => {
     const { sessionId } = ensureSessionIdCookie(req, res);
     req.sessionId = sessionId;
     res.locals.sessionId = sessionId;
+    if (isPageViewRequest(req)) {
+        Promise.resolve(rdsStore.incrementSessionViewCount(sessionId)).catch((error) => {
+            console.error(`[RdsStore] Failed to track page view: ${error?.message || error}`);
+        });
+    }
     next();
 });
 
