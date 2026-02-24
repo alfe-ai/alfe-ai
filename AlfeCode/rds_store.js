@@ -464,8 +464,14 @@ class RdsStore {
              ${SESSION_VIEWS_TABLE}.account_id,
              (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
            ),
-           ipv4_address = array_cat(${SESSION_VIEWS_TABLE}.ipv4_address, CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END),
-           ipv6_address = array_cat(${SESSION_VIEWS_TABLE}.ipv6_address, CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END)`,
+           ipv4_address = array_cat(
+             COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv4_address::TEXT, ''), '{}')::TEXT[],
+             CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END
+           ),
+           ipv6_address = array_cat(
+             COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv6_address::TEXT, ''), '{}')::TEXT[],
+             CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+           )`,
         [sessionId, ipv4, ipv6]
       );
     } catch (error) {
