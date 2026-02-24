@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alfe AI - Monopoly</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .game-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .board {
+            flex: 3;
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            grid-template-rows: repeat(11, 1fr);
+            gap: 2px;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 4px;
+            aspect-ratio: 1/1;
+        }
+        .cell {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-align: center;
+        }
+        .cell.property {
+            border: 1px solid #888;
+        }
+        .cell.property .name {
+            font-weight: bold;
+        }
+        .cell.property .price {
+            font-size: 8px;
+        }
+        .cell.go { background-color: #00ff00; }
+        .cell.brown { background-color: #8B4513; color: white; }
+        .cell.light-blue { background-color: #ADD8E6; }
+        .cell.pink { background-color: #FFB6C1; }
+        .cell.orange { background-color: #FFA500; }
+        .cell.red { background-color: #FF0000; }
+        .cell.yellow { background-color: #FFFF00; }
+        .cell.green { background-color: #008000; }
+        .cell.blue { background-color: #0000FF; }
+        .cell.utility { background-color: #C0C0C0; }
+        .cell.railroad { background-color: #A0A0A0; }
+        .cell.jail { background-color: #C0C0C0; }
+        .cell.free { background-color: #FFFFFF; }
+        .cell.chest { background-color: #800080; color: white; }
+        .cell.crown {
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .info-panel {
+            flex: 1;
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 4px;
+            height: fit-content;
+        }
+        .players-list {
+            margin-bottom: 20px;
+        }
+        .player {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background-color: #e8e8e8;
+        }
+        .player.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .dice {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .status.info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        .status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Alfe AI - Monopoly</h1>
+        
+        <div class="game-area">
+            <div class="board" id="gameBoard">
+                <!-- Board will be populated by JavaScript -->
+            </div>
+            
+            <div class="info-panel">
+                <div class="players-list" id="playersList">
+                    <!-- Players will be listed here -->
+                </div>
+                
+                <div class="controls">
+                    <button class="btn" id="startGameBtn">Start Game</button>
+                    <button class="btn" id="rollDiceBtn" disabled>Roll Dice</button>
+                    <button class="btn" id="buyPropertyBtn" disabled>Buy Property</button>
+                    <button class="btn" id="nextPlayerBtn" disabled>End Turn</button>
+                </div>
+                
+                <div class="status info" id="gameStatus">Enter player names to start the game</div>
+                <div class="dice" id="diceDisplay">Roll dice to start</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MonopolyGame {
+            constructor() {
+                this.game = null;
+                this.gameStarted = false;
+                this.currentPlayerIndex = 0;
+                this.setupEventListeners();
+                this.createBoard();
+            }
+            
+            setupEventListeners() {
+                document.getElementById('startGameBtn').addEventListener('click', () => this.startGame());
+                document.getElementById('rollDiceBtn').addEventListener('click', () => this.rollDice());
+                document.getElementById('buyPropertyBtn').addEventListener('click', () => this.buyProperty());
+                document.getElementById('nextPlayerBtn').addEventListener('click', () => this.nextPlayer());
+            }
+            
+            createBoard() {
+                const board = document.getElementById('gameBoard');
+                
+                // Create 11x11 grid for monopoly board
+                for (let i = 0; i < 11 * 11; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${i}`;
+                    board.appendChild(cell);
+                }
+                
+                // Add labels to cells
+                this.updateBoard();
+            }
+            
+            updateBoard() {
+                if (!this.game) return;
+                
+                const cells = Array.from(document.querySelectorAll('.cell'));
+                
+                // Clear existing content
+                cells.forEach(cell => {
+                    cell.innerHTML = '';
+                    
+                    // Remove all color classes
+                    cell.className = 'cell';
+                });
+                
+                // Add properties to board cells (simplified representation)
+                // This is just for visualization - actual gameplay logic is handled separately
+                const propertyNames = [
+                    'GO', 'Mediterranean Ave', 'Community Chest', 'Baltic Ave', 'Income Tax',
+                    'Reading Railroad', 'Oriental Ave', 'Chance', 'Vermont Ave', 'Connecticut Ave',
+                    'Jail', 'St. Charles Place', 'Electric Company', 'States Ave', 'Virginia Ave',
+                    'Pennsylvania Railroad', 'St. James Place', 'Community Chest', 'Tennessee Ave', 'New York Ave',
+                    'Free Parking', 'Kentucky Ave', 'Chance', 'Indiana Ave', 'Illinois Ave',
+                    'B&O Railroad', 'Atlantic Ave', 'Ventnor Ave', 'Water Works', 'Marvin Gardens',
+                    'Go To Jail', 'Pacific Ave', 'North Carolina Ave', 'Community Chest', 'Pennsylvania Ave',
+                    'Short Line', 'Park Place', 'Luxury Tax', 'Boardwalk'
+                ];
+                
+                for (let i = 0; i < 11; i++) {
+                    for (let j = 0; j < 11; j++) {
+                        const index = i * 11 + j;
+                        if (index >= propertyNames.length) break;
+                        
+                        const cell = document.getElementById(`cell-${index}`);
+                        if (i === 0 && j === 0) {
+                            // Top left cell (GO)
+                            cell.classList.add('go');
+                            cell.innerHTML = '<span class="name">GO</span>';
+                        } else if (i === 0 && j === 10) {
+                            // Top right
+                            cell.classList.add('jail');
+                            cell.innerHTML = '<span class="name">JAIL</span>';
+                        } else if (i === 10 && j === 0) {
+                            // Bottom left
+                            cell.classList.add('free');
+                            cell.innerHTML = '<span class="name">FREE PARKING</span>';
+                        } else if (i === 10 && j === 10) {
+                            // Bottom right
+                            cell.classList.add('go-to-jail');
+                            cell.innerHTML = '<span class="name">GO TO JAIL</span>';
+                        } else {
+                            // Other cells
+                            const propertyName = propertyNames[index];
+                            cell.textContent = propertyName;
+                        }
+                    }
+                }
+            }
+            
+            async startGame() {
+                const playerNames = prompt("Enter player names (comma separated):");
+                if (!playerNames || playerNames.trim() === '') {
+                    alert("Please enter at least one player name.");
+                    return;
+                }
+                
+                const names = playerNames.split(',').map(name => name.trim()).filter(name => name);
+                if (names.length < 2) {
+                    alert("Please enter at least 2 player names.");
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/monopoly/new-game', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ players: names })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.game) {
+                        this.game = result.game;
+                        this.gameStarted = true;
+                        this.gameStatus.textContent = "Game started! Roll dice to begin.";
+                        this.updateUI();
+                        this.updatePlayersList();
+                    } else {
+                        alert("Error starting game: " + (result.error || "Unknown error"));
+                    }
+                } catch (error) {
+                    console.error('Error starting game:', error);
+                    alert("Failed to start game. Please try again.");
+                }
+            }
+            
+            async rollDice() {
+                if (!this.game || !this.gameStarted) return;
+                
+                try {
+                    const response = await fetch('/monopoly/roll-dice', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ game: this.game })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.dice) {
+                        this.game.diceHistory = this.game.diceHistory.concat([result.dice]);
+                        this.updateDiceDisplay(result.dice.dice1, result.dice.dice2);
+                        this.gameStatus.textContent = `Rolled ${result.dice.dice1} and ${result.dice.dice2} (${result.steps} steps)`;
+                        
+                        // Move player
+                        await this.movePlayer(result.steps);
+                    }
+                } catch (error) {
+                    console.error('Error rolling dice:', error);
+                    this.gameStatus.textContent = "Error rolling dice!";
+                }
+            }
+            
+            async movePlayer(steps) {
+                if (!this.game) return;
+                
+                try {
+                    const response = await fetch('/monopoly/move-player', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ game: this.game, steps: steps })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.newPosition !== undefined) {
+                        this.game.players[this.currentPlayerIndex].position = result.newPosition;
+                        this.updateBoard();
+                        this.updateUI();
+                        
+                        // Check property
+                        if (result.property && result.property.price > 0 && !result.property.owner) {
+                            this.gameStatus.textContent = `You landed on ${result.property.name}. Do you want to buy it?`;
+                        } else if (result.property && result.property.owner && result.property.owner !== this.game.players[this.currentPlayerIndex].name) {
+                            this.gameStatus.textContent = `You landed on ${result.property.name} owned by ${result.property.owner}. Pay rent!`;
+                        } else {
+                            this.gameStatus.textContent = "Next player's turn";
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error moving player:', error);
+                }
+            }
+            
+            async buyProperty() {
+                if (!this.game || !this.gameStarted) return;
+                
+                try {
+                    const currentPlayerName = this.game.players[this.currentPlayerIndex].name;
+                    
+                    const response = await fetch('/monopoly/buy-property', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            game: this.game, 
+                            playerName: currentPlayerName 
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        this.gameStatus.textContent = result.message;
+                        this.updateUI();
+                    } else {
+                        this.gameStatus.textContent = "Failed to buy property!";
+                    }
+                } catch (error) {
+                    console.error('Error buying property:', error);
+                }
+            }
+            
+            async nextPlayer() {
+                if (!this.game || !this.gameStarted) return;
+                
+                try {
+                    const response = await fetch('/monopoly/next-player', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ game: this.game })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.game) {
+                        this.game = result.game;
+                        this.currentPlayerIndex = this.game.currentPlayerIndex;
+                        this.updatePlayersList();
+                        this.gameStatus.textContent = `${this.game.players[this.currentPlayerIndex].name}'s turn`;
+                        this.updateUI();
+                    }
+                } catch (error) {
+                    console.error('Error moving to next player:', error);
+                }
+            }
+            
+            updateDiceDisplay(dice1, dice2) {
+                document.getElementById('diceDisplay').innerHTML = `Dice: ${dice1} & ${dice2}`;
+            }
+            
+            updateUI() {
+                const rollBtn = document.getElementById('rollDiceBtn');
+                const buyBtn = document.getElementById('buyPropertyBtn');
+                const nextBtn = document.getElementById('nextPlayerBtn');
+                const startBtn = document.getElementById('startGameBtn');
+                const gameStatus = document.getElementById('gameStatus');
+                
+                if (this.gameStarted) {
+                    startBtn.disabled = true;
+                    rollBtn.disabled = false;
+                    buyBtn.disabled = !this.game || !this.game.players[this.currentPlayerIndex];
+                    nextBtn.disabled = false;
+                } else {
+                    startBtn.disabled = false;
+                    rollBtn.disabled = true;
+                    buyBtn.disabled = true;
+                    nextBtn.disabled = true;
+                }
+            }
+            
+            updatePlayersList() {
+                const playersList = document.getElementById('playersList');
+                if (!this.game) return;
+                
+                playersList.innerHTML = '';
+                
+                this.game.players.forEach((player, index) => {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = `player ${index === this.currentPlayerIndex ? 'active' : ''}`;
+                    playerDiv.innerHTML = `
+                        <strong>${player.name}</strong><br>
+                        Cash: $${player.money}<br>
+                        Position: ${this.game.board[player.position]?.name || 'Unknown'}
+                    `;
+                    playersList.appendChild(playerDiv);
+                });
+            }
+        }
+        
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.game = new MonopolyGame();
+        });
+    </script>
+</body>
+</html>
