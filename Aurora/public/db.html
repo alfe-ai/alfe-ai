@@ -518,7 +518,6 @@
     const cancelTokenBtn = document.getElementById("cancelTokenBtn");
     const submitTokenBtn = document.getElementById("submitTokenBtn");
 
-    const WRITABLE_TOKEN_STORAGE_KEY = "dbAdminWritableToken";
     let writableMode = false;
     let writableToken = null;
 
@@ -544,11 +543,6 @@
     function setWritableMode(enabled, token = null) {
       writableMode = enabled;
       writableToken = enabled ? token : null;
-      if (enabled && token) {
-        localStorage.setItem(WRITABLE_TOKEN_STORAGE_KEY, token);
-      } else {
-        localStorage.removeItem(WRITABLE_TOKEN_STORAGE_KEY);
-      }
       syncWritableUiState();
     }
 
@@ -930,12 +924,8 @@
       }
     });
 
-    const storedWritableToken = localStorage.getItem(WRITABLE_TOKEN_STORAGE_KEY);
-    if (storedWritableToken) {
-      setWritableMode(true, storedWritableToken);
-    } else {
-      syncWritableUiState();
-    }
+    // Writable mode is intentionally session-ephemeral and must be re-enabled after refresh.
+    syncWritableUiState();
 
     loadTables();
 
