@@ -727,7 +727,7 @@ function getOpenAiClient(options = {}) {
     console.debug("[Server Debug] Using openrouter.ai with provided OPENROUTER_API_KEY.");
     return new OpenAI({
       apiKey: openRouterKey,
-      baseURL: "https://litellm.alfe.sh/v1",
+      baseURL: process.env.OPENAI_BASE_URL,
       defaultHeaders: {
         "X-Title": "Alfe AI",
         "HTTP-Referer": "https://alfe.bot"
