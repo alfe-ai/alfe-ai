@@ -46,35 +46,49 @@ Open inbound ports in your security group/firewall:
 Keep 4000 closed publicly
 
 3) Configure Caddy reverse proxy
-   sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
+cat /etc/caddy/Caddyfile
    litellm.alfe.sh {
    tls /etc/caddy/certs/litellm.alfe.sh/fullchain.pem /etc/caddy/certs/litellm.alfe.sh/privkey.pem
-   
-   # --- UI allowlist ---
-   @ui path /ui*
-   
-   @ui_allowed {
-   path /ui*
-   remote_ip 203.0.113.10 198.51.100.0/24
-   }
-   
-   # Allowed IPs can access /ui
-   handle @ui_allowed {
-   reverse_proxy 127.0.0.1:4000
-   }
-   
-   # Everyone else gets blocked from /ui
-   handle @ui {
-   respond "Forbidden" 403
-   }
-   
-   # --- Everything else (e.g. /v1/*) is open ---
-   handle {
-   reverse_proxy 127.0.0.1:4000
-   }
-   }
 
-   EOF
+        # --- UI allowlist ---
+        # allows admin page 
+        @ui path /ui*
+
+        @ui_allowed {
+                path /ui*
+                remote_ip xx.xx.xx.xx
+        }
+
+        # Allowed IPs can access /ui
+        handle @ui_allowed {
+                reverse_proxy 127.0.0.1:4000
+        }
+
+        # Everyone else gets blocked from /ui
+        handle @ui {
+                respond "Forbidden" 403
+        }
+
+        # --- everything except /ui allowlist ---
+        @non_ui {
+                not path /ui /ui/*
+        }
+
+        # this allows for the LLM prompts 
+        @non_ui_allowed {
+                not path /ui /ui/*
+                remote_ip xx.xx.xx.xx
+        }
+
+        handle @non_ui_allowed {
+                reverse_proxy 127.0.0.1:4000
+        }
+
+        handle @non_ui {
+                respond "Forbidden" 403
+        }
+}
+
 
 sudo systemctl reload caddy
 
