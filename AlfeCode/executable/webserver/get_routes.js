@@ -3651,6 +3651,11 @@ ${cleanedFinalOutput}`;
                 const accountOpenRouterApiKeyRaw = (account?.openrouter_api_key || "").toString().trim();
                 if (accountOpenRouterApiKeyRaw) {
                     accountOpenRouterApiKey = accountOpenRouterApiKeyRaw;
+                    // run_codex.sh/run_qwen.sh both ultimately rely on OPENAI_API_KEY
+                    // for CLI auth, while provider-specific plumbing also reads
+                    // OPENROUTER_API_KEY. Set both so account-level override is
+                    // consistently applied across qwen/codex/cline flows.
+                    envOverrides.OPENAI_API_KEY = accountOpenRouterApiKeyRaw;
                     envOverrides.OPENROUTER_API_KEY = accountOpenRouterApiKeyRaw;
                 }
             } catch (accountLookupError) {
