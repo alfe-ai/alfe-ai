@@ -291,6 +291,7 @@ function setupPostRoutes(deps) {
         const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
         return whitelist.has(ip) || whitelist.has(normalized);
     };
+    const canUseConfigIpControls = (req) => isIpAllowed(getRequestIp(req), configIpWhitelist);
     const normalizeHostname = (req) => {
         const header = req.hostname || req.get("host") || "";
         return header.split(":")[0].toLowerCase();
@@ -333,7 +334,7 @@ function setupPostRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
         }
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Plan changes are restricted to whitelisted IP addresses." });
         }
         const sessionId = getSessionIdFromRequest(req);
@@ -397,7 +398,7 @@ function setupPostRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
         }
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Openrouter key updates are restricted to whitelisted IP addresses." });
         }
         const sessionId = getSessionIdFromRequest(req);
@@ -542,7 +543,7 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/session/refresh", async (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Session refresh is restricted to whitelisted IP addresses." });
         }
         const currentSessionId = getSessionIdFromRequest(req);
@@ -571,7 +572,7 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/usage/reset", (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Usage reset is restricted to whitelisted IP addresses." });
         }
         return res.json({ success: true });
