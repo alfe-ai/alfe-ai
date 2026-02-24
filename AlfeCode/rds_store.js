@@ -516,7 +516,13 @@ class RdsStore {
         const finalOutputMessage = typeof run.finalOutputMessage === "string"
           ? run.finalOutputMessage
           : (typeof run.finalOutput === "string" ? run.finalOutput : "");
-        const createdAt = typeof run.createdAt === "string" ? run.createdAt : "";
+        const createdAt = typeof run.createdAt === "string" && run.createdAt.trim()
+          ? run.createdAt
+          : (typeof run.startedAt === "string" && run.startedAt.trim()
+            ? run.startedAt
+            : (typeof run.updatedAt === "string" && run.updatedAt.trim()
+              ? run.updatedAt
+              : new Date().toISOString()));
         const updatedAt = typeof run.updatedAt === "string"
           ? run.updatedAt
           : (typeof run.endedAt === "string" ? run.endedAt : (typeof run.createdAt === "string" ? run.createdAt : new Date().toISOString()));
