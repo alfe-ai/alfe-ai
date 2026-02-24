@@ -129,8 +129,8 @@ class RdsStore {
         session_id TEXT PRIMARY KEY,
         view_count INTEGER NOT NULL DEFAULT 0,
         account_id INTEGER,
-        ipv4_address TEXT DEFAULT '',
-        ipv6_address TEXT DEFAULT ''
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
@@ -142,11 +142,11 @@ class RdsStore {
       );
       await this.pool.query(
         `ALTER TABLE ${SESSION_VIEWS_TABLE}
-         ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT ''`
+         ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';`
       );
       await this.pool.query(
         `ALTER TABLE ${SESSION_VIEWS_TABLE}
-         ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT ''`
+         ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';`
       );
       await this.pool.query(
         `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
@@ -417,8 +417,8 @@ class RdsStore {
              ${SESSION_VIEWS_TABLE}.account_id,
              (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
            ),
-           ipv4_address = EXCLUDED.ipv4_address,
-           ipv6_address = EXCLUDED.ipv6_address`,
+           ipv4_address = array_cat(${SESSION_VIEWS_TABLE}.ipv4_address, CASE WHEN $2 = '' THEN '{}' ELSE ARRAY[$2] END),
+           ipv6_address = array_cat(${SESSION_VIEWS_TABLE}.ipv6_address, CASE WHEN $3 = '' THEN '{}' ELSE ARRAY[$3] END)`,
         [sessionId, ipv4, ipv6]
       );
     } catch (error) {
