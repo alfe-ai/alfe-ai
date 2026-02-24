@@ -2396,6 +2396,8 @@
   };
 
   const MERGE_DISABLED_TOOLTIP_TEXT =
+    "Merge is available after agent finishes running.";
+  const MERGE_DISABLED_TOOLTIP_HTML =
     "Merge is available after<br />agent finishes running.";
 
   let mergeTooltipPinned = false;
@@ -2444,7 +2446,7 @@
       return;
     }
 
-    setMergeTooltipContent(MERGE_DISABLED_TOOLTIP_TEXT);
+    setMergeTooltipContent(MERGE_DISABLED_TOOLTIP_HTML);
     setMergeTooltipVisibility(mergeTooltipPinned);
   };
 
