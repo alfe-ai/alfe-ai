@@ -752,6 +752,27 @@
         const columns = result.columns || [];
         const rows = result.rows || [];
         const totalRows = typeof result.totalRows === "number" ? result.totalRows : rows.length;
+
+        if (!columns.length && shouldUseWriteEndpoint) {
+          const affectedRows = typeof result.rowCount === "number" ? result.rowCount : rows.length;
+          const summaryRows = [
+            { Metric: "Rows affected", Value: affectedRows }
+          ];
+
+          if (typeof result.lastInsertRowid === "number") {
+            summaryRows.push({ Metric: "Last insert row ID", Value: result.lastInsertRowid });
+          }
+
+          if (typeof result.message === "string" && result.message.trim()) {
+            summaryRows.push({ Metric: "Message", Value: result.message.trim() });
+          }
+
+          dataStatus.textContent = result.message?.trim() || "Writable query executed successfully.";
+          rowMeta.textContent = `${affectedRows} row${affectedRows === 1 ? "" : "s"} affected`;
+          renderTable(["Metric", "Value"], summaryRows, "");
+          return;
+        }
+
         dataStatus.textContent = "";
         rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}${totalRows > rows.length ? ` (showing first ${rows.length} of ${totalRows})` : ""}`;
         renderTable(columns, rows, "");
