@@ -537,13 +537,6 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/logout", async (req, res) => {
-        const sessionId = getSessionIdFromRequest(req);
-        if (rdsStore?.enabled && sessionId) {
-            const account = await rdsStore.getAccountBySession(sessionId);
-            if (account) {
-                await rdsStore.setAccountSession(account.id, "");
-            }
-        }
         const hostname = normalizeHostname(req);
         res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
         return res.json({ success: true });
