@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roller Coaster Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to bottom, #1a2980, #26d0ce);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            margin-bottom: 10px;
+        }
+        
+        .instructions {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ffd700;
+        }
+        
+        .game-area {
+            position: relative;
+            height: 400px;
+            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+            border: 3px solid #ffd700;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .track {
+            position: absolute;
+            bottom: 50px;
+            width: 100%;
+            height: 20px;
+            background: #8B4513;
+            border-radius: 10px;
+        }
+        
+        .train {
+            position: absolute;
+            width: 40px;
+            height: 30px;
+            background: #FF4500;
+            border-radius: 5px;
+            bottom: 70px;
+            transition: left 0.1s linear;
+        }
+        
+        .train::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 5px;
+            width: 30px;
+            height: 20px;
+            background: #FF1493;
+            border-radius: 50% 50% 0 0;
+        }
+        
+        .train::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 5px;
+            width: 30px;
+            height: 10px;
+            background: #0000CD;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: linear-gradient(to bottom, #ffd700, #ff8c00);
+            border: none;
+            border-radius: 5px;
+            color: #1a2980;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 215, 0, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ffd700;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #e2e8f0;
+        }
+        
+        .track-section {
+            position: absolute;
+            height: 20px;
+            background: #8B4513;
+        }
+        
+        .track-hill {
+            position: absolute;
+            height: 100px;
+            width: 300px;
+            background: #8B4513;
+            border-radius: 50% 50% 0 0;
+            bottom: 50px;
+        }
+        
+        .track-loop {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 10px solid #8B4513;
+            border-top-color: transparent;
+            border-left-color: transparent;
+            border-radius: 50%;
+            bottom: 50px;
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Roller Coaster Game</h1>
+        
+        <div class="instructions">
+            <p>Build and race your own roller coaster! Click "Start Game" to begin the ride.</p>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="track" id="track"></div>
+            <div class="track-hill" style="left: 200px;"></div>
+            <div class="track-loop" style="left: 500px;"></div>
+            <div class="train" id="train"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start Game</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="speed">0</div>
+                <div class="stat-label">Speed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="height">0</div>
+                <div class="stat-label">Height</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="time">0</div>
+                <div class="stat-label">Time</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="JS/roller-coaster-game.js"></script>
+</body>
+</html>

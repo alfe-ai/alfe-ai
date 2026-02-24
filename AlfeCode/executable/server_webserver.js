@@ -743,6 +743,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// Serve the roller coaster game
+app.get('/roller-coaster-game', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/roller-coaster-game.html'));
+});
+
 // EJS
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
