@@ -7602,6 +7602,14 @@ ${err}`;
             showCommitList: SHOW_COMMIT_LIST
         });
     });
+
+    /* ---------- Silly Game Page ---------- */
+    app.get("/silly-game", (req, res) => {
+        res.render("silly_game", {
+            debugMode: !!process.env.DEBUG,
+            environment: res.locals.environment,
+        });
+    });
 }
 
 module.exports = { setupGetRoutes };

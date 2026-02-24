@@ -1,0 +1,101 @@
+/* Silly Memory Game - CSS Styles */
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.card {
+  aspect-ratio: 1/1;
+  cursor: pointer;
+  perspective: 1000px;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.card.flipped .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card .card-front,
+.card .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card .card-front {
+  background-color: #4a6fa5;
+  color: white;
+}
+
+.card .card-back {
+  background-color: #f8f9fa;
+  transform: rotateY(180deg);
+}
+
+.card.matched .card-front,
+.card.matched .card-back {
+  background-color: #28a745;
+  color: white;
+  transform: rotateY(180deg);
+}
+
+.moves-counter {
+  font-size: 1.2rem;
+}
+
+.timer {
+  font-size: 1.2rem;
+}
+
+#game-message {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+#restart-btn {
+  padding: 8px 16px;
+  font-size: 1rem;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .game-board {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  
+  .card .card-front,
+  .card .card-back {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .card .card-front,
+  .card .card-back {
+    font-size: 1.2rem;
+  }
+}
