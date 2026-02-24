@@ -717,6 +717,7 @@ function setupGetRoutes(deps) {
         }
         return parseBooleanFlag(value);
     };
+    const ALLOW_REPO_ADD_ON_FREE_PLAN = parseBooleanFlag(process.env.ALLOW_REPO_ADD_ON_FREE_PLAN);
     const USER_PROMPT_VISIBLE_CODEX = parseBooleanFlag(process.env.USER_PROMPT_VISIBLE_CODEX);
     const shouldStripCodexUserPrompt = !USER_PROMPT_VISIBLE_CODEX;
     const CODEX_HIDDEN_PROMPT_LINES = [
@@ -6228,7 +6229,7 @@ ${cleanedFinalOutput}`;
                 const account = await rdsStore.getAccountBySession(sessionId);
                 if (!account || isLoggedOutPlan(account.plan)) {
                     showLoggedOutMessage = true;
-                } else if (account.plan === "Free") {
+                } else if (account.plan === "Free" && !ALLOW_REPO_ADD_ON_FREE_PLAN) {
                     showSubscribeMessage = true;
                 }
             }
