@@ -176,6 +176,95 @@ function setupGetRoutes(deps) {
         }
         return parts.join("; ");
     };
+    const generateAndStoreOpenrouterApiKey = async (account, callbackRequestId = "") => {
+        const obfuscateSecret = (value) => {
+            const normalized = typeof value === "string" ? value.trim() : "";
+            if (!normalized) return "";
+            if (normalized.length <= 8) return "***";
+            return `${normalized.slice(0, 4)}...${normalized.slice(-4)}`;
+        };
+
+        if (!account?.id) {
+            throw new Error("Missing account id for key generation.");
+        }
+
+        const litellmHost = typeof process.env.LITELLM_HOST === "string"
+            ? process.env.LITELLM_HOST.trim().replace(/\/+$/, "")
+            : "";
+        if (!litellmHost) {
+            throw new Error("Missing LITELLM_HOST configuration.");
+        }
+
+        const masterKey = typeof process.env.LITELLM_MASTER_KEY === "string"
+            ? process.env.LITELLM_MASTER_KEY.trim()
+            : (typeof process.env.LITELLM_API_KEY === "string" ? process.env.LITELLM_API_KEY.trim() : "");
+        if (!masterKey) {
+            throw new Error("Missing LiteLLM master key configuration.");
+        }
+
+        const requestPayload = {
+            user_id: String(account.id),
+            duration: "30d",
+            metadata: {
+                user_id: String(account.id),
+                email: account.email || "",
+                source: "shopify-callback",
+            },
+        };
+
+        console.info("[Shopify callback][keygen] Requesting LiteLLM key", {
+            callbackRequestId,
+            accountId: account.id,
+            endpoint: `${litellmHost}/key/generate`,
+            hasMasterKey: Boolean(masterKey),
+            masterKeyPreview: obfuscateSecret(masterKey),
+        });
+
+        const keyResponse = await fetch(`${litellmHost}/key/generate`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${masterKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestPayload),
+        });
+
+        const keyPayload = await keyResponse.json().catch(() => ({}));
+        if (!keyResponse.ok) {
+            const keyError = typeof keyPayload?.error === "string"
+                ? keyPayload.error
+                : `LiteLLM key generation failed with status ${keyResponse.status}.`;
+            throw new Error(keyError);
+        }
+
+        const openrouterApiKey = typeof keyPayload?.key === "string"
+            ? keyPayload.key.trim()
+            : "";
+        if (!openrouterApiKey) {
+            throw new Error("LiteLLM did not return `key` (sk-...).");
+        }
+
+        const keyHashId = [
+            keyPayload?.token_id,
+            keyPayload?.token,
+            keyPayload?.key_id,
+            keyPayload?.id,
+            keyPayload?.data?.token_id,
+            keyPayload?.data?.token,
+            keyPayload?.data?.key_id,
+            keyPayload?.key_info?.token_id,
+            keyPayload?.key_info?.token,
+            keyPayload?.key_info?.key_id,
+        ].find((value) => typeof value === "string" && value.trim().length > 0)?.trim() || "";
+
+        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey, keyHashId);
+        console.info("[Shopify callback][keygen] Stored LiteLLM key", {
+            callbackRequestId,
+            accountId: account.id,
+            keyPreview: obfuscateSecret(openrouterApiKey),
+            hasKeyHashId: Boolean(keyHashId),
+        });
+    };
     const normalizeBaseUrl = (value) => {
         if (typeof value !== "string") {
             return "";
@@ -3107,6 +3196,18 @@ ${cleanedFinalOutput}`;
                         account = createdAccount
                             ? await rdsStore.getAccountByEmail(shopifyEmail)
                             : null;
+
+                        if (account?.id) {
+                            try {
+                                await generateAndStoreOpenrouterApiKey(account, callbackRequestId);
+                            } catch (keyError) {
+                                console.error("[Shopify callback] Failed to auto-generate LiteLLM key for new Shopify account.", {
+                                    callbackRequestId,
+                                    accountId: account.id,
+                                    error: keyError?.message || keyError,
+                                });
+                            }
+                        }
                     }
 
                     if (account?.disabled) {
