@@ -1,8 +1,8 @@
-# Alfe AI / Beta  
+# Alfe AI / Beta
 
 ### Alfe AI: Software Development, Project Management, and Image Design Platform
 
-The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).  
+The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).
 
 <img width="1781" height="1509" alt="image" src="https://github.com/user-attachments/assets/d5a7a336-95c6-4603-b411-a62498d21fc4" />
 
@@ -36,10 +36,39 @@ If the model returns a base64 string instead of a URL, the server automatically 
 The server also includes an optional color swatch detector that can trim any palette band from the bottom of generated images. This feature is disabled by default and can be enabled via the `remove_color_swatches` setting.
 The software development component is coming soon, and is available now as a Pre-release on GitHub.
 
-![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)  
+![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)
 
 Alfe AI beta-2.30+ (Image Design): https://github.com/alfe-ai
 Alfe AI beta-0.4x+ (Software Development): https://github.com/alfe-ai
+
+## Potato Game
+
+I've created a simple potato farming game for you to play! 
+
+To run the game:
+1. Navigate to the AlfeCode directory: `cd AlfeCode`
+2. Run the game with: `./run-potato-game.sh`
+
+Features:
+- Plant seeds and watch them grow into potatoes
+- Harvest mature potatoes to earn money
+- Buy more seeds with your earnings
+- Track your progress through days of farming
+- Save your game progress automatically
+
+The game includes:
+- A 5x5 field for planting
+- Seed planting and growth mechanics
+- Money system for purchasing seeds
+- Automatic save/load functionality
+
+You can play by choosing from the menu options:
+1. Plant seeds
+2. Harvest potatoes
+3. Buy more seeds ($5 each)
+4. Check field status
+5. Save game
+6. Quit
 
 ## Deploying
 
