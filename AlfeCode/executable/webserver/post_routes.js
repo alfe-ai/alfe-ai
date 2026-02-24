@@ -212,10 +212,17 @@ function setupPostRoutes(deps) {
             ? keyPayload.key.trim()
             : "";
         if (!openrouterApiKey) {
-            throw new Error("LiteLLM did not return a generated key.");
+            throw new Error("LiteLLM did not return `key` (sk-...).");
         }
 
-        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey);
+        const keyHashId = typeof keyPayload?.token_id === "string"
+            ? keyPayload.token_id.trim()
+            : (typeof keyPayload?.token === "string" ? keyPayload.token.trim() : "");
+        if (!keyHashId) {
+            throw new Error("LiteLLM did not return `token_id`/`token` (key id).");
+        }
+
+        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey, keyHashId);
         return openrouterApiKey;
     };
     const getSessionIdFromRequest = (req) => {
