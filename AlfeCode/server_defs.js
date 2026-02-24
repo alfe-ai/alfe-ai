@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const rdsStore = require('./rds_store');
 
-const FALLBACK_CODEX_MODEL = 'openrouter/openai/gpt-5-mini';
+const FALLBACK_CODEX_MODEL = 'litellm/gpt-5-mini';
 const MODEL_ONLY_CONFIG_PATH = path.join(__dirname, 'data', 'config', 'model_only_models.json');
 const MODEL_ONLY_CONFIG_FALLBACK_PATH = path.join(__dirname, '..', 'Sterling', 'data', 'config', 'model_only_models.json');
 
