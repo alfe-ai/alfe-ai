@@ -2984,6 +2984,27 @@ ${cleanedFinalOutput}`;
         const code = typeof req?.query?.code === "string" ? req.query.code.trim() : "";
         const authState = consumeShopifyAuthState(state);
         const returnTo = authState?.returnTo || "/agent";
+        const addReasonToReturnTo = (targetUrl, reason) => {
+            if (!targetUrl || !reason) {
+                return targetUrl;
+            }
+            try {
+                const normalized = new URL(targetUrl, `${req.protocol}://${req.get("host")}`);
+                normalized.searchParams.set("reason", reason);
+                const isRelative = !/^https?:\/\//i.test(targetUrl);
+                return isRelative
+                    ? `${normalized.pathname}${normalized.search}${normalized.hash}`
+                    : normalized.toString();
+            } catch (error) {
+                console.warn("[Shopify callback] Unable to append reason query parameter.", {
+                    callbackRequestId,
+                    targetUrl,
+                    reason,
+                    error,
+                });
+                return targetUrl;
+            }
+        };
         console.info("[Shopify callback] Parsed callback state", {
             callbackRequestId,
             statePreview: sanitizeValueForLog(state),
@@ -3085,10 +3106,13 @@ ${cleanedFinalOutput}`;
                     }
 
                     if (account?.disabled) {
+                        const disabledReturnTo = addReasonToReturnTo(returnTo, "disabled-account");
                         console.warn("[Shopify callback] Account exists but is disabled.", {
                             callbackRequestId,
                             email: shopifyEmail,
+                            redirectTo: disabledReturnTo,
                         });
+                        return res.redirect(disabledReturnTo);
                     } else if (account) {
                         const incomingSessionId = getSessionIdFromRequest(req);
                         let resolvedSessionId = incomingSessionId;
