@@ -8916,6 +8916,14 @@ const appendMergeChunk = (text, type = "output") => {
     }, duration);
   };
 
+  const setAccountDisabledMessageVisible = (isVisible) => {
+    const accountDisabledMessage = document.getElementById("accountDisabledMessage");
+    if (!accountDisabledMessage) {
+      return;
+    }
+    accountDisabledMessage.style.display = isVisible ? "block" : "none";
+  };
+
   const persistAuthModalState = () => {
     try {
       sessionStorage.setItem(
@@ -9189,7 +9197,7 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const showSignupForm = () => {
-    if (!authEmailValue || !isBasicEmailValid(authEmailValue)) {
+    if (!allowEmptyEmail && (!authEmailValue || !isBasicEmailValid(authEmailValue))) {
       if (authEmailValue) {
         showToast("Enter a valid email address");
       }
@@ -9219,8 +9227,8 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
-  const showLoginForm = () => {
-    if (!authEmailValue || !isBasicEmailValid(authEmailValue)) {
+  const showLoginForm = ({ allowEmptyEmail = false } = {}) => {
+    if (!allowEmptyEmail && (!authEmailValue || !isBasicEmailValid(authEmailValue))) {
       if (authEmailValue) {
         showToast("Enter a valid email address");
       }
@@ -9545,8 +9553,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (resp.ok && data?.disabled) {
       disabledAccountLogoutInFlight = true;
       const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
-      logoutUrl.searchParams.set("returnTo", "/agent");
-      logoutUrl.searchParams.set("reason", "disabled-account");
+      logoutUrl.searchParams.set("returnTo", "/agent?reason=disabled-account");
       window.location.assign(logoutUrl.toString());
       return true;
     }
@@ -9665,19 +9672,13 @@ const appendMergeChunk = (text, type = "output") => {
     }
     // Show account disabled message when account is disabled
     if (data?.error === "account disabled") {
-      const accountDisabledMessage = document.getElementById("accountDisabledMessage");
-      if (accountDisabledMessage) {
-        accountDisabledMessage.style.display = "block";
-      }
+      setAccountDisabledMessageVisible(true);
     }
     showToast(data?.error || "Login failed");
-    
+
     // Hide account disabled message when login is re-attempted
     if (data?.error !== "account disabled") {
-      const accountDisabledMessage = document.getElementById("accountDisabledMessage");
-      if (accountDisabledMessage) {
-        accountDisabledMessage.style.display = "none";
-      }
+      setAccountDisabledMessageVisible(false);
     }
   };
 
@@ -9816,5 +9817,17 @@ const appendMergeChunk = (text, type = "output") => {
   } else {
     updateAccountButton(null);
   }
+
+  const authReason = new URLSearchParams(window.location.search || "").get("reason");
+  if (authReason === "disabled-account") {
+    showAuthModal();
+    showLoginForm({ allowEmptyEmail: true });
+    setAccountDisabledMessageVisible(true);
+    showToast("Your account has been disabled.", 2500);
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete("reason");
+    window.history.replaceState({}, "", currentUrl.toString());
+  }
+
   fetchAccountInfo();
 })();
