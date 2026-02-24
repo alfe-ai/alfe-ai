@@ -128,7 +128,9 @@ class RdsStore {
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SESSION_VIEWS_TABLE} (
         session_id TEXT PRIMARY KEY,
         view_count INTEGER NOT NULL DEFAULT 0,
-        account_id INTEGER
+        account_id INTEGER,
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT ''
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
@@ -137,6 +139,14 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${SESSION_VIEWS_TABLE}
          ADD COLUMN IF NOT EXISTS account_id INTEGER`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT ''`
       );
       await this.pool.query(
         `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
@@ -392,20 +402,24 @@ class RdsStore {
     }
   }
 
-  async incrementSessionViewCount(sessionId) {
+  async incrementSessionViewCount(sessionId, ipAddresses = {}) {
     if (!this.enabled || !sessionId) return;
+    const ipv4 = typeof ipAddresses?.ipv4 === "string" ? ipAddresses.ipv4.trim() : "";
+    const ipv6 = typeof ipAddresses?.ipv6 === "string" ? ipAddresses.ipv6.trim() : "";
     try {
       await this.pool.query(
-        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id)
-         VALUES ($1, 1, (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1))
+        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
+         VALUES ($1, 1, (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1), $2, $3)
          ON CONFLICT (session_id)
          DO UPDATE SET
            view_count = ${SESSION_VIEWS_TABLE}.view_count + 1,
            account_id = COALESCE(
              ${SESSION_VIEWS_TABLE}.account_id,
              (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
-           )`,
-        [sessionId]
+           ),
+           ipv4_address = EXCLUDED.ipv4_address,
+           ipv6_address = EXCLUDED.ipv6_address`,
+        [sessionId, ipv4, ipv6]
       );
     } catch (error) {
       console.error("[RdsStore] Failed to increment session view count:", error?.message || error);

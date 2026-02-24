@@ -116,12 +116,26 @@ export default class TaskDB {
       CREATE TABLE IF NOT EXISTS session_views (
                                             session_id TEXT PRIMARY KEY,
                                             view_count INTEGER NOT NULL DEFAULT 0,
-                                            account_id INTEGER
+                                            account_id INTEGER,
+                                            ipv4_address TEXT DEFAULT '',
+                                            ipv6_address TEXT DEFAULT ''
       );
     `);
     try {
       this.db.exec('ALTER TABLE session_views ADD COLUMN account_id INTEGER;');
       console.debug('[TaskDB Debug] Added session_views.account_id column');
+    } catch(e) {
+      // column already exists
+    }
+    try {
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv4_address TEXT DEFAULT '';");
+      console.debug('[TaskDB Debug] Added session_views.ipv4_address column');
+    } catch(e) {
+      // column already exists
+    }
+    try {
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv6_address TEXT DEFAULT '';");
+      console.debug('[TaskDB Debug] Added session_views.ipv6_address column');
     } catch(e) {
       // column already exists
     }
@@ -772,18 +786,22 @@ export default class TaskDB {
         .run(sessionId, key, val);
   }
 
-  incrementSessionViewCount(sessionId) {
+  incrementSessionViewCount(sessionId, ipAddresses = {}) {
     if (!sessionId) return;
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
     this.db
       .prepare(
-        `INSERT INTO session_views (session_id, view_count, account_id)
-         VALUES (?, 1, (SELECT id FROM accounts WHERE session_id = ? LIMIT 1))
+        `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
+         VALUES (?, 1, (SELECT id FROM accounts WHERE session_id = ? LIMIT 1), ?, ?)
          ON CONFLICT(session_id)
          DO UPDATE SET
            view_count = view_count + 1,
-           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = excluded.session_id LIMIT 1))`
+           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = excluded.session_id LIMIT 1)),
+           ipv4_address = excluded.ipv4_address,
+           ipv6_address = excluded.ipv6_address`
       )
-      .run(sessionId, sessionId);
+      .run(sessionId, sessionId, ipv4, ipv6);
   }
 
   listProjects(includeArchived = false) {

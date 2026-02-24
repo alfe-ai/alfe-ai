@@ -3,6 +3,7 @@ import fs from "fs";
 import { mkdir, readFile, writeFile, access, unlink, readdir } from "fs/promises";
 import path from "path";
 import https from "https";
+import net from "net";
 import { URL, fileURLToPath } from "url";
 import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
@@ -659,7 +660,8 @@ app.use((req, res, next) => {
   res.locals.sessionId = sessionId;
 
   if (isPageViewRequest(req)) {
-    Promise.resolve(db.incrementSessionViewCount(sessionId)).catch((error) => {
+    const ipAddresses = getRequestIpAddresses(req);
+    Promise.resolve(db.incrementSessionViewCount(sessionId, ipAddresses)).catch((error) => {
       console.error("[Server Debug] Failed to increment session view count:", error);
     });
   }
@@ -955,6 +957,37 @@ function isPageViewRequest(req) {
   }
   const accept = (req.headers.accept || "").toLowerCase();
   return accept.includes("text/html") || accept.includes("application/xhtml+xml");
+}
+
+
+function getRequestIpAddresses(req) {
+  const candidates = [];
+  const forwarded = req.headers["x-forwarded-for"];
+  if (Array.isArray(forwarded)) {
+    forwarded.forEach((entry) => {
+      String(entry || "").split(",").forEach((part) => candidates.push(part.trim()));
+    });
+  } else if (forwarded) {
+    String(forwarded).split(",").forEach((part) => candidates.push(part.trim()));
+  }
+  if (req.ip) candidates.push(String(req.ip).trim());
+  if (req.connection?.remoteAddress) candidates.push(String(req.connection.remoteAddress).trim());
+  if (req.socket?.remoteAddress) candidates.push(String(req.socket.remoteAddress).trim());
+
+  let ipv4 = "";
+  let ipv6 = "";
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const normalized = raw.replace(/^::ffff:/i, "");
+    const version = net.isIP(normalized) ? net.isIP(normalized) : net.isIP(raw);
+    if (version === 4 && !ipv4) {
+      ipv4 = normalized;
+    } else if (version === 6 && !ipv6) {
+      ipv6 = raw;
+    }
+    if (ipv4 && ipv6) break;
+  }
+  return { ipv4, ipv6 };
 }
 
 function resolveTabPath(tab) {
