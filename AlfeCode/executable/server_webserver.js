@@ -29,6 +29,7 @@ const bodyParser = require("body-parser");
 const cron = require("node-cron");
 const http = require("http");
 const https = require("https");
+const net = require("net");
 const { OpenAI } = require("openai");
 const rdsStore = require("../rds_store");
 const app = express();
@@ -583,6 +584,52 @@ function getSessionIdFromRequest(req) {
     return cookies.sessionId || "";
 }
 
+function isPageViewRequest(req) {
+    if ((req.method || "").toUpperCase() !== "GET") {
+        return false;
+    }
+    const reqPath = req.path || req.url || "";
+    if (!reqPath || reqPath.startsWith("/api/")) {
+        return false;
+    }
+    if (/\.(?:js|mjs|css|png|jpe?g|gif|webp|svg|ico|map|json|txt|woff2?|ttf|eot)$/i.test(reqPath)) {
+        return false;
+    }
+    const accept = (req.headers.accept || "").toLowerCase();
+    return accept.includes("text/html") || accept.includes("application/xhtml+xml");
+}
+
+
+function getRequestIpAddresses(req) {
+    const candidates = [];
+    const forwarded = req.headers["x-forwarded-for"];
+    if (Array.isArray(forwarded)) {
+        forwarded.forEach((entry) => {
+            String(entry || "").split(",").forEach((part) => candidates.push(part.trim()));
+        });
+    } else if (forwarded) {
+        String(forwarded).split(",").forEach((part) => candidates.push(part.trim()));
+    }
+    if (req.ip) candidates.push(String(req.ip).trim());
+    if (req.connection?.remoteAddress) candidates.push(String(req.connection.remoteAddress).trim());
+    if (req.socket?.remoteAddress) candidates.push(String(req.socket.remoteAddress).trim());
+
+    let ipv4 = "";
+    let ipv6 = "";
+    for (const raw of candidates) {
+        if (!raw) continue;
+        const normalized = raw.replace(/^::ffff:/i, "");
+        const version = net.isIP(normalized) ? net.isIP(normalized) : net.isIP(raw);
+        if (version === 4 && !ipv4) {
+            ipv4 = normalized;
+        } else if (version === 6 && !ipv6) {
+            ipv6 = raw;
+        }
+        if (ipv4 && ipv6) break;
+    }
+    return { ipv4, ipv6 };
+}
+
 function ensureSessionIdCookie(req, res) {
     let sessionId = getSessionIdFromRequest(req);
     let created = false;
@@ -627,6 +674,12 @@ app.use((req, res, next) => {
     const { sessionId } = ensureSessionIdCookie(req, res);
     req.sessionId = sessionId;
     res.locals.sessionId = sessionId;
+    if (isPageViewRequest(req)) {
+        const ipAddresses = getRequestIpAddresses(req);
+        Promise.resolve(rdsStore.incrementSessionViewCount(sessionId, ipAddresses)).catch((error) => {
+            console.error(`[RdsStore] Failed to track page view: ${error?.message || error}`);
+        });
+    }
     next();
 });
 
