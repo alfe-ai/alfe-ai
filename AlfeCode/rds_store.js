@@ -7,6 +7,7 @@ const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
 const PROJECTVIEW_JSON_TABLE = "projectview_json";
 const ALFECODE_RUNS_TABLE = "alfecode_runs";
+const SESSION_VIEWS_TABLE = "session_views";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
@@ -124,9 +125,28 @@ class RdsStore {
         model TEXT DEFAULT '',
         PRIMARY KEY (session_id, run_id)
       );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SESSION_VIEWS_TABLE} (
+        session_id TEXT PRIMARY KEY,
+        view_count INTEGER NOT NULL DEFAULT 0,
+        account_id INTEGER,
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT ''
+      );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
          ON ${ALFECODE_RUNS_TABLE} (session_id, updated_at DESC)`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS account_id INTEGER`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT ''`
       );
       await this.pool.query(
         `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
@@ -382,6 +402,30 @@ class RdsStore {
     }
   }
 
+  async incrementSessionViewCount(sessionId, ipAddresses = {}) {
+    if (!this.enabled || !sessionId) return;
+    const ipv4 = typeof ipAddresses?.ipv4 === "string" ? ipAddresses.ipv4.trim() : "";
+    const ipv6 = typeof ipAddresses?.ipv6 === "string" ? ipAddresses.ipv6.trim() : "";
+    try {
+      await this.pool.query(
+        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
+         VALUES ($1, 1, (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1), $2, $3)
+         ON CONFLICT (session_id)
+         DO UPDATE SET
+           view_count = ${SESSION_VIEWS_TABLE}.view_count + 1,
+           account_id = COALESCE(
+             ${SESSION_VIEWS_TABLE}.account_id,
+             (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
+           ),
+           ipv4_address = EXCLUDED.ipv4_address,
+           ipv6_address = EXCLUDED.ipv6_address`,
+        [sessionId, ipv4, ipv6]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to increment session view count:", error?.message || error);
+    }
+  }
+
   async queueReplaceSessionRuns(sessionId, runs) {
     await this.ensureReady();
     const client = await this.pool.connect();
@@ -488,7 +532,17 @@ class RdsStore {
          RETURNING id, email, session_id, created_at`,
         [normalized, typeof passwordHash === "string" && passwordHash ? passwordHash : null, sessionId || '', new Date().toISOString(), '', 'Free']
       );
-      return result.rows[0] || null;
+      const created = result.rows[0] || null;
+      if (created?.id && created?.session_id) {
+        await this.pool.query(
+          `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id)
+           VALUES ($1, 0, $2)
+           ON CONFLICT (session_id)
+           DO UPDATE SET account_id = EXCLUDED.account_id`,
+          [created.session_id, created.id]
+        );
+      }
+      return created;
     } catch (error) {
       console.error("[RdsStore] Failed to create account:", error?.message || error);
       throw error;
@@ -505,6 +559,15 @@ class RdsStore {
          WHERE id = $2`,
         [sessionId || "", id]
       );
+      if (sessionId) {
+        await this.pool.query(
+          `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id)
+           VALUES ($1, 0, $2)
+           ON CONFLICT (session_id)
+           DO UPDATE SET account_id = EXCLUDED.account_id`,
+          [sessionId, id]
+        );
+      }
     } catch (error) {
       console.error("[RdsStore] Failed to update account session:", error?.message || error);
     }
@@ -604,6 +667,23 @@ class RdsStore {
         [targetId, sourceId]
       );
       await client.query(`DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1`, [sourceId]);
+      await client.query(
+        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id)
+         SELECT
+           $1,
+           COALESCE(t.view_count, 0) + COALESCE(s.view_count, 0),
+           COALESCE(t.account_id, s.account_id, a.id)
+         FROM (SELECT 1) x
+         LEFT JOIN ${SESSION_VIEWS_TABLE} t ON t.session_id = $1
+         LEFT JOIN ${SESSION_VIEWS_TABLE} s ON s.session_id = $2
+         LEFT JOIN ${ACCOUNTS_TABLE} a ON a.session_id = $1
+         ON CONFLICT (session_id)
+         DO UPDATE SET
+           view_count = EXCLUDED.view_count,
+           account_id = COALESCE(${SESSION_VIEWS_TABLE}.account_id, EXCLUDED.account_id)`,
+        [targetId, sourceId]
+      );
+      await client.query(`DELETE FROM ${SESSION_VIEWS_TABLE} WHERE session_id = $1`, [sourceId]);
       await client.query("COMMIT");
     } catch (error) {
       try {

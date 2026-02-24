@@ -164,6 +164,17 @@ export default class TaskDBAws {
         PRIMARY KEY (session_id, key)
       );`);
 
+      await client.query(`CREATE TABLE IF NOT EXISTS session_views (
+        session_id TEXT PRIMARY KEY,
+        view_count INTEGER NOT NULL DEFAULT 0,
+        account_id INTEGER,
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT ''
+      );`);
+      await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
+      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT '';");
+      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT '';");
+
       // Migration: remove deprecated activity_timeline table.
       await client.query('DROP TABLE IF EXISTS activity_timeline;');
 
@@ -827,6 +838,24 @@ export default class TaskDBAws {
     );
   }
 
+  async incrementSessionViewCount(sessionId, ipAddresses = {}) {
+    if (!sessionId) return;
+    await this._initPromise;
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    await this.pool.query(
+      `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
+       VALUES ($1, 1, (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1), $2, $3)
+       ON CONFLICT (session_id)
+       DO UPDATE SET
+         view_count = session_views.view_count + 1,
+         account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1)),
+         ipv4_address = EXCLUDED.ipv4_address,
+         ipv6_address = EXCLUDED.ipv6_address`,
+      [sessionId, ipv4, ipv6]
+    );
+  }
+
   async createAccount(email, passwordHash, sessionId = '', timezone = '', plan = 'Free') {
     const ts = new Date().toISOString();
     const { rows } = await this.pool.query(
@@ -835,7 +864,17 @@ export default class TaskDBAws {
        RETURNING id`,
       [email, passwordHash, sessionId, ts, timezone, plan]
     );
-    return rows[0]?.id;
+    const accountId = rows[0]?.id;
+    if (accountId && sessionId) {
+      await this.pool.query(
+        `INSERT INTO session_views (session_id, view_count, account_id)
+         VALUES ($1, 0, $2)
+         ON CONFLICT (session_id)
+         DO UPDATE SET account_id = EXCLUDED.account_id`,
+        [sessionId, accountId]
+      );
+    }
+    return accountId;
   }
 
   async getAccountByEmail(email) {
@@ -845,6 +884,15 @@ export default class TaskDBAws {
 
   async setAccountSession(id, sessionId) {
     await this.pool.query('UPDATE accounts SET session_id = $1 WHERE id = $2', [sessionId, id]);
+    if (sessionId) {
+      await this.pool.query(
+        `INSERT INTO session_views (session_id, view_count, account_id)
+         VALUES ($1, 0, $2)
+         ON CONFLICT (session_id)
+         DO UPDATE SET account_id = EXCLUDED.account_id`,
+        [sessionId, id]
+      );
+    }
   }
 
   async setAccountTotpSecret(id, secret) {
@@ -893,6 +941,23 @@ export default class TaskDBAws {
       this.imageSessionStartCache.set(targetId, srcStart);
     }
     await this.pool.query('DELETE FROM image_sessions WHERE session_id = $1', [sourceId]);
+    await this.pool.query(
+      `INSERT INTO session_views (session_id, view_count, account_id)
+       SELECT
+         $1,
+         COALESCE(t.view_count, 0) + COALESCE(s.view_count, 0),
+         COALESCE(t.account_id, s.account_id, a.id)
+       FROM (SELECT 1) x
+       LEFT JOIN session_views t ON t.session_id = $1
+       LEFT JOIN session_views s ON s.session_id = $2
+       LEFT JOIN accounts a ON a.session_id = $1
+       ON CONFLICT (session_id)
+       DO UPDATE SET
+         view_count = EXCLUDED.view_count,
+         account_id = COALESCE(session_views.account_id, EXCLUDED.account_id)`,
+      [targetId, sourceId]
+    );
+    await this.pool.query('DELETE FROM session_views WHERE session_id = $1', [sourceId]);
     this.imageSessionStartCache.delete(sourceId);
     this.imageCountCache.delete(sourceId);
     this.imageCountCache.delete(targetId);

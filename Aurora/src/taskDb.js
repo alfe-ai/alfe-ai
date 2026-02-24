@@ -112,6 +112,34 @@ export default class TaskDB {
       );
     `);
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_views (
+                                            session_id TEXT PRIMARY KEY,
+                                            view_count INTEGER NOT NULL DEFAULT 0,
+                                            account_id INTEGER,
+                                            ipv4_address TEXT DEFAULT '',
+                                            ipv6_address TEXT DEFAULT ''
+      );
+    `);
+    try {
+      this.db.exec('ALTER TABLE session_views ADD COLUMN account_id INTEGER;');
+      console.debug('[TaskDB Debug] Added session_views.account_id column');
+    } catch(e) {
+      // column already exists
+    }
+    try {
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv4_address TEXT DEFAULT '';");
+      console.debug('[TaskDB Debug] Added session_views.ipv4_address column');
+    } catch(e) {
+      // column already exists
+    }
+    try {
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv6_address TEXT DEFAULT '';");
+      console.debug('[TaskDB Debug] Added session_views.ipv6_address column');
+    } catch(e) {
+      // column already exists
+    }
+
     this.db.exec(
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_github ON issues(github_id);`
     );
@@ -756,6 +784,24 @@ export default class TaskDB {
             "INSERT OR REPLACE INTO session_settings (session_id, key, value) VALUES (?, ?, ?)"
         )
         .run(sessionId, key, val);
+  }
+
+  incrementSessionViewCount(sessionId, ipAddresses = {}) {
+    if (!sessionId) return;
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    this.db
+      .prepare(
+        `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
+         VALUES (?, 1, (SELECT id FROM accounts WHERE session_id = ? LIMIT 1), ?, ?)
+         ON CONFLICT(session_id)
+         DO UPDATE SET
+           view_count = view_count + 1,
+           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = excluded.session_id LIMIT 1)),
+           ipv4_address = excluded.ipv4_address,
+           ipv6_address = excluded.ipv6_address`
+      )
+      .run(sessionId, sessionId, ipv4, ipv6);
   }
 
   listProjects(includeArchived = false) {
@@ -1660,6 +1706,16 @@ export default class TaskDB {
              VALUES (?, ?, ?, ?, ?, ?)`
         )
         .run(email, passwordHash, sessionId, ts, timezone, plan);
+    if (sessionId) {
+      this.db
+        .prepare(
+          `INSERT INTO session_views (session_id, view_count, account_id)
+           VALUES (?, 0, ?)
+           ON CONFLICT(session_id)
+           DO UPDATE SET account_id = excluded.account_id`
+        )
+        .run(sessionId, lastInsertRowid);
+    }
     return lastInsertRowid;
   }
 
@@ -1669,6 +1725,16 @@ export default class TaskDB {
 
   setAccountSession(id, sessionId) {
     this.db.prepare('UPDATE accounts SET session_id=? WHERE id=?').run(sessionId, id);
+    if (sessionId) {
+      this.db
+        .prepare(
+          `INSERT INTO session_views (session_id, view_count, account_id)
+           VALUES (?, 0, ?)
+           ON CONFLICT(session_id)
+           DO UPDATE SET account_id = excluded.account_id`
+        )
+        .run(sessionId, id);
+    }
   }
 
   setAccountTotpSecret(id, secret) {
@@ -1700,8 +1766,8 @@ export default class TaskDB {
   mergeSessions(targetId, sourceId) {
     if (!targetId || !sourceId || targetId === sourceId) return;
 
-    await this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
-    await this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
 
     const srcStart = this.getImageSessionStart(sourceId);
     const tgtStart = this.getImageSessionStart(targetId);
@@ -1715,7 +1781,27 @@ export default class TaskDB {
       }
     }
     this.db.prepare('DELETE FROM image_sessions WHERE session_id=?').run(sourceId);
+
+    this.db.prepare(
+      `INSERT INTO session_views (session_id, view_count, account_id)
+       VALUES (
+         ?,
+         COALESCE((SELECT view_count FROM session_views WHERE session_id = ?), 0)
+         + COALESCE((SELECT view_count FROM session_views WHERE session_id = ?), 0),
+         COALESCE(
+           (SELECT account_id FROM session_views WHERE session_id = ?),
+           (SELECT account_id FROM session_views WHERE session_id = ?),
+           (SELECT id FROM accounts WHERE session_id = ? LIMIT 1)
+         )
+       )
+       ON CONFLICT(session_id)
+       DO UPDATE SET
+         view_count = excluded.view_count,
+         account_id = COALESCE(session_views.account_id, excluded.account_id)`
+    ).run(targetId, targetId, sourceId, targetId, sourceId, targetId);
+    this.db.prepare('DELETE FROM session_views WHERE session_id=?').run(sourceId);
   }
+
 
   addUpworkJob() {
     throw new Error('upwork_jobs has been removed from the database schema.');
