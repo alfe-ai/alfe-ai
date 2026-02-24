@@ -117,8 +117,8 @@ export default class TaskDB {
                                             session_id TEXT PRIMARY KEY,
                                             view_count INTEGER NOT NULL DEFAULT 0,
                                             account_id INTEGER,
-                                            ipv4_address TEXT DEFAULT '',
-                                            ipv6_address TEXT DEFAULT ''
+                                            ipv4_address TEXT[] DEFAULT '{}',
+                                            ipv6_address TEXT[] DEFAULT '{}'
       );
     `);
     try {
@@ -128,13 +128,13 @@ export default class TaskDB {
       // column already exists
     }
     try {
-      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv4_address TEXT DEFAULT '';");
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv4_address TEXT[] DEFAULT '{}';");
       console.debug('[TaskDB Debug] Added session_views.ipv4_address column');
     } catch(e) {
       // column already exists
     }
     try {
-      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv6_address TEXT DEFAULT '';");
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv6_address TEXT[] DEFAULT '{}';");
       console.debug('[TaskDB Debug] Added session_views.ipv6_address column');
     } catch(e) {
       // column already exists
@@ -798,10 +798,10 @@ export default class TaskDB {
          DO UPDATE SET
            view_count = view_count + 1,
            account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = excluded.session_id LIMIT 1)),
-           ipv4_address = excluded.ipv4_address,
-           ipv6_address = excluded.ipv6_address`
+           ipv4_address = array_cat(session_views.ipv4_address, CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END),
+           ipv6_address = array_cat(session_views.ipv6_address, CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END)`
       )
-      .run(sessionId, sessionId, ipv4, ipv6);
+      .run(sessionId, sessionId, ipv4, ipv6, ipv4, ipv4, ipv6, ipv6);
   }
 
   listProjects(includeArchived = false) {
