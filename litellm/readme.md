@@ -68,9 +68,22 @@ Keep 4000 closed publicly
    respond "Forbidden" 403
    }
    
-   # --- Everything else (e.g. /v1/*) is open ---
-   handle {
+   # --- Restrict all non-/ui routes to the same IP allowlist ---
+   @non_ui path_regexp non_ui ^/(?!ui).*
+
+   @non_ui_allowed {
+   path_regexp non_ui ^/(?!ui).*
+   remote_ip 203.0.113.10 198.51.100.0/24
+   }
+
+   # Allowed IPs can access everything else (e.g. /v1/*)
+   handle @non_ui_allowed {
    reverse_proxy 127.0.0.1:4000
+   }
+
+   # Everyone else is blocked from all remaining routes
+   handle @non_ui {
+   respond "Forbidden" 403
    }
    }
 
