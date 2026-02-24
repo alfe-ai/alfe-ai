@@ -7,6 +7,10 @@ model_list:
       headers:
         HTTP-Referer: "https://alfe.bot"
         X-Title: "Alfe AI"
+    model_info:
+      # dollars per token
+      input_cost_per_token: 0.00000010
+      output_cost_per_token: 0.00000030
 
 #  - model_name: glm-4.5-air-fallback
 #    litellm_params:
