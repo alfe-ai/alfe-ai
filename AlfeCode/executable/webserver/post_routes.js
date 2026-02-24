@@ -166,22 +166,61 @@ function setupPostRoutes(deps) {
     };
 
     const generateAndStoreOpenrouterApiKey = async (account) => {
+        const obfuscateSecret = (value) => {
+            const normalized = typeof value === "string" ? value.trim() : "";
+            if (!normalized) return "";
+            if (normalized.length <= 8) return "***";
+            return `${normalized.slice(0, 4)}...${normalized.slice(-4)}`;
+        };
+
+        console.log("[AlfeCode][register][keygen] starting key generation", {
+            hasAccount: !!account,
+            accountId: account?.id || null,
+            hasEmail: typeof account?.email === "string" && account.email.trim().length > 0,
+        });
+
         if (!account?.id) {
+            console.error("[AlfeCode][register][keygen] missing account id");
             throw new Error("Missing account id for key generation.");
         }
         const litellmHost = typeof process.env.LITELLM_HOST === "string"
             ? process.env.LITELLM_HOST.trim().replace(/\/+$/, "")
             : "";
+        console.log("[AlfeCode][register][keygen] resolved LiteLLM host", {
+            litellmHost,
+            hasHost: !!litellmHost,
+        });
         if (!litellmHost) {
+            console.error("[AlfeCode][register][keygen] missing LITELLM_HOST env var");
             throw new Error("Missing LITELLM_HOST configuration.");
         }
 
         const masterKey = typeof process.env.LITELLM_MASTER_KEY === "string"
             ? process.env.LITELLM_MASTER_KEY.trim()
             : (typeof process.env.LITELLM_API_KEY === "string" ? process.env.LITELLM_API_KEY.trim() : "");
+        console.log("[AlfeCode][register][keygen] resolved LiteLLM auth", {
+            hasMasterKey: !!masterKey,
+            keyPreview: obfuscateSecret(masterKey),
+        });
         if (!masterKey) {
+            console.error("[AlfeCode][register][keygen] missing LITELLM_MASTER_KEY/LITELLM_API_KEY env var");
             throw new Error("Missing LiteLLM master key configuration.");
         }
+
+        const requestPayload = {
+            user_id: String(account.id),
+            duration: "30d",
+            metadata: {
+                user_id: String(account.id),
+                email: account.email || "",
+                source: "model-only",
+            },
+        };
+
+        console.log("[AlfeCode][register][keygen] issuing LiteLLM key request", {
+            endpoint: `${litellmHost}/key/generate`,
+            payload: requestPayload,
+        });
 
         const keyResponse = await fetch(`${litellmHost}/key/generate`, {
             method: "POST",
@@ -189,22 +228,36 @@ function setupPostRoutes(deps) {
                 Authorization: `Bearer ${masterKey}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-                user_id: String(account.id),
-                duration: "30d",
-                metadata: {
-                    user_id: String(account.id),
-                    email: account.email || "",
-                    source: "model-only",
-                },
-            }),
+            body: JSON.stringify(requestPayload),
+        });
+
+        console.log("[AlfeCode][register][keygen] received LiteLLM response", {
+            status: keyResponse.status,
+            ok: keyResponse.ok,
         });
 
         const keyPayload = await keyResponse.json().catch(() => ({}));
+        console.log("[AlfeCode][register][keygen] parsed LiteLLM payload", {
+            payloadKeys: keyPayload && typeof keyPayload === "object" ? Object.keys(keyPayload) : [],
+            hasKey: typeof keyPayload?.key === "string" && keyPayload.key.trim().length > 0,
+            tokenCandidates: {
+                token_id: typeof keyPayload?.token_id === "string" && keyPayload.token_id.trim().length > 0,
+                token: typeof keyPayload?.token === "string" && keyPayload.token.trim().length > 0,
+                key_id: typeof keyPayload?.key_id === "string" && keyPayload.key_id.trim().length > 0,
+                id: typeof keyPayload?.id === "string" && keyPayload.id.trim().length > 0,
+                dataTokenId: typeof keyPayload?.data?.token_id === "string" && keyPayload.data.token_id.trim().length > 0,
+                keyInfoTokenId: typeof keyPayload?.key_info?.token_id === "string" && keyPayload.key_info.token_id.trim().length > 0,
+            },
+        });
+
         if (!keyResponse.ok) {
             const keyError = typeof keyPayload?.error === "string"
                 ? keyPayload.error
                 : `LiteLLM key generation failed with status ${keyResponse.status}.`;
+            console.error("[AlfeCode][register][keygen] LiteLLM key generation failed", {
+                status: keyResponse.status,
+                keyError,
+            });
             throw new Error(keyError);
         }
 
@@ -212,17 +265,44 @@ function setupPostRoutes(deps) {
             ? keyPayload.key.trim()
             : "";
         if (!openrouterApiKey) {
+            console.error("[AlfeCode][register][keygen] LiteLLM response missing generated key", {
+                payloadKeys: keyPayload && typeof keyPayload === "object" ? Object.keys(keyPayload) : [],
+            });
             throw new Error("LiteLLM did not return `key` (sk-...).");
         }
 
-        const keyHashId = typeof keyPayload?.token_id === "string"
-            ? keyPayload.token_id.trim()
-            : (typeof keyPayload?.token === "string" ? keyPayload.token.trim() : "");
+        const keyHashId = [
+            keyPayload?.token_id,
+            keyPayload?.token,
+            keyPayload?.key_id,
+            keyPayload?.id,
+            keyPayload?.data?.token_id,
+            keyPayload?.data?.token,
+            keyPayload?.data?.key_id,
+            keyPayload?.key_info?.token_id,
+            keyPayload?.key_info?.token,
+            keyPayload?.key_info?.key_id,
+        ].find((value) => typeof value === "string" && value.trim().length > 0)?.trim() || "";
+
+        console.log("[AlfeCode][register][keygen] extracted key material", {
+            openrouterApiKeyPreview: obfuscateSecret(openrouterApiKey),
+            openrouterApiKeyLength: openrouterApiKey.length,
+            keyHashId,
+            hasKeyHashId: !!keyHashId,
+        });
+
         if (!keyHashId) {
-            throw new Error("LiteLLM did not return `token_id`/`token` (key id).");
+            console.warn("[AlfeCode][register] LiteLLM response missing token id; storing generated key with empty key_hash_id", {
+                accountId: account.id,
+            });
         }
 
         await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey, keyHashId);
+        console.log("[AlfeCode][register][keygen] persisted key material to account", {
+            accountId: account.id,
+            hasKeyHashId: !!keyHashId,
+        });
+
         return openrouterApiKey;
     };
     const getSessionIdFromRequest = (req) => {
@@ -537,13 +617,6 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/logout", async (req, res) => {
-        const sessionId = getSessionIdFromRequest(req);
-        if (rdsStore?.enabled && sessionId) {
-            const account = await rdsStore.getAccountBySession(sessionId);
-            if (account) {
-                await rdsStore.setAccountSession(account.id, "");
-            }
-        }
         const hostname = normalizeHostname(req);
         res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
         return res.json({ success: true });
@@ -643,19 +716,29 @@ function setupPostRoutes(deps) {
             });
         }
 
-        if (await rdsStore.getAccountByEmail(email)) {
-            return res.status(400).json({ error: "Account already exists." });
-        }
-
         const passwordHash = hashPassword(password);
         const normalizedEmail = normalizeAccountEmail(email);
 
+        console.log("[AlfeCode][register] checking if account already exists", { normalizedEmail });
+        if (await rdsStore.getAccountByEmail(normalizedEmail)) {
+            console.log("[AlfeCode][register] account already exists", { normalizedEmail });
+            return res.status(400).json({ error: "Account already exists." });
+        }
+
         let createdAccount = null;
         try {
+            console.log("[AlfeCode][register] creating account record", {
+                normalizedEmail,
+                hasSessionId: !!sessionId,
+            });
             createdAccount = await rdsStore.createAccount({
                 email: normalizedEmail,
                 passwordHash,
                 sessionId,
+            });
+            console.log("[AlfeCode][register] account record created", {
+                accountId: createdAccount?.id || null,
+                hasSessionId: !!createdAccount?.session_id,
             });
         } catch (error) {
             console.error("[AlfeCode][register] failed to create account", error);
@@ -664,9 +747,16 @@ function setupPostRoutes(deps) {
 
         if (createdAccount?.id) {
             try {
+                console.log("[AlfeCode][register] auto-generating OpenRouter key for new account", {
+                    accountId: createdAccount.id,
+                    normalizedEmail,
+                });
                 await generateAndStoreOpenrouterApiKey({
                     id: createdAccount.id,
                     email: normalizedEmail,
+                });
+                console.log("[AlfeCode][register] auto-generated OpenRouter key for new account", {
+                    accountId: createdAccount.id,
                 });
             } catch (error) {
                 console.error("[AlfeCode][register] failed to auto-generate LiteLLM key", {
@@ -675,6 +765,12 @@ function setupPostRoutes(deps) {
                 });
             }
         }
+
+        console.log("[AlfeCode][register] registration completed", {
+            success: true,
+            normalizedEmail,
+            accountId: createdAccount?.id || null,
+        });
 
         return res.json({
             success: true,
