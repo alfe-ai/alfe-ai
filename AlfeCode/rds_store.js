@@ -148,6 +148,47 @@ class RdsStore {
         `ALTER TABLE ${SESSION_VIEWS_TABLE}
          ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';`
       );
+
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${SESSION_VIEWS_TABLE}'
+               AND column_name = 'ipv4_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv4_address IS NULL OR btrim(ipv4_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv4_address::text]
+             END;
+           END IF;
+         END
+         $$;`
+      );
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${SESSION_VIEWS_TABLE}'
+               AND column_name = 'ipv6_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv6_address IS NULL OR btrim(ipv6_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv6_address::text]
+             END;
+           END IF;
+         END
+         $$;`
+      );
       await this.pool.query(
         `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
          ADD COLUMN IF NOT EXISTS projects_json TEXT NOT NULL DEFAULT '[]'`
