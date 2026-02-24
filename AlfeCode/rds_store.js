@@ -104,6 +104,7 @@ class RdsStore {
         plan TEXT DEFAULT 'Free',
         ever_subscribed BOOLEAN DEFAULT false,
         openrouter_api_key TEXT DEFAULT '',
+        key_hash_id TEXT DEFAULT '',
         disabled BOOLEAN DEFAULT false
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PROJECTVIEW_JSON_TABLE} (
@@ -219,6 +220,10 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${ACCOUNTS_TABLE}
          ADD COLUMN IF NOT EXISTS openrouter_api_key TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS key_hash_id TEXT DEFAULT ''`
       );
       await this.pool.query(
         `ALTER TABLE ${ACCOUNTS_TABLE}
@@ -600,7 +605,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, disabled
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, key_hash_id, disabled
          FROM ${ACCOUNTS_TABLE}
          WHERE email = $1
          LIMIT 1`,
@@ -696,15 +701,20 @@ class RdsStore {
     }
   }
 
-  async setAccountOpenrouterApiKey(id, openrouterApiKey) {
+  async setAccountOpenrouterApiKey(id, openrouterApiKey, keyHashId = "") {
     if (!this.enabled) return;
     await this.ensureReady();
     try {
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
-         SET openrouter_api_key = $1
-         WHERE id = $2`,
-        [(openrouterApiKey || "").toString().trim(), id]
+         SET openrouter_api_key = $1,
+             key_hash_id = $2
+         WHERE id = $3`,
+        [
+          (openrouterApiKey || "").toString().trim(),
+          (keyHashId || "").toString().trim(),
+          id,
+        ]
       );
     } catch (error) {
       console.error("[RdsStore] Failed to update account OpenRouter API key:", error?.message || error);
@@ -718,7 +728,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, disabled
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, key_hash_id, disabled
          FROM ${ACCOUNTS_TABLE}
          WHERE session_id = $1
          LIMIT 1`,
