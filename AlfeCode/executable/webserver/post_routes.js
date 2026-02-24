@@ -350,15 +350,64 @@ function setupPostRoutes(deps) {
         if (!sessionId) {
             return res.status(401).json({ error: "not logged in" });
         }
-        const openrouterApiKey = typeof req.body?.openrouterApiKey === "string"
-            ? req.body.openrouterApiKey.trim()
-            : "";
         const account = await rdsStore.getAccountBySession(sessionId);
         if (!account) {
             return res.status(401).json({ error: "not logged in" });
         }
-        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey);
-        return res.json({ success: true, openrouterApiKey });
+
+        const litellmHost = typeof process.env.LITELLM_HOST === "string"
+            ? process.env.LITELLM_HOST.trim().replace(/\/+$/, "")
+            : "";
+        if (!litellmHost) {
+            return res.status(500).json({ error: "Missing LITELLM_HOST configuration." });
+        }
+
+        const masterKey = typeof process.env.LITELLM_MASTER_KEY === "string"
+            ? process.env.LITELLM_MASTER_KEY.trim()
+            : (typeof process.env.LITELLM_API_KEY === "string" ? process.env.LITELLM_API_KEY.trim() : "");
+        if (!masterKey) {
+            return res.status(500).json({ error: "Missing LiteLLM master key configuration." });
+        }
+
+        try {
+            const keyResponse = await fetch(`${litellmHost}/key/generate`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${masterKey}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    user_id: String(account.id),
+                    duration: "30d",
+                    metadata: {
+                        user_id: String(account.id),
+                        email: account.email || "",
+                        source: "model-only",
+                    },
+                }),
+            });
+
+            const keyPayload = await keyResponse.json().catch(() => ({}));
+            if (!keyResponse.ok) {
+                const keyError = typeof keyPayload?.error === "string"
+                    ? keyPayload.error
+                    : `LiteLLM key generation failed with status ${keyResponse.status}.`;
+                return res.status(502).json({ error: keyError });
+            }
+
+            const openrouterApiKey = typeof keyPayload?.key === "string"
+                ? keyPayload.key.trim()
+                : "";
+            if (!openrouterApiKey) {
+                return res.status(502).json({ error: "LiteLLM did not return a generated key." });
+            }
+
+            await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey);
+            return res.json({ success: true, openrouterApiKey });
+        } catch (error) {
+            console.error("Failed to generate LiteLLM key:", error);
+            return res.status(502).json({ error: "Failed to generate LiteLLM key." });
+        }
     });
     app.post("/api/support", async (req, res) => {
         if (!rdsStore?.enabled) {
