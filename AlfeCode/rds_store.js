@@ -148,6 +148,47 @@ class RdsStore {
         `ALTER TABLE ${SESSION_VIEWS_TABLE}
          ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';`
       );
+
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${SESSION_VIEWS_TABLE}'
+               AND column_name = 'ipv4_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv4_address IS NULL OR btrim(ipv4_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv4_address::text]
+             END;
+           END IF;
+         END
+         $$;`
+      );
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${SESSION_VIEWS_TABLE}'
+               AND column_name = 'ipv6_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv6_address IS NULL OR btrim(ipv6_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv6_address::text]
+             END;
+           END IF;
+         END
+         $$;`
+      );
       await this.pool.query(
         `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
          ADD COLUMN IF NOT EXISTS projects_json TEXT NOT NULL DEFAULT '[]'`
@@ -409,7 +450,13 @@ class RdsStore {
     try {
       await this.pool.query(
         `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
-         VALUES ($1, 1, (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1), $2, $3)
+         VALUES (
+           $1,
+           1,
+           (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1),
+           CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END,
+           CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+         )
          ON CONFLICT (session_id)
          DO UPDATE SET
            view_count = ${SESSION_VIEWS_TABLE}.view_count + 1,
@@ -417,8 +464,8 @@ class RdsStore {
              ${SESSION_VIEWS_TABLE}.account_id,
              (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
            ),
-           ipv4_address = array_cat(${SESSION_VIEWS_TABLE}.ipv4_address, CASE WHEN $2 = '' THEN '{}' ELSE ARRAY[$2] END),
-           ipv6_address = array_cat(${SESSION_VIEWS_TABLE}.ipv6_address, CASE WHEN $3 = '' THEN '{}' ELSE ARRAY[$3] END)`,
+           ipv4_address = array_cat(${SESSION_VIEWS_TABLE}.ipv4_address, CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END),
+           ipv6_address = array_cat(${SESSION_VIEWS_TABLE}.ipv6_address, CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END)`,
         [sessionId, ipv4, ipv6]
       );
     } catch (error) {
@@ -668,11 +715,13 @@ class RdsStore {
       );
       await client.query(`DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1`, [sourceId]);
       await client.query(
-        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id)
+        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
          SELECT
            $1,
            COALESCE(t.view_count, 0) + COALESCE(s.view_count, 0),
-           COALESCE(t.account_id, s.account_id, a.id)
+           COALESCE(t.account_id, s.account_id, a.id),
+           array_cat(COALESCE(t.ipv4_address, '{}'::TEXT[]), COALESCE(s.ipv4_address, '{}'::TEXT[])),
+           array_cat(COALESCE(t.ipv6_address, '{}'::TEXT[]), COALESCE(s.ipv6_address, '{}'::TEXT[]))
          FROM (SELECT 1) x
          LEFT JOIN ${SESSION_VIEWS_TABLE} t ON t.session_id = $1
          LEFT JOIN ${SESSION_VIEWS_TABLE} s ON s.session_id = $2
@@ -680,7 +729,9 @@ class RdsStore {
          ON CONFLICT (session_id)
          DO UPDATE SET
            view_count = EXCLUDED.view_count,
-           account_id = COALESCE(${SESSION_VIEWS_TABLE}.account_id, EXCLUDED.account_id)`,
+           account_id = COALESCE(${SESSION_VIEWS_TABLE}.account_id, EXCLUDED.account_id),
+           ipv4_address = EXCLUDED.ipv4_address,
+           ipv6_address = EXCLUDED.ipv6_address`,
         [targetId, sourceId]
       );
       await client.query(`DELETE FROM ${SESSION_VIEWS_TABLE} WHERE session_id = $1`, [sourceId]);
