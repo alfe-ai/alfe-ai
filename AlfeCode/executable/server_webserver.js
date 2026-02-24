@@ -680,7 +680,7 @@ app.use((req, res, next) => {
         const reqPath = req.path || req.url || "";
         if (reqPath === "/agent" || reqPath.startsWith("/agent/")) {
             const ipAddresses = getRequestIpAddresses(req);
-            Promise.resolve(rdsStore.incrementSessionViewCount(sessionId, ipAddresses)).catch((error) => {
+            Promise.resolve(rdsStore.incrementSessionViewCount(sessionId, ipAddresses, reqPath)).catch((error) => {
                 console.error(`[RdsStore] Failed to track page view: ${error?.message || error}`);
             });
         }

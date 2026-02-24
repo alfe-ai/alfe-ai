@@ -8,6 +8,7 @@ const ACCOUNTS_TABLE = "accounts";
 const PROJECTVIEW_JSON_TABLE = "projectview_json";
 const ALFECODE_RUNS_TABLE = "alfecode_runs";
 const SESSION_VIEWS_TABLE = "session_views";
+const PAGE_VIEWS_TABLE = "page_views";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
@@ -131,6 +132,12 @@ class RdsStore {
         account_id INTEGER,
         ipv4_address TEXT[] DEFAULT '{}',
         ipv6_address TEXT[] DEFAULT '{}'
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PAGE_VIEWS_TABLE} (
+        id SERIAL PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        route TEXT NOT NULL DEFAULT '',
+        viewed_at TEXT NOT NULL
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
@@ -451,10 +458,12 @@ class RdsStore {
     }
   }
 
-  async incrementSessionViewCount(sessionId, ipAddresses = {}) {
+  async incrementSessionViewCount(sessionId, ipAddresses = {}, route = "") {
     if (!this.enabled || !sessionId) return;
     const ipv4 = typeof ipAddresses?.ipv4 === "string" ? ipAddresses.ipv4.trim() : "";
     const ipv6 = typeof ipAddresses?.ipv6 === "string" ? ipAddresses.ipv6.trim() : "";
+    const pageRoute = typeof route === "string" ? route.trim() : "";
+    const viewedAt = new Date().toISOString();
     try {
       await this.pool.query(
         `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
@@ -481,6 +490,11 @@ class RdsStore {
              CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
            )`,
         [sessionId, ipv4, ipv6]
+      );
+      await this.pool.query(
+        `INSERT INTO ${PAGE_VIEWS_TABLE} (session_id, route, viewed_at)
+         VALUES ($1, $2, $3)`,
+        [sessionId, pageRoute, viewedAt]
       );
     } catch (error) {
       console.error("[RdsStore] Failed to increment session view count:", error?.message || error);

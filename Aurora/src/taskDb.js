@@ -121,6 +121,14 @@ export default class TaskDB {
                                             ipv6_address TEXT[] DEFAULT '{}'
       );
     `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS page_views (
+                                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                            session_id TEXT NOT NULL,
+                                            route TEXT NOT NULL DEFAULT '',
+                                            viewed_at TEXT NOT NULL
+      );
+    `);
     try {
       this.db.exec('ALTER TABLE session_views ADD COLUMN account_id INTEGER;');
       console.debug('[TaskDB Debug] Added session_views.account_id column');
@@ -786,10 +794,12 @@ export default class TaskDB {
         .run(sessionId, key, val);
   }
 
-  incrementSessionViewCount(sessionId, ipAddresses = {}) {
+  incrementSessionViewCount(sessionId, ipAddresses = {}, route = '') {
     if (!sessionId) return;
     const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
     const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const pageRoute = typeof route === 'string' ? route.trim() : '';
+    const viewedAt = new Date().toISOString();
     this.db
       .prepare(
         `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
@@ -802,6 +812,9 @@ export default class TaskDB {
            ipv6_address = array_cat(session_views.ipv6_address, CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END)`
       )
       .run(sessionId, sessionId, ipv4, ipv6, ipv4, ipv4, ipv6, ipv6);
+    this.db
+      .prepare(`INSERT INTO page_views (session_id, route, viewed_at) VALUES (?, ?, ?)`)
+      .run(sessionId, pageRoute, viewedAt);
   }
 
   listProjects(includeArchived = false) {

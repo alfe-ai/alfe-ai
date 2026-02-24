@@ -171,6 +171,12 @@ export default class TaskDBAws {
         ipv4_address TEXT[] DEFAULT '{}',
         ipv6_address TEXT[] DEFAULT '{}'
       );`);
+      await client.query(`CREATE TABLE IF NOT EXISTS page_views (
+        id SERIAL PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        route TEXT NOT NULL DEFAULT '',
+        viewed_at TEXT NOT NULL
+      );`);
       await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
       await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
       await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';");
@@ -872,11 +878,13 @@ export default class TaskDBAws {
     );
   }
 
-  async incrementSessionViewCount(sessionId, ipAddresses = {}) {
+  async incrementSessionViewCount(sessionId, ipAddresses = {}, route = '') {
     if (!sessionId) return;
     await this._initPromise;
     const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
     const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const pageRoute = typeof route === 'string' ? route.trim() : '';
+    const viewedAt = new Date().toISOString();
     await this.pool.query(
       `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
        VALUES (
@@ -893,6 +901,11 @@ export default class TaskDBAws {
          ipv4_address = array_cat(COALESCE(session_views.ipv4_address, ARRAY[]::TEXT[]), CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END),
          ipv6_address = array_cat(COALESCE(session_views.ipv6_address, ARRAY[]::TEXT[]), CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END)`,
       [sessionId, ipv4, ipv6]
+    );
+    await this.pool.query(
+      `INSERT INTO page_views (session_id, route, viewed_at)
+       VALUES ($1, $2, $3)`,
+      [sessionId, pageRoute, viewedAt]
     );
   }
 
