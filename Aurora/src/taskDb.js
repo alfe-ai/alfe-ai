@@ -808,8 +808,24 @@ export default class TaskDB {
          DO UPDATE SET
            view_count = view_count + 1,
            account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = excluded.session_id LIMIT 1)),
-           ipv4_address = array_cat(session_views.ipv4_address, CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END),
-           ipv6_address = array_cat(session_views.ipv6_address, CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END)`
+           ipv4_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 session_views.ipv4_address,
+                 CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END
+               )
+             ) AS element
+           ),
+           ipv6_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 session_views.ipv6_address,
+                 CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END
+               )
+             ) AS element
+           )`
       )
       .run(sessionId, sessionId, ipv4, ipv6, ipv4, ipv4, ipv6, ipv6);
     this.db
