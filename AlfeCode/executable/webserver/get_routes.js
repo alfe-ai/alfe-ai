@@ -532,6 +532,7 @@ function setupGetRoutes(deps) {
             return res.status(401).json({ error: "not logged in" });
         }
         const account = await rdsStore.getAccountBySession(sessionId);
+        const allowConfigIpControls = isIpAllowed(getRequestIp(req), configIpWhitelist);
         if (!account) {
             return res.json({
                 success: false,
@@ -540,7 +541,7 @@ function setupGetRoutes(deps) {
                 everSubscribed: false,
             });
         }
-        return res.json({
+        const response = {
             success: true,
             id: account.id,
             email: account.email,
@@ -550,8 +551,11 @@ function setupGetRoutes(deps) {
             sessionId: account.session_id,
             totpEnabled: Boolean(account.totp_secret),
             everSubscribed: Boolean(account.ever_subscribed),
-            openrouterApiKey: (account.openrouter_api_key || "").toString(),
-        });
+        };
+        if (allowConfigIpControls) {
+            response.openrouterApiKey = (account.openrouter_api_key || "").toString();
+        }
+        return res.json(response);
     });
     app.get("/api/support", async (req, res) => {
         if (!rdsStore?.enabled) {
