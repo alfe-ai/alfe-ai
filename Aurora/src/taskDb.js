@@ -1819,7 +1819,9 @@ export default class TaskDB {
       columns,
       rows: [],
       rowCount: result.changes,
-      totalRows: 0
+      totalRows: 0,
+      lastInsertRowid: Number.isFinite(result.lastInsertRowid) ? result.lastInsertRowid : null,
+      message: `Query executed successfully. ${result.changes} row${result.changes === 1 ? "" : "s"} affected.`
     };
   }
 }
