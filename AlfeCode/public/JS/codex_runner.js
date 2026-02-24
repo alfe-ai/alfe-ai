@@ -8814,6 +8814,8 @@ const appendMergeChunk = (text, type = "output") => {
   const authModalTitle = document.getElementById("authModalTitle");
   const accountModal = document.getElementById("accountModal");
   const accountModalCloseButton = document.getElementById("accountModalCloseButton");
+  const accountDisabledModal = document.getElementById("accountDisabledModal");
+  const accountDisabledOkButton = document.getElementById("accountDisabledOkButton");
   const sterlingSettingsModal = document.getElementById("sterlingSettingsModal");
   const sterlingSettingsIframe = document.getElementById("sterlingSettingsIframe");
   const authEmailInput = document.getElementById("authEmailInput");
@@ -8916,12 +8918,28 @@ const appendMergeChunk = (text, type = "output") => {
     }, duration);
   };
 
-  const setAccountDisabledMessageVisible = (isVisible) => {
-    const accountDisabledMessage = document.getElementById("accountDisabledMessage");
-    if (!accountDisabledMessage) {
+  const isModalVisible = (modalEl) => Boolean(modalEl && !modalEl.classList.contains("is-hidden"));
+
+  const syncBodyOverflowWithModalState = () => {
+    const hasVisibleModal = [authModal, accountModal, usageLimitModal, subscribeModal, accountDisabledModal]
+      .some((modalEl) => isModalVisible(modalEl));
+    document.body.style.overflow = hasVisibleModal ? "hidden" : "";
+  };
+
+  const showAccountDisabledModal = () => {
+    if (!accountDisabledModal) {
       return;
     }
-    accountDisabledMessage.style.display = isVisible ? "block" : "none";
+    accountDisabledModal.classList.remove("is-hidden");
+    syncBodyOverflowWithModalState();
+  };
+
+  const hideAccountDisabledModal = () => {
+    if (!accountDisabledModal) {
+      return;
+    }
+    accountDisabledModal.classList.add("is-hidden");
+    syncBodyOverflowWithModalState();
   };
 
   const persistAuthModalState = () => {
@@ -9490,6 +9508,13 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  if (accountDisabledOkButton) {
+    accountDisabledOkButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideAccountDisabledModal();
+    });
+  }
+
   const getModalCloseButtonFromEvent = (event) => {
     const target = event && event.target;
     if (target instanceof Element) {
@@ -9670,16 +9695,12 @@ const appendMergeChunk = (text, type = "output") => {
         lbl.style.display = "block";
       }
     }
-    // Show account disabled message when account is disabled
     if (data?.error === "account disabled") {
-      setAccountDisabledMessageVisible(true);
+      hideAuthModal();
+      showAccountDisabledModal();
+      return;
     }
     showToast(data?.error || "Login failed");
-
-    // Hide account disabled message when login is re-attempted
-    if (data?.error !== "account disabled") {
-      setAccountDisabledMessageVisible(false);
-    }
   };
 
   const attemptLogin = async ({ email, password, token }) => {
@@ -9820,10 +9841,8 @@ const appendMergeChunk = (text, type = "output") => {
 
   const authReason = new URLSearchParams(window.location.search || "").get("reason");
   if (authReason === "disabled-account") {
-    showAuthModal();
-    showLoginForm({ allowEmptyEmail: true });
-    setAccountDisabledMessageVisible(true);
-    showToast("Your account has been disabled.", 2500);
+    hideAuthModal();
+    showAccountDisabledModal();
     const currentUrl = new URL(window.location.href);
     currentUrl.searchParams.delete("reason");
     window.history.replaceState({}, "", currentUrl.toString());
