@@ -730,7 +730,7 @@ function getOpenAiClient(options = {}) {
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "X-Title": "MyAwesomeApp",
-        "HTTP-Referer": "https://alfe.sh"
+        "HTTP-Referer": "https://alfe.bot"
       }
     });
   }
