@@ -1,21 +1,12 @@
 model_list:
-  - model_name: qwen/qwen3-14b
+  - model_name: qwen/qwen3-coder-30b-a3b-instruct
     litellm_params:
-      model: openrouter/qwen/qwen3-14b
+      model: openrouter/qwen/qwen3-coder-30b-a3b-instruct
       api_base: https://openrouter.ai/api/v1
       api_key: "os.environ/OPENROUTER_API_KEY"
       headers:
         HTTP-Referer: "https://alfe.bot"
         X-Title: "Alfe AI"
-
-#  - model_name: qwen/qwen3-8b
-#    litellm_params:
-#      model: openrouter/qwen/qwen3-8b
-#      api_base: https://openrouter.ai/api/v1
-#      api_key: "os.environ/OPENROUTER_API_KEY"
-#      headers:
-#        HTTP-Referer: "https://alfe.bot"
-#        X-Title: "Alfe AI"
 
 #  - model_name: glm-4.5-air-fallback
 #    litellm_params:
