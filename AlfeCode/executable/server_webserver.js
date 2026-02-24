@@ -801,7 +801,7 @@ function getOpenAIClient(provider) {
             );
         }
         return new OpenAI({
-            baseURL: "https://litellm.alfe.sh/v1",
+            baseURL: "https://openrouter.ai/api/v1",
             apiKey,
             defaultHeaders: {
                 "HTTP-Referer": refererWithTaskId,
