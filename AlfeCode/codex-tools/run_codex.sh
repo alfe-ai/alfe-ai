@@ -873,6 +873,9 @@ run_qwen() {
   fi
   case "${CODEX_SHOW_API_KEY,,}" in
     1|true|yes|on)
+      if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" ]]; then
+        printf '[info] account DB OPENAI_API_KEY=%s\n' "$ACCOUNT_DB_OPENAI_API_KEY"
+      fi
       printf '[info] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
       ;;
   esac

@@ -3657,6 +3657,10 @@ ${cleanedFinalOutput}`;
                     // consistently applied across qwen/codex/cline flows.
                     envOverrides.OPENAI_API_KEY = accountOpenRouterApiKeyRaw;
                     envOverrides.OPENROUTER_API_KEY = accountOpenRouterApiKeyRaw;
+                    envOverrides.LITELLM_API_KEY = accountOpenRouterApiKeyRaw;
+                    // Debug-only value consumed by run_codex.sh when
+                    // CODEX_SHOW_API_KEY=true.
+                    envOverrides.ACCOUNT_DB_OPENAI_API_KEY = accountOpenRouterApiKeyRaw;
                 }
             } catch (accountLookupError) {
                 console.error(`[WARN] Failed to load account OpenRouter API key for session ${sessionId}: ${accountLookupError.message}`);
