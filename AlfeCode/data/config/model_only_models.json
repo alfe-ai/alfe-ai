@@ -290,8 +290,8 @@
       "list_order": 0,
       "plus_model": false,
       "usage": "low",
-        "url": "https://openrouter.ai/api/v1",
-        "key": "openrouter"
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "google/gemini-2.0-flash-001",
