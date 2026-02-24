@@ -668,7 +668,7 @@ if ! $USE_QWEN_CLI && [[ "$REQUESTED_PROVIDER" == "openrouter" ]]; then
   title_config=$(escape_config_value "$title_value")
   CONFIG_ARGS=(
     -c 'model_providers.openrouter.name="OpenRouter"'
-    -c 'model_providers.openrouter.base_url="https://openrouter.ai/api/v1"'
+    -c 'model_providers.openrouter.base_url="https://litellm.alfe.sh/v1"'
     -c 'model_providers.openrouter.env_key="OPENROUTER_API_KEY"'
     -c 'model_providers.openrouter.wire_api="chat"'
     -c "model_providers.openrouter.http_headers={ HTTP-Referer = \"${referer_config}\", X-Title = \"${title_config}\" }"

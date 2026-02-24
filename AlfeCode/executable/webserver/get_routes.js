@@ -1481,6 +1481,7 @@ function setupGetRoutes(deps) {
         // generate a verbose commit summary from the cleaned final output.
         const openrouterKey = process.env.OPENROUTER_API_KEY || "";
         const openrouterModel = (process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b").toString();
+        const openrouterBaseUrl = (process.env.LITELLM_HOST || "https://litellm.alfe.sh/v1").toString().replace(/\/$/, "");
         if (!openrouterKey) {
             return cleanedFinalOutput;
         }
@@ -1501,7 +1502,7 @@ ${cleanedFinalOutput}`;
                 max_tokens: 800,
             };
 
-            const resp = await ensureFetch("https://openrouter.ai/api/v1/chat/completions", {
+            const resp = await ensureFetch(`${openrouterBaseUrl}/chat/completions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
