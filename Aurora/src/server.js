@@ -729,7 +729,7 @@ function getOpenAiClient(options = {}) {
       apiKey: openRouterKey,
       baseURL: "https://openrouter.ai/api/v1",
       defaultHeaders: {
-        "X-Title": "MyAwesomeApp",
+        "X-Title": "Alfe AI",
         "HTTP-Referer": "https://alfe.bot"
       }
     });
