@@ -94,6 +94,7 @@ function setupPostRoutes(deps) {
     };
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
     const accountsEnabled = parseBooleanEnvWithDefault(process.env.ACCOUNTS_ENABLED, true);
+    const allowRepoAddOnFreePlan = parseBooleanEnvWithDefault(process.env.ALLOW_REPO_ADD_ON_FREE_PLAN, false);
     const configIpWhitelist = new Set();
     const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
     if (configIpWhitelistEnv) {
@@ -352,7 +353,7 @@ function setupPostRoutes(deps) {
             if (!account || isLoggedOutPlan(account.plan)) {
                 return false;
             }
-            return account.plan === "Free";
+            return account.plan === "Free" && !allowRepoAddOnFreePlan;
         } catch (error) {
             console.warn("[WARN] Failed to check account session:", error);
             return false;
