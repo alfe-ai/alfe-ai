@@ -675,10 +675,15 @@ app.use((req, res, next) => {
     req.sessionId = sessionId;
     res.locals.sessionId = sessionId;
     if (isPageViewRequest(req)) {
-        const ipAddresses = getRequestIpAddresses(req);
-        Promise.resolve(rdsStore.incrementSessionViewCount(sessionId, ipAddresses)).catch((error) => {
-            console.error(`[RdsStore] Failed to track page view: ${error?.message || error}`);
-        });
+        // Only count views for the main agent route, not for asset requests
+        // We check if this is a request to the base /agent route (and not for assets)
+        const reqPath = req.path || req.url || "";
+        if (reqPath === "/agent" || reqPath.startsWith("/agent/")) {
+            const ipAddresses = getRequestIpAddresses(req);
+            Promise.resolve(rdsStore.incrementSessionViewCount(sessionId, ipAddresses, reqPath)).catch((error) => {
+                console.error(`[RdsStore] Failed to track page view: ${error?.message || error}`);
+            });
+        }
     }
     next();
 });

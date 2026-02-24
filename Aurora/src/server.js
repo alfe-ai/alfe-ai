@@ -660,8 +660,9 @@ app.use((req, res, next) => {
   res.locals.sessionId = sessionId;
 
   if (isPageViewRequest(req)) {
+    const reqPath = req.path || req.originalUrl || req.url || '';
     const ipAddresses = getRequestIpAddresses(req);
-    Promise.resolve(db.incrementSessionViewCount(sessionId, ipAddresses)).catch((error) => {
+    Promise.resolve(db.incrementSessionViewCount(sessionId, ipAddresses, reqPath)).catch((error) => {
       console.error("[Server Debug] Failed to increment session view count:", error);
     });
   }
