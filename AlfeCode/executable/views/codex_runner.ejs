@@ -3920,9 +3920,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
               <label id="totpLoginLabel" style="margin-top:8px; display:none;">Auth Code:<br/>
                 <input type="text" id="loginTotp" style="width:100%;" />
               </label>
-              <div id="accountDisabledMessage" class="account-disabled-message" style="color: #f97316; margin-top: 12px; display: none;">
-                Your account has been disabled. Please check your email for further details.
-              </div>
               <div class="modal-buttons">
                 <button id="loginSubmitBtn">Login</button>
               </div>
@@ -3955,6 +3952,18 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <span id="signupSubmitSpinner" class="auth-submit-spinner is-hidden" aria-live="polite" aria-label="Registering"></span>
                 </div>
               </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="accountDisabledModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Account disabled">
+        <div class="modal-content">
+            <div class="modal-title-row">
+                <h2>Account disabled</h2>
+            </div>
+            <p>Your account has been disabled. Please check your email for further details.</p>
+            <div class="modal-buttons">
+                <button id="accountDisabledOkButton" class="primary" type="button">Ok</button>
             </div>
         </div>
     </div>

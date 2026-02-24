@@ -131,6 +131,26 @@
       color:#e0e7ff;
       font-size:0.82rem;
     }
+    .email-toggle{
+      cursor:pointer;
+      border:1px solid rgba(129,140,248,0.7);
+      background:#0f172a;
+      color:#c7d2fe;
+      border-radius:999px;
+      padding:4px 12px;
+      font-size:0.82rem;
+      font-weight:600;
+    }
+    .email-toggle:hover{
+      color:#e0e7ff;
+      border-color:rgba(165,180,252,0.9);
+    }
+    .email-value{
+      display:none;
+    }
+    .email-value.visible{
+      display:inline;
+    }
   </style>
 </head>
 <body>
@@ -142,7 +162,8 @@
       <span class="pill">Status: <%= request.status || "Awaiting Support Reply" %></span>
       <span>Submitted: <%= request.created_at %></span>
       <% if (request.email) { %>
-        <span>Account: <%= request.email %></span>
+        <span>Account: <button type="button" class="email-toggle" id="viewEmailButton">View Email</button></span>
+        <span class="email-value" id="emailValue">Account: <%= request.email %></span>
       <% } %>
     </div>
     <div class="thread">
@@ -182,6 +203,15 @@
     const replyStatus = document.getElementById("replyStatus");
     const userButton = document.getElementById("sendUserReply");
     const adminButton = document.getElementById("sendAdminReply");
+    const viewEmailButton = document.getElementById("viewEmailButton");
+    const emailValue = document.getElementById("emailValue");
+
+    if (viewEmailButton && emailValue) {
+      viewEmailButton.addEventListener("click", () => {
+        emailValue.classList.add("visible");
+        viewEmailButton.remove();
+      });
+    }
 
     const setStatus = (message, isError = false) => {
       replyStatus.textContent = message;
