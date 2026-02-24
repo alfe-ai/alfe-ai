@@ -779,6 +779,7 @@ run_qwen() {
   # If webserver injected an account-level OpenAI key, force it for this run
   # so OPENAI_API_KEY is consistently overridden before env/debug printing.
   if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" ]]; then
+    printf '[info] overriding OPENAI_API_KEY from ACCOUNT_DB_OPENAI_API_KEY\n'
     openai_api_key_value="$ACCOUNT_DB_OPENAI_API_KEY"
     export OPENAI_API_KEY="$ACCOUNT_DB_OPENAI_API_KEY"
   fi
