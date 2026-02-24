@@ -168,12 +168,46 @@ export default class TaskDBAws {
         session_id TEXT PRIMARY KEY,
         view_count INTEGER NOT NULL DEFAULT 0,
         account_id INTEGER,
-        ipv4_address TEXT DEFAULT '',
-        ipv6_address TEXT DEFAULT ''
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
       );`);
       await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
-      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT '';");
-      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT '';");
+      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
+      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';");
+      await client.query(`DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'session_views'
+            AND column_name = 'ipv4_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE session_views
+            ALTER COLUMN ipv4_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv4_address IS NULL OR btrim(ipv4_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv4_address]
+            END;
+          ALTER TABLE session_views ALTER COLUMN ipv4_address SET DEFAULT '{}';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'session_views'
+            AND column_name = 'ipv6_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE session_views
+            ALTER COLUMN ipv6_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv6_address IS NULL OR btrim(ipv6_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv6_address]
+            END;
+          ALTER TABLE session_views ALTER COLUMN ipv6_address SET DEFAULT '{}';
+        END IF;
+      END $$;`);
 
       // Migration: remove deprecated activity_timeline table.
       await client.query('DROP TABLE IF EXISTS activity_timeline;');
@@ -845,13 +879,19 @@ export default class TaskDBAws {
     const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
     await this.pool.query(
       `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
-       VALUES ($1, 1, (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1), $2, $3)
+       VALUES (
+         $1,
+         1,
+         (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1),
+         CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END,
+         CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END
+       )
        ON CONFLICT (session_id)
        DO UPDATE SET
          view_count = session_views.view_count + 1,
          account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1)),
-         ipv4_address = EXCLUDED.ipv4_address,
-         ipv6_address = EXCLUDED.ipv6_address`,
+         ipv4_address = array_cat(COALESCE(session_views.ipv4_address, ARRAY[]::TEXT[]), CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END),
+         ipv6_address = array_cat(COALESCE(session_views.ipv6_address, ARRAY[]::TEXT[]), CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END)`,
       [sessionId, ipv4, ipv6]
     );
   }
