@@ -1497,6 +1497,28 @@ app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
   })();
 });
 
+app.post("/api/db/query/write/verify", express.json({ limit: "50kb" }), (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] POST /api/db/query/write/verify blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const dbAdminWriteToken = process.env.DB_ADMIN_WRITE_TOKEN;
+  const providedToken = req.body?.token;
+
+  if (!dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write/verify: DB_ADMIN_WRITE_TOKEN not configured");
+    return res.status(500).json({ error: "Server not configured for writable queries" });
+  }
+
+  if (!providedToken || providedToken !== dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write/verify: Invalid or missing token");
+    return res.status(403).json({ error: "Invalid or missing admin token" });
+  }
+
+  return res.json({ ok: true });
+});
+
 app.post("/api/db/query/write", express.json({ limit: "200kb" }), (req, res) => {
   if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
     console.warn("[Server Debug] POST /api/db/query/write blocked by CONFIG_IP_WHITELIST");
