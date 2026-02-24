@@ -3169,14 +3169,6 @@ ${cleanedFinalOutput}`;
         const cookies = getRequestCookies(req);
         const idToken = typeof cookies.alfe_shopify_id_token === "string" ? cookies.alfe_shopify_id_token : "";
 
-        const sessionId = getSessionIdFromRequest(req);
-        if (rdsStore?.enabled && sessionId) {
-            const account = await rdsStore.getAccountBySession(sessionId);
-            if (account) {
-                await rdsStore.setAccountSession(account.id, "");
-            }
-        }
-
         const hostname = normalizeHostname(req);
         res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
         res.clearCookie("alfe_shopify_id_token", {
