@@ -898,8 +898,24 @@ export default class TaskDBAws {
        DO UPDATE SET
          view_count = session_views.view_count + 1,
          account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1)),
-         ipv4_address = array_cat(COALESCE(session_views.ipv4_address, ARRAY[]::TEXT[]), CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END),
-         ipv6_address = array_cat(COALESCE(session_views.ipv6_address, ARRAY[]::TEXT[]), CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END)`,
+         ipv4_address = (
+           SELECT array_agg(DISTINCT element)
+           FROM unnest(
+             array_cat(
+               COALESCE(session_views.ipv4_address, ARRAY[]::TEXT[]),
+               CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END
+             )
+           ) AS element
+         ),
+         ipv6_address = (
+           SELECT array_agg(DISTINCT element)
+           FROM unnest(
+             array_cat(
+               COALESCE(session_views.ipv6_address, ARRAY[]::TEXT[]),
+               CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END
+             )
+           ) AS element
+         )`,
       [sessionId, ipv4, ipv6]
     );
     await this.pool.query(
