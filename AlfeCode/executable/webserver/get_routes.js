@@ -3572,7 +3572,7 @@ ${cleanedFinalOutput}`;
         });
     });
 
-    app.get("/agent/stream", (req, res) => {
+    app.get("/agent/stream", async (req, res) => {
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDir = (req.query.projectDir || "").toString().trim();
         const prompt = (req.query.prompt || "").toString().trim();
@@ -3644,6 +3644,19 @@ ${cleanedFinalOutput}`;
             invalidModelReason,
         };
         const envOverrides = {};
+        let accountOpenRouterApiKey = "";
+        if (rdsStore?.enabled && sessionId) {
+            try {
+                const account = await rdsStore.getAccountBySession(sessionId);
+                const accountOpenRouterApiKeyRaw = (account?.openrouter_api_key || "").toString().trim();
+                if (accountOpenRouterApiKeyRaw) {
+                    accountOpenRouterApiKey = accountOpenRouterApiKeyRaw;
+                    envOverrides.OPENROUTER_API_KEY = accountOpenRouterApiKeyRaw;
+                }
+            } catch (accountLookupError) {
+                console.error(`[WARN] Failed to load account OpenRouter API key for session ${sessionId}: ${accountLookupError.message}`);
+            }
+        }
         let vmSession = null;
         let vmHostPort = null;
         let effectiveProjectDir = projectDir;
@@ -3923,6 +3936,7 @@ ${cleanedFinalOutput}`;
                 requestedProjectDir: projectDir,
                 effectiveProjectDir,
                 qwenCli: useQwenCli,
+                usingAccountOpenRouterApiKey: Boolean(accountOpenRouterApiKey),
             },
         });
 
