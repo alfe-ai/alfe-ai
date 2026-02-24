@@ -343,8 +343,8 @@ export default class TaskDBAws {
     if (!sql) {
       throw new Error('Query is required.');
     }
-    const lowered = sql.toLowerCase();
-    if (!/^(select|with|explain)\b/.test(lowered)) {
+    const normalized = sql.replace(/^(?:\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/g, '').toLowerCase();
+    if (!/^(select|with|explain)\b/.test(normalized)) {
       throw new Error('Only read-only SELECT/WITH/EXPLAIN queries are allowed.');
     }
 
@@ -371,9 +371,9 @@ export default class TaskDBAws {
     if (!sql) {
       throw new Error('Query is required.');
     }
-    const lowered = sql.toLowerCase();
-    const allowedStarts = ['insert', 'update', 'delete', 'create', 'drop', 'alter', 'begin', 'commit', 'rollback'];
-    if (!allowedStarts.some(start => lowered.startsWith(start))) {
+    const normalized = sql.replace(/^(?:\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/g, '').toLowerCase();
+    const allowedStarts = ['insert', 'update', 'delete', 'create', 'drop', 'alter', 'begin', 'commit', 'rollback', 'truncate'];
+    if (!allowedStarts.some(start => normalized.startsWith(start))) {
       throw new Error('Only writable queries (INSERT, UPDATE, DELETE, etc.) are allowed.');
     }
 

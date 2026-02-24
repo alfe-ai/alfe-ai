@@ -521,6 +521,31 @@
     let writableMode = false;
     let writableToken = null;
 
+    function getQueryKind(queryText) {
+      const sql = typeof queryText === "string" ? queryText : "";
+      const stripped = sql.replace(/^(?:\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/g, "").trim();
+      const keyword = stripped.match(/^[a-z]+/i)?.[0]?.toLowerCase() || "";
+      const readOnlyStarts = ["select", "with", "pragma", "explain"];
+      const writeStarts = ["insert", "update", "delete", "create", "drop", "alter", "begin", "commit", "rollback", "truncate"];
+      if (readOnlyStarts.includes(keyword)) return "read";
+      if (writeStarts.includes(keyword)) return "write";
+      return "unknown";
+    }
+
+    function syncWritableUiState() {
+      writableIndicator.style.display = writableMode ? "inline-block" : "none";
+      toggleWritableBtn.classList.toggle("secondary", !writableMode);
+      toggleWritableBtn.classList.toggle("view-table-btn", writableMode);
+      toggleWritableBtn.textContent = writableMode ? "Writable Queries Enabled" : "Enable Writable Queries";
+      toggleWritableBtn.disabled = false;
+    }
+
+    function setWritableMode(enabled, token = null) {
+      writableMode = enabled;
+      writableToken = enabled ? token : null;
+      syncWritableUiState();
+    }
+
     // URL-based table selection (supports both hash and pathname routes)
     function getTableFromHash() {
       const hash = window.location.hash;
@@ -701,10 +726,10 @@
       rowMeta.textContent = "";
       tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
       try {
-        const endpoint = writableMode ? "/api/db/query/write" : "/api/db/query";
-        const payload = writableMode
-          ? { query, token: writableToken }
-          : { query };
+        const queryKind = getQueryKind(query);
+        const shouldUseWriteEndpoint = writableMode && queryKind === "write";
+        const endpoint = shouldUseWriteEndpoint ? "/api/db/query/write" : "/api/db/query";
+        const payload = writableToken ? { query, token: writableToken } : { query };
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -713,11 +738,7 @@
         const result = await res.json();
         if (!res.ok) {
           if (writableMode && res.status === 403 && result.error?.includes("token")) {
-            writableMode = false;
-            writableToken = null;
-            writableIndicator.style.display = "none";
-            toggleWritableBtn.disabled = false;
-            toggleWritableBtn.textContent = "Enable Writable Queries";
+            setWritableMode(false);
             throw new Error("Invalid admin token. Writable mode disabled.");
           }
           throw new Error(result.error || "Query failed");
@@ -725,6 +746,27 @@
         const columns = result.columns || [];
         const rows = result.rows || [];
         const totalRows = typeof result.totalRows === "number" ? result.totalRows : rows.length;
+
+        if (!columns.length && shouldUseWriteEndpoint) {
+          const affectedRows = typeof result.rowCount === "number" ? result.rowCount : rows.length;
+          const summaryRows = [
+            { Metric: "Rows affected", Value: affectedRows }
+          ];
+
+          if (typeof result.lastInsertRowid === "number") {
+            summaryRows.push({ Metric: "Last insert row ID", Value: result.lastInsertRowid });
+          }
+
+          if (typeof result.message === "string" && result.message.trim()) {
+            summaryRows.push({ Metric: "Message", Value: result.message.trim() });
+          }
+
+          dataStatus.textContent = result.message?.trim() || "Writable query executed successfully.";
+          rowMeta.textContent = `${affectedRows} row${affectedRows === 1 ? "" : "s"} affected`;
+          renderTable(["Metric", "Value"], summaryRows, "");
+          return;
+        }
+
         dataStatus.textContent = "";
         rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}${totalRows > rows.length ? ` (showing first ${rows.length} of ${totalRows})` : ""}`;
         renderTable(columns, rows, "");
@@ -829,10 +871,7 @@
     toggleWritableBtn.addEventListener("click", () => {
       if (writableMode) {
         // Disable writable mode
-        writableMode = false;
-        writableToken = null;
-        writableIndicator.style.display = "none";
-        toggleWritableBtn.textContent = "Enable Writable Queries";
+        setWritableMode(false);
       } else {
         // Show modal to enter token
         tokenModalOverlay.classList.add("active");
@@ -862,20 +901,15 @@
       toggleWritableBtn.textContent = "Verifying token...";
 
       try {
-        const res = await fetch("/api/db/query/write", {
+        const res = await fetch("/api/db/query/write/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: "SELECT 1 as test", token })
+          body: JSON.stringify({ token })
         });
         const result = await res.json();
 
         if (res.ok) {
-          writableMode = true;
-          writableToken = token;
-          writableIndicator.style.display = "inline-block";
-          toggleWritableBtn.textContent = "Disable Writable Queries";
-          toggleWritableBtn.classList.remove("secondary");
-          toggleWritableBtn.classList.add("view-table-btn");
+          setWritableMode(true, token);
           closeTokenModal();
           dataStatus.textContent = "Writable queries enabled!";
         } else {
@@ -889,6 +923,9 @@
         alert("Error verifying token: " + err.message);
       }
     });
+
+    // Writable mode is intentionally session-ephemeral and must be re-enabled after refresh.
+    syncWritableUiState();
 
     loadTables();
 
