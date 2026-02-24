@@ -164,6 +164,60 @@ function setupPostRoutes(deps) {
         }
         return false;
     };
+
+    const generateAndStoreOpenrouterApiKey = async (account) => {
+        if (!account?.id) {
+            throw new Error("Missing account id for key generation.");
+        }
+        const litellmHost = typeof process.env.LITELLM_HOST === "string"
+            ? process.env.LITELLM_HOST.trim().replace(/\/+$/, "")
+            : "";
+        if (!litellmHost) {
+            throw new Error("Missing LITELLM_HOST configuration.");
+        }
+
+        const masterKey = typeof process.env.LITELLM_MASTER_KEY === "string"
+            ? process.env.LITELLM_MASTER_KEY.trim()
+            : (typeof process.env.LITELLM_API_KEY === "string" ? process.env.LITELLM_API_KEY.trim() : "");
+        if (!masterKey) {
+            throw new Error("Missing LiteLLM master key configuration.");
+        }
+
+        const keyResponse = await fetch(`${litellmHost}/key/generate`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${masterKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                user_id: String(account.id),
+                duration: "30d",
+                metadata: {
+                    user_id: String(account.id),
+                    email: account.email || "",
+                    source: "model-only",
+                },
+            }),
+        });
+
+        const keyPayload = await keyResponse.json().catch(() => ({}));
+        if (!keyResponse.ok) {
+            const keyError = typeof keyPayload?.error === "string"
+                ? keyPayload.error
+                : `LiteLLM key generation failed with status ${keyResponse.status}.`;
+            throw new Error(keyError);
+        }
+
+        const openrouterApiKey = typeof keyPayload?.key === "string"
+            ? keyPayload.key.trim()
+            : "";
+        if (!openrouterApiKey) {
+            throw new Error("LiteLLM did not return a generated key.");
+        }
+
+        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey);
+        return openrouterApiKey;
+    };
     const getSessionIdFromRequest = (req) => {
         const header = req.headers?.cookie || "";
         const cookies = {};
@@ -355,58 +409,12 @@ function setupPostRoutes(deps) {
             return res.status(401).json({ error: "not logged in" });
         }
 
-        const litellmHost = typeof process.env.LITELLM_HOST === "string"
-            ? process.env.LITELLM_HOST.trim().replace(/\/+$/, "")
-            : "";
-        if (!litellmHost) {
-            return res.status(500).json({ error: "Missing LITELLM_HOST configuration." });
-        }
-
-        const masterKey = typeof process.env.LITELLM_MASTER_KEY === "string"
-            ? process.env.LITELLM_MASTER_KEY.trim()
-            : (typeof process.env.LITELLM_API_KEY === "string" ? process.env.LITELLM_API_KEY.trim() : "");
-        if (!masterKey) {
-            return res.status(500).json({ error: "Missing LiteLLM master key configuration." });
-        }
-
         try {
-            const keyResponse = await fetch(`${litellmHost}/key/generate`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${masterKey}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    user_id: String(account.id),
-                    duration: "30d",
-                    metadata: {
-                        user_id: String(account.id),
-                        email: account.email || "",
-                        source: "model-only",
-                    },
-                }),
-            });
-
-            const keyPayload = await keyResponse.json().catch(() => ({}));
-            if (!keyResponse.ok) {
-                const keyError = typeof keyPayload?.error === "string"
-                    ? keyPayload.error
-                    : `LiteLLM key generation failed with status ${keyResponse.status}.`;
-                return res.status(502).json({ error: keyError });
-            }
-
-            const openrouterApiKey = typeof keyPayload?.key === "string"
-                ? keyPayload.key.trim()
-                : "";
-            if (!openrouterApiKey) {
-                return res.status(502).json({ error: "LiteLLM did not return a generated key." });
-            }
-
-            await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey);
+            const openrouterApiKey = await generateAndStoreOpenrouterApiKey(account);
             return res.json({ success: true, openrouterApiKey });
         } catch (error) {
             console.error("Failed to generate LiteLLM key:", error);
-            return res.status(502).json({ error: "Failed to generate LiteLLM key." });
+            return res.status(502).json({ error: error?.message || "Failed to generate LiteLLM key." });
         }
     });
     app.post("/api/support", async (req, res) => {
@@ -634,8 +642,9 @@ function setupPostRoutes(deps) {
         const passwordHash = hashPassword(password);
         const normalizedEmail = normalizeAccountEmail(email);
 
+        let createdAccount = null;
         try {
-            await rdsStore.createAccount({
+            createdAccount = await rdsStore.createAccount({
                 email: normalizedEmail,
                 passwordHash,
                 sessionId,
@@ -643,6 +652,20 @@ function setupPostRoutes(deps) {
         } catch (error) {
             console.error("[AlfeCode][register] failed to create account", error);
             return res.status(500).json({ error: "Failed to create account." });
+        }
+
+        if (createdAccount?.id) {
+            try {
+                await generateAndStoreOpenrouterApiKey({
+                    id: createdAccount.id,
+                    email: normalizedEmail,
+                });
+            } catch (error) {
+                console.error("[AlfeCode][register] failed to auto-generate LiteLLM key", {
+                    accountId: createdAccount.id,
+                    error: error?.message || error,
+                });
+            }
         }
 
         return res.json({
