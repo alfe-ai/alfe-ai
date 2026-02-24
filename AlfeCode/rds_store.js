@@ -465,6 +465,8 @@ class RdsStore {
     const pageRoute = typeof route === "string" ? route.trim() : "";
     const viewedAt = new Date().toISOString();
     try {
+      // To prevent duplicate IP addresses, we use array_agg with distinct elements
+      // This is a workaround for PostgreSQL not having native set operations for arrays
       await this.pool.query(
         `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
          VALUES (
@@ -481,13 +483,23 @@ class RdsStore {
              ${SESSION_VIEWS_TABLE}.account_id,
              (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
            ),
-           ipv4_address = array_cat(
-             COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv4_address::TEXT, ''), '{}')::TEXT[],
-             CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END
+           ipv4_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv4_address::TEXT, ''), '{}')::TEXT[],
+                 CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END
+               )
+             ) AS element
            ),
-           ipv6_address = array_cat(
-             COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv6_address::TEXT, ''), '{}')::TEXT[],
-             CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+           ipv6_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv6_address::TEXT, ''), '{}')::TEXT[],
+                 CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+               )
+             ) AS element
            )`,
         [sessionId, ipv4, ipv6]
       );
