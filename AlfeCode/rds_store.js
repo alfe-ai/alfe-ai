@@ -761,26 +761,21 @@ class RdsStore {
       );
       await client.query(`DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1`, [sourceId]);
       await client.query(
-        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
-         SELECT
-           $1,
-           COALESCE(t.view_count, 0) + COALESCE(s.view_count, 0),
-           COALESCE(t.account_id, s.account_id, a.id),
-           array_cat(COALESCE(t.ipv4_address, '{}'::TEXT[]), COALESCE(s.ipv4_address, '{}'::TEXT[])),
-           array_cat(COALESCE(t.ipv6_address, '{}'::TEXT[]), COALESCE(s.ipv6_address, '{}'::TEXT[]))
-         FROM (SELECT 1) x
-         LEFT JOIN ${SESSION_VIEWS_TABLE} t ON t.session_id = $1
-         LEFT JOIN ${SESSION_VIEWS_TABLE} s ON s.session_id = $2
-         LEFT JOIN ${ACCOUNTS_TABLE} a ON a.session_id = $1
-         ON CONFLICT (session_id)
-         DO UPDATE SET
-           view_count = EXCLUDED.view_count,
-           account_id = COALESCE(${SESSION_VIEWS_TABLE}.account_id, EXCLUDED.account_id),
-           ipv4_address = EXCLUDED.ipv4_address,
-           ipv6_address = EXCLUDED.ipv6_address`,
+        `WITH resolved_account AS (
+           SELECT id
+           FROM ${ACCOUNTS_TABLE}
+           WHERE session_id = $1
+           UNION
+           SELECT id
+           FROM ${ACCOUNTS_TABLE}
+           WHERE session_id = $2
+           LIMIT 1
+         )
+         UPDATE ${SESSION_VIEWS_TABLE}
+         SET account_id = COALESCE(${SESSION_VIEWS_TABLE}.account_id, (SELECT id FROM resolved_account))
+         WHERE session_id IN ($1, $2)`,
         [targetId, sourceId]
       );
-      await client.query(`DELETE FROM ${SESSION_VIEWS_TABLE} WHERE session_id = $1`, [sourceId]);
       await client.query("COMMIT");
     } catch (error) {
       try {
