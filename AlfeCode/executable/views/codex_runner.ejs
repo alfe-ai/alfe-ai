@@ -461,7 +461,7 @@
             top: -50px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: var(--accent); /* Purple color matching New Task button */
+            background-color: rgba(124, 58, 237, 0.95); /* Match New Task button purple */
             color: white;
             padding: 8px 12px;
             border-radius: 6px;
@@ -490,7 +490,7 @@
             width: 0;
             height: 0;
             border: 5px solid transparent;
-            border-top-color: var(--accent); /* Same purple color */
+            border-top-color: rgba(124, 58, 237, 0.95); /* Same purple color */
         }
 
         .tooltip-text {
@@ -4233,9 +4233,11 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     const tooltip = document.getElementById('promptTooltip');
     const promptField = document.getElementById('prompt');
     const tooltipCookie = 'promptTooltipShown';
-    
-    // Check if user is logged in - we can check for an account-related element
-    const isUserLoggedIn = document.getElementById('accountEmailValue') !== null;
+    const tooltipLoggedInCookie = 'promptTooltipSuppressedForLoggedIn';
+    const config = window.CodexRunnerConfig || {};
+
+    // Check if user is logged in based on actual account data.
+    const isUserLoggedIn = !!(config.initialAccountInfo && config.initialAccountInfo.email);
     
     // Function to check if cookie exists
     function hasCookie(cookieName) {
@@ -4245,12 +4247,29 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
         });
     }
     
-    // Show tooltip after a brief delay if user is not logged in
-    if (!isUserLoggedIn && !hasCookie(tooltipCookie)) {
+    function setCookie(cookieName, cookieValue, maxAgeDays) {
+        const expirationDate = new Date();
+        expirationDate.setTime(expirationDate.getTime() + (maxAgeDays * 24 * 60 * 60 * 1000));
+        document.cookie = `${cookieName}=${cookieValue};expires=${expirationDate.toUTCString()};path=/`;
+    }
+
+    // For logged-in users, always suppress this tooltip and persist with a cookie.
+    if (isUserLoggedIn) {
+        setCookie(tooltipLoggedInCookie, 'true', 30);
+        setCookie(tooltipCookie, 'true', 30);
+        if (tooltip) {
+            tooltip.classList.remove('show');
+        }
+        return;
+    }
+
+    // Show tooltip after a brief delay if user is not logged in and has not seen it before.
+    if (!hasCookie(tooltipCookie) && !hasCookie(tooltipLoggedInCookie)) {
         setTimeout(() => {
             if (tooltip && promptField) {
                 tooltip.classList.add('show');
-                
+                setCookie(tooltipCookie, 'true', 30);
+
                 // Auto-hide after 5 seconds
                 setTimeout(() => {
                     tooltip.classList.remove('show');
@@ -4263,10 +4282,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     if (tooltip && promptField) {
         tooltip.addEventListener('click', function() {
             tooltip.classList.remove('show');
-            // Set cookie to remember that tooltip has been shown
-            const expirationDate = new Date();
-            expirationDate.setTime(expirationDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
-            document.cookie = `${tooltipCookie}=true;expires=${expirationDate.toUTCString()};path=/`;
+            setCookie(tooltipCookie, 'true', 30);
         });
     }
     
