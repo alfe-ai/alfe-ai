@@ -6287,7 +6287,13 @@ const appendMergeChunk = (text, type = "output") => {
               if (!resp.ok) {
                 console.error('[Codex Runner] Failed to archive/unarchive run', resp.status);
               } else {
+                // Check if this is the currently selected run
+                const isCurrentlySelected = id === runsSidebarSelectedRunId;
                 await loadRunsSidebar({ projectDir: getProjectDirHintForHistory(), force: true });
+                // If the archived run was the currently selected run, trigger new task creation
+                if (isCurrentlySelected && typeof prepareNewTask === 'function') {
+                  prepareNewTask();
+                }
               }
             } catch (err) { console.error('[Codex Runner] Archive action failed', err); }
             finally { archiveBtn.disabled = false; archiveBtn.classList.remove('is-active'); }
