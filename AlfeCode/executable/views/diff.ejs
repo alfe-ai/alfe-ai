@@ -799,7 +799,7 @@
 
             <% if (typeof model !== 'undefined' && model) { %>
             <div class="revision-info">
-                <span class="revision-pill">Model: <%= model || '—' %></span>
+                <span class="revision-pill">Model: <%= getDisplayModelName(model) || '—' %></span>
             </div>
             <% } %>
 
