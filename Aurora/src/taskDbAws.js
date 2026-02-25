@@ -175,7 +175,9 @@ export default class TaskDBAws {
         id SERIAL PRIMARY KEY,
         session_id TEXT NOT NULL,
         route TEXT NOT NULL DEFAULT '',
-        viewed_at TEXT NOT NULL
+        viewed_at TEXT NOT NULL,
+        ipv4_address TEXT,
+        ipv6_address TEXT
       );`);
       await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
       await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
@@ -932,9 +934,9 @@ export default class TaskDBAws {
       [sessionId, ipv4, ipv6]
     );
     await this.pool.query(
-      `INSERT INTO page_views (session_id, route, viewed_at)
-       VALUES ($1, $2, $3)`,
-      [sessionId, pageRoute, viewedAt]
+      `INSERT INTO page_views (session_id, route, viewed_at, ipv4_address, ipv6_address)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [sessionId, pageRoute, viewedAt, ipv4, ipv6]
     );
   }
 
