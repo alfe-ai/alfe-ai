@@ -126,7 +126,9 @@ export default class TaskDB {
                                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                                             session_id TEXT NOT NULL,
                                             route TEXT NOT NULL DEFAULT '',
-                                            viewed_at TEXT NOT NULL
+                                            viewed_at TEXT NOT NULL,
+                                            ipv4_address TEXT,
+                                            ipv6_address TEXT
       );
     `);
     try {
@@ -844,8 +846,8 @@ export default class TaskDB {
       )
       .run(sessionId, sessionId, ipv4, ipv6, ipv4, ipv4, ipv6, ipv6);
     this.db
-      .prepare(`INSERT INTO page_views (session_id, route, viewed_at) VALUES (?, ?, ?)`)
-      .run(sessionId, pageRoute, viewedAt);
+      .prepare(`INSERT INTO page_views (session_id, route, viewed_at, ipv4_address, ipv6_address) VALUES (?, ?, ?, ?, ?)`)
+      .run(sessionId, pageRoute, viewedAt, ipv4, ipv6);
   }
 
   listProjects(includeArchived = false) {

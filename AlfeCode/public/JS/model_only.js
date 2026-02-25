@@ -1488,6 +1488,14 @@
     });
   }
 
+  // Add event listener for the bottom logout button
+  const logoutButtonBottom = document.getElementById('logoutButtonBottom');
+  if (logoutButtonBottom) {
+    logoutButtonBottom.addEventListener('click', function() {
+      void handleLogout();
+    });
+  }
+
   async function handleSessionRefresh() {
     if (!allowConfigIpControls) {
       showSessionRefreshFeedback('Forbidden.', 'error');
