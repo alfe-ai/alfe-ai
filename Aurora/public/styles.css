@@ -1588,17 +1588,38 @@ body {
   z-index: 1000;
 }
 
-.sidebar-brand-text {
+.sidebar-brand-group {
   position: absolute;
   top: 16px;
   left: 60px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   z-index: 1000;
 }
 
-.app.sidebar-collapsed #sidebarBrandText {
+.sidebar-brand-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.sidebar-beta-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: #7e22ce;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.app.sidebar-collapsed .sidebar-brand-group {
   display: none;
 }
 
