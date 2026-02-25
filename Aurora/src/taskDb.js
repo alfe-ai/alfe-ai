@@ -483,7 +483,8 @@ export default class TaskDB {
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free',
-        disabled INTEGER DEFAULT 0
+        disabled INTEGER DEFAULT 0,
+        last_log_in TEXT DEFAULT NULL
       );
     `);
 
@@ -523,6 +524,12 @@ export default class TaskDB {
     }
 
     this.db.exec("UPDATE accounts SET disabled=0 WHERE disabled IS NULL;");
+
+    // Add setAccountLastLogin method
+    this.setAccountLastLogin = function(id) {
+      const now = new Date().toISOString();
+      this.db.prepare("UPDATE accounts SET last_log_in = ? WHERE id = ?").run(now, id);
+    };
 
     // Migration: remove the deprecated upwork_jobs table if it exists.
     this.db.exec('DROP TABLE IF EXISTS upwork_jobs;');
