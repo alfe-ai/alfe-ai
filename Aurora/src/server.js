@@ -40,13 +40,14 @@ const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
 );
 const MIN_PASSWORD_LENGTH = 8;
 
+const AURORA_LOGIN_REDIRECT_TARGET = process.env.AURORA_LOGIN_REDIRECT_TARGET || "https://internal-chat.alfe.bot";
 const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
 const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
   false
 );
 const SHOPIFY_AUTH_START_PATH = "/auth/shopify/start";
-const SHOPIFY_AUTH_DEFAULT_START_URL = `${CODE_ALFE_REDIRECT_TARGET}${SHOPIFY_AUTH_START_PATH}`;
+const SHOPIFY_AUTH_DEFAULT_START_URL = `${AURORA_LOGIN_REDIRECT_TARGET}${SHOPIFY_AUTH_START_PATH}`;
 
 function normalizeSterlingBaseUrl(url) {
   return url.replace(/\/+$/, "");

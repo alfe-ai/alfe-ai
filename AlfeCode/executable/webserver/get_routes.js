@@ -7145,6 +7145,19 @@ ${err}`;
                     )
                 );
 
+            // Query the database for model information
+            let model = '';
+            if (runIdQuery && typeof rdsStore !== 'undefined') {
+                try {
+                    const result = await rdsStore.getRunById(sessionId, runIdQuery);
+                    if (result && result.model) {
+                        model = result.model;
+                    }
+                } catch (err) {
+                    console.warn('Failed to query model from database for run:', runIdQuery, err);
+                }
+            }
+
             res.render("diff", {
                 gitRepoNameCLI: repoName || resolvedProjectDir,
                 baseRev,
@@ -7165,7 +7178,8 @@ ${err}`;
                 comparisonPromptLine,
                 comparisonFinalOutput,
                 chatNumber,
-                showCommitList: SHOW_COMMIT_LIST
+                showCommitList: SHOW_COMMIT_LIST,
+                model: model
             });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);

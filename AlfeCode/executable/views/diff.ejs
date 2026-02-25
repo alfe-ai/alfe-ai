@@ -797,6 +797,12 @@
             </div>
             <% } %>
 
+            <% if (typeof model !== 'undefined' && model) { %>
+            <div class="revision-info">
+                <span class="revision-pill">Model: <%= model || '—' %></span>
+            </div>
+            <% } %>
+
             <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
 <% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
             <% if (comparisonCommitMessage) { %>
