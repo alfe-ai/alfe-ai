@@ -2120,6 +2120,8 @@ app.post("/api/login", async (req, res) => {
 
     await db.setAccountSession(account.id, sessionId);
     await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
+    // Update last login timestamp
+    await db.setAccountLastLogin(account.id);
     res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/login failed:", err);
