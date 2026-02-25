@@ -41,12 +41,13 @@ const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
 const MIN_PASSWORD_LENGTH = 8;
 
 const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
+const AURORA_LOGIN_REDIRECT_TARGET = process.env.AURORA_LOGIN_REDIRECT_TARGET || "https://internal-chat.alfe.bot";
 const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
   false
 );
 const SHOPIFY_AUTH_START_PATH = "/auth/shopify/start";
-const SHOPIFY_AUTH_DEFAULT_START_URL = `${CODE_ALFE_REDIRECT_TARGET}${SHOPIFY_AUTH_START_PATH}`;
+const SHOPIFY_AUTH_DEFAULT_START_URL = `${AURORA_LOGIN_REDIRECT_TARGET}${SHOPIFY_AUTH_START_PATH}`;
 
 function normalizeSterlingBaseUrl(url) {
   return url.replace(/\/+$/, "");
@@ -5057,7 +5058,7 @@ app.get("/aurora-config.js", (_req, res) => {
   const flags = {
     codeRedirect: {
       enabled: codeAlfeRedirectEnabled,
-      target: CODE_ALFE_REDIRECT_TARGET,
+      target: AURORA_LOGIN_REDIRECT_TARGET,
     },
     printifyQueue: {
       enabled: parseBooleanEnv(process.env.AURORA_PRINTIFY_QUEUE_ENABLED, false),
@@ -5092,7 +5093,7 @@ app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
       : SHOPIFY_AUTH_DEFAULT_START_URL;
 
   try {
-    const redirectUrl = new URL(targetStartUrl, CODE_ALFE_REDIRECT_TARGET);
+    const redirectUrl = new URL(targetStartUrl, AURORA_LOGIN_REDIRECT_TARGET);
     for (const [key, value] of Object.entries(req.query || {})) {
       if (Array.isArray(value)) {
         value.forEach((item) => {
@@ -5148,9 +5149,9 @@ app.get("/chat/:tabUuid", (req, res) => {
 app.get("/code", (req, res) => {
   if (codeAlfeRedirectEnabled) {
     console.debug(
-      `[Server Debug] GET /code => Redirecting to ${CODE_ALFE_REDIRECT_TARGET}`
+      `[Server Debug] GET /code => Redirecting to ${AURORA_LOGIN_REDIRECT_TARGET}`
     );
-    return res.redirect(302, CODE_ALFE_REDIRECT_TARGET);
+    return res.redirect(302, AURORA_LOGIN_REDIRECT_TARGET);
   }
   console.debug("[Server Debug] GET /code => Serving aurora.html");
   res.sendFile(path.join(__dirname, "../public/aurora.html"));
@@ -5159,9 +5160,9 @@ app.get("/code", (req, res) => {
 app.get("/code/:tabUuid", (req, res) => {
   if (codeAlfeRedirectEnabled) {
     console.debug(
-      `[Server Debug] GET /code/${req.params.tabUuid} => Redirecting to ${CODE_ALFE_REDIRECT_TARGET}`
+      `[Server Debug] GET /code/${req.params.tabUuid} => Redirecting to ${AURORA_LOGIN_REDIRECT_TARGET}`
     );
-    return res.redirect(302, CODE_ALFE_REDIRECT_TARGET);
+    return res.redirect(302, AURORA_LOGIN_REDIRECT_TARGET);
   }
   console.debug(`[Server Debug] GET /code/${req.params.tabUuid} => Serving aurora.html`);
   res.sendFile(path.join(__dirname, "../public/aurora.html"));
