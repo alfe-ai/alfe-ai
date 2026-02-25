@@ -3191,6 +3191,48 @@
             box-shadow: 0 16px 36px rgba(124, 58, 237, 0.32);
             outline: none;
         }
+
+        /* Tooltip for prompt field */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            width: max-content;
+            max-width: 200px;
+            text-align: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: var(--accent) transparent transparent transparent;
+        }
+
+        #promptContainer:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
 </style>
 </head>
 <body>
@@ -3722,19 +3764,24 @@
                     </div>
                 <% } %>
             </div>
-            <div>
+            <div id="promptContainer">
                 <label for="prompt">Prompt</label>
-                <textarea
-                    id="prompt"
-                    name="prompt"
-                    placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
+                <div class="tooltip-container">
+                    <textarea
+                        id="prompt"
+                        name="prompt"
+                        placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
 
 Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
-                    required
-                    autocomplete="off"
-                    spellcheck="false"
-                    rows="6"
-                ></textarea>
+                        required
+                        autocomplete="off"
+                        spellcheck="false"
+                        rows="6"
+                    ></textarea>
+                    <div class="tooltip">
+                        <span class="tooltip-text">Enter a prompt to get started.</span>
+                    </div>
+                </div>
             </div>
 
             <div class="actions">
@@ -4617,6 +4664,41 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
 </script>
 
 <%- include('partials/cookie_banner') %>
+
+<script>
+    // Cookie banner functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const cookieBanner = document.getElementById('cookieBanner');
+        const cookieAcceptButton = document.getElementById('cookieAcceptButton');
+        
+        if (cookieBanner && cookieAcceptButton) {
+            // Check if cookie preferences already exist
+            const cookiePreferences = localStorage.getItem('cookiePreferences');
+            if (cookiePreferences === 'accepted') {
+                cookieBanner.classList.add('is-hidden');
+            }
+            
+            cookieAcceptButton.addEventListener('click', function() {
+                localStorage.setItem('cookiePreferences', 'accepted');
+                cookieBanner.classList.add('is-hidden');
+            });
+        }
+    });
+</script>
+
+<script>
+    // Tooltip functionality is handled by CSS hover rules
+    // Cookie banner functionality - if needed
+    document.addEventListener('DOMContentLoaded', function() {
+        // Override existing cookie banner if needed
+        const cookieBanner = document.getElementById('cookieBanner');
+        if (cookieBanner && !cookieBanner.dataset.alfeProcessed) {
+            // Just make it visible for now
+            cookieBanner.style.display = 'block';
+            cookieBanner.dataset.alfeProcessed = 'true';
+        }
+    });
+</script>
 
 </body>
 </html>
