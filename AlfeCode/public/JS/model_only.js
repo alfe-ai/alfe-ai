@@ -152,6 +152,25 @@
 
   function requestAuthModal(preferredStep = 'signup') {
     const normalizedStep = preferredStep === 'login' ? 'login' : 'signup';
+    // Always use Shopify auth if enabled 
+    const shopifyAuthEnabled = typeof config !== 'undefined' && config.shopifyAuthEnabled !== false;
+    if (shopifyAuthEnabled) {
+      const authStartPath = typeof config.shopifyAuthStartUrl === "string" && config.shopifyAuthStartUrl.trim()
+        ? config.shopifyAuthStartUrl.trim()
+        : "/auth/shopify/start";
+      const returnTo = `${window.location.pathname || "/agent"}${window.location.search || ""}${window.location.hash || ""}`;
+      try {
+        const url = new URL(authStartPath, window.location.origin);
+        url.searchParams.set("returnTo", returnTo || "/agent");
+        url.searchParams.set("preferredStep", normalizedStep);
+        window.location.assign(url.toString());
+        return true;
+      } catch (error) {
+        console.warn("Unable to start Shopify auth redirect.", error);
+      }
+    }
+    
+    // Fall back to legacy modal if Shopify auth is disabled
     let opened = false;
     try {
       if (window.parent && window.parent !== window && typeof window.parent.alfeOpenAuthModal === 'function') {

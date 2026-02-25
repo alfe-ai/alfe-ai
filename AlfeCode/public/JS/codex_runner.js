@@ -9307,9 +9307,12 @@ const appendMergeChunk = (text, type = "output") => {
       return;
     }
     const shopifyAuthEnabled = config.shopifyAuthEnabled !== false;
-    if (shopifyAuthEnabled && startShopifyAuth({ preferredStep: preferredStep || "signup" })) {
+    if (shopifyAuthEnabled) {
+      // Always use Shopify auth when enabled
+      startShopifyAuth({ preferredStep: preferredStep || "signup" });
       return;
     }
+    // Fallback to legacy modal if Shopify auth is disabled
     if (closeRepoAddFirst) {
       closeRepoAddModal();
     }
