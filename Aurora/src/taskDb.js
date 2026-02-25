@@ -478,6 +478,7 @@ export default class TaskDB {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         session_id TEXT DEFAULT '',
+        aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
@@ -510,6 +511,13 @@ export default class TaskDB {
     try {
       this.db.exec("ALTER TABLE accounts ADD COLUMN disabled INTEGER DEFAULT 0;");
       console.debug("[TaskDB Debug] Added accounts.disabled column");
+    } catch(e) {
+      // column exists
+    }
+
+    try {
+      this.db.exec("ALTER TABLE accounts ADD COLUMN aurora_session_id TEXT DEFAULT ''; ");
+      console.debug("[TaskDB Debug] Added accounts.aurora_session_id column");
     } catch(e) {
       // column exists
     }
