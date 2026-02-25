@@ -5162,20 +5162,20 @@ app.get('/auth/shopify/callback', async (req, res) => {
     // Note: In an ideal scenario, we'd store the originally generated state somewhere
     // (database, memory cache) and validate it here. For now, we'll skip this for simplicity
     // but it's a security best practice to validate the returned state matches the original.
-    
+
     // Exchange code for tokens using Shopify customer account token endpoint
     if (!SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT || !SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID) {
       console.error('[Server Debug] Missing Shopify client credentials for token exchange');
       return res.status(500).send('Invalid server configuration');
     }
-    
+
     // Create token request to Shopify
     const tokenBody = new URLSearchParams();
     tokenBody.set('client_id', SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID);
     tokenBody.set('grant_type', 'authorization_code');
     tokenBody.set('code', code);
     tokenBody.set('redirect_uri', `${req.protocol}://${req.get('host')}/auth/shopify/callback`);
-    
+
     const tokenResponse = await fetch(SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -5187,12 +5187,14 @@ app.get('/auth/shopify/callback', async (req, res) => {
     if (!tokenResponse.ok) {
       throw new Error(`Token exchange failed: ${tokenResponse.statusText}`);
     }
-    
+
     const tokenData = await tokenResponse.json();
     console.log('[Server Debug] Shopify OAuth token received');
 
     // At this point, you would typically store the access_token in session/database
-    // and redirect user back to the app. For simplicity of the redirect:
+    // and redirect user back to the app. We'll store the session id to link it to the
+    // user's Aurora account if they're logged in.
+    
     let redirectTo = '/';
     if (req.query.returnTo) {
       try {
@@ -5205,7 +5207,15 @@ app.get('/auth/shopify/callback', async (req, res) => {
         console.error('[Server Debug] Invalid returnTo URL', e);
       }
     }
-    
+
+    // Get sessionId from the current request and ensure it's linked to an account if one exists
+    const sessionId = getSessionIdFromRequest(req);
+    const account = sessionId ? await db.getAccountBySession(sessionId) : null;
+    if (account) {
+      // Update the account with the session ID to ensure it's linked
+      await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
+    }
+
     res.redirect(302, redirectTo);
   } catch (error) {
     console.error('[Server Debug] Error processing Shopify OAuth callback:', error);
