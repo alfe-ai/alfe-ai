@@ -776,14 +776,6 @@ run_qwen() {
     openai_api_key_value="$qwen_model_key_value"
   fi
 
-  # If webserver injected an account-level OpenAI key, force it for this run
-  # so OPENAI_API_KEY is consistently overridden before env/debug printing.
-  if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" ]]; then
-    printf '[info] overriding OPENAI_API_KEY from ACCOUNT_DB_OPENAI_API_KEY\n'
-    openai_api_key_value="$ACCOUNT_DB_OPENAI_API_KEY"
-    export OPENAI_API_KEY="$ACCOUNT_DB_OPENAI_API_KEY"
-  fi
-
   # Resolve URL from model_only_models.json using the final Qwen model value.
   # This makes per-model `url` override any global OPENAI_BASE_URL from .env.
   local qwen_model_base_url=""
@@ -795,6 +787,17 @@ run_qwen() {
     "openrouter/$openai_model_no_free"
   )"; then
     openai_base_url_value="$qwen_model_base_url"
+  fi
+
+  # If webserver injected an account-level OpenAI key, force it for this run
+  # only for models that resolve to LiteLLM.
+  if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" ]]; then
+    local normalized_openai_base_url="${openai_base_url_value%/}"
+    if [[ "$normalized_openai_base_url" == "https://litellm.alfe.sh/v1" ]]; then
+      printf '[info] overriding OPENAI_API_KEY from ACCOUNT_DB_OPENAI_API_KEY\n'
+      openai_api_key_value="$ACCOUNT_DB_OPENAI_API_KEY"
+      export OPENAI_API_KEY="$ACCOUNT_DB_OPENAI_API_KEY"
+    fi
   fi
   local strip_free_suffix
   strip_free_suffix() {
