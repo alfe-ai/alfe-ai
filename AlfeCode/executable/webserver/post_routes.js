@@ -835,6 +835,8 @@ function setupPostRoutes(deps) {
             }
         } else if (sessionId) {
             await rdsStore.setAccountSession(account.id, sessionId);
+            // Also update the last login timestamp
+            await rdsStore.setAccountLastLogin(account.id);
         }
 
         if (resolvedSessionId) {
