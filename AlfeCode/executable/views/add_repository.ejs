@@ -351,112 +351,29 @@
                 <% } %>
             </div>
         <% } else { %>
+            <!-- Git Connection Prompt -->
             <header>
                 <h1>Connect Git Repository</h1>
+                <p>Select your Git connection method</p>
             </header>
 
             <div class="card">
-                <div class="meta-row">
-                    <% if (showCreateRepoLink) { %>
-                        <div class="meta-action">
-                            <span>Or</span>
-                            <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
-                        </div>
-                    <% } %>
+                <div class="button-row" style="justify-content: space-between;">
+                    <button type="button" 
+                            id="connectGithubBtn" 
+                            class="button-link" 
+                            onclick="alert('GitHub Connect coming soon')">
+                        Connect GitHub
+                    </button>
+                    <button type="button" 
+                            id="connectSshBtn" 
+                            class="button-link"
+                            onclick="window.location.href='/repositories/add'">
+                        Connect with SSH Key
+                    </button>
                 </div>
-                <form action="/repositories/add" method="POST" id="addRepoForm">
-                    <% if (cloneError) { %>
-                        <div class="alert <%= isSshAuthError ? 'alert-ssh-warning' : '' %>"><%= cloneError %></div>
-                    <% } %>
-                    <% if (sshKeyRequired) { %>
-                        <div class="ssh-card">
-                            <h3>Copy Git SSH public key</h3>
-                            <p>Copy the key below and add it to your Git host. Then click Connect Repository below to continue.</p>
-                            <div class="button-row">
-                                <button type="button" id="copySshKey" disabled>Copy key</button>
-                            </div>
-                            <div class="ssh-copy-status" id="sshCopyStatus" aria-live="polite"></div>
-                            <textarea
-                                class="ssh-key-output"
-                                id="sshPublicKey"
-                                readonly
-                                placeholder="Your public key will appear here after generation."
-                            ></textarea>
-                            <div class="ssh-status" id="sshKeyStatus">
-                                Generating SSH key... For GitHub, paste the key here:
-                                <a
-                                    class="ssh-link"
-                                    id="githubKeyLink"
-                                    href="https://github.com/settings/keys"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >https://github.com/settings/keys</a>
-                                <br>
-                                Need help?
-                                <a
-                                    class="ssh-link"
-                                    href="/support?disableBack=true&category=git"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >Click here for support.</a>
-                            </div>
-                        </div>
-                    <% } %>
-                    <div class="field">
-                        <label for="gitRepoURL">Git repository URL:</label>
-                        <input
-                            type="text"
-                            id="gitRepoURL"
-                            name="gitRepoURL"
-                            placeholder="git@github.com:example-org/example-repo.git"
-                            value="<%= gitRepoURLValue || '' %>"
-                            <%= isSshAuthError ? 'readonly' : '' %>
-                        >
-                        <% if (!isSshAuthError) { %>
-                            <small>Accepted formats include SSH, HTTPS, and git+ssh URLs (e.g. git@github.com:example-org/example-repo.git, https://github.com/example-org/example-repo.git, git+ssh://git@github.com/example-org/example-repo.git).</small>
-                        <% } %>
-                    </div>
-
-                    <div class="field">
-                        <div class="inline-edit-row">
-                            <label for="repoName">Project name:</label>
-                            <div class="inline-edit-display" id="repoNameDisplay">
-                                <span class="inline-edit-value" id="repoNameValue"></span>
-                                <button
-                                    type="button"
-                                    class="icon-button <%= isSshAuthError ? 'is-hidden' : '' %>"
-                                    id="editRepoName"
-                                    aria-label="Edit project name"
-                                >
-                                    <span aria-hidden="true">✎</span>
-                                </button>
-                            </div>
-                        </div>
-                        <input
-                            type="text"
-                            id="repoName"
-                            name="repoName"
-                            value="<%= repoNameValue || '' %>"
-                            class="inline-edit-input is-hidden"
-                            required
-                        >
-                    </div>
-
-                    <div class="field">
-                        <div class="button-row">
-                            <button type="submit">
-                                <% if (isSshAuthError) { %>
-                                    <span class="refresh-icon" aria-hidden="true">⟳</span>
-                                    Connect Repository
-                                <% } else { %>
-                                    Connect Repository
-                                <% } %>
-                            </button>
-                        </div>
-                    </div>
-                </form>
             </div>
-
+            
             <footer>
             </footer>
         <% } %>
