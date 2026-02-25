@@ -106,7 +106,8 @@ class RdsStore {
         ever_subscribed BOOLEAN DEFAULT false,
         openrouter_api_key TEXT DEFAULT '',
         key_hash_id TEXT DEFAULT '',
-        disabled BOOLEAN DEFAULT false
+        disabled BOOLEAN DEFAULT false,
+        last_log_in TEXT DEFAULT NULL
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PROJECTVIEW_JSON_TABLE} (
         session_id TEXT PRIMARY KEY,
@@ -658,9 +659,10 @@ class RdsStore {
     try {
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
-         SET session_id = $1
-         WHERE id = $2`,
-        [sessionId || "", id]
+         SET session_id = $1,
+             last_log_in = $2
+         WHERE id = $3`,
+        [sessionId || "", new Date().toISOString(), id]
       );
       if (sessionId) {
         await this.pool.query(
