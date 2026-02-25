@@ -788,19 +788,7 @@
 </head>
 <body>
 <%- include('partials/session_banner') %>
-<%
-    const modelDisplayName = (() => {
-        if (typeof model === 'string') {
-            return model.trim();
-        }
-        if (model && typeof model === 'object') {
-            if (typeof model.displayName === 'string') return model.displayName.trim();
-            if (typeof model.name === 'string') return model.name.trim();
-            if (typeof model.id === 'string') return model.id.trim();
-        }
-        return '';
-    })();
-%>
+<% const resolvedModelDisplayName = typeof modelDisplayName === 'string' && modelDisplayName.trim() ? modelDisplayName.trim() : ''; %>
 <div class="page">
     <div class="header-row">
         <div class="header-main">
@@ -810,9 +798,9 @@
             </div>
             <% } %>
 
-            <% if (modelDisplayName) { %>
+            <% if (resolvedModelDisplayName) { %>
             <div class="revision-info">
-                <span class="revision-pill">Model: <%= modelDisplayName %></span>
+                <span class="revision-pill">Model: <%= resolvedModelDisplayName %></span>
             </div>
             <% } %>
 
