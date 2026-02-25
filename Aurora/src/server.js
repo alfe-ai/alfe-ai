@@ -5170,17 +5170,18 @@ app.get('/auth/shopify/callback', async (req, res) => {
     }
     
     // Create token request to Shopify
+    const tokenBody = new URLSearchParams();
+    tokenBody.set('client_id', SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID);
+    tokenBody.set('grant_type', 'authorization_code');
+    tokenBody.set('code', code);
+    tokenBody.set('redirect_uri', `${req.protocol}://${req.get('host')}/auth/shopify/callback`);
+    
     const tokenResponse = await fetch(SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        client_id: SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: `${req.protocol}://${req.get('host')}/auth/shopify/callback`,
-      }),
+      body: tokenBody,
     });
 
     if (!tokenResponse.ok) {
