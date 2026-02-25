@@ -670,8 +670,8 @@
       "contextTokens": 131072,
       "plus_model": true,
       "usage": "low",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "openrouter/z-ai/glm-4.7",
