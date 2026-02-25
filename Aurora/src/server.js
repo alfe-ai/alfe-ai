@@ -2041,6 +2041,7 @@ app.post("/api/register", async (req, res) => {
     }
     const hash = hashPassword(password);
     const id = await db.createAccount(email, hash, sessionId);
+    await db.setAccountAuroraSessionIfMissing(id, sessionId);
     res.json({ success: true, id, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/register failed:", err);
@@ -2096,12 +2097,13 @@ app.post("/api/login", async (req, res) => {
       }
     }
 
-    if (account.session_id && account.session_id !== sessionId) {
-      await db.mergeSessions(account.session_id, sessionId); // Fixed to use separate queries in rds_store.js
-      sessionId = account.session_id;
+    if (account.aurora_session_id && account.aurora_session_id !== sessionId) {
+      await db.mergeSessions(account.aurora_session_id, sessionId); // Fixed to use separate queries in rds_store.js
+      sessionId = account.aurora_session_id;
     }
 
     await db.setAccountSession(account.id, sessionId);
+    await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
     res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/login failed:", err);
@@ -5059,6 +5061,10 @@ app.get("/aurora-config.js", (_req, res) => {
     },
     imageUpload: {
       enabled: IMAGE_UPLOAD_ENABLED,
+    },
+    shopifyAuth: {
+      enabled: parseBooleanEnv(process.env.SHOPIFY_AUTH_ENABLED, true),
+      startUrl: (process.env.SHOPIFY_AUTH_START_URL || "/auth/shopify/start").trim(),
     },
     searchEnabled2026: SEARCH_ENABLED_2026,
     imagesEnabled2026: IMAGES_ENABLED_2026,
