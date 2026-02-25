@@ -3189,10 +3189,11 @@ ${cleanedFinalOutput}`;
                 try {
                     let account = await rdsStore.getAccountByEmail(shopifyEmail);
                     if (!account) {
+                        const resolvedSessionId = getSessionIdFromRequest(req) || randomUUID();
                         const createdAccount = await rdsStore.createAccount({
                             email: shopifyEmail,
                             passwordHash: null,
-                            sessionId: "",
+                            sessionId: resolvedSessionId,
                         });
                         account = createdAccount
                             ? await rdsStore.getAccountByEmail(shopifyEmail)

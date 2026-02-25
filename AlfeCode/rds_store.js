@@ -630,10 +630,10 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `INSERT INTO ${ACCOUNTS_TABLE} (email, password_hash, session_id, created_at, timezone, plan)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, email, session_id, created_at`,
-        [normalized, typeof passwordHash === "string" && passwordHash ? passwordHash : null, sessionId || '', new Date().toISOString(), '', 'Free']
+        `INSERT INTO ${ACCOUNTS_TABLE} (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, email, session_id, aurora_session_id, created_at`,
+        [normalized, typeof passwordHash === "string" && passwordHash ? passwordHash : null, sessionId || '', sessionId || '', new Date().toISOString(), '', 'Free']
       );
       const created = result.rows[0] || null;
       if (created?.id && created?.session_id) {
