@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Account IPs</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: #f6f7f9;
+      color: #111;
+    }
+    header {
+      padding: 1.5rem 2rem 0.5rem;
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+    }
+    .layout {
+      display: flex;
+      gap: 1.5rem;
+      padding: 0 2rem 2rem;
+      min-height: calc(100vh - 80px);
+      box-sizing: border-box;
+    }
+    aside {
+      width: 240px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    aside h2 {
+      font-size: 1rem;
+      margin: 0;
+      color: #334155;
+    }
+    .table-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .table-list button {
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 0.45rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.15s ease, border 0.15s ease;
+    }
+    .table-list button:hover,
+    .table-list button:focus {
+      background: #e2e8f0;
+      border-color: #cbd5f5;
+      outline: none;
+    }
+    .table-list button.active {
+      background: #0f172a;
+      color: #fff;
+    }
+    main {
+      flex: 1;
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem 1.5rem 1.5rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toolbar span {
+      color: #475569;
+      font-size: 0.95rem;
+    }
+
+    .query-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .query-editor label {
+      font-size: 0.9rem;
+      color: #475569;
+      font-weight: 600;
+    }
+    .query-editor textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.65rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.88rem;
+      box-sizing: border-box;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .query-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .query-actions button {
+      border: 1px solid #cbd5e1;
+      background: #0f172a;
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.45rem 0.8rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+    }
+    .query-actions button.secondary {
+      background: #fff;
+      color: #0f172a;
+    }
+    .status {
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    .db-info {
+      padding: 0 2rem 2rem;
+    }
+    .db-info-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+    .db-info-card h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      color: #334155;
+    }
+    .db-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.5rem 1.5rem;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    .db-info-grid span {
+      color: #0f172a;
+      font-weight: 600;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 600px;
+    }
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.9rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+    }
+    .empty {
+      padding: 1.5rem;
+      color: #94a3b8;
+      text-align: center;
+    }
+    .deferred-table-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .view-table-btn {
+      border: 1px solid #dc2626;
+      background: #dc2626;
+      color: #fff;
+      border-radius: 8px;
+      padding: 0.55rem 0.9rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .view-table-btn:hover,
+    .view-table-btn:focus {
+      background: #b91c1c;
+      border-color: #b91c1c;
+      outline: none;
+    }
+    .reveal-email-btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 6px;
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .reveal-email-btn:hover,
+    .reveal-email-btn:focus {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      outline: none;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #0b1120;
+        color: #e2e8f0;
+      }
+      aside,
+      main {
+        background: #0f172a;
+        box-shadow: none;
+        border: 1px solid #1e293b;
+      }
+      .table-list button {
+        background: #1e293b;
+        color: #e2e8f0;
+      }
+      .table-list button:hover,
+      .table-list button:focus {
+        background: #334155;
+        border-color: #475569;
+      }
+      .table-list button.active {
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      th {
+        background: #1e293b;
+      }
+      td,
+      th {
+        border-bottom-color: #1f2937;
+      }
+      tbody tr:nth-child(even) {
+        background: #0b1224;
+      }
+      .status,
+      .toolbar span {
+        color: #94a3b8;
+      }
+      .table-wrap {
+        border-color: #1f2937;
+      }
+      .db-info-card {
+        background: #0f172a;
+        border-color: #1e293b;
+        box-shadow: none;
+      }
+      .db-info-card h2 {
+        color: #e2e8f0;
+      }
+      .db-info-grid {
+        color: #94a3b8;
+      }
+      .db-info-grid span {
+        color: #f8fafc;
+      }
+
+      .query-editor label {
+        color: #94a3b8;
+      }
+      .query-editor textarea {
+        background: #111827;
+        color: #e2e8f0;
+        border-color: #334155;
+      }
+      .query-actions button {
+        background: #e2e8f0;
+        color: #0f172a;
+        border-color: #64748b;
+      }
+      .query-actions button.secondary {
+        background: transparent;
+        color: #e2e8f0;
+      }
+      .reveal-email-btn {
+        background: transparent;
+        color: #e2e8f0;
+        border-color: #475569;
+      }
+      .reveal-email-btn:hover,
+      .reveal-email-btn:focus {
+        background: #1e293b;
+        border-color: #64748b;
+      }
+      a {
+        color: #38bdf8;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Account IP Addresses</h1>
+    <a href="/db">← Back to Database</a>
+  </header>
+  <section class="layout">
+    <main>
+      <div class="toolbar">
+        <span id="activeTable">Account data with session IPs</span>
+        <span id="rowMeta"></span>
+      </div>
+      <div class="status" id="dataStatus"></div>
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty">Loading account data...</div>
+      </div>
+    </main>
+  </section>
+  <footer class="db-info">
+    <div class="db-info-card" id="dbInfo">
+      <h2>Account IPs Info</h2>
+      <div class="status">Loading account session IP information...</div>
+    </div>
+  </footer>
+
+  <script>
+    const activeTable = document.getElementById("activeTable");
+    const rowMeta = document.getElementById("rowMeta");
+    const dataStatus = document.getElementById("dataStatus");
+    const tableWrap = document.getElementById("tableWrap");
+    const dbInfo = document.getElementById("dbInfo");
+
+    function renderTable(columns, rows) {
+      if (!columns.length) {
+        tableWrap.innerHTML = "<div class='empty'>No columns found.</div>";
+        return;
+      }
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      columns.forEach((col) => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      if (!rows.length) {
+        const emptyRow = document.createElement("tr");
+        const emptyCell = document.createElement("td");
+        emptyCell.colSpan = columns.length;
+        emptyCell.className = "empty";
+        emptyCell.textContent = "No accounts found.";
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+      } else {
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          columns.forEach((col) => {
+            const td = document.createElement("td");
+            const value = row[col];
+            if (value && typeof value === "object") {
+              const pre = document.createElement("pre");
+              pre.textContent = JSON.stringify(value, null, 2);
+              td.appendChild(pre);
+            } else {
+              td.textContent = value === null || typeof value === "undefined" ? "" : String(value);
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+      table.appendChild(tbody);
+      tableWrap.innerHTML = "";
+      tableWrap.appendChild(table);
+    }
+
+    async function loadAccountData() {
+      try {
+        dataStatus.textContent = "Loading account data...";
+        tableWrap.innerHTML = "<div class='empty'>Loading account data...</div>";
+        
+        const res = await fetch("/api/db/account_ips");
+        if (!res.ok) {
+          throw new Error(`Failed to load account data: ${res.status}`);
+        }
+        const data = await res.json();
+        
+        const columns = ["ID", "Email", "AlfeCode Session ID", "Aurora Session ID", "AlfeCode IPs", "Aurora IPs"];
+        const rows = data.accounts || [];
+        
+        dataStatus.textContent = "";
+        rowMeta.textContent = `${rows.length} account${rows.length === 1 ? '' : 's'} loaded`;
+        renderTable(columns, rows);
+      } catch (err) {
+        dataStatus.textContent = `Error loading account data: ${err?.message || "Unknown error"}`;
+        tableWrap.innerHTML = "<div class='empty'>No data available.</div>";
+        console.error(err);
+      }
+    }
+
+    // Load account data on page load
+    loadAccountData();
+  </script>
+</body>
+</html>
