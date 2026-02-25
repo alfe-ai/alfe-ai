@@ -931,9 +931,9 @@ export default class TaskDBAws {
     const ts = new Date().toISOString();
     const { rows } = await this.pool.query(
       `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       VALUES ($1, $2, '', $3, $4, $5, $6)
        RETURNING id`,
-      [email, passwordHash, sessionId, sessionId, ts, timezone, plan]
+      [email, passwordHash, sessionId, ts, timezone, plan]
     );
     const accountId = rows[0]?.id;
     if (accountId && sessionId) {

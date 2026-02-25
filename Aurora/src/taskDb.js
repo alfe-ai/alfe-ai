@@ -1740,9 +1740,9 @@ export default class TaskDB {
     const { lastInsertRowid } = this.db
         .prepare(
             `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`
+             VALUES (?, ?, '', ?, ?, ?, ?)`
         )
-        .run(email, passwordHash, sessionId, sessionId, ts, timezone, plan);
+        .run(email, passwordHash, sessionId, ts, timezone, plan);
     if (sessionId) {
       this.db
         .prepare(
