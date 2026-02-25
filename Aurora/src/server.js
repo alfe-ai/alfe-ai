@@ -2097,9 +2097,9 @@ app.post("/api/login", async (req, res) => {
       }
     }
 
-    if (account.session_id && account.session_id !== sessionId) {
-      await db.mergeSessions(account.session_id, sessionId); // Fixed to use separate queries in rds_store.js
-      sessionId = account.session_id;
+    if (account.aurora_session_id && account.aurora_session_id !== sessionId) {
+      await db.mergeSessions(account.aurora_session_id, sessionId); // Fixed to use separate queries in rds_store.js
+      sessionId = account.aurora_session_id;
     }
 
     await db.setAccountSession(account.id, sessionId);

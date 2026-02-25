@@ -811,11 +811,11 @@ export default class TaskDB {
     this.db
       .prepare(
         `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
-         VALUES (?, 1, (SELECT id FROM accounts WHERE session_id = ? LIMIT 1), ?, ?)
+         VALUES (?, 1, (SELECT id FROM accounts WHERE aurora_session_id = ? LIMIT 1), ?, ?)
          ON CONFLICT(session_id)
          DO UPDATE SET
            view_count = view_count + 1,
-           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = excluded.session_id LIMIT 1)),
+           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE aurora_session_id = excluded.session_id LIMIT 1)),
            ipv4_address = (
              SELECT array_agg(DISTINCT element)
              FROM unnest(
@@ -1761,7 +1761,7 @@ export default class TaskDB {
   }
 
   setAccountSession(id, sessionId) {
-    this.db.prepare('UPDATE accounts SET session_id=? WHERE id=?').run(sessionId, id);
+    this.db.prepare('UPDATE accounts SET aurora_session_id=? WHERE id=?').run(sessionId, id);
     if (sessionId) {
       this.db
         .prepare(
@@ -1800,10 +1800,10 @@ export default class TaskDB {
   }
 
   getAccountBySession(sessionId) {
-    const account = this.db.prepare('SELECT * FROM accounts WHERE session_id=?').get(sessionId);
+    const account = this.db.prepare('SELECT * FROM accounts WHERE aurora_session_id=?').get(sessionId);
     if (!account) return null;
     if (account.disabled) {
-      this.db.prepare("UPDATE accounts SET session_id='' WHERE id=?").run(account.id);
+      this.db.prepare("UPDATE accounts SET aurora_session_id='' WHERE id=?").run(account.id);
       return null;
     }
     return account;
@@ -1837,7 +1837,7 @@ export default class TaskDB {
          COALESCE(
            (SELECT account_id FROM session_views WHERE session_id = ?),
            (SELECT account_id FROM session_views WHERE session_id = ?),
-           (SELECT id FROM accounts WHERE session_id = ? LIMIT 1)
+           (SELECT id FROM accounts WHERE aurora_session_id = ? LIMIT 1)
          )
        )
        ON CONFLICT(session_id)
