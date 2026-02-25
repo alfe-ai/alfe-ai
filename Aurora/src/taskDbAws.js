@@ -175,7 +175,9 @@ export default class TaskDBAws {
         id SERIAL PRIMARY KEY,
         session_id TEXT NOT NULL,
         route TEXT NOT NULL DEFAULT '',
-        viewed_at TEXT NOT NULL
+        viewed_at TEXT NOT NULL,
+        ipv4_address TEXT,
+        ipv6_address TEXT
       );`);
       await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
       await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
@@ -368,6 +370,49 @@ export default class TaskDBAws {
         "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name"
       );
       return result.rows.map((row) => row.table_name);
+    } finally {
+      client.release();
+    }
+  }
+
+  async getAllAccountsWithIps() {
+    await this._initPromise;
+    const client = await this.pool.connect();
+    try {
+      // Get accounts and their associated IPs from both session_views (for AlfeCode sessions)
+      // and the Aurora session_id field in accounts
+      const query = `
+        SELECT 
+          a.id,
+          a.email,
+          a.session_id as alfe_session_id,
+          a.aurora_session_id,
+          sv.ipv4_address as alfe_ipv4_addresses,
+          sv.ipv6_address as alfe_ipv6_addresses
+        FROM accounts a
+        LEFT JOIN session_views sv ON a.session_id = sv.session_id
+        ORDER BY a.id
+      `;
+      
+      const result = await client.query(query);
+      
+      // Format the results to show IPs in a user-friendly format
+      const accounts = result.rows.map(row => {
+        // Get IP arrays from session_views or return empty arrays
+        const alfeIpv4 = Array.isArray(row.alfe_ipv4_addresses) ? row.alfe_ipv4_addresses.join(', ') : '';
+        const alfeIpv6 = Array.isArray(row.alfe_ipv6_addresses) ? row.alfe_ipv6_addresses.join(', ') : '';
+        
+        return {
+          id: row.id,
+          email: row.email,
+          alfe_session_id: row.alfe_session_id,
+          aurora_session_id: row.aurora_session_id,
+          alfe_ipv4_addresses: alfeIpv4,
+          alfe_ipv6_addresses: alfeIpv6
+        };
+      });
+      
+      return accounts;
     } finally {
       client.release();
     }
@@ -932,9 +977,9 @@ export default class TaskDBAws {
       [sessionId, ipv4, ipv6]
     );
     await this.pool.query(
-      `INSERT INTO page_views (session_id, route, viewed_at)
-       VALUES ($1, $2, $3)`,
-      [sessionId, pageRoute, viewedAt]
+      `INSERT INTO page_views (session_id, route, viewed_at, ipv4_address, ipv6_address)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [sessionId, pageRoute, viewedAt, ipv4, ipv6]
     );
   }
 
