@@ -652,6 +652,11 @@
     </footer>
   </div>
   </div>
+  <div style="display:flex;justify-content:center;align-items:center;margin-top:auto;padding-top:24px;">
+    <% if (account && account.email) { %>
+    <button type="button" id="logoutButtonBottom" class="logout-button logout-button--danger">Log Out</button>
+    <% } %>
+  </div>
   <script>
     window.MODEL_ONLY_CONFIG = {
       accountsEnabled: <%- JSON.stringify(typeof accountsEnabled === "undefined" ? true : accountsEnabled) %>,
