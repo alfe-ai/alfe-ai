@@ -46,6 +46,7 @@ const codeAlfeRedirectEnabled = parseBooleanEnv(
   false
 );
 const SHOPIFY_AUTH_START_PATH = "/auth/shopify/start";
+// In some contexts, we may redirect to alfe.bot backend directly instead of code.alfe.sh
 const SHOPIFY_AUTH_DEFAULT_START_URL = `${CODE_ALFE_REDIRECT_TARGET}${SHOPIFY_AUTH_START_PATH}`;
 
 function normalizeSterlingBaseUrl(url) {
@@ -5086,29 +5087,47 @@ app.get("/aurora-config.js", (_req, res) => {
 
 app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
   const configuredShopifyStartUrl = (process.env.SHOPIFY_AUTH_START_URL || "").trim();
-  const targetStartUrl =
-    configuredShopifyStartUrl && configuredShopifyStartUrl !== SHOPIFY_AUTH_START_PATH
-      ? configuredShopifyStartUrl
-      : SHOPIFY_AUTH_DEFAULT_START_URL;
-
-  try {
-    const redirectUrl = new URL(targetStartUrl, CODE_ALFE_REDIRECT_TARGET);
-    for (const [key, value] of Object.entries(req.query || {})) {
-      if (Array.isArray(value)) {
-        value.forEach((item) => {
-          if (typeof item === "string") {
-            redirectUrl.searchParams.append(key, item);
-          }
-        });
-      } else if (typeof value === "string") {
-        redirectUrl.searchParams.set(key, value);
+  
+  // If a custom Shopify auth start URL is configured, use it
+  if (configuredShopifyStartUrl) {
+    try {
+      const redirectUrl = new URL(configuredShopifyStartUrl);
+      for (const [key, value] of Object.entries(req.query || {})) {
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (typeof item === "string") {
+              redirectUrl.searchParams.append(key, item);
+            }
+          });
+        } else if (typeof value === "string") {
+          redirectUrl.searchParams.set(key, value);
+        }
       }
+      return res.redirect(302, redirectUrl.toString());
+    } catch (error) {
+      console.error("[Server Debug] Failed to build Shopify auth redirect URL:", error);
+      return res.status(500).send("Unable to start Shopify authentication.");
     }
-    return res.redirect(302, redirectUrl.toString());
-  } catch (error) {
-    console.error("[Server Debug] Failed to build Shopify auth redirect URL:", error);
-    return res.status(500).send("Unable to start Shopify authentication.");
   }
+  
+  // Default behavior - redirect to the Alfe server's backend for Shopify auth
+  const alfeBackendUrl = process.env.ALFEBOT_BACKEND_URL || process.env.STERLING_BASE_URL || "https://alfe.bot";
+  const redirectUrl = new URL("/auth/shopify/start", alfeBackendUrl);
+  
+  // Preserve query parameters from the request
+  for (const [key, value] of Object.entries(req.query || {})) {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (typeof item === "string") {
+          redirectUrl.searchParams.append(key, item);
+        }
+      });
+    } else if (typeof value === "string") {
+      redirectUrl.searchParams.set(key, value);
+    }
+  }
+  
+  return res.redirect(302, redirectUrl.toString());
 });
 
 app.get("/code/how-it-works.html", (_req, res) => {
