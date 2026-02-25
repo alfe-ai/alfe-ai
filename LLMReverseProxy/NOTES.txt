@@ -1,0 +1,28 @@
+LLM Reverse Proxy Implementation Notes
+
+Client-Side (Local Desktop):
+1. When started, the client establishes a WebSocket connection to the AWS reverse proxy server
+2. The client sends a handshake message with its unique ID 
+3. The client periodically sends heartbeats to maintain connection
+4. When the AWS server needs to connect to this desktop, it sends an SSH request to the client
+5. The client then sets up an SSH reverse tunnel back to itself via localhost
+6. The client script should run at boot using systemd on Linux
+
+Server-Side (AWS):
+1. The server runs a WebSocket server that maintains connections to all connected clients
+2. It keeps track of connected clients and their heartbeats to detect connectivity
+3. When a user requests SSH access to a client, the server sends an SSH request via WebSocket
+4. The requested client then creates the tunnel back to AWS
+5. The server can be accessed at its public IP or domain for status monitoring
+6. The server should be run as a systemd service to ensure it starts on boot
+
+Requirements:
+- OpenSSL for secure connections (in most cases included by default)
+- SSH server running on local desktops (typically OpenSSH) 
+- Network access from local desktops to AWS instance on WebSocket port
+
+Security Considerations:
+- Use TLS for WebSocket connections in production
+- Implement authentication mechanisms
+- Limit access to known clients/hosts
+- Monitor for abuse/overuse of the service

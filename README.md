@@ -1,8 +1,8 @@
-# Alfe AI / Beta  
+# Alfe AI / Beta
 
 ### Alfe AI: Software Development, Project Management, and Image Design Platform
 
-The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).  
+The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).
 
 <img width="1781" height="1509" alt="image" src="https://github.com/user-attachments/assets/d5a7a336-95c6-4603-b411-a62498d21fc4" />
 
@@ -36,7 +36,7 @@ If the model returns a base64 string instead of a URL, the server automatically 
 The server also includes an optional color swatch detector that can trim any palette band from the bottom of generated images. This feature is disabled by default and can be enabled via the `remove_color_swatches` setting.
 The software development component is coming soon, and is available now as a Pre-release on GitHub.
 
-![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)  
+![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)
 
 Alfe AI beta-2.30+ (Image Design): https://github.com/alfe-ai
 Alfe AI beta-0.4x+ (Software Development): https://github.com/alfe-ai
@@ -114,3 +114,10 @@ Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
 For Qwen run-path comments and upgrade context, see:
 https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
 
+## LLMReverseProxy
+
+A reverse proxy solution that enables SSH access to local machines from a remote AWS host.
+
+To set up:
+1. Use the client in `LLMReverseProxy/client/` on local desktops
+2. Use the server in `LLMReverseProxy/server/` on the AWS host
