@@ -45,6 +45,8 @@ const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
   false
 );
+const SHOPIFY_AUTH_START_PATH = "/auth/shopify/start";
+const SHOPIFY_AUTH_DEFAULT_START_URL = `${CODE_ALFE_REDIRECT_TARGET}${SHOPIFY_AUTH_START_PATH}`;
 
 function normalizeSterlingBaseUrl(url) {
   return url.replace(/\/+$/, "");
@@ -5051,6 +5053,7 @@ if (projectViewEnabled) {
 }
 
 app.get("/aurora-config.js", (_req, res) => {
+  const configuredShopifyStartUrl = (process.env.SHOPIFY_AUTH_START_URL || "").trim();
   const flags = {
     codeRedirect: {
       enabled: codeAlfeRedirectEnabled,
@@ -5064,7 +5067,7 @@ app.get("/aurora-config.js", (_req, res) => {
     },
     shopifyAuth: {
       enabled: parseBooleanEnv(process.env.SHOPIFY_AUTH_ENABLED, true),
-      startUrl: (process.env.SHOPIFY_AUTH_START_URL || "/auth/shopify/start").trim(),
+      startUrl: configuredShopifyStartUrl || SHOPIFY_AUTH_START_PATH,
     },
     searchEnabled2026: SEARCH_ENABLED_2026,
     imagesEnabled2026: IMAGES_ENABLED_2026,
@@ -5079,6 +5082,33 @@ app.get("/aurora-config.js", (_req, res) => {
     .type("application/javascript")
     .set("Cache-Control", "no-store")
     .send(`${script}\n`);
+});
+
+app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
+  const configuredShopifyStartUrl = (process.env.SHOPIFY_AUTH_START_URL || "").trim();
+  const targetStartUrl =
+    configuredShopifyStartUrl && configuredShopifyStartUrl !== SHOPIFY_AUTH_START_PATH
+      ? configuredShopifyStartUrl
+      : SHOPIFY_AUTH_DEFAULT_START_URL;
+
+  try {
+    const redirectUrl = new URL(targetStartUrl, CODE_ALFE_REDIRECT_TARGET);
+    for (const [key, value] of Object.entries(req.query || {})) {
+      if (Array.isArray(value)) {
+        value.forEach((item) => {
+          if (typeof item === "string") {
+            redirectUrl.searchParams.append(key, item);
+          }
+        });
+      } else if (typeof value === "string") {
+        redirectUrl.searchParams.set(key, value);
+      }
+    }
+    return res.redirect(302, redirectUrl.toString());
+  } catch (error) {
+    console.error("[Server Debug] Failed to build Shopify auth redirect URL:", error);
+    return res.status(500).send("Unable to start Shopify authentication.");
+  }
 });
 
 app.get("/code/how-it-works.html", (_req, res) => {
