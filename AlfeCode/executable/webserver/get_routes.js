@@ -7158,6 +7158,36 @@ ${err}`;
                 }
             }
 
+            const modelOnlyLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
+                if (entry && typeof entry.id === 'string') {
+                    const modelId = entry.id.trim();
+                    if (modelId) {
+                        acc[modelId] = typeof entry.label === 'string' && entry.label.trim()
+                            ? entry.label.trim()
+                            : modelId;
+                    }
+                }
+                return acc;
+            }, {});
+            const modelDisplayName = (() => {
+                if (typeof model === 'string') {
+                    const modelId = model.trim();
+                    if (!modelId) return '';
+                    return modelOnlyLookup[modelId] || modelId;
+                }
+                if (model && typeof model === 'object') {
+                    const rawModelId = typeof model.id === 'string'
+                        ? model.id
+                        : typeof model.name === 'string'
+                            ? model.name
+                            : '';
+                    const modelId = rawModelId.trim();
+                    if (!modelId) return '';
+                    return modelOnlyLookup[modelId] || modelId;
+                }
+                return '';
+            })();
+
             res.render("diff", {
                 gitRepoNameCLI: repoName || resolvedProjectDir,
                 baseRev,
@@ -7179,7 +7209,8 @@ ${err}`;
                 comparisonFinalOutput,
                 chatNumber,
                 showCommitList: SHOW_COMMIT_LIST,
-                model: model
+                model: model,
+                modelDisplayName
             });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);

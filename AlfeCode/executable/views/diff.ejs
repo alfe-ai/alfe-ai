@@ -788,6 +788,7 @@
 </head>
 <body>
 <%- include('partials/session_banner') %>
+<% const resolvedModelDisplayName = typeof modelDisplayName === 'string' && modelDisplayName.trim() ? modelDisplayName.trim() : ''; %>
 <div class="page">
     <div class="header-row">
         <div class="header-main">
@@ -797,9 +798,9 @@
             </div>
             <% } %>
 
-            <% if (typeof model !== 'undefined' && model) { %>
+            <% if (resolvedModelDisplayName) { %>
             <div class="revision-info">
-                <span class="revision-pill">Model: <%= getDisplayModelName(model) || '—' %></span>
+                <span class="revision-pill">Model: <%= resolvedModelDisplayName %></span>
             </div>
             <% } %>
 
