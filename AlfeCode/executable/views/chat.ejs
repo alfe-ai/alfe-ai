@@ -246,13 +246,13 @@
                   method="POST"
                   style="display:inline;"
                   onsubmit="return confirm('Archive this chat?');">
-                <button type="submit" class="form-buttons">Archive</button>
+                <button type="submit" class="form-buttons">Archived</button>
             </form>
             <form action="/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/archive_plain"
                   method="POST"
                   style="display:inline;"
                   onsubmit="return confirm('Archive without context?');">
-                <button type="submit" class="form-buttons">Archive Only</button>
+                <button type="submit" class="form-buttons">Archived</button>
             </form>
             <% } else { %>
             <form action="/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/unarchive"
