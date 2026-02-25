@@ -373,6 +373,49 @@ export default class TaskDBAws {
     }
   }
 
+  async getAllAccountsWithIps() {
+    await this._initPromise;
+    const client = await this.pool.connect();
+    try {
+      // Get accounts and their associated IPs from both session_views (for AlfeCode sessions)
+      // and the Aurora session_id field in accounts
+      const query = `
+        SELECT 
+          a.id,
+          a.email,
+          a.session_id as alfe_session_id,
+          a.aurora_session_id,
+          sv.ipv4_address as alfe_ipv4_addresses,
+          sv.ipv6_address as alfe_ipv6_addresses
+        FROM accounts a
+        LEFT JOIN session_views sv ON a.session_id = sv.session_id
+        ORDER BY a.id
+      `;
+      
+      const result = await client.query(query);
+      
+      // Format the results to show IPs in a user-friendly format
+      const accounts = result.rows.map(row => {
+        // Get IP arrays from session_views or return empty arrays
+        const alfeIpv4 = Array.isArray(row.alfe_ipv4_addresses) ? row.alfe_ipv4_addresses.join(', ') : '';
+        const alfeIpv6 = Array.isArray(row.alfe_ipv6_addresses) ? row.alfe_ipv6_addresses.join(', ') : '';
+        
+        return {
+          id: row.id,
+          email: row.email,
+          alfe_session_id: row.alfe_session_id,
+          aurora_session_id: row.aurora_session_id,
+          alfe_ipv4_addresses: alfeIpv4,
+          alfe_ipv6_addresses: alfeIpv6
+        };
+      });
+      
+      return accounts;
+    } finally {
+      client.release();
+    }
+  }
+
   async getTableData(tableName, limit = 200) {
     const tables = await this.listTables();
     if (!tables.includes(tableName)) {

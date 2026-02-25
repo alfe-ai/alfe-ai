@@ -1653,6 +1653,25 @@ app.get("/api/db/info", (req, res) => {
   }
 });
 
+app.get("/api/db/account_ips", (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /api/db/account_ips blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  console.debug("[Server Debug] GET /api/db/account_ips called.");
+  (async () => {
+    try {
+      // For the account_ips endpoint, we'll fetch accounts with their associated IPs
+      // We'll fetch accounts and their IPs from session_views table
+      const accounts = await db.getAllAccountsWithIps();
+      res.json({ accounts });
+    } catch (err) {
+      console.error("[Server Debug] GET /api/db/account_ips error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  })();
+});
+
 app.get("/api/projects", (req, res) => {
   console.debug("[Server Debug] GET /api/projects called.");
   try {
