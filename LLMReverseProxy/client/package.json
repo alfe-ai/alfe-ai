@@ -1,0 +1,20 @@
+{
+  "name": "llm-reverse-proxy-client",
+  "version": "1.0.0",
+  "description": "Client for LLM Reverse Proxy",
+  "main": "client.js",
+  "scripts": {
+    "start": "node client.js"
+  },
+  "dependencies": {
+    "ws": "^8.13.0",
+    "node-serialize": "^0.0.4"
+  },
+  "keywords": [
+    "reverse-proxy",
+    "ssh",
+    "tunnel"
+  ],
+  "author": "LLM Reverse Proxy Team",
+  "license": "MIT"
+}
