@@ -637,7 +637,7 @@
     {
       "id": "openrouter/qwen/qwen3-coder-flash",
       "label": "Qwen3 Coder Flash",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
