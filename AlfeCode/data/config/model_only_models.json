@@ -593,8 +593,8 @@
       "plus_model": true,
       "list_order": 13,
       "usage": "medium",
-      "url": "https://litellm.alfe.sh/v1",
-      "key": "litellm"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "z-ai/glm-4.6:exacto",
