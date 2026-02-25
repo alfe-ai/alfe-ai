@@ -3029,6 +3029,14 @@ ${cleanedFinalOutput}`;
         const codeChallenge = buildPkceChallenge(codeVerifier);
         const state = storeShopifyAuthState({ returnTo: finalReturnTo, codeVerifier });
 
+        // Check if we're being redirected from the Aurora server to prevent loops
+        const refererHeader = req.headers?.referer || "";
+        if (refererHeader.includes(process.env.AURORA_LOGIN_REDIRECT_TARGET || "https://internal-chat.alfe.bot")) {
+            console.warn("Shopify auth start: Preventing redirect loop from Aurora server");
+            // If we're redirected from Aurora's auth endpoint, don't redirect again
+            // Instead, proceed directly to the authorize URL
+        }
+
         try {
             const discovery = await discoverShopifyAuthEndpoints(shopDomain);
             const authorizeUrl = new URL(discovery.authorization_endpoint);
