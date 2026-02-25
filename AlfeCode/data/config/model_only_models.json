@@ -171,7 +171,7 @@
     {
       "id": "openrouter/qwen/qwen-turbo",
       "label": "Qwen Turbo",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -210,7 +210,7 @@
     {
       "id": "openrouter/qwen/qwen3-14b",
       "label": "Qwen 3 14B",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -527,7 +527,7 @@
     {
       "id": "openrouter/qwen/qwen3-32b",
       "label": "Qwen3 32B",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -542,7 +542,7 @@
     {
       "id": "openrouter/qwen/qwen3-235b-a22b",
       "label": "Qwen3 235B A22B",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
