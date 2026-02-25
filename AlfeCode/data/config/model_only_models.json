@@ -618,7 +618,7 @@
     {
       "id": "openrouter/qwen/qwen3-coder:exacto",
       "label": "Qwen3 Coder 480B A35B (exacto)",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
