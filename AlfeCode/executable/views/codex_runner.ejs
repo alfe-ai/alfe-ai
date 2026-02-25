@@ -461,7 +461,7 @@
             top: -50px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(124, 58, 237, 0.95); /* Match New Task button purple */
+            background-color: var(--accent);
             color: white;
             padding: 8px 12px;
             border-radius: 6px;
@@ -490,7 +490,15 @@
             width: 0;
             height: 0;
             border: 5px solid transparent;
-            border-top-color: rgba(124, 58, 237, 0.95); /* Same purple color */
+            border-top-color: var(--accent);
+        }
+
+        .prompt-tooltip {
+            background-color: rgba(124, 58, 237, 0.95);
+        }
+
+        .prompt-tooltip-arrow {
+            border-top-color: rgba(124, 58, 237, 0.95);
         }
 
         .tooltip-text {
@@ -3772,9 +3780,9 @@
             <div>
                 <label for="prompt">Prompt</label>
                 <div class="tooltip-container">
-                    <div id="promptTooltip" class="tooltip" role="tooltip">
+                    <div id="promptTooltip" class="tooltip prompt-tooltip" role="tooltip">
                         <span class="tooltip-text">Enter a prompt to get started.</span>
-                        <div class="tooltip-arrow"></div>
+                        <div class="tooltip-arrow prompt-tooltip-arrow"></div>
                     </div>
                     <textarea
                         id="prompt"
