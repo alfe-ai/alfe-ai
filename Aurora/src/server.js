@@ -5087,13 +5087,17 @@ app.get("/aurora-config.js", (_req, res) => {
 
 app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
   const configuredShopifyStartUrl = (process.env.SHOPIFY_AUTH_START_URL || "").trim();
-  const targetStartUrl =
-    configuredShopifyStartUrl && configuredShopifyStartUrl !== SHOPIFY_AUTH_START_PATH
-      ? configuredShopifyStartUrl
-      : SHOPIFY_AUTH_DEFAULT_START_URL;
+  
+  // If no external Shopify auth URL is configured, don't redirect to self
+  if (!configuredShopifyStartUrl || configuredShopifyStartUrl === SHOPIFY_AUTH_START_PATH) {
+    console.log("[Server Debug] No external Shopify auth URL configured, using internal auth flow for:", req.url);
+    // Handle the authentication here locally instead of redirecting back to self
+    // Return appropriate response for internal auth (e.g., render auth page)
+    return res.status(400).send("Shopify authentication not properly configured. Missing SHOPIFY_AUTH_START_URL environment variable pointing to external provider.");
+  }
 
   try {
-    const redirectUrl = new URL(targetStartUrl, CODE_ALFE_REDIRECT_TARGET);
+    const redirectUrl = new URL(configuredShopifyStartUrl, CODE_ALFE_REDIRECT_TARGET);
     for (const [key, value] of Object.entries(req.query || {})) {
       if (Array.isArray(value)) {
         value.forEach((item) => {
