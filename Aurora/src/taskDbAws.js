@@ -930,10 +930,10 @@ export default class TaskDBAws {
   async createAccount(email, passwordHash, sessionId = '', timezone = '', plan = 'Free') {
     const ts = new Date().toISOString();
     const { rows } = await this.pool.query(
-      `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
-      [email, passwordHash, sessionId, ts, timezone, plan]
+      [email, passwordHash, sessionId, sessionId, ts, timezone, plan]
     );
     const accountId = rows[0]?.id;
     if (accountId && sessionId) {
@@ -964,6 +964,14 @@ export default class TaskDBAws {
         [sessionId, id]
       );
     }
+  }
+
+  async setAccountAuroraSessionIfMissing(id, sessionId) {
+    if (!sessionId) return;
+    await this.pool.query(
+      "UPDATE accounts SET aurora_session_id = $1 WHERE id = $2 AND (aurora_session_id IS NULL OR aurora_session_id = '')",
+      [sessionId, id]
+    );
   }
 
   async setAccountTotpSecret(id, secret) {

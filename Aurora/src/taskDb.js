@@ -1739,10 +1739,10 @@ export default class TaskDB {
     const ts = new Date().toISOString();
     const { lastInsertRowid } = this.db
         .prepare(
-            `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
-             VALUES (?, ?, ?, ?, ?, ?)`
+            `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
         )
-        .run(email, passwordHash, sessionId, ts, timezone, plan);
+        .run(email, passwordHash, sessionId, sessionId, ts, timezone, plan);
     if (sessionId) {
       this.db
         .prepare(
@@ -1772,6 +1772,15 @@ export default class TaskDB {
         )
         .run(sessionId, id);
     }
+  }
+
+  setAccountAuroraSessionIfMissing(id, sessionId) {
+    if (!sessionId) return;
+    this.db
+      .prepare(
+        "UPDATE accounts SET aurora_session_id=? WHERE id=? AND (aurora_session_id IS NULL OR aurora_session_id='')"
+      )
+      .run(sessionId, id);
   }
 
   setAccountTotpSecret(id, secret) {

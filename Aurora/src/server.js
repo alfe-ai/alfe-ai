@@ -2041,6 +2041,7 @@ app.post("/api/register", async (req, res) => {
     }
     const hash = hashPassword(password);
     const id = await db.createAccount(email, hash, sessionId);
+    await db.setAccountAuroraSessionIfMissing(id, sessionId);
     res.json({ success: true, id, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/register failed:", err);
@@ -2102,6 +2103,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     await db.setAccountSession(account.id, sessionId);
+    await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
     res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/login failed:", err);
