@@ -352,10 +352,22 @@
             </div>
         <% } else { %>
             <header>
-                <h1>Connect Git Repository</h1>
+                <h1>Git Connection</h1>
+                <p>Select your preferred method to connect to Git repositories</p>
             </header>
 
             <div class="card">
+                <div class="button-row" style="justify-content: center;">
+                    <button type="button" class="button-link" onclick="window.location.href='/repositories/add?sshKeyRequired=true'">
+                        Connect with SSH Key
+                    </button>
+                    <button type="button" class="button-link" onclick="alert('GitHub Connect coming soon')">
+                        Connect GitHub
+                    </button>
+                </div>
+            </div>
+
+            <div class="card" style="display: none;">
                 <div class="meta-row">
                     <% if (showCreateRepoLink) { %>
                         <div class="meta-action">
