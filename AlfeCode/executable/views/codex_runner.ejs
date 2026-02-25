@@ -3771,23 +3771,17 @@
             </div>
             <div>
                 <label for="prompt">Prompt</label>
-                <div class="tooltip-container">
-                    <div id="promptTooltip" class="tooltip" role="tooltip">
-                        <span class="tooltip-text">Enter a prompt to get started.</span>
-                        <div class="tooltip-arrow"></div>
-                    </div>
-                    <textarea
-                        id="prompt"
-                        name="prompt"
-                        placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
+                <textarea
+                    id="prompt"
+                    name="prompt"
+                    placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
 
 Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
-                        required
-                        autocomplete="off"
-                        spellcheck="false"
-                        rows="6"
-                    ></textarea>
-                </div>
+                    required
+                    autocomplete="off"
+                    spellcheck="false"
+                    rows="6"
+                ></textarea>
             </div>
 
             <div class="actions">
@@ -4228,57 +4222,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <script src="/JS/codex_runner.js" defer></script>
 
 <script>
-// Tooltip logic
-(function(){
-    const tooltip = document.getElementById('promptTooltip');
-    const promptField = document.getElementById('prompt');
-    const tooltipCookie = 'promptTooltipShown';
-    
-    // Check if user is logged in - we can check for an account-related element
-    const isUserLoggedIn = document.getElementById('accountEmailValue') !== null;
-    
-    // Function to check if cookie exists
-    function hasCookie(cookieName) {
-        return document.cookie.split(';').some((cookie) => {
-            const [name, value] = cookie.trim().split('=');
-            return name === cookieName;
-        });
-    }
-    
-    // Show tooltip after a brief delay if user is not logged in
-    if (!isUserLoggedIn && !hasCookie(tooltipCookie)) {
-        setTimeout(() => {
-            if (tooltip && promptField) {
-                tooltip.classList.add('show');
-                
-                // Auto-hide after 5 seconds
-                setTimeout(() => {
-                    tooltip.classList.remove('show');
-                }, 5000);
-            }
-        }, 1000);
-    }
-    
-    // Add click handler to dismiss tooltip and set cookie
-    if (tooltip && promptField) {
-        tooltip.addEventListener('click', function() {
-            tooltip.classList.remove('show');
-            // Set cookie to remember that tooltip has been shown
-            const expirationDate = new Date();
-            expirationDate.setTime(expirationDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
-            document.cookie = `${tooltipCookie}=true;expires=${expirationDate.toUTCString()};path=/`;
-        });
-    }
-    
-    // Hide tooltip when user starts typing
-    if (promptField) {
-        promptField.addEventListener('focus', function() {
-            if (tooltip) {
-                tooltip.classList.remove('show');
-            }
-        });
-    }
-})();
+// Tooltip logic - removed prompt tooltip functionality
 
 (function(){
   const sidebar = document.getElementById('runsSidebar');
