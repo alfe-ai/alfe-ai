@@ -5093,7 +5093,17 @@ app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
       : SHOPIFY_AUTH_DEFAULT_START_URL;
 
   try {
-    const redirectUrl = new URL(targetStartUrl, CODE_ALFE_REDIRECT_TARGET);
+    // Check if targetStartUrl is already a full URL
+    let redirectUrlString = targetStartUrl;
+    
+    // If targetStartUrl is not a full URL, treat it as a relative path to CODE_ALFE_REDIRECT_TARGET
+    if (!targetStartUrl.startsWith('http://') && !targetStartUrl.startsWith('https://')) {
+      const baseUrl = new URL(targetStartUrl, CODE_ALFE_REDIRECT_TARGET);
+      redirectUrlString = baseUrl.toString();
+    }
+    
+    // Build the final URL with query parameters
+    const redirectUrl = new URL(redirectUrlString);
     for (const [key, value] of Object.entries(req.query || {})) {
       if (Array.isArray(value)) {
         value.forEach((item) => {
