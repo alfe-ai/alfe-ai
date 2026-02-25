@@ -580,7 +580,7 @@
     {
       "id": "openrouter/qwen/qwen3-coder-next",
       "label": "Qwen3 Coder Next",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
