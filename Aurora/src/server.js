@@ -40,7 +40,7 @@ const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
 );
 const MIN_PASSWORD_LENGTH = 8;
 
-const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
+const CODE_ALFE_REDIRECT_TARGET = "https://internal-chat.alfe.bot";
 const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
   false
