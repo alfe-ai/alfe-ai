@@ -1045,6 +1045,67 @@ class RdsStore {
       throw error;
     }
   }
+
+  async getRunById(sessionId, runId) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    const normalizedRunId = (runId || "").toString().trim();
+    if (!normalizedSessionId || !normalizedRunId) return null;
+    try {
+      const result = await this.pool.query(
+        `SELECT * FROM ${ALFECODE_RUNS_TABLE}
+         WHERE session_id = $1 AND run_id = $2
+         LIMIT 1`,
+        [normalizedSessionId, normalizedRunId]
+      );
+      if (!result.rows.length) return null;
+      const row = result.rows[0];
+      
+      // Parse the payload JSON and add fields from the database
+      let parsedRun;
+      try {
+        parsedRun = JSON.parse(row.payload_json || "{}");
+      } catch (parseError) {
+        console.error("[RdsStore] Failed to parse run payload:", parseError?.message || parseError);
+        parsedRun = {};
+      }
+      
+      // Add fields from the database that might not be in the payload
+      if (typeof row.status === "string" && row.status.trim()) {
+        parsedRun.status = row.status;
+      }
+      if (typeof row.script_status === "string" && row.script_status.trim()) {
+        parsedRun.scriptStatus = row.script_status;
+      }
+      if (typeof row.final_output_message === "string" && row.final_output_message.trim()) {
+        parsedRun.finalOutputMessage = row.final_output_message;
+      }
+      if (typeof row.created_at === "string" && row.created_at.trim()) {
+        parsedRun.createdAt = row.created_at;
+      }
+      if (typeof row.updated_at === "string" && row.updated_at.trim()) {
+        parsedRun.updatedAt = row.updated_at;
+      }
+      if (typeof row.model === "string" && row.model.trim()) {
+        parsedRun.model = row.model;
+      }
+      if (typeof row.branch === "string" && row.branch.trim()) {
+        parsedRun.branch = row.branch;
+      }
+      if (Number.isFinite(row.numeric_id)) {
+        parsedRun.numericId = row.numeric_id;
+      }
+      if (Number.isFinite(row.account_id)) {
+        parsedRun.accountId = row.account_id;
+      }
+      
+      return parsedRun;
+    } catch (error) {
+      console.error("[RdsStore] Failed to load run by session and run id:", error?.message || error);
+      return null;
+    }
+  }
 }
 
 module.exports = new RdsStore();
