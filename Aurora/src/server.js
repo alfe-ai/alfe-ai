@@ -5060,6 +5060,10 @@ app.get("/aurora-config.js", (_req, res) => {
     imageUpload: {
       enabled: IMAGE_UPLOAD_ENABLED,
     },
+    shopifyAuth: {
+      enabled: parseBooleanEnv(process.env.SHOPIFY_AUTH_ENABLED, true),
+      startUrl: (process.env.SHOPIFY_AUTH_START_URL || "/auth/shopify/start").trim(),
+    },
     searchEnabled2026: SEARCH_ENABLED_2026,
     imagesEnabled2026: IMAGES_ENABLED_2026,
     twoFactorEnabled2026: TWO_FACTOR_ENABLED_2026,

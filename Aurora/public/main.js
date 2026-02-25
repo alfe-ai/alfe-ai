@@ -156,6 +156,26 @@ const featureFlagConfig = (() => {
   };
 })();
 
+const shopifyAuthConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const cfg = flags.shopifyAuth || {};
+  const startUrl =
+    typeof cfg.startUrl === 'string' && cfg.startUrl.trim()
+      ? cfg.startUrl.trim()
+      : '/auth/shopify/start';
+  const enabledValue = cfg.enabled;
+  const enabled =
+    enabledValue === true ||
+    enabledValue === 'true' ||
+    enabledValue === 1 ||
+    enabledValue === '1' ||
+    typeof enabledValue === 'undefined';
+  return {
+    enabled,
+    startUrl,
+  };
+})();
+
 function getStoredTheme(){
   try {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
@@ -1866,6 +1886,9 @@ function openAuthModal({ preferredStep } = {}){
   if(!ensureAccountsEnabled()){
     return;
   }
+  if(shopifyAuthConfig.enabled && startShopifyAuth({ preferredStep: preferredStep || 'signup' })){
+    return;
+  }
   const saved = loadAuthModalState();
   if(saved?.email){
     setAuthEmailValue(saved.email);
@@ -1879,6 +1902,22 @@ function openAuthModal({ preferredStep } = {}){
     showAuthEmailStep({ keepEmail: true });
   }
   showModal(document.getElementById("authModal"));
+}
+
+function startShopifyAuth({ preferredStep = 'signup' } = {}){
+  const returnTo = `${window.location.pathname || '/'}${window.location.search || ''}${window.location.hash || ''}`;
+  try {
+    const url = new URL(shopifyAuthConfig.startUrl, window.location.origin);
+    url.searchParams.set('returnTo', returnTo || '/');
+    if(preferredStep){
+      url.searchParams.set('preferredStep', preferredStep);
+    }
+    window.location.assign(url.toString());
+    return true;
+  } catch(error){
+    console.warn('Unable to start Shopify auth redirect.', error);
+    return false;
+  }
 }
 
 function openSignupModal(e){
