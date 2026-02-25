@@ -98,6 +98,7 @@ class RdsStore {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT,
         session_id TEXT DEFAULT '',
+        aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
@@ -228,6 +229,10 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${ACCOUNTS_TABLE}
          ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS aurora_session_id TEXT DEFAULT ''`
       );
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}

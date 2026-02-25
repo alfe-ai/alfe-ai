@@ -478,6 +478,7 @@ export default class TaskDB {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         session_id TEXT DEFAULT '',
+        aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
@@ -510,6 +511,13 @@ export default class TaskDB {
     try {
       this.db.exec("ALTER TABLE accounts ADD COLUMN disabled INTEGER DEFAULT 0;");
       console.debug("[TaskDB Debug] Added accounts.disabled column");
+    } catch(e) {
+      // column exists
+    }
+
+    try {
+      this.db.exec("ALTER TABLE accounts ADD COLUMN aurora_session_id TEXT DEFAULT ''; ");
+      console.debug("[TaskDB Debug] Added accounts.aurora_session_id column");
     } catch(e) {
       // column exists
     }
@@ -803,11 +811,11 @@ export default class TaskDB {
     this.db
       .prepare(
         `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
-         VALUES (?, 1, (SELECT id FROM accounts WHERE session_id = ? LIMIT 1), ?, ?)
+         VALUES (?, 1, (SELECT id FROM accounts WHERE aurora_session_id = ? LIMIT 1), ?, ?)
          ON CONFLICT(session_id)
          DO UPDATE SET
            view_count = view_count + 1,
-           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = excluded.session_id LIMIT 1)),
+           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE aurora_session_id = excluded.session_id LIMIT 1)),
            ipv4_address = (
              SELECT array_agg(DISTINCT element)
              FROM unnest(
@@ -1731,8 +1739,8 @@ export default class TaskDB {
     const ts = new Date().toISOString();
     const { lastInsertRowid } = this.db
         .prepare(
-            `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
-             VALUES (?, ?, ?, ?, ?, ?)`
+            `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
+             VALUES (?, ?, '', ?, ?, ?, ?)`
         )
         .run(email, passwordHash, sessionId, ts, timezone, plan);
     if (sessionId) {
@@ -1753,7 +1761,7 @@ export default class TaskDB {
   }
 
   setAccountSession(id, sessionId) {
-    this.db.prepare('UPDATE accounts SET session_id=? WHERE id=?').run(sessionId, id);
+    this.db.prepare('UPDATE accounts SET aurora_session_id=? WHERE id=?').run(sessionId, id);
     if (sessionId) {
       this.db
         .prepare(
@@ -1764,6 +1772,15 @@ export default class TaskDB {
         )
         .run(sessionId, id);
     }
+  }
+
+  setAccountAuroraSessionIfMissing(id, sessionId) {
+    if (!sessionId) return;
+    this.db
+      .prepare(
+        "UPDATE accounts SET aurora_session_id=? WHERE id=? AND (aurora_session_id IS NULL OR aurora_session_id='')"
+      )
+      .run(sessionId, id);
   }
 
   setAccountTotpSecret(id, secret) {
@@ -1783,10 +1800,10 @@ export default class TaskDB {
   }
 
   getAccountBySession(sessionId) {
-    const account = this.db.prepare('SELECT * FROM accounts WHERE session_id=?').get(sessionId);
+    const account = this.db.prepare('SELECT * FROM accounts WHERE aurora_session_id=?').get(sessionId);
     if (!account) return null;
     if (account.disabled) {
-      this.db.prepare("UPDATE accounts SET session_id='' WHERE id=?").run(account.id);
+      this.db.prepare("UPDATE accounts SET aurora_session_id='' WHERE id=?").run(account.id);
       return null;
     }
     return account;
@@ -1820,7 +1837,7 @@ export default class TaskDB {
          COALESCE(
            (SELECT account_id FROM session_views WHERE session_id = ?),
            (SELECT account_id FROM session_views WHERE session_id = ?),
-           (SELECT id FROM accounts WHERE session_id = ? LIMIT 1)
+           (SELECT id FROM accounts WHERE aurora_session_id = ? LIMIT 1)
          )
        )
        ON CONFLICT(session_id)

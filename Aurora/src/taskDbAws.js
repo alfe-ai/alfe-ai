@@ -281,6 +281,7 @@ export default class TaskDBAws {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         session_id TEXT DEFAULT '',
+        aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
@@ -341,6 +342,7 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Free';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false;");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS aurora_session_id TEXT DEFAULT ''; ");
       await client.query("UPDATE accounts SET disabled = false WHERE disabled IS NULL;");
     } finally {
       client.release();
@@ -890,14 +892,14 @@ export default class TaskDBAws {
        VALUES (
          $1,
          1,
-         (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1),
+         (SELECT id FROM accounts WHERE aurora_session_id = $1 LIMIT 1),
          CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END,
          CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END
        )
        ON CONFLICT (session_id)
        DO UPDATE SET
          view_count = session_views.view_count + 1,
-         account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE session_id = $1 LIMIT 1)),
+         account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE aurora_session_id = $1 LIMIT 1)),
          ipv4_address = (
            SELECT array_agg(DISTINCT element)
            FROM unnest(
@@ -928,8 +930,8 @@ export default class TaskDBAws {
   async createAccount(email, passwordHash, sessionId = '', timezone = '', plan = 'Free') {
     const ts = new Date().toISOString();
     const { rows } = await this.pool.query(
-      `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
+       VALUES ($1, $2, '', $3, $4, $5, $6)
        RETURNING id`,
       [email, passwordHash, sessionId, ts, timezone, plan]
     );
@@ -952,7 +954,7 @@ export default class TaskDBAws {
   }
 
   async setAccountSession(id, sessionId) {
-    await this.pool.query('UPDATE accounts SET session_id = $1 WHERE id = $2', [sessionId, id]);
+    await this.pool.query('UPDATE accounts SET aurora_session_id = $1 WHERE id = $2', [sessionId, id]);
     if (sessionId) {
       await this.pool.query(
         `INSERT INTO session_views (session_id, view_count, account_id)
@@ -962,6 +964,14 @@ export default class TaskDBAws {
         [sessionId, id]
       );
     }
+  }
+
+  async setAccountAuroraSessionIfMissing(id, sessionId) {
+    if (!sessionId) return;
+    await this.pool.query(
+      "UPDATE accounts SET aurora_session_id = $1 WHERE id = $2 AND (aurora_session_id IS NULL OR aurora_session_id = '')",
+      [sessionId, id]
+    );
   }
 
   async setAccountTotpSecret(id, secret) {
@@ -982,11 +992,11 @@ export default class TaskDBAws {
 
   async getAccountBySession(sessionId) {
     if (!sessionId) return null;
-    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE session_id = $1', [sessionId]);
+    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE aurora_session_id = $1', [sessionId]);
     const account = rows[0] || null;
     if (!account) return null;
     if (account.disabled) {
-      await this.pool.query("UPDATE accounts SET session_id = '' WHERE id = $1", [account.id]);
+      await this.pool.query("UPDATE accounts SET aurora_session_id = '' WHERE id = $1", [account.id]);
       return null;
     }
     return account;
@@ -1019,7 +1029,7 @@ export default class TaskDBAws {
        FROM (SELECT 1) x
        LEFT JOIN session_views t ON t.session_id = $1
        LEFT JOIN session_views s ON s.session_id = $2
-       LEFT JOIN accounts a ON a.session_id = $1
+       LEFT JOIN accounts a ON a.aurora_session_id = $1
        ON CONFLICT (session_id)
        DO UPDATE SET
          view_count = EXCLUDED.view_count,
