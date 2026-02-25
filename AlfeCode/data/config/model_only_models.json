@@ -656,7 +656,7 @@
     {
       "id": "openrouter/z-ai/glm-4.7-flash",
       "label": "Z.ai: GLM 4.7 Flash",
-      "disabled": false,
+      "disabled": true,
       "list_order": 1007,
       "pricing": {
         "inputPerMTokens": 0.06,
