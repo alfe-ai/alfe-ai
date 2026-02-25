@@ -286,7 +286,8 @@ export default class TaskDBAws {
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free',
-        disabled BOOLEAN DEFAULT false
+        disabled BOOLEAN DEFAULT false,
+        last_log_in TEXT DEFAULT NULL
       );`);
 
       // Migration: remove deprecated task-planning tables if they exist.
@@ -343,6 +344,16 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Free';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false;");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS aurora_session_id TEXT DEFAULT ''; ");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_log_in TEXT DEFAULT NULL;");
+
+      // Add setAccountLastLogin method (for PostgreSQL)
+      this.setAccountLastLogin = async function(id) {
+        const now = new Date().toISOString();
+        await client.query(
+          "UPDATE accounts SET last_log_in = $1 WHERE id = $2",
+          [now, id]
+        );
+      };
       await client.query("UPDATE accounts SET disabled = false WHERE disabled IS NULL;");
     } finally {
       client.release();
