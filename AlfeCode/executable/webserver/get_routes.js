@@ -2946,6 +2946,59 @@ ${cleanedFinalOutput}`;
         return defaultCodexProjectDir;
     };
 
+    const extractCommitHashForDiffFromFinalOutput = (finalOutputText) => {
+        if (typeof finalOutputText !== "string" || !finalOutputText.trim()) {
+            return "";
+        }
+
+        const match = finalOutputText.match(/[0-9a-f]{7,40}/i);
+        return match ? match[0] : "";
+    };
+
+    const resolveRunForViewDiffRedirect = (sessionId, runId, projectDirParam) => {
+        try {
+            const runs = typeof loadCodexRuns === "function" ? loadCodexRuns(sessionId) : [];
+            if (!Array.isArray(runs) || !runs.length) {
+                return null;
+            }
+
+            const normalisedRunId = typeof runId === "string" ? runId.trim() : "";
+            if (normalisedRunId) {
+                const byId = runs.find((run) => run && String(run.id || "").trim() === normalisedRunId);
+                if (byId) {
+                    return byId;
+                }
+            }
+
+            const normalisedProjectDir = typeof projectDirParam === "string" && projectDirParam.trim()
+                ? path.resolve(projectDirParam.trim())
+                : "";
+            if (!normalisedProjectDir) {
+                return null;
+            }
+
+            for (let i = runs.length - 1; i >= 0; i -= 1) {
+                const candidate = runs[i];
+                const candidateDir = candidate && (candidate.projectDir || candidate.requestedProjectDir || candidate.effectiveProjectDir);
+                if (!candidateDir) {
+                    continue;
+                }
+
+                try {
+                    if (path.resolve(candidateDir) === normalisedProjectDir) {
+                        return candidate;
+                    }
+                } catch (_err) {
+                    // ignore invalid candidate path
+                }
+            }
+        } catch (err) {
+            console.warn("Failed to resolve run for /agent viewDiff redirect:", err?.message || err);
+        }
+
+        return null;
+    };
+
     const renderCodexRunner = async (req, res) => {
         // Defer git cache prewarm until after the response is finished so the UI
         // can be rendered immediately. The prewarm is best-effort and may be
@@ -2967,7 +3020,29 @@ ${cleanedFinalOutput}`;
         const codexConfig = typeof loadCodexConfig === "function" ? loadCodexConfig() : {};
         const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
         const projectDirParam = (req?.query?.projectDir || "").toString();
+        const requestedRunId = (req?.query?.run_id || req?.query?.runId || "").toString();
+        const requestedViewDiff = parseBooleanFlag(req?.query?.viewDiff);
         const resolvedDefaultProjectDir = resolveDefaultProjectDirForSession(sessionId);
+        const resolvedProjectDirForViewDiff = (projectDirParam || repoDirectoryParam || resolvedDefaultProjectDir || "").toString().trim();
+
+        if (requestedViewDiff) {
+            const resolvedRun = resolveRunForViewDiffRedirect(sessionId, requestedRunId, resolvedProjectDirForViewDiff);
+            if (resolvedRun) {
+                const finalOutputText = await resolveFinalOutputTextForCommit(resolvedRun);
+                const commitHash = extractCommitHashForDiffFromFinalOutput(finalOutputText);
+                if (commitHash) {
+                    const diffParams = new URLSearchParams({
+                        projectDir: resolvedProjectDirForViewDiff,
+                        baseRev: `${commitHash}^`,
+                        compRev: commitHash,
+                        mergeReady: "1",
+                        run_id: String(resolvedRun.id || "").trim(),
+                    });
+                    return res.redirect(`/agent/git-diff?${diffParams.toString()}`);
+                }
+            }
+        }
+
         const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanFlag(iframeParam);
         const defaultAgentInstructions =
             typeof codexConfig?.defaultAgentInstructions === "string"
