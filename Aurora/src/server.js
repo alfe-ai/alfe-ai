@@ -5330,6 +5330,15 @@ app.get("/db/:table", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/db.html"));
 });
 
+app.get("/db_account_ips", (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /db_account_ips blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).send("Forbidden");
+  }
+  console.debug("[Server Debug] GET /db_account_ips => Serving db_account_ips.html");
+  res.sendFile(path.join(__dirname, "../public/db_account_ips.html"));
+});
+
 app.get("/ai_models", (req, res) => {
   console.debug("[Server Debug] GET /ai_models => Serving ai_models.html");
   res.sendFile(path.join(__dirname, "../public/ai_models.html"));
