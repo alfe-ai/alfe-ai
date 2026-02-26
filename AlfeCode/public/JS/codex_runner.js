@@ -4368,7 +4368,7 @@
     }
   };
 
-  const consumePendingGitFpushDiff = (options = {}) => {
+  const consumePendingGitFpushDiff = async (options = {}) => {
     const branch = pendingGitFpushBranch;
     const branchProjectDir = pendingGitFpushBranchProjectDir;
     const hash = pendingGitFpushHash;
@@ -4430,7 +4430,10 @@
       return;
     }
     const runId = normaliseRunId((currentRunContext && currentRunContext.runId) || '');
-    const token = runId ? `${runId}::${url}` : `url::${url}`;
+    if (!runId) {
+      return;
+    }
+    const token = `${runId}::${url}`;
     pendingAutoOpenDiffToken = token;
     pendingAutoOpenDiffUrl = url;
     if (runInFlight || followupRunActive || eventSource || !shouldEnableRefreshStyleActions()) {
