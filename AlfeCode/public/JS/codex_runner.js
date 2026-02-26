@@ -4123,13 +4123,14 @@
   if (refreshRunPageButton) {
     refreshRunPageButton.addEventListener("click", () => {
       const url = new URL(window.location.href);
-      url.searchParams.delete("viewDiff");
-      url.searchParams.delete("r");
       const form = document.createElement("form");
       form.method = "POST";
-      form.action = `${url.pathname}${url.search}`;
+      form.action = url.pathname;
 
       url.searchParams.forEach((value, key) => {
+        if (key === "viewDiff" || key === "r") {
+          return;
+        }
         const hiddenInput = document.createElement("input");
         hiddenInput.type = "hidden";
         hiddenInput.name = key;
