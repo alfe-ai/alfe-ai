@@ -2360,6 +2360,7 @@
   let gitFpushLogCaptureActive = false;
   let mergeDiffLockedAfterMerge = false;
   let autoOpenMergeDiffOnEnable = false;
+  let autoOpenMergeDiffFromQuery = false;
   let hydratingRunFromHistory = false;
   let pendingGitFpushHash = "";
   let pendingGitFpushHashProjectDir = "";
@@ -4077,6 +4078,18 @@
     hideMergeDiffButton();
   };
 
+  const consumeAutoOpenMergeDiffRequest = () => {
+    if (autoOpenMergeDiffOnEnable) {
+      autoOpenMergeDiffOnEnable = false;
+      return true;
+    }
+    if (autoOpenMergeDiffFromQuery) {
+      autoOpenMergeDiffFromQuery = false;
+      return true;
+    }
+    return false;
+  };
+
   const updateRefreshRunButtonVisibility = () => {
     if (!refreshRunPageButton) {
       return;
@@ -4118,19 +4131,11 @@
     updateRefreshRunButtonVisibility();
   };
 
-  // Check for viewDiff parameter on page load and auto-open modal if needed
-  document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('viewDiff') === 'true' && mergeDiffButton) {
-      // Ensure button is enabled and active
-      if (!mergeDiffButton.classList.contains('is-hidden') && !mergeDiffButton.disabled) {
-        // Trigger the click event to open the modal
-        setTimeout(() => {
-          mergeDiffButton.click();
-        }, 100);
-      }
-    }
-  });
+  try {
+    autoOpenMergeDiffFromQuery = new URLSearchParams(window.location.search).get('viewDiff') === 'true';
+  } catch (error) {
+    autoOpenMergeDiffFromQuery = false;
+  }
 
   const hasActiveMergeDiffLink = () => {
     if (!mergeDiffButton) {
@@ -4323,8 +4328,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
-    if (autoOpenMergeDiffOnEnable) {
-      autoOpenMergeDiffOnEnable = false;
+    if (consumeAutoOpenMergeDiffRequest()) {
       setTimeout(() => mergeDiffButton.click(), 0);
     }
   };
@@ -4365,8 +4369,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
-    if (autoOpenMergeDiffOnEnable) {
-      autoOpenMergeDiffOnEnable = false;
+    if (consumeAutoOpenMergeDiffRequest()) {
       setTimeout(() => mergeDiffButton.click(), 0);
     }
   };
