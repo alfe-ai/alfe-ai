@@ -4095,15 +4095,6 @@
       return;
     }
 
-    const viewDiffButtonVisible = Boolean(
-      mergeDiffButton && !mergeDiffButton.classList.contains("is-hidden"),
-    );
-
-    if (viewDiffButtonVisible) {
-      refreshRunPageButton.classList.add("is-hidden");
-      return;
-    }
-
     const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
     const normalizedStatus = statusText.replace(/\u2026/g, "...");
     const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
