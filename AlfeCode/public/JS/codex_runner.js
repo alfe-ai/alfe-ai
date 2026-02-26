@@ -4660,6 +4660,25 @@
       return;
     }
 
+    const mergedCandidates = [
+      run.finalMessage,
+      run.gitMergeStdout,
+      run.gitMergeStderr,
+      ...(Array.isArray(run.statusHistory) ? run.statusHistory : []),
+    ];
+    const alreadyMerged = mergedCandidates.some((candidate) => {
+      if (!candidate && candidate !== 0) {
+        return false;
+      }
+      const text = String(candidate);
+      return MERGE_SUCCESS_PATTERNS.some((pattern) => pattern.test(text));
+    });
+    if (alreadyMerged) {
+      setMergeReady(false);
+      enableMergeDiffButtonForHash("", "");
+      return;
+    }
+
     if (Number(run.gitFpushExitCode) !== 0) {
       return;
     }
@@ -6879,6 +6898,7 @@ const appendMergeChunk = (text, type = "output") => {
       try {
         markRunMergedInSidebar((currentRunContext && currentRunContext.runId) || '', message || 'Merged');
       } catch (e) { /* ignore */ }
+      setMergeReady(false);
       lockMergeDiffButton();
     }
 
