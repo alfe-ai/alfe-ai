@@ -4083,7 +4083,7 @@
     }
 
     const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
-    const normalizedStatus = statusText.replace(/…/g, "...");
+    const normalizedStatus = statusText.replace(/\u2026/g, "...");
     const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
     const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "";
     const runIsActive = Boolean(eventSource)
