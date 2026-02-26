@@ -2360,7 +2360,7 @@
   let gitFpushLogCaptureActive = false;
   let mergeDiffLockedAfterMerge = false;
   let autoOpenMergeDiffOnEnable = false;
-  let autoOpenMergeDiffFromQuery = false;
+  let autoOpenMergeDiffFromQuery = config.initialViewDiff === true;
   let hydratingRunFromHistory = false;
   let pendingGitFpushHash = "";
   let pendingGitFpushHashProjectDir = "";
@@ -4123,16 +4123,29 @@
   if (refreshRunPageButton) {
     refreshRunPageButton.addEventListener("click", () => {
       const url = new URL(window.location.href);
-      url.searchParams.set('viewDiff', 'true');
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = url.pathname;
 
-      // Force a true navigation by appending a random md5-like salt.
-      // This avoids no-op navigations when the URL would otherwise be unchanged.
-      const randomMd5Salt = (window.crypto && typeof window.crypto.randomUUID === "function")
-        ? window.crypto.randomUUID().replace(/-/g, "")
-        : `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 32).padEnd(32, "0");
-      url.searchParams.set('r', randomMd5Salt);
+      url.searchParams.forEach((value, key) => {
+        if (key === "viewDiff" || key === "r") {
+          return;
+        }
+        const hiddenInput = document.createElement("input");
+        hiddenInput.type = "hidden";
+        hiddenInput.name = key;
+        hiddenInput.value = value;
+        form.appendChild(hiddenInput);
+      });
 
-      window.location.assign(url.toString());
+      const viewDiffInput = document.createElement("input");
+      viewDiffInput.type = "hidden";
+      viewDiffInput.name = "viewDiff";
+      viewDiffInput.value = "true";
+      form.appendChild(viewDiffInput);
+
+      document.body.appendChild(form);
+      form.submit();
     });
   }
 
@@ -4147,9 +4160,10 @@
   };
 
   try {
-    autoOpenMergeDiffFromQuery = new URLSearchParams(window.location.search).get('viewDiff') === 'true';
+    autoOpenMergeDiffFromQuery = autoOpenMergeDiffFromQuery
+      || new URLSearchParams(window.location.search).get('viewDiff') === 'true';
   } catch (error) {
-    autoOpenMergeDiffFromQuery = false;
+    autoOpenMergeDiffFromQuery = autoOpenMergeDiffFromQuery || false;
   }
 
   const hasActiveMergeDiffLink = () => {
