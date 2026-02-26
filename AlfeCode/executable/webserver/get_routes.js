@@ -4953,6 +4953,16 @@ ${cleanedFinalOutput}`;
             mergeReady: "1",
             run_id: runId,
         });
+
+        const userPromptForDiff = (
+            resolvedRun.userPrompt
+            || resolvedRun.user_prompt
+            || ""
+        ).toString().trim();
+        if (userPromptForDiff) {
+            diffParams.set("userPrompt", userPromptForDiff);
+        }
+
         return res.json({
             run_id: runId,
             base_revision: baseRev,
