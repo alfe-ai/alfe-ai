@@ -8608,8 +8608,8 @@ const appendMergeChunk = (text, type = "output") => {
       runInFlight = false;
       awaitingGitFpushCompletion = false;
       setRunControlsDisabledState(false);
-      finalizeActiveFollowupSession("error");
       flushPendingAutoOpenDiffModal();
+      finalizeActiveFollowupSession("error");
     });
 
     eventSource.addEventListener("end", (event) => {
@@ -8653,8 +8653,8 @@ const appendMergeChunk = (text, type = "output") => {
       } else {
         setRunControlsDisabledState(true, { forceRefresh: true });
       }
-      finalizeActiveFollowupSession("complete");
       flushPendingAutoOpenDiffModal();
+      finalizeActiveFollowupSession("complete");
     });
 
     eventSource.onerror = () => {
@@ -8682,8 +8682,8 @@ const appendMergeChunk = (text, type = "output") => {
       runInFlight = false;
       awaitingGitFpushCompletion = false;
       setRunControlsDisabledState(false);
-      finalizeActiveFollowupSession("error");
       flushPendingAutoOpenDiffModal();
+      finalizeActiveFollowupSession("error");
     };
   };
 
