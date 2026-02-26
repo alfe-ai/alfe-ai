@@ -376,7 +376,7 @@
       const headRow = document.createElement("tr");
       columns.forEach((col) => {
         const th = document.createElement("th");
-        th.textContent = col;
+        th.textContent = col.label;
         headRow.appendChild(th);
       });
       thead.appendChild(headRow);
@@ -396,7 +396,7 @@
           const tr = document.createElement("tr");
           columns.forEach((col) => {
             const td = document.createElement("td");
-            const value = row[col];
+            const value = typeof col.getValue === "function" ? col.getValue(row) : row[col.key];
             if (value && typeof value === "object") {
               const pre = document.createElement("pre");
               pre.textContent = JSON.stringify(value, null, 2);
@@ -425,7 +425,20 @@
         }
         const data = await res.json();
         
-        const columns = ["ID", "Email", "AlfeCode Session ID", "Aurora Session ID", "AlfeCode IPs", "Aurora IPs"];
+        const columns = [
+          { label: "ID", key: "id" },
+          { label: "Email", key: "email" },
+          { label: "AlfeCode Session ID", key: "alfe_session_id" },
+          { label: "Aurora Session ID", key: "aurora_session_id" },
+          {
+            label: "AlfeCode IPs",
+            getValue: (row) => [row.alfe_ipv4_addresses, row.alfe_ipv6_addresses].filter(Boolean).join(" | ")
+          },
+          {
+            label: "Aurora IPs",
+            key: "aurora_ips"
+          }
+        ];
         const rows = data.accounts || [];
         
         dataStatus.textContent = "";
