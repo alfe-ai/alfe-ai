@@ -3132,8 +3132,8 @@
         .refresh-view-diff-tooltip {
             position: absolute;
             top: calc(100% + 8px);
-            left: 50%;
-            transform: translate(-50%, -6px);
+            right: 0;
+            transform: translateY(-6px);
             min-width: 240px;
             max-width: 300px;
             padding: 8px 10px;
@@ -3155,7 +3155,7 @@
         .refresh-view-diff-wrapper:hover .refresh-view-diff-tooltip,
         .refresh-view-diff-wrapper:focus-within .refresh-view-diff-tooltip {
             opacity: 1;
-            transform: translate(-50%, 0);
+            transform: translateY(0);
         }
 .merge-button-wrapper {
             position: relative;
