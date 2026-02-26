@@ -523,11 +523,16 @@
             top: 50%;
             right: calc(100% + 12px);
             transform: translateY(-50%);
+            min-width: 320px;
+            width: max-content;
+            max-width: 360px;
+            white-space: normal;
         }
 
         .view-diff-tooltip .tooltip-text {
-            white-space: normal;
+            white-space: nowrap;
             line-height: 1.35;
+            text-align: left;
         }
 
         .view-diff-tooltip-arrow {

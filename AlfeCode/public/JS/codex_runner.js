@@ -1130,10 +1130,10 @@
     viewDiffTooltip.setAttribute("aria-hidden", "true");
   };
 
-  const getEnabledViewDiffButton = () => {
+  const getVisibleViewDiffButton = () => {
     const candidates = [mergeDiffButton, refreshRunPageButton];
     return candidates.find((button) => {
-      if (!button || button.disabled) {
+      if (!button) {
         return false;
       }
       return !button.classList.contains("is-hidden");
@@ -1145,7 +1145,7 @@
       hideViewDiffTooltip();
       return;
     }
-    if (!getEnabledViewDiffButton()) {
+    if (!getVisibleViewDiffButton()) {
       hideViewDiffTooltip();
       return;
     }
@@ -4285,6 +4285,10 @@
       await openRefreshViewDiffModal({ force: true });
     });
   }
+
+  window.setTimeout(() => {
+    maybeShowViewDiffTooltip();
+  }, 1200);
 
   const hideMergeDiffButton = () => {
     if (!mergeDiffButton) return;
