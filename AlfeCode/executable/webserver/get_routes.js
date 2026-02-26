@@ -6886,8 +6886,7 @@ res.render("editor", {
         if (!trimmed) {
             return '';
         }
-        const firstLine = trimmed.split(/\r?\n/)[0].trim();
-        return firstLine;
+        return trimmed.replace(/\r/g, '');
     };
 
     const normalizeFinalOutputForDiff = (value) => {
