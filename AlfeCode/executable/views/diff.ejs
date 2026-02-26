@@ -1108,7 +1108,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                     id="mergeButton"
                     class="nav-button<%= mergeReady ? ' is-merge-ready' : '' %>"
                     <%= mergeReady ? '' : 'disabled aria-disabled="true"' %>
-                    title="<%= mergeReady ? 'Merge current branch into the configured project branch' : 'Merge is available after agent finishes running.' %>"
+                    title="<%= mergeReady ? 'Merge into the configured project branch' : 'Merge is available after agent finishes running' %>"
                 >
                     <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 3a2 2 0 11-4 0 2 2 0 014 0zM6 21a2 2 0 11-4 0 2 2 0 014 0zM18 21a2 2 0 11-4 0 2 2 0 014 0zM8.5 12.5l6-3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1117,7 +1117,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 </button>
                 <div class="merge-disabled-tooltip" id="mergeDisabledTooltip" aria-hidden="<%= mergeReady ? 'true' : 'false' %>">
                     <% if (!mergeReady) { %>
-                        Merge is available after agent finishes running.
+                        Merge is available after agent finishes running
                     <% } %>
                 </div>
             </div>
