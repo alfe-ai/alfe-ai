@@ -1755,6 +1755,13 @@
             outline-offset: 2px;
         }
 
+        .nav-button[disabled] {
+            opacity: 0.45;
+            filter: saturate(0);
+            box-shadow: none;
+            transform: none;
+        }
+
         .status {
             margin-top: 28px;
             padding: 18px 22px;
@@ -3915,14 +3922,14 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 <small>Commit revision: <code id="gitFpushRevisionCode"></code></small>
             </div>
         <% } %>
-        <div id="mergeOutputContainer" class="is-hidden">
+        <div id="mergeOutputContainer">
             <div class="merge-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:12px;">
                     <button id="mergeToggleButton" class="tab-button" type="button" aria-expanded="false">Show merge output</button>
                     <span id="mergeSummary" class="status-text">&nbsp;</span>
                 </div>
                 <div style="margin-left:12px;">
-                    <button id="refreshRunPageButton" class="nav-button is-hidden" type="button" title="Refresh run page" aria-label="Refresh run page">
+                    <button id="refreshRunPageButton" class="nav-button" type="button" title="Refresh run page" aria-label="Refresh run page" disabled>
                         View Diff
                     </button>
                     <!-- View Diff visible before merge -->

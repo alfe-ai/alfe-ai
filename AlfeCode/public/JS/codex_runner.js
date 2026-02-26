@@ -4116,10 +4116,15 @@
       && mergeDiffButton.getAttribute("data-href").trim() !== "",
     );
 
-    refreshRunPageButton.classList.toggle(
-      "is-hidden",
-      !(runLooksComplete || finalOutputReady || (nonRefreshDiffButtonHidden && hasPreparedDiffUrl)),
+    const shouldEnableRefreshButton = Boolean(
+      runLooksComplete
+      || finalOutputReady
+      || (nonRefreshDiffButtonHidden && hasPreparedDiffUrl),
     );
+
+    ensureMergeDiffContainerVisible();
+    refreshRunPageButton.disabled = !shouldEnableRefreshButton;
+    refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
   };
 
   if (refreshRunPageButton) {
@@ -5392,9 +5397,8 @@ const clearMergeOutput = () => {
     mergeOutputEl.textContent = "";
     mergeOutputBuffer = [];
     if (mergeSummaryEl) { mergeSummaryEl.textContent = ''; }
-    // hide the container until merge clicked
-    const container = document.getElementById('mergeOutputContainer');
-    if (container) { container.classList.add('is-hidden'); }
+    // Keep the action row visible so refresh-style View Diff remains consistently available.
+    ensureMergeDiffContainerVisible();
 };
 
 const appendMergeChunk = (text, type = "output") => {
