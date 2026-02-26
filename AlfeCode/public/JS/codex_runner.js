@@ -3767,6 +3767,15 @@
     if (rowIndex !== null) {
       params.set('rowIndex', String(rowIndex));
     }
+
+    const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "")
+      .toString()
+      .trim()
+      .toLowerCase();
+    const runStatus = /\bmerged\b/.test(statusText) ? "merged" : "";
+    if (runStatus) {
+      params.set('run_status', runStatus);
+    }
   };
 
   const buildMergeDiffUrl = (hash, projectDirValue) => {
