@@ -329,6 +329,7 @@ export default class TaskDBAws {
       await client.query(`CREATE TABLE IF NOT EXISTS log_ins (
         account_id INTEGER NOT NULL REFERENCES accounts(id),
         logged_in_at TEXT NOT NULL,
+        app TEXT DEFAULT '',
         ipv4_address TEXT DEFAULT '',
         ipv6_address TEXT DEFAULT ''
       );`);
@@ -390,6 +391,7 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_log_in TEXT DEFAULT NULL;");
       await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT '';");
       await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT '';");
+      await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS app TEXT DEFAULT '';");
       await client.query("UPDATE accounts SET disabled = false WHERE disabled IS NULL;");
     } finally {
       client.release();
@@ -1074,13 +1076,14 @@ export default class TaskDBAws {
     await this.pool.query('UPDATE accounts SET last_log_in = $1 WHERE id = $2', [now, id]);
   }
 
-  async recordAccountLogin(id, ipAddresses = {}) {
+  async recordAccountLogin(id, ipAddresses = {}, appName = 'Aurora') {
     const now = new Date().toISOString();
     const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
     const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const app = typeof appName === 'string' ? appName.trim() : 'Aurora';
     await this.pool.query(
-      'INSERT INTO log_ins (account_id, logged_in_at, ipv4_address, ipv6_address) VALUES ($1, $2, $3, $4)',
-      [id, now, ipv4, ipv6]
+      'INSERT INTO log_ins (account_id, logged_in_at, app, ipv4_address, ipv6_address) VALUES ($1, $2, $3, $4, $5)',
+      [id, now, app || 'Aurora', ipv4, ipv6]
     );
   }
 
