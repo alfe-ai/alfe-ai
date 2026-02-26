@@ -1,4 +1,5 @@
 const fs = require("fs");
+const net = require("net");
 const path = require("path");
 const crypto = require("crypto");
 const { randomUUID } = require("crypto");
@@ -107,6 +108,36 @@ function setupGetRoutes(deps) {
     };
     const SHOPIFY_DISCOVERY_CACHE_TTL_MS = 5 * 60 * 1000;
     const MAX_FILE_TREE_DEPTH = 5;
+
+    const getRequestIpAddresses = (req) => {
+        const candidates = [];
+        const forwarded = req.headers["x-forwarded-for"];
+        if (Array.isArray(forwarded)) {
+            forwarded.forEach((entry) => {
+                String(entry || "").split(",").forEach((part) => candidates.push(part.trim()));
+            });
+        } else if (forwarded) {
+            String(forwarded).split(",").forEach((part) => candidates.push(part.trim()));
+        }
+        if (req.ip) candidates.push(String(req.ip).trim());
+        if (req.connection?.remoteAddress) candidates.push(String(req.connection.remoteAddress).trim());
+        if (req.socket?.remoteAddress) candidates.push(String(req.socket.remoteAddress).trim());
+
+        let ipv4 = "";
+        let ipv6 = "";
+        for (const raw of candidates) {
+            if (!raw) continue;
+            const normalized = raw.replace(/^::ffff:/i, "");
+            const version = net.isIP(normalized) ? net.isIP(normalized) : net.isIP(raw);
+            if (version === 4 && !ipv4) {
+                ipv4 = normalized;
+            } else if (version === 6 && !ipv6) {
+                ipv6 = raw;
+            }
+            if (ipv4 && ipv6) break;
+        }
+        return { ipv4, ipv6 };
+    };
 
     const getRequestIp = (req) => {
         const forwarded = req.headers["x-forwarded-for"];
@@ -3238,7 +3269,7 @@ ${cleanedFinalOutput}`;
                             callbackRequestId,
                             accountId: account.id,
                         });
-                        await rdsStore.createAccountLoginRecord(account.id);
+                        await rdsStore.createAccountLoginRecord(account.id, getRequestIpAddresses(req));
                         console.info("[Shopify callback] Wrote log_ins row", {
                             callbackRequestId,
                             accountId: account.id,

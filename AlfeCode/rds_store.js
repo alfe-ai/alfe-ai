@@ -147,7 +147,9 @@ class RdsStore {
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${LOG_INS_TABLE} (
         account_id INTEGER NOT NULL,
-        logged_in_at TEXT NOT NULL
+        logged_in_at TEXT NOT NULL,
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT ''
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
@@ -172,6 +174,14 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${PAGE_VIEWS_TABLE}
          ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${LOG_INS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT '';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${LOG_INS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT '';`
       );
 
       await this.pool.query(
@@ -773,20 +783,24 @@ class RdsStore {
     }
   }
 
-  async createAccountLoginRecord(id) {
+  async createAccountLoginRecord(id, ipAddresses = {}) {
     if (!this.enabled) return;
     await this.ensureReady();
     const loggedInAtIso = new Date().toISOString();
+    const ipv4 = typeof ipAddresses?.ipv4 === "string" ? ipAddresses.ipv4.trim() : "";
+    const ipv6 = typeof ipAddresses?.ipv6 === "string" ? ipAddresses.ipv6.trim() : "";
     console.log("[RdsStore] createAccountLoginRecord: writing login row", {
       accountId: id,
       loggedInAtIso,
+      ipv4,
+      ipv6,
     });
 
     try {
       const insertResult = await this.pool.query(
-        `INSERT INTO ${LOG_INS_TABLE} (account_id, logged_in_at)
-         VALUES ($1, $2)`,
-        [id, loggedInAtIso]
+        `INSERT INTO ${LOG_INS_TABLE} (account_id, logged_in_at, ipv4_address, ipv6_address)
+         VALUES ($1, $2, $3, $4)`,
+        [id, loggedInAtIso, ipv4, ipv6]
       );
       console.log("[RdsStore] createAccountLoginRecord: insert finished", {
         accountId: id,
