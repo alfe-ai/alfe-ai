@@ -2029,6 +2029,10 @@ projectViewRouter.get('/queue', (_req, res) => {
 
 projectViewRouter.use(express.static(projectViewPublicDir));
 
+projectViewRouter.get("/potato-game", (_req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, "public", "potato_game.html"));
+});
+
 projectViewRouter.get("*", (_req, res) => {
   res.sendFile(path.join(projectViewPublicDir, "index.html"));
 });

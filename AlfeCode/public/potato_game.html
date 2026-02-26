@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potato Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(to bottom, #8B4513, #A0522D);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 10px;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .score, .time {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        #potato-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .potato {
+            background: linear-gradient(to bottom, #8B4513, #A0522D);
+            border: 2px solid #654321;
+            border-radius: 50%;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .potato:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .potato:active {
+            transform: scale(0.95);
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: linear-gradient(to bottom, #FFD700, #FFA500);
+            border: none;
+            border-radius: 25px;
+            color: #8B4513;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .message {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 15px 0;
+            min-height: 30px;
+        }
+        
+        .instructions {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .instructions h2 {
+            margin-top: 0;
+            color: #FFD700;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+        }
+        
+        .game-over {
+            background-color: rgba(255, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px;
+            }
+            
+            #potato-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .potato {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🥔 Potato Crusher 🥔</h1>
+        
+        <div class="game-info">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="time">Time: <span id="time">30</span>s</div>
+        </div>
+        
+        <div id="potato-grid"></div>
+        
+        <div class="message" id="message">Click on potatoes to crush them!</div>
+        
+        <div class="controls">
+            <button id="start-btn">Start Game</button>
+            <button id="reset-btn">Reset Game</button>
+        </div>
+        
+        <div class="game-over" id="game-over">
+            <h2>Game Over!</h2>
+            <p>Your final score: <span id="final-score">0</span></p>
+            <button id="play-again-btn">Play Again</button>
+        </div>
+        
+        <div class="instructions">
+            <h2>How to Play</h2>
+            <ul>
+                <li>Click on the potatoes to crush them and earn points</li>
+                <li>Each potato gives you 10 points</li>
+                <li>You have 30 seconds to get as many points as possible</li>
+                <li>Crush the potatoes as fast as you can!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game elements
+            const grid = document.getElementById('potato-grid');
+            const scoreDisplay = document.getElementById('score');
+            const timeDisplay = document.getElementById('time');
+            const messageDisplay = document.getElementById('message');
+            const startBtn = document.getElementById('start-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const gameOverDiv = document.getElementById('game-over');
+            const finalScoreDisplay = document.getElementById('final-score');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            
+            // Game state
+            let score = 0;
+            let timeLeft = 30;
+            let timer;
+            let gameActive = false;
+            
+            // Create the potato grid
+            function createGrid() {
+                grid.innerHTML = '';
+                for (let i = 0; i < 12; i++) {
+                    const potato = document.createElement('div');
+                    potato.className = 'potato';
+                    potato.innerHTML = '🥔';
+                    potato.dataset.index = i;
+                    
+                    potato.addEventListener('click', () => {
+                        if (gameActive) {
+                            crushPotato(potato);
+                        }
+                    });
+                    
+                    grid.appendChild(potato);
+                }
+            }
+            
+            // Crush a potato
+            function crushPotato(potato) {
+                if (!gameActive) return;
+                
+                // Increase score
+                score += 10;
+                scoreDisplay.textContent = score;
+                
+                // Change potato to crushed state
+                potato.innerHTML = '💥';
+                potato.style.background = 'linear-gradient(to bottom, #FF4500, #FF0000)';
+                potato.style.transform = 'scale(1.1)';
+                
+                // Remove click event
+                potato.style.pointerEvents = 'none';
+                
+                // Return to normal after short delay
+                setTimeout(() => {
+                    potato.innerHTML = '🥔';
+                    potato.style.background = 'linear-gradient(to bottom, #8B4513, #A0522D)';
+                    potato.style.transform = 'scale(1)';
+                    potato.style.pointerEvents = 'auto';
+                }, 500);
+                
+                // Add bonus points for quick clicks
+                if (Math.random() > 0.7) {
+                    score += 5;
+                    scoreDisplay.textContent = score;
+                    messageDisplay.textContent = 'Bonus! +5 points!';
+                    setTimeout(() => {
+                        if (gameActive) {
+                            messageDisplay.textContent = 'Click on potatoes to crush them!';
+                        }
+                    }, 1000);
+                }
+            }
+            
+            // Start the game
+            function startGame() {
+                if (gameActive) return;
+                
+                // Reset game state
+                score = 0;
+                timeLeft = 30;
+                scoreDisplay.textContent = score;
+                timeDisplay.textContent = timeLeft;
+                messageDisplay.textContent = 'Game started! Click on potatoes to crush them.';
+                gameOverDiv.style.display = 'none';
+                
+                // Clear any existing timer
+                if (timer) {
+                    clearInterval(timer);
+                }
+                
+                gameActive = true;
+                startBtn.disabled = true;
+                
+                // Timer
+                timer = setInterval(() => {
+                    timeLeft--;
+                    timeDisplay.textContent = timeLeft;
+                    
+                    if (timeLeft <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+            }
+            
+            // Reset the game
+            function resetGame() {
+                if (timer) {
+                    clearInterval(timer);
+                }
+                
+                gameActive = false;
+                startBtn.disabled = false;
+                gameOverDiv.style.display = 'none';
+                score = 0;
+                timeLeft = 30;
+                scoreDisplay.textContent = score;
+                timeDisplay.textContent = timeLeft;
+                messageDisplay.textContent = 'Click on potatoes to crush them!';
+                createGrid();
+            }
+            
+            // End the game
+            function endGame() {
+                gameActive = false;
+                clearInterval(timer);
+                startBtn.disabled = false;
+                
+                finalScoreDisplay.textContent = score;
+                messageDisplay.textContent = `Game Over! Final Score: ${score}`;
+                gameOverDiv.style.display = 'block';
+            }
+            
+            // Event listeners
+            startBtn.addEventListener('click', startGame);
+            resetBtn.addEventListener('click', resetGame);
+            playAgainBtn.addEventListener('click', resetGame);
+            
+            // Initialize the game
+            createGrid();
+        });
+    </script>
+</body>
+</html>
