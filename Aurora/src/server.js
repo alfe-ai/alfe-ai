@@ -1541,7 +1541,8 @@ app.get("/api/db/table/:name", (req, res) => {
         return res.status(501).json({ error: "Database table read not supported." });
       }
       const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 200, 1000));
-      const data = await Promise.resolve(db.getTableData(tableName, limit));
+      const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+      const data = await Promise.resolve(db.getTableData(tableName, limit, offset));
       res.json(data);
     } catch (err) {
       console.error("[Server Debug] GET /api/db/table error:", err);

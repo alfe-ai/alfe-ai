@@ -1903,7 +1903,7 @@ export default class TaskDB {
       .map((row) => row.name);
   }
 
-  getTableData(tableName, limit = 200) {
+  getTableData(tableName, limit = 200, offset = 0) {
     const tables = this.listTables();
     if (!tables.includes(tableName)) {
       throw new Error(`Unknown table: ${tableName}`);
@@ -1912,9 +1912,9 @@ export default class TaskDB {
     const columnInfo = this.db.prepare(`PRAGMA table_info(${safeName})`).all();
     const columns = columnInfo.map((col) => col.name);
     const rows = this.db
-      .prepare(`SELECT * FROM ${safeName} LIMIT ?`)
-      .all(limit);
-    return { columns, rows, limit, rowCount: rows.length };
+      .prepare(`SELECT * FROM ${safeName} LIMIT ? OFFSET ?`)
+      .all(limit, offset);
+    return { columns, rows, limit, offset, rowCount: rows.length };
   }
 
   runReadOnlyQuery(sqlText, limit = 200) {
