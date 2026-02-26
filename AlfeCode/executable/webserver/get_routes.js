@@ -3504,6 +3504,16 @@ ${cleanedFinalOutput}`;
         res.render('help', { account });
     });
 
+    app.get('/games/rock-paper-scissors', async (req, res) => {
+        const sessionId = getSessionIdFromRequest(req);
+        res.render('rock_paper_scissors', { sessionId });
+    });
+
+    app.get('/games', async (req, res) => {
+        const sessionId = getSessionIdFromRequest(req);
+        res.render('games', { sessionId });
+    });
+
     app.get('/support', async (req, res) => {
         const account = await requireSupportPlan(req, res);
         if (!account) {

@@ -1,0 +1,96 @@
+<%%- include('header.ejs') -%%>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">Rock Paper Scissors</h1>
+        
+        <div class="choices">
+            <button class="choice-btn" onclick="playGame('rock')">Rock</button>
+            <button class="choice-btn" onclick="playGame('paper')">Paper</button>
+            <button class="choice-btn" onclick="playGame('scissors')">Scissors</button>
+        </div>
+
+        <div class="score-board">
+            <p>Your Score: <span id="playerScore">0</span> | Computer Score: <span id="computerScore">0</span></p>
+        </div>
+
+        <div class="result" id="result">
+            Choose your move to start playing!
+        </div>
+
+        <div class="status" id="status">
+            Good luck!
+        </div>
+
+        <button class="reset-btn" onclick="resetGame()">Reset Game</button>
+    </div>
+
+    <script>
+        let playerScore = 0;
+        let computerScore = 0;
+        const choices = ['rock', 'paper', 'scissors'];
+
+        function getComputerChoice() {
+            const randomIndex = Math.floor(Math.random() * 3);
+            return choices[randomIndex];
+        }
+
+        function determineWinner(playerChoice, computerChoice) {
+            if (playerChoice === computerChoice) {
+                return 'tie';
+            }
+            
+            if (
+                (playerChoice === 'rock' && computerChoice === 'scissors') ||
+                (playerChoice === 'paper' && computerChoice === 'rock') ||
+                (playerChoice === 'scissors' && computerChoice === 'paper')
+            ) {
+                return 'player';
+            }
+            
+            return 'computer';
+        }
+
+        function updateScore(winner) {
+            if (winner === 'player') {
+                playerScore++;
+            } else if (winner === 'computer') {
+                computerScore++;
+            }
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('computerScore').textContent = computerScore;
+        }
+
+        function playGame(playerChoice) {
+            const computerChoice = getComputerChoice();
+            const result = determineWinner(playerChoice, computerChoice);
+            
+            let resultText = '';
+            let statusText = '';
+            
+            if (result === 'tie') {
+                resultText = `It's a tie! Both chose ${playerChoice}`;
+                statusText = 'Nobody wins this round';
+            } else if (result === 'player') {
+                resultText = `You win! ${playerChoice} beats ${computerChoice}`;
+                statusText = 'You got the point!';
+            } else {
+                resultText = `Computer wins! ${computerChoice} beats ${playerChoice}`;
+                statusText = 'Computer got the point!';
+            }
+            
+            document.getElementById('result').textContent = resultText;
+            document.getElementById('status').textContent = statusText;
+            updateScore(result);
+        }
+
+        function resetGame() {
+            playerScore = 0;
+            computerScore = 0;
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('computerScore').textContent = computerScore;
+            document.getElementById('result').textContent = 'Choose your move to start playing!';
+            document.getElementById('status').textContent = 'Good luck!';
+        }
+    </script>
+</body>
+<%%- include('footer.ejs') -%%>
