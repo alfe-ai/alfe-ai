@@ -5741,7 +5741,7 @@ const appendMergeChunk = (text, type = "output") => {
         || "";
     if (promptInput && promptValue) {
     }
-    updatePromptPreview(promptValue);
+    //updatePromptPreview(promptValue);
 
     if (agentInstructionsInput && typeof run.agentInstructions === "string" && run.agentInstructions) {
       agentInstructionsInput.value = run.agentInstructions;
