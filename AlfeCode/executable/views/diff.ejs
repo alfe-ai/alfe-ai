@@ -219,14 +219,14 @@
             border: 1px solid var(--border);
             border-radius: 14px;
             box-shadow: 0 20px 50px rgba(2, 6, 23, 0.55);
-            padding: 16px;
+            padding: 20px;
             position: relative;
         }
 
         .prompt-modal-copy {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 16px;
+            right: 16px;
             border: 0;
             background: transparent;
             color: var(--muted);
@@ -243,8 +243,9 @@
         }
 
         .prompt-modal-header {
-            margin: 0 34px 10px 0;
-            font-size: 14px;
+            margin: 0 38px 12px 0;
+            font-size: 18px;
+            font-weight: 700;
             color: var(--text);
         }
 
@@ -1251,7 +1252,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
     <div id="diffPromptModal" class="prompt-modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="diffPromptModalHeader">
         <div class="prompt-modal-content">
             <button type="button" class="prompt-modal-copy" id="diffPromptModalCopy" aria-label="Copy prompt" title="Copy prompt">⎘</button>
-            <h3 id="diffPromptModalHeader" class="prompt-modal-header">User prompt</h3>
+            <h3 id="diffPromptModalHeader" class="prompt-modal-header">Your Sent Prompt</h3>
             <textarea id="diffPromptModalTextarea" class="prompt-modal-textarea" readonly spellcheck="false"></textarea>
         </div>
     </div>
