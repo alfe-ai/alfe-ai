@@ -4110,10 +4110,15 @@
       || normalizedStatus === "merging...";
     const runLooksComplete = hasCurrentRunId && !runIsActive && normalizedStatus.length > 0;
     const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
+    const hasPreparedDiffUrl = Boolean(
+      mergeDiffButton
+      && typeof mergeDiffButton.getAttribute("data-href") === "string"
+      && mergeDiffButton.getAttribute("data-href").trim() !== "",
+    );
 
     refreshRunPageButton.classList.toggle(
       "is-hidden",
-      !(runLooksComplete || finalOutputReady),
+      !(runLooksComplete || finalOutputReady || (nonRefreshDiffButtonHidden && hasPreparedDiffUrl)),
     );
   };
 
@@ -4154,7 +4159,7 @@
       return false;
     }
 
-    if (mergeDiffButton.classList.contains("is-hidden")) {
+    if (!nonRefreshDiffButtonHidden && mergeDiffButton.classList.contains("is-hidden")) {
       return false;
     }
 
@@ -4312,10 +4317,6 @@
   };
 
   const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
-    if (nonRefreshDiffButtonHidden) {
-      hideMergeDiffButton();
-      return;
-    }
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4338,6 +4339,17 @@
       return;
     }
     ensureMergeDiffContainerVisible();
+    if (nonRefreshDiffButtonHidden) {
+      mergeDiffButton.setAttribute('data-href', url);
+      mergeDiffButton.setAttribute('aria-disabled', 'true');
+      mergeDiffButton.classList.add('is-hidden');
+      mergeDiffButton.onclick = null;
+      updateRefreshRunButtonVisibility();
+      if (consumeAutoOpenMergeDiffRequest()) {
+        setTimeout(() => openMergeDiffModal(url), 0);
+      }
+      return;
+    }
     mergeDiffButton.disabled = false;
     mergeDiffButton.setAttribute('data-href', url);
     mergeDiffButton.setAttribute('aria-disabled', 'false');
@@ -4357,10 +4369,6 @@
 
 
   const enableMergeDiffButtonForHash = (hash, projectDirValue) => {
-    if (nonRefreshDiffButtonHidden) {
-      hideMergeDiffButton();
-      return;
-    }
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4383,6 +4391,17 @@
       return;
     }
     ensureMergeDiffContainerVisible();
+    if (nonRefreshDiffButtonHidden) {
+      mergeDiffButton.setAttribute('data-href', url);
+      mergeDiffButton.setAttribute('aria-disabled', 'true');
+      mergeDiffButton.classList.add('is-hidden');
+      mergeDiffButton.onclick = null;
+      updateRefreshRunButtonVisibility();
+      if (consumeAutoOpenMergeDiffRequest()) {
+        setTimeout(() => openMergeDiffModal(url), 0);
+      }
+      return;
+    }
     mergeDiffButton.disabled = false;
     mergeDiffButton.setAttribute('data-href', url);
     mergeDiffButton.setAttribute('aria-disabled', 'false');
