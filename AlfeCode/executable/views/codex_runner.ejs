@@ -3582,7 +3582,7 @@
                           </button>
                       </div>
                       <div class="top-nav-utility">
-                          <button id="agentHelpBtn" style="display:none;" class="nav-button icon-only" type="button" title="Help" aria-label="Open agent help" onclick="(function(){ try{ window.open('/agent/help', '_blank', 'noopener,noreferrer'); }catch(e){} })()">
+                          <button id="agentHelpBtn" style="display:block;" class="nav-button icon-only" type="button" title="Help" aria-label="Open agent help" onclick="(function(){ try{ window.open('/agent/help', '_blank', 'noopener,noreferrer'); }catch(e){} })()">
                               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                                   <path d="M8.625 9.75a3.375 3.375 0 116.75 0c0 1.5-1.125 2.25-2.25 3s-1.125 1.5-1.125 2.25" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                                 <path d="M12 17.25h.007v.008H12v-.008z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -4551,39 +4551,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     });
   }
 
-  (function(){
-    const helpGuideButton = document.getElementById('helpGuideButton');
-    const STORAGE_KEY_HELP_BUTTON = 'showHelpButton';
-    if (!helpGuideButton) return;
-    const setHelpButtonVisible = (show) => {
-      if (show) {
-        helpGuideButton.classList.remove('is-hidden');
-        helpGuideButton.removeAttribute('aria-hidden');
-      } else {
-        helpGuideButton.classList.add('is-hidden');
-        helpGuideButton.setAttribute('aria-hidden', 'true');
-      }
-    };
-    let storedValue = null;
-    try {
-      storedValue = localStorage.getItem(STORAGE_KEY_HELP_BUTTON);
-    } catch (_e) {
-      storedValue = null;
-    }
-    if (storedValue === null) {
-      storedValue = 'true';
-    }
-    setHelpButtonVisible(storedValue === 'true');
-    window.addEventListener('message', function(ev){
-      try {
-        const d = ev && ev.data;
-        if (!d || d.type !== 'sterling:settings' || d.key !== 'showHelpButton') return;
-        const shouldShow = d.value === true || d.value === 'true';
-        try{ localStorage.setItem(STORAGE_KEY_HELP_BUTTON, shouldShow ? 'true' : 'false'); }catch(_e){}
-        setHelpButtonVisible(shouldShow);
-      } catch(_e) { /* noop */ }
-    });
-  })();
 
   const helpGuideButton = document.getElementById('helpGuideButton');
   const helpGuideModal = document.getElementById('helpGuideModal');
