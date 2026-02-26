@@ -1433,6 +1433,10 @@ setupGetRoutes({
  */
 const apiConnector = require("../alfe/Aurelix/dev/api_connector.js");
 
+// Import and use game app
+const gameApp = require("./game_app.js");
+app.use("/game", gameApp);
+
 // Host the routes from apiConnector at /api
 app.use("/api", apiConnector);
 
