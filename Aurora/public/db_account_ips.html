@@ -242,6 +242,10 @@
       border-color: #94a3b8;
       outline: none;
     }
+    .hidden-email {
+      color: #94a3b8;
+      font-style: italic;
+    }
     a {
       color: #2563eb;
       text-decoration: none;
@@ -329,6 +333,9 @@
         background: #1e293b;
         border-color: #64748b;
       }
+      .hidden-email {
+        color: #64748b;
+      }
       a {
         color: #38bdf8;
       }
@@ -391,7 +398,42 @@
           columns.forEach((col) => {
             const td = document.createElement("td");
             const value = typeof col.getValue === "function" ? col.getValue(row) : row[col.key];
-            if (value && typeof value === "object") {
+            
+            // Special handling for email to hide it by default
+            if (col.key === "email") {
+              // Create a container div for the email cell
+              const container = document.createElement("div");
+              container.style.display = "flex";
+              container.style.alignItems = "center";
+              container.style.gap = "0.5rem";
+              
+              // Create button to reveal email
+              const revealBtn = document.createElement("button");
+              revealBtn.className = "reveal-email-btn";
+              revealBtn.textContent = "View Email";
+              revealBtn.style.marginRight = "0.5rem";
+              
+              // Create span for the hidden email
+              const emailSpan = document.createElement("span");
+              emailSpan.className = "hidden-email";
+              emailSpan.textContent = "•••••••••••••";
+              emailSpan.style.display = "inline-block";
+              emailSpan.style.minWidth = "80px"; // Ensure consistent width for hidden emails
+              
+              // Add click event to reveal email
+              revealBtn.addEventListener("click", (e) => {
+                e.stopPropagation(); // Prevent row click from triggering
+                emailSpan.textContent = value;
+                emailSpan.className = "";
+                revealBtn.style.display = "none";
+              });
+              
+              // Add elements to container
+              container.appendChild(revealBtn);
+              container.appendChild(emailSpan);
+              
+              td.appendChild(container);
+            } else if (value && typeof value === "object") {
               const pre = document.createElement("pre");
               pre.textContent = JSON.stringify(value, null, 2);
               td.appendChild(pre);
@@ -412,13 +454,13 @@
       try {
         dataStatus.textContent = "Loading account data...";
         tableWrap.innerHTML = "<div class='empty'>Loading account data...</div>";
-        
+
         const res = await fetch("/api/db/account_ips");
         if (!res.ok) {
           throw new Error(`Failed to load account data: ${res.status}`);
         }
         const data = await res.json();
-        
+
         const columns = [
           { label: "ID", key: "id" },
           { label: "Email", key: "email" },
@@ -434,7 +476,7 @@
           }
         ];
         const rows = data.accounts || [];
-        
+
         dataStatus.textContent = "";
         rowMeta.textContent = `${rows.length} account${rows.length === 1 ? '' : 's'} loaded`;
         renderTable(columns, rows);
