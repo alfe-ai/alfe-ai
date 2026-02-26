@@ -3926,7 +3926,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                         View Diff
                     </button>
                     <!-- View Diff visible before merge -->
-                    <button id="openMergeDiffButton" class="nav-button" type="button" title="View Diff" aria-label="View Diff" disabled>
+                    <button id="openMergeDiffButton" class="nav-button<%= nonRefreshDiffButtonHidden ? ' is-hidden' : '' %>" type="button" title="View Diff" aria-label="View Diff" disabled>
                         View Diff
                     </button>
                 </div>
@@ -4234,6 +4234,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 accountButtonEnabled: <%- JSON.stringify(typeof accountButtonEnabled === "undefined" ? true : accountButtonEnabled) %>,
                 userPromptVisibleCodex: <%- JSON.stringify(typeof userPromptVisibleCodex === "undefined" ? false : userPromptVisibleCodex) %>,
                 agentModelDropdownDisabled: <%- JSON.stringify(typeof agentModelDropdownDisabled !== 'undefined' ? agentModelDropdownDisabled : false) %>,
+                nonRefreshDiffButtonHidden: <%- JSON.stringify(typeof nonRefreshDiffButtonHidden !== 'undefined' ? nonRefreshDiffButtonHidden : false) %>,
                 subscriptionCheckoutUrl: <%- JSON.stringify(subscriptionCheckoutUrl || "") %>,
                 initialAccountInfo: <%- JSON.stringify(initialAccountInfo || null) %>,
                 shopifyAuthEnabled: <%- JSON.stringify(typeof shopifyAuthEnabled === "undefined" ? true : shopifyAuthEnabled) %>,
