@@ -515,6 +515,45 @@
             gap: 10px;
         }
 
+        .sidebar-context-collapsible {
+            margin: 0;
+        }
+
+        .sidebar-context-collapsible > summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .sidebar-context-collapsible > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sidebar-context-collapsible > summary::after {
+            content: "▸";
+            color: var(--muted);
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-context-collapsible[open] > summary::after {
+            transform: rotate(90deg);
+        }
+
+        .sidebar-context-collapsible-body {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         .sidebar-context-item {
             display: flex;
             flex-direction: column;
@@ -1090,23 +1129,17 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
         <div class="diff-sidebar" aria-label="Commits and files">
-            <% if (baseRev) { %>
-            <aside class="sidebar-context-card" aria-label="Diff context">
+            <% if (baseRev || compRev || comparisonCommitMessage) { %>
+            <aside class="sidebar-context-card" aria-label="Git revision info">
+                <details class="sidebar-context-collapsible">
+                    <summary>Git Revision Info</summary>
+                    <div class="sidebar-context-collapsible-body">
                 <% if (baseRev) { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">Base revision</span>
                     <p class="sidebar-context-value"><%= baseRev %></p>
                 </div>
                 <% } %>
-            </aside>
-            <% } %>
-            <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
-                <h4>Commits</h4>
-                <ul id="commit-list"></ul>
-            </aside>
-            <% } %>
-            <% if (compRev || comparisonCommitMessage) { %>
-            <aside class="sidebar-context-card" aria-label="Comparison revision and message">
                 <% if (compRev) { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">Compare head</span>
@@ -1119,6 +1152,13 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                     <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
                 </div>
                 <% } %>
+                    </div>
+                </details>
+            </aside>
+            <% } %>
+            <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
+                <h4>Commits</h4>
+                <ul id="commit-list"></ul>
             </aside>
             <% } %>
             <% if (comparisonPromptLineValue || (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string')) { %>
