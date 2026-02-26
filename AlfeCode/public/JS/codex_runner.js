@@ -6456,20 +6456,31 @@ const appendMergeChunk = (text, type = "output") => {
     const latestFollowupByParentId = new Map();
     const getRunRecencyTimestamp = (run) => {
       const candidate =
-        run?.updatedAt
-        || run?.startedAt
+        run?.startedAt
         || run?.createdAt
+        || run?.updatedAt
         || run?.finishedAt
         || "";
       const timestamp = candidate ? new Date(candidate).getTime() : 0;
       return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+    const isRunMoreRecent = (candidateRun, existingRun) => {
+      if (!existingRun) {
+        return true;
+      }
+      const candidateRunning = !candidateRun?.finishedAt;
+      const existingRunning = !existingRun?.finishedAt;
+      if (candidateRunning !== existingRunning) {
+        return candidateRunning;
+      }
+      return getRunRecencyTimestamp(candidateRun) >= getRunRecencyTimestamp(existingRun);
     };
     const followupFilteredRuns = Array.isArray(runs)
       ? runs.filter((run) => {
         const followupParentId = getFollowupParentId(run);
         if (followupParentId) {
           const existingLatestFollowup = latestFollowupByParentId.get(followupParentId);
-          if (!existingLatestFollowup || getRunRecencyTimestamp(run) >= getRunRecencyTimestamp(existingLatestFollowup)) {
+          if (isRunMoreRecent(run, existingLatestFollowup)) {
             latestFollowupByParentId.set(followupParentId, run);
           }
           if (!run?.finishedAt) {
@@ -6667,12 +6678,7 @@ const appendMergeChunk = (text, type = "output") => {
       if (metaEl) {
         // badge
         const latestFollowupRun = normalizedRunId ? latestFollowupByParentId.get(normalizedRunId) : null;
-        const hasSelectedRunActiveFollowup = Boolean(
-          normalizedRunId
-          && followupRunActive
-          && currentRunContext
-          && normaliseRunId(currentRunContext.runId) === normalizedRunId,
-        );
+        const hasSelectedRunActiveFollowup = Boolean(normalizedRunId && followupRunActive && runsSidebarSelectedRunId === normalizedRunId);
         const badgeInfo = getSidebarBadgeInfo(latestFollowupRun || run, {
           hasActiveFollowup: Boolean(normalizedRunId && activeFollowupParents.has(normalizedRunId)) || hasSelectedRunActiveFollowup,
         });
