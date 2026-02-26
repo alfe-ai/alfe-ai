@@ -2958,13 +2958,39 @@ ${cleanedFinalOutput}`;
     const resolveRunForViewDiffRedirect = (sessionId, runId, projectDirParam) => {
         try {
             const runs = typeof loadCodexRuns === "function" ? loadCodexRuns(sessionId) : [];
-            if (!Array.isArray(runs) || !runs.length) {
+            const fallbackRuns = typeof loadCodexRuns === "function" ? loadCodexRuns() : [];
+            const allRuns = [];
+            const seenRunIds = new Set();
+
+            const appendRuns = (entries) => {
+                if (!Array.isArray(entries)) {
+                    return;
+                }
+                entries.forEach((entry) => {
+                    if (!entry || typeof entry !== "object") {
+                        return;
+                    }
+                    const entryId = String(entry.id || "").trim();
+                    if (entryId && seenRunIds.has(entryId)) {
+                        return;
+                    }
+                    if (entryId) {
+                        seenRunIds.add(entryId);
+                    }
+                    allRuns.push(entry);
+                });
+            };
+
+            appendRuns(runs);
+            appendRuns(fallbackRuns);
+
+            if (!allRuns.length) {
                 return null;
             }
 
             const normalisedRunId = typeof runId === "string" ? runId.trim() : "";
             if (normalisedRunId) {
-                const byId = runs.find((run) => run && String(run.id || "").trim() === normalisedRunId);
+                const byId = allRuns.find((run) => run && String(run.id || "").trim() === normalisedRunId);
                 if (byId) {
                     return byId;
                 }
@@ -2977,8 +3003,8 @@ ${cleanedFinalOutput}`;
                 return null;
             }
 
-            for (let i = runs.length - 1; i >= 0; i -= 1) {
-                const candidate = runs[i];
+            for (let i = allRuns.length - 1; i >= 0; i -= 1) {
+                const candidate = allRuns[i];
                 const candidateDir = candidate && (candidate.projectDir || candidate.requestedProjectDir || candidate.effectiveProjectDir);
                 if (!candidateDir) {
                     continue;
