@@ -224,6 +224,7 @@ const DEFAULT_AGENT_INSTRUCTIONS = [
     'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
     'When starting, please check AGENTS.md in repository root for further instructions.',
     'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
+    'Remember to follow all previous instructions precisely as given.',
 ].join('\n');
 
 
