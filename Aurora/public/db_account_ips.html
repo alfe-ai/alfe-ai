@@ -413,16 +413,25 @@
               revealBtn.textContent = "View Email";
               revealBtn.style.marginRight = "0.5rem";
               
-              // Create span for the email (show it directly without hiding)
+              // Create span for the hidden email
               const emailSpan = document.createElement("span");
-              emailSpan.textContent = value;
-              emailSpan.className = "";  // Remove the hidden class
+              emailSpan.className = "hidden-email";
+              emailSpan.textContent = "•••••••••••••";
               emailSpan.style.display = "inline-block";
-              emailSpan.style.minWidth = "80px"; // Ensure consistent width for emails
-
+              emailSpan.style.minWidth = "80px"; // Ensure consistent width for hidden emails
+              
+              // Add click event to reveal email
+              revealBtn.addEventListener("click", (e) => {
+                e.stopPropagation(); // Prevent row click from triggering
+                emailSpan.textContent = value;
+                emailSpan.className = "";
+                revealBtn.style.display = "none";
+              });
+              
               // Add elements to container
+              container.appendChild(revealBtn);
               container.appendChild(emailSpan);
-
+              
               td.appendChild(container);
             } else if (value && typeof value === "object") {
               const pre = document.createElement("pre");
