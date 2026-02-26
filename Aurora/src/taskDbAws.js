@@ -1058,6 +1058,8 @@ export default class TaskDBAws {
   async getAccountByEmail(email) {
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     if (!normalizedEmail) return null;
+    const directMatch = await this.pool.query('SELECT * FROM accounts WHERE email = $1', [normalizedEmail]);
+    if (directMatch.rows[0]) return directMatch.rows[0];
     const { rows } = await this.pool.query('SELECT * FROM accounts WHERE LOWER(TRIM(email)) = $1', [normalizedEmail]);
     return rows[0] || null;
   }
