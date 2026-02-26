@@ -3908,6 +3908,17 @@
     return isFromSameOrigin || isFromGitLogIframe;
   };
 
+  const triggerMergeFromViewDiffModal = () => {
+    if (typeof window.__alfeStartMergeFlow === "function") {
+      window.__alfeStartMergeFlow();
+      return;
+    }
+    if (mergeButton) {
+      mergeButton.removeAttribute("disabled");
+      mergeButton.click();
+    }
+  };
+
   const handleDiffModalMergeRequest = (event) => {
     if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
       return;
@@ -3917,11 +3928,9 @@
     if (!isTrustedDiffModalMessage(event)) {
       return;
     }
-    // Close the diff modal and trigger the merge button in the parent if enabled.
+    // Close the diff modal and trigger merge in the parent.
     closeGitLogModal();
-    if (mergeButton && !mergeButton.disabled) {
-      mergeButton.click();
-    }
+    triggerMergeFromViewDiffModal();
   };
 
   const handleDiffModalBackRequest = (event) => {
@@ -7955,8 +7964,11 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
-  if (mergeButton) {
-    mergeButton.addEventListener("click", async () => {
+  const startMergeFlow = async () => {
+      if (mergeInFlight) {
+        return;
+      }
+
       mergeTooltipPinned = false;
       setMergeTooltipVisibility(false);
 
@@ -8043,7 +8055,20 @@ const appendMergeChunk = (text, type = "output") => {
         // Re-enable run controls after merge completes
         try { setRunControlsDisabledState(false); } catch (e) { console.warn('Failed to re-enable run controls after merge', e); }
       }
+  };
+
+  if (typeof window !== "undefined") {
+    window.__alfeStartMergeFlow = startMergeFlow;
+  }
+
+  if (mergeButton) {
+    mergeButton.addEventListener("click", async () => {
+      if (mergeButton.disabled || mergeInFlight) {
+        return;
+      }
+      await startMergeFlow();
     });
+  }
 
   if (updateBranchButton) {
     updateBranchButton.addEventListener('click', async () => {
@@ -8075,7 +8100,6 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
-  }
 
   if (defaultModelSaveButton && defaultModelInput) {
   // Delete local checkout for a run
@@ -8456,8 +8480,22 @@ const appendMergeChunk = (text, type = "output") => {
               || (currentRunContext && currentRunContext.projectDir)
               || "",
           );
-        }
       }
+
+  };
+
+  if (typeof window !== "undefined") {
+    window.__alfeStartMergeFlow = startMergeFlow;
+  }
+
+  if (mergeButton) {
+    mergeButton.addEventListener("click", async () => {
+      if (mergeButton.disabled || mergeInFlight) {
+        return;
+      }
+      await startMergeFlow();
+    });
+  }
     });
 
     eventSource.addEventListener("stderr", (event) => {
