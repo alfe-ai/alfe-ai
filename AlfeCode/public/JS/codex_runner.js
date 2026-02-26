@@ -1102,6 +1102,7 @@
   const viewDiffTooltip = document.getElementById("viewDiffTooltip");
   const VIEW_DIFF_TOOLTIP_COOKIE = "viewDiffTooltipDismissed";
   let viewDiffTooltipShown = false;
+  let viewDiffTooltipEnabled = false;
 
   const hasCookie = (cookieName) => {
     if (!cookieName || typeof document === "undefined") {
@@ -1140,16 +1141,29 @@
     }) || null;
   };
 
+  const setViewDiffTooltipEnabled = (isEnabled) => {
+    viewDiffTooltipEnabled = Boolean(isEnabled);
+    if (!viewDiffTooltip) {
+      return;
+    }
+    viewDiffTooltip.classList.toggle("is-disabled", !viewDiffTooltipEnabled);
+    if (!viewDiffTooltipEnabled) {
+      hideViewDiffTooltip();
+    }
+  };
+
+  const syncViewDiffTooltipEnabledState = () => {
+    const visibleViewDiffButton = getVisibleViewDiffButton();
+    setViewDiffTooltipEnabled(Boolean(visibleViewDiffButton && !visibleViewDiffButton.disabled));
+  };
+
   const maybeShowViewDiffTooltip = () => {
-    if (!viewDiffTooltip || viewDiffTooltipShown || hasCookie(VIEW_DIFF_TOOLTIP_COOKIE)) {
+    if (!viewDiffTooltipEnabled || !viewDiffTooltip || viewDiffTooltipShown || hasCookie(VIEW_DIFF_TOOLTIP_COOKIE)) {
       hideViewDiffTooltip();
       return;
     }
-    if (typeof shouldEnableRefreshStyleActions === "function" && !shouldEnableRefreshStyleActions()) {
-      hideViewDiffTooltip();
-      return;
-    }
-    if (!getVisibleViewDiffButton()) {
+    const visibleViewDiffButton = getVisibleViewDiffButton();
+    if (!visibleViewDiffButton || visibleViewDiffButton.disabled) {
       hideViewDiffTooltip();
       return;
     }
@@ -4277,6 +4291,7 @@
     ensureMergeDiffContainerVisible();
     refreshRunPageButton.disabled = !shouldEnableRefreshButton;
     refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
+    syncViewDiffTooltipEnabledState();
     maybeShowViewDiffTooltip();
 
     if (!nonRefreshDiffButtonHidden || !shouldEnableRefreshButton) {
@@ -4302,6 +4317,7 @@
     mergeDiffButton.onclick = null;
     mergeDiffButton.classList.add('is-hidden');
     updateRefreshRunButtonVisibility();
+    syncViewDiffTooltipEnabledState();
     maybeShowViewDiffTooltip();
   };
 
@@ -4479,6 +4495,7 @@
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
     const url = buildMergeDiffUrlForBranch(branch, projectDirValue || '');
@@ -4487,6 +4504,7 @@
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
     ensureMergeDiffContainerVisible();
@@ -4504,6 +4522,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
+    syncViewDiffTooltipEnabledState();
     maybeShowViewDiffTooltip();
   };
 
@@ -4526,6 +4545,7 @@
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
     const url = buildMergeDiffUrl(hash, projectDirValue || '');
@@ -4534,6 +4554,7 @@
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
     ensureMergeDiffContainerVisible();
@@ -4551,6 +4572,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
+    syncViewDiffTooltipEnabledState();
     maybeShowViewDiffTooltip();
   };
 
