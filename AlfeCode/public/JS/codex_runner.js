@@ -4095,6 +4095,15 @@
       return;
     }
 
+    const viewDiffButtonVisible = Boolean(
+      mergeDiffButton && !mergeDiffButton.classList.contains("is-hidden"),
+    );
+
+    if (viewDiffButtonVisible) {
+      refreshRunPageButton.classList.add("is-hidden");
+      return;
+    }
+
     const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
     const normalizedStatus = statusText.replace(/\u2026/g, "...");
     const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
@@ -4105,8 +4114,6 @@
     const runLooksComplete = hasCurrentRunId && !runIsActive && normalizedStatus.length > 0;
     const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
 
-    // Refresh should be independent of View Diff visibility.
-    // Show it whenever the run looks complete or final output is ready.
     refreshRunPageButton.classList.toggle(
       "is-hidden",
       !(runLooksComplete || finalOutputReady),
