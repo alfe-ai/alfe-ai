@@ -4102,7 +4102,9 @@
 
   if (refreshRunPageButton) {
     refreshRunPageButton.addEventListener("click", () => {
-      window.location.reload();
+      const url = new URL(window.location.href);
+      url.searchParams.set('viewDiff', 'true');
+      window.location.href = url.toString();
     });
   }
 
@@ -4115,6 +4117,20 @@
     mergeDiffButton.classList.add('is-hidden');
     updateRefreshRunButtonVisibility();
   };
+
+  // Check for viewDiff parameter on page load and auto-open modal if needed
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('viewDiff') === 'true' && mergeDiffButton) {
+      // Ensure button is enabled and active
+      if (!mergeDiffButton.classList.contains('is-hidden') && !mergeDiffButton.disabled) {
+        // Trigger the click event to open the modal
+        setTimeout(() => {
+          mergeDiffButton.click();
+        }, 100);
+      }
+    }
+  });
 
   const hasActiveMergeDiffLink = () => {
     if (!mergeDiffButton) {
