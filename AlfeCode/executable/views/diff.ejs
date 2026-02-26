@@ -27,6 +27,11 @@
             box-sizing: border-box;
         }
 
+        body.is-resizing,
+        body.is-resizing * {
+            cursor: col-resize !important;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
@@ -362,8 +367,8 @@
 
         .diff-shell {
             display: grid;
-            grid-template-columns: 260px 1fr;
-            gap: 12px;
+            grid-template-columns: var(--diff-sidebar-width, clamp(280px, 26vw, 720px)) 10px minmax(0, 1fr);
+            gap: 0;
             min-height: 360px;
             min-width: 0;
         }
@@ -374,6 +379,66 @@
             gap: 12px;
             align-self: flex-start;
             min-width: 0;
+            padding-right: 10px;
+        }
+
+        .diff-sidebar-resizer {
+            width: 10px;
+            cursor: col-resize;
+            border-radius: 999px;
+            background: transparent;
+            position: relative;
+        }
+
+        .diff-sidebar-resizer::before {
+            content: "";
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            left: 3px;
+            width: 4px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.24);
+            transition: background 0.2s ease;
+        }
+
+        .diff-sidebar-resizer:hover::before,
+        body.is-resizing .diff-sidebar-resizer::before {
+            background: rgba(96, 165, 250, 0.8);
+        }
+
+        .sidebar-context-card {
+            background: var(--panel-soft);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-context-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .sidebar-context-label {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .sidebar-context-value {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
         }
 
         .commit-list {
@@ -770,6 +835,15 @@
         @media (max-width: 1100px) {
             .diff-shell {
                 grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .diff-sidebar {
+                padding-right: 0;
+            }
+
+            .diff-sidebar-resizer {
+                display: none;
             }
 
             .commit-list {
@@ -806,50 +880,9 @@
 
             <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
 <% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
-            <% if (comparisonCommitMessage) { %>
-            <div class="commit-message-box" aria-label="Comparison commit message">
-                <div class="commit-message-title">Compare: <%= compRev || '—' %></div>
-                <% if (comparisonPromptLineValue) { %>
-                <div class="read-only-prompt-row">
-                    <span class="read-only-prompt-label">Prompt</span>
-                    <input
-                        type="text"
-                        class="read-only-prompt-input"
-                        value="<%= comparisonPromptLineValue %>"
-                        readonly
-                        aria-readonly="true"
-                        tabindex="-1"
-                    />
-                </div>
-                <% } %>
-                <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
-                <div class="final-output-block" aria-label="Final output">
-                    <span class="final-output-label">Final output</span>
-                    <pre class="final-output-text"><%= comparisonFinalOutput %></pre>
-                </div>
-                <% } %>
-                <form class="diff-followup-form" id="diffFollowupForm">
-                    <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
-                    <textarea
-                        id="diffFollowupPrompt"
-                        class="diff-followup-input"
-                        name="followupPrompt"
-                        placeholder="Add a follow-up prompt for this run"
-                        rows="2"
-                    ></textarea>
-                    <div class="diff-followup-actions">
-                        <span class="diff-followup-status" id="diffFollowupStatus" aria-live="polite"></span>
-                        <button type="submit" class="diff-followup-submit" aria-label="Send follow-up">
-                            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
-                            </svg>
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <% } %>
+<% const renderCommitList = typeof showCommitList !== 'undefined' ? !!showCommitList : false; %>
         </div>
+
         <div class="header-actions">
             <div class="merge-button-wrapper<%= mergeReady ? '' : ' is-merge-disabled' %>" id="mergeButtonWrapper">
                 <button
@@ -889,15 +922,68 @@
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
         <div class="diff-sidebar" aria-label="Commits and files">
-            <% if (showCommitList) { %><aside class="commit-list" aria-label="Commits">
+            <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
                 <h4>Commits</h4>
                 <ul id="commit-list"></ul>
             </aside>
-            <% } %><aside class="file-list" aria-label="Changed files">
+            <% } %>
+            <% if (compRev || comparisonCommitMessage) { %>
+            <aside class="sidebar-context-card" aria-label="Comparison revision and message">
+                <% if (compRev) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Compare head</span>
+                    <p class="sidebar-context-value"><%= compRev %></p>
+                </div>
+                <% } %>
+                <% if (comparisonCommitMessage) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Git revision message</span>
+                    <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
+                </div>
+                <% } %>
+            </aside>
+            <% } %>
+            <% if (comparisonPromptLineValue || (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string')) { %>
+            <aside class="sidebar-context-card" aria-label="Prompt and AI response">
+                <% if (comparisonPromptLineValue) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">User prompt</span>
+                    <p class="sidebar-context-value"><%= comparisonPromptLineValue %></p>
+                </div>
+                <% } %>
+                <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">AI response</span>
+                    <pre class="sidebar-context-value"><%= comparisonFinalOutput %></pre>
+                </div>
+                <% } %>
+            </aside>
+            <% } %>
+            <aside class="file-list" aria-label="Changed files">
                 <h4>Files</h4>
                 <ul id="file-list"></ul>
             </aside>
+            <form class="diff-followup-form" id="diffFollowupForm">
+                <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
+                <textarea
+                    id="diffFollowupPrompt"
+                    class="diff-followup-input"
+                    name="followupPrompt"
+                    placeholder="Add a follow-up prompt for this run"
+                    rows="2"
+                ></textarea>
+                <div class="diff-followup-actions">
+                    <span class="diff-followup-status" id="diffFollowupStatus" aria-live="polite"></span>
+                    <button type="submit" class="diff-followup-submit" aria-label="Send follow-up">
+                        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </form>
         </div>
+        <div class="diff-sidebar-resizer" id="diffSidebarResizer" role="separator" aria-label="Resize sidebar" aria-orientation="vertical" tabindex="0"></div>
         <section id="diff" class="viewer-panel diff-view stacked" aria-label="Diff viewer">
             <div class="file-meta" aria-live="polite">
                 <span id="current-file-label">Select a file</span>
@@ -923,7 +1009,7 @@
         .replace(/<\//g, '<\\\\/')
         .replace(/\u2028|\u2029/g, '')
 %></script>
-<% if (showCommitList) { %><script id="commit-list-data" type="application/json"><%-
+<% if (renderCommitList) { %><script id="commit-list-data" type="application/json"><%-
     JSON.stringify(typeof commitList !== 'undefined' ? commitList : [])
         .replace(/</g, '\u003c')
         .replace(/<\//g, '<\\\\/')
@@ -1410,10 +1496,108 @@
     }
 
     renderFileList();
-    <% if (showCommitList) { %>renderCommitList();<% } %>
+    <% if (renderCommitList) { %>renderCommitList();<% } %>
 </script>
 <% } %>
 <script>
+    (function () {
+        const diffShell = document.querySelector('.diff-shell');
+        const resizer = document.getElementById('diffSidebarResizer');
+        if (!diffShell || !resizer) return;
+
+        const COOKIE_NAME = 'alfe_diff_sidebar_width';
+        const minWidth = 280;
+        const maxWidth = 760;
+        let dragging = false;
+        let currentWidth = null;
+
+        const isDesktop = () => window.matchMedia('(min-width: 1101px)').matches;
+
+        const clampWidth = (width) => {
+            if (typeof width !== 'number' || Number.isNaN(width)) return null;
+            return Math.min(maxWidth, Math.max(minWidth, width));
+        };
+
+        const applyWidth = (width) => {
+            const clamped = clampWidth(width);
+            if (!clamped) return;
+            currentWidth = clamped;
+            diffShell.style.setProperty('--diff-sidebar-width', `${clamped}px`);
+            resizer.setAttribute('aria-valuenow', String(clamped));
+        };
+
+        const readCookieWidth = () => {
+            const match = document.cookie
+                .split('; ')
+                .find((part) => part.startsWith(`${COOKIE_NAME}=`));
+            if (!match) return null;
+            const parsed = parseInt(decodeURIComponent(match.split('=')[1] || ''), 10);
+            return clampWidth(parsed);
+        };
+
+        const persistCookieWidth = (width) => {
+            const clamped = clampWidth(width);
+            if (!clamped) return;
+            document.cookie = `${COOKIE_NAME}=${encodeURIComponent(String(clamped))}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+        };
+
+        const stopDragging = (persist = true) => {
+            if (!dragging) return;
+            dragging = false;
+            document.body.style.userSelect = '';
+            document.body.classList.remove('is-resizing');
+            if (persist && currentWidth) persistCookieWidth(currentWidth);
+        };
+
+        const resetLayout = () => {
+            if (!isDesktop()) {
+                stopDragging(false);
+                diffShell.style.removeProperty('--diff-sidebar-width');
+                return;
+            }
+            const stored = readCookieWidth();
+            if (stored) applyWidth(stored);
+        };
+
+        const storedWidth = readCookieWidth();
+        if (storedWidth && isDesktop()) applyWidth(storedWidth);
+
+        resizer.addEventListener('mousedown', (event) => {
+            if (event.button !== 0 || !isDesktop()) return;
+            dragging = true;
+            document.body.style.userSelect = 'none';
+            document.body.classList.add('is-resizing');
+            event.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (!dragging) return;
+            if (!isDesktop()) {
+                stopDragging(false);
+                return;
+            }
+            const rect = diffShell.getBoundingClientRect();
+            applyWidth(Math.round(event.clientX - rect.left));
+        });
+
+        window.addEventListener('mouseup', () => stopDragging(true));
+        window.addEventListener('blur', () => stopDragging(true));
+        window.addEventListener('resize', resetLayout);
+
+        resizer.addEventListener('keydown', (event) => {
+            if (!isDesktop()) return;
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const step = event.shiftKey ? 40 : 20;
+            const baseWidth = currentWidth || readCookieWidth() || minWidth;
+            const next = event.key === 'ArrowLeft' ? baseWidth - step : baseWidth + step;
+            applyWidth(next);
+            if (currentWidth) persistCookieWidth(currentWidth);
+        });
+
+        resetLayout();
+    })();
+
     (function () {
         const form = document.getElementById("diffFollowupForm");
         const input = document.getElementById("diffFollowupPrompt");

@@ -5740,9 +5740,8 @@ const appendMergeChunk = (text, type = "output") => {
         || (typeof run.effectivePrompt === "string" && run.effectivePrompt)
         || "";
     if (promptInput && promptValue) {
-      promptInput.value = promptValue;
     }
-    updatePromptPreview(promptValue);
+    //updatePromptPreview(promptValue);
 
     if (agentInstructionsInput && typeof run.agentInstructions === "string" && run.agentInstructions) {
       agentInstructionsInput.value = run.agentInstructions;
