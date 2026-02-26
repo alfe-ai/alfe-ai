@@ -4117,7 +4117,14 @@
     refreshRunPageButton.addEventListener("click", () => {
       const url = new URL(window.location.href);
       url.searchParams.set('viewDiff', 'true');
-      window.location.href = url.toString();
+
+      const nextUrl = url.toString();
+      if (nextUrl === window.location.href) {
+        window.location.reload();
+        return;
+      }
+
+      window.location.assign(nextUrl);
     });
   }
 
