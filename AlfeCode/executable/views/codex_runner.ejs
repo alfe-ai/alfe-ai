@@ -477,31 +477,6 @@
             align-items: center;
         }
 
-        .tooltip-close-button {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 20px;
-            height: 20px;
-            border: 0;
-            background: transparent;
-            color: #ffffff;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 700;
-            line-height: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            opacity: 0.92;
-        }
-
-        .tooltip-close-button:hover,
-        .tooltip-close-button:focus-visible {
-            opacity: 1;
-        }
-
         .tooltip.show {
             opacity: 1;
             visibility: visible;
@@ -534,7 +509,6 @@
 
         .tooltip-text {
             margin: 0;
-            padding-right: 18px;
         }
 
         .view-diff-tooltip-container {
@@ -3922,7 +3896,6 @@
                 <label for="prompt">Prompt</label>
                 <div class="tooltip-container prompt-tooltip-container">
                     <div id="promptTooltip" class="tooltip prompt-tooltip" role="tooltip">
-                        <button type="button" class="tooltip-close-button" aria-label="Dismiss hint tooltip">×</button>
                         <span class="tooltip-text">Enter a prompt to get started</span>
                         <div class="tooltip-arrow prompt-tooltip-arrow"></div>
                     </div>
@@ -4066,7 +4039,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 </div>
                 <div class="view-diff-tooltip-container" style="margin-left:12px;">
                     <div id="viewDiffTooltip" class="tooltip prompt-tooltip view-diff-tooltip" role="tooltip" aria-hidden="true">
-                        <button type="button" class="tooltip-close-button" aria-label="Dismiss hint tooltip">×</button>
                         <span class="tooltip-text">View code changes<br />Merge to configured project branch</span>
                         <div class="tooltip-arrow prompt-tooltip-arrow view-diff-tooltip-arrow"></div>
                     </div>
@@ -4445,15 +4417,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
 
     // Add click handler to dismiss tooltip but don't set cookie yet
     if (tooltip && promptField) {
-        const tooltipCloseButton = tooltip.querySelector('.tooltip-close-button');
-
-        if (tooltipCloseButton) {
-            tooltipCloseButton.addEventListener('click', function(event) {
-                event.stopPropagation();
-                tooltip.classList.remove('show');
-            });
-        }
-
         tooltip.addEventListener('click', function() {
             tooltip.classList.remove('show');
             // Don't set the cookie here, let the form submit handle it
