@@ -529,6 +529,10 @@
             white-space: normal;
         }
 
+        .view-diff-tooltip.is-disabled {
+            display: none !important;
+        }
+
         .view-diff-tooltip .tooltip-text {
             white-space: nowrap;
             line-height: 1.35;
@@ -4038,7 +4042,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <span id="mergeSummary" class="status-text">&nbsp;</span>
                 </div>
                 <div class="view-diff-tooltip-container" style="margin-left:12px;">
-                    <div id="viewDiffTooltip" class="tooltip prompt-tooltip view-diff-tooltip" role="tooltip" aria-hidden="true">
+                    <div id="viewDiffTooltip" class="tooltip prompt-tooltip view-diff-tooltip is-disabled" role="tooltip" aria-hidden="true">
                         <span class="tooltip-text">View code changes<br />Merge to configured project branch</span>
                         <div class="tooltip-arrow prompt-tooltip-arrow view-diff-tooltip-arrow"></div>
                     </div>
