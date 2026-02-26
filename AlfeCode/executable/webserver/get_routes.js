@@ -2951,7 +2951,11 @@ ${cleanedFinalOutput}`;
             return "";
         }
 
-        const matches = finalOutputText.match(/\b[0-9a-f]{7,40}\b/gi) || [];
+        // Git output can include ANSI color codes (for example, `\x1b[33m`)
+        // directly before hashes. Strip escape sequences before attempting to
+        // parse commit hashes so colored output still resolves correctly.
+        const decolorizedText = finalOutputText.replace(/\u001b\[[0-9;]*m/g, "");
+        const matches = decolorizedText.match(/[0-9a-f]{7,40}/gi) || [];
         if (!matches.length) {
             return "";
         }
