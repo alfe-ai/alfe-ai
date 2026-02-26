@@ -1133,12 +1133,13 @@
 
   const getVisibleViewDiffButton = () => {
     const candidates = [mergeDiffButton, refreshRunPageButton];
-    return candidates.find((button) => {
+    const visibleButtons = candidates.filter((button) => {
       if (!button) {
         return false;
       }
       return !button.classList.contains("is-hidden");
-    }) || null;
+    });
+    return visibleButtons.find((button) => !button.disabled) || visibleButtons[0] || null;
   };
 
   const setViewDiffTooltipEnabled = (isEnabled) => {
@@ -1158,8 +1159,15 @@
   };
 
   const maybeShowViewDiffTooltip = () => {
-    if (!viewDiffTooltipEnabled || !viewDiffTooltip || viewDiffTooltipShown || hasCookie(VIEW_DIFF_TOOLTIP_COOKIE)) {
+    if (!viewDiffTooltipEnabled || !viewDiffTooltip) {
       hideViewDiffTooltip();
+      return;
+    }
+    if (hasCookie(VIEW_DIFF_TOOLTIP_COOKIE)) {
+      hideViewDiffTooltip();
+      return;
+    }
+    if (viewDiffTooltipShown) {
       return;
     }
     const visibleViewDiffButton = getVisibleViewDiffButton();
@@ -1187,6 +1195,21 @@
     mergeDiffButton.setAttribute('aria-disabled', 'true');
   }
   const refreshRunPageButton = document.getElementById("refreshRunPageButton");
+  const observeViewDiffButtonState = (button) => {
+    if (!button || typeof MutationObserver === 'undefined') {
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      syncViewDiffTooltipEnabledState();
+      maybeShowViewDiffTooltip();
+    });
+    observer.observe(button, {
+      attributes: true,
+      attributeFilter: ["class", "disabled", "aria-disabled"],
+    });
+  };
+  observeViewDiffButtonState(mergeDiffButton);
+  observeViewDiffButtonState(refreshRunPageButton);
   const openEditorTopButton = document.getElementById("openEditorTopButton");
   defaultModelInput = document.getElementById("defaultModelInput");
   const defaultModelSaveButton = document.getElementById("defaultModelSaveButton");
