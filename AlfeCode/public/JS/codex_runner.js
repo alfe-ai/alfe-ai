@@ -3741,7 +3741,10 @@
   /// --- Merge Diff button helpers ---
   const extractFirstHashFromText = (text) => {
     if (!text || typeof text !== 'string') return null;
-    const m = text.match(/[0-9a-f]{7,40}/i);
+    // Only match standalone hash tokens. Without word boundaries, regular
+    // words like "feedback" could incorrectly yield "feedbac" and produce
+    // invalid base/comp revisions for the diff page.
+    const m = text.match(/\b[0-9a-f]{7,40}\b/i);
     return m ? m[0] : null;
   };
 

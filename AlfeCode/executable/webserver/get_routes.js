@@ -2951,8 +2951,34 @@ ${cleanedFinalOutput}`;
             return "";
         }
 
-        const match = finalOutputText.match(/[0-9a-f]{7,40}/i);
-        return match ? match[0] : "";
+        const matches = finalOutputText.match(/\b[0-9a-f]{7,40}\b/gi) || [];
+        if (!matches.length) {
+            return "";
+        }
+
+        // Prefer the longest hash token so full 40-char SHAs win over short
+        // abbreviated hashes when both are present in output.
+        return matches.sort((a, b) => b.length - a.length)[0] || "";
+    };
+
+    const resolveFullCommitHash = (cwd, revision) => {
+        const token = typeof revision === "string" ? revision.trim() : "";
+        if (!token) {
+            return "";
+        }
+        if (!/^[0-9a-f]{7,40}$/i.test(token)) {
+            return "";
+        }
+
+        try {
+            const full = execSync(`git rev-parse --verify ${token}^{commit}`, {
+                cwd,
+                stdio: ["pipe", "pipe", "pipe"],
+            }).toString().trim();
+            return /^[0-9a-f]{40}$/i.test(full) ? full : "";
+        } catch (_err) {
+            return "";
+        }
     };
 
     const resolveRunForViewDiffRedirect = (sessionId, runId, projectDirParam) => {
@@ -3056,11 +3082,21 @@ ${cleanedFinalOutput}`;
             if (resolvedRun) {
                 const finalOutputText = await resolveFinalOutputTextForCommit(resolvedRun);
                 const commitHash = extractCommitHashForDiffFromFinalOutput(finalOutputText);
-                if (commitHash) {
+                const fullCommitHash = resolveFullCommitHash(resolvedProjectDirForViewDiff, commitHash);
+                if (fullCommitHash) {
+                    let parentHash = "";
+                    try {
+                        parentHash = execSync(`git rev-parse --verify ${fullCommitHash}^`, {
+                            cwd: resolvedProjectDirForViewDiff,
+                            stdio: ["pipe", "pipe", "pipe"],
+                        }).toString().trim();
+                    } catch (_err) {
+                        parentHash = "";
+                    }
                     const diffParams = new URLSearchParams({
                         projectDir: resolvedProjectDirForViewDiff,
-                        baseRev: `${commitHash}^`,
-                        compRev: commitHash,
+                        baseRev: parentHash || `${fullCommitHash}^`,
+                        compRev: fullCommitHash,
                         mergeReady: "1",
                         run_id: String(resolvedRun.id || "").trim(),
                     });
