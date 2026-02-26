@@ -4156,16 +4156,6 @@
       setTimeout(() => openMergeDiffModal(preparedDiffUrl), 0);
       return;
     }
-
-    try {
-      const searchParams = new URLSearchParams(window.location.search);
-      if (searchParams.get('viewDiff') === 'true') {
-        return;
-      }
-    } catch (_error) {
-      // ignore and continue to refresh navigation fallback
-    }
-
     navigateToRefreshViewDiff();
   };
 
