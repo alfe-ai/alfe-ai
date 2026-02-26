@@ -41,13 +41,6 @@
   let submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
   const promptHintsFromLocal = (localStorage.getItem('showPromptHints') !== null) ? (localStorage.getItem('showPromptHints') === 'true') : undefined;
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
-  const OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY = 'openDiffOnRunComplete';
-  const openDiffOnRunCompleteFromLocal = (localStorage.getItem(OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY) !== null)
-    ? (localStorage.getItem(OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY) === 'true')
-    : undefined;
-  let openDiffOnRunComplete = (typeof openDiffOnRunCompleteFromLocal !== 'undefined')
-    ? openDiffOnRunCompleteFromLocal
-    : true;
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
   const QWEN_SHOW_DEBUG_INFO_STORAGE_KEY = 'qwenShowDebugInfo';
@@ -404,12 +397,6 @@
         try {
           qwenShowDebugInfo = (d.value === true || d.value === 'true');
           localStorage.setItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY, qwenShowDebugInfo ? 'true' : 'false');
-        } catch (e) {}
-      }
-      if (d.key === 'openDiffOnRunComplete') {
-        try {
-          openDiffOnRunComplete = (d.value === true || d.value === 'true');
-          localStorage.setItem(OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY, openDiffOnRunComplete ? 'true' : 'false');
         } catch (e) {}
       }
       if(d.key === 'defaultModel'){
@@ -2383,9 +2370,6 @@
   let pendingGitFpushHashProjectDir = "";
   let pendingGitFpushBranch = "";
   let pendingGitFpushBranchProjectDir = "";
-  let autoOpenedDiffRunToken = "";
-  let pendingAutoOpenDiffToken = "";
-  let pendingAutoOpenDiffUrl = "";
 
   const refreshRunsSidebarDisabledState = () => {
     if (!runsSidebarListEl) {
@@ -2415,7 +2399,6 @@
     setRunControlsDisabledState(false, { forceRefresh: true });
     // Re-apply merge button state in case merge readiness changed while run controls were disabled.
     try { applyMergeButtonState(); } catch (e) { /* ignore */ }
-    flushPendingAutoOpenDiffModal();
   };
 
   const MERGE_DISABLED_TOOLTIP_TEXT =
@@ -4368,7 +4351,7 @@
     }
   };
 
-  const consumePendingGitFpushDiff = (options = {}) => {
+  const consumePendingGitFpushDiff = async (options = {}) => {
     const branch = pendingGitFpushBranch;
     const branchProjectDir = pendingGitFpushBranchProjectDir;
     const hash = pendingGitFpushHash;
@@ -4400,50 +4383,6 @@
     return false;
   };
 
-  const flushPendingAutoOpenDiffModal = () => {
-    if (!pendingAutoOpenDiffUrl || !pendingAutoOpenDiffToken) {
-      return;
-    }
-    if (runInFlight || followupRunActive || eventSource || !shouldEnableRefreshStyleActions()) {
-      return;
-    }
-    if (autoOpenedDiffRunToken === pendingAutoOpenDiffToken) {
-      pendingAutoOpenDiffToken = "";
-      pendingAutoOpenDiffUrl = "";
-      return;
-    }
-    const url = pendingAutoOpenDiffUrl;
-    autoOpenedDiffRunToken = pendingAutoOpenDiffToken;
-    pendingAutoOpenDiffToken = "";
-    pendingAutoOpenDiffUrl = "";
-    openMergeDiffModal(url).catch((error) => {
-      console.warn('Failed to auto-open diff modal', error);
-    });
-  };
-
-
-  const maybeAutoOpenDiffModal = (url) => {
-    if (!openDiffOnRunComplete || typeof url !== 'string' || !url.trim()) {
-      return;
-    }
-    if (hydratingRunFromHistory) {
-      return;
-    }
-    const runId = normaliseRunId((currentRunContext && currentRunContext.runId) || '');
-    const token = runId ? `${runId}::${url}` : `url::${url}`;
-    pendingAutoOpenDiffToken = token;
-    pendingAutoOpenDiffUrl = url;
-    if (runInFlight || followupRunActive || eventSource || !shouldEnableRefreshStyleActions()) {
-      return;
-    }
-    if (autoOpenedDiffRunToken === token) {
-      pendingAutoOpenDiffToken = "";
-      pendingAutoOpenDiffUrl = "";
-      return;
-    }
-    flushPendingAutoOpenDiffModal();
-  };
-
   const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
@@ -4473,7 +4412,6 @@
       mergeDiffButton.classList.add('is-hidden');
       mergeDiffButton.onclick = null;
       updateRefreshRunButtonVisibility();
-      maybeAutoOpenDiffModal(url);
       return;
     }
     mergeDiffButton.disabled = false;
@@ -4482,7 +4420,6 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
-    maybeAutoOpenDiffModal(url);
   };
 
   const extractBranchFromText = (text) => {
@@ -4521,7 +4458,6 @@
       mergeDiffButton.classList.add('is-hidden');
       mergeDiffButton.onclick = null;
       updateRefreshRunButtonVisibility();
-      maybeAutoOpenDiffModal(url);
       return;
     }
     mergeDiffButton.disabled = false;
@@ -4530,7 +4466,6 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
-    maybeAutoOpenDiffModal(url);
   };
 
   const tryEnableMergeDiffFromText = (text, projectDirValue) => {
@@ -8246,7 +8181,6 @@ const appendMergeChunk = (text, type = "output") => {
   }
 
   const startStream = (projectDir, prompt, agentInstructions) => {
-    autoOpenedDiffRunToken = "";
     const hadExistingRun = Boolean(
       currentRunContext
       && typeof currentRunContext.runId === "string"
@@ -8457,8 +8391,6 @@ const appendMergeChunk = (text, type = "output") => {
 
     streamClosedByServer = false;
     runInFlight = true;
-    pendingAutoOpenDiffToken = "";
-    pendingAutoOpenDiffUrl = "";
     awaitingGitFpushCompletion = Boolean(gitFpushEnabled);
     setRunControlsDisabledState(true);
     eventSource = new EventSource(url);
@@ -8606,7 +8538,6 @@ const appendMergeChunk = (text, type = "output") => {
       awaitingGitFpushCompletion = false;
       setRunControlsDisabledState(false);
       finalizeActiveFollowupSession("error");
-      flushPendingAutoOpenDiffModal();
     });
 
     eventSource.addEventListener("end", (event) => {
@@ -8651,7 +8582,6 @@ const appendMergeChunk = (text, type = "output") => {
         setRunControlsDisabledState(true, { forceRefresh: true });
       }
       finalizeActiveFollowupSession("complete");
-      flushPendingAutoOpenDiffModal();
     });
 
     eventSource.onerror = () => {
@@ -8680,7 +8610,6 @@ const appendMergeChunk = (text, type = "output") => {
       awaitingGitFpushCompletion = false;
       setRunControlsDisabledState(false);
       finalizeActiveFollowupSession("error");
-      flushPendingAutoOpenDiffModal();
     };
   };
 
