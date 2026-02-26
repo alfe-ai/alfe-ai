@@ -56,6 +56,7 @@ const SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID = process.env.SHOPIFY_CUSTOMER_AC
 const SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT = process.env.SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT;
 const SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT = process.env.SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT;
 const SHOPIFY_CUSTOMER_ACCOUNT_LOGOUT_ENDPOINT = process.env.SHOPIFY_CUSTOMER_ACCOUNT_LOGOUT_ENDPOINT;
+const SHOPIFY_CUSTOMER_ACCOUNT_SCOPES = process.env.SHOPIFY_CUSTOMER_ACCOUNT_SCOPES || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_SCOPES || 'openid email customer-account-api:full';
 const SHOPIFY_SHOP = process.env.SHOPIFY_SHOP;
 
 const SHOPIFY_AUTH_START_PATH = "/auth/shopify/start";
@@ -1043,14 +1044,22 @@ function decodeJwtPayload(token) {
   }
 }
 
+function normalizeAccountEmail(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
 function getEmailFromShopifyTokenData(tokenData) {
   if (!tokenData || typeof tokenData !== 'object') return '';
-  if (typeof tokenData.email === 'string' && tokenData.email.trim()) {
-    return tokenData.email.trim().toLowerCase();
-  }
-  const payload = decodeJwtPayload(tokenData.id_token);
-  const jwtEmail = payload?.email;
-  return typeof jwtEmail === 'string' ? jwtEmail.trim().toLowerCase() : '';
+
+  const directEmail = normalizeAccountEmail(tokenData.email);
+  if (directEmail) return directEmail;
+
+  const idPayload = decodeJwtPayload(tokenData.id_token);
+  const idPayloadEmail = normalizeAccountEmail(idPayload?.email || idPayload?.email_address);
+  if (idPayloadEmail) return idPayloadEmail;
+
+  const accessPayload = decodeJwtPayload(tokenData.access_token);
+  return normalizeAccountEmail(accessPayload?.email || accessPayload?.email_address);
 }
 
 // Updated to include ".json" suffix
@@ -5157,7 +5166,7 @@ app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
     
     // Add required OAuth parameters
     authUrl.searchParams.set('client_id', SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID);
-    authUrl.searchParams.set('scope', 'openid'); // You may need to adjust scopes based on requirements
+    authUrl.searchParams.set('scope', SHOPIFY_CUSTOMER_ACCOUNT_SCOPES);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('redirect_uri', `${req.protocol}://${req.get('host')}/auth/shopify/callback`);
     
@@ -5262,6 +5271,7 @@ app.get('/auth/shopify/callback', async (req, res) => {
     }
 
     const shopifyEmail = getEmailFromShopifyTokenData(tokenData);
+    console.log('[Server Debug] Shopify callback token payload keys:', Object.keys(tokenData || {}), 'hasEmail=', Boolean(shopifyEmail));
     let account = sessionId ? await db.getAccountBySession(sessionId) : null;
     if (!account && shopifyEmail) {
       account = await db.getAccountByEmail(shopifyEmail);

@@ -1786,7 +1786,11 @@ export default class TaskDB {
   }
 
   getAccountByEmail(email) {
-    return this.db.prepare('SELECT * FROM accounts WHERE email=?').get(email);
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!normalizedEmail) return null;
+    const directMatch = this.db.prepare('SELECT * FROM accounts WHERE email=?').get(normalizedEmail);
+    if (directMatch) return directMatch;
+    return this.db.prepare('SELECT * FROM accounts WHERE LOWER(TRIM(email))=?').get(normalizedEmail);
   }
 
   setAccountSession(id, sessionId) {
