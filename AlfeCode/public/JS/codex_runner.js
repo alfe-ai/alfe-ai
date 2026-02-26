@@ -4118,13 +4118,14 @@
       const url = new URL(window.location.href);
       url.searchParams.set('viewDiff', 'true');
 
-      const nextUrl = url.toString();
-      if (nextUrl === window.location.href) {
-        window.location.reload();
-        return;
-      }
+      // Force a true navigation by appending a random md5-like salt.
+      // This avoids no-op navigations when the URL would otherwise be unchanged.
+      const randomMd5Salt = (window.crypto && typeof window.crypto.randomUUID === "function")
+        ? window.crypto.randomUUID().replace(/-/g, "")
+        : `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 32).padEnd(32, "0");
+      url.searchParams.set('r', randomMd5Salt);
 
-      window.location.assign(nextUrl);
+      window.location.assign(url.toString());
     });
   }
 
