@@ -182,6 +182,8 @@ export default class TaskDBAws {
       await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
       await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
       await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';");
+      await client.query("ALTER TABLE page_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
+      await client.query("ALTER TABLE page_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';");
       await client.query(`DO $$
       BEGIN
         IF EXISTS (
@@ -214,6 +216,38 @@ export default class TaskDBAws {
               ELSE ARRAY[ipv6_address]
             END;
           ALTER TABLE session_views ALTER COLUMN ipv6_address SET DEFAULT '{}';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'page_views'
+            AND column_name = 'ipv4_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE page_views
+            ALTER COLUMN ipv4_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv4_address IS NULL OR btrim(ipv4_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv4_address]
+            END;
+          ALTER TABLE page_views ALTER COLUMN ipv4_address SET DEFAULT '{}';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'page_views'
+            AND column_name = 'ipv6_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE page_views
+            ALTER COLUMN ipv6_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv6_address IS NULL OR btrim(ipv6_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv6_address]
+            END;
+          ALTER TABLE page_views ALTER COLUMN ipv6_address SET DEFAULT '{}';
         END IF;
       END $$;`);
 
