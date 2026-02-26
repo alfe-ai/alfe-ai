@@ -4092,11 +4092,11 @@
     const runLooksComplete = hasCurrentRunId && !runIsActive && normalizedStatus.length > 0;
     const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
 
-    // Show Refresh as soon as final output is available when View Diff is not active.
-    // If View Diff appears later, hide Refresh immediately.
+    // Refresh should be independent of View Diff visibility.
+    // Show it whenever the run looks complete or final output is ready.
     refreshRunPageButton.classList.toggle(
       "is-hidden",
-      !((runLooksComplete || finalOutputReady) && !hasActiveMergeDiffLink()),
+      !(runLooksComplete || finalOutputReady),
     );
   };
 

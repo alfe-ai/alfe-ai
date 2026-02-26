@@ -3226,6 +3226,22 @@ ${cleanedFinalOutput}`;
                         });
                         return res.redirect(disabledReturnTo);
                     } else if (account) {
+                        console.info("[Shopify callback] Updating account last_log_in", {
+                            callbackRequestId,
+                            accountId: account.id,
+                            email: shopifyEmail,
+                        });
+                        await rdsStore.setAccountLastLogin(account.id);
+                        console.info("[Shopify callback] Updated account last_log_in", {
+                            callbackRequestId,
+                            accountId: account.id,
+                        });
+                        await rdsStore.createAccountLoginRecord(account.id);
+                        console.info("[Shopify callback] Wrote log_ins row", {
+                            callbackRequestId,
+                            accountId: account.id,
+                        });
+
                         const incomingSessionId = getSessionIdFromRequest(req);
                         let resolvedSessionId = incomingSessionId;
 
