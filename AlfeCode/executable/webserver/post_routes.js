@@ -1,6 +1,7 @@
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
+const net = require("net");
 const { execSync, spawn } = require("child_process");
 const crypto = require("crypto");
 const rdsStore = require("../../rds_store");
@@ -368,6 +369,35 @@ function setupPostRoutes(deps) {
             req.connection?.remoteAddress ||
             "";
         return ip.trim();
+    };
+    const getRequestIpAddresses = (req) => {
+        const candidates = [];
+        const forwarded = req.headers["x-forwarded-for"];
+        if (Array.isArray(forwarded)) {
+            forwarded.forEach((entry) => {
+                String(entry || "").split(",").forEach((part) => candidates.push(part.trim()));
+            });
+        } else if (forwarded) {
+            String(forwarded).split(",").forEach((part) => candidates.push(part.trim()));
+        }
+        if (req.ip) candidates.push(String(req.ip).trim());
+        if (req.connection?.remoteAddress) candidates.push(String(req.connection.remoteAddress).trim());
+        if (req.socket?.remoteAddress) candidates.push(String(req.socket.remoteAddress).trim());
+
+        let ipv4 = "";
+        let ipv6 = "";
+        for (const raw of candidates) {
+            if (!raw) continue;
+            const normalized = raw.replace(/^::ffff:/i, "");
+            const version = net.isIP(normalized) ? net.isIP(normalized) : net.isIP(raw);
+            if (version === 4 && !ipv4) {
+                ipv4 = normalized;
+            } else if (version === 6 && !ipv6) {
+                ipv6 = raw;
+            }
+            if (ipv4 && ipv6) break;
+        }
+        return { ipv4, ipv6 };
     };
     const isIpAllowed = (ip, whitelist) => {
         if (whitelist.size === 0) {
@@ -845,6 +875,7 @@ function setupPostRoutes(deps) {
         console.log("[AlfeCode][login] updated last_log_in", {
             accountId: account.id,
         });
+        await rdsStore.createAccountLoginRecord(account.id, getRequestIpAddresses(req));
 
         if (resolvedSessionId) {
             const hostname = req.hostname
