@@ -7898,6 +7898,63 @@ ${err}`;
         }
         const commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
 
+        let runModel = "";
+        if (runIdQuery) {
+            if (rdsStore && typeof rdsStore.getRunById === "function") {
+                try {
+                    const runRecord = await rdsStore.getRunById(sessionId, runIdQuery);
+                    if (runRecord && runRecord.model) {
+                        runModel = runRecord.model;
+                    }
+                } catch (error) {
+                    console.warn("Failed loading run model from RDS for diff page:", error?.message || error);
+                }
+            }
+
+            if (!runModel) {
+                try {
+                    const loadedRuns = loadCodexRuns(sessionId);
+                    const runs = Array.isArray(loadedRuns) ? loadedRuns : [];
+                    const matchedRun = runs.find((entry) => String(entry?.id || "").trim() === runIdQuery);
+                    if (matchedRun && matchedRun.model) {
+                        runModel = matchedRun.model;
+                    }
+                } catch (error) {
+                    console.warn("Failed loading run model from history for diff page:", error?.message || error);
+                }
+            }
+        }
+
+        const modelOnlyLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
+            if (entry && typeof entry.id === "string") {
+                const modelId = entry.id.trim();
+                if (modelId) {
+                    acc[modelId] = typeof entry.label === "string" && entry.label.trim()
+                        ? entry.label.trim()
+                        : modelId;
+                }
+            }
+            return acc;
+        }, {});
+        const modelDisplayName = (() => {
+            if (typeof runModel === "string") {
+                const modelId = runModel.trim();
+                if (!modelId) return "";
+                return modelOnlyLookup[modelId] || modelId;
+            }
+            if (runModel && typeof runModel === "object") {
+                const rawModelId = typeof runModel.id === "string"
+                    ? runModel.id
+                    : typeof runModel.name === "string"
+                        ? runModel.name
+                        : "";
+                const modelId = rawModelId.trim();
+                if (!modelId) return "";
+                return modelOnlyLookup[modelId] || modelId;
+            }
+            return "";
+        })();
+
         res.status(statusCode).render("diff", {
             gitRepoNameCLI: repoName || resolvedProjectDir,
             baseRev,
@@ -7919,6 +7976,8 @@ ${err}`;
             comparisonPromptLine,
             comparisonFinalOutput,
             chatNumber,
+            model: runModel,
+            modelDisplayName,
         });
     });
 
