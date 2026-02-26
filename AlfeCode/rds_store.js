@@ -294,6 +294,10 @@ class RdsStore {
          ADD COLUMN IF NOT EXISTS aurora_session_id TEXT DEFAULT ''`
       );
       await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS last_log_in TEXT DEFAULT NULL`
+      );
+      await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS account_id INTEGER`
       );
@@ -739,15 +743,28 @@ class RdsStore {
   async setAccountLastLogin(id) {
     if (!this.enabled) return;
     await this.ensureReady();
+    const lastLoginIso = new Date().toISOString();
+    console.log("[RdsStore] setAccountLastLogin: updating account", {
+      accountId: id,
+      lastLoginIso,
+    });
     try {
-      await this.pool.query(
+      const updateResult = await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
          SET last_log_in = $1
          WHERE id = $2`,
-        [new Date().toISOString(), id]
+        [lastLoginIso, id]
       );
+      console.log("[RdsStore] setAccountLastLogin: update query finished", {
+        accountId: id,
+        rowCount: updateResult?.rowCount ?? null,
+      });
     } catch (error) {
-      console.error("[RdsStore] Failed to update account last login:", error?.message || error);
+      console.error("[RdsStore] Failed to update account last login:", {
+        accountId: id,
+        lastLoginIso,
+        error: error?.message || error,
+      });
     }
   }
 
