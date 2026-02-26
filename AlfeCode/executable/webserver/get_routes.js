@@ -6878,7 +6878,7 @@ res.render("editor", {
         return Boolean(value);
     };
 
-    const extractComparisonPromptLine = (value) => {
+    const extractComparisonPrompt = (value) => {
         if (typeof value !== 'string') {
             return '';
         }
@@ -6886,7 +6886,15 @@ res.render("editor", {
         if (!trimmed) {
             return '';
         }
-        const firstLine = trimmed.split(/\r?\n/)[0].trim();
+        return trimmed.replace(/\r/g, '');
+    };
+
+    const extractComparisonPromptLine = (value) => {
+        const fullPrompt = extractComparisonPrompt(value);
+        if (!fullPrompt) {
+            return '';
+        }
+        const firstLine = fullPrompt.split(/\n/)[0].trim();
         return firstLine;
     };
 
@@ -6913,6 +6921,7 @@ res.render("editor", {
         const branchName = branchParam.replace(/^['"]+|['"]+$/g, "");
         const mergeReady = isTruthyFlag(req.query.mergeReady);
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
+        const comparisonPrompt = extractComparisonPrompt(req.query.userPrompt || "");
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         const comparisonFinalOutputParam = typeof req.query.finalOutput === "string" ? req.query.finalOutput : "";
         const runIdQuery = (req.query.run_id || "").toString().trim();
@@ -6923,13 +6932,13 @@ res.render("editor", {
 
         if (!branchParam) {
             return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
-                        comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
+                        comparisonPrompt, comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
         }
 
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
         if (!resolvedProjectDir) {
             return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
-                        comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
+                        comparisonPrompt, comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
         }
 
         try {
@@ -7074,6 +7083,7 @@ res.render("editor", {
                         projectDir: resolvedProjectDir,
                         errorMessage: `Unable to resolve branch '${branchName}' for diff.`,
                         mergeReady,
+                        comparisonPrompt,
                         comparisonPromptLine,
                         comparisonFinalOutput: comparisonFinalOutputFromQuery,
                     });
@@ -7229,6 +7239,7 @@ ${err}`;
                 compMeta,
                 commitList,
                 mergeReady,
+                comparisonPrompt,
                 comparisonPromptLine,
                 comparisonFinalOutput,
                 chatNumber,
@@ -7239,7 +7250,7 @@ ${err}`;
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
             return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
-                comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
+                comparisonPrompt, comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
         }
     });
 
@@ -7352,6 +7363,7 @@ ${err}`;
         const compRevInput = (req.query.compRev || "").toString();
         const mergeReady = isTruthyFlag(req.query.mergeReady);
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
+        const comparisonPrompt = extractComparisonPrompt(req.query.userPrompt || "");
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         const runIdQuery = (req.query.run_id || "").toString().trim();
         const rowIndexQuery = (req.query.rowIndex || req.query.row_index || "").toString().trim();
@@ -7542,6 +7554,7 @@ ${err}`;
             compMeta,
             commitList,
             mergeReady,
+            comparisonPrompt,
             comparisonPromptLine,
             comparisonFinalOutput,
             chatNumber,
@@ -7734,6 +7747,7 @@ ${err}`;
         const { repoName } = req.params;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const { baseRev, compRev } = req.query;
+        const comparisonPrompt = extractComparisonPrompt(req.query.userPrompt || "");
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         let diffOutput = "";
         const repoCfg = loadSingleRepoConfig(repoName, sessionId);
@@ -7786,6 +7800,7 @@ ${err}`;
             compMeta,
             commitList,
             mergeReady,
+            comparisonPrompt,
             comparisonPromptLine,
             comparisonFinalOutput,
             chatNumber,

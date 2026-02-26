@@ -158,6 +158,103 @@
             font-family: inherit;
         }
 
+        .sidebar-prompt-trigger {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            text-align: left;
+            margin: 0;
+            background: #0b1324;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            padding: 8px 10px;
+            font-size: 13px;
+            font-family: inherit;
+            line-height: 1.4;
+            cursor: pointer;
+        }
+
+        .sidebar-prompt-trigger:hover {
+            background: rgba(59, 130, 246, 0.14);
+            border-color: rgba(96, 165, 250, 0.5);
+        }
+
+        .sidebar-prompt-trigger-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-prompt-trigger-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            color: var(--muted);
+        }
+
+        .prompt-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.78);
+            z-index: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .prompt-modal-overlay.is-hidden {
+            display: none;
+        }
+
+        .prompt-modal-content {
+            width: min(720px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(2, 6, 23, 0.55);
+            padding: 16px;
+            position: relative;
+        }
+
+        .prompt-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .prompt-modal-header {
+            margin: 0 28px 10px 0;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .prompt-modal-textarea {
+            width: 100%;
+            min-height: 240px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            background: #0b1324;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+            font-family: inherit;
+        }
+
         .final-output-block {
             margin-top: 12px;
             padding: 12px 14px;
@@ -948,6 +1045,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             </div>
             <% } %>
 
+            <% const comparisonPromptValue = typeof comparisonPrompt === 'string' ? comparisonPrompt.trim() : ''; %>
             <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? comparisonPromptLine.trim() : ''; %>
 <% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
 <% const renderCommitList = typeof showCommitList !== 'undefined' ? !!showCommitList : false; %>
@@ -1028,7 +1126,22 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 <% if (comparisonPromptLineValue) { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">User prompt</span>
-                    <pre class="sidebar-context-value"><%= comparisonPromptLineValue %></pre>
+                    <button
+                        type="button"
+                        class="sidebar-prompt-trigger"
+                        id="diffPromptTrigger"
+                        data-full-prompt="<%- escapeHtml(comparisonPromptValue || comparisonPromptLineValue) %>"
+                        aria-haspopup="dialog"
+                        aria-controls="diffPromptModal"
+                    >
+                        <span class="sidebar-prompt-trigger-text"><%= comparisonPromptLineValue %></span>
+                        <span class="sidebar-prompt-trigger-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 5h10v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M5 19l14-14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </span>
+                    </button>
                 </div>
                 <% } %>
                 <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
@@ -1077,6 +1190,14 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
         <pre><%= diffOutput %></pre>
     </details>
     <% } %>
+
+    <div id="diffPromptModal" class="prompt-modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="diffPromptModalHeader">
+        <div class="prompt-modal-content">
+            <button type="button" class="prompt-modal-close" id="diffPromptModalClose" aria-label="Close prompt modal">×</button>
+            <h3 id="diffPromptModalHeader" class="prompt-modal-header">User prompt</h3>
+            <textarea id="diffPromptModalTextarea" class="prompt-modal-textarea" readonly spellcheck="false"></textarea>
+        </div>
+    </div>
 <script id="structured-diff-data" type="application/json"><%-
     JSON.stringify(structuredDiff || [])
         .replace(/</g, '\u003c')
@@ -1680,6 +1801,64 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
         });
 
         resetLayout();
+    })();
+
+
+    (function () {
+        const trigger = document.getElementById('diffPromptTrigger');
+        const modal = document.getElementById('diffPromptModal');
+        const closeButton = document.getElementById('diffPromptModalClose');
+        const textarea = document.getElementById('diffPromptModalTextarea');
+
+        if (!trigger || !modal || !closeButton || !textarea) {
+            return;
+        }
+
+        let previousFocus = null;
+
+        const closeModal = () => {
+            modal.classList.add('is-hidden');
+            document.body.style.overflow = '';
+            if (previousFocus && typeof previousFocus.focus === 'function') {
+                previousFocus.focus();
+            }
+            previousFocus = null;
+        };
+
+        const openModal = () => {
+            const fullPrompt = trigger.getAttribute('data-full-prompt') || '';
+            if (!fullPrompt.trim()) {
+                return;
+            }
+            previousFocus = document.activeElement;
+            textarea.value = fullPrompt;
+            textarea.scrollTop = 0;
+            modal.classList.remove('is-hidden');
+            document.body.style.overflow = 'hidden';
+            textarea.focus();
+            textarea.setSelectionRange(0, 0);
+        };
+
+        trigger.addEventListener('click', openModal);
+        trigger.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openModal();
+            }
+        });
+
+        closeButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.classList.contains('is-hidden')) {
+                closeModal();
+            }
+        });
     })();
 
     (function () {
