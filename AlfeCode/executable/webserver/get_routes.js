@@ -7914,12 +7914,20 @@ ${err}`;
         const commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
 
         let runModel = "";
+        let runBranch = "";
         if (runIdQuery) {
             if (rdsStore && typeof rdsStore.getRunById === "function") {
                 try {
                     const runRecord = await rdsStore.getRunById(sessionId, runIdQuery);
                     if (runRecord && runRecord.model) {
                         runModel = runRecord.model;
+                    }
+                    const resolvedRunBranch = (
+                        (runRecord && (runRecord.branchName || runRecord.gitBranch || runRecord.branch))
+                        || ""
+                    ).toString().trim();
+                    if (resolvedRunBranch) {
+                        runBranch = resolvedRunBranch;
                     }
                 } catch (error) {
                     console.warn("Failed loading run model from RDS for diff page:", error?.message || error);
@@ -7934,11 +7942,28 @@ ${err}`;
                     if (matchedRun && matchedRun.model) {
                         runModel = matchedRun.model;
                     }
+                    if (!runBranch && matchedRun) {
+                        const resolvedRunBranch = (
+                            matchedRun.branchName
+                            || matchedRun.gitBranch
+                            || matchedRun.branch
+                            || ""
+                        ).toString().trim();
+                        if (resolvedRunBranch) {
+                            runBranch = resolvedRunBranch;
+                        }
+                    }
                 } catch (error) {
                     console.warn("Failed loading run model from history for diff page:", error?.message || error);
                 }
             }
         }
+
+        const branchDisplayName = (
+            runBranch
+            || resolveBranchDisplayNameForCommit(resolvedProjectDir, compMeta.hash || compRev)
+            || ""
+        ).toString().trim();
 
         const modelOnlyLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
             if (entry && typeof entry.id === "string") {
@@ -7993,6 +8018,7 @@ ${err}`;
             chatNumber,
             model: runModel,
             modelDisplayName,
+            branchDisplayName,
         });
     });
 
