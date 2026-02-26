@@ -1413,7 +1413,7 @@ function setupGetRoutes(deps) {
             /^#{1,6}\s+\S/, // Markdown heading
             /^\*\*[^*]+\*\*$/, // Bold line such as **Result**
             /^__[^_]+__$/, // Underlined header
-            /^[^:]+:\s*$/, // Title followed by a colon
+            /^(final output|summary|result|changes?|commit message):\s*$/i, // Known title followed by a colon
         ];
 
         while (index < lines.length) {
@@ -1479,6 +1479,105 @@ function setupGetRoutes(deps) {
         }
 
         return resolvedResult;
+    };
+
+    const normalizeQwenDisplayText = (value) => {
+        if (typeof value !== "string" || !value) {
+            return "";
+        }
+
+        return value
+            .replace(/\r/g, "")
+            .replace(/<system-reminder\b[^>]*>[\s\S]*?<\/system-reminder>/gi, "")
+            .replace(/\\n/g, "\n")
+            .replace(/\\t/g, "\t")
+            .replace(/\\\"/g, "\"")
+            .replace(/\\\\/g, "\\");
+    };
+
+    const collectQwenCliDisplayMessagesFromEvent = (parsed) => {
+        if (!parsed || typeof parsed !== "object") {
+            return [];
+        }
+
+        const suppressToolOutput = (toolName) => toolName === "todo_write";
+        const messages = [];
+
+        if (parsed.type === "assistant" && parsed.message && Array.isArray(parsed.message.content)) {
+            for (const contentItem of parsed.message.content) {
+                if (!contentItem || typeof contentItem !== "object") {
+                    continue;
+                }
+
+                const isTextLikeContent =
+                    (contentItem.type === "text" && typeof contentItem.text === "string")
+                    || (contentItem.type === "thinking" && typeof contentItem.thinking === "string");
+
+                if (isTextLikeContent) {
+                    const rawText = contentItem.type === "thinking" ? contentItem.thinking : contentItem.text;
+                    const normalized = normalizeQwenDisplayText(rawText).trim();
+                    if (normalized) {
+                        messages.push(normalized);
+                    }
+                    continue;
+                }
+
+                if (contentItem.type === "tool_use" && typeof contentItem.name === "string" && contentItem.name) {
+                    if (!suppressToolOutput(contentItem.name)) {
+                        messages.push(`Using tool: ${contentItem.name}`);
+                    }
+                }
+            }
+        }
+
+        if (parsed.type === "user" && parsed.message && Array.isArray(parsed.message.content)) {
+            for (const contentItem of parsed.message.content) {
+                if (!contentItem || typeof contentItem !== "object") {
+                    continue;
+                }
+
+                if (contentItem.type === "tool_result" && typeof contentItem.content === "string") {
+                    const normalized = normalizeQwenDisplayText(contentItem.content).trim();
+                    const isTodoWriteReminder = normalized.includes("Todos have been modified successfully")
+                        && normalized.includes("continue to use the todo list");
+                    if (!isTodoWriteReminder && normalized) {
+                        messages.push(normalized);
+                    }
+                }
+            }
+        }
+
+        return messages;
+    };
+
+    const extractQwenCliDisplayTextFromStreamJson = (text) => {
+        if (typeof text !== "string" || !text) {
+            return "";
+        }
+
+        const lines = text.replace(/\r/g, "").split("\n");
+        const displayLines = [];
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line || line.charAt(0) !== "{" || !line.includes('"type"')) {
+                continue;
+            }
+
+            let parsed;
+            try {
+                parsed = JSON.parse(line);
+            } catch {
+                continue;
+            }
+
+            const eventMessages = collectQwenCliDisplayMessagesFromEvent(parsed);
+            if (eventMessages.length) {
+                displayLines.push(...eventMessages);
+            }
+        }
+
+        return displayLines.join("\n").trim();
     };
 
     // Determine the current status of the run based on exit codes and final message.
@@ -1572,7 +1671,12 @@ function setupGetRoutes(deps) {
 
         const resultFromStreamJson = extractQwenCliResultFromStreamJson(combinedText);
         if (resultFromStreamJson) {
-            return resultFromStreamJson;
+            return stripInitialHeaders(normalizeQwenDisplayText(resultFromStreamJson).trim());
+        }
+
+        const displayFromStreamJson = extractQwenCliDisplayTextFromStreamJson(combinedText);
+        if (displayFromStreamJson) {
+            return stripInitialHeaders(displayFromStreamJson);
         }
 
         return combinedText;
