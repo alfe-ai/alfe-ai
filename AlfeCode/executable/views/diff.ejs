@@ -881,12 +881,6 @@
             <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
 <% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
 <% const renderCommitList = typeof showCommitList !== 'undefined' ? !!showCommitList : false; %>
-            <% if (comparisonCommitMessage) { %>
-            <div class="commit-message-box" aria-label="Comparison commit message">
-                <div class="commit-message-title">Compare: <%= compRev || '—' %></div>
-                <pre class="final-output-text"><%= comparisonCommitMessage %></pre>
-            </div>
-            <% } %>
         </div>
 
         <div class="header-actions">
@@ -931,6 +925,22 @@
             <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
                 <h4>Commits</h4>
                 <ul id="commit-list"></ul>
+            </aside>
+            <% } %>
+            <% if (compRev || comparisonCommitMessage) { %>
+            <aside class="sidebar-context-card" aria-label="Comparison revision and message">
+                <% if (compRev) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Compare head</span>
+                    <p class="sidebar-context-value"><%= compRev %></p>
+                </div>
+                <% } %>
+                <% if (comparisonCommitMessage) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Git revision message</span>
+                    <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
+                </div>
+                <% } %>
             </aside>
             <% } %>
             <% if (comparisonPromptLineValue || (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string')) { %>
