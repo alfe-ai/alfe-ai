@@ -494,6 +494,7 @@ export default class TaskDB {
       CREATE TABLE IF NOT EXISTS log_ins (
         account_id INTEGER NOT NULL,
         logged_in_at TEXT NOT NULL,
+        app TEXT DEFAULT '',
         ipv4_address TEXT DEFAULT '',
         ipv6_address TEXT DEFAULT '',
         FOREIGN KEY(account_id) REFERENCES accounts(id)
@@ -547,6 +548,13 @@ export default class TaskDB {
     try {
       this.db.exec("ALTER TABLE log_ins ADD COLUMN ipv6_address TEXT DEFAULT ''; ");
       console.debug('[TaskDB Debug] Added log_ins.ipv6_address column');
+    } catch(e) {
+      // column exists
+    }
+
+    try {
+      this.db.exec("ALTER TABLE log_ins ADD COLUMN app TEXT DEFAULT ''; ");
+      console.debug('[TaskDB Debug] Added log_ins.app column');
     } catch(e) {
       // column exists
     }
@@ -1819,13 +1827,14 @@ export default class TaskDB {
     this.db.prepare('UPDATE accounts SET last_log_in=? WHERE id=?').run(now, id);
   }
 
-  recordAccountLogin(id, ipAddresses = {}) {
+  recordAccountLogin(id, ipAddresses = {}, appName = 'Aurora') {
     const now = new Date().toISOString();
     const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
     const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const app = typeof appName === 'string' ? appName.trim() : 'Aurora';
     this.db
-      .prepare('INSERT INTO log_ins (account_id, logged_in_at, ipv4_address, ipv6_address) VALUES (?, ?, ?, ?)')
-      .run(id, now, ipv4, ipv6);
+      .prepare('INSERT INTO log_ins (account_id, logged_in_at, app, ipv4_address, ipv6_address) VALUES (?, ?, ?, ?, ?)')
+      .run(id, now, app || 'Aurora', ipv4, ipv6);
   }
 
   setAccountTotpSecret(id, secret) {
