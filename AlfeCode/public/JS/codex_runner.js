@@ -1145,6 +1145,10 @@
       hideViewDiffTooltip();
       return;
     }
+    if (typeof shouldEnableRefreshStyleActions === "function" && !shouldEnableRefreshStyleActions()) {
+      hideViewDiffTooltip();
+      return;
+    }
     if (!getVisibleViewDiffButton()) {
       hideViewDiffTooltip();
       return;
