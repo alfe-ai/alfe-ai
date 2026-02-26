@@ -297,6 +297,22 @@ class RdsStore {
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS account_id INTEGER`
       );
+      
+      // Add methods to query page_views with pagination
+      this.getPageViews = async (limit = 200, offset = 0) => {
+        const result = await this.pool.query(
+          `SELECT * FROM ${PAGE_VIEWS_TABLE} ORDER BY id DESC LIMIT $1 OFFSET $2`,
+          [limit, offset]
+        );
+        return result.rows;
+      };
+      
+      this.getPageViewsCount = async () => {
+        const result = await this.pool.query(
+          `SELECT COUNT(*) as count FROM ${PAGE_VIEWS_TABLE}`
+        );
+        return parseInt(result.rows[0].count);
+      };
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS branch TEXT DEFAULT ''`
