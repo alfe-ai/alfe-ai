@@ -495,6 +495,7 @@
 
         .prompt-tooltip {
             background-color: rgba(124, 58, 237, 0.95);
+            font-size: 1.275rem;
         }
 
         .prompt-tooltip-arrow {
@@ -508,6 +509,33 @@
 
         .tooltip-text {
             margin: 0;
+        }
+
+        .view-diff-tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-diff-tooltip {
+            left: auto;
+            top: 50%;
+            right: calc(100% + 12px);
+            transform: translateY(-50%);
+        }
+
+        .view-diff-tooltip .tooltip-text {
+            white-space: normal;
+            line-height: 1.35;
+        }
+
+        .view-diff-tooltip-arrow {
+            top: 50%;
+            left: 100%;
+            transform: translateY(-50%);
+            border: 6px solid transparent;
+            border-left-color: rgba(124, 58, 237, 0.95);
         }
 
         .container {
@@ -3093,6 +3121,42 @@
             opacity: 1;
             transform: translate(-50%, 0);
         }
+
+
+        .refresh-view-diff-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .refresh-view-diff-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translate(-50%, -6px);
+            min-width: 240px;
+            max-width: 300px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.95);
+            color: #f8fafc;
+            font-size: 0.78rem;
+            line-height: 1.35;
+            text-align: center;
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.35);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 30;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            white-space: normal;
+        }
+
+        .refresh-view-diff-wrapper:hover .refresh-view-diff-tooltip,
+        .refresh-view-diff-wrapper:focus-within .refresh-view-diff-tooltip {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
 .merge-button-wrapper {
             position: relative;
             display: inline-flex;
@@ -3827,7 +3891,7 @@
                 <label for="prompt">Prompt</label>
                 <div class="tooltip-container prompt-tooltip-container">
                     <div id="promptTooltip" class="tooltip prompt-tooltip" role="tooltip">
-                        <span class="tooltip-text">Enter a prompt to get started.</span>
+                        <span class="tooltip-text">Enter a prompt to get started</span>
                         <div class="tooltip-arrow prompt-tooltip-arrow"></div>
                     </div>
                     <textarea
@@ -3968,10 +4032,19 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <button id="mergeToggleButton" class="tab-button" type="button" aria-expanded="false">Show merge output</button>
                     <span id="mergeSummary" class="status-text">&nbsp;</span>
                 </div>
-                <div style="margin-left:12px;">
-                    <button id="refreshRunPageButton" class="nav-button" type="button" title="View Diff" aria-label="View Diff" disabled>
-                        View Diff
-                    </button>
+                <div class="view-diff-tooltip-container" style="margin-left:12px;">
+                    <div id="viewDiffTooltip" class="tooltip prompt-tooltip view-diff-tooltip" role="tooltip" aria-hidden="true">
+                        <span class="tooltip-text">View the code changes<br />and merge to configured project branch</span>
+                        <div class="tooltip-arrow prompt-tooltip-arrow view-diff-tooltip-arrow"></div>
+                    </div>
+                    <div class="refresh-view-diff-wrapper">
+                        <button id="refreshRunPageButton" class="nav-button" type="button" aria-label="View Diff" aria-describedby="refreshViewDiffTooltip" disabled>
+                            View Diff
+                        </button>
+                        <div class="refresh-view-diff-tooltip" id="refreshViewDiffTooltip" role="tooltip" aria-hidden="true">
+                            View code changes and<br />merge to configured project branch
+                        </div>
+                    </div>
                     <!-- View Diff visible before merge -->
                     <button id="openMergeDiffButton" class="nav-button<%= nonRefreshDiffButtonHidden ? ' is-hidden' : '' %>" type="button" title="View Diff" aria-label="View Diff" disabled>
                         View Diff
