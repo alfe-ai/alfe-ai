@@ -578,7 +578,61 @@ class RdsStore {
         [sessionId, pageRoute, viewedAt, ipv4, ipv6]
       );
     } catch (error) {
-      console.error("[RdsStore] Failed to increment session view count:", error?.message || error);
+      // Ensure that the IP addresses are properly formatted in case of malformed array errors
+      if (error.message && error.message.includes('malformed array literal')) {
+        console.warn("[RdsStore] Malformed array literal error, retrying with fallback approach:", error.message);
+        // Retry with more robust IP handling
+        try {
+          // Ensure that empty IP addresses use proper empty array notation
+          const safeIpv4 = ipv4 ? ipv4 : '';
+          const safeIpv6 = ipv6 ? ipv6 : '';
+          await this.pool.query(
+            `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
+             VALUES (
+               $1,
+               1,
+               (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1),
+               CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END,
+               CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+             )
+             ON CONFLICT (session_id)
+             DO UPDATE SET
+               view_count = ${SESSION_VIEWS_TABLE}.view_count + 1,
+               account_id = COALESCE(
+                 ${SESSION_VIEWS_TABLE}.account_id,
+                 (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
+               ),
+               ipv4_address = (
+                 SELECT array_agg(DISTINCT element)
+                 FROM unnest(
+                   array_cat(
+                     COALESCE(${SESSION_VIEWS_TABLE}.ipv4_address, '{}')::TEXT[],
+                     CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END
+                   )
+                 ) AS element
+               ),
+               ipv6_address = (
+                 SELECT array_agg(DISTINCT element)
+                 FROM unnest(
+                   array_cat(
+                     COALESCE(${SESSION_VIEWS_TABLE}.ipv6_address, '{}')::TEXT[],
+                     CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+                   )
+                 ) AS element
+               )`,
+            [sessionId, safeIpv4, safeIpv6]
+          );
+          await this.pool.query(
+            `INSERT INTO ${PAGE_VIEWS_TABLE} (session_id, route, viewed_at, ipv4_address, ipv6_address)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [sessionId, pageRoute, viewedAt, safeIpv4, safeIpv6]
+          );
+        } catch (fallbackError) {
+          console.error("[RdsStore] Failed to increment session view count after fallback:", fallbackError?.message || fallbackError);
+        }
+      } else {
+        console.error("[RdsStore] Failed to increment session view count:", error?.message || error);
+      }
     }
   }
 
