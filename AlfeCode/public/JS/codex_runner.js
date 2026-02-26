@@ -7475,7 +7475,7 @@ const appendMergeChunk = (text, type = "output") => {
       /^#{1,6}\s+\S/, // Markdown heading
       /^\*\*[^*]+\*\*$/, // Bold line such as **Result**
       /^__[^_]+__$/, // Underlined header
-      /^[^:]+:\s*$/, // Title followed by a colon
+      /^(final output|summary|result|changes?|commit message):\s*$/i, // Known title followed by a colon
     ];
 
     while (index < lines.length) {
@@ -7765,6 +7765,31 @@ const appendMergeChunk = (text, type = "output") => {
     return resolvedResult;
   };
 
+  const isLikelyQwenStreamJson = (text) => {
+    if (typeof text !== "string" || !text) {
+      return false;
+    }
+
+    const lines = text.replace(/\r/g, "").split("\n");
+    let typedJsonLines = 0;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line || line.charAt(0) !== "{" || !line.includes('"type"')) {
+        continue;
+      }
+      const parsed = safeParseJson(line);
+      if (parsed && typeof parsed.type === "string") {
+        typedJsonLines += 1;
+      }
+      if (typedJsonLines >= 2) {
+        return true;
+      }
+    }
+
+    return typedJsonLines > 0 && /"type"\s*:\s*"result"/i.test(text);
+  };
+
   const resolveFinalOutputForSavedRun = (run) => {
     if (!run || typeof run !== "object") {
       return "";
@@ -7793,6 +7818,9 @@ const appendMergeChunk = (text, type = "output") => {
     ];
 
     for (const candidate of directCandidates) {
+      if (run.qwenCli === true && isLikelyQwenStreamJson(candidate)) {
+        continue;
+      }
       const normalised = normaliseCandidate(candidate, { qwenCli: run.qwenCli === true });
       if (normalised) {
         return normalised;
