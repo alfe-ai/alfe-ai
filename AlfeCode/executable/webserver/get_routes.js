@@ -7738,6 +7738,7 @@ ${err}`;
         const baseRevInput = (req.query.baseRev || "").toString();
         const compRevInput = (req.query.compRev || "").toString();
         const mergeReady = isTruthyFlag(req.query.mergeReady);
+        const runStatusQuery = (req.query.run_status || req.query.runStatus || "").toString().trim().toLowerCase();
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
         const comparisonPrompt = extractComparisonPrompt(req.query.userPrompt || "");
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
@@ -7915,6 +7916,7 @@ ${err}`;
 
         let runModel = "";
         let runBranch = "";
+        let runIsMerged = runStatusQuery === "merged";
         if (runIdQuery) {
             if (rdsStore && typeof rdsStore.getRunById === "function") {
                 try {
@@ -7922,6 +7924,23 @@ ${err}`;
                     if (runRecord && runRecord.model) {
                         runModel = runRecord.model;
                     }
+
+                    const resolvedRunStatus = (
+                        (runRecord && runRecord.status)
+                        || (runRecord && runRecord.finalStatus)
+                        || ""
+                    ).toString().trim().toLowerCase();
+                    if (resolvedRunStatus === "merged") {
+                        runIsMerged = true;
+                    }
+
+                    if (!runIsMerged && runRecord && Array.isArray(runRecord.statusHistory)) {
+                        runIsMerged = runRecord.statusHistory.some((entry) => {
+                            const normalized = (entry || "").toString().trim().toLowerCase();
+                            return normalized === "merged" || normalized === "merged.";
+                        });
+                    }
+
                     const resolvedRunBranch = (
                         (runRecord && (runRecord.branchName || runRecord.gitBranch || runRecord.branch))
                         || ""
@@ -7941,6 +7960,20 @@ ${err}`;
                     const matchedRun = runs.find((entry) => String(entry?.id || "").trim() === runIdQuery);
                     if (matchedRun && matchedRun.model) {
                         runModel = matchedRun.model;
+                    }
+                    const resolvedRunStatus = (
+                        matchedRun?.status
+                        || matchedRun?.finalStatus
+                        || ""
+                    ).toString().trim().toLowerCase();
+                    if (resolvedRunStatus === "merged") {
+                        runIsMerged = true;
+                    }
+                    if (!runIsMerged && matchedRun && Array.isArray(matchedRun.statusHistory)) {
+                        runIsMerged = matchedRun.statusHistory.some((entry) => {
+                            const normalized = (entry || "").toString().trim().toLowerCase();
+                            return normalized === "merged" || normalized === "merged.";
+                        });
                     }
                     if (!runBranch && matchedRun) {
                         const resolvedRunBranch = (
@@ -7995,6 +8028,8 @@ ${err}`;
             return "";
         })();
 
+        const effectiveMergeReady = mergeReady && !runIsMerged;
+
         res.status(statusCode).render("diff", {
             gitRepoNameCLI: repoName || resolvedProjectDir,
             baseRev,
@@ -8011,7 +8046,7 @@ ${err}`;
             baseMeta,
             compMeta,
             commitList,
-            mergeReady,
+            mergeReady: effectiveMergeReady,
             comparisonPrompt,
             comparisonPromptLine,
             comparisonFinalOutput,
