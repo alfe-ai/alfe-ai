@@ -3767,6 +3767,15 @@
     if (rowIndex !== null) {
       params.set('rowIndex', String(rowIndex));
     }
+
+    const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "")
+      .toString()
+      .trim()
+      .toLowerCase();
+    const runStatus = /\bmerged\b/.test(statusText) ? "merged" : "";
+    if (runStatus) {
+      params.set('run_status', runStatus);
+    }
   };
 
   const buildMergeDiffUrl = (hash, projectDirValue) => {
@@ -4657,6 +4666,25 @@
 
   const enableMergeDiffButtonFromSavedRun = (run) => {
     if (!run || typeof run !== "object") {
+      return;
+    }
+
+    const mergedCandidates = [
+      run.finalMessage,
+      run.gitMergeStdout,
+      run.gitMergeStderr,
+      ...(Array.isArray(run.statusHistory) ? run.statusHistory : []),
+    ];
+    const alreadyMerged = mergedCandidates.some((candidate) => {
+      if (!candidate && candidate !== 0) {
+        return false;
+      }
+      const text = String(candidate);
+      return MERGE_SUCCESS_PATTERNS.some((pattern) => pattern.test(text));
+    });
+    if (alreadyMerged) {
+      setMergeReady(false);
+      enableMergeDiffButtonForHash("", "");
       return;
     }
 
@@ -6879,6 +6907,7 @@ const appendMergeChunk = (text, type = "output") => {
       try {
         markRunMergedInSidebar((currentRunContext && currentRunContext.runId) || '', message || 'Merged');
       } catch (e) { /* ignore */ }
+      setMergeReady(false);
       lockMergeDiffButton();
     }
 
