@@ -8177,6 +8177,36 @@ ${err}`;
         }
     };
 
+    const resolveBranchDisplayNameForCommit = (cwd, commitHash) => {
+        if (!cwd || !commitHash) {
+            return '';
+        }
+
+        try {
+            const branchOut = execSync(`git branch -a --contains ${commitHash}`, {
+                cwd,
+                stdio: ['pipe', 'pipe', 'ignore'],
+            }).toString();
+
+            const branches = branchOut
+                .split(/\r?\n/)
+                .map((line) => line.replace(/^\*\s*/, '').trim())
+                .filter(Boolean)
+                .filter((line) => !line.includes('HEAD ->'));
+
+            if (!branches.length) {
+                return '';
+            }
+
+            const preferredBranch = branches.find((branch) => !branch.startsWith('remotes/')) || branches[0];
+            return preferredBranch
+                .replace(/^remotes\//, '')
+                .replace(/^origin\//, '');
+        } catch (err) {
+            return '';
+        }
+    };
+
 /* ---------- New diff page ---------- */
     app.get("/:repoName/diff", async (req, res) => {
         const { repoName } = req.params;
@@ -8207,6 +8237,7 @@ ${err}`;
         const baseMeta = baseRev ? getCommitMeta(gitRepoLocalPath, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const compMeta = compRev ? getCommitMeta(gitRepoLocalPath, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const commitList = getCommitList(gitRepoLocalPath, baseRev, compRev);
+        const branchDisplayName = resolveBranchDisplayNameForCommit(gitRepoLocalPath, compMeta.hash || compRev);
 
         const mergeReady = isTruthyFlag(req.query.mergeReady);
 
@@ -8239,7 +8270,8 @@ ${err}`;
             comparisonPromptLine,
             comparisonFinalOutput,
             chatNumber,
-            showCommitList: SHOW_COMMIT_LIST
+            showCommitList: SHOW_COMMIT_LIST,
+            branchDisplayName
         });
     });
 }
