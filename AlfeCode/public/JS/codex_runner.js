@@ -4268,16 +4268,11 @@
       return;
     }
 
-    const refreshViewDiffWrapper = refreshRunPageButton.closest(".refresh-view-diff-wrapper");
-
     const shouldEnableRefreshButton = shouldEnableRefreshStyleActions();
 
     ensureMergeDiffContainerVisible();
     refreshRunPageButton.disabled = !shouldEnableRefreshButton;
     refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
-    if (refreshViewDiffWrapper) {
-      refreshViewDiffWrapper.classList.toggle("is-enabled", shouldEnableRefreshButton);
-    }
     maybeShowViewDiffTooltip();
 
     if (!nonRefreshDiffButtonHidden || !shouldEnableRefreshButton) {
