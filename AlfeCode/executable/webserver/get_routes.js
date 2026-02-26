@@ -1292,6 +1292,35 @@ function setupGetRoutes(deps) {
         return "HEAD";
     };
 
+    const resolveGitCommitRevision = (directory) => {
+        const targetDir = typeof directory === "string" ? directory.trim() : "";
+        if (!targetDir) {
+            return "";
+        }
+
+        let stats;
+        try {
+            stats = fs.statSync(targetDir);
+        } catch (_err) {
+            return "";
+        }
+
+        if (!stats.isDirectory()) {
+            return "";
+        }
+
+        try {
+            return execSync("git rev-parse HEAD", {
+                cwd: targetDir,
+                stdio: ["ignore", "pipe", "ignore"],
+            })
+                .toString()
+                .trim();
+        } catch (_err) {
+            return "";
+        }
+    };
+
     const buildStatusOnlyText = (statusHistory, prompt) => {
         if (!Array.isArray(statusHistory) || statusHistory.length === 0) {
             return "";
@@ -4015,6 +4044,9 @@ ${cleanedFinalOutput}`;
             finalMessage: "",
             error: "",
             invalidModelReason,
+            baseRevision: "",
+            commitRevision: "",
+            runDirectory: "",
         };
         const envOverrides = {};
         let accountOpenRouterApiKey = "";
@@ -4457,6 +4489,10 @@ ${cleanedFinalOutput}`;
             }
             effectiveProjectDir = trimmed;
             runRecord.effectiveProjectDir = trimmed;
+            runRecord.runDirectory = trimmed;
+            if (!runRecord.baseRevision) {
+                runRecord.baseRevision = resolveGitCommitRevision(trimmed);
+            }
             updateRunBranchFromDir(trimmed, { force: true });
             emit({
                 event: "meta",
@@ -4700,6 +4736,12 @@ ${cleanedFinalOutput}`;
                             completeGitFpush(() => {
                                 gitFpushChild = null;
                                 runRecord.gitFpushExitCode = gitCode;
+                                if (gitCode === 0) {
+                                    const commitRevision = resolveGitCommitRevision(resolvedProjectDir);
+                                    if (commitRevision) {
+                                        runRecord.commitRevision = commitRevision;
+                                    }
+                                }
                                 const gitMessage = `git_fpush.sh exited with code ${gitCode}.`;
                                 emit({
                                     event: "status",
