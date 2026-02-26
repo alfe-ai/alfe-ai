@@ -1160,6 +1160,13 @@
   };
 
   if (viewDiffTooltip) {
+    const viewDiffTooltipCloseButton = viewDiffTooltip.querySelector(".tooltip-close-button");
+    if (viewDiffTooltipCloseButton) {
+      viewDiffTooltipCloseButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        hideViewDiffTooltip();
+      });
+    }
     viewDiffTooltip.addEventListener("click", hideViewDiffTooltip);
   }
 
