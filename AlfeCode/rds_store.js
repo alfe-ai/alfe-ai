@@ -9,6 +9,7 @@ const PROJECTVIEW_JSON_TABLE = "projectview_json";
 const ALFECODE_RUNS_TABLE = "alfecode_runs";
 const SESSION_VIEWS_TABLE = "session_views";
 const PAGE_VIEWS_TABLE = "page_views";
+const LOG_INS_TABLE = "log_ins";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
@@ -143,6 +144,10 @@ class RdsStore {
         viewed_at TEXT NOT NULL,
         ipv4_address TEXT[] DEFAULT '{}',
         ipv6_address TEXT[] DEFAULT '{}'
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${LOG_INS_TABLE} (
+        account_id INTEGER NOT NULL,
+        logged_in_at TEXT NOT NULL
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
@@ -763,6 +768,34 @@ class RdsStore {
       console.error("[RdsStore] Failed to update account last login:", {
         accountId: id,
         lastLoginIso,
+        error: error?.message || error,
+      });
+    }
+  }
+
+  async createAccountLoginRecord(id) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    const loggedInAtIso = new Date().toISOString();
+    console.log("[RdsStore] createAccountLoginRecord: writing login row", {
+      accountId: id,
+      loggedInAtIso,
+    });
+
+    try {
+      const insertResult = await this.pool.query(
+        `INSERT INTO ${LOG_INS_TABLE} (account_id, logged_in_at)
+         VALUES ($1, $2)`,
+        [id, loggedInAtIso]
+      );
+      console.log("[RdsStore] createAccountLoginRecord: insert finished", {
+        accountId: id,
+        rowCount: insertResult?.rowCount ?? null,
+      });
+    } catch (error) {
+      console.error("[RdsStore] Failed to insert account login row:", {
+        accountId: id,
+        loggedInAtIso,
         error: error?.message || error,
       });
     }
