@@ -441,6 +441,34 @@
             line-height: 1.5;
         }
 
+        .sidebar-markdown {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-markdown p {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .sidebar-markdown pre {
+            margin: 0;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: rgba(15, 23, 42, 0.82);
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .sidebar-markdown code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #e2e8f0;
+        }
+
         .commit-list {
             background: var(--panel-soft);
             border: 1px solid var(--border);
@@ -863,15 +891,57 @@
 <body>
 <%- include('partials/session_banner') %>
 <% const resolvedModelDisplayName = typeof modelDisplayName === 'string' && modelDisplayName.trim() ? modelDisplayName.trim() : ''; %>
+<%
+const escapeHtml = (value) => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const renderMarkdownCodeBlocks = (value) => {
+    if (typeof value !== 'string' || !value) {
+        return '';
+    }
+
+    const normalized = value.replace(/\r\n?/g, '\n');
+    const fencePattern = /```([^\n`]*)\n?([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match;
+    const fragments = [];
+
+    while ((match = fencePattern.exec(normalized)) !== null) {
+        const textChunk = normalized.slice(lastIndex, match.index);
+        if (textChunk.trim()) {
+            fragments.push(`<p>${escapeHtml(textChunk)}</p>`);
+        }
+
+        const lang = (match[1] || '').trim();
+        const codeContent = match[2].replace(/^\n+|\n+$/g, '');
+        const langClass = lang ? ` class="language-${escapeHtml(lang)}"` : '';
+        fragments.push(`<pre><code${langClass}>${escapeHtml(codeContent)}</code></pre>`);
+        lastIndex = fencePattern.lastIndex;
+    }
+
+    const remainder = normalized.slice(lastIndex);
+    if (remainder.trim()) {
+        fragments.push(`<p>${escapeHtml(remainder)}</p>`);
+    }
+
+    if (!fragments.length) {
+        return `<p>${escapeHtml(normalized)}</p>`;
+    }
+
+    return fragments.join('');
+};
+
+const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
+    typeof comparisonFinalOutput === 'string' ? comparisonFinalOutput : ''
+);
+%>
 <div class="page">
     <div class="header-row">
         <div class="header-main">
-            <% if (baseRev || compRev) { %>
-            <div class="revision-info">
-                <span class="revision-pill">Base: <%= baseRev || '—' %></span>
-            </div>
-            <% } %>
-
             <% if (resolvedModelDisplayName) { %>
             <div class="revision-info">
                 <span class="revision-pill">Model: <%= resolvedModelDisplayName %></span>
@@ -922,6 +992,16 @@
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
         <div class="diff-sidebar" aria-label="Commits and files">
+            <% if (baseRev) { %>
+            <aside class="sidebar-context-card" aria-label="Diff context">
+                <% if (baseRev) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Base revision</span>
+                    <p class="sidebar-context-value"><%= baseRev %></p>
+                </div>
+                <% } %>
+            </aside>
+            <% } %>
             <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
                 <h4>Commits</h4>
                 <ul id="commit-list"></ul>
@@ -954,7 +1034,7 @@
                 <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">AI response</span>
-                    <pre class="sidebar-context-value"><%= comparisonFinalOutput %></pre>
+                    <div class="sidebar-context-value sidebar-markdown"><%- comparisonFinalOutputHtml %></div>
                 </div>
                 <% } %>
             </aside>
@@ -1329,15 +1409,19 @@
             title.textContent = file.label;
             header.appendChild(title);
 
-            // add edit-in-editor button
-            const editBtn = document.createElement('button');
-            editBtn.type = 'button';
-            editBtn.className = 'open-in-editor-button';
-            editBtn.title = 'Open in editor';
-            editBtn.setAttribute('aria-label', 'Open file in editor');
-            editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 21v-3.75L14.81 5.44a1.5 1.5 0 012.12 0l1.63 1.63a1.5 1.5 0 010 2.12L6.75 21H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
-            editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openEditorForFile(file.label); });
-            header.appendChild(editBtn);
+            // Check if we should show the editor button based on HIDE_DIFF_FILE_EDIT environment variable
+            const hideDiffFileEdit = <%- JSON.stringify(process.env.HIDE_DIFF_FILE_EDIT === 'true' || process.env.HIDE_DIFF_FILE_EDIT === '1') %>;
+            if (!hideDiffFileEdit) {
+                // add edit-in-editor button
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'open-in-editor-button';
+                editBtn.title = 'Open in editor';
+                editBtn.setAttribute('aria-label', 'Open file in editor');
+                editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 21v-3.75L14.81 5.44a1.5 1.5 0 012.12 0l1.63 1.63a1.5 1.5 0 010 2.12L6.75 21H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+                editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openEditorForFile(file.label); });
+                header.appendChild(editBtn);
+            }
 
 
             const rowCount = normalizedRowCount(file.rows);
@@ -1613,7 +1697,18 @@
             status.textContent = message || "";
         };
 
-        form.addEventListener("submit", (event) => {
+        // Function to get the submit on enter setting
+        const getSubmitOnEnterSetting = () => {
+            try {
+                const stored = localStorage.getItem('submitOnEnter');
+                return stored === 'true';
+            } catch (e) {
+                return true; // Default to true for backward compatibility
+            }
+        };
+
+        // Handle form submission
+        const handleSubmit = (event) => {
             event.preventDefault();
             const prompt = typeof input.value === "string" ? input.value.trim() : "";
             if (!prompt) {
@@ -1630,6 +1725,17 @@
                 setStatus("Follow-up sent.");
             } catch (_err) {
                 setStatus("Unable to send follow-up.");
+            }
+        };
+
+        form.addEventListener("submit", handleSubmit);
+
+        // Add keyboard event handling for Enter/Return key
+        input.addEventListener("keydown", (event) => {
+            // Only handle Enter/Return if the setting is enabled
+            if (event.key === "Enter" && !event.shiftKey && getSubmitOnEnterSetting()) {
+                event.preventDefault();
+                handleSubmit(event);
             }
         });
     })();
