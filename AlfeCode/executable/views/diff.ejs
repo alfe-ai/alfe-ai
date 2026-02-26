@@ -948,7 +948,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             </div>
             <% } %>
 
-            <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
+            <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? comparisonPromptLine.trim() : ''; %>
 <% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
 <% const renderCommitList = typeof showCommitList !== 'undefined' ? !!showCommitList : false; %>
         </div>
@@ -1028,7 +1028,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 <% if (comparisonPromptLineValue) { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">User prompt</span>
-                    <p class="sidebar-context-value"><%= comparisonPromptLineValue %></p>
+                    <pre class="sidebar-context-value"><%= comparisonPromptLineValue %></pre>
                 </div>
                 <% } %>
                 <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
