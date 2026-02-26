@@ -141,8 +141,8 @@ class RdsStore {
         session_id TEXT NOT NULL,
         route TEXT NOT NULL DEFAULT '',
         viewed_at TEXT NOT NULL,
-        ipv4_address TEXT,
-        ipv6_address TEXT
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
