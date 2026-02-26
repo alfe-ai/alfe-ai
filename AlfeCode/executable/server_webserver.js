@@ -2033,6 +2033,11 @@ projectViewRouter.get("*", (_req, res) => {
   res.sendFile(path.join(projectViewPublicDir, "index.html"));
 });
 
+// Route for the cat game
+app.get("/catgame", (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, "public", "catgame.html"));
+});
+
 const projectViewEnabled = parseBooleanEnv(process.env.AURORA_PROJECTVIEW_ENABLED, true) && parseBooleanEnv(process.env.BACKLOG_BUTTON_VISIBLE, true);
 if (projectViewEnabled) {
   app.use("/ProjectView", projectViewRouter);

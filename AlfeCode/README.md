@@ -101,12 +101,19 @@ Then add it to `.env` (same value on the CNC server and each node):
 ALFECODE_NODE_PING_KEY=your_generated_value_here
 ```
 
-### Related Repositories:  
+### Related Repositories:
 Alfe AI / Agent Instructions: https://github.com/alfe-ai
+
+---
+
+## Fun Cat Game
+
+We've added a fun cat-catching game to enjoy during your development sessions!
+Play it at: http://localhost:3001/catgame
 
 ---
 
 See the [LICENSE](https://github.com/alfe-ai) file.
 
-**Copyright (c) 2022-2026 [Nicholas Lochner](https://lochner.tech)**  
+**Copyright (c) 2022-2026 [Nicholas Lochner](https://lochner.tech)**
 https://github.com/lochner-technology

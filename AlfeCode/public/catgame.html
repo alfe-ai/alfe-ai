@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Catcher Game</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+        
+        .game-container {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+        
+        .score-container, .timer-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            min-width: 120px;
+        }
+        
+        #game-board {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(to bottom, #87CEEB, #ffffff);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 3px solid #ffcc00;
+        }
+        
+        .cat {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23FFA500"/><circle cx="35" cy="40" r="5" fill="black"/><circle cx="65" cy="40" r="5" fill="black"/><path d="M40,60 Q50,70 60,60" stroke="black" stroke-width="3" fill="none"/><path d="M35,30 Q45,20 55,25 Q65,30 65,40" stroke="black" stroke-width="2" fill="none"/><path d="M30,20 L40,30 35,25 Z" fill="black"/><path d="M70,20 L60,30 65,25 Z" fill="black"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        
+        .cat:hover {
+            transform: scale(1.1);
+        }
+        
+        .cat:active {
+            transform: scale(0.95);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        button {
+            background: #ffcc00;
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:hover {
+            background: #ffd740;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none;
+        }
+        
+        .game-over h2 {
+            font-size: 2.5rem;
+            color: #ffcc00;
+            margin-bottom: 20px;
+        }
+        
+        .final-score {
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+        }
+        
+        .message {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .cat-captured {
+            animation: bounce 0.5s;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-20px);}
+            60% {transform: translateY(-10px);}
+        }
+        
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            #game-board {
+                height: 300px;
+            }
+            
+            .cat {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🐱 Cat Catcher Game 🐱</h1>
+        
+        <div class="game-info">
+            <div class="score-container">Score: <span id="score">0</span></div>
+            <div class="timer-container">Time: <span id="timer">60</span>s</div>
+        </div>
+        
+        <div id="game-board">
+            <div class="game-over" id="game-over">
+                <h2>Game Over!</h2>
+                <div class="final-score">Your Score: <span id="final-score">0</span></div>
+                <button id="restart-btn">Play Again</button>
+            </div>
+        </div>
+        
+        <div class="message" id="message">Catch as many cats as you can!</div>
+        
+        <div class="controls">
+            <button id="start-btn">Start Game</button>
+            <button id="pause-btn">Pause</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Play</h3>
+            <p>Click on the cats as fast as you can to catch them and earn points! Each cat caught is worth 10 points. The game lasts for 60 seconds.</p>
+            <p>Try to catch as many cats as you can before time runs out!</p>
+        </div>
+    </div>
+
+    <script>
+        class CatCatcherGame {
+            constructor() {
+                this.board = document.getElementById('game-board');
+                this.scoreElement = document.getElementById('score');
+                this.timerElement = document.getElementById('timer');
+                this.messageElement = document.getElementById('message');
+                this.gameOverElement = document.getElementById('game-over');
+                this.finalScoreElement = document.getElementById('final-score');
+                this.startButton = document.getElementById('start-btn');
+                this.pauseButton = document.getElementById('pause-btn');
+                this.restartButton = document.getElementById('restart-btn');
+                
+                this.score = 0;
+                this.timeLeft = 60;
+                this.gameActive = false;
+                this.gameTimer = null;
+                this.catSpawnTimer = null;
+                this.cats = [];
+                this.paused = false;
+                
+                this.initEvents();
+            }
+            
+            initEvents() {
+                this.startButton.addEventListener('click', () => this.startGame());
+                this.pauseButton.addEventListener('click', () => this.togglePause());
+                this.restartButton.addEventListener('click', () => this.restartGame());
+                
+                // Click outside any cat to prevent catching
+                this.board.addEventListener('click', (e) => {
+                    if (e.target === this.board) {
+                        this.messageElement.textContent = "Click on the cats to catch them!";
+                    }
+                });
+            }
+            
+            startGame() {
+                if (this.gameActive) return;
+                
+                this.resetGame();
+                this.gameActive = true;
+                this.messageElement.textContent = "Catch as many cats as you can!";
+                this.startButton.textContent = "Restart Game";
+                
+                // Start timer
+                this.gameTimer = setInterval(() => {
+                    if (!this.paused) {
+                        this.timeLeft--;
+                        this.timerElement.textContent = this.timeLeft;
+                        
+                        if (this.timeLeft <= 0) {
+                            this.endGame();
+                        }
+                    }
+                }, 1000);
+                
+                // Start spawning cats
+                this.catSpawnTimer = setInterval(() => {
+                    if (!this.paused && this.gameActive) {
+                        this.spawnCat();
+                    }
+                }, 800);
+            }
+            
+            togglePause() {
+                if (!this.gameActive) return;
+                
+                this.paused = !this.paused;
+                this.pauseButton.textContent = this.paused ? "Resume" : "Pause";
+                
+                if (this.paused) {
+                    this.messageElement.textContent = "Game paused! Click resume to continue.";
+                } else {
+                    this.messageElement.textContent = "Catching cats...";
+                }
+            }
+            
+            restartGame() {
+                this.endGame();
+                this.startGame();
+            }
+            
+            resetGame() {
+                this.score = 0;
+                this.timeLeft = 60;
+                this.gameActive = false;
+                this.paused = false;
+                this.scoreElement.textContent = this.score;
+                this.timerElement.textContent = this.timeLeft;
+                this.messageElement.textContent = "Ready to play? Click 'Start Game'!";
+                
+                // Clean up cats
+                this.cats.forEach(cat => {
+                    if (cat.element) {
+                        cat.element.remove();
+                    }
+                });
+                this.cats = [];
+                
+                // Reset buttons
+                this.pauseButton.textContent = "Pause";
+                this.startButton.textContent = "Start Game";
+                
+                // Hide game over screen
+                this.gameOverElement.style.display = "none";
+            }
+            
+            endGame() {
+                this.gameActive = false;
+                this.gameActive = false;
+                clearInterval(this.gameTimer);
+                clearInterval(this.catSpawnTimer);
+                
+                // Remove all cats
+                this.cats.forEach(cat => {
+                    if (cat.element) {
+                        cat.element.remove();
+                    }
+                });
+                this.cats = [];
+                
+                // Show game over screen
+                this.finalScoreElement.textContent = this.score;
+                this.gameOverElement.style.display = "flex";
+                this.messageElement.textContent = "Game Over! Great job!";
+            }
+            
+            spawnCat() {
+                if (!this.gameActive || this.paused) return;
+                
+                const cat = document.createElement('div');
+                cat.className = 'cat';
+                
+                // Random position within the board
+                const boardRect = this.board.getBoundingClientRect();
+                const maxX = boardRect.width - 80;
+                const maxY = boardRect.height - 80;
+                
+                const x = Math.max(0, Math.floor(Math.random() * maxX));
+                const y = Math.max(0, Math.floor(Math.random() * maxY));
+                
+                cat.style.left = `${x}px`;
+                cat.style.top = `${y}px`;
+                
+                // Add mouse interaction
+                cat.addEventListener('click', (e) => {
+                    if (!this.gameActive || this.paused) return;
+                    e.stopPropagation();
+                    this.catchCat(cat);
+                });
+                
+                this.board.appendChild(cat);
+                
+                // Add cat to array for management
+                this.cats.push({
+                    element: cat,
+                    x: x,
+                    y: y
+                });
+                
+                // Remove cat after some time if not caught
+                setTimeout(() => {
+                    if (cat.parentNode) {
+                        cat.remove();
+                        this.cats = this.cats.filter(c => c.element !== cat);
+                    }
+                }, 5000);
+            }
+            
+            catchCat(catElement) {
+                if (!this.gameActive || this.paused) return;
+                
+                // Add animation
+                catElement.classList.add('cat-captured');
+                
+                // Remove cat after animation
+                setTimeout(() => {
+                    if (catElement.parentNode) {
+                        catElement.remove();
+                    }
+                    this.cats = this.cats.filter(c => c.element !== catElement);
+                }, 500);
+                
+                // Update score
+                this.score += 10;
+                this.scoreElement.textContent = this.score;
+                
+                // Show feedback message
+                this.messageElement.textContent = `Catched! +10 points | Score: ${this.score}`;
+                
+                // Create floating text effect
+                this.createFloatingText(`+10!`);
+            }
+            
+            createFloatingText(text) {
+                const floatingText = document.createElement('div');
+                floatingText.textContent = text;
+                floatingText.style.position = 'absolute';
+                floatingText.style.color = '#ffcc00';
+                floatingText.style.fontWeight = 'bold';
+                floatingText.style.fontSize = '20px';
+                floatingText.style.pointerEvents = 'none';
+                floatingText.style.zIndex = '20';
+                
+                // Position at center of clicked area
+                const rect = this.board.getBoundingClientRect();
+                const x = rect.width / 2;
+                const y = rect.height / 2 - 50;
+                
+                floatingText.style.left = `${x}px`;
+                floatingText.style.top = `${y}px`;
+                
+                this.board.appendChild(floatingText);
+                
+                // Animate floating
+                let posY = 0;
+                const floatInterval = setInterval(() => {
+                    posY -= 2;
+                    floatingText.style.transform = `translateY(${posY}px)`;
+                    floatingText.style.opacity = 1 - posY / 50;
+                    
+                    if (posY > 50) {
+                        clearInterval(floatInterval);
+                        floatingText.remove();
+                    }
+                }, 20);
+            }
+        }
+        
+        // Initialize game when page loads
+        window.addEventListener('load', () => {
+            const game = new CatCatcherGame();
+        });
+    </script>
+</body>
+</html>
