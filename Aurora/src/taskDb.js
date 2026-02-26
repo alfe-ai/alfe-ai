@@ -478,7 +478,7 @@ export default class TaskDB {
       CREATE TABLE IF NOT EXISTS accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
+        password_hash TEXT,
         session_id TEXT DEFAULT '',
         aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
@@ -492,11 +492,10 @@ export default class TaskDB {
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS log_ins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
         account_id INTEGER NOT NULL,
-        session_id TEXT DEFAULT '',
-        provider TEXT DEFAULT 'password',
         logged_in_at TEXT NOT NULL,
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT '',
         FOREIGN KEY(account_id) REFERENCES accounts(id)
       );
     `);
@@ -538,20 +537,19 @@ export default class TaskDB {
 
     this.db.exec("UPDATE accounts SET disabled=0 WHERE disabled IS NULL;");
 
-    // Add setAccountLastLogin method
-    this.setAccountLastLogin = function(id) {
-      const now = new Date().toISOString();
-      this.db.prepare("UPDATE accounts SET last_log_in = ? WHERE id = ?").run(now, id);
-    };
+    try {
+      this.db.exec("ALTER TABLE log_ins ADD COLUMN ipv4_address TEXT DEFAULT ''; ");
+      console.debug('[TaskDB Debug] Added log_ins.ipv4_address column');
+    } catch(e) {
+      // column exists
+    }
 
-    this.recordAccountLogin = function(id, sessionId = '', provider = 'password') {
-      const now = new Date().toISOString();
-      this.db
-        .prepare(
-          'INSERT INTO log_ins (account_id, session_id, provider, logged_in_at) VALUES (?, ?, ?, ?)'
-        )
-        .run(id, sessionId || '', provider || 'password', now);
-    };
+    try {
+      this.db.exec("ALTER TABLE log_ins ADD COLUMN ipv6_address TEXT DEFAULT ''; ");
+      console.debug('[TaskDB Debug] Added log_ins.ipv6_address column');
+    } catch(e) {
+      // column exists
+    }
 
     // Migration: remove the deprecated upwork_jobs table if it exists.
     this.db.exec('DROP TABLE IF EXISTS upwork_jobs;');
@@ -1814,6 +1812,20 @@ export default class TaskDB {
         "UPDATE accounts SET aurora_session_id=? WHERE id=? AND (aurora_session_id IS NULL OR aurora_session_id='')"
       )
       .run(sessionId, id);
+  }
+
+  setAccountLastLogin(id) {
+    const now = new Date().toISOString();
+    this.db.prepare('UPDATE accounts SET last_log_in=? WHERE id=?').run(now, id);
+  }
+
+  recordAccountLogin(id, ipAddresses = {}) {
+    const now = new Date().toISOString();
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    this.db
+      .prepare('INSERT INTO log_ins (account_id, logged_in_at, ipv4_address, ipv6_address) VALUES (?, ?, ?, ?)')
+      .run(id, now, ipv4, ipv6);
   }
 
   setAccountTotpSecret(id, secret) {
