@@ -3248,6 +3248,7 @@ ${cleanedFinalOutput}`;
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
         const backlogButtonVisible = parseBooleanFlagWithDefault(process.env.BACKLOG_BUTTON_VISIBLE, true);
         const nonRefreshDiffButtonHidden = parseBooleanFlag(process.env.NON_REFRESH_DIFF_BUTTON_HIDDEN);
+        const mainMergeButtonDisabled = parseBooleanFlag(process.env.MAIN_MERGE_BUTTON_DISABLED);
         let account = null;
         if (rdsStore?.enabled) {
             const sessionId = getSessionIdFromRequest(req);
@@ -3288,6 +3289,7 @@ ${cleanedFinalOutput}`;
             fileTreeButtonVisible,
             backlogButtonVisible,
             nonRefreshDiffButtonHidden,
+            mainMergeButtonDisabled,
             subscriptionCheckoutUrl,
             initialAccountInfo: account
                 ? {
