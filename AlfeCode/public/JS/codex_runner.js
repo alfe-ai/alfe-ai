@@ -3125,6 +3125,7 @@
 
   const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
 
+
   const parseRunIdFromHash = (hashValue) => {
     if (!hashValue) {
       return "";
@@ -3140,6 +3141,29 @@
       return normaliseRunId(decodeURIComponent(trimmed.slice(4)));
     }
     return normaliseRunId(decodeURIComponent(trimmed));
+  };
+
+  const maybePromoteHashRunIdToQueryForViewDiff = () => {
+    const currentUrl = new URL(window.location.href);
+    const viewDiffEnabled = (currentUrl.searchParams.get("viewDiff") || "").toLowerCase() === "true";
+    if (!viewDiffEnabled) {
+      return;
+    }
+
+    if (currentUrl.searchParams.get("run_id") || currentUrl.searchParams.get("runId")) {
+      return;
+    }
+
+    const runIdFromHash = parseRunIdFromHash(currentUrl.hash || "");
+    if (!runIdFromHash) {
+      return;
+    }
+
+    // URL fragments are not sent to the server. Promote #run=<id> to run_id
+    // so the backend can resolve the run and redirect to /agent/git-diff.
+    currentUrl.searchParams.set("run_id", runIdFromHash);
+    currentUrl.hash = "";
+    window.location.replace(currentUrl.toString());
   };
 
   const buildRunsPageHref = (projectDirValue, _runIdValue) => {
@@ -3208,6 +3232,8 @@
       return null;
     }
   };
+
+  maybePromoteHashRunIdToQueryForViewDiff();
 
   const existingRunIdFromHash = parseRunIdFromHash(window.location.hash || "");
   runsSidebarSelectedRunId = normaliseRunId(existingRunIdFromHash);

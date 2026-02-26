@@ -315,7 +315,7 @@ export default class TaskDBAws {
       await client.query(`CREATE TABLE IF NOT EXISTS accounts (
         id SERIAL PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
+        password_hash TEXT,
         session_id TEXT DEFAULT '',
         aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
@@ -327,11 +327,10 @@ export default class TaskDBAws {
       );`);
 
       await client.query(`CREATE TABLE IF NOT EXISTS log_ins (
-        id SERIAL PRIMARY KEY,
         account_id INTEGER NOT NULL REFERENCES accounts(id),
-        session_id TEXT DEFAULT '',
-        provider TEXT DEFAULT 'password',
-        logged_in_at TEXT NOT NULL
+        logged_in_at TEXT NOT NULL,
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT ''
       );`);
 
       // Migration: remove deprecated task-planning tables if they exist.
@@ -389,23 +388,8 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false;");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS aurora_session_id TEXT DEFAULT ''; ");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_log_in TEXT DEFAULT NULL;");
-
-      // Add setAccountLastLogin method (for PostgreSQL)
-      this.setAccountLastLogin = async function(id) {
-        const now = new Date().toISOString();
-        await client.query(
-          "UPDATE accounts SET last_log_in = $1 WHERE id = $2",
-          [now, id]
-        );
-      };
-
-      this.recordAccountLogin = async function(id, sessionId = '', provider = 'password') {
-        const now = new Date().toISOString();
-        await client.query(
-          'INSERT INTO log_ins (account_id, session_id, provider, logged_in_at) VALUES ($1, $2, $3, $4)',
-          [id, sessionId || '', provider || 'password', now]
-        );
-      };
+      await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT '';");
+      await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT '';");
       await client.query("UPDATE accounts SET disabled = false WHERE disabled IS NULL;");
     } finally {
       client.release();
@@ -1082,6 +1066,21 @@ export default class TaskDBAws {
     await this.pool.query(
       "UPDATE accounts SET aurora_session_id = $1 WHERE id = $2 AND (aurora_session_id IS NULL OR aurora_session_id = '')",
       [sessionId, id]
+    );
+  }
+
+  async setAccountLastLogin(id) {
+    const now = new Date().toISOString();
+    await this.pool.query('UPDATE accounts SET last_log_in = $1 WHERE id = $2', [now, id]);
+  }
+
+  async recordAccountLogin(id, ipAddresses = {}) {
+    const now = new Date().toISOString();
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    await this.pool.query(
+      'INSERT INTO log_ins (account_id, logged_in_at, ipv4_address, ipv6_address) VALUES ($1, $2, $3, $4)',
+      [id, now, ipv4, ipv6]
     );
   }
 

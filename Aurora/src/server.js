@@ -2174,7 +2174,7 @@ app.post("/api/login", async (req, res) => {
     await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
     // Update last login timestamp
     await db.setAccountLastLogin(account.id);
-    await db.recordAccountLogin(account.id, sessionId, 'password');
+    await db.recordAccountLogin(account.id, getRequestIpAddresses(req));
     res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/login failed:", err);
@@ -5285,7 +5285,7 @@ app.get('/auth/shopify/callback', async (req, res) => {
       await db.setAccountSession(account.id, sessionId);
       await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
       await db.setAccountLastLogin(account.id);
-      await db.recordAccountLogin(account.id, sessionId, 'shopify');
+      await db.recordAccountLogin(account.id, getRequestIpAddresses(req));
     } else {
       console.warn('[Server Debug] Shopify callback completed but no Aurora account matched session/email.');
     }
