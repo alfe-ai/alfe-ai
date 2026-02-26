@@ -5739,8 +5739,9 @@ const appendMergeChunk = (text, type = "output") => {
       (typeof run.userPrompt === "string" && run.userPrompt)
         || (typeof run.effectivePrompt === "string" && run.effectivePrompt)
         || "";
-    if (promptInput && promptValue) {
-    }
+    // Only set the read-only prompt field, NOT the main prompt textarea
+    // This ensures that when loading a saved run, the prompt appears in the preview
+    // field but not in the editable main prompt textarea
     updatePromptPreview(promptValue);
 
     if (agentInstructionsInput && typeof run.agentInstructions === "string" && run.agentInstructions) {
