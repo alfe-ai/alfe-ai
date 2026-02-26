@@ -7540,18 +7540,32 @@ ${err}`;
                     )
                 );
 
-            // Query the database for model information
+            // Query the database for model and run metadata
             let model = '';
+            let runBranch = '';
             if (runIdQuery && typeof rdsStore !== 'undefined') {
                 try {
                     const result = await rdsStore.getRunById(sessionId, runIdQuery);
-                    if (result && result.model) {
-                        model = result.model;
+                    if (result && typeof result === 'object') {
+                        if (result.model) {
+                            model = result.model;
+                        }
+                        const resolvedRunBranch = (
+                            result.branchName
+                            || result.gitBranch
+                            || result.branch
+                            || ''
+                        ).toString().trim();
+                        if (resolvedRunBranch) {
+                            runBranch = resolvedRunBranch;
+                        }
                     }
                 } catch (err) {
                     console.warn('Failed to query model from database for run:', runIdQuery, err);
                 }
             }
+
+            const branchDisplayName = (runBranch || branchName || '').toString().trim();
 
             const modelOnlyLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
                 if (entry && typeof entry.id === 'string') {
@@ -7606,7 +7620,8 @@ ${err}`;
                 chatNumber,
                 showCommitList: SHOW_COMMIT_LIST,
                 model: model,
-                modelDisplayName
+                modelDisplayName,
+                branchDisplayName
             });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
