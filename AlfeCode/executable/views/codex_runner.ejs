@@ -3065,7 +3065,35 @@
         }
 
         /* Merge button default: subtle grey-white */
-        .merge-button-wrapper {
+                .update-button-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+        .update-button-wrapper .update-button-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translate(-50%, 6px);
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.95);
+            color: rgba(241, 245, 249, 0.95);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            white-space: nowrap;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            z-index: 5;
+        }
+        .update-button-wrapper:hover .update-button-tooltip,
+        .update-button-wrapper:focus-within .update-button-tooltip {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+.merge-button-wrapper {
             position: relative;
             display: inline-flex;
         }
@@ -3811,14 +3839,20 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             </div>
 
             <div class="actions">
-                <button
-                    type="button"
-                    id="updateBranchButton"
-                    class="secondary"
-                    title="Pull updates from parent branch."
-                >
-                    Pull updates
-                </button>
+                <div class="update-button-wrapper">
+                    <button
+                        type="button"
+                        id="updateBranchButton"
+                        class="secondary"
+                        title="Pull updates from parent branch."
+                        aria-describedby="updateBranchTooltip"
+                    >
+                        Pull updates
+                    </button>
+                    <div class="update-button-tooltip" id="updateBranchTooltip" role="tooltip" aria-hidden="true">
+                        Pull updates from parent branch.
+                    </div>
+                </div>
                 <div class="merge-button-wrapper" id="mergeButtonWrapper">
                     <button
                         type="button"
