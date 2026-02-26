@@ -3051,6 +3051,31 @@ ${cleanedFinalOutput}`;
         return null;
     };
 
+    const normalizeCandidateProjectDirs = (...dirs) => {
+        const normalized = [];
+        const seen = new Set();
+        dirs.forEach((rawDir) => {
+            if (typeof rawDir !== "string") {
+                return;
+            }
+            const trimmed = rawDir.trim();
+            if (!trimmed) {
+                return;
+            }
+            try {
+                const resolved = path.resolve(trimmed);
+                if (seen.has(resolved)) {
+                    return;
+                }
+                seen.add(resolved);
+                normalized.push(resolved);
+            } catch (_err) {
+                // ignore invalid path candidates
+            }
+        });
+        return normalized;
+    };
+
     const renderCodexRunner = async (req, res) => {
         // Defer git cache prewarm until after the response is finished so the UI
         // can be rendered immediately. The prewarm is best-effort and may be
@@ -3077,24 +3102,67 @@ ${cleanedFinalOutput}`;
         const resolvedDefaultProjectDir = resolveDefaultProjectDirForSession(sessionId);
         const resolvedProjectDirForViewDiff = (projectDirParam || repoDirectoryParam || resolvedDefaultProjectDir || "").toString().trim();
 
+        console.info("[ViewDiff Debug] Incoming /agent request", {
+            sessionId: sessionId ? `${String(sessionId).slice(0, 8)}…` : "",
+            requestedViewDiff,
+            requestedRunId,
+            repoDirectoryParam,
+            projectDirParam,
+            resolvedDefaultProjectDir,
+            resolvedProjectDirForViewDiff,
+        });
+
         if (requestedViewDiff) {
             const resolvedRun = resolveRunForViewDiffRedirect(sessionId, requestedRunId, resolvedProjectDirForViewDiff);
+            console.info("[ViewDiff Debug] Resolved run", {
+                found: !!resolvedRun,
+                runId: resolvedRun ? String(resolvedRun.id || "") : "",
+                runProjectDir: resolvedRun ? String(resolvedRun.projectDir || "") : "",
+                runRequestedProjectDir: resolvedRun ? String(resolvedRun.requestedProjectDir || "") : "",
+                runEffectiveProjectDir: resolvedRun ? String(resolvedRun.effectiveProjectDir || "") : "",
+            });
             if (resolvedRun) {
                 const finalOutputText = await resolveFinalOutputTextForCommit(resolvedRun);
                 const commitHash = extractCommitHashForDiffFromFinalOutput(finalOutputText);
-                const fullCommitHash = resolveFullCommitHash(resolvedProjectDirForViewDiff, commitHash);
-                if (fullCommitHash) {
+                const candidateDirs = normalizeCandidateProjectDirs(
+                    resolvedProjectDirForViewDiff,
+                    resolvedRun.effectiveProjectDir,
+                    resolvedRun.requestedProjectDir,
+                    resolvedRun.projectDir,
+                    repoDirectoryParam,
+                    projectDirParam,
+                    resolvedDefaultProjectDir,
+                );
+                console.info("[ViewDiff Debug] Diff extraction result", {
+                    commitHash,
+                    finalOutputLength: typeof finalOutputText === "string" ? finalOutputText.length : 0,
+                    candidateDirs,
+                });
+                for (const candidateDir of candidateDirs) {
+                    const fullCommitHash = resolveFullCommitHash(candidateDir, commitHash);
+                    if (!fullCommitHash) {
+                        console.info("[ViewDiff Debug] Commit hash not found in candidate repo", {
+                            candidateDir,
+                            commitHash,
+                        });
+                        continue;
+                    }
                     let parentHash = "";
                     try {
                         parentHash = execSync(`git rev-parse --verify ${fullCommitHash}^`, {
-                            cwd: resolvedProjectDirForViewDiff,
+                            cwd: candidateDir,
                             stdio: ["pipe", "pipe", "pipe"],
                         }).toString().trim();
                     } catch (_err) {
                         parentHash = "";
                     }
+                    console.info("[ViewDiff Debug] Redirecting to git diff", {
+                        candidateDir,
+                        fullCommitHash,
+                        parentHash,
+                    });
                     const diffParams = new URLSearchParams({
-                        projectDir: resolvedProjectDirForViewDiff,
+                        projectDir: candidateDir,
                         baseRev: parentHash || `${fullCommitHash}^`,
                         compRev: fullCommitHash,
                         mergeReady: "1",
@@ -3102,6 +3170,11 @@ ${cleanedFinalOutput}`;
                     });
                     return res.redirect(`/agent/git-diff?${diffParams.toString()}`);
                 }
+                console.warn("[ViewDiff Debug] Could not resolve full commit hash in any candidate directory", {
+                    commitHash,
+                    candidateDirs,
+                    runId: String(resolvedRun.id || "").trim(),
+                });
             }
         }
 
