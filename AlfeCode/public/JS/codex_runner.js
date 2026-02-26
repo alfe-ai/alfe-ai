@@ -4083,14 +4083,21 @@
     }
 
     const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
-    const normalizedStatus = statusText.replace(/\u2026/g, "...");
+    const normalizedStatus = statusText.replace(/…/g, "...");
     const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
+    const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "";
     const runIsActive = Boolean(eventSource)
       || normalizedStatus === "running..."
       || normalizedStatus === "merging...";
     const runLooksComplete = hasCurrentRunId && !runIsActive && normalizedStatus.length > 0;
+    const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
 
-    refreshRunPageButton.classList.toggle("is-hidden", !(runLooksComplete && !hasActiveMergeDiffLink()));
+    // Show Refresh as soon as final output is available when View Diff is not active.
+    // If View Diff appears later, hide Refresh immediately.
+    refreshRunPageButton.classList.toggle(
+      "is-hidden",
+      !((runLooksComplete || finalOutputReady) && !hasActiveMergeDiffLink()),
+    );
   };
 
   if (refreshRunPageButton) {
@@ -7614,6 +7621,8 @@ const appendMergeChunk = (text, type = "output") => {
         setActiveOutputTab("combined");
       }
     }
+
+    updateRefreshRunButtonVisibility();
   };
 
   const extractCommitMessageFromBuffer = () => {
