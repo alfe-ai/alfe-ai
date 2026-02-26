@@ -2967,6 +2967,7 @@ ${cleanedFinalOutput}`;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
         const backlogButtonVisible = parseBooleanFlagWithDefault(process.env.BACKLOG_BUTTON_VISIBLE, true);
+        const nonRefreshDiffButtonHidden = parseBooleanFlag(process.env.NON_REFRESH_DIFF_BUTTON_HIDDEN);
         let account = null;
         if (rdsStore?.enabled) {
             const sessionId = getSessionIdFromRequest(req);
@@ -3006,6 +3007,7 @@ ${cleanedFinalOutput}`;
             agentModelDropdownDisabled,
             fileTreeButtonVisible,
             backlogButtonVisible,
+            nonRefreshDiffButtonHidden,
             subscriptionCheckoutUrl,
             initialAccountInfo: account
                 ? {

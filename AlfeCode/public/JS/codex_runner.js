@@ -1,6 +1,7 @@
 (() => {
   const config = window.CODEX_RUNNER_CONFIG || {};
   const shouldStripCodexUserPrompt = config.userPromptVisibleCodex !== true;
+  const nonRefreshDiffButtonHidden = config.nonRefreshDiffButtonHidden === true;
   const CODEX_HIDDEN_PROMPT_LINES = [
     'Do not ask to commit changes, we run a script to automatically stage, commit, and push after you finish.',
     'Do not ask anything like "Do you want me to run `git commit` with a message?"',
@@ -1098,6 +1099,11 @@
   const deleteLocalButton = document.getElementById("deleteLocalButton");
   const mergeDisabledTooltip = document.getElementById("mergeDisabledTooltip");
   const mergeDiffButton = document.getElementById("openMergeDiffButton");
+  if (mergeDiffButton && nonRefreshDiffButtonHidden) {
+    mergeDiffButton.classList.add('is-hidden');
+    mergeDiffButton.disabled = true;
+    mergeDiffButton.setAttribute('aria-disabled', 'true');
+  }
   const refreshRunPageButton = document.getElementById("refreshRunPageButton");
   const openEditorTopButton = document.getElementById("openEditorTopButton");
   defaultModelInput = document.getElementById("defaultModelInput");
@@ -4306,6 +4312,10 @@
   };
 
   const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
+    if (nonRefreshDiffButtonHidden) {
+      hideMergeDiffButton();
+      return;
+    }
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4347,6 +4357,10 @@
 
 
   const enableMergeDiffButtonForHash = (hash, projectDirValue) => {
+    if (nonRefreshDiffButtonHidden) {
+      hideMergeDiffButton();
+      return;
+    }
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
