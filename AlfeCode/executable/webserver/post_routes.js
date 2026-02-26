@@ -837,7 +837,14 @@ function setupPostRoutes(deps) {
             await rdsStore.setAccountSession(account.id, sessionId);
         }
 
+        console.log("[AlfeCode][login] updating last_log_in", {
+            accountId: account.id,
+            email: account.email,
+        });
         await rdsStore.setAccountLastLogin(account.id);
+        console.log("[AlfeCode][login] updated last_log_in", {
+            accountId: account.id,
+        });
 
         if (resolvedSessionId) {
             const hostname = req.hostname
