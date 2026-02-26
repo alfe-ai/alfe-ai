@@ -568,6 +568,10 @@
             min-width: 0;
         }
 
+        .sidebar-context-item.base-revision-hidden {
+            display: none;
+        }
+
         .sidebar-context-label {
             font-size: 10px;
             letter-spacing: 0.08em;
@@ -1142,15 +1146,21 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                     <summary>Git Revision Info</summary>
                     <div class="sidebar-context-collapsible-body">
                 <% if (baseRev) { %>
-                <div class="sidebar-context-item">
+                <div class="sidebar-context-item base-revision-hidden">
                     <span class="sidebar-context-label">Base revision</span>
                     <p class="sidebar-context-value"><%= baseRev %></p>
                 </div>
                 <% } %>
                 <% if (compRev) { %>
                 <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">Compare head</span>
+                    <span class="sidebar-context-label">Revision</span>
                     <p class="sidebar-context-value"><%= compRev %></p>
+                </div>
+                <% } %>
+                <% if (typeof branchDisplayName === 'string' && branchDisplayName.trim()) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Branch</span>
+                    <p class="sidebar-context-value"><%= branchDisplayName %></p>
                 </div>
                 <% } %>
                 <% if (comparisonCommitMessage) { %>
