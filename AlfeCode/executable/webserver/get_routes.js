@@ -2909,16 +2909,6 @@ ${cleanedFinalOutput}`;
         return defaultCodexProjectDir;
     };
 
-    const resolveCodexRunnerParam = (req, key) => {
-        const bodyValue = req?.body && Object.prototype.hasOwnProperty.call(req.body, key)
-            ? req.body[key]
-            : undefined;
-        const queryValue = req?.query && Object.prototype.hasOwnProperty.call(req.query, key)
-            ? req.query[key]
-            : undefined;
-        return typeof bodyValue !== 'undefined' ? bodyValue : queryValue;
-    };
-
     const renderCodexRunner = async (req, res) => {
         // Defer git cache prewarm until after the response is finished so the UI
         // can be rendered immediately. The prewarm is best-effort and may be
@@ -2926,23 +2916,22 @@ ${cleanedFinalOutput}`;
         try {
             if (res && typeof res.once === 'function') {
                 res.once('finish', () => {
-                    try { __prewarmGitCaches([resolveCodexRunnerParam(req, 'repo_directory') || resolveCodexRunnerParam(req, 'projectDir')].filter(Boolean)); } catch (_e) { /* ignore */ }
+                    try { __prewarmGitCaches(req?.query && [req.query.repo_directory || req.query.projectDir].filter(Boolean)); } catch (_e) { /* ignore */ }
                 });
             } else {
                 // Fallback: schedule it asynchronously
-                setImmediate(() => { try { __prewarmGitCaches([resolveCodexRunnerParam(req, 'repo_directory') || resolveCodexRunnerParam(req, 'projectDir')].filter(Boolean)); } catch (_e) { /* ignore */ } });
+                setImmediate(() => { try { __prewarmGitCaches(req?.query && [req.query.repo_directory || req.query.projectDir].filter(Boolean)); } catch (_e) { /* ignore */ } });
             }
         } catch (_e) { /* ignore */ }
 
-        const iframeParam = resolveCodexRunnerParam(req, 'iframe');
+        const iframeParam = req?.query?.iframe;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const defaultCodexModel = resolveDefaultCodexModel(sessionId);
         const codexConfig = typeof loadCodexConfig === "function" ? loadCodexConfig() : {};
-        const repoDirectoryParam = (resolveCodexRunnerParam(req, 'repo_directory') || "").toString();
-        const projectDirParam = (resolveCodexRunnerParam(req, 'projectDir') || "").toString();
+        const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
+        const projectDirParam = (req?.query?.projectDir || "").toString();
         const resolvedDefaultProjectDir = resolveDefaultProjectDirForSession(sessionId);
         const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanFlag(iframeParam);
-        const initialViewDiff = parseBooleanFlag(resolveCodexRunnerParam(req, 'viewDiff'));
         const defaultAgentInstructions =
             typeof codexConfig?.defaultAgentInstructions === "string"
                 ? codexConfig.defaultAgentInstructions
@@ -3028,7 +3017,6 @@ ${cleanedFinalOutput}`;
                 : null,
             shopifyAuthEnabled: true,
             shopifyAuthStartUrl: "/auth/shopify/start",
-            initialViewDiff,
         });
     };
 
@@ -3348,7 +3336,6 @@ ${cleanedFinalOutput}`;
     });
 
     app.get("/agent", renderCodexRunner);
-    app.post("/agent", renderCodexRunner);
     app.get('/agent/help', (req, res) => { res.render('agent_help'); });
     app.get('/checkout', async (req, res) => {
         try {
