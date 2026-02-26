@@ -2402,9 +2402,9 @@
   };
 
   const MERGE_DISABLED_TOOLTIP_TEXT =
-    "Merge is available after agent finishes running.";
+    "Merge is available after agent finishes running";
   const MERGE_DISABLED_TOOLTIP_HTML =
-    "Merge is available after<br />agent finishes running.";
+    "Merge is available after<br />agent finishes running";
 
   let mergeTooltipPinned = false;
   let currentMergeDisabledReason = null;
@@ -4557,7 +4557,7 @@
     mergeButton.setAttribute("aria-disabled", shouldDisable ? "true" : "false");
     mergeButton.classList.toggle("is-merge-ready", !shouldDisable);
     if (!shouldDisable) {
-      mergeButton.title = "Merge current branch into the configured project branch";
+      mergeButton.title = "Merge into the configured project branch";
     } else if (disabledReason === "in-flight") {
       mergeButton.removeAttribute("title");
     } else {
