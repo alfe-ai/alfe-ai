@@ -4178,12 +4178,13 @@
   const shouldEnableRefreshStyleActions = () => {
     const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
     const normalizedStatus = statusText.replace(/\u2026/g, "...");
+    const runIsMerged = normalizedStatus === "merged" || normalizedStatus === "merged.";
     const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
     const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "";
     const runIsActive = Boolean(eventSource)
       || normalizedStatus === "running..."
       || normalizedStatus === "merging...";
-    const runLooksComplete = hasCurrentRunId && !runIsActive && normalizedStatus.length > 0;
+    const runLooksComplete = hasCurrentRunId && !runIsActive && !runIsMerged && normalizedStatus.length > 0;
     const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
     const hasPreparedDiffUrl = Boolean(
       mergeDiffButton
@@ -4546,8 +4547,11 @@
     if (!mergeButton) {
       return;
     }
+    const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
+    const normalizedStatus = statusText.replace(/\u2026/g, "...");
+    const runIsMerged = normalizedStatus === "merged" || normalizedStatus === "merged.";
     const mergeEnabledByRefreshState = shouldEnableRefreshStyleActions();
-    const shouldDisable = runControlsDisabled || mergeInFlight || (!mergeReady && !mergeEnabledByRefreshState);
+    const shouldDisable = runIsMerged || runControlsDisabled || mergeInFlight || (!mergeReady && !mergeEnabledByRefreshState);
     const disabledReason = shouldDisable ? getMergeDisabledReason() : null;
     mergeButton.disabled = shouldDisable;
     mergeButton.setAttribute("aria-disabled", shouldDisable ? "true" : "false");
