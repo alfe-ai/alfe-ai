@@ -2951,8 +2951,80 @@ ${cleanedFinalOutput}`;
             return "";
         }
 
-        const match = finalOutputText.match(/[0-9a-f]{7,40}/i);
-        return match ? match[0] : "";
+        const matches = finalOutputText.match(/\b[0-9a-f]{7,40}\b/gi) || [];
+        if (!matches.length) {
+            return "";
+        }
+
+        // Prefer the longest hash token so full 40-char SHAs win over short
+        // abbreviated hashes when both are present in output.
+        return matches.sort((a, b) => b.length - a.length)[0] || "";
+    };
+
+    const resolveFullCommitHash = (cwd, revision) => {
+        const token = typeof revision === "string" ? revision.trim() : "";
+        if (!token) {
+            return "";
+        }
+        if (!/^[0-9a-f]{7,40}$/i.test(token)) {
+            return "";
+        }
+
+        try {
+            const full = execSync(`git rev-parse --verify ${token}^{commit}`, {
+                cwd,
+                stdio: ["pipe", "pipe", "pipe"],
+            }).toString().trim();
+            return /^[0-9a-f]{40}$/i.test(full) ? full : "";
+        } catch (_err) {
+            return "";
+        }
+    };
+
+    const resolveGitProjectDirForViewDiff = (projectDir, runRecord) => {
+        const candidates = [
+            projectDir,
+            runRecord && runRecord.projectDir,
+            runRecord && runRecord.requestedProjectDir,
+            runRecord && runRecord.effectiveProjectDir,
+        ].filter(Boolean);
+
+        for (const candidate of candidates) {
+            try {
+                const resolved = path.resolve(String(candidate));
+                const stats = fs.statSync(resolved);
+                if (!stats.isDirectory()) {
+                    continue;
+                }
+                execSync('git rev-parse --is-inside-work-tree', {
+                    cwd: resolved,
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                });
+                return resolved;
+            } catch (_err) {
+                // try next candidate
+            }
+        }
+        return "";
+    };
+
+    const collectCommitHashCandidatesForViewDiff = (runRecord, finalOutputText) => {
+        const candidates = [];
+        const append = (value) => {
+            if (typeof value !== 'string') return;
+            const trimmed = value.trim();
+            if (!trimmed) return;
+            const m = trimmed.match(/\b[0-9a-f]{7,40}\b/i);
+            if (!m) return;
+            candidates.push(m[0]);
+        };
+
+        append(runRecord && runRecord.commit);
+        append(runRecord && runRecord.hash);
+        append(runRecord && runRecord.commitHash);
+        append(extractCommitHashForDiffFromFinalOutput(finalOutputText));
+
+        return candidates;
     };
 
     const resolveRunForViewDiffRedirect = (sessionId, runId, projectDirParam) => {
@@ -3052,20 +3124,80 @@ ${cleanedFinalOutput}`;
         const resolvedProjectDirForViewDiff = (projectDirParam || repoDirectoryParam || resolvedDefaultProjectDir || "").toString().trim();
 
         if (requestedViewDiff) {
+            console.log('[viewDiff] redirect requested', {
+                sessionId,
+                requestedRunId,
+                repoDirectoryParam,
+                projectDirParam,
+                resolvedProjectDirForViewDiff,
+                queryKeys: Object.keys(req?.query || {}),
+            });
             const resolvedRun = resolveRunForViewDiffRedirect(sessionId, requestedRunId, resolvedProjectDirForViewDiff);
+            if (!resolvedRun) {
+                console.warn('[viewDiff] no run resolved for redirect');
+            }
             if (resolvedRun) {
+                console.log('[viewDiff] resolved run', {
+                    id: resolvedRun.id || '',
+                    projectDir: resolvedRun.projectDir || '',
+                    requestedProjectDir: resolvedRun.requestedProjectDir || '',
+                    effectiveProjectDir: resolvedRun.effectiveProjectDir || '',
+                    commit: resolvedRun.commit || '',
+                    hash: resolvedRun.hash || '',
+                });
+                const gitProjectDir = resolveGitProjectDirForViewDiff(resolvedProjectDirForViewDiff, resolvedRun);
+                console.log('[viewDiff] git project dir resolution', {
+                    requested: resolvedProjectDirForViewDiff,
+                    resolved: gitProjectDir,
+                });
+
                 const finalOutputText = await resolveFinalOutputTextForCommit(resolvedRun);
-                const commitHash = extractCommitHashForDiffFromFinalOutput(finalOutputText);
-                if (commitHash) {
+                const commitHashCandidates = collectCommitHashCandidatesForViewDiff(resolvedRun, finalOutputText);
+                console.log('[viewDiff] commit hash candidates', commitHashCandidates);
+
+                let fullCommitHash = '';
+                if (gitProjectDir) {
+                    for (const candidateHash of commitHashCandidates) {
+                        fullCommitHash = resolveFullCommitHash(gitProjectDir, candidateHash);
+                        if (fullCommitHash) {
+                            break;
+                        }
+                    }
+                }
+
+                if (!fullCommitHash) {
+                    const rawFull = commitHashCandidates.find((hash) => typeof hash === 'string' && /^[0-9a-f]{40}$/i.test(hash.trim()));
+                    fullCommitHash = rawFull ? rawFull.trim() : '';
+                }
+
+                if (fullCommitHash) {
+                    let parentHash = "";
+                    if (gitProjectDir) {
+                        try {
+                            parentHash = execSync(`git rev-parse --verify ${fullCommitHash}^`, {
+                                cwd: gitProjectDir,
+                                stdio: ["pipe", "pipe", "pipe"],
+                            }).toString().trim();
+                        } catch (_err) {
+                            parentHash = "";
+                        }
+                    }
                     const diffParams = new URLSearchParams({
-                        projectDir: resolvedProjectDirForViewDiff,
-                        baseRev: `${commitHash}^`,
-                        compRev: commitHash,
+                        projectDir: gitProjectDir || resolvedProjectDirForViewDiff,
+                        baseRev: parentHash || `${fullCommitHash}^`,
+                        compRev: fullCommitHash,
                         mergeReady: "1",
                         run_id: String(resolvedRun.id || "").trim(),
                     });
-                    return res.redirect(`/agent/git-diff?${diffParams.toString()}`);
+                    const redirectUrl = `/agent/git-diff?${diffParams.toString()}`;
+                    console.log('[viewDiff] redirecting', { redirectUrl, fullCommitHash, parentHash: parentHash || `${fullCommitHash}^` });
+                    return res.redirect(redirectUrl);
                 }
+
+                console.warn('[viewDiff] no commit hash could be resolved for redirect', {
+                    runId: resolvedRun.id || '',
+                    finalOutputLength: (finalOutputText || '').length,
+                });
             }
         }
 
