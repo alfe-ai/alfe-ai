@@ -575,7 +575,7 @@ class RdsStore {
       await this.pool.query(
         `INSERT INTO ${PAGE_VIEWS_TABLE} (session_id, route, viewed_at, ipv4_address, ipv6_address)
          VALUES ($1, $2, $3, $4, $5)`,
-        [sessionId, pageRoute, viewedAt, ipv4, ipv6]
+        [sessionId, pageRoute, viewedAt, ipv4 ? [ipv4] : [], ipv6 ? [ipv6] : []]
       );
     } catch (error) {
       console.error("[RdsStore] Failed to increment session view count:", error?.message || error);
