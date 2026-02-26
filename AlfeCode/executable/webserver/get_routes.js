@@ -3236,6 +3236,11 @@ ${cleanedFinalOutput}`;
                             callbackRequestId,
                             accountId: account.id,
                         });
+                        await rdsStore.createAccountLoginRecord(account.id);
+                        console.info("[Shopify callback] Wrote log_ins row", {
+                            callbackRequestId,
+                            accountId: account.id,
+                        });
 
                         const incomingSessionId = getSessionIdFromRequest(req);
                         let resolvedSessionId = incomingSessionId;
