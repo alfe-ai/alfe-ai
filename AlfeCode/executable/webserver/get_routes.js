@@ -646,6 +646,33 @@ function setupGetRoutes(deps) {
         }
         return res.json(response);
     });
+    
+    // Route to get database account IP addresses
+    app.get("/api/db_account_ips", async (req, res) => {
+        if (!rdsStore?.enabled) {
+            return res.status(503).json({ error: "Database account IPs are not configured on this server." });
+        }
+        const sessionId = getSessionIdFromRequest(req);
+        if (!sessionId) {
+            return res.status(401).json({ error: "not logged in" });
+        }
+        const account = await rdsStore.getAccountBySession(sessionId);
+        if (!account) {
+            return res.status(404).json({ error: "Account not found" });
+        }
+        
+        // Return basic IP address information - in a real implementation this would 
+        // retrieve actual IP addresses associated with the account from the database
+        const ipAddresses = {
+            session_ip: getRequestIp(req),
+            config_ip_whitelist: Array.from(configIpWhitelist),
+            account_id: account.id,
+            account_email: account.email
+        };
+        
+        return res.json(ipAddresses);
+    });
+    
     app.get("/api/support", async (req, res) => {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Support requests are not configured on this server." });
