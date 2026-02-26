@@ -2039,3 +2039,8 @@ if (projectViewEnabled) {
 } else {
   console.debug("[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED or BACKLOG_BUTTON_VISIBLE; /ProjectView routes not mounted.");
 }
+
+// Route for potato game
+app.get("/potatoes", (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, "public", "potatoes.html"));
+});

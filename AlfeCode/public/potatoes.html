@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potato Shooter Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(to bottom, #8B4513, #654321);
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            color: #fff;
+        }
+        
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        h1 {
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+            margin-top: 0;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: rgba(139, 69, 19, 0.6);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        #score, #lives {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .game-area {
+            position: relative;
+            height: 400px;
+            background: linear-gradient(to bottom, #228B22, #006400);
+            border: 4px solid #8B4513;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .potato {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: #8B4513;
+            border-radius: 50%;
+            border: 2px solid #654321;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .potato:hover {
+            transform: scale(1.1);
+        }
+        
+        .potato::before {
+            content: "🥔";
+            font-size: 40px;
+        }
+        
+        .potato-hit {
+            animation: hit 0.5s forwards;
+        }
+        
+        @keyframes hit {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        
+        .player {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background: #FF8C00;
+            border-radius: 50%;
+            border: 3px solid #FF4500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.7);
+        }
+        
+        .player::before {
+            content: "👨";
+            font-size: 45px;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #FF8C00;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #FFA500;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .instructions {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none;
+        }
+        
+        .game-over h2 {
+            color: #FFD700;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .game-over p {
+            font-size: 32px;
+            margin-bottom: 30px;
+        }
+        
+        .explosion {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #FF4500;
+            border-radius: 50%;
+            animation: explode 0.5s forwards;
+            pointer-events: none;
+        }
+        
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🥔 Potato Shooter Game 🥔</h1>
+        
+        <div class="game-info">
+            <div id="score">Score: 0</div>
+            <div id="lives">Lives: 3</div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="player"></div>
+            <div class="game-over" id="gameOver">
+                <h2>Game Over!</h2>
+                <p>Final Score: <span id="finalScore">0</span></p>
+                <button onclick="location.reload()">Play Again</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start Game</button>
+            <button id="pauseBtn">Pause</button>
+        </div>
+        
+        <div class="instructions">
+            <p>Click on the potatoes to harvest them! Avoid letting them fall to the ground.</p>
+            <p>Each potato you hit gives you 10 points. You lose a life if a potato reaches the bottom.</p>
+        </div>
+    </div>
+
+    <script>
+        class PotatoGame {
+            constructor() {
+                this.score = 0;
+                this.lives = 3;
+                this.gameActive = false;
+                this.gameInterval = null;
+                this.potatoInterval = null;
+                this.gameArea = document.getElementById('gameArea');
+                this.scoreElement = document.getElementById('score');
+                this.livesElement = document.getElementById('lives');
+                this.gameOverElement = document.getElementById('gameOver');
+                this.finalScoreElement = document.getElementById('finalScore');
+                this.startBtn = document.getElementById('startBtn');
+                this.pauseBtn = document.getElementById('pauseBtn');
+                
+                this.initializeEventListeners();
+            }
+            
+            initializeEventListeners() {
+                this.startBtn.addEventListener('click', () => this.startGame());
+                this.pauseBtn.addEventListener('click', () => this.togglePause());
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === ' ' || e.key === 'Spacebar') {
+                        e.preventDefault();
+                        if (this.gameActive) {
+                            this.togglePause();
+                        } else {
+                            this.startGame();
+                        }
+                    }
+                });
+            }
+            
+            startGame() {
+                if (this.gameActive) return;
+                
+                this.gameActive = true;
+                this.gameOverElement.style.display = 'none';
+                this.score = 0;
+                this.lives = 3;
+                this.updateUI();
+                
+                // Clear existing potatoes
+                document.querySelectorAll('.potato').forEach(p => p.remove());
+                
+                // Start game loop
+                this.gameInterval = setInterval(() => {
+                    this.updateGame();
+                }, 20);
+                
+                // Start creating potatoes
+                this.potatoInterval = setInterval(() => {
+                    this.createPotato();
+                }, 1000);
+                
+                this.startBtn.textContent = 'Restart Game';
+            }
+            
+            togglePause() {
+                if (!this.gameActive) return;
+                
+                if (this.gameInterval) {
+                    clearInterval(this.gameInterval);
+                    this.gameInterval = null;
+                }
+                
+                if (this.potatoInterval) {
+                    clearInterval(this.potatoInterval);
+                    this.potatoInterval = null;
+                }
+                
+                this.gameActive = !this.gameActive;
+                this.pauseBtn.textContent = this.gameActive ? 'Pause' : 'Resume';
+            }
+            
+            updateGame() {
+                // Move existing potatoes
+                const potatoes = document.querySelectorAll('.potato');
+                potatoes.forEach(potato => {
+                    const rect = potato.getBoundingClientRect();
+                    const gameRect = this.gameArea.getBoundingClientRect();
+                    const top = parseFloat(potato.style.top || 0);
+                    const speed = 2;
+                    
+                    // Move potato down
+                    const newTop = top + speed;
+                    potato.style.top = newTop + 'px';
+                    
+                    // Check if potato reached the bottom
+                    if (newTop > (gameRect.height - 50)) {
+                        this.loseLife();
+                        potato.remove();
+                    }
+                });
+            }
+            
+            createPotato() {
+                if (!this.gameActive) return;
+                
+                const potato = document.createElement('div');
+                potato.className = 'potato';
+                
+                // Random horizontal position
+                const gameRect = this.gameArea.getBoundingClientRect();
+                const x = Math.random() * (gameRect.width - 50);
+                potato.style.left = x + 'px';
+                potato.style.top = '-50px';
+                
+                this.gameArea.appendChild(potato);
+                
+                // Add click event
+                potato.addEventListener('click', (e) => {
+                    this.hitPotato(potato);
+                    e.stopPropagation();
+                });
+            }
+            
+            hitPotato(potato) {
+                if (!this.gameActive) return;
+                
+                // Create explosion effect
+                this.createExplosion(potato);
+                
+                // Remove potato
+                potato.classList.add('potato-hit');
+                
+                // Add score
+                this.score += 10;
+                this.updateUI();
+                
+                // Remove after animation
+                setTimeout(() => {
+                    potato.remove();
+                }, 500);
+            }
+            
+            createExplosion(potato) {
+                const rect = potato.getBoundingClientRect();
+                const gameRect = this.gameArea.getBoundingClientRect();
+                
+                const explosion = document.createElement('div');
+                explosion.className = 'explosion';
+                explosion.style.left = (rect.left - gameRect.left + 25 - 50) + 'px';
+                explosion.style.top = (rect.top - gameRect.top + 25 - 50) + 'px';
+                
+                this.gameArea.appendChild(explosion);
+                
+                setTimeout(() => {
+                    explosion.remove();
+                }, 500);
+            }
+            
+            loseLife() {
+                this.lives--;
+                this.updateUI();
+                
+                if (this.lives <= 0) {
+                    this.gameOver();
+                }
+            }
+            
+            updateUI() {
+                this.scoreElement.textContent = `Score: ${this.score}`;
+                this.livesElement.textContent = `Lives: ${this.lives}`;
+            }
+            
+            gameOver() {
+                this.gameActive = false;
+                clearInterval(this.gameInterval);
+                clearInterval(this.potatoInterval);
+                
+                this.finalScoreElement.textContent = this.score;
+                this.gameOverElement.style.display = 'flex';
+                
+                // Remove all potatoes
+                document.querySelectorAll('.potato').forEach(p => p.remove());
+            }
+        }
+        
+        // Initialize game when page loads
+        let game;
+        window.addEventListener('load', () => {
+            game = new PotatoGame();
+        });
+        
+        // Auto-start when page loads
+        setTimeout(() => {
+            if (game && document.querySelector("#startBtn").textContent === 'Start Game') {
+                game.startGame();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

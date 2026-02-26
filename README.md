@@ -121,3 +121,7 @@ A reverse proxy solution that enables SSH access to local machines from a remote
 To set up:
 1. Use the client in `LLMReverseProxy/client/` on local desktops
 2. Use the server in `LLMReverseProxy/server/` on the AWS host
+
+## New Game Feature
+
+We've added a fun potato-themed game! You can play it by visiting `/potatoes` in your browser.
