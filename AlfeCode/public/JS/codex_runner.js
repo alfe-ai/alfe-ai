@@ -1136,9 +1136,7 @@
       if (!button) {
         return false;
       }
-      const isVisible = !button.classList.contains("is-hidden");
-      const isEnabled = !button.disabled && button.getAttribute("aria-disabled") !== "true";
-      return isVisible && isEnabled;
+      return !button.classList.contains("is-hidden");
     }) || null;
   };
 
