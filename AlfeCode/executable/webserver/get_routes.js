@@ -492,6 +492,12 @@ function setupGetRoutes(deps) {
         return base64UrlEncode(crypto.createHash("sha256").update(verifier).digest());
     };
 
+    // Route to serve the db_account_ips.html page
+    app.get("/db_account_ips", (req, res) => {
+        const dbAccountIpsPath = path.join(__dirname, "..", "Aurora", "public", "db_account_ips.html");
+        res.sendFile(dbAccountIpsPath);
+    });
+
     const storeShopifyAuthState = ({ returnTo, codeVerifier }) => {
         const state = randomUUID();
         shopifyAuthStateStore.set(state, {

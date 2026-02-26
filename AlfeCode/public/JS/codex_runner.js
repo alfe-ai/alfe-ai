@@ -1098,6 +1098,7 @@
   const deleteLocalButton = document.getElementById("deleteLocalButton");
   const mergeDisabledTooltip = document.getElementById("mergeDisabledTooltip");
   const mergeDiffButton = document.getElementById("openMergeDiffButton");
+  const refreshRunPageButton = document.getElementById("refreshRunPageButton");
   const openEditorTopButton = document.getElementById("openEditorTopButton");
   defaultModelInput = document.getElementById("defaultModelInput");
   const defaultModelSaveButton = document.getElementById("defaultModelSaveButton");
@@ -4076,6 +4077,28 @@
     hideMergeDiffButton();
   };
 
+  const updateRefreshRunButtonVisibility = () => {
+    if (!refreshRunPageButton) {
+      return;
+    }
+
+    const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
+    const normalizedStatus = statusText.replace(/\u2026/g, "...");
+    const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
+    const runIsActive = Boolean(eventSource)
+      || normalizedStatus === "running..."
+      || normalizedStatus === "merging...";
+    const runLooksComplete = hasCurrentRunId && !runIsActive && normalizedStatus.length > 0;
+
+    refreshRunPageButton.classList.toggle("is-hidden", !(runLooksComplete && !hasActiveMergeDiffLink()));
+  };
+
+  if (refreshRunPageButton) {
+    refreshRunPageButton.addEventListener("click", () => {
+      window.location.reload();
+    });
+  }
+
   const hideMergeDiffButton = () => {
     if (!mergeDiffButton) return;
     mergeDiffButton.disabled = true;
@@ -4083,6 +4106,7 @@
     mergeDiffButton.setAttribute('aria-disabled', 'true');
     mergeDiffButton.onclick = null;
     mergeDiffButton.classList.add('is-hidden');
+    updateRefreshRunButtonVisibility();
   };
 
   const hasActiveMergeDiffLink = () => {
@@ -4275,6 +4299,7 @@
     mergeDiffButton.setAttribute('aria-disabled', 'false');
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
+    updateRefreshRunButtonVisibility();
     if (autoOpenMergeDiffOnEnable) {
       autoOpenMergeDiffOnEnable = false;
       setTimeout(() => mergeDiffButton.click(), 0);
@@ -4316,6 +4341,7 @@
     mergeDiffButton.setAttribute('aria-disabled', 'false');
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
+    updateRefreshRunButtonVisibility();
     if (autoOpenMergeDiffOnEnable) {
       autoOpenMergeDiffOnEnable = false;
       setTimeout(() => mergeDiffButton.click(), 0);
@@ -6781,6 +6807,8 @@ const appendMergeChunk = (text, type = "output") => {
     } catch (_error) {
       /* ignore final output refresh errors */
     }
+
+    updateRefreshRunButtonVisibility();
   };
 
   const prepareNewTask = () => {
