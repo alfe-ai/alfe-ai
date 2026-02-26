@@ -4125,6 +4125,20 @@
     ensureMergeDiffContainerVisible();
     refreshRunPageButton.disabled = !shouldEnableRefreshButton;
     refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
+
+    if (!nonRefreshDiffButtonHidden || !hasPreparedDiffUrl) {
+      delete refreshRunPageButton.dataset.autoOpenedDiffUrl;
+      return;
+    }
+
+    const preparedDiffUrl = mergeDiffButton.getAttribute("data-href").trim();
+    const hasAutoOpenedPreparedUrl = refreshRunPageButton.dataset.autoOpenedDiffUrl === preparedDiffUrl;
+    if (!shouldEnableRefreshButton || hasAutoOpenedPreparedUrl) {
+      return;
+    }
+
+    refreshRunPageButton.dataset.autoOpenedDiffUrl = preparedDiffUrl;
+    setTimeout(() => openMergeDiffModal(preparedDiffUrl), 0);
   };
 
   if (refreshRunPageButton) {
