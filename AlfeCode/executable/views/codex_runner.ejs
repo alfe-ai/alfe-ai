@@ -4754,36 +4754,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
   }catch(e){}
 })();
 
-// Hide 'Refresh' button when 'View Diff' appears
-document.addEventListener('DOMContentLoaded', function() {
-    const refreshButton = document.getElementById('refreshRunPageButton');
-    const viewDiffButton = document.getElementById('openMergeDiffButton');
-    
-    // Initially hide refresh button if view diff button is disabled
-    if (refreshButton && viewDiffButton) {
-        // Check if view diff button is initially disabled
-        if (viewDiffButton.hasAttribute('disabled')) {
-            refreshButton.classList.add('is-hidden');
-        }
-        
-        // When view diff button becomes enabled (i.e., appears), hide refresh button
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'disabled') {
-                    if (!viewDiffButton.hasAttribute('disabled')) {
-                        refreshButton.classList.remove('is-hidden');
-                    } else {
-                        refreshButton.classList.add('is-hidden');
-                    }
-                }
-            });
-        });
-        
-        // Observe the disabled attribute of the view diff button
-        observer.observe(viewDiffButton, { attributes: true });
-    }
-});
-
 // END STERLING_GIT_BUTTON_SCRIPT
 </script>
 
