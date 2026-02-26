@@ -881,761 +881,237 @@
                     title="<%= mergeReady ? 'Merge current branch into the configured parent branch' : 'Merge is available after agent finishes running.' %>"
                 >
                     <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 3a2 2 0 11-4 0 2 2 0 014 0zM6 21a2 2 0 11-4 0 2 2 0 014 0zM18 21a2 2 0 11-4 0 2 2 0 014 0zM8.5 12.5l6-3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M18 3a2 2 0 11-4 0 2 2 0 014 0zM9 12a2 2 0 100-4 2 2 0 000 4zm7 7a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span>Merge</span>
+                    <span id="mergeButtonText"><%= mergeReady ? 'Merge' : 'Merge Ready' %></span>
                 </button>
-                <div class="merge-disabled-tooltip" id="mergeDisabledTooltip" aria-hidden="<%= mergeReady ? 'true' : 'false' %>">
-                    <% if (!mergeReady) { %>
-                        Merge is available after agent finishes running.
-                    <% } %>
-                </div>
             </div>
         </div>
     </div>
 
-    <% if (errorMessage) { %>
-        <div class="alert"><%= errorMessage %></div>
+    <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+    <div class="alert" role="alert"><%= errorMessage %></div>
     <% } %>
 
-    <form action="<%= diffFormAction %>" method="get" class="diff-revision-form" aria-hidden="true">
-        <% if (!repoLinksEnabled && projectDir) { %>
-            <input type="hidden" name="projectDir" value="<%= projectDir %>" />
-        <% } %>
-        <input type="hidden" name="baseRev" value="<%= baseRev %>" />
-        <input type="hidden" name="compRev" value="<%= compRev %>" />
-    </form>
-
-    <% if (diffOutput) { %>
-        <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
-        <div class="diff-sidebar" aria-label="Commits and files">
-            <% if (baseRev || resolvedModelDisplayName) { %>
-            <aside class="sidebar-context-card" aria-label="Diff context">
-                <% if (baseRev) { %>
+        <div class="diff-sidebar">
+            <div class="sidebar-context-card">
                 <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">Base revision</span>
-                    <p class="sidebar-context-value"><%= baseRev %></p>
+                    <span class="sidebar-context-label">Target</span>
+                    <span class="sidebar-context-value"><%= gitRepoNameCLI %></span>
                 </div>
-                <% } %>
-                <% if (resolvedModelDisplayName) { %>
                 <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">Model</span>
-                    <p class="sidebar-context-value"><%= resolvedModelDisplayName %></p>
+                    <span class="sidebar-context-label">Comparison</span>
+                    <span class="sidebar-context-value">
+                        <% if (baseRev) { %>
+                        <span class="revision-pill">
+                            <span class="sub">Compared to</span>
+                            <%= baseRev.slice(0, 7) %>
+                        </span>
+                        <% } %>
+                        <% if (compRev) { %>
+                        <span class="revision-pill">
+                            <span class="sub">Comparison</span>
+                            <%= compRev.slice(0, 7) %>
+                        </span>
+                        <% } %>
+                    </span>
                 </div>
-                <% } %>
-            </aside>
+            </div>
+            <% if (renderCommitList) { %>
+            <div class="commit-list">
+                <h4>Recent Commits</h4>
+                <ul>
+                    <% if (typeof gitCommits !== 'undefined' && gitCommits) { %>
+                        <% gitCommits.forEach((commit) => { %>
+                        <li>
+                            <button type="button" data-commit="<%= commit.hash %>">
+                                <span class="commit-hash"><%= commit.hash.slice(0, 7) %></span>
+                                <span class="commit-message"><%= commit.message %></span>
+                            </button>
+                        </li>
+                        <% }); %>
+                    <% } else { %>
+                    <li><span class="commit-message">No commits found in git log.</span></li>
+                    <% } %>
+                </ul>
+            </div>
             <% } %>
-            <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
-                <h4>Commits</h4>
-                <ul id="commit-list"></ul>
-            </aside>
+            <% if (typeof projectDir === 'string' && projectDir.trim()) { %>
+            <div class="file-list">
+                <h4>Files Changed</h4>
+                <ul>
+                    <% if (typeof diffOutput === 'string' && diffOutput.trim()) { %>
+                        <% structuredDiff.forEach((file) => { %>
+                        <% const fileLabel = file.path; %>
+                        <li>
+                            <button type="button" data-file="<%= file.name %>" class="file-item" data-repo="<%= gitRepoNameCLI %>">
+                                <span class="file-label"><%= fileLabel %></span>
+                                <span class="file-stats">
+                                    <span class="additions"><%= file.additions > 0 ? '+' + file.additions : '' %></span>
+                                    <span class="deletions"><%= file.deletions > 0 ? '-' + file.deletions : '' %></span>
+                                </span>
+                            </button>
+                        </li>
+                        <% }); %}
+                    <% } else { %>
+                    <li><span class="file-label">No changed files in diff output.</span></li>
+                    <% } %>
+                </ul>
+            </div>
             <% } %>
-            <% if (compRev || comparisonCommitMessage) { %>
-            <aside class="sidebar-context-card" aria-label="Comparison revision and message">
-                <% if (compRev) { %>
-                <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">Compare head</span>
-                    <p class="sidebar-context-value"><%= compRev %></p>
+        </div>
+
+        <div class="diff-sidebar-resizer" id="diffSidebarResizer" role="separator" aria-label="Resize diff sidebar"></div>
+
+        <div class="viewer-panel">
+            <div class="file-meta">
+                <span class="file-name" id="fileNameTitle"></span>
+                <button class="open-in-editor-button" id="openInEditorButton" title="Open in editor">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L18.5 2.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="diff-view" id="diffView">
+                <div class="diff-inner">
+                    <% if (typeof diffOutput === 'string' && diffOutput.length) { %>
+                        <%= diffOutput %>
+                    <% } else { %>
+                        <div class="diff-file-section">
+                            <div class="diff-file-header">
+                                <span class="diff-file-title">No diff available</span>
+                            </div>
+                            <div class="diff-file-viewer">
+                                <div class="diff-lines">
+                                    <div class="diff-line">
+                                        <span class="line-num"></span>
+                                        <span class="code">No diff available for this comparison.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <% } %>
                 </div>
-                <% } %>
-                <% if (comparisonCommitMessage) { %>
-                <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">Git revision message</span>
-                    <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
-                </div>
-                <% } %>
-            </aside>
-            <% } %>
-            <% if (comparisonPromptLineValue || (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string')) { %>
-            <aside class="sidebar-context-card" aria-label="Prompt and AI response">
-                <% if (comparisonPromptLineValue) { %>
-                <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">User prompt</span>
-                    <p class="sidebar-context-value"><%= comparisonPromptLineValue %></p>
-                </div>
-                <% } %>
-                <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
-                <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">AI response</span>
-                    <pre class="sidebar-context-value"><%= comparisonFinalOutput %></pre>
-                </div>
-                <% } %>
-            </aside>
-            <% } %>
-            <aside class="file-list" aria-label="Changed files">
-                <h4>Files</h4>
-                <ul id="file-list"></ul>
-            </aside>
+            </div>
+
+            <div class="final-output-block" id="finalOutputBlock" hidden>
+                <span class="final-output-label">Final Output</span>
+                <pre class="final-output-text" id="finalOutputText"></pre>
+            </div>
+
+            <% if (projectDir) { %>
             <form class="diff-followup-form" id="diffFollowupForm">
                 <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
                 <textarea
                     id="diffFollowupPrompt"
                     class="diff-followup-input"
-                    name="followupPrompt"
-                    placeholder="Add a follow-up prompt for this run"
-                    rows="2"
+                    name="diffFollowupPrompt"
+                    placeholder="Enter a follow-up prompt..."
+                    rows="3"
                 ></textarea>
                 <div class="diff-followup-actions">
                     <span class="diff-followup-status" id="diffFollowupStatus" aria-live="polite"></span>
                     <button type="submit" class="diff-followup-submit" aria-label="Send follow-up">
-                        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
                 </div>
             </form>
+            <% } %>
         </div>
-        <div class="diff-sidebar-resizer" id="diffSidebarResizer" role="separator" aria-label="Resize sidebar" aria-orientation="vertical" tabindex="0"></div>
-        <section id="diff" class="viewer-panel diff-view stacked" aria-label="Diff viewer">
-            <div class="file-meta" aria-live="polite">
-                <span id="current-file-label">Select a file</span>
-            </div>
-            <div class="diff-inner"></div>
-        </section>
     </div>
-    <% if (diffOutput) { %>
-    <details class="raw-diff">
-        <summary>View raw diff</summary>
-        <pre><%= diffOutput %></pre>
-    </details>
-    <% } %>
-<script id="structured-diff-data" type="application/json"><%-
-    JSON.stringify(structuredDiff || [])
-        .replace(/</g, '\u003c')
-        .replace(/<\//g, '<\\\\/')
-        .replace(/\u2028|\u2029/g, '')
-%></script>
-<script id="raw-diff-data" type="application/json"><%-
-    JSON.stringify(diffOutput || '')
-        .replace(/</g, '\u003c')
-        .replace(/<\//g, '<\\\\/')
-        .replace(/\u2028|\u2029/g, '')
-%></script>
-<% if (renderCommitList) { %><script id="commit-list-data" type="application/json"><%-
-    JSON.stringify(typeof commitList !== 'undefined' ? commitList : [])
-        .replace(/</g, '\u003c')
-        .replace(/<\//g, '<\\\\/')
-        .replace(/\u2028|\u2029/g, '')
-%></script><% } %>
-<script>
-    const structuredDiffData = document.getElementById('structured-diff-data');
-    const rawDiffData = document.getElementById('raw-diff-data');
-    const commitListData = document.getElementById('commit-list-data');
-    let structuredDiff = [];
-    let rawDiffText = '';
-    let commitList = [];
-
-    try {
-        structuredDiff = JSON.parse(structuredDiffData?.textContent || '[]');
-    } catch (err) {
-        console.error('Failed to parse structured diff payload', err);
-        structuredDiff = [];
-    }
-
-    if (!Array.isArray(structuredDiff)) {
-        structuredDiff = [];
-    }
-
-    try {
-        rawDiffText = JSON.parse(rawDiffData?.textContent || '""');
-    } catch (err) {
-        console.error('Failed to parse raw diff payload', err);
-        rawDiffText = '';
-    }
-
-    if (typeof rawDiffText !== 'string') {
-        rawDiffText = '';
-    }
-
-    structuredDiffData?.remove();
-
-    try {
-        commitList = JSON.parse(commitListData?.textContent || '[]');
-    } catch (err) {
-        console.error('Failed to parse commit list payload', err);
-        commitList = [];
-    }
-
-    if (!Array.isArray(commitList)) {
-        commitList = [];
-    }
-
-    commitList = commitList.map((commit) => {
-        if (!commit || typeof commit !== 'object') return null;
-        const parents = Array.isArray(commit.parents)
-            ? commit.parents.filter(Boolean)
-            : (typeof commit.parents === 'string' && commit.parents.trim()
-                ? commit.parents.split(' ').filter(Boolean)
-                : []);
-        return {
-            hash: typeof commit.hash === 'string' ? commit.hash.trim() : '',
-            message: typeof commit.message === 'string' ? commit.message : '',
-            parents,
-        };
-    }).filter((commit) => commit && commit.hash);
-    // Open this file in the editor within the modal.
-    const openEditorForFile = (filePath) => {
-        const currentUrl = new URL(window.location.href);
-        try {
-            const params = new URLSearchParams(window.location.search || '');
-            const repoDir = params.get('repo_directory') || (typeof projectDir !== 'undefined' ? (projectDir || '') : '');
-            const repoName = '<%= gitRepoNameCLI %>';
-            const chatNumber = '<%= chatNumber %>';
-            const repoLinksEnabled = <%- JSON.stringify(!!repoLinksEnabled) %>;
-            const templateProjectDir = <%- JSON.stringify(projectDir || '') %>;
-            const pathname = currentUrl.pathname || '';
-            let newPathname = null;
-            if (repoLinksEnabled) {
-                const repoMarker = `/${repoName}/diff`;
-                const idx = pathname.indexOf(repoMarker);
-                if (idx !== -1) {
-                    const prefix = pathname.slice(0, idx);
-                    newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
-                } else {
-                    const repoIdx = pathname.indexOf(`/${repoName}`);
-                    if (repoIdx !== -1) {
-                        const prefix = pathname.slice(0, repoIdx);
-                        newPathname = prefix + `/${repoName}/chat/${chatNumber}/editor`;
-                    } else {
-                        newPathname = `/${repoName}/chat/${chatNumber}/editor`;
-                    }
-                }
-            } else {
-                newPathname = '/chat/editor';
-            }
-
-            const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
-            const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined')
-                ? editorBaseRaw
-                : currentUrl.origin;
-            const url = new URL(newPathname, editorBase || currentUrl.origin);
-            // preserve existing query params from current URL
-            const newParams = new URLSearchParams(currentUrl.search);
-            if (repoLinksEnabled && repoDir) newParams.set('repo_directory', repoDir);
-            if (!repoLinksEnabled && templateProjectDir && !newParams.get('projectDir')) {
-                newParams.set('projectDir', templateProjectDir);
-            }
-            newParams.set('open_file', filePath);
-            newParams.set('from_diff', '1');
-            newParams.set('diff_url', currentUrl.toString());
-            url.search = newParams.toString();
-            const finalUrl = url.toString();
-
-            window.location.href = finalUrl;
-        } catch (e) {
-            try {
-                const editorBaseRaw = <%- JSON.stringify(editorBaseUrl || '') %>;
-                const editorBase = (typeof editorBaseRaw === 'string' && editorBaseRaw && editorBaseRaw !== 'undefined')
-                    ? editorBaseRaw
-                    : currentUrl.origin;
-                const fallbackPath = (repoLinksEnabled
-                    ? '/<%= gitRepoNameCLI %>/chat/<%= chatNumber %>/editor?open_file='
-                    : '/chat/editor?open_file=') + encodeURIComponent(filePath);
-                const fallbackUrl = editorBase ? (editorBase.replace(/\/$/, '') + fallbackPath) : fallbackPath;
-                window.location.href = fallbackUrl;
-            } catch (err2) {
-                console.error('Failed to open editor', err2);
-            }
-        }
-    };
-
-
-    rawDiffData?.remove();
-    commitListData?.remove();
-
-    const normalizeRows = (file) => {
-        if (file.isBinary) {
-            return [{ leftNo: '', rightNo: '', left: file.binaryMessage || 'Binary file', right: file.binaryMessage || 'Binary file', type: 'meta' }];
-        }
-        const rows = [];
-        (file.hunks || []).forEach((hunk) => {
-            rows.push({ leftNo: '', rightNo: '', left: hunk.header || '', right: hunk.header || '', type: 'meta' });
-            (hunk.rows || []).forEach((row) => {
-                if (row.type === 'add') {
-                    rows.push({ leftNo: row.leftNumber || '', rightNo: row.rightNumber || '', left: '', right: row.rightContent || '', type: 'added' });
-                } else if (row.type === 'remove') {
-                    rows.push({ leftNo: row.leftNumber || '', rightNo: row.rightNumber || '', left: row.leftContent || '', right: '', type: 'removed' });
-                } else if (row.type === 'modify') {
-                    rows.push({ leftNo: row.leftNumber || '', rightNo: row.rightNumber || '', left: row.leftContent || '', right: row.rightContent || '', type: 'changed' });
-                } else if (row.type === 'meta') {
-                    rows.push({ leftNo: '', rightNo: '', left: row.metaContent || '', right: row.metaContent || '', type: 'meta' });
-                } else {
-                    rows.push({ leftNo: row.leftNumber || row.rightNumber || '', rightNo: row.rightNumber || row.leftNumber || '', left: row.leftContent || '', right: row.rightContent || '', type: 'unchanged' });
-                }
-            });
-        });
-        return rows;
-    };
-
-    const computeFileStats = (rows) => {
-        const stats = { additions: 0, deletions: 0 };
-        if (!Array.isArray(rows)) {
-            return stats;
-        }
-        rows.forEach((row) => {
-            if (!row || typeof row.type !== 'string') {
-                return;
-            }
-            if (row.type === 'added' || row.type === 'changed') {
-                stats.additions += 1;
-            }
-            if (row.type === 'removed' || row.type === 'changed') {
-                stats.deletions += 1;
-            }
-        });
-        return stats;
-    };
-
-    const files = structuredDiff.map((file) => {
-        const rows = normalizeRows(file);
-        const fullPath = file.newPath || file.oldPath || 'Untracked file';
-        return {
-            label: fullPath,
-            fullPath,
-            rows,
-            stats: computeFileStats(rows),
-        };
-    });
-
-    const diffEl = document.getElementById('diff');
-    const diffInner = diffEl?.querySelector('.diff-inner');
-    const commitListEl = document.getElementById('commit-list');
-    const fileListEl = document.getElementById('file-list');
-    const fileLabelEl = document.getElementById('current-file-label');
-    let focusedFileIndex = 0;
-    const currentCompRev = '<%= compRev || "" %>';
-    const currentBaseRev = '<%= baseRev || "" %>';
-
-    const createDiffLine = (lineNumber, codeText, className) => {
-        const line = document.createElement('div');
-        line.className = `diff-line ${className}`.trim();
-
-        const lineNum = document.createElement('span');
-        lineNum.className = 'line-num';
-        lineNum.textContent = (lineNumber ?? '').toString();
-
-        const code = document.createElement('span');
-        code.className = 'code';
-
-        const signSpan = document.createElement('span');
-        signSpan.className = 'line-sign';
-        // Determine sign based on className
-        const cls = (className || '').toString();
-        if (cls.includes('added') || cls.includes('changed-right')) {
-            signSpan.textContent = '+';
-        } else if (cls.includes('removed') || cls.includes('changed-left')) {
-            signSpan.textContent = '-';
-        } else {
-            signSpan.textContent = ' ';
-        }
-
-        const textNode = document.createTextNode(typeof codeText === 'string' ? codeText : (codeText ?? '').toString());
-        code.appendChild(signSpan);
-        code.appendChild(textNode);
-
-        line.appendChild(lineNum);
-        line.appendChild(code);
-        return line;
-    };
-
-    const appendInlineDiffRows = (rows, container) => {
-        if (!container) return;
-
-        const flushChangedGroup = (group) => {
-            if (!group.length) return;
-
-            group.forEach((row) => {
-                if (row.left || row.leftNo) {
-                    container.appendChild(createDiffLine(row.leftNo, row.left, 'changed-left'));
-                }
-            });
-
-            group.forEach((row) => {
-                if (row.right || row.rightNo) {
-                    container.appendChild(createDiffLine(row.rightNo, row.right, 'changed-right'));
-                }
-            });
-
-            group.length = 0;
-        };
-
-        const changedGroup = [];
-
-        (rows || []).forEach((row) => {
-            if (!row || typeof row !== 'object') {
-                return;
-            }
-
-            const appendLine = (lineNumber, text, className) => {
-                container.appendChild(createDiffLine(lineNumber, text, className));
-            };
-
-            if (row.type === 'changed') {
-                changedGroup.push(row);
-                return;
-            }
-
-            flushChangedGroup(changedGroup);
-
-            if (row.type === 'meta') {
-                appendLine('', row.left || row.right || row.metaContent || '', 'meta');
-                return;
-            }
-
-            if (row.type === 'added') {
-                appendLine(row.rightNo, row.right, 'added');
-                return;
-            }
-
-            if (row.type === 'removed') {
-                appendLine(row.leftNo, row.left, 'removed');
-                return;
-            }
-
-            appendLine(row.rightNo || row.leftNo, row.right || row.left || '', 'unchanged');
-        });
-
-        flushChangedGroup(changedGroup);
-    };
-
-    const normalizedRowCount = (value) => (Array.isArray(value) ? value.length : 0);
-
-    const hasStructuredDiff = files.some((file) => normalizedRowCount(file.rows) > 0);
-
-    const updateSummary = () => {
-        const totalFiles = files.length;
-        if (fileLabelEl) {
-            if (totalFiles) {
-                fileLabelEl.textContent = `${totalFiles} file${totalFiles === 1 ? '' : 's'} changed`;
-            } else {
-                fileLabelEl.textContent = 'Diff';
-            }
-        }
-    };
-
-    const renderStructuredSections = () => {
-        if (!diffInner) return;
-        diffInner.innerHTML = '';
-        const fragment = document.createDocumentFragment();
-        files.forEach((file, index) => {
-            const section = document.createElement('article');
-            section.className = 'diff-file-section';
-            section.id = `diff-file-${index}`;
-            section.tabIndex = -1;
-
-            const header = document.createElement('header');
-            header.className = 'diff-file-header';
-
-            const title = document.createElement('span');
-            title.className = 'diff-file-title';
-            title.textContent = file.label;
-            header.appendChild(title);
-
-            // add edit-in-editor button
-            const editBtn = document.createElement('button');
-            editBtn.type = 'button';
-            editBtn.className = 'open-in-editor-button';
-            editBtn.title = 'Open in editor';
-            editBtn.setAttribute('aria-label', 'Open file in editor');
-            editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 21v-3.75L14.81 5.44a1.5 1.5 0 012.12 0l1.63 1.63a1.5 1.5 0 010 2.12L6.75 21H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
-            editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openEditorForFile(file.label); });
-            header.appendChild(editBtn);
-
-
-            const rowCount = normalizedRowCount(file.rows);
-            section.appendChild(header);
-
-            const viewer = document.createElement('div');
-            viewer.className = 'diff-file-viewer diff-view stacked';
-
-            const linesContainer = document.createElement('div');
-            linesContainer.className = 'diff-lines';
-
-            if (rowCount) {
-                appendInlineDiffRows(file.rows, linesContainer);
-            } else {
-                linesContainer.appendChild(createDiffLine('', 'No diff available for this file.', 'meta'));
-            }
-
-            viewer.appendChild(linesContainer);
-            section.appendChild(viewer);
-            fragment.appendChild(section);
-        });
-        diffInner.appendChild(fragment);
-    };
-
-
-    const renderEmptyStructuredState = () => {
-        if (!diffInner) return;
-        diffInner.innerHTML = '<div class="empty-state">No structured diff available.</div>';
-        if (fileLabelEl) fileLabelEl.textContent = rawDiffText ? 'No structured diff' : 'No diff available';
-    };
-
-    const focusFileSection = (index) => {
-        const section = document.getElementById(`diff-file-${index}`);
-        if (!section) return;
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        section.focus({ preventScroll: true });
-        focusedFileIndex = index;
-        renderFileList();
-    };
-
-    const renderFileList = () => {
-        if (!fileListEl) return;
-        fileListEl.innerHTML = '';
-        if (!files.length) {
-            const empty = document.createElement('li');
-            empty.textContent = 'No changed files.';
-            fileListEl.appendChild(empty);
-            return;
-        }
-        if (focusedFileIndex >= files.length) {
-            focusedFileIndex = Math.max(0, files.length - 1);
-        }
-        files.forEach((file, index) => {
-            const li = document.createElement('li');
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = index === focusedFileIndex ? 'active' : '';
-            btn.setAttribute('aria-current', index === focusedFileIndex ? 'true' : 'false');
-            btn.setAttribute('title', file.fullPath || file.label || '');
-
-            const label = document.createElement('span');
-            label.className = 'file-label';
-            label.textContent = file.label;
-            btn.appendChild(label);
-
-            const stats = file.stats;
-            if (stats && (stats.additions || stats.deletions)) {
-                const statsEl = document.createElement('span');
-                statsEl.className = 'file-stats';
-                if (typeof stats.additions === 'number') {
-                    const additionsEl = document.createElement('span');
-                    additionsEl.className = 'additions';
-                    additionsEl.textContent = `+${stats.additions}`;
-                    statsEl.appendChild(additionsEl);
-                }
-                if (typeof stats.deletions === 'number') {
-                    const deletionsEl = document.createElement('span');
-                    deletionsEl.className = 'deletions';
-                    deletionsEl.textContent = `-${stats.deletions}`;
-                    statsEl.appendChild(deletionsEl);
-                }
-                btn.appendChild(statsEl);
-            }
-
-            btn.addEventListener('click', () => focusFileSection(index));
-            li.appendChild(btn);
-            fileListEl.appendChild(li);
-        });
-    };
-
-    const condenseHash = (hash) => (hash ? hash.slice(0, 7) : '');
-    const condenseMessage = (message) => {
-        if (!message) return '';
-        const trimmed = message.trim();
-        if (trimmed.length <= 60) return trimmed;
-        return `${trimmed.slice(0, 57)}…`;
-    };
-
-    const switchToCommit = (hash, parentHash) => {
-        if (!hash) return;
-        if (hash === currentCompRev && (!parentHash || parentHash === currentBaseRev)) {
-            return;
-        }
-        const url = new URL(window.location.href);
-        const params = new URLSearchParams(url.search);
-        const nextBaseRev = parentHash || currentBaseRev;
-        if (nextBaseRev) {
-            params.set('baseRev', nextBaseRev);
-        } else {
-            params.delete('baseRev');
-        }
-        params.set('compRev', hash);
-        url.search = params.toString();
-        window.location.href = url.toString();
-    };
-
-    const renderCommitList = () => {
-        if (!commitListEl) return;
-        commitListEl.innerHTML = '';
-        if (!commitList.length) {
-            const empty = document.createElement('li');
-            empty.textContent = 'No commits.';
-            commitListEl.appendChild(empty);
-            return;
-        }
-        commitList.forEach((commit) => {
-            if (!commit || !commit.hash) return;
-            const li = document.createElement('li');
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = commit.hash === currentCompRev ? 'active' : '';
-            btn.setAttribute('aria-current', commit.hash === currentCompRev ? 'true' : 'false');
-
-            const hashEl = document.createElement('span');
-            hashEl.className = 'commit-hash';
-            hashEl.textContent = condenseHash(commit.hash);
-            btn.appendChild(hashEl);
-
-            const messageEl = document.createElement('span');
-            messageEl.className = 'commit-message';
-            messageEl.textContent = condenseMessage(commit.message || '');
-            btn.appendChild(messageEl);
-
-            const parentHash = Array.isArray(commit.parents) ? commit.parents[0] : '';
-            btn.addEventListener('click', () => switchToCommit(commit.hash, parentHash));
-            li.appendChild(btn);
-            commitListEl.appendChild(li);
-        });
-    };
-
-    if (hasStructuredDiff) {
-        renderStructuredSections();
-        updateSummary();
-    } else {
-        renderEmptyStructuredState();
-    }
-
-    renderFileList();
-    <% if (renderCommitList) { %>renderCommitList();<% } %>
-</script>
-<% } %>
+</div>
 <script>
     (function () {
-        const diffShell = document.querySelector('.diff-shell');
-        const resizer = document.getElementById('diffSidebarResizer');
-        if (!diffShell || !resizer) return;
-
-        const COOKIE_NAME = 'alfe_diff_sidebar_width';
-        const minWidth = 280;
-        const maxWidth = 760;
-        let dragging = false;
-        let currentWidth = null;
-
-        const isDesktop = () => window.matchMedia('(min-width: 1101px)').matches;
-
-        const clampWidth = (width) => {
-            if (typeof width !== 'number' || Number.isNaN(width)) return null;
-            return Math.min(maxWidth, Math.max(minWidth, width));
-        };
-
-        const applyWidth = (width) => {
-            const clamped = clampWidth(width);
-            if (!clamped) return;
-            currentWidth = clamped;
-            diffShell.style.setProperty('--diff-sidebar-width', `${clamped}px`);
-            resizer.setAttribute('aria-valuenow', String(clamped));
-        };
-
-        const readCookieWidth = () => {
-            const match = document.cookie
-                .split('; ')
-                .find((part) => part.startsWith(`${COOKIE_NAME}=`));
-            if (!match) return null;
-            const parsed = parseInt(decodeURIComponent(match.split('=')[1] || ''), 10);
-            return clampWidth(parsed);
-        };
-
-        const persistCookieWidth = (width) => {
-            const clamped = clampWidth(width);
-            if (!clamped) return;
-            document.cookie = `${COOKIE_NAME}=${encodeURIComponent(String(clamped))}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-        };
-
-        const stopDragging = (persist = true) => {
-            if (!dragging) return;
-            dragging = false;
-            document.body.style.userSelect = '';
-            document.body.classList.remove('is-resizing');
-            if (persist && currentWidth) persistCookieWidth(currentWidth);
-        };
-
-        const resetLayout = () => {
-            if (!isDesktop()) {
-                stopDragging(false);
-                diffShell.style.removeProperty('--diff-sidebar-width');
-                return;
-            }
-            const stored = readCookieWidth();
-            if (stored) applyWidth(stored);
-        };
-
-        const storedWidth = readCookieWidth();
-        if (storedWidth && isDesktop()) applyWidth(storedWidth);
-
-        resizer.addEventListener('mousedown', (event) => {
-            if (event.button !== 0 || !isDesktop()) return;
-            dragging = true;
-            document.body.style.userSelect = 'none';
-            document.body.classList.add('is-resizing');
-            event.preventDefault();
-        });
-
-        window.addEventListener('mousemove', (event) => {
-            if (!dragging) return;
-            if (!isDesktop()) {
-                stopDragging(false);
-                return;
-            }
-            const rect = diffShell.getBoundingClientRect();
-            applyWidth(Math.round(event.clientX - rect.left));
-        });
-
-        window.addEventListener('mouseup', () => stopDragging(true));
-        window.addEventListener('blur', () => stopDragging(true));
-        window.addEventListener('resize', resetLayout);
-
-        resizer.addEventListener('keydown', (event) => {
-            if (!isDesktop()) return;
-            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-            event.preventDefault();
-            const step = event.shiftKey ? 40 : 20;
-            const baseWidth = currentWidth || readCookieWidth() || minWidth;
-            const next = event.key === 'ArrowLeft' ? baseWidth - step : baseWidth + step;
-            applyWidth(next);
-            if (currentWidth) persistCookieWidth(currentWidth);
-        });
-
-        resetLayout();
-    })();
-
-    (function () {
+        // Submit-on-enter handler for diff followup prompt
+        // Using the setting from model_only.ejs to maintain consistency
         const form = document.getElementById("diffFollowupForm");
         const input = document.getElementById("diffFollowupPrompt");
-        const status = document.getElementById("diffFollowupStatus");
-        const FOLLOWUP_MESSAGE_TYPE = "codex:diff-modal-followup";
-
-        if (!form || !input) {
-            return;
-        }
-
-        const setStatus = (message) => {
-            if (!status) return;
-            status.textContent = message || "";
-        };
-
-        form.addEventListener("submit", (event) => {
-            event.preventDefault();
-            const prompt = typeof input.value === "string" ? input.value.trim() : "";
-            if (!prompt) {
-                setStatus("Enter a follow-up prompt to continue.");
-                return;
-            }
-            if (!window.parent || window.parent === window) {
-                setStatus("Follow-ups are available from the running task view.");
-                return;
-            }
+        
+        if (form && input) {
+            // The submitOnEnter setting is received from parent window via postMessage
+            let submitOnEnterEnabled = true;
+            
+            // Listen for submitOnEnter setting changes from the parent window
+            window.addEventListener('message', function(event) {
+                try {
+                    if (event.data && event.data.type === 'sterling:settings' && event.data.key === 'submitOnEnter') {
+                        submitOnEnterEnabled = event.data.value === true || event.data.value === 'true';
+                    }
+                } catch (e) {
+                    // Silently ignore errors in event handling
+                }
+            });
+            
+            // Initialize with default value if no setting received
             try {
-                window.parent.postMessage({ type: FOLLOWUP_MESSAGE_TYPE, prompt }, "*");
-                input.value = "";
-                setStatus("Follow-up sent.");
-            } catch (_err) {
-                setStatus("Unable to send follow-up.");
+                // Try to get from localStorage (as a fallback)
+                const submitOnEnterFromLocal = localStorage.getItem('submitOnEnter');
+                if (submitOnEnterFromLocal !== null) {
+                    submitOnEnterEnabled = submitOnEnterFromLocal === 'true';
+                }
+            } catch (e) {
+                // Ignore localStorage errors
             }
-        });
+            
+            // Handle Enter key submission for followup prompt
+            input.addEventListener("keydown", function(event) {
+                try {
+                    if (event.key === "Enter") {
+                        if (event.shiftKey) {
+                            // Allow Shift+Enter to insert a newline in the textarea.
+                            return;
+                        }
+                        
+                        // Check if submit-on-enter is currently enabled
+                        if (!submitOnEnterEnabled) {
+                            // If disabled, do nothing special (allow newline insertion)
+                            return;
+                        }
+                        
+                        // Prevent default to stop the textarea from adding a newline
+                        // and instead submit the form.
+                        event.preventDefault();
+                        
+                        // Simulate form submission
+                        form.dispatchEvent(new Event('submit'));
+                    }
+                } catch (e) {
+                    // Silently ignore errors in key handling
+                }
+            });
+            
+            // Handle form submission (copied from the original code)
+            const setStatus = (message) => {
+                const status = document.getElementById("diffFollowupStatus");
+                if (!status) return;
+                status.textContent = message || "";
+            };
+            
+            form.addEventListener("submit", (event) => {
+                event.preventDefault();
+                const prompt = typeof input.value === "string" ? input.value.trim() : "";
+                if (!prompt) {
+                    setStatus("Enter a follow-up prompt to continue.");
+                    return;
+                }
+                if (!window.parent || window.parent === window) {
+                    setStatus("Follow-ups are available from the running task view.");
+                    return;
+                }
+                try {
+                    window.parent.postMessage({ type: "STERLING_VIEW_DIFF_MODAL_FOLLOWUP", prompt }, "*");
+                    input.value = "";
+                    setStatus("Follow-up sent.");
+                } catch (_err) {
+                    setStatus("Unable to send follow-up.");
+                }
+            });
+        }
     })();
 </script>
 <script>
