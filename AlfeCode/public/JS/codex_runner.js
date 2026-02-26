@@ -1099,6 +1099,70 @@
   const deleteLocalButton = document.getElementById("deleteLocalButton");
   const mergeDisabledTooltip = document.getElementById("mergeDisabledTooltip");
   const mergeDiffButton = document.getElementById("openMergeDiffButton");
+  const viewDiffTooltip = document.getElementById("viewDiffTooltip");
+  const VIEW_DIFF_TOOLTIP_COOKIE = "viewDiffTooltipDismissed";
+  let viewDiffTooltipShown = false;
+
+  const hasCookie = (cookieName) => {
+    if (!cookieName || typeof document === "undefined") {
+      return false;
+    }
+    return document.cookie.split(";").some((cookie) => {
+      const [name] = cookie.trim().split("=");
+      return name === cookieName;
+    });
+  };
+
+  const setCookie = (cookieName, cookieValue, maxAgeDays) => {
+    if (!cookieName || typeof document === "undefined") {
+      return;
+    }
+    const expirationDate = new Date();
+    expirationDate.setTime(expirationDate.getTime() + (maxAgeDays * 24 * 60 * 60 * 1000));
+    document.cookie = `${cookieName}=${cookieValue};expires=${expirationDate.toUTCString()};path=/`;
+  };
+
+  const hideViewDiffTooltip = () => {
+    if (!viewDiffTooltip) {
+      return;
+    }
+    viewDiffTooltip.classList.remove("show");
+    viewDiffTooltip.setAttribute("aria-hidden", "true");
+  };
+
+  const getEnabledViewDiffButton = () => {
+    const candidates = [mergeDiffButton, refreshRunPageButton];
+    return candidates.find((button) => {
+      if (!button || button.disabled) {
+        return false;
+      }
+      return !button.classList.contains("is-hidden");
+    }) || null;
+  };
+
+  const maybeShowViewDiffTooltip = () => {
+    if (!viewDiffTooltip || viewDiffTooltipShown || hasCookie(VIEW_DIFF_TOOLTIP_COOKIE)) {
+      hideViewDiffTooltip();
+      return;
+    }
+    if (!getEnabledViewDiffButton()) {
+      hideViewDiffTooltip();
+      return;
+    }
+    viewDiffTooltip.classList.add("show");
+    viewDiffTooltip.setAttribute("aria-hidden", "false");
+    viewDiffTooltipShown = true;
+  };
+
+  const completeViewDiffTooltipOnboarding = () => {
+    setCookie(VIEW_DIFF_TOOLTIP_COOKIE, "true", 30);
+    hideViewDiffTooltip();
+  };
+
+  if (viewDiffTooltip) {
+    viewDiffTooltip.addEventListener("click", hideViewDiffTooltip);
+  }
+
   if (mergeDiffButton && nonRefreshDiffButtonHidden) {
     mergeDiffButton.classList.add('is-hidden');
     mergeDiffButton.disabled = true;
@@ -4209,6 +4273,7 @@
     ensureMergeDiffContainerVisible();
     refreshRunPageButton.disabled = !shouldEnableRefreshButton;
     refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
+    maybeShowViewDiffTooltip();
 
     if (!nonRefreshDiffButtonHidden || !shouldEnableRefreshButton) {
       return;
@@ -4229,6 +4294,7 @@
     mergeDiffButton.onclick = null;
     mergeDiffButton.classList.add('is-hidden');
     updateRefreshRunButtonVisibility();
+    maybeShowViewDiffTooltip();
   };
 
   const hasActiveMergeDiffLink = () => {
@@ -4430,6 +4496,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
+    maybeShowViewDiffTooltip();
   };
 
   const extractBranchFromText = (text) => {
@@ -4476,6 +4543,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
+    maybeShowViewDiffTooltip();
   };
 
   const tryEnableMergeDiffFromText = (text, projectDirValue) => {
@@ -8078,6 +8146,7 @@ const appendMergeChunk = (text, type = "output") => {
         tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
 
         setMergeReady(false);
+        completeViewDiffTooltipOnboarding();
       } catch (error) {
         const errorMessage = error && error.message
           ? error.message
