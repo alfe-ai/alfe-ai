@@ -4166,13 +4166,9 @@
     }
   };
 
-  const updateRefreshRunButtonVisibility = () => {
-    if (!refreshRunPageButton) {
-      return;
-    }
-
+  const shouldEnableRefreshStyleActions = () => {
     const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
-    const normalizedStatus = statusText.replace(/\u2026/g, "...");
+    const normalizedStatus = statusText.replace(/…/g, "...");
     const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
     const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "";
     const runIsActive = Boolean(eventSource)
@@ -4186,11 +4182,19 @@
       && mergeDiffButton.getAttribute("data-href").trim() !== "",
     );
 
-    const shouldEnableRefreshButton = Boolean(
+    return Boolean(
       runLooksComplete
       || finalOutputReady
       || (nonRefreshDiffButtonHidden && hasPreparedDiffUrl),
     );
+  };
+
+  const updateRefreshRunButtonVisibility = () => {
+    if (!refreshRunPageButton) {
+      return;
+    }
+
+    const shouldEnableRefreshButton = shouldEnableRefreshStyleActions();
 
     ensureMergeDiffContainerVisible();
     refreshRunPageButton.disabled = !shouldEnableRefreshButton;
@@ -4516,13 +4520,14 @@
   };
 
   const getMergeDisabledReason = () => {
+    const mergeEnabledByRefreshState = shouldEnableRefreshStyleActions();
     if (mergeInFlight) {
       return "in-flight";
     }
     if (runControlsDisabled) {
       return "run-controls";
     }
-    if (!mergeReady) {
+    if (!mergeReady && !mergeEnabledByRefreshState) {
       return "not-ready";
     }
     return null;
@@ -4532,7 +4537,8 @@
     if (!mergeButton) {
       return;
     }
-    const shouldDisable = runControlsDisabled || mergeInFlight || !mergeReady;
+    const mergeEnabledByRefreshState = shouldEnableRefreshStyleActions();
+    const shouldDisable = runControlsDisabled || mergeInFlight || (!mergeReady && !mergeEnabledByRefreshState);
     const disabledReason = shouldDisable ? getMergeDisabledReason() : null;
     mergeButton.disabled = shouldDisable;
     mergeButton.setAttribute("aria-disabled", shouldDisable ? "true" : "false");
@@ -7050,7 +7056,7 @@ const appendMergeChunk = (text, type = "output") => {
       try { fileTreeStatus.disabled = disabled; } catch (e) { /* ignore */ }
     }
     if (mergeButton) {
-      mergeButton.disabled = disabled || !mergeReady;
+      mergeButton.disabled = disabled || (!mergeReady && !shouldEnableRefreshStyleActions());
       mergeButton.setAttribute('aria-disabled', mergeButton.disabled ? 'true' : 'false');
     }
     if (mergeDiffButton) {
