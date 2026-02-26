@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catnip Adventure - A Fun Cat Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>🐱 Catnip Adventure 🐾</h1>
+            <div class="score-container">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="lives">Lives: <span id="lives">3</span></div>
+            </div>
+        </header>
+        
+        <main class="game-area">
+            <div class="cat-container">
+                <div class="cat" id="cat">😺</div>
+            </div>
+            
+            <div class="game-controls">
+                <button id="startBtn">Start Game</button>
+                <button id="pauseBtn">Pause</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+            
+            <div class="instructions">
+                <p>Use arrow keys to move your cat. Collect fish to earn points! Avoid the dog bones.</p>
+            </div>
+        </main>
+        
+        <div id="gameOver" class="game-over hidden">
+            <h2>Game Over!</h2>
+            <p>Your final score: <span id="finalScore">0</span></p>
+            <button id="restartBtn">Play Again</button>
+        </div>
+        
+        <div class="cat-emoji">
+            <span class="cat-emoji-1">😸</span>
+            <span class="cat-emoji-2">😹</span>
+            <span class="cat-emoji-3">😻</span>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
