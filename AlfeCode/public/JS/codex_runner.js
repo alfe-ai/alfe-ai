@@ -5740,8 +5740,12 @@ const appendMergeChunk = (text, type = "output") => {
       (typeof run.userPrompt === "string" && run.userPrompt)
         || (typeof run.effectivePrompt === "string" && run.effectivePrompt)
         || "";
-    if (promptInput && promptValue) {
-      promptInput.value = promptValue;
+    // Only set readonly prompt field when loading saved run, don't set main prompt input
+    if (typeof run.userPrompt === "string" && run.userPrompt) {
+      const readonlyPromptField = document.getElementById("readonly_prompt");
+      if (readonlyPromptField) {
+        readonlyPromptField.value = run.userPrompt;
+      }
     }
     updatePromptPreview(promptValue);
 
