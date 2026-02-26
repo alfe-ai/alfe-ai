@@ -4111,7 +4111,7 @@
     hideMergeDiffButton();
   };
 
-  const openRefreshViewDiffInNewTab = async ({ force = false } = {}) => {
+  const openRefreshViewDiffModal = async ({ force = false } = {}) => {
     const runId = normaliseRunId((currentRunContext && currentRunContext.runId) || "");
     if (!runId) {
       return;
@@ -4147,12 +4147,12 @@
       if (!diffUrl) {
         throw new Error("Diff url response missing url");
       }
-      window.open(diffUrl, "_blank", "noopener");
+      await openMergeDiffModal(diffUrl);
     } catch (error) {
-      console.warn("Failed to open run diff url in new tab", error);
+      console.warn("Failed to open run diff url in modal", error);
       const fallbackUrl = (mergeDiffButton && mergeDiffButton.getAttribute("data-href")) || "";
       if (fallbackUrl) {
-        window.open(fallbackUrl, "_blank", "noopener");
+        await openMergeDiffModal(fallbackUrl);
       }
     }
   };
@@ -4194,7 +4194,7 @@
 
   if (refreshRunPageButton) {
     refreshRunPageButton.addEventListener("click", async () => {
-      await openRefreshViewDiffInNewTab({ force: true });
+      await openRefreshViewDiffModal({ force: true });
     });
   }
 
