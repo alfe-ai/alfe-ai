@@ -1,112 +1,34 @@
-# Alfe AI  
+# Cat Cafe - Virtual Cat Adventure
 
-## [Alfe AI](https://alfe.sh) Version 1: Sterling  
+A fun cat-themed game where you can adopt, feed, and play with virtual cats!
 
+## Features
+- Feed your cat to reduce hunger
+- Play with your cat to increase happiness
+- Pet your cat for extra affection
+- Let your cat sleep to recover health
+- Watch your cat's stats change over time
 
-### FOSS AI Software Development Platform
+## How to Run
+1. Make sure Node.js is installed on your system
+2. Navigate to the AlfeCode directory
+3. Run the following command:
+   ```bash
+   node cat-game.js
+   ```
+4. Open your browser and go to `http://localhost:3000` to play
 
-![image](https://github.com/user-attachments/assets/62754c8a-d4a4-441f-9050-aeed4157926a)
+## Game Controls
+- **Feed Cat** - Reduce hunger and slightly increase happiness
+- **Play with Cat** - Increase happiness and slightly increase health
+- **Pet Cat** - Increase happiness and health
+- **Let Cat Sleep** - Increase health and slightly decrease hunger
 
-#### System Requirements:
-Linux, Debian, Ubuntu, and similar.
+## How to Play
+- Keep your cat's happiness, hunger, and health at healthy levels
+- Try to make your cat happy and healthy through various interactions
+- Watch your cat's stats change as you play!
 
-Windows Support is untested, official Windows support is planned.
-
-Scripts to assist with setup of a Debian VM with QEMU are here: https://github.com/alfe-ai
-
----
-
-1. Configure SSH key for GitHub. This script may be used: https://github.com/alfe-ai
-```
-user@t03012025:~/git$ ./generate_github_ssh_key.sh 
-Generating public/private rsa key pair.
-Enter file in which to save the key (/home/user/.ssh/id_rsa): /home/user/.ssh/id_rsa_test2
-Enter passphrase (empty for no passphrase): 
-Enter same passphrase again: 
-Your identification has been saved in /home/user/.ssh/id_rsa_test2
-Your public key has been saved in /home/user/.ssh/id_rsa_test2.pub
-The key fingerprint is:
-SHA256:6Xvf751uKnYhF4JNPzgwcns/l7svVDWMWlkFKqaY1r4 t03012025@alfe.sh
-The key's randomart image is:
-+---[RSA 4096]----+
-|              *oo|
-|       . + . = o.|
-|        o X *   o|
-|       + * O +  .|
-|      + S . + o..|
-|     . o   . =.o |
-|        o   o.+ .|
-|         o.o o.oo|
-|        E...+.=BB|
-+----[SHA256]-----+
-user@t03012025:~/git$ cat /home/user/.ssh/id_rsa_test2.pub
-ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQD3iRx+BSrGFVvO7oYjElBvybBg2bRyCZqPkES4CVAyqwvSqJIMtYE/xvWAcYPTJMXTt660bkr/7hF+N8QolxIw24NBEaF1mem8IffVibgQwiOdU3Y4p8rUDgIWWv1r6Kmx2mHhUt65Q+ePIILebS4iwK2Nor5gBF1x7oLUkwVy8rbXG1H/ov1cNeMqnOT1mAQtLUCZyGfICiR0wxcH1cuVCDnhhrRRCcESoF5ulOAiHtk3fZS69g+Mi3PKsDfV7Zi5vGk+du3O6mc+s9QgBpxk8Zbo/1anXay2N0qfZwgDZAqoydfXkZswOUS3J0hA1HI9b8kyQbJoIcr7w8AkDsV/Xk4Xo1GiLRG4Q4BM1IqbC3P/E4nJtnkKabcTjhN18qKcBwZUMms9RWSz4L4tZ0LOriDZCc1U4se+zMc4tTvmXa8mYQPeNR4uMwRgGjVCMJ88bBg4KjGyzVhNnU7cbSJMcBRngoicWDNN/X0DxybEqK2yq0qXe2so1XmTq/TyFigXWFUMacyUphnsYNWKx0s3KzcwyPIVjC3E1IxyS0fEjoxKN0iA9vopf+Bn7dJpGUH0DbftBPCwesLkuMhkIB9Tzluz06cwidSU/GXqoiMC/NEd4+GkjywLYvpov5BaxmGzid4+9ojHTbn0p+XIgzEPHD/qOxbpQrmdeWaWcxwuiQ== t03012025@alfe.sh
-user@t03012025:~/git$ 
-```
-
-1.1. Copy the entire contents of your '.pub' file (Beginning with 'ssh-rsa') to a new SSH key within GitHub:  
-https://github.com/settings/ssh/new  
-https://github.com/settings/keys  
-
-2. Ensure you have `nodejs` and `npm` installed on your system. On Debian, you can install them with:
-```
-sudo apt-get update
-sudo apt-get install nodejs npm
-```
-
-3. Run `npm install` from the project root dir, you should see something similar to:
-```
-user@t03012025(f73c49f, 0 changes):~/.alfe/git/alfe-ai-org/alfe-dev$ npm install
-
-up to date, audited 410 packages in 2s
-
-56 packages are looking for funding
-  run `npm fund` for details
-
-found 0 vulnerabilities
-```
-
-4. Copy `sample.env` to `.env`, and update it with your API keys.
-
-5. Run `./run.sh` to run as the Development Environment.
-
-6. Access the server at http://localhost:3001
-
-7. Add a git repository to work on with http://localhost:3001/repositories/add , paste in the SSH url for the git repository to work on.
-
-### Qwen CLI upgrade notes
-
-For comments and implementation touchpoints related to Qwen run behavior, see this thread with upgrade instructions: 
-https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
-
-<!-- 8. In new chats, you can copy Agent Instructions from here: https://github.com/alfe-ai (This will soon be integrated with the app)--><!--, I implemented this in an older branch, multiple agent support.)-->
-
-### Environment variables
-
-To run the web server over HTTPS, provide paths to your SSL certificate files:
-
-- `HTTPS_KEY_PATH` – path to your private key
-- `HTTPS_CERT_PATH` – path to your certificate
-
-If both files exist the server starts in HTTPS mode, otherwise it falls back to HTTP.
-You can generate a certificate automatically with `../setup_certbot.sh <domain> <email>`.
-
-To authenticate node heartbeat pings, set a shared key in `.env` using `ALFECODE_NODE_PING_KEY`.
-On Debian/Ubuntu shells you can generate a 32-byte hex key with:
-```
-openssl rand -hex 32
-```
-Then add it to `.env` (same value on the CNC server and each node):
-```
-ALFECODE_NODE_PING_KEY=your_generated_value_here
-```
-
-### Related Repositories:  
-Alfe AI / Agent Instructions: https://github.com/alfe-ai
-
----
-
-See the [LICENSE](https://github.com/alfe-ai) file.
-
-**Copyright (c) 2022-2026 [Nicholas Lochner](https://lochner.tech)**  
-https://github.com/lochner-technology
+## Requirements
+- Node.js (version 14 or higher recommended)
+- Express.js (automatically included via package.json)

@@ -1,0 +1,278 @@
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title>Cat Cafe - Virtual Cat Adventure</title&gt;
+    &lt;style&gt;
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 2px solid #ffd1dc;
+        }
+        
+        h1 {
+            color: #ff6b9d;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .cat-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .cat {
+            background-color: #ffecd2;
+            border-radius: 15px;
+            padding: 20px;
+            width: 200px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .cat:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .cat-img {
+            width: 100%;
+            height: 150px;
+            background-color: #ffd1dc;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+        
+        .cat-info {
+            margin-top: 10px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        
+        .stat {
+            background-color: #a8e6cf;
+            padding: 10px;
+            border-radius: 10px;
+            width: 120px;
+        }
+        
+        .actions {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b9d, #ff8e53);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .message {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .game-info {
+            background-color: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .cat-name {
+            font-size: 24px;
+            color: #ff6b9d;
+            margin: 10px 0;
+        }
+        
+        .cat-details {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        
+        .detail-item {
+            background-color: #bbdefb;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 5px;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="container"&gt;
+        &lt;h1&gt;🐾 Cat Cafe Virtual Adventure 🐾&lt;/h1&gt;
+        
+        &lt;div class="game-info"&gt;
+            &lt;p&gt;Welcome to the Cat Cafe! Here you can adopt, feed, and play with your virtual cats.&lt;/p&gt;
+            &lt;p&gt;Take good care of them and make sure they're happy and healthy!&lt;/p&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="cat-container"&gt;
+            &lt;div class="cat"&gt;
+                &lt;div class="cat-img"&gt;🐱&lt;/div&gt;
+                &lt;div class="cat-name"&gt;Fluffy&lt;/div&gt;
+                &lt;div class="cat-details"&gt;
+                    &lt;div class="detail-item" id="cat-happiness"&gt;Happiness: 80&lt;/div&gt;
+                    &lt;div class="detail-item" id="cat-hunger"&gt;Hunger: 30&lt;/div&gt;
+                    &lt;div class="detail-item" id="cat-health"&gt;Health: 90&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="stats"&gt;
+            &lt;div class="stat"&gt;
+                &lt;div&gt;Happiness&lt;/div&gt;
+                &lt;div id="happiness-value"&gt;80%&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="stat"&gt;
+                &lt;div&gt;Hunger&lt;/div&gt;
+                &lt;div id="hunger-value"&gt;30%&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class="stat"&gt;
+                &lt;div&gt;Health&lt;/div&gt;
+                &lt;div id="health-value"&gt;90%&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="actions"&gt;
+            &lt;button id="feed-btn"&gt;Feed Cat 🍖&lt;/button&gt;
+            &lt;button id="play-btn"&gt;Play with Cat 🎾&lt;/button&gt;
+            &lt;button id="pet-btn"&gt;Pet Cat ❤️&lt;/button&gt;
+            &lt;button id="sleep-btn"&gt;Let Cat Sleep 😴&lt;/button&gt;
+        &lt;/div&gt;
+        
+        &lt;div class="message" id="message"&gt;Welcome to the Cat Cafe! What would you like to do with your cat?&lt;/div&gt;
+    &lt;/div&gt;
+    
+    &lt;script&gt;
+        // Game state
+        let cat = {
+            happiness: 80,
+            hunger: 30,
+            health: 90,
+            name: "Fluffy"
+        };
+        
+        // DOM Elements
+        const happinessValue = document.getElementById('happiness-value');
+        const hungerValue = document.getElementById('hunger-value');
+        const healthValue = document.getElementById('health-value');
+        const messageEl = document.getElementById('message');
+        const feedBtn = document.getElementById('feed-btn');
+        const playBtn = document.getElementById('play-btn');
+        const petBtn = document.getElementById('pet-btn');
+        const sleepBtn = document.getElementById('sleep-btn');
+        
+        // Update the displayed stats
+        function updateStats() {
+            happinessValue.textContent = cat.happiness + '%';
+            hungerValue.textContent = cat.hunger + '%';
+            healthValue.textContent = cat.health + '%';
+            
+            // Update bars for visual progress
+            document.getElementById('cat-happiness').textContent = 'Happiness: ' + cat.happiness;
+            document.getElementById('cat-hunger').textContent = 'Hunger: ' + cat.hunger;
+            document.getElementById('cat-health').textContent = 'Health: ' + cat.health;
+        }
+        
+        // Show message
+        function showMessage(msg) {
+            messageEl.textContent = msg;
+        }
+        
+        // Feed the cat
+        feedBtn.addEventListener('click', () => {
+            if (cat.hunger &lt; 100) {
+                cat.hunger = Math.min(100, cat.hunger + 20);
+                cat.happiness = Math.min(100, cat.happiness + 5);
+                cat.health = Math.min(100, cat.health + 2);
+                updateStats();
+                showMessage('Yum! '+ cat.name + ' enjoyed the delicious food!');
+            } else {
+                showMessage('Your cat isn\'t hungry right now!');
+            }
+        });
+        
+        // Play with the cat
+        playBtn.addEventListener('click', () => {
+            if (cat.happiness &lt; 100) {
+                cat.happiness = Math.min(100, cat.happiness + 15);
+                cat.hunger = Math.max(0, cat.hunger - 10);
+                cat.health = Math.min(100, cat.health + 5);
+                updateStats();
+                showMessage('Fun times! '+ cat.name + ' is playing with you!');
+            } else {
+                showMessage('Your cat is already very happy!');
+            }
+        });
+        
+        // Pet the cat
+        petBtn.addEventListener('click', () => {
+            cat.happiness = Math.min(100, cat.happiness + 10);
+            cat.health = Math.min(100, cat.health + 3);
+            updateStats();
+            showMessage('Awww, '+ cat.name + ' purrs happily!');
+        });
+        
+        // Let cat sleep
+        sleepBtn.addEventListener('click', () => {
+            cat.health = Math.min(100, cat.health + 15);
+            cat.hunger = Math.max(0, cat.hunger - 5);
+            updateStats();
+            showMessage(cat.name + ' is taking a nap. Zzz...');
+        });
+        
+        // Initialize stats
+        updateStats();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
