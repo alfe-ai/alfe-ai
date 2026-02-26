@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potato Catcher Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(to bottom, #8B4513, #5D2906);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        h1 {
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        #game-board {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #228B22;
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .potato {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #8B4513;
+            border-radius: 50%;
+            border: 2px solid #654321;
+            background-image: radial-gradient(circle at 30% 30%, #D2B48C, #8B4513);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .basket {
+            position: absolute;
+            bottom: 20px;
+            width: 100px;
+            height: 60px;
+            background: #8B4513;
+            border: 2px solid #654321;
+            border-radius: 20px 20px 0 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #FFD700;
+            color: #8B4513;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #FFA500;
+            transform: scale(1.05);
+        }
+        .instructions {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #FFD700;
+        }
+        .instructions ul {
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🥔 Potato Catcher Game 🥔</h1>
+        
+        <div class="game-info">
+            <div>Score: <span id="score">0</span></div>
+            <div>Time: <span id="timer">60</span>s</div>
+            <div>Lives: <span id="lives">3</span></div>
+        </div>
+        
+        <div id="game-board">
+            <div class="basket"></div>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li>Move the basket left and right using arrow keys</li>
+                <li>Catch falling potatoes to score points</li>
+                <li>Don't let potatoes fall to the ground!</li>
+                <li>Each potato caught = 10 points</li>
+                <li>Each missed potato = 1 life lost</li>
+                <li>Game lasts for 60 seconds</li>
+            </ul>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">Start Game</button>
+            <button id="pause-btn">Pause</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let score = 0;
+        let timeLeft = 60;
+        let lives = 3;
+        let gameRunning = false;
+        let gameInterval;
+        let potatoInterval;
+        let basketPosition = 350;
+        let potatoes = [];
+        
+        // DOM elements
+        const gameBoard = document.getElementById('game-board');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const livesElement = document.getElementById('lives');
+        const startButton = document.getElementById('start-btn');
+        const pauseButton = document.getElementById('pause-btn');
+        const resetButton = document.getElementById('reset-btn');
+        const basket = document.querySelector('.basket');
+        
+        // Initialize basket position
+        basket.style.left = basketPosition + 'px';
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+            
+            if (e.key === 'ArrowLeft') {
+                basketPosition = Math.max(0, basketPosition - 20);
+            } else if (e.key === 'ArrowRight') {
+                basketPosition = Math.min(700, basketPosition + 20);
+            }
+            
+            basket.style.left = basketPosition + 'px';
+        });
+        
+        // Start game
+        startButton.addEventListener('click', () => {
+            if (!gameRunning) {
+                startGame();
+            }
+        });
+        
+        // Pause game
+        pauseButton.addEventListener('click', () => {
+            if (gameRunning) {
+                pauseGame();
+            }
+        });
+        
+        // Reset game
+        resetButton.addEventListener('click', () => {
+            resetGame();
+        });
+        
+        function startGame() {
+            if (gameRunning) return;
+            
+            gameRunning = true;
+            score = 0;
+            timeLeft = 60;
+            lives = 3;
+            updateDisplay();
+            
+            // Start game timer
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+            
+            // Generate potatoes
+            potatoInterval = setInterval(() => {
+                if (gameRunning) {
+                    createPotato();
+                }
+            }, 1000);
+            
+            startButton.textContent = "Restart Game";
+        }
+        
+        function pauseGame() {
+            gameRunning = false;
+            clearInterval(gameInterval);
+            clearInterval(potatoInterval);
+            
+            // Remove existing potatoes
+            potatoes.forEach(potato => {
+                if (potato.element) {
+                    gameBoard.removeChild(potato.element);
+                }
+            });
+            potatoes = [];
+        }
+        
+        function resetGame() {
+            pauseGame();
+            score = 0;
+            timeLeft = 60;
+            lives = 3;
+            updateDisplay();
+            
+            // Remove existing potatoes
+            potatoes.forEach(potato => {
+                if (potato.element) {
+                    gameBoard.removeChild(potato.element);
+                }
+            });
+            potatoes = [];
+            
+            // Reset basket
+            basketPosition = 350;
+            basket.style.left = basketPosition + 'px';
+            
+            startButton.textContent = "Start Game";
+        }
+        
+        function createPotato() {
+            const potato = document.createElement('div');
+            potato.className = 'potato';
+            
+            // Random horizontal position
+            const x = Math.random() * 760; // 800 - 40 (potato width)
+            potato.style.left = x + 'px';
+            potato.style.top = '0px';
+            
+            // Add to game board
+            gameBoard.appendChild(potato);
+            
+            // Store potato data
+            const potatoData = {
+                element: potato,
+                x: x,
+                y: 0,
+                speed: 2 + Math.random() * 2
+            };
+            
+            potatoes.push(potatoData);
+        }
+        
+        function updateGame() {
+            if (!gameRunning) return;
+            
+            // Move potatoes
+            for (let i = potatoes.length - 1; i >= 0; i--) {
+                const potato = potatoes[i];
+                potato.y += potato.speed;
+                potato.element.style.top = potato.y + 'px';
+                
+                // Check if potato reached bottom
+                if (potato.y > 360) {
+                    // Check if basket catches it
+                    const basketLeft = basketPosition;
+                    const basketRight = basketPosition + 100;
+                    const potatoLeft = potato.x;
+                    const potatoRight = potato.x + 40;
+                    
+                    if (potatoRight > basketLeft && potatoLeft < basketRight) {
+                        // Caught!
+                        score += 10;
+                        updateDisplay();
+                    } else {
+                        // Missed!
+                        lives--;
+                        updateDisplay();
+                        
+                        if (lives <= 0) {
+                            endGame();
+                        }
+                    }
+                    
+                    // Remove potato
+                    gameBoard.removeChild(potato.element);
+                    potatoes.splice(i, 1);
+                }
+                
+                // Check collision with basket (just for visual effect)
+                const basketTop = 340; // 400 - 60 (basket height)
+                const basketBottom = 400;
+                
+                if (potato.y > basketTop && potato.y < basketBottom) {
+                    const basketLeft = basketPosition;
+                    const basketRight = basketPosition + 100;
+                    const potatoLeft = potato.x;
+                    const potatoRight = potato.x + 40;
+                    
+                    if (potatoRight > basketLeft && potatoLeft < basketRight) {
+                        // Caught!
+                        score += 10;
+                        updateDisplay();
+                        
+                        // Remove potato
+                        gameBoard.removeChild(potato.element);
+                        potatoes.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Keep moving potatoes
+            requestAnimationFrame(updateGame);
+        }
+        
+        function updateDisplay() {
+            scoreElement.textContent = score;
+            timerElement.textContent = timeLeft;
+            livesElement.textContent = lives;
+        }
+        
+        function endGame() {
+            gameRunning = false;
+            clearInterval(gameInterval);
+            clearInterval(potatoInterval);
+            
+            // Remove all potatoes
+            potatoes.forEach(potato => {
+                if (potato.element) {
+                    gameBoard.removeChild(potato.element);
+                }
+            });
+            potatoes = [];
+            
+            // Show game over message
+            const gameOver = document.createElement('div');
+            gameOver.textContent = `Game Over! Final Score: ${score}`;
+            gameOver.style.position = 'absolute';
+            gameOver.style.top = '50%';
+            gameOver.style.left = '50%';
+            gameOver.style.transform = 'translate(-50%, -50%)';
+            gameOver.style.fontSize = '32px';
+            gameOver.style.fontWeight = 'bold';
+            gameOver.style.color = '#FFD700';
+            gameOver.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+            gameBoard.appendChild(gameOver);
+        }
+        
+        // Start the game loop
+        updateGame();
+    </script>
+</body>
+</html>
