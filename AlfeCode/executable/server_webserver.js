@@ -2039,3 +2039,11 @@ if (projectViewEnabled) {
 } else {
   console.debug("[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED or BACKLOG_BUTTON_VISIBLE; /ProjectView routes not mounted.");
 }
+
+// Route for the game page
+app.get("/game", (req, res) => {
+    const repoNames = [];
+    // In a real implementation, this would list the actual repository names
+    // For now, we're just providing a minimal page for the game
+    res.render("game", { repoNames: repoNames });
+});

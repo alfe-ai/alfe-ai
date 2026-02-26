@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game - Alfe AI</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Roboto', sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        #game-container {
+            display: inline-block;
+            position: relative;
+            margin: 20px auto;
+        }
+        canvas {
+            border: 2px solid #3498db;
+            background-color: #ecf0f1;
+        }
+        #score {
+            font-size: 1.2em;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        #restart-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #restart-btn:hover {
+            background-color: #2980b9;
+        }
+        #instructions {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #startButton {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        #startButton:hover {
+            background-color: #219653;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/session_banner') %>
+    <h1>Snake Game</h1>
+    
+    <div id="instructions">
+        <p>Use arrow keys to control the snake. Eat the food (red squares) to grow and earn points.</p>
+        <p>Don't hit the walls or yourself!</p>
+        <button id="startButton">Start Game</button>
+    </div>
+    
+    <div id="game-container">
+        <div id="score">Score: 0</div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div id="game-over">
+            <h2>Game Over!</h2>
+            <p id="final-score">Score: 0</p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script src="/JS/snake-game.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startButton = document.getElementById('startButton');
+            const gameCanvas = document.getElementById('gameCanvas');
+            
+            // Start button functionality
+            startButton.addEventListener('click', () => {
+                startButton.style.display = 'none';
+                initGame(gameCanvas);
+            });
+            
+            // Restart button functionality
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                location.reload();
+            });
+        });
+    </script>
+</body>
+</html>
