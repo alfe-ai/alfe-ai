@@ -452,7 +452,7 @@ export default class TaskDBAws {
     }
   }
 
-  async getTableData(tableName, limit = 200) {
+  async getTableData(tableName, limit = 200, offset = 0) {
     const tables = await this.listTables();
     if (!tables.includes(tableName)) {
       throw new Error(`Unknown table: ${tableName}`);
@@ -466,13 +466,14 @@ export default class TaskDBAws {
       const columns = columnResult.rows.map((row) => row.column_name);
       const safeName = `"${tableName.replace(/"/g, '""')}"`;
       const dataResult = await client.query(
-        `SELECT * FROM ${safeName} LIMIT $1`,
-        [limit]
+        `SELECT * FROM ${safeName} LIMIT $1 OFFSET $2`,
+        [limit, offset]
       );
       return {
         columns,
         rows: dataResult.rows,
         limit,
+        offset,
         rowCount: dataResult.rows.length
       };
     } finally {
