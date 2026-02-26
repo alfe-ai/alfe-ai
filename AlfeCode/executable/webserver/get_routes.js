@@ -1608,8 +1608,14 @@ function setupGetRoutes(deps) {
             return "";
         }
 
-        // If OpenRouter is configured, call its chat completions endpoint to
-        // generate a verbose commit summary from the cleaned final output.
+        // Optional: call OpenRouter to rewrite final output into a verbose
+        // commit summary. Keep this disabled by default so read-only pages
+        // like View Diff do not trigger external LLM requests.
+        const openRouterSummaryEnabled = isTruthyFlag(process.env.ENABLE_OPENROUTER_FINAL_OUTPUT_SUMMARY);
+        if (!openRouterSummaryEnabled) {
+            return cleanedFinalOutput;
+        }
+
         const openrouterKey = process.env.OPENROUTER_API_KEY || "";
         const openrouterModel = (process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b").toString();
         if (!openrouterKey) {
