@@ -41,6 +41,13 @@
   let submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
   const promptHintsFromLocal = (localStorage.getItem('showPromptHints') !== null) ? (localStorage.getItem('showPromptHints') === 'true') : undefined;
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
+  const OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY = 'openDiffOnRunComplete';
+  const openDiffOnRunCompleteFromLocal = (localStorage.getItem(OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY) !== null)
+    ? (localStorage.getItem(OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY) === 'true')
+    : undefined;
+  let openDiffOnRunComplete = (typeof openDiffOnRunCompleteFromLocal !== 'undefined')
+    ? openDiffOnRunCompleteFromLocal
+    : true;
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
   const QWEN_SHOW_DEBUG_INFO_STORAGE_KEY = 'qwenShowDebugInfo';
@@ -397,6 +404,12 @@
         try {
           qwenShowDebugInfo = (d.value === true || d.value === 'true');
           localStorage.setItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY, qwenShowDebugInfo ? 'true' : 'false');
+        } catch (e) {}
+      }
+      if (d.key === 'openDiffOnRunComplete') {
+        try {
+          openDiffOnRunComplete = (d.value === true || d.value === 'true');
+          localStorage.setItem(OPEN_DIFF_ON_RUN_COMPLETE_STORAGE_KEY, openDiffOnRunComplete ? 'true' : 'false');
         } catch (e) {}
       }
       if(d.key === 'defaultModel'){
@@ -2370,6 +2383,7 @@
   let pendingGitFpushHashProjectDir = "";
   let pendingGitFpushBranch = "";
   let pendingGitFpushBranchProjectDir = "";
+  let autoOpenedDiffRunToken = "";
 
   const refreshRunsSidebarDisabledState = () => {
     if (!runsSidebarListEl) {
@@ -4383,6 +4397,31 @@
     return false;
   };
 
+
+  const maybeAutoOpenDiffModal = (url) => {
+    if (!openDiffOnRunComplete || typeof url !== 'string' || !url.trim()) {
+      return;
+    }
+    if (hydratingRunFromHistory) {
+      return;
+    }
+    const runId = normaliseRunId((currentRunContext && currentRunContext.runId) || '');
+    if (!runId) {
+      return;
+    }
+    if (runInFlight || followupRunActive || eventSource || !shouldEnableRefreshStyleActions()) {
+      return;
+    }
+    const token = `${runId}::${url}`;
+    if (autoOpenedDiffRunToken === token) {
+      return;
+    }
+    autoOpenedDiffRunToken = token;
+    openMergeDiffModal(url).catch((error) => {
+      console.warn('Failed to auto-open diff modal', error);
+    });
+  };
+
   const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
@@ -4412,6 +4451,7 @@
       mergeDiffButton.classList.add('is-hidden');
       mergeDiffButton.onclick = null;
       updateRefreshRunButtonVisibility();
+      maybeAutoOpenDiffModal(url);
       return;
     }
     mergeDiffButton.disabled = false;
@@ -4420,6 +4460,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
+    maybeAutoOpenDiffModal(url);
   };
 
   const extractBranchFromText = (text) => {
@@ -4458,6 +4499,7 @@
       mergeDiffButton.classList.add('is-hidden');
       mergeDiffButton.onclick = null;
       updateRefreshRunButtonVisibility();
+      maybeAutoOpenDiffModal(url);
       return;
     }
     mergeDiffButton.disabled = false;
@@ -4466,6 +4508,7 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
+    maybeAutoOpenDiffModal(url);
   };
 
   const tryEnableMergeDiffFromText = (text, projectDirValue) => {
@@ -8181,6 +8224,7 @@ const appendMergeChunk = (text, type = "output") => {
   }
 
   const startStream = (projectDir, prompt, agentInstructions) => {
+    autoOpenedDiffRunToken = "";
     const hadExistingRun = Boolean(
       currentRunContext
       && typeof currentRunContext.runId === "string"
