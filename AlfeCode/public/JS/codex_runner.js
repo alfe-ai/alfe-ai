@@ -6453,10 +6453,25 @@ const appendMergeChunk = (text, type = "output") => {
 
     const filterValue = runsSidebarFilter ? runsSidebarFilter.trim().toLowerCase() : "";
     const activeFollowupParents = new Set();
+    const latestFollowupByParentId = new Map();
+    const getRunRecencyTimestamp = (run) => {
+      const candidate =
+        run?.updatedAt
+        || run?.startedAt
+        || run?.createdAt
+        || run?.finishedAt
+        || "";
+      const timestamp = candidate ? new Date(candidate).getTime() : 0;
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
     const followupFilteredRuns = Array.isArray(runs)
       ? runs.filter((run) => {
         const followupParentId = getFollowupParentId(run);
         if (followupParentId) {
+          const existingLatestFollowup = latestFollowupByParentId.get(followupParentId);
+          if (!existingLatestFollowup || getRunRecencyTimestamp(run) >= getRunRecencyTimestamp(existingLatestFollowup)) {
+            latestFollowupByParentId.set(followupParentId, run);
+          }
           if (!run?.finishedAt) {
             activeFollowupParents.add(followupParentId);
           }
@@ -6651,8 +6666,15 @@ const appendMergeChunk = (text, type = "output") => {
       const metaEl = button.querySelector('.runs-sidebar__item-meta');
       if (metaEl) {
         // badge
-        const badgeInfo = getSidebarBadgeInfo(run, {
-          hasActiveFollowup: Boolean(normalizedRunId && activeFollowupParents.has(normalizedRunId)),
+        const latestFollowupRun = normalizedRunId ? latestFollowupByParentId.get(normalizedRunId) : null;
+        const hasSelectedRunActiveFollowup = Boolean(
+          normalizedRunId
+          && followupRunActive
+          && currentRunContext
+          && normaliseRunId(currentRunContext.runId) === normalizedRunId,
+        );
+        const badgeInfo = getSidebarBadgeInfo(latestFollowupRun || run, {
+          hasActiveFollowup: Boolean(normalizedRunId && activeFollowupParents.has(normalizedRunId)) || hasSelectedRunActiveFollowup,
         });
         let badge = metaEl.querySelector('.runs-sidebar__badge');
         if (badgeInfo) {
