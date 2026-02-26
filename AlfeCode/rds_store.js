@@ -128,6 +128,9 @@ class RdsStore {
         account_id INTEGER,
         branch TEXT DEFAULT '',
         model TEXT DEFAULT '',
+        base_revision TEXT DEFAULT '',
+        commit_revision TEXT DEFAULT '',
+        run_directory TEXT DEFAULT '',
         PRIMARY KEY (session_id, run_id)
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SESSION_VIEWS_TABLE} (
@@ -323,6 +326,18 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS model TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS base_revision TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS commit_revision TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS run_directory TEXT DEFAULT ''`
       );
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
@@ -647,10 +662,20 @@ class RdsStore {
         // Extract model from run
         const model = (run.model || run.modelId || '').toString().trim();
 
+        const baseRevision = (run.baseRevision || run.base_revision || '').toString().trim();
+        const commitRevision = (run.commitRevision || run.commit_revision || '').toString().trim();
+        const runDirectory = (
+          run.runDirectory
+          || run.run_directory
+          || run.effectiveProjectDir
+          || run.projectDir
+          || ''
+        ).toString().trim();
+
         await client.query(
           `INSERT INTO ${ALFECODE_RUNS_TABLE}
-           (session_id, run_id, numeric_id, status, script_status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+           (session_id, run_id, numeric_id, status, script_status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model, base_revision, commit_revision, run_directory)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
           [
             sessionId,
             runId,
@@ -664,6 +689,9 @@ class RdsStore {
             accountId,
             branch,
             model,
+            baseRevision,
+            commitRevision,
+            runDirectory,
           ]
         );
       }
@@ -1231,6 +1259,15 @@ class RdsStore {
       }
       if (typeof row.branch === "string" && row.branch.trim()) {
         parsedRun.branch = row.branch;
+      }
+      if (typeof row.base_revision === "string" && row.base_revision.trim()) {
+        parsedRun.baseRevision = row.base_revision;
+      }
+      if (typeof row.commit_revision === "string" && row.commit_revision.trim()) {
+        parsedRun.commitRevision = row.commit_revision;
+      }
+      if (typeof row.run_directory === "string" && row.run_directory.trim()) {
+        parsedRun.runDirectory = row.run_directory;
       }
       if (Number.isFinite(row.numeric_id)) {
         parsedRun.numericId = row.numeric_id;
