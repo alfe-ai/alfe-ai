@@ -1697,7 +1697,18 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             status.textContent = message || "";
         };
 
-        form.addEventListener("submit", (event) => {
+        // Function to get the submit on enter setting
+        const getSubmitOnEnterSetting = () => {
+            try {
+                const stored = localStorage.getItem('submitOnEnter');
+                return stored === 'true';
+            } catch (e) {
+                return true; // Default to true for backward compatibility
+            }
+        };
+
+        // Handle form submission
+        const handleSubmit = (event) => {
             event.preventDefault();
             const prompt = typeof input.value === "string" ? input.value.trim() : "";
             if (!prompt) {
@@ -1714,6 +1725,17 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 setStatus("Follow-up sent.");
             } catch (_err) {
                 setStatus("Unable to send follow-up.");
+            }
+        };
+
+        form.addEventListener("submit", handleSubmit);
+
+        // Add keyboard event handling for Enter/Return key
+        input.addEventListener("keydown", (event) => {
+            // Only handle Enter/Return if the setting is enabled
+            if (event.key === "Enter" && !event.shiftKey && getSubmitOnEnterSetting()) {
+                event.preventDefault();
+                handleSubmit(event);
             }
         });
     })();
