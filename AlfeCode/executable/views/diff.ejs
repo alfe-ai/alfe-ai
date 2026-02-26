@@ -223,20 +223,27 @@
             position: relative;
         }
 
-        .prompt-modal-close {
+        .prompt-modal-copy {
             position: absolute;
             top: 10px;
             right: 10px;
             border: 0;
             background: transparent;
             color: var(--muted);
-            font-size: 22px;
+            font-size: 16px;
             line-height: 1;
             cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .prompt-modal-copy:hover {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text);
         }
 
         .prompt-modal-header {
-            margin: 0 28px 10px 0;
+            margin: 0 34px 10px 0;
             font-size: 14px;
             color: var(--text);
         }
@@ -510,6 +517,45 @@
             border-radius: 12px;
             padding: 12px;
             box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-context-collapsible {
+            margin: 0;
+        }
+
+        .sidebar-context-collapsible > summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .sidebar-context-collapsible > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sidebar-context-collapsible > summary::after {
+            content: "▸";
+            color: var(--muted);
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-context-collapsible[open] > summary::after {
+            transform: rotate(90deg);
+        }
+
+        .sidebar-context-collapsible-body {
+            margin-top: 10px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -1090,23 +1136,17 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
         <div class="diff-sidebar" aria-label="Commits and files">
-            <% if (baseRev) { %>
-            <aside class="sidebar-context-card" aria-label="Diff context">
+            <% if (baseRev || compRev || comparisonCommitMessage) { %>
+            <aside class="sidebar-context-card" aria-label="Git revision info">
+                <details class="sidebar-context-collapsible">
+                    <summary>Git Revision Info</summary>
+                    <div class="sidebar-context-collapsible-body">
                 <% if (baseRev) { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">Base revision</span>
                     <p class="sidebar-context-value"><%= baseRev %></p>
                 </div>
                 <% } %>
-            </aside>
-            <% } %>
-            <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
-                <h4>Commits</h4>
-                <ul id="commit-list"></ul>
-            </aside>
-            <% } %>
-            <% if (compRev || comparisonCommitMessage) { %>
-            <aside class="sidebar-context-card" aria-label="Comparison revision and message">
                 <% if (compRev) { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">Compare head</span>
@@ -1119,6 +1159,13 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                     <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
                 </div>
                 <% } %>
+                    </div>
+                </details>
+            </aside>
+            <% } %>
+            <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
+                <h4>Commits</h4>
+                <ul id="commit-list"></ul>
             </aside>
             <% } %>
             <% if (comparisonPromptLineValue || (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string')) { %>
@@ -1146,7 +1193,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 <% } %>
                 <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
                 <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">AI response</span>
+                    <span class="sidebar-context-label">AI summary</span>
                     <div class="sidebar-context-value sidebar-markdown"><%- comparisonFinalOutputHtml %></div>
                 </div>
                 <% } %>
@@ -1193,7 +1240,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
 
     <div id="diffPromptModal" class="prompt-modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="diffPromptModalHeader">
         <div class="prompt-modal-content">
-            <button type="button" class="prompt-modal-close" id="diffPromptModalClose" aria-label="Close prompt modal">×</button>
+            <button type="button" class="prompt-modal-copy" id="diffPromptModalCopy" aria-label="Copy prompt" title="Copy prompt">⎘</button>
             <h3 id="diffPromptModalHeader" class="prompt-modal-header">User prompt</h3>
             <textarea id="diffPromptModalTextarea" class="prompt-modal-textarea" readonly spellcheck="false"></textarea>
         </div>
@@ -1807,10 +1854,10 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
     (function () {
         const trigger = document.getElementById('diffPromptTrigger');
         const modal = document.getElementById('diffPromptModal');
-        const closeButton = document.getElementById('diffPromptModalClose');
+        const copyButton = document.getElementById('diffPromptModalCopy');
         const textarea = document.getElementById('diffPromptModalTextarea');
 
-        if (!trigger || !modal || !closeButton || !textarea) {
+        if (!trigger || !modal || !textarea) {
             return;
         }
 
@@ -1847,7 +1894,32 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             }
         });
 
-        closeButton.addEventListener('click', closeModal);
+        if (copyButton) {
+            copyButton.addEventListener('click', () => {
+                const resetLabel = () => {
+                    window.setTimeout(() => {
+                        copyButton.textContent = '\u2398';
+                    }, 1200);
+                };
+                try {
+                    navigator.clipboard.writeText(textarea.value || '');
+                    copyButton.textContent = '✓';
+                    resetLabel();
+                } catch (err) {
+                    try {
+                        textarea.focus();
+                        textarea.select();
+                        document.execCommand('copy');
+                        copyButton.textContent = '✓';
+                        resetLabel();
+                    } catch (_fallbackErr) {
+                        copyButton.textContent = '!';
+                        resetLabel();
+                    }
+                }
+            });
+        }
+
         modal.addEventListener('click', (event) => {
             if (event.target === modal) {
                 closeModal();
