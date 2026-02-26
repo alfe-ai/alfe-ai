@@ -1541,7 +1541,8 @@ app.get("/api/db/table/:name", (req, res) => {
         return res.status(501).json({ error: "Database table read not supported." });
       }
       const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 200, 1000));
-      const data = await Promise.resolve(db.getTableData(tableName, limit));
+      const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+      const data = await Promise.resolve(db.getTableData(tableName, limit, offset));
       res.json(data);
     } catch (err) {
       console.error("[Server Debug] GET /api/db/table error:", err);
@@ -5327,6 +5328,15 @@ app.get("/db/:table", (req, res) => {
   const tableName = req.params.table;
   console.debug(`[Server Debug] GET /db/:table => Serving db.html for table: ${tableName}`);
   res.sendFile(path.join(__dirname, "../public/db.html"));
+});
+
+app.get("/db_account_ips", (req, res) => {
+  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    console.warn("[Server Debug] GET /db_account_ips blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).send("Forbidden");
+  }
+  console.debug("[Server Debug] GET /db_account_ips => Serving db_account_ips.html");
+  res.sendFile(path.join(__dirname, "../public/db_account_ips.html"));
 });
 
 app.get("/ai_models", (req, res) => {

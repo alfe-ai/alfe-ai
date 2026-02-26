@@ -92,6 +92,15 @@
       color: #475569;
       font-size: 0.95rem;
     }
+    .table-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .table-actions label {
+      font-size: 0.9rem;
+      color: #475569;
+    }
 
     .query-editor {
       display: flex;
@@ -143,6 +152,35 @@
       overflow: auto;
       border: 1px solid #e2e8f0;
       border-radius: 10px;
+    }
+    .pagination {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .pagination input[type="number"] {
+      width: 80px;
+      padding: 0.35rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.88rem;
+    }
+    .pagination button {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.88rem;
+    }
+    .pagination button:disabled {
+      background: #f1f5f9;
+      color: #94a3b8;
+      cursor: not-allowed;
     }
     .db-info {
       padding: 0 2rem 2rem;
@@ -474,11 +512,19 @@
       </div>
       <div class="toolbar">
         <span id="activeTable">Select a table to view its contents.</span>
+        <div class="table-actions">
+          <label for="pageSizeInput">Page size</label>
+          <input type="number" id="pageSizeInput" min="1" max="1000" value="200" style="width: 80px; padding: 0.35rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem;">
+        </div>
         <span id="rowMeta"></span>
       </div>
       <div class="status" id="dataStatus"></div>
       <div class="table-wrap" id="tableWrap">
         <div class="empty">No table selected.</div>
+      </div>
+      <div class="pagination" id="pagination">
+        <button id="prevBtn" disabled>Previous</button>
+        <button id="nextBtn" disabled>Next</button>
       </div>
     </main>
   </section>
@@ -521,8 +567,29 @@
     const cancelTokenBtn = document.getElementById("cancelTokenBtn");
     const submitTokenBtn = document.getElementById("submitTokenBtn");
 
+    // Pagination controls
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const pageSizeInput = document.getElementById("pageSizeInput");
+    const pagination = document.getElementById("pagination");
+
     let writableMode = false;
     let writableToken = null;
+    let currentPage = 0;
+    let currentPageSize = 200;
+    let currentTableName = null;
+    let hasMoreRows = false;
+
+    function updatePaginationUI() {
+      if (!currentTableName) {
+        pagination.style.display = "none";
+        return;
+      }
+      pagination.style.display = "flex";
+      prevBtn.disabled = currentPage === 0;
+      nextBtn.disabled = !hasMoreRows;
+      pageSizeInput.value = String(currentPageSize);
+    }
 
     function getQueryKind(queryText) {
       const sql = typeof queryText === "string" ? queryText : "";
@@ -594,6 +661,7 @@
       document.querySelectorAll(".table-list button").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.table === name);
       });
+      currentTableName = name;
     }
 
     function shouldMaskSensitiveCell(tableName, columnName, value) {
@@ -823,20 +891,25 @@
 
         dataStatus.textContent = "Loading data…";
         tableWrap.innerHTML = "<div class='empty'>Loading…</div>";
-
+        // Reset pagination state for new table
+        currentPage = 0;
         // Update URL hash to reflect current table selection
         updateHashForTable(name);
-
-        const res = await fetch(`/api/db/table/${encodeURIComponent(name)}`);
+        const limit = Math.max(1, Math.min(parseInt(pageSizeInput.value, 10) || 200, 1000));
+        const offset = currentPage * limit;
+        const res = await fetch(`/api/db/table/${encodeURIComponent(name)}?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`);
         if (!res.ok) {
           throw new Error(`Failed to load table ${name}`);
         }
         const data = await res.json();
         const columns = data.columns || [];
         const rows = data.rows || [];
+        const rowCount = data.rowCount || rows.length;
+        hasMoreRows = rowCount === limit;
         dataStatus.textContent = "";
-        rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"} (limit ${data.limit || 0})`;
+        rowMeta.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"} (limit ${limit})`;
         renderTable(columns, rows, name);
+        updatePaginationUI();
       } catch (err) {
         dataStatus.textContent = "Unable to load table data.";
         tableWrap.innerHTML = "<div class='empty'>No data available.</div>";
@@ -848,6 +921,30 @@
     clearQueryBtn.addEventListener("click", () => {
       queryInput.value = "";
       queryInput.focus();
+    });
+    // Pagination event listeners
+    prevBtn.addEventListener("click", () => {
+      if (currentPage > 0) {
+        currentPage--;
+        loadTableData(currentTableName);
+      }
+    });
+    nextBtn.addEventListener("click", () => {
+      if (hasMoreRows) {
+        currentPage++;
+        loadTableData(currentTableName);
+      }
+    });
+    pageSizeInput.addEventListener("change", () => {
+      const newLimit = Math.max(1, Math.min(parseInt(pageSizeInput.value, 10) || 200, 1000));
+      if (newLimit !== currentPageSize) {
+        currentPageSize = newLimit;
+        // Reset page to 0 when page size changes
+        currentPage = 0;
+        if (currentTableName) {
+          loadTableData(currentTableName);
+        }
+      }
     });
 
     // Handle hash changes for browser navigation
