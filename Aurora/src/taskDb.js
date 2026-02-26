@@ -490,6 +490,17 @@ export default class TaskDB {
       );
     `);
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS log_ins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER NOT NULL,
+        session_id TEXT DEFAULT '',
+        provider TEXT DEFAULT 'password',
+        logged_in_at TEXT NOT NULL,
+        FOREIGN KEY(account_id) REFERENCES accounts(id)
+      );
+    `);
+
     try {
       this.db.exec('ALTER TABLE accounts ADD COLUMN totp_secret TEXT DEFAULT "";');
       console.debug("[TaskDB Debug] Added accounts.totp_secret column");
@@ -531,6 +542,15 @@ export default class TaskDB {
     this.setAccountLastLogin = function(id) {
       const now = new Date().toISOString();
       this.db.prepare("UPDATE accounts SET last_log_in = ? WHERE id = ?").run(now, id);
+    };
+
+    this.recordAccountLogin = function(id, sessionId = '', provider = 'password') {
+      const now = new Date().toISOString();
+      this.db
+        .prepare(
+          'INSERT INTO log_ins (account_id, session_id, provider, logged_in_at) VALUES (?, ?, ?, ?)'
+        )
+        .run(id, sessionId || '', provider || 'password', now);
     };
 
     // Migration: remove the deprecated upwork_jobs table if it exists.
