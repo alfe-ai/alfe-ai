@@ -1122,7 +1122,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             </aside>
             <% } %>
             <% if (comparisonPromptLineValue || (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string')) { %>
-            <aside class="sidebar-context-card" aria-label="Prompt and AI response">
+            <aside class="sidebar-context-card" aria-label="Prompt and AI summary">
                 <% if (comparisonPromptLineValue) { %>
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">User prompt</span>
@@ -1146,7 +1146,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 <% } %>
                 <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
                 <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">AI response</span>
+                    <span class="sidebar-context-label">AI summary</span>
                     <div class="sidebar-context-value sidebar-markdown"><%- comparisonFinalOutputHtml %></div>
                 </div>
                 <% } %>
