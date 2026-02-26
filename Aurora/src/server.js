@@ -1050,7 +1050,12 @@ function getEmailFromShopifyTokenData(tokenData) {
   }
   const payload = decodeJwtPayload(tokenData.id_token);
   const jwtEmail = payload?.email;
-  return typeof jwtEmail === 'string' ? jwtEmail.trim().toLowerCase() : '';
+  if (typeof jwtEmail === 'string' && jwtEmail.trim()) {
+    return jwtEmail.trim().toLowerCase();
+  }
+  const accessPayload = decodeJwtPayload(tokenData.access_token);
+  const accessTokenEmail = accessPayload?.email;
+  return typeof accessTokenEmail === 'string' ? accessTokenEmail.trim().toLowerCase() : '';
 }
 
 // Updated to include ".json" suffix
@@ -5157,7 +5162,7 @@ app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
     
     // Add required OAuth parameters
     authUrl.searchParams.set('client_id', SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID);
-    authUrl.searchParams.set('scope', 'openid'); // You may need to adjust scopes based on requirements
+    authUrl.searchParams.set('scope', 'openid email');
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('redirect_uri', `${req.protocol}://${req.get('host')}/auth/shopify/callback`);
     
