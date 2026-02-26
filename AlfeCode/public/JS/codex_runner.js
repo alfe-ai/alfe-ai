@@ -4082,7 +4082,7 @@
     hideMergeDiffButton();
   };
 
-  const navigateToRefreshViewDiff = ({ force = false } = {}) => {
+  const openRefreshViewDiffInNewTab = ({ force = false } = {}) => {
     const url = new URL(window.location.href);
 
     if (!force && url.searchParams.get('viewDiff') === 'true') {
@@ -4091,14 +4091,13 @@
 
     url.searchParams.set('viewDiff', 'true');
 
-    // Force a true navigation by appending a random md5-like salt.
-    // This avoids no-op navigations when the URL would otherwise be unchanged.
+    // Force a distinct URL so repeated clicks still open an updated diff page.
     const randomMd5Salt = (window.crypto && typeof window.crypto.randomUUID === "function")
       ? window.crypto.randomUUID().replace(/-/g, "")
       : `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 32).padEnd(32, "0");
     url.searchParams.set('r', randomMd5Salt);
 
-    window.location.assign(url.toString());
+    window.open(url.toString(), '_blank', 'noopener');
   };
 
   const updateRefreshRunButtonVisibility = () => {
@@ -4138,7 +4137,7 @@
 
   if (refreshRunPageButton) {
     refreshRunPageButton.addEventListener("click", () => {
-      navigateToRefreshViewDiff({ force: true });
+      openRefreshViewDiffInNewTab({ force: true });
     });
   }
 
