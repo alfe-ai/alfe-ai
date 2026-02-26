@@ -866,18 +866,6 @@
 <div class="page">
     <div class="header-row">
         <div class="header-main">
-            <% if (baseRev || compRev) { %>
-            <div class="revision-info">
-                <span class="revision-pill">Base: <%= baseRev || '—' %></span>
-            </div>
-            <% } %>
-
-            <% if (resolvedModelDisplayName) { %>
-            <div class="revision-info">
-                <span class="revision-pill">Model: <%= resolvedModelDisplayName %></span>
-            </div>
-            <% } %>
-
             <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
 <% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
 <% const renderCommitList = typeof showCommitList !== 'undefined' ? !!showCommitList : false; %>
@@ -922,6 +910,22 @@
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
         <div class="diff-sidebar" aria-label="Commits and files">
+            <% if (baseRev || resolvedModelDisplayName) { %>
+            <aside class="sidebar-context-card" aria-label="Diff context">
+                <% if (baseRev) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Base revision</span>
+                    <p class="sidebar-context-value"><%= baseRev %></p>
+                </div>
+                <% } %>
+                <% if (resolvedModelDisplayName) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Model</span>
+                    <p class="sidebar-context-value"><%= resolvedModelDisplayName %></p>
+                </div>
+                <% } %>
+            </aside>
+            <% } %>
             <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
                 <h4>Commits</h4>
                 <ul id="commit-list"></ul>
