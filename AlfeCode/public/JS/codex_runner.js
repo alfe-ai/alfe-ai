@@ -2365,8 +2365,6 @@
   let gitFpushCommitRevision = "";
   let gitFpushLogCaptureActive = false;
   let mergeDiffLockedAfterMerge = false;
-  let autoOpenMergeDiffOnEnable = false;
-  let autoOpenMergeDiffFromQuery = false;
   let hydratingRunFromHistory = false;
   let pendingGitFpushHash = "";
   let pendingGitFpushHashProjectDir = "";
@@ -4084,18 +4082,6 @@
     hideMergeDiffButton();
   };
 
-  const consumeAutoOpenMergeDiffRequest = () => {
-    if (autoOpenMergeDiffOnEnable) {
-      autoOpenMergeDiffOnEnable = false;
-      return true;
-    }
-    if (autoOpenMergeDiffFromQuery) {
-      autoOpenMergeDiffFromQuery = false;
-      return true;
-    }
-    return false;
-  };
-
   const navigateToRefreshViewDiff = ({ force = false } = {}) => {
     const url = new URL(window.location.href);
 
@@ -4146,22 +4132,8 @@
     refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
 
     if (!nonRefreshDiffButtonHidden || !shouldEnableRefreshButton) {
-      delete refreshRunPageButton.dataset.autoOpenedDiffUrl;
       return;
     }
-
-    if (hasPreparedDiffUrl) {
-      const preparedDiffUrl = mergeDiffButton.getAttribute("data-href").trim();
-      const hasAutoOpenedPreparedUrl = refreshRunPageButton.dataset.autoOpenedDiffUrl === preparedDiffUrl;
-      if (hasAutoOpenedPreparedUrl) {
-        return;
-      }
-
-      refreshRunPageButton.dataset.autoOpenedDiffUrl = preparedDiffUrl;
-      setTimeout(() => openMergeDiffModal(preparedDiffUrl), 0);
-      return;
-    }
-    navigateToRefreshViewDiff();
   };
 
   if (refreshRunPageButton) {
@@ -4179,12 +4151,6 @@
     mergeDiffButton.classList.add('is-hidden');
     updateRefreshRunButtonVisibility();
   };
-
-  try {
-    autoOpenMergeDiffFromQuery = new URLSearchParams(window.location.search).get('viewDiff') === 'true';
-  } catch (error) {
-    autoOpenMergeDiffFromQuery = false;
-  }
 
   const hasActiveMergeDiffLink = () => {
     if (!mergeDiffButton) {
@@ -4377,9 +4343,6 @@
       mergeDiffButton.classList.add('is-hidden');
       mergeDiffButton.onclick = null;
       updateRefreshRunButtonVisibility();
-      if (consumeAutoOpenMergeDiffRequest()) {
-        setTimeout(() => openMergeDiffModal(url), 0);
-      }
       return;
     }
     mergeDiffButton.disabled = false;
@@ -4388,9 +4351,6 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
-    if (consumeAutoOpenMergeDiffRequest()) {
-      setTimeout(() => mergeDiffButton.click(), 0);
-    }
   };
 
   const extractBranchFromText = (text) => {
@@ -4429,9 +4389,6 @@
       mergeDiffButton.classList.add('is-hidden');
       mergeDiffButton.onclick = null;
       updateRefreshRunButtonVisibility();
-      if (consumeAutoOpenMergeDiffRequest()) {
-        setTimeout(() => openMergeDiffModal(url), 0);
-      }
       return;
     }
     mergeDiffButton.disabled = false;
@@ -4440,9 +4397,6 @@
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
     updateRefreshRunButtonVisibility();
-    if (consumeAutoOpenMergeDiffRequest()) {
-      setTimeout(() => mergeDiffButton.click(), 0);
-    }
   };
 
   const tryEnableMergeDiffFromText = (text, projectDirValue) => {
@@ -4550,15 +4504,6 @@
     applyMergeButtonState();
   };
 
-  const enableAutoOpenMergeDiffIfAllowed = () => {
-    if (hydratingRunFromHistory) {
-      autoOpenMergeDiffOnEnable = false;
-      return false;
-    }
-    autoOpenMergeDiffOnEnable = true;
-    return true;
-  };
-
   const handleGitFpushCompletionMessage = async (message) => {
     if (typeof message !== "string" || !message) {
       return;
@@ -4597,7 +4542,6 @@
 
       // Also try to extract a branch name emitted by git_fpush.sh and use it to enable the merge diff button.
       const branch = extractBranchFromText(message);
-      enableAutoOpenMergeDiffIfAllowed();
       if (branch) {
         enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir });
         consumePendingGitFpushDiff({ prefetchFirst: true });
@@ -5701,7 +5645,6 @@ const appendMergeChunk = (text, type = "output") => {
     }
 
     hydratingRunFromHistory = true;
-    autoOpenMergeDiffOnEnable = false;
 
     try {
       resetFollowupSessions();
@@ -5921,7 +5864,6 @@ const appendMergeChunk = (text, type = "output") => {
     }
     } finally {
       hydratingRunFromHistory = false;
-      autoOpenMergeDiffOnEnable = false;
     }
   };
 
@@ -7962,9 +7904,6 @@ const appendMergeChunk = (text, type = "output") => {
       mergeTooltipPinned = false;
       setMergeTooltipVisibility(false);
 
-      // Ensure merge operations do not auto-open the diff modal
-      autoOpenMergeDiffOnEnable = false;
-
       const effectiveDir = resolveEffectiveProjectDirForMerge();
       if (!effectiveDir) {
         appendChunk("Unable to determine project directory for merge.", "stderr");
@@ -8031,12 +7970,6 @@ const appendMergeChunk = (text, type = "output") => {
         // Attempt to locate a merge commit hash in the merge output and enable the Merge Diff button
         tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
 
-        // If a merge diff was detected and the button is enabled, open the modal to show the merge commit diff
-        try {
-          // merge completed; enable diff button below merge output for user to open
-        } catch (e) { console.warn('Failed to enable merge diff button', e); }
-
-        autoOpenMergeDiffOnEnable = false;
         setMergeReady(false);
       } catch (error) {
         const errorMessage = error && error.message
