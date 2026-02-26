@@ -5275,6 +5275,16 @@ app.get('/auth/shopify/callback', async (req, res) => {
     let account = sessionId ? await db.getAccountBySession(sessionId) : null;
     if (!account && shopifyEmail) {
       account = await db.getAccountByEmail(shopifyEmail);
+      if (!account) {
+        const newAccountId = await db.createAccount(shopifyEmail, null, sessionId);
+        if (newAccountId) {
+          account = await db.getAccountByEmail(shopifyEmail);
+          console.log('[Server Debug] Shopify callback created new Aurora account', {
+            accountId: newAccountId,
+            email: shopifyEmail,
+          });
+        }
+      }
     }
 
     if (account) {
