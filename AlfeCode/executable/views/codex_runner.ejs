@@ -3846,6 +3846,12 @@
             </div>
             <div id="agentInstructionsField" class="is-hidden">
                 <label for="agentInstructions">Agent instructions</label>
+                <div class="agent-selector">
+                    <select id="agentSelect" name="agentSelect">
+                        <option value="primary" selected>Primary Agent</option>
+                        <option value="second">Second Agent</option>
+                    </select>
+                </div>
                 <textarea id="agentInstructions" name="agentInstructions" autocomplete="off"><%= defaultAgentInstructions %></textarea>
                 <div class="agent-instructions-actions">
                     <button type="button" id="saveAgentInstructionsButton">Save agent instructions</button>

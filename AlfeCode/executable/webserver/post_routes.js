@@ -1534,6 +1534,10 @@ function setupPostRoutes(deps) {
             ? req.body.agentInstructions
             : "";
 
+        const agent = req.body && Object.prototype.hasOwnProperty.call(req.body, "agent")
+            ? req.body.agent
+            : "primary";
+            
         const instructions = typeof incoming === "string" ? incoming : "";
 
         if (typeof saveCodexConfig !== "function" || typeof loadCodexConfig !== "function") {
@@ -1544,7 +1548,8 @@ function setupPostRoutes(deps) {
             const existingConfig = loadCodexConfig();
             const updatedConfig = {
                 ...existingConfig,
-                defaultAgentInstructions: instructions,
+                defaultAgentInstructions: agent === "primary" ? instructions : existingConfig.defaultAgentInstructions,
+                secondAgentInstructions: agent === "second" ? instructions : existingConfig.secondAgentInstructions,
             };
             saveCodexConfig(updatedConfig);
 

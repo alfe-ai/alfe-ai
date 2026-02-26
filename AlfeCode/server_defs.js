@@ -98,6 +98,7 @@ const SESSION_FALLBACK_KEY = 'default';
 const CODEX_RUN_HISTORY_FILENAME = 'codex_runs.json';
 const CODEX_SETTINGS_MODEL_KEY = 'codex_default_model';
 const CODEX_SETTINGS_INSTRUCTIONS_KEY = 'codex_default_agent_instructions';
+const CODEX_SETTINGS_SECOND_INSTRUCTIONS_KEY = 'codex_second_agent_instructions';
 let hasLoggedModelValidationDisabled = false;
 
 function parseBooleanEnv(value, defaultValue = false) {
@@ -226,6 +227,13 @@ const DEFAULT_AGENT_INSTRUCTIONS = [
     'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
 ].join('\n');
 
+const DEFAULT_SECOND_AGENT_INSTRUCTIONS = [
+    'This is the second agent configuration.',
+    'This agent works with different instructions and settings.',
+    'It has the same capabilities as the primary agent but with different defaults.',
+    'When starting, please check AGENTS.md in repository root for further instructions.',
+].join('\n');
+
 
 function ensureCodexConfigDir() {
     const dirPath = path.dirname(CODEX_CONFIG_PATH);
@@ -293,11 +301,15 @@ function loadCodexConfig() {
         if (rdsStore.enabled) {
             const storedModel = rdsStore.getSetting(CODEX_SETTINGS_MODEL_KEY);
             const storedInstructions = rdsStore.getSetting(CODEX_SETTINGS_INSTRUCTIONS_KEY);
+            const storedSecondInstructions = rdsStore.getSetting(CODEX_SETTINGS_SECOND_INSTRUCTIONS_KEY);
             if (typeof storedModel === 'string') {
                 safeConfig.defaultModel = storedModel;
             }
             if (typeof storedInstructions === 'string') {
                 safeConfig.defaultAgentInstructions = storedInstructions;
+            }
+            if (typeof storedSecondInstructions === 'string') {
+                safeConfig.secondAgentInstructions = storedSecondInstructions;
             }
         } else {
             safeConfig = loadCodexConfigFromFile();
@@ -324,6 +336,11 @@ function loadCodexConfig() {
             mutated = true;
         }
 
+        if (typeof safeConfig.secondAgentInstructions !== 'string') {
+            safeConfig.secondAgentInstructions = DEFAULT_SECOND_AGENT_INSTRUCTIONS;
+            mutated = true;
+        }
+
         if (mutated) {
             saveCodexConfig(safeConfig);
         }
@@ -331,6 +348,7 @@ function loadCodexConfig() {
         if (rdsStore.enabled) {
             rdsStore.setSetting(CODEX_SETTINGS_MODEL_KEY, safeConfig.defaultModel);
             rdsStore.setSetting(CODEX_SETTINGS_INSTRUCTIONS_KEY, safeConfig.defaultAgentInstructions);
+            rdsStore.setSetting(CODEX_SETTINGS_SECOND_INSTRUCTIONS_KEY, safeConfig.secondAgentInstructions);
         }
 
         return safeConfig;
@@ -339,6 +357,7 @@ function loadCodexConfig() {
         const fallbackConfig = {
             defaultModel: DEFAULT_CODEX_MODEL,
             defaultAgentInstructions: DEFAULT_AGENT_INSTRUCTIONS,
+            secondAgentInstructions: DEFAULT_SECOND_AGENT_INSTRUCTIONS,
         };
         try {
             saveCodexConfig(fallbackConfig);
@@ -364,9 +383,14 @@ function saveCodexConfig(config) {
         safeConfig.defaultAgentInstructions = DEFAULT_AGENT_INSTRUCTIONS;
     }
 
+    if (typeof safeConfig.secondAgentInstructions !== 'string') {
+        safeConfig.secondAgentInstructions = DEFAULT_SECOND_AGENT_INSTRUCTIONS;
+    }
+
     if (rdsStore.enabled) {
         rdsStore.setSetting(CODEX_SETTINGS_MODEL_KEY, safeConfig.defaultModel);
         rdsStore.setSetting(CODEX_SETTINGS_INSTRUCTIONS_KEY, safeConfig.defaultAgentInstructions);
+        rdsStore.setSetting(CODEX_SETTINGS_SECOND_INSTRUCTIONS_KEY, safeConfig.secondAgentInstructions);
         return;
     }
 

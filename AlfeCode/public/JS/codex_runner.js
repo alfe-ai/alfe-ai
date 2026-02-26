@@ -5136,12 +5136,50 @@
     typeof config.defaultAgentInstructions === "string" && config.defaultAgentInstructions.trim()
       ? config.defaultAgentInstructions
       : "";
+  const configSecondAgentInstructions =
+    typeof config.secondAgentInstructions === "string" && config.secondAgentInstructions.trim()
+      ? config.secondAgentInstructions
+      : "";
+      
   if (agentInstructionsInput) {
     if (configAgentInstructions) {
       agentInstructionsInput.value = configAgentInstructions;
     } else if (!agentInstructionsInput.value) {
       agentInstructionsInput.value = fallbackAgentInstructions;
     }
+  }
+  
+  // Initialize agent selection
+  const agentSelect = document.getElementById("agentSelect");
+  if (agentSelect) {
+    // If the URL contains agent=second, default to second agent
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("agent") === "second") {
+      agentSelect.value = "second";
+    }
+    
+    // Add event listener to update instructions when agent changes
+    agentSelect.addEventListener("change", function() {
+      const agent = this.value;
+      
+      if (agent === "second") {
+        // Update textarea with second agent instructions
+        if (agentInstructionsInput) {
+          agentInstructionsInput.value = configSecondAgentInstructions || 
+            [
+              'This is the second agent configuration.',
+              'This agent works with different instructions and settings.',
+              'It has the same capabilities as the primary agent but with different defaults.',
+              'When starting, please check AGENTS.md in repository root for further instructions.',
+            ].join('\n');
+        }
+      } else {
+        // Revert to primary agent instructions
+        if (agentInstructionsInput) {
+          agentInstructionsInput.value = configAgentInstructions || fallbackAgentInstructions;
+        }
+      }
+    });
   }
 
   const resolveEffectiveProjectDirForMerge = () =>
@@ -8355,6 +8393,7 @@ const appendMergeChunk = (text, type = "output") => {
   if (saveAgentInstructionsButton && agentInstructionsInput) {
     saveAgentInstructionsButton.addEventListener("click", async () => {
       const instructions = agentInstructionsInput.value ?? "";
+      const agent = agentSelect ? agentSelect.value : "primary";
 
       showAgentInstructionsFeedback("Saving agent instructions…");
       saveAgentInstructionsButton.disabled = true;
@@ -8365,7 +8404,10 @@ const appendMergeChunk = (text, type = "output") => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ agentInstructions: instructions }),
+          body: JSON.stringify({ 
+            agentInstructions: instructions,
+            agent: agent
+          }),
         });
 
         const payload = await response.json().catch(() => ({}));
@@ -8374,7 +8416,11 @@ const appendMergeChunk = (text, type = "output") => {
           throw new Error(errorMessage);
         }
 
-        config.defaultAgentInstructions = instructions;
+        if (agent === "second") {
+          config.secondAgentInstructions = instructions;
+        } else {
+          config.defaultAgentInstructions = instructions;
+        }
         showAgentInstructionsFeedback(payload?.message || "Agent instructions saved.", "success");
       } catch (error) {
         console.error("Error saving agent instructions:", error);
