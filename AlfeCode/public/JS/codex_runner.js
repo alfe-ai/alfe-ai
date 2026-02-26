@@ -4111,22 +4111,50 @@
     hideMergeDiffButton();
   };
 
-  const openRefreshViewDiffInNewTab = ({ force = false } = {}) => {
-    const url = new URL(window.location.href);
-
-    if (!force && url.searchParams.get('viewDiff') === 'true') {
+  const openRefreshViewDiffInNewTab = async ({ force = false } = {}) => {
+    const runId = normaliseRunId((currentRunContext && currentRunContext.runId) || "");
+    if (!runId) {
       return;
     }
 
-    url.searchParams.set('viewDiff', 'true');
+    const projectDir = normaliseProjectDir(
+      (currentRunContext && (currentRunContext.projectDir || currentRunContext.requestedProjectDir || currentRunContext.effectiveProjectDir))
+      || (projectDirInput ? projectDirInput.value : "")
+      || "",
+    );
 
-    // Force a distinct URL so repeated clicks still open an updated diff page.
-    const randomMd5Salt = (window.crypto && typeof window.crypto.randomUUID === "function")
-      ? window.crypto.randomUUID().replace(/-/g, "")
-      : `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 32).padEnd(32, "0");
-    url.searchParams.set('r', randomMd5Salt);
+    const params = new URLSearchParams({ run_id: runId });
+    if (projectDir) {
+      params.set("repo_directory", projectDir);
+    }
+    if (currentSessionId) {
+      params.set("sessionId", currentSessionId);
+    }
+    if (force) {
+      params.set("force", "1");
+    }
 
-    window.open(url.toString(), '_blank', 'noopener');
+    try {
+      const response = await fetch(`/agent/runs/diff-url?${params.toString()}`, {
+        method: "GET",
+        credentials: "same-origin",
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to resolve diff url (status ${response.status})`);
+      }
+      const payload = await response.json().catch(() => ({}));
+      const diffUrl = typeof payload?.url === "string" ? payload.url.trim() : "";
+      if (!diffUrl) {
+        throw new Error("Diff url response missing url");
+      }
+      window.open(diffUrl, "_blank", "noopener");
+    } catch (error) {
+      console.warn("Failed to open run diff url in new tab", error);
+      const fallbackUrl = (mergeDiffButton && mergeDiffButton.getAttribute("data-href")) || "";
+      if (fallbackUrl) {
+        window.open(fallbackUrl, "_blank", "noopener");
+      }
+    }
   };
 
   const updateRefreshRunButtonVisibility = () => {
@@ -4165,8 +4193,8 @@
   };
 
   if (refreshRunPageButton) {
-    refreshRunPageButton.addEventListener("click", () => {
-      openRefreshViewDiffInNewTab({ force: true });
+    refreshRunPageButton.addEventListener("click", async () => {
+      await openRefreshViewDiffInNewTab({ force: true });
     });
   }
 
