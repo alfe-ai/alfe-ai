@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rock Paper Scissors Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .game-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .choices {
+            margin: 20px 0;
+        }
+        .choice-btn {
+            font-size: 40px;
+            width: 100px;
+            height: 100px;
+            margin: 10px;
+            border: none;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .choice-btn:hover {
+            transform: scale(1.1);
+            background-color: #d0d0d0;
+        }
+        .choice-btn:active {
+            transform: scale(0.95);
+        }
+        .result {
+            margin: 20px 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .score {
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .reset-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .reset-btn:hover {
+            background-color: #45a049;
+        }
+        .game-history {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #e8e8e8;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Rock Paper Scissors</h1>
+        
+        <div class="choices">
+            <button class="choice-btn" onclick="playGame('rock')">✊</button>
+            <button class="choice-btn" onclick="playGame('paper')">✋</button>
+            <button class="choice-btn" onclick="playGame('scissors')">✌️</button>
+        </div>
+        
+        <div class="result" id="result">Make your choice!</div>
+        
+        <div class="score">
+            <div>Player: <span id="playerScore">0</span></div>
+            <div>Computer: <span id="computerScore">0</span></div>
+        </div>
+        
+        <button class="reset-btn" onclick="resetGame()">Reset Game</button>
+        
+        <div class="game-history">
+            <h3>Game History</h3>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        let playerScore = 0;
+        let computerScore = 0;
+        let gameHistory = [];
+
+        function getComputerChoice() {
+            const choices = ['rock', 'paper', 'scissors'];
+            const randomIndex = Math.floor(Math.random() * 3);
+            return choices[randomIndex];
+        }
+
+        function determineWinner(player, computer) {
+            if (player === computer) {
+                return 'tie';
+            }
+            
+            if (
+                (player === 'rock' && computer === 'scissors') ||
+                (player === 'paper' && computer === 'rock') ||
+                (player === 'scissors' && computer === 'paper')
+            ) {
+                return 'player';
+            }
+            
+            return 'computer';
+        }
+
+        function updateScore(winner) {
+            if (winner === 'player') {
+                playerScore++;
+            } else if (winner === 'computer') {
+                computerScore++;
+            }
+        }
+
+        function addHistory(player, computer, result) {
+            gameHistory.push({
+                player: player,
+                computer: computer,
+                result: result,
+                timestamp: new Date()
+            });
+            
+            // Keep only the last 10 games
+            if (gameHistory.length > 10) {
+                gameHistory.shift();
+            }
+        }
+
+        function displayHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            gameHistory.slice().reverse().forEach(game => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.textContent = `Player: ${game.player} vs Computer: ${game.computer} - ${game.result}`;
+                historyList.appendChild(item);
+            });
+        }
+
+        function playGame(playerChoice) {
+            const computerChoice = getComputerChoice();
+            const winner = determineWinner(playerChoice, computerChoice);
+            
+            updateScore(winner);
+            
+            let resultText = '';
+            let resultColor = '';
+            
+            if (winner === 'tie') {
+                resultText = `It's a tie! Both chose ${playerChoice}`;
+                resultColor = 'blue';
+            } else {
+                const winnerText = winner === 'player' ? 'You win!' : 'Computer wins!';
+                resultText = `${winnerText} ${playerChoice} vs ${computerChoice}`;
+                resultColor = winner === 'player' ? 'green' : 'red'; 
+            }
+            
+            document.getElementById('result').textContent = resultText;
+            document.getElementById('result').style.color = resultColor;
+            
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('computerScore').textContent = computerScore;
+            
+            addHistory(playerChoice, computerChoice, winner === 'tie' ? 'Tie' : (winner === 'player' ? 'Player Win' : 'Computer Win'));
+            displayHistory();
+        }
+
+        function resetGame() {
+            playerScore = 0;
+            computerScore = 0;
+            gameHistory = [];
+            
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('computerScore').textContent = computerScore;
+            document.getElementById('result').textContent = 'Make your choice!';
+            document.getElementById('result').style.color = 'black';
+            document.getElementById('historyList').innerHTML = '';
+        }
+
+        // Initialize the game for a better UX
+        document.addEventListener('DOMContentLoaded', function() {
+            resetGame();
+        });
+    </script>
+</body>
+</html>

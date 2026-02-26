@@ -692,6 +692,11 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(PROJECT_ROOT, "public")));
 app.use(express.static(path.join(PROJECT_ROOT, "images")));
 
+// Add route for game
+app.get("/game", (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, "public", "game.html"));
+});
+
 app.use((req, res, next) => {
     res.locals.sterlingCodexBaseUrl = resolveSterlingCodexBaseUrl(req);
     res.locals.editorBaseUrl = resolveEditorBaseUrl(req);

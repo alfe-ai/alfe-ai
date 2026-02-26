@@ -1,9 +1,17 @@
 # Alfe AI  
 
-## [Alfe AI](https://alfe.sh) Version 1: Sterling  
+## [Alfe AI](https://alfe.sh) Version 1: Sterling
 
 
 ### FOSS AI Software Development Platform
+
+### Game App
+A simple Rock Paper Scissors game has been added to the application. 
+You can access it at: http://localhost:3001/game
+
+To start the application and play the game:
+1. Run `./run.sh`
+2. Visit http://localhost:3001/game in your browser
 
 ![image](https://github.com/user-attachments/assets/62754c8a-d4a4-441f-9050-aeed4157926a)
 
