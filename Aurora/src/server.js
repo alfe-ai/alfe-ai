@@ -1030,6 +1030,29 @@ function verifyPassword(password, stored) {
   return h === hash;
 }
 
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  const payloadSegment = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  const padded = payloadSegment + '='.repeat((4 - (payloadSegment.length % 4)) % 4);
+  try {
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+  } catch (_err) {
+    return null;
+  }
+}
+
+function getEmailFromShopifyTokenData(tokenData) {
+  if (!tokenData || typeof tokenData !== 'object') return '';
+  if (typeof tokenData.email === 'string' && tokenData.email.trim()) {
+    return tokenData.email.trim().toLowerCase();
+  }
+  const payload = decodeJwtPayload(tokenData.id_token);
+  const jwtEmail = payload?.email;
+  return typeof jwtEmail === 'string' ? jwtEmail.trim().toLowerCase() : '';
+}
+
 // Updated to include ".json" suffix
 async function updatePrintifyProduct(productId, variants) {
   try {
@@ -2142,6 +2165,7 @@ app.post("/api/login", async (req, res) => {
     await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
     // Update last login timestamp
     await db.setAccountLastLogin(account.id);
+    await db.recordAccountLogin(account.id, sessionId, 'password');
     res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/login failed:", err);
@@ -5230,12 +5254,30 @@ app.get('/auth/shopify/callback', async (req, res) => {
       }
     }
 
-    // Get sessionId from the current request and ensure it's linked to an account if one exists
-    const sessionId = getSessionIdFromRequest(req);
-    const account = sessionId ? await db.getAccountBySession(sessionId) : null;
+    // Get sessionId from the current request and ensure it's linked to an account.
+    let sessionId = getSessionIdFromRequest(req);
+    if (!sessionId) {
+      const createdSession = ensureSessionIdCookie(req, res);
+      sessionId = createdSession.sessionId;
+    }
+
+    const shopifyEmail = getEmailFromShopifyTokenData(tokenData);
+    let account = sessionId ? await db.getAccountBySession(sessionId) : null;
+    if (!account && shopifyEmail) {
+      account = await db.getAccountByEmail(shopifyEmail);
+    }
+
     if (account) {
-      // Update the account with the session ID to ensure it's linked
+      if (account.aurora_session_id && account.aurora_session_id !== sessionId) {
+        await db.mergeSessions(account.aurora_session_id, sessionId);
+        sessionId = account.aurora_session_id;
+      }
+      await db.setAccountSession(account.id, sessionId);
       await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
+      await db.setAccountLastLogin(account.id);
+      await db.recordAccountLogin(account.id, sessionId, 'shopify');
+    } else {
+      console.warn('[Server Debug] Shopify callback completed but no Aurora account matched session/email.');
     }
 
     res.redirect(302, redirectTo);
