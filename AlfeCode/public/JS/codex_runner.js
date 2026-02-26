@@ -2384,8 +2384,6 @@
   let pendingGitFpushBranch = "";
   let pendingGitFpushBranchProjectDir = "";
   let autoOpenedDiffRunToken = "";
-  let pendingAutoOpenDiffToken = "";
-  let pendingAutoOpenDiffUrl = "";
 
   const refreshRunsSidebarDisabledState = () => {
     if (!runsSidebarListEl) {
@@ -2415,7 +2413,6 @@
     setRunControlsDisabledState(false, { forceRefresh: true });
     // Re-apply merge button state in case merge readiness changed while run controls were disabled.
     try { applyMergeButtonState(); } catch (e) { /* ignore */ }
-    flushPendingAutoOpenDiffModal();
   };
 
   const MERGE_DISABLED_TOOLTIP_TEXT =
@@ -4400,27 +4397,6 @@
     return false;
   };
 
-  const flushPendingAutoOpenDiffModal = () => {
-    if (!pendingAutoOpenDiffUrl || !pendingAutoOpenDiffToken) {
-      return;
-    }
-    if (runInFlight || followupRunActive || eventSource || !shouldEnableRefreshStyleActions()) {
-      return;
-    }
-    if (autoOpenedDiffRunToken === pendingAutoOpenDiffToken) {
-      pendingAutoOpenDiffToken = "";
-      pendingAutoOpenDiffUrl = "";
-      return;
-    }
-    const url = pendingAutoOpenDiffUrl;
-    autoOpenedDiffRunToken = pendingAutoOpenDiffToken;
-    pendingAutoOpenDiffToken = "";
-    pendingAutoOpenDiffUrl = "";
-    openMergeDiffModal(url).catch((error) => {
-      console.warn('Failed to auto-open diff modal', error);
-    });
-  };
-
 
   const maybeAutoOpenDiffModal = (url) => {
     if (!openDiffOnRunComplete || typeof url !== 'string' || !url.trim()) {
@@ -4433,18 +4409,17 @@
     if (!runId) {
       return;
     }
-    const token = `${runId}::${url}`;
-    pendingAutoOpenDiffToken = token;
-    pendingAutoOpenDiffUrl = url;
     if (runInFlight || followupRunActive || eventSource || !shouldEnableRefreshStyleActions()) {
       return;
     }
+    const token = `${runId}::${url}`;
     if (autoOpenedDiffRunToken === token) {
-      pendingAutoOpenDiffToken = "";
-      pendingAutoOpenDiffUrl = "";
       return;
     }
-    flushPendingAutoOpenDiffModal();
+    autoOpenedDiffRunToken = token;
+    openMergeDiffModal(url).catch((error) => {
+      console.warn('Failed to auto-open diff modal', error);
+    });
   };
 
   const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
@@ -8460,8 +8435,6 @@ const appendMergeChunk = (text, type = "output") => {
 
     streamClosedByServer = false;
     runInFlight = true;
-    pendingAutoOpenDiffToken = "";
-    pendingAutoOpenDiffUrl = "";
     awaitingGitFpushCompletion = Boolean(gitFpushEnabled);
     setRunControlsDisabledState(true);
     eventSource = new EventSource(url);
@@ -8608,7 +8581,6 @@ const appendMergeChunk = (text, type = "output") => {
       runInFlight = false;
       awaitingGitFpushCompletion = false;
       setRunControlsDisabledState(false);
-      flushPendingAutoOpenDiffModal();
       finalizeActiveFollowupSession("error");
     });
 
@@ -8653,7 +8625,6 @@ const appendMergeChunk = (text, type = "output") => {
       } else {
         setRunControlsDisabledState(true, { forceRefresh: true });
       }
-      flushPendingAutoOpenDiffModal();
       finalizeActiveFollowupSession("complete");
     });
 
@@ -8682,7 +8653,6 @@ const appendMergeChunk = (text, type = "output") => {
       runInFlight = false;
       awaitingGitFpushCompletion = false;
       setRunControlsDisabledState(false);
-      flushPendingAutoOpenDiffModal();
       finalizeActiveFollowupSession("error");
     };
   };
