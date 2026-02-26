@@ -223,20 +223,27 @@
             position: relative;
         }
 
-        .prompt-modal-close {
+        .prompt-modal-copy {
             position: absolute;
             top: 10px;
             right: 10px;
             border: 0;
             background: transparent;
             color: var(--muted);
-            font-size: 22px;
+            font-size: 16px;
             line-height: 1;
             cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .prompt-modal-copy:hover {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text);
         }
 
         .prompt-modal-header {
-            margin: 0 28px 10px 0;
+            margin: 0 34px 10px 0;
             font-size: 14px;
             color: var(--text);
         }
@@ -1193,7 +1200,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
 
     <div id="diffPromptModal" class="prompt-modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="diffPromptModalHeader">
         <div class="prompt-modal-content">
-            <button type="button" class="prompt-modal-close" id="diffPromptModalClose" aria-label="Close prompt modal">×</button>
+            <button type="button" class="prompt-modal-copy" id="diffPromptModalCopy" aria-label="Copy prompt" title="Copy prompt">⎘</button>
             <h3 id="diffPromptModalHeader" class="prompt-modal-header">User prompt</h3>
             <textarea id="diffPromptModalTextarea" class="prompt-modal-textarea" readonly spellcheck="false"></textarea>
         </div>
@@ -1807,10 +1814,10 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
     (function () {
         const trigger = document.getElementById('diffPromptTrigger');
         const modal = document.getElementById('diffPromptModal');
-        const closeButton = document.getElementById('diffPromptModalClose');
+        const copyButton = document.getElementById('diffPromptModalCopy');
         const textarea = document.getElementById('diffPromptModalTextarea');
 
-        if (!trigger || !modal || !closeButton || !textarea) {
+        if (!trigger || !modal || !textarea) {
             return;
         }
 
@@ -1847,7 +1854,32 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             }
         });
 
-        closeButton.addEventListener('click', closeModal);
+        if (copyButton) {
+            copyButton.addEventListener('click', () => {
+                const resetLabel = () => {
+                    window.setTimeout(() => {
+                        copyButton.textContent = '\u2398';
+                    }, 1200);
+                };
+                try {
+                    navigator.clipboard.writeText(textarea.value || '');
+                    copyButton.textContent = '✓';
+                    resetLabel();
+                } catch (err) {
+                    try {
+                        textarea.focus();
+                        textarea.select();
+                        document.execCommand('copy');
+                        copyButton.textContent = '✓';
+                        resetLabel();
+                    } catch (_fallbackErr) {
+                        copyButton.textContent = '!';
+                        resetLabel();
+                    }
+                }
+            });
+        }
+
         modal.addEventListener('click', (event) => {
             if (event.target === modal) {
                 closeModal();
