@@ -1013,7 +1013,7 @@ export default class TaskDBAws {
     await this.pool.query(
       `INSERT INTO page_views (session_id, route, viewed_at, ipv4_address, ipv6_address)
        VALUES ($1, $2, $3, $4, $5)`,
-      [sessionId, pageRoute, viewedAt, ipv4, ipv6]
+      [sessionId, pageRoute, viewedAt, ipv4 ? [ipv4] : [], ipv6 ? [ipv6] : []]
     );
   }
 
