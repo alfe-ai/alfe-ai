@@ -1140,23 +1140,10 @@
     }) || null;
   };
 
-  const maybeShowViewDiffTooltip = ({ refreshViewDiffEnabled } = {}) => {
+  const maybeShowViewDiffTooltip = () => {
     if (!viewDiffTooltip || viewDiffTooltipShown || hasCookie(VIEW_DIFF_TOOLTIP_COOKIE)) {
       hideViewDiffTooltip();
       return;
-    }
-    const refreshButtonVisible = Boolean(
-      refreshRunPageButton
-      && !refreshRunPageButton.classList.contains("is-hidden"),
-    );
-    if (refreshButtonVisible) {
-      const refreshEnabled = typeof refreshViewDiffEnabled === "boolean"
-        ? refreshViewDiffEnabled
-        : !refreshRunPageButton.disabled;
-      if (!refreshEnabled) {
-        hideViewDiffTooltip();
-        return;
-      }
     }
     if (!getVisibleViewDiffButton()) {
       hideViewDiffTooltip();
@@ -4286,7 +4273,7 @@
     ensureMergeDiffContainerVisible();
     refreshRunPageButton.disabled = !shouldEnableRefreshButton;
     refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
-    maybeShowViewDiffTooltip({ refreshViewDiffEnabled: shouldEnableRefreshButton });
+    maybeShowViewDiffTooltip();
 
     if (!nonRefreshDiffButtonHidden || !shouldEnableRefreshButton) {
       return;
