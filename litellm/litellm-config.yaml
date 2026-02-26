@@ -12,6 +12,19 @@ model_list:
       input_cost_per_token: 0.00000010
       output_cost_per_token: 0.00000030
 
+  - model_name: z-ai/glm-4.7-flash
+    litellm_params:
+      model: openrouter/z-ai/glm-4.7-flash
+      api_base: https://openrouter.ai/api/v1
+      api_key: "os.environ/OPENROUTER_API_KEY_NEXT"
+      headers:
+        HTTP-Referer: "https://alfe.bot"
+        X-Title: "Alfe AI"
+    model_info:
+      # dollars per token
+      input_cost_per_token: 0.00000007
+      output_cost_per_token: 0.00000040
+
 #  - model_name: qwen/qwen3-coder-next
 #    litellm_params:
 #      model: openrouter/qwen/qwen3-coder-next
