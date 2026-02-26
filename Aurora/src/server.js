@@ -5296,6 +5296,17 @@ app.get('/auth/shopify/callback', async (req, res) => {
       await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
       await db.setAccountLastLogin(account.id);
       await db.recordAccountLogin(account.id, getRequestIpAddresses(req));
+
+      const hostname = normalizeHostname(req);
+      const cookie = buildSessionCookie(sessionId, hostname);
+      if (cookie) {
+        res.append("Set-Cookie", cookie);
+      }
+
+      console.log('[Server Debug] Shopify callback linked Aurora account/session', {
+        accountId: account.id,
+        sessionIdPreview: sessionId ? `${sessionId.slice(0, 8)}…` : '',
+      });
     } else {
       console.warn('[Server Debug] Shopify callback completed but no Aurora account matched session/email.');
     }
