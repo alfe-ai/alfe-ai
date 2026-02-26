@@ -1547,7 +1547,7 @@
   let runsSidebarIsLoading = false;
   let runsSidebarRefreshIntervalId = null;
   let accountStatusHeartbeatIntervalId = null;
-  let disabledAccountLogoutInFlight = false;
+  globalThis.__disabledAccountLogoutInFlight = false;
   const RUNS_SIDEBAR_REFRESH_INTERVAL_MS = 2000;
   const ACCOUNT_STATUS_HEARTBEAT_MS = 2000;
   const RUNS_SIDEBAR_PAGE_SIZE = 20;
@@ -5056,7 +5056,7 @@
     projectDirInput.addEventListener("blur", handleProjectDirChange);
   }
 
-  let eventSource = null;
+  var eventSource = null;
   let streamClosedByServer = false;
   let activeOutputTab = "combined";
   let currentStdoutPrompt = "";
@@ -5068,7 +5068,7 @@
   let stdoutPromptPendingBuffer = "";
   let suppressStdoutOutput = false;
   let skippingGitPullStdoutBlock = false;
-  let followupRunActive = false;
+  var followupRunActive = false;
 
   const gitPullUpdatingRegex = /^updating\s+[0-9a-f]+\.\.[0-9a-f]+/i;
   const gitPullRangeLineRegex = /^\s*[0-9a-f]{7,}\.\.[0-9a-f]{7,}\s+\S+\s+->\s+\S+/i;
@@ -7240,8 +7240,8 @@ const appendMergeChunk = (text, type = "output") => {
 
   /// Tracks stderr output to extract the post-"codex" commit message for the Final output tab.
   let stderrCommitBuffer = "";
-  let finalOutputText = "";
-  let followupFinalOutputText = "";
+  var finalOutputText = "";
+  var followupFinalOutputText = "";
   let qwenCliRunActive = false;
   let followupQwenCliRunActive = false;
   let qwenCliOutputText = "";
@@ -9742,7 +9742,7 @@ const appendMergeChunk = (text, type = "output") => {
 
   const applyAccountResponse = ({ resp, data, previousPlan, reloadOnPlanChange }) => {
     if (resp.ok && data?.disabled) {
-      disabledAccountLogoutInFlight = true;
+      globalThis.__disabledAccountLogoutInFlight = true;
       const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
       logoutUrl.searchParams.set("returnTo", "/agent?reason=disabled-account");
       window.location.assign(logoutUrl.toString());
@@ -9766,7 +9766,7 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
-    if (disabledAccountLogoutInFlight) {
+    if (globalThis.__disabledAccountLogoutInFlight) {
       return;
     }
     const previousPlan = normalizeAccountPlan(accountInfo?.plan);
