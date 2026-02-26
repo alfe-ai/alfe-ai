@@ -1495,6 +1495,14 @@
       void handleLogout();
     });
   }
+  
+  // Ensure the logout button is positioned appropriately in the model-only panel
+  // This positions the logout button at the bottom of the control panel
+  const logoutButtonContainer = document.querySelector('#sidebar .sidebar-action-buttons')
+  if (logoutButtonContainer && logoutButtonBottom) {
+    // Move the logout button to the bottom of the action buttons container
+    logoutButtonContainer.appendChild(logoutButtonBottom);
+  }
 
   async function handleSessionRefresh() {
     if (!allowConfigIpControls) {

@@ -1045,3 +1045,21 @@ body.agent-route #chatForm .form-buttons button[type="submit"] .send-arrow {
     width: 0.85em;
     height: 0.85em;
 }
+
+/* 
+ * CSS to position the logout button at the bottom of the agent panel
+ * centered below the About and GitHub buttons
+ */
+body.agent-route #sidebar .sidebar-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex-grow: 1;
+    justify-content: flex-end;
+}
+
+/* Ensure logout button sits at the very bottom of the panel */
+body.agent-route #sidebar .sidebar-action-buttons .logout-button {
+    width: 100%;
+    margin-top: auto;
+}
