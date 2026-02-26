@@ -214,6 +214,33 @@
         .is-hidden {
             display: none;
         }
+        .connect-options {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .connect-options button {
+            min-width: 240px;
+            justify-content: center;
+        }
+        .placeholder-message {
+            margin: 0;
+            color: var(--nexum-muted);
+            line-height: 1.5;
+        }
+        #connectSshButton {
+            background: rgba(49, 35, 120, 0.5);
+            border: 1px solid rgba(129, 140, 248, 0.7);
+            color: #ddd6fe;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+        #connectSshButton:hover,
+        #connectSshButton:focus-visible {
+            background: rgba(67, 47, 163, 0.55);
+            border-color: rgba(167, 139, 250, 0.9);
+            color: #ede9fe;
+        }
         form input[type="text"] {
             width: 100%;
             box-sizing: border-box;
@@ -355,16 +382,26 @@
                 <h1>Connect Git Repository</h1>
             </header>
 
+            <% const showSshFormInitially = Boolean(cloneError || sshKeyRequired || gitRepoURLValue || repoNameValue); %>
             <div class="card">
-                <div class="meta-row">
-                    <% if (showCreateRepoLink) { %>
-                        <div class="meta-action">
-                            <span>Or</span>
-                            <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
-                        </div>
-                    <% } %>
+                <div id="repoConnectSelector" class="connect-options <%= showSshFormInitially ? 'is-hidden' : '' %>">
+                    <button type="button" id="connectGithubButton">Connect to GitHub</button>
+                    <button type="button" class="secondary" id="connectSshButton">Connect with Git SSH URL</button>
                 </div>
-                <form action="/repositories/add" method="POST" id="addRepoForm">
+
+                <div id="githubPlaceholder" class="is-hidden">
+                    <p class="placeholder-message">GitHub connect implemented soon.</p>
+                </div>
+
+                <form action="/repositories/add" method="POST" id="addRepoForm" class="<%= showSshFormInitially ? '' : 'is-hidden' %>">
+                    <div class="meta-row">
+                        <% if (showCreateRepoLink) { %>
+                            <div class="meta-action">
+                                <span>Or</span>
+                                <a class="button-link secondary" href="/repositories/new-default">Create a New Repository</a>
+                            </div>
+                        <% } %>
+                    </div>
                     <% if (cloneError) { %>
                         <div class="alert <%= isSshAuthError ? 'alert-ssh-warning' : '' %>"><%= cloneError %></div>
                     <% } %>
@@ -575,6 +612,47 @@
         }
 
         const addRepoForm = document.getElementById('addRepoForm');
+        const connectSelector = document.getElementById('repoConnectSelector');
+        const githubPlaceholder = document.getElementById('githubPlaceholder');
+        const connectSshButton = document.getElementById('connectSshButton');
+        const connectGithubButton = document.getElementById('connectGithubButton');
+
+        const showSshForm = () => {
+            if (connectSelector) {
+                connectSelector.classList.add('is-hidden');
+            }
+            if (githubPlaceholder) {
+                githubPlaceholder.classList.add('is-hidden');
+            }
+            if (addRepoForm) {
+                addRepoForm.classList.remove('is-hidden');
+            }
+        };
+
+        const showGithubPlaceholder = () => {
+            if (connectSelector) {
+                connectSelector.classList.add('is-hidden');
+            }
+            if (githubPlaceholder) {
+                githubPlaceholder.classList.remove('is-hidden');
+            }
+            if (addRepoForm) {
+                addRepoForm.classList.add('is-hidden');
+            }
+        };
+
+        if (connectSshButton) {
+            connectSshButton.addEventListener('click', () => {
+                showSshForm();
+            });
+        }
+
+        if (connectGithubButton) {
+            connectGithubButton.addEventListener('click', () => {
+                showGithubPlaceholder();
+            });
+        }
+
         if (addRepoForm) {
             const repoNameInput = document.getElementById('repoName');
             const gitRepoURLInput = document.getElementById('gitRepoURL');
