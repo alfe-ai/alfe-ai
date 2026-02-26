@@ -1968,6 +1968,9 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
         const getSubmitOnEnterSetting = () => {
             try {
                 const stored = localStorage.getItem('submitOnEnter');
+                if (stored === null) {
+                    return true;
+                }
                 return stored === 'true';
             } catch (e) {
                 return true; // Default to true for backward compatibility
