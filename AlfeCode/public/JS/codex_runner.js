@@ -3176,8 +3176,6 @@
     const normalisedProjectDir = normaliseProjectDir(projectDirValue);
     const currentUrl = new URL(window.location.href);
     const params = new URLSearchParams(currentUrl.search);
-    params.delete("viewDiff");
-    params.delete("r");
     if (normalisedProjectDir) {
       params.set("repo_directory", normalisedProjectDir);
     }
