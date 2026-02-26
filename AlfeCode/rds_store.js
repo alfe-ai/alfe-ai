@@ -66,6 +66,8 @@ class RdsStore {
     this.settings = new Map();
     this.sessionSettings = new Map();
     this.sessionRuns = new Map();
+    this.sessionRunWriteVersions = new Map();
+    this.sessionRunWritePromises = new Map();
     this.ready = false;
     this.initPromise = null;
 
@@ -471,8 +473,26 @@ class RdsStore {
   setSessionRuns(sessionId, runs) {
     if (!this.enabled) return;
     const normalizedRuns = Array.isArray(runs) ? runs : [];
-    this.sessionRuns.set(sessionId, normalizedRuns.map((entry) => ({ ...entry })));
-    this.queueReplaceSessionRuns(sessionId, normalizedRuns);
+    const clonedRuns = normalizedRuns.map((entry) => ({ ...entry }));
+    this.sessionRuns.set(sessionId, clonedRuns);
+
+    const nextVersion = (this.sessionRunWriteVersions.get(sessionId) || 0) + 1;
+    this.sessionRunWriteVersions.set(sessionId, nextVersion);
+
+    const previousWrite = this.sessionRunWritePromises.get(sessionId) || Promise.resolve();
+    const nextWrite = previousWrite
+      .catch(() => {
+        // Keep write queue moving even after previous failures.
+      })
+      .then(() => this.queueReplaceSessionRuns(sessionId, clonedRuns, nextVersion));
+
+    this.sessionRunWritePromises.set(sessionId, nextWrite);
+
+    nextWrite.finally(() => {
+      if (this.sessionRunWritePromises.get(sessionId) === nextWrite) {
+        this.sessionRunWritePromises.delete(sessionId);
+      }
+    });
   }
 
   prefetchSessionSetting(sessionId, key) {
@@ -616,8 +636,14 @@ class RdsStore {
     }
   }
 
-  async queueReplaceSessionRuns(sessionId, runs) {
+  async queueReplaceSessionRuns(sessionId, runs, version = null) {
     await this.ensureReady();
+    if (Number.isFinite(version)) {
+      const latestVersion = this.sessionRunWriteVersions.get(sessionId) || 0;
+      if (version < latestVersion) {
+        return;
+      }
+    }
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
