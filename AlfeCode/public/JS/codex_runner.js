@@ -4096,6 +4096,20 @@
     return false;
   };
 
+  const navigateToRefreshViewDiff = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('viewDiff', 'true');
+
+    // Force a true navigation by appending a random md5-like salt.
+    // This avoids no-op navigations when the URL would otherwise be unchanged.
+    const randomMd5Salt = (window.crypto && typeof window.crypto.randomUUID === "function")
+      ? window.crypto.randomUUID().replace(/-/g, "")
+      : `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 32).padEnd(32, "0");
+    url.searchParams.set('r', randomMd5Salt);
+
+    window.location.assign(url.toString());
+  };
+
   const updateRefreshRunButtonVisibility = () => {
     if (!refreshRunPageButton) {
       return;
@@ -4126,34 +4140,38 @@
     refreshRunPageButton.disabled = !shouldEnableRefreshButton;
     refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
 
-    if (!nonRefreshDiffButtonHidden || !hasPreparedDiffUrl) {
+    if (!nonRefreshDiffButtonHidden || !shouldEnableRefreshButton) {
       delete refreshRunPageButton.dataset.autoOpenedDiffUrl;
       return;
     }
 
-    const preparedDiffUrl = mergeDiffButton.getAttribute("data-href").trim();
-    const hasAutoOpenedPreparedUrl = refreshRunPageButton.dataset.autoOpenedDiffUrl === preparedDiffUrl;
-    if (!shouldEnableRefreshButton || hasAutoOpenedPreparedUrl) {
+    if (hasPreparedDiffUrl) {
+      const preparedDiffUrl = mergeDiffButton.getAttribute("data-href").trim();
+      const hasAutoOpenedPreparedUrl = refreshRunPageButton.dataset.autoOpenedDiffUrl === preparedDiffUrl;
+      if (hasAutoOpenedPreparedUrl) {
+        return;
+      }
+
+      refreshRunPageButton.dataset.autoOpenedDiffUrl = preparedDiffUrl;
+      setTimeout(() => openMergeDiffModal(preparedDiffUrl), 0);
       return;
     }
 
-    refreshRunPageButton.dataset.autoOpenedDiffUrl = preparedDiffUrl;
-    setTimeout(() => openMergeDiffModal(preparedDiffUrl), 0);
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('viewDiff') === 'true') {
+        return;
+      }
+    } catch (_error) {
+      // ignore and continue to refresh navigation fallback
+    }
+
+    navigateToRefreshViewDiff();
   };
 
   if (refreshRunPageButton) {
     refreshRunPageButton.addEventListener("click", () => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('viewDiff', 'true');
-
-      // Force a true navigation by appending a random md5-like salt.
-      // This avoids no-op navigations when the URL would otherwise be unchanged.
-      const randomMd5Salt = (window.crypto && typeof window.crypto.randomUUID === "function")
-        ? window.crypto.randomUUID().replace(/-/g, "")
-        : `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 32).padEnd(32, "0");
-      url.searchParams.set('r', randomMd5Salt);
-
-      window.location.assign(url.toString());
+      navigateToRefreshViewDiff();
     });
   }
 
