@@ -3923,7 +3923,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 </div>
                 <div style="margin-left:12px;">
                     <button id="refreshRunPageButton" class="nav-button is-hidden" type="button" title="Refresh run page" aria-label="Refresh run page">
-                        Refresh
+                        View Diff
                     </button>
                     <!-- View Diff visible before merge -->
                     <button id="openMergeDiffButton" class="nav-button" type="button" title="View Diff" aria-label="View Diff" disabled>
@@ -4238,6 +4238,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 initialAccountInfo: <%- JSON.stringify(initialAccountInfo || null) %>,
                 shopifyAuthEnabled: <%- JSON.stringify(typeof shopifyAuthEnabled === "undefined" ? true : shopifyAuthEnabled) %>,
                 shopifyAuthStartUrl: <%- JSON.stringify(shopifyAuthStartUrl || "/auth/shopify/start") %>,
+                initialViewDiff: <%- JSON.stringify(!!initialViewDiff) %>,
             }
         );
     </script>
