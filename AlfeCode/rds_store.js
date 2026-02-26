@@ -736,6 +736,21 @@ class RdsStore {
     }
   }
 
+  async setAccountLastLogin(id) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    try {
+      await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET last_log_in = $1
+         WHERE id = $2`,
+        [new Date().toISOString(), id]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to update account last login:", error?.message || error);
+    }
+  }
+
   async setAccountPlan(id, plan) {
     if (!this.enabled) return;
     await this.ensureReady();
