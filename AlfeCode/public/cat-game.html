@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meow Match - Cat Game</title>
+    <link rel="stylesheet" href="CSS/styles.css">
+    <link rel="stylesheet" href="cat-game.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>🐱 Meow Match - Cat Collector Game 🐾</h1>
+            <div class="score-container">
+                <div class="score-box">
+                    <span>Score:</span>
+                    <span id="score">0</span>
+                </div>
+                <div class="score-box">
+                    <span>Cats:</span>
+                    <span id="cats">0</span>
+                </div>
+                <div class="score-box">
+                    <span>Time:</span>
+                    <span id="time">60</span>
+                </div>
+            </div>
+        </header>
+        
+        <div id="game-area">
+            <div id="message-box" class="message-box hidden">
+                <p id="message-text">Game Over!</p>
+                <button id="restart-btn">Play Again</button>
+            </div>
+            <div id="cat" class="cat"></div>
+            <div id="items-container"></div>
+        </div>
+        
+        <div class="instructions">
+            <h2>How to Play</h2>
+            <ul>
+                <li>Click the cat to earn points</li>
+                <li>Collect cat treats to increase your score</li>
+                <li>Each treat gives 10 points</li>
+                <li>Game lasts 60 seconds</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="cat-game.js"></script>
+</body>
+</html>

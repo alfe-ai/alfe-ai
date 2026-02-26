@@ -2039,3 +2039,8 @@ if (projectViewEnabled) {
 } else {
   console.debug("[Server Debug] ProjectView disabled by AURORA_PROJECTVIEW_ENABLED or BACKLOG_BUTTON_VISIBLE; /ProjectView routes not mounted.");
 }
+
+// Route for cat game - add it at the end to ensure it's mounted
+app.get("/cat-game", (req, res) => {
+  res.sendFile(path.join(PROJECT_ROOT, "public", "cat-game.html"));
+});

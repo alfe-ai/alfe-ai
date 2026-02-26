@@ -1,0 +1,103 @@
+.cat {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23FFD700"/><circle cx="35" cy="40" r="5" fill="black"/><circle cx="65" cy="40" r="5" fill="black"/><path d="M40 65 Q50 75 60 65" stroke="black" stroke-width="3" fill="none"/><path d="M30 30 Q40 20 50 25 Q60 20 70 30" fill="orange"/></svg>');
+    background-size: contain;
+    cursor: pointer;
+    transition: transform 0.1s;
+    z-index: 10;
+}
+
+.cat:hover {
+    transform: scale(1.1);
+}
+
+.item {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="%23FF69B4"/><circle cx="40" cy="40" r="5" fill="black"/><circle cx="60" cy="40" r="5" fill="black"/><path d="M30 60 Q50 80 70 60" stroke="black" stroke-width="3" fill="none"/></svg>');
+    background-size: contain;
+    animation: float 2s infinite ease-in-out;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+.message-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 100;
+}
+
+.message-box h2 {
+    margin-top: 0;
+}
+
+#restart-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #FF69B4;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+#restart-btn:hover {
+    background: #ff5ca8;
+}
+
+.score-container {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 10px;
+}
+
+.score-box {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.game-header {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    margin-bottom: 20px;
+    border-radius: 10px;
+}
+
+.instructions {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.instructions ul {
+    padding-left: 20px;
+}
+
+.instructions li {
+    margin-bottom: 8px;
+}
+
+.game-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
