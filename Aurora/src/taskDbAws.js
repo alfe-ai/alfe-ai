@@ -176,8 +176,8 @@ export default class TaskDBAws {
         session_id TEXT NOT NULL,
         route TEXT NOT NULL DEFAULT '',
         viewed_at TEXT NOT NULL,
-        ipv4_address TEXT,
-        ipv6_address TEXT
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
       );`);
       await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
       await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
