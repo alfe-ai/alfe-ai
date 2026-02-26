@@ -4096,8 +4096,13 @@
     return false;
   };
 
-  const navigateToRefreshViewDiff = () => {
+  const navigateToRefreshViewDiff = ({ force = false } = {}) => {
     const url = new URL(window.location.href);
+
+    if (!force && url.searchParams.get('viewDiff') === 'true') {
+      return;
+    }
+
     url.searchParams.set('viewDiff', 'true');
 
     // Force a true navigation by appending a random md5-like salt.
@@ -4161,7 +4166,7 @@
 
   if (refreshRunPageButton) {
     refreshRunPageButton.addEventListener("click", () => {
-      navigateToRefreshViewDiff();
+      navigateToRefreshViewDiff({ force: true });
     });
   }
 
