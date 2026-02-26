@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Number Guessing Game</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/CSS/game.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background-color: #f5f5f5;
+            padding: 40px;
+        }
+        h1 {
+            font-weight: 500;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+<%- include('partials/session_banner') %>
+
+<div class="container">
+  <h1>Number Guessing Game</h1>
+  <p>Guess a number between 1 and 100!</p>
+  
+  <div id="game-container">
+    <div id="game-info">
+      <p>Attempts: <span id="attempts">0</span></p>
+      <p>Guesses: <span id="guesses">-</span></p>
+      <p id="message" class="message"></p>
+    </div>
+    
+    <div id="controls">
+      <input type="number" id="guess-input" min="1" max="100" placeholder="Enter your guess (1-100)">
+      <button id="submit-guess">Submit Guess</button>
+      <button id="new-game">New Game</button>
+    </div>
+    
+    <div id="result"></div>
+  </div>
+</div>
+
+<%- include('partials/footer.ejs') -%>
+
+<script src="/JS/game.js"></script>
+</body>
+</html>

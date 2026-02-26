@@ -1428,6 +1428,13 @@ setupGetRoutes({
     rdsStore,
 });
 
+/* ------------- REGISTER GAME ROUTES ------------- */
+const { setupGameRoutes } = require("./webserver/game_routes");
+setupGameRoutes({
+    app,
+    PROJECT_ROOT,
+});
+
 /**
  * Import the api_connector.js router
  */
