@@ -4238,7 +4238,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 initialAccountInfo: <%- JSON.stringify(initialAccountInfo || null) %>,
                 shopifyAuthEnabled: <%- JSON.stringify(typeof shopifyAuthEnabled === "undefined" ? true : shopifyAuthEnabled) %>,
                 shopifyAuthStartUrl: <%- JSON.stringify(shopifyAuthStartUrl || "/auth/shopify/start") %>,
-                initialViewDiff: <%- JSON.stringify(!!initialViewDiff) %>,
             }
         );
     </script>
