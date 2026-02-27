@@ -6419,14 +6419,8 @@ const appendMergeChunk = (text, type = "output") => {
       const latestFollowup = followupRuns[followupRuns.length - 1];
       const latestFollowupRunId = normaliseRunId(latestFollowup?.id || "");
       if (latestFollowupRunId) {
-        currentRunContext = buildRunContext({
-          ...currentRunContext,
-          runId: latestFollowupRunId,
-          branchName: extractBranchFromRun(latestFollowup) || currentRunContext.branchName,
-          effectiveProjectDir: normaliseProjectDir(
-            latestFollowup?.effectiveProjectDir || latestFollowup?.projectDir || latestFollowup?.requestedProjectDir || "",
-          ) || currentRunContext.effectiveProjectDir,
-        });
+        // Keep sidebar status/selection behavior aligned with the latest follow-up
+        // without overriding the primary run context used by top-level run actions.
         setRunsSidebarActiveRun(latestFollowupRunId);
       }
       enableMergeDiffButtonFromSavedRun(latestFollowup);
