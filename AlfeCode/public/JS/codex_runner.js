@@ -1467,7 +1467,7 @@
     if (!followupSectionTitle) {
       followupSectionTitle = document.createElement("h3");
       followupSectionTitle.className = "followup-section-title";
-      followupSectionTitle.textContent = "Follow-up";
+      followupSectionTitle.textContent = "";
       followupSectionEl.appendChild(followupSectionTitle);
     }
 
