@@ -830,12 +830,14 @@
         .diff-view {
             position: relative;
             flex: 1;
-            min-height: auto;
+            min-height: 0;
             border-radius: 10px;
             border: none;
             background: transparent;
-            overflow: visible;
+            overflow: hidden;
             min-width: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .diff-inner {
