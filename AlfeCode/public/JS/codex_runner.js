@@ -1621,26 +1621,28 @@
       return;
     }
 
+    const session = activeFollowupSession;
+
     const normalizedRunId = normaliseRunId(runId);
     const normalizedProjectDir = normaliseProjectDir(projectDir);
     if (normalizedRunId) {
-      activeFollowupSession.followupRunId = normalizedRunId;
+      session.followupRunId = normalizedRunId;
     }
     if (normalizedProjectDir) {
-      activeFollowupSession.followupProjectDir = normalizedProjectDir;
+      session.followupProjectDir = normalizedProjectDir;
     }
 
-    if (!activeFollowupSession.followupDiffButton) {
+    if (!session.followupDiffButton) {
       return;
     }
 
-    const hasRunId = Boolean(activeFollowupSession.followupRunId);
-    activeFollowupSession.followupDiffButton.disabled = !hasRunId;
-    activeFollowupSession.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
-    activeFollowupSession.followupDiffButton.onclick = async () => {
+    const hasRunId = Boolean(session.followupRunId);
+    session.followupDiffButton.disabled = !hasRunId;
+    session.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
+    session.followupDiffButton.onclick = async () => {
       await openRunDiffModal({
-        runId: activeFollowupSession.followupRunId,
-        projectDir: activeFollowupSession.followupProjectDir,
+        runId: session.followupRunId,
+        projectDir: session.followupProjectDir,
         force: true,
       });
     };
