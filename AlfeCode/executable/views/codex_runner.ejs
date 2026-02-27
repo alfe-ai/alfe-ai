@@ -4107,8 +4107,6 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 <small>Commit revision: <code id="gitFpushRevisionCode"></code></small>
             </div>
         <% } %>
-        <div id="followupSessions" class="is-hidden" aria-live="polite"></div>
-
         <div id="mergeOutputContainer">
             <div class="merge-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:5px;margin-bottom:5px;">
                 <div style="display:flex;align-items:center;gap:12px;">
@@ -4141,6 +4139,8 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             </div>
             <div id="mergeOutput" class="log-output is-hidden" role="log" aria-live="polite"></div>
         </div>
+
+        <div id="followupSessions" class="is-hidden" aria-live="polite"></div>
 
         <div class="meta is-hidden" id="metaSection">
             <p>Default project directory: <code><%= defaultProjectDir %></code></p>
