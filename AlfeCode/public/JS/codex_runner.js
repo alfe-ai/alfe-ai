@@ -1562,6 +1562,7 @@
       followupRunId: "",
       followupParentRunId: "",
       followupProjectDir: "",
+      followupSessionId: "",
       activeTab: "combined",
       outputValue: "",
       finalValue: "",
@@ -1617,7 +1618,7 @@
     followupRunActive = false;
   };
 
-  const syncActiveFollowupDiffButton = ({ runId = "", parentRunId = "", projectDir = "" } = {}) => {
+  const syncActiveFollowupDiffButton = ({ runId = "", parentRunId = "", projectDir = "", sessionId = "" } = {}) => {
     if (!activeFollowupSession) {
       return;
     }
@@ -1638,6 +1639,11 @@
       session.followupParentRunId = normalizedParentRunId;
     }
 
+    const normalizedSessionId = normaliseRunId(sessionId);
+    if (normalizedSessionId) {
+      session.followupSessionId = normalizedSessionId;
+    }
+
     if (!session.followupDiffButton) {
       return;
     }
@@ -1650,6 +1656,7 @@
         runId: session.followupRunId,
         fallbackRunId: "",
         projectDir: session.followupProjectDir,
+        sessionId: session.followupSessionId,
         force: true,
       });
     };
@@ -4456,7 +4463,7 @@
   };
 
 
-  const openRunDiffModal = async ({ runId, fallbackRunId = "", projectDir = "", force = false, fallbackUrl = "" } = {}) => {
+  const openRunDiffModal = async ({ runId, fallbackRunId = "", projectDir = "", sessionId = "", force = false, fallbackUrl = "" } = {}) => {
     const normalizedRunId = normaliseRunId(runId || "");
     if (!normalizedRunId) {
       return;
@@ -4468,8 +4475,9 @@
     if (normalizedProjectDir) {
       params.set("repo_directory", normalizedProjectDir);
     }
-    if (currentSessionId) {
-      params.set("sessionId", currentSessionId);
+    const normalizedSessionId = normaliseRunId(sessionId || currentSessionId || "");
+    if (normalizedSessionId) {
+      params.set("sessionId", normalizedSessionId);
     }
     if (force) {
       params.set("force", "1");
@@ -6034,9 +6042,11 @@ const appendMergeChunk = (text, type = "output") => {
     const followupProjectDir = normaliseProjectDir(
       run.effectiveProjectDir || run.projectDir || run.requestedProjectDir || "",
     );
+    const followupSessionId = normaliseRunId(run.sessionId || run.session_id || "");
     session.followupRunId = followupRunId;
     session.followupParentRunId = followupParentRunId;
     session.followupProjectDir = followupProjectDir;
+    session.followupSessionId = followupSessionId;
 
     if (session.followupDiffButton) {
       const hasRunId = Boolean(followupRunId);
@@ -6047,6 +6057,7 @@ const appendMergeChunk = (text, type = "output") => {
           runId: session.followupRunId,
           fallbackRunId: "",
           projectDir: session.followupProjectDir,
+          sessionId: session.followupSessionId,
           force: true,
         });
       };
@@ -9056,6 +9067,7 @@ const appendMergeChunk = (text, type = "output") => {
           runId: runIdValue,
           parentRunId: getFollowupParentId(payload),
           projectDir: effectiveDirForContext || projectDirForUrl,
+          sessionId: payload && (payload.sessionId || payload.session_id),
         });
       }
 
