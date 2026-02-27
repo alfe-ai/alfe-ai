@@ -121,6 +121,7 @@ class RdsStore {
         session_id TEXT NOT NULL,
         run_id TEXT NOT NULL,
         numeric_id BIGINT,
+        followup_parent_id TEXT DEFAULT '',
         status TEXT DEFAULT '',
         script_status TEXT DEFAULT '',
         final_output_message TEXT DEFAULT '',
@@ -160,6 +161,10 @@ class RdsStore {
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
          ON ${ALFECODE_RUNS_TABLE} (session_id, updated_at DESC)`
+      );
+      await this.pool.query(
+        `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_followup_parent
+         ON ${ALFECODE_RUNS_TABLE} (session_id, followup_parent_id, updated_at DESC)`
       );
       await this.pool.query(
         `ALTER TABLE ${SESSION_VIEWS_TABLE}
@@ -324,6 +329,10 @@ class RdsStore {
       );
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS followup_parent_id TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS account_id INTEGER`
       );
       await this.pool.query(
@@ -414,7 +423,7 @@ class RdsStore {
 
   async loadAllSessionRuns() {
     const result = await this.pool.query(
-      `SELECT session_id, status, script_status, payload_json
+      `SELECT session_id, status, script_status, followup_parent_id, payload_json
        FROM ${ALFECODE_RUNS_TABLE}
        ORDER BY updated_at DESC, numeric_id DESC NULLS LAST`
     );
@@ -434,6 +443,9 @@ class RdsStore {
       }
       if (typeof row.script_status === "string" && row.script_status.trim()) {
         parsed.scriptStatus = row.script_status;
+      }
+      if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) {
+        parsed.followupParentId = row.followup_parent_id;
       }
       const existing = this.sessionRuns.get(row.session_id) || [];
       existing.push(parsed);
@@ -531,7 +543,7 @@ class RdsStore {
     if (!this.enabled) return;
     try {
       const result = await this.pool.query(
-        `SELECT status, script_status, payload_json
+        `SELECT status, script_status, followup_parent_id, payload_json
          FROM ${ALFECODE_RUNS_TABLE}
          WHERE session_id = $1
          ORDER BY updated_at DESC, numeric_id DESC NULLS LAST`,
@@ -547,6 +559,9 @@ class RdsStore {
             }
             if (typeof row.script_status === "string" && row.script_status.trim()) {
               parsed.scriptStatus = row.script_status;
+            }
+            if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) {
+              parsed.followupParentId = row.followup_parent_id;
             }
             parsedRuns.push(parsed);
           }
@@ -668,6 +683,13 @@ class RdsStore {
         const runId = (run.id || run.runId || `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).toString();
         const numericId = Number.isFinite(Number(run.numericId)) ? Number(run.numericId) : null;
         const status = typeof run.status === "string" ? run.status : "";
+        const followupParentId = (
+          run.followupParentId
+          || run.followupParentRunId
+          || run.followup_parent_id
+          || run.followup_parent
+          || ""
+        ).toString().trim();
         const scriptStatus = typeof run.scriptStatus === "string"
           ? run.scriptStatus
           : (Array.isArray(run.statusHistory) && run.statusHistory.length
@@ -705,12 +727,13 @@ class RdsStore {
 
         await client.query(
           `INSERT INTO ${ALFECODE_RUNS_TABLE}
-           (session_id, run_id, numeric_id, status, script_status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model, base_revision, commit_revision, run_directory)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+           (session_id, run_id, numeric_id, followup_parent_id, status, script_status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model, base_revision, commit_revision, run_directory)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
           [
             sessionId,
             runId,
             numericId,
+            followupParentId,
             status,
             scriptStatus,
             finalOutputMessage,
@@ -1302,6 +1325,9 @@ class RdsStore {
       if (typeof row.run_directory === "string" && row.run_directory.trim()) {
         parsedRun.runDirectory = row.run_directory;
       }
+      if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) {
+        parsedRun.followupParentId = row.followup_parent_id;
+      }
       if (Number.isFinite(row.numeric_id)) {
         parsedRun.numericId = row.numeric_id;
       }
@@ -1313,6 +1339,50 @@ class RdsStore {
     } catch (error) {
       console.error("[RdsStore] Failed to load run by session and run id:", error?.message || error);
       return null;
+    }
+  }
+
+  async getFollowupRunsByParent(sessionId, parentRunId) {
+    if (!this.enabled) return [];
+    await this.ensureReady();
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    const normalizedParentRunId = (parentRunId || "").toString().trim();
+    if (!normalizedSessionId || !normalizedParentRunId) return [];
+
+    try {
+      const result = await this.pool.query(
+        `SELECT status, script_status, final_output_message, created_at, updated_at, payload_json, numeric_id, account_id, branch, model, base_revision, commit_revision, run_directory, followup_parent_id
+         FROM ${ALFECODE_RUNS_TABLE}
+         WHERE session_id = $1 AND followup_parent_id = $2
+         ORDER BY updated_at ASC, numeric_id ASC NULLS LAST`,
+        [normalizedSessionId, normalizedParentRunId]
+      );
+
+      return (result.rows || []).map((row) => {
+        let parsedRun;
+        try {
+          parsedRun = JSON.parse(row.payload_json || "{}");
+        } catch (_error) {
+          parsedRun = {};
+        }
+        if (typeof row.status === "string" && row.status.trim()) parsedRun.status = row.status;
+        if (typeof row.script_status === "string" && row.script_status.trim()) parsedRun.scriptStatus = row.script_status;
+        if (typeof row.final_output_message === "string" && row.final_output_message.trim()) parsedRun.finalOutputMessage = row.final_output_message;
+        if (typeof row.created_at === "string" && row.created_at.trim()) parsedRun.createdAt = row.created_at;
+        if (typeof row.updated_at === "string" && row.updated_at.trim()) parsedRun.updatedAt = row.updated_at;
+        if (typeof row.model === "string" && row.model.trim()) parsedRun.model = row.model;
+        if (typeof row.branch === "string" && row.branch.trim()) parsedRun.branch = row.branch;
+        if (typeof row.base_revision === "string" && row.base_revision.trim()) parsedRun.baseRevision = row.base_revision;
+        if (typeof row.commit_revision === "string" && row.commit_revision.trim()) parsedRun.commitRevision = row.commit_revision;
+        if (typeof row.run_directory === "string" && row.run_directory.trim()) parsedRun.runDirectory = row.run_directory;
+        if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) parsedRun.followupParentId = row.followup_parent_id;
+        if (Number.isFinite(row.numeric_id)) parsedRun.numericId = row.numeric_id;
+        if (Number.isFinite(row.account_id)) parsedRun.accountId = row.account_id;
+        return parsedRun;
+      });
+    } catch (error) {
+      console.error("[RdsStore] Failed to load follow-up runs by parent:", error?.message || error);
+      return [];
     }
   }
 }

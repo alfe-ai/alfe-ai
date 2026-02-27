@@ -5952,7 +5952,36 @@ const appendMergeChunk = (text, type = "output") => {
 
     const collectMatchingFollowups = (candidateRuns) => {
       const list = Array.isArray(candidateRuns) ? candidateRuns : [];
-      const matched = list.filter((entry) => getFollowupParentId(entry) === parentId);
+      const matched = [];
+      const includedRunIds = new Set();
+      const parentIdsToTraverse = [parentId];
+      const traversedParentIds = new Set();
+
+      while (parentIdsToTraverse.length) {
+        const candidateParentId = normaliseRunId(parentIdsToTraverse.shift() || "");
+        if (!candidateParentId || traversedParentIds.has(candidateParentId)) {
+          continue;
+        }
+        traversedParentIds.add(candidateParentId);
+
+        list.forEach((entry) => {
+          const entryParentId = getFollowupParentId(entry);
+          if (entryParentId !== candidateParentId) {
+            return;
+          }
+          const entryRunId = normaliseRunId(entry?.id || "");
+          const uniqueKey = entryRunId || `${candidateParentId}:${matched.length}`;
+          if (includedRunIds.has(uniqueKey)) {
+            return;
+          }
+          includedRunIds.add(uniqueKey);
+          matched.push(entry);
+          if (entryRunId && !traversedParentIds.has(entryRunId)) {
+            parentIdsToTraverse.push(entryRunId);
+          }
+        });
+      }
+
       if (selectedRunIsFollowup && selectedRunId) {
         const alreadyIncluded = matched.some((entry) => normaliseRunId(entry?.id || "") === selectedRunId);
         if (!alreadyIncluded && run && typeof run === "object") {
@@ -5971,8 +6000,8 @@ const appendMergeChunk = (text, type = "output") => {
     const projectDirHint = normaliseProjectDir(
       run?.requestedProjectDir || run?.projectDir || run?.effectiveProjectDir || "",
     );
-    try {
-      const url = buildRunsDataUrl("", projectDirHint);
+    const fetchMatchingRuns = async (projectDirValue) => {
+      const url = buildRunsDataUrl("", projectDirValue);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load follow-up runs (status ${response.status})`);
@@ -5980,6 +6009,77 @@ const appendMergeChunk = (text, type = "output") => {
       const payload = await response.json().catch(() => ({}));
       const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
       return collectMatchingFollowups(loadedRuns);
+    };
+
+    const fetchFollowupsFromDbByParent = async (rootParentId, projectDirValue) => {
+      const discoveredRuns = [];
+      const discoveredRunIds = new Set();
+      const parentQueue = [normaliseRunId(rootParentId || "")];
+      const seenParents = new Set();
+
+      while (parentQueue.length) {
+        const parentCandidate = normaliseRunId(parentQueue.shift() || "");
+        if (!parentCandidate || seenParents.has(parentCandidate)) {
+          continue;
+        }
+        seenParents.add(parentCandidate);
+
+        const url = new URL(buildRunsDataUrl("", projectDirValue), window.location.origin);
+        url.searchParams.set("followup_parent_id", parentCandidate);
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+          throw new Error(`Failed to load follow-up runs (status ${response.status})`);
+        }
+        const payload = await response.json().catch(() => ({}));
+        const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
+
+        loadedRuns.forEach((entry) => {
+          const entryRunId = normaliseRunId(entry?.id || "");
+          if (!entryRunId || discoveredRunIds.has(entryRunId)) {
+            return;
+          }
+          discoveredRunIds.add(entryRunId);
+          discoveredRuns.push(entry);
+          parentQueue.push(entryRunId);
+        });
+      }
+
+      if (selectedRunIsFollowup && selectedRunId) {
+        const alreadyIncluded = discoveredRuns.some((entry) => normaliseRunId(entry?.id || "") === selectedRunId);
+        if (!alreadyIncluded && run && typeof run === "object") {
+          discoveredRuns.push(run);
+        }
+      }
+
+      return discoveredRuns;
+    };
+
+    try {
+      const dbMatchesWithProjectDir = await fetchFollowupsFromDbByParent(parentId, projectDirHint);
+      if (dbMatchesWithProjectDir.length) {
+        return dbMatchesWithProjectDir;
+      }
+
+      if (projectDirHint) {
+        const dbMatchesWithoutProjectDir = await fetchFollowupsFromDbByParent(parentId, "");
+        if (dbMatchesWithoutProjectDir.length) {
+          return dbMatchesWithoutProjectDir;
+        }
+      }
+
+      const matchesWithProjectDir = await fetchMatchingRuns(projectDirHint);
+      if (matchesWithProjectDir.length) {
+        return matchesWithProjectDir;
+      }
+
+      // Some historical runs have an inconsistent/missing projectDir value. Fall back to
+      // querying all runs so follow-up sessions still hydrate on page reload.
+      if (projectDirHint) {
+        const matchesWithoutProjectDir = await fetchMatchingRuns("");
+        if (matchesWithoutProjectDir.length) {
+          return matchesWithoutProjectDir;
+        }
+      }
     } catch (error) {
       console.error("[Codex Runner] Failed to load follow-up runs", error);
     }
@@ -6229,12 +6329,20 @@ const appendMergeChunk = (text, type = "output") => {
     const followupRuns = await renderFollowupSessionsFromHistory(run);
     if (Array.isArray(followupRuns) && followupRuns.length) {
       const latestFollowup = followupRuns[followupRuns.length - 1];
-      const latestBranch = extractBranchFromRun(latestFollowup);
-      const currentHref = mergeDiffButton ? mergeDiffButton.getAttribute('data-href') : '';
-      const hasBranchDiff = typeof currentHref === 'string' && currentHref.includes('branch=');
-      if (latestBranch && (!hasActiveMergeDiffLink() || !hasBranchDiff)) {
-        enableMergeDiffButtonFromSavedRun(latestFollowup);
+      const latestFollowupRunId = normaliseRunId(latestFollowup?.id || "");
+      if (latestFollowupRunId) {
+        currentRunContext = buildRunContext({
+          ...currentRunContext,
+          runId: latestFollowupRunId,
+          branchName: extractBranchFromRun(latestFollowup) || currentRunContext.branchName,
+          effectiveProjectDir: normaliseProjectDir(
+            latestFollowup?.effectiveProjectDir || latestFollowup?.projectDir || latestFollowup?.requestedProjectDir || "",
+          ) || currentRunContext.effectiveProjectDir,
+        });
+        setRunsSidebarActiveRun(latestFollowupRunId);
       }
+      enableMergeDiffButtonFromSavedRun(latestFollowup);
+      updateRefreshRunButtonVisibility();
     }
 
     if (hasHydratedFinalOutput) {
@@ -6481,6 +6589,32 @@ const appendMergeChunk = (text, type = "output") => {
       || run.followup_parent
       || "",
     );
+  };
+
+  const resolveFollowupRootParentId = (runIdValue) => {
+    const fallbackId = normaliseRunId(runIdValue || "");
+    if (!fallbackId) {
+      return "";
+    }
+
+    const runs = Array.isArray(runsSidebarRuns) ? runsSidebarRuns : [];
+    if (!runs.length) {
+      return fallbackId;
+    }
+
+    const seen = new Set();
+    let currentId = fallbackId;
+    while (currentId && !seen.has(currentId)) {
+      seen.add(currentId);
+      const currentRun = runs.find((entry) => normaliseRunId(entry?.id || "") === currentId);
+      const parentId = normaliseRunId(getFollowupParentId(currentRun) || "");
+      if (!parentId) {
+        return currentId;
+      }
+      currentId = parentId;
+    }
+
+    return fallbackId;
   };
 
   const getSidebarBadgeInfo = (run, { hasActiveFollowup = false } = {}) => {
@@ -8645,7 +8779,7 @@ const appendMergeChunk = (text, type = "output") => {
       params.append("projectDir", effectiveProjectDirForRun);
     }
     const followupParentId = continuingExistingRun
-      ? normaliseRunId(currentRunContext && currentRunContext.runId ? currentRunContext.runId : "")
+      ? resolveFollowupRootParentId(currentRunContext && currentRunContext.runId ? currentRunContext.runId : "")
       : "";
     if (followupParentId) {
       params.append("followupParentId", followupParentId);

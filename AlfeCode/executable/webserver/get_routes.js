@@ -4901,6 +4901,31 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoDirectoryFilter = (req.query.repo_directory || "").toString().trim();
         const runIdFilter = (req.query.run_id || "").toString().trim();
+        const followupParentIdFilter = (req.query.followup_parent_id || req.query.followupParentId || "").toString().trim();
+
+        if (followupParentIdFilter && rdsStore?.enabled && typeof rdsStore.getFollowupRunsByParent === "function") {
+            Promise.resolve(rdsStore.getFollowupRunsByParent(sessionId, followupParentIdFilter))
+                .then((dbRuns) => {
+                    const runs = Array.isArray(dbRuns) ? dbRuns : [];
+                    res.json({
+                        runs,
+                        source: "rds-followup-parent",
+                        repoFilter: {
+                            applied: false,
+                            raw: repoDirectoryFilter,
+                            normalized: repoDirectoryFilter ? normaliseProjectDir(repoDirectoryFilter) : "",
+                            matched: true,
+                            usedFallback: false,
+                            recoveredWithAllRuns: false,
+                        },
+                    });
+                })
+                .catch((error) => {
+                    console.error(`[ERROR] Failed to load follow-up runs from RDS: ${error?.message || error}`);
+                    res.status(500).json({ error: "Failed to load follow-up runs." });
+                });
+            return;
+        }
 
         let runs = [];
         try {
