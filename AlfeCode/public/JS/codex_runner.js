@@ -1648,7 +1648,7 @@
     session.followupDiffButton.onclick = async () => {
       await openRunDiffModal({
         runId: session.followupRunId,
-        fallbackRunId: session.followupParentRunId,
+        fallbackRunId: "",
         projectDir: session.followupProjectDir,
         force: true,
       });
@@ -6045,7 +6045,7 @@ const appendMergeChunk = (text, type = "output") => {
       session.followupDiffButton.onclick = async () => {
         await openRunDiffModal({
           runId: session.followupRunId,
-          fallbackRunId: session.followupParentRunId,
+          fallbackRunId: "",
           projectDir: session.followupProjectDir,
           force: true,
         });
