@@ -4522,7 +4522,7 @@
     const runIsActive = Boolean(eventSource)
       || normalizedStatus === "running..."
       || normalizedStatus === "merging...";
-    const runLooksComplete = hasCurrentRunId && !runIsActive && !runIsMerged && normalizedStatus.length > 0;
+    const runLooksComplete = hasCurrentRunId && !runIsActive && !runIsMerged;
     const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
     const hasPreparedDiffUrl = Boolean(
       mergeDiffButton
