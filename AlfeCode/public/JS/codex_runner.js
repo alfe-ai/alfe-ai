@@ -6671,7 +6671,7 @@ const appendMergeChunk = (text, type = "output") => {
       if (!runsSidebarFilteredTotal) {
         runsSidebarEmptyEl.textContent = filterValue
           ? (runsSidebarShowArchived ? "No archived runs match your search." : "No runs match your search.")
-          : (runsSidebarShowArchived ? "No archived runs." : "No runs recorded yet.");
+          : (runsSidebarShowArchived ? "No archived runs." : "");
         runsSidebarEmptyEl.classList.remove("is-hidden");
       } else {
         runsSidebarEmptyEl.classList.add("is-hidden");
