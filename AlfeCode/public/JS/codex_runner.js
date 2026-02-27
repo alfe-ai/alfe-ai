@@ -1644,6 +1644,9 @@
   const switchBranchModal = document.getElementById("switchBranchModal");
   const switchBranchModalCloseButton = document.getElementById("switchBranchModalCloseButton");
   const switchBranchCreateButton = document.getElementById("switchBranchCreateButton");
+  const branchSearchInput = document.getElementById("switchBranchSearch");
+  const branchList = document.getElementById("branchList");
+  const branchListHint = document.getElementById("branchListHint");
   const branchSelect = document.getElementById("branchSelect");
   const switchBranchSubmitButton = document.getElementById("switchBranchSubmitButton");
   const switchBranchMessage = document.getElementById("switchBranchMessage");
@@ -1747,11 +1750,133 @@
     return runBranch;
   };
 
-  const resetSwitchBranchForm = () => {
-    if (branchSelect) {
-      branchSelect.innerHTML = "";
-      branchSelect.disabled = false;
+  const BRANCH_PAGE_SIZE = 200;
+  const switchBranchState = {
+    allBranches: [],
+    filteredBranches: [],
+    renderedCount: 0,
+    selectedBranch: "",
+    searchTerm: "",
+    isDisabled: false,
+  };
+
+  const setSwitchBranchDisabled = (disabled) => {
+    switchBranchState.isDisabled = !!disabled;
+    if (branchSearchInput) {
+      branchSearchInput.disabled = !!disabled;
     }
+    if (branchList) {
+      branchList.setAttribute("aria-disabled", disabled ? "true" : "false");
+    }
+  };
+
+  const updateBranchListHint = () => {
+    if (!branchListHint) {
+      return;
+    }
+    if (switchBranchState.isDisabled) {
+      branchListHint.textContent = "";
+      return;
+    }
+    const total = switchBranchState.filteredBranches.length;
+    if (!total) {
+      branchListHint.textContent = "No branches match your search.";
+      return;
+    }
+    const rendered = switchBranchState.renderedCount;
+    if (rendered < total) {
+      branchListHint.textContent = `Showing ${rendered} of ${total} branches. Scroll to load more.`;
+      return;
+    }
+    branchListHint.textContent = `Showing ${total} branch${total === 1 ? "" : "es"}.`;
+  };
+
+  const appendBranchOptions = () => {
+    if (!branchList) {
+      return;
+    }
+    const total = switchBranchState.filteredBranches.length;
+    if (switchBranchState.renderedCount >= total) {
+      updateBranchListHint();
+      return;
+    }
+
+    const start = switchBranchState.renderedCount;
+    const end = Math.min(start + BRANCH_PAGE_SIZE, total);
+    const fragment = document.createDocumentFragment();
+    for (let index = start; index < end; index += 1) {
+      const branchName = switchBranchState.filteredBranches[index];
+      const option = document.createElement("div");
+      option.className = "branch-list-option";
+      option.dataset.branch = branchName;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", switchBranchState.selectedBranch === branchName ? "true" : "false");
+      if (switchBranchState.selectedBranch === branchName) {
+        option.classList.add("is-selected");
+      }
+      option.textContent = formatBranchDisplayName(branchName) || branchName;
+      option.addEventListener("click", () => {
+        switchBranchState.selectedBranch = branchName;
+        if (branchSelect) {
+          branchSelect.value = branchName;
+        }
+        if (branchList) {
+          branchList.querySelectorAll(".branch-list-option").forEach((entry) => {
+            const isSelected = entry.dataset.branch === branchName;
+            entry.classList.toggle("is-selected", isSelected);
+            entry.setAttribute("aria-selected", isSelected ? "true" : "false");
+          });
+        }
+      });
+      fragment.appendChild(option);
+    }
+    branchList.appendChild(fragment);
+    switchBranchState.renderedCount = end;
+    updateBranchListHint();
+  };
+
+  const applyBranchFilter = () => {
+    const searchTerm = (switchBranchState.searchTerm || "").toLowerCase();
+    switchBranchState.filteredBranches = switchBranchState.allBranches.filter((branchName) => {
+      const formattedName = formatBranchDisplayName(branchName).toLowerCase();
+      return branchName.toLowerCase().includes(searchTerm) || formattedName.includes(searchTerm);
+    });
+    switchBranchState.renderedCount = 0;
+    if (branchList) {
+      branchList.innerHTML = "";
+    }
+
+    if (
+      switchBranchState.selectedBranch
+      && !switchBranchState.filteredBranches.includes(switchBranchState.selectedBranch)
+    ) {
+      switchBranchState.selectedBranch = switchBranchState.filteredBranches[0] || "";
+      if (branchSelect) {
+        branchSelect.value = switchBranchState.selectedBranch;
+      }
+    }
+
+    appendBranchOptions();
+  };
+
+  const resetSwitchBranchForm = () => {
+    switchBranchState.allBranches = [];
+    switchBranchState.filteredBranches = [];
+    switchBranchState.renderedCount = 0;
+    switchBranchState.selectedBranch = "";
+    switchBranchState.searchTerm = "";
+    setSwitchBranchDisabled(false);
+    if (branchSearchInput) {
+      branchSearchInput.value = "";
+    }
+    if (branchList) {
+      branchList.innerHTML = "";
+      branchList.scrollTop = 0;
+    }
+    if (branchSelect) {
+      branchSelect.value = "";
+    }
+    updateBranchListHint();
     if (switchBranchMessage) {
       switchBranchMessage.textContent = "";
       switchBranchMessage.style.color = "";
@@ -1788,9 +1913,7 @@
         switchBranchMessage.textContent = "Select a repository to switch branches.";
         switchBranchMessage.style.color = "#fca5a5";
       }
-      if (branchSelect) {
-        branchSelect.disabled = true;
-      }
+      setSwitchBranchDisabled(true);
       return;
     }
 
@@ -1810,36 +1933,36 @@
       if (!data || !Array.isArray(data.branches)) {
         throw new Error("Invalid branch data");
       }
+      const sanitizedBranches = data.branches.filter(
+        (branch) => typeof branch === "string" && branch.trim(),
+      );
+      switchBranchState.allBranches = sanitizedBranches;
+      const currentBranch = resolveActiveBranchName();
+      const initialBranch = currentBranch && sanitizedBranches.includes(currentBranch)
+        ? currentBranch
+        : (sanitizedBranches[0] || "");
+      switchBranchState.selectedBranch = initialBranch;
       if (branchSelect) {
-        branchSelect.innerHTML = "";
-        const fragment = document.createDocumentFragment();
-        data.branches.forEach((branch) => {
-          if (typeof branch !== "string" || !branch.trim()) {
-            return;
-          }
-          const option = document.createElement("option");
-          option.value = branch;
-          option.textContent = formatBranchDisplayName(branch) || branch;
-          fragment.appendChild(option);
-        });
-        branchSelect.appendChild(fragment);
-        const currentBranch = resolveActiveBranchName();
-        if (currentBranch) {
-          const matchingOption = Array.from(branchSelect.options).find(
-            (option) => option.value === currentBranch,
-          );
-          if (matchingOption) {
-            branchSelect.value = matchingOption.value;
-          }
+        branchSelect.value = initialBranch;
+      }
+      applyBranchFilter();
+
+      if (!sanitizedBranches.length) {
+        setSwitchBranchDisabled(true);
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "No branches available.";
         }
-        if (!branchSelect.options.length) {
-          branchSelect.disabled = true;
-          if (switchBranchMessage) {
-            switchBranchMessage.textContent = "No branches available.";
+      } else if (switchBranchMessage) {
+        switchBranchMessage.textContent = "";
+      }
+      if (branchSearchInput) {
+        window.setTimeout(() => {
+          try {
+            branchSearchInput.focus({ preventScroll: true });
+          } catch (_error) {
+            branchSearchInput.focus();
           }
-        } else if (switchBranchMessage) {
-          switchBranchMessage.textContent = "";
-        }
+        }, 0);
       }
     } catch (error) {
       console.error("[Codex Runner] Failed to load branches:", error);
@@ -1847,9 +1970,7 @@
         switchBranchMessage.textContent = "Unable to load branches.";
         switchBranchMessage.style.color = "#fca5a5";
       }
-      if (branchSelect) {
-        branchSelect.disabled = true;
-      }
+      setSwitchBranchDisabled(true);
     }
   };
 
@@ -2308,6 +2429,25 @@
     switchBranchModal.addEventListener("click", (event) => {
       if (event.target === switchBranchModal) {
         closeSwitchBranchModal();
+      }
+    });
+  }
+
+  if (branchSearchInput) {
+    branchSearchInput.addEventListener("input", () => {
+      switchBranchState.searchTerm = branchSearchInput.value || "";
+      applyBranchFilter();
+      if (branchList) {
+        branchList.scrollTop = 0;
+      }
+    });
+  }
+
+  if (branchList) {
+    branchList.addEventListener("scroll", () => {
+      const nearBottom = branchList.scrollTop + branchList.clientHeight >= branchList.scrollHeight - 16;
+      if (nearBottom) {
+        appendBranchOptions();
       }
     });
   }
