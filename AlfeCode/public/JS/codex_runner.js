@@ -4431,6 +4431,15 @@
       || normalizedStatus === "merging...";
     const runLooksComplete = hasCurrentRunId && !runIsActive && !runIsMerged && normalizedStatus.length > 0;
     const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
+    const hasFollowupHistory = Array.isArray(followupSessions)
+      && followupSessions.some((session) => {
+        if (!session || typeof session !== "object") {
+          return false;
+        }
+        const combinedValue = typeof session.outputValue === "string" ? session.outputValue.trim() : "";
+        const finalValue = typeof session.finalValue === "string" ? session.finalValue.trim() : "";
+        return combinedValue !== "" || finalValue !== "";
+      });
     const hasPreparedDiffUrl = Boolean(
       mergeDiffButton
       && typeof mergeDiffButton.getAttribute("data-href") === "string"
@@ -4440,6 +4449,7 @@
     return Boolean(
       runLooksComplete
       || finalOutputReady
+      || hasFollowupHistory
       || (nonRefreshDiffButtonHidden && hasPreparedDiffUrl),
     );
   };
