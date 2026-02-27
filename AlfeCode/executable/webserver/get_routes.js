@@ -8512,6 +8512,11 @@ ${err}`;
             branchDisplayName
         });
     });
+    
+    // Snake Game Route
+    app.get("/snake", (req, res) => {
+        res.sendFile(path.join(PROJECT_ROOT, "public", "snake.html"));
+    });
 }
 
 module.exports = { setupGetRoutes };
