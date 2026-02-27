@@ -1463,6 +1463,14 @@
 
     followupSectionEl.classList.remove("is-hidden");
 
+    let followupSectionTitle = followupSectionEl.querySelector(".followup-section-title");
+    if (!followupSectionTitle) {
+      followupSectionTitle = document.createElement("h3");
+      followupSectionTitle.className = "followup-section-title";
+      followupSectionTitle.textContent = "Follow-up";
+      followupSectionEl.appendChild(followupSectionTitle);
+    }
+
     followupSessionCounter += 1;
     const sessionEl = document.createElement("div");
     sessionEl.className = "followup-session";
@@ -1606,6 +1614,36 @@
     setFollowupSessionStatus(activeFollowupSession, state);
     activeFollowupSession = null;
     followupRunActive = false;
+  };
+
+  const syncActiveFollowupDiffButton = ({ runId = "", projectDir = "" } = {}) => {
+    if (!activeFollowupSession) {
+      return;
+    }
+
+    const normalizedRunId = normaliseRunId(runId);
+    const normalizedProjectDir = normaliseProjectDir(projectDir);
+    if (normalizedRunId) {
+      activeFollowupSession.followupRunId = normalizedRunId;
+    }
+    if (normalizedProjectDir) {
+      activeFollowupSession.followupProjectDir = normalizedProjectDir;
+    }
+
+    if (!activeFollowupSession.followupDiffButton) {
+      return;
+    }
+
+    const hasRunId = Boolean(activeFollowupSession.followupRunId);
+    activeFollowupSession.followupDiffButton.disabled = !hasRunId;
+    activeFollowupSession.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
+    activeFollowupSession.followupDiffButton.onclick = async () => {
+      await openRunDiffModal({
+        runId: activeFollowupSession.followupRunId,
+        projectDir: activeFollowupSession.followupProjectDir,
+        force: true,
+      });
+    };
   };
   const runsSidebarFilterInput = document.getElementById("runsSidebarFilter");
   const runsSidebarOpenRunsButton = document.getElementById("runsSidebarOpenRunsButton");
@@ -8992,6 +9030,14 @@ const appendMergeChunk = (text, type = "output") => {
         effectiveProjectDir: effectiveDirForContext,
         branchName: branchFromPayload,
       });
+
+      if (followupRunActive) {
+        syncActiveFollowupDiffButton({
+          runId: runIdValue,
+          projectDir: effectiveDirForContext || projectDirForUrl,
+        });
+      }
+
       updateRunsSidebarHeading(currentRunContext.projectDir);
       updateProjectInfoProjectDir();
     try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
