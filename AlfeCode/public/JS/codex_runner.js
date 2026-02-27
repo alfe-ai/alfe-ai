@@ -1290,6 +1290,7 @@
   const resetFollowupSessions = () => {
     followupSessions = [];
     activeFollowupSession = null;
+    followupRunActive = false;
     followupSessionCounter = 0;
     if (followupSectionEl) {
       followupSectionEl.innerHTML = "";
