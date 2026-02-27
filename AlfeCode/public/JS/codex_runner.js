@@ -1560,6 +1560,7 @@
       finalLogEl: finalOutput,
       followupDiffButton,
       followupRunId: "",
+      followupParentRunId: "",
       followupProjectDir: "",
       activeTab: "combined",
       outputValue: "",
@@ -1616,7 +1617,7 @@
     followupRunActive = false;
   };
 
-  const syncActiveFollowupDiffButton = ({ runId = "", projectDir = "" } = {}) => {
+  const syncActiveFollowupDiffButton = ({ runId = "", parentRunId = "", projectDir = "" } = {}) => {
     if (!activeFollowupSession) {
       return;
     }
@@ -1632,6 +1633,11 @@
       session.followupProjectDir = normalizedProjectDir;
     }
 
+    const normalizedParentRunId = normaliseRunId(parentRunId);
+    if (normalizedParentRunId) {
+      session.followupParentRunId = normalizedParentRunId;
+    }
+
     if (!session.followupDiffButton) {
       return;
     }
@@ -1642,6 +1648,7 @@
     session.followupDiffButton.onclick = async () => {
       await openRunDiffModal({
         runId: session.followupRunId,
+        fallbackRunId: session.followupParentRunId,
         projectDir: session.followupProjectDir,
         force: true,
       });
@@ -4449,13 +4456,14 @@
   };
 
 
-  const openRunDiffModal = async ({ runId, projectDir = "", force = false, fallbackUrl = "" } = {}) => {
+  const openRunDiffModal = async ({ runId, fallbackRunId = "", projectDir = "", force = false, fallbackUrl = "" } = {}) => {
     const normalizedRunId = normaliseRunId(runId || "");
     if (!normalizedRunId) {
       return;
     }
 
     const normalizedProjectDir = normaliseProjectDir(projectDir || "");
+    const normalizedFallbackRunId = normaliseRunId(fallbackRunId || "");
     const params = new URLSearchParams({ run_id: normalizedRunId });
     if (normalizedProjectDir) {
       params.set("repo_directory", normalizedProjectDir);
@@ -4467,8 +4475,10 @@
       params.set("force", "1");
     }
 
-    try {
-      const response = await fetch(`/agent/runs/diff-url?${params.toString()}`, {
+    const fetchDiffUrl = async (targetRunId) => {
+      const targetParams = new URLSearchParams(params);
+      targetParams.set("run_id", targetRunId);
+      const response = await fetch(`/agent/runs/diff-url?${targetParams.toString()}`, {
         method: "GET",
         credentials: "same-origin",
       });
@@ -4479,6 +4489,19 @@
       const diffUrl = typeof payload?.url === "string" ? payload.url.trim() : "";
       if (!diffUrl) {
         throw new Error("Diff url response missing url");
+      }
+      return diffUrl;
+    };
+
+    try {
+      let diffUrl = "";
+      try {
+        diffUrl = await fetchDiffUrl(normalizedRunId);
+      } catch (primaryError) {
+        if (!normalizedFallbackRunId || normalizedFallbackRunId === normalizedRunId) {
+          throw primaryError;
+        }
+        diffUrl = await fetchDiffUrl(normalizedFallbackRunId);
       }
       await openMergeDiffModal(diffUrl);
     } catch (error) {
@@ -6007,10 +6030,12 @@ const appendMergeChunk = (text, type = "output") => {
     }
 
     const followupRunId = normaliseRunId(run.id || "");
+    const followupParentRunId = getFollowupParentId(run);
     const followupProjectDir = normaliseProjectDir(
       run.effectiveProjectDir || run.projectDir || run.requestedProjectDir || "",
     );
     session.followupRunId = followupRunId;
+    session.followupParentRunId = followupParentRunId;
     session.followupProjectDir = followupProjectDir;
 
     if (session.followupDiffButton) {
@@ -6020,6 +6045,7 @@ const appendMergeChunk = (text, type = "output") => {
       session.followupDiffButton.onclick = async () => {
         await openRunDiffModal({
           runId: session.followupRunId,
+          fallbackRunId: session.followupParentRunId,
           projectDir: session.followupProjectDir,
           force: true,
         });
@@ -9030,6 +9056,7 @@ const appendMergeChunk = (text, type = "output") => {
       if (followupRunActive) {
         syncActiveFollowupDiffButton({
           runId: runIdValue,
+          parentRunId: getFollowupParentId(payload),
           projectDir: effectiveDirForContext || projectDirForUrl,
         });
       }
