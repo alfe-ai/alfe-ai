@@ -5878,22 +5878,13 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const fetchRunFromHistory = async (runIdValue, projectDirValue) => {
-    const requestRunHistory = async (projectDirOverride) => {
-      const url = buildRunsDataUrl(runIdValue, projectDirOverride);
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to load run history (status ${response.status})`);
-      }
-      const payload = await response.json().catch(() => ({}));
-      return Array.isArray(payload?.runs) ? payload.runs : [];
-    };
-
-    let runs = await requestRunHistory(projectDirValue);
-    if (!runs.length && normaliseRunId(runIdValue) && normaliseProjectDir(projectDirValue)) {
-      // Fallback for follow-up/snapshot runs whose persisted project directory does not
-      // exactly match the current URL/project filter.
-      runs = await requestRunHistory("");
+    const url = buildRunsDataUrl(runIdValue, projectDirValue);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to load run history (status ${response.status})`);
     }
+    const payload = await response.json().catch(() => ({}));
+    const runs = Array.isArray(payload?.runs) ? payload.runs : [];
     if (!runs.length) {
       return null;
     }
@@ -6877,7 +6868,7 @@ const appendMergeChunk = (text, type = "output") => {
       ? followupFilteredRuns.filter((run) => doesRunMatchFilter(run, filterValue))
       : [];
     const filteredByArchiveState = afterMatch.filter((run) => runsSidebarShowArchived ? Boolean(run && run.archived) : !Boolean(run && run.archived));
-    const currentRepoDir = normaliseProjectDir(lastRunsSidebarProjectDir || getRunsSidebarProjectDir());
+    const currentRepoDir = normaliseProjectDir(currentSearchParams.get("repo_directory") || "");
     const filteredByRepository = filteredByArchiveState.filter((run) => doesRunMatchRepository(run, currentRepoDir));
     const filteredRuns = filteredByRepository;
     runsSidebarFilteredRuns = filteredRuns;
