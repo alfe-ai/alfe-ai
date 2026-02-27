@@ -6445,12 +6445,10 @@ const appendMergeChunk = (text, type = "output") => {
     const followupRuns = await renderFollowupSessionsFromHistory(run);
     if (Array.isArray(followupRuns) && followupRuns.length) {
       const latestFollowup = followupRuns[followupRuns.length - 1];
-      const latestFollowupRunId = normaliseRunId(latestFollowup?.id || "");
-      if (latestFollowupRunId) {
-        // Keep sidebar status/selection behavior aligned with the latest follow-up
-        // without overriding the primary run context used by top-level run actions.
-        setRunsSidebarActiveRun(latestFollowupRunId);
-      }
+      // Keep the primary run highlighted in the sidebar. Follow-up runs are not
+      // listed as standalone sidebar items, so selecting a follow-up run id here
+      // clears the visible highlight after reloading history.
+      setRunsSidebarActiveRun(currentRunContext.runId);
       enableMergeDiffButtonFromSavedRun(latestFollowup);
       updateRefreshRunButtonVisibility();
     }
