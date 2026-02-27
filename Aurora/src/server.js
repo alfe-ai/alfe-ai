@@ -1387,7 +1387,9 @@ if (whitelistIps.size > 0) {
 }
 
 const configIpWhitelist = new Set();
+const configUserWhitelist = new Set();
 const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+const configUserWhitelistEnv = process.env.CONFIG_USER_WHITELIST || "";
 if (configIpWhitelistEnv) {
   configIpWhitelistEnv
     .split(",")
@@ -1397,6 +1399,14 @@ if (configIpWhitelistEnv) {
       configIpWhitelist.add(ip);
       configIpWhitelist.add(`::ffff:${ip}`);
     });
+}
+
+if (configUserWhitelistEnv) {
+  configUserWhitelistEnv
+    .split(",")
+    .map((email) => String(email || "").trim().toLowerCase())
+    .filter(Boolean)
+    .forEach((email) => configUserWhitelist.add(email));
 }
 
 function getRequestIp(req) {
@@ -1419,6 +1429,38 @@ function isIpAllowed(ip, whitelist) {
   }
   const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
   return whitelist.has(ip) || whitelist.has(normalized);
+}
+
+function getRequestEmail(req) {
+  const candidate =
+    req?.account?.email ||
+    req?.user?.email ||
+    req?.session?.account?.email ||
+    req?.body?.email ||
+    req?.query?.email ||
+    req?.headers?.["x-user-email"] ||
+    req?.headers?.["x-forwarded-email"] ||
+    "";
+  return String(candidate || "").trim().toLowerCase();
+}
+
+function isUserAllowed(email, whitelist) {
+  if (whitelist.size === 0) {
+    return false;
+  }
+  if (!email) {
+    return false;
+  }
+  return whitelist.has(email);
+}
+
+function isConfigAccessAllowed(req) {
+  if (configUserWhitelist.size === 0) {
+    return false;
+  }
+  const allowedByIp = isIpAllowed(getRequestIp(req), configIpWhitelist);
+  const allowedByUser = isUserAllowed(getRequestEmail(req), configUserWhitelist);
+  return allowedByIp || allowedByUser;
 }
 
 // Determine uploads directory
@@ -1541,7 +1583,7 @@ app.get("/api/tasks", async (req, res) => {
 });
 
 app.get("/api/db/tables", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /api/db/tables blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1562,7 +1604,7 @@ app.get("/api/db/tables", (req, res) => {
 
 app.get("/api/db/table/:name", (req, res) => {
   const tableName = req.params.name;
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /api/db/table blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1587,7 +1629,7 @@ app.get("/api/db/table/:name", (req, res) => {
 });
 
 app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] POST /api/db/query blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1611,7 +1653,7 @@ app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
 });
 
 app.post("/api/db/query/write/verify", express.json({ limit: "50kb" }), (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] POST /api/db/query/write/verify blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1633,7 +1675,7 @@ app.post("/api/db/query/write/verify", express.json({ limit: "50kb" }), (req, re
 });
 
 app.post("/api/db/query/write", express.json({ limit: "200kb" }), (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] POST /api/db/query/write blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1672,7 +1714,7 @@ app.post("/api/db/query/write", express.json({ limit: "200kb" }), (req, res) => 
 });
 
 app.get("/api/db/info", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /api/db/info blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1687,7 +1729,7 @@ app.get("/api/db/info", (req, res) => {
 });
 
 app.get("/api/db/account_ips", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /api/db/account_ips blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -5385,7 +5427,7 @@ app.get("/activity", (req, res) => {
 });
 
 app.get("/db", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /db blocked by CONFIG_IP_WHITELIST");
     return res.status(403).send("Forbidden");
   }
@@ -5394,7 +5436,7 @@ app.get("/db", (req, res) => {
 });
 
 app.get("/db/:table", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /db/:table blocked by CONFIG_IP_WHITELIST");
     return res.status(403).send("Forbidden");
   }
@@ -5404,7 +5446,7 @@ app.get("/db/:table", (req, res) => {
 });
 
 app.get("/db_account_ips", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /db_account_ips blocked by CONFIG_IP_WHITELIST");
     return res.status(403).send("Forbidden");
   }
