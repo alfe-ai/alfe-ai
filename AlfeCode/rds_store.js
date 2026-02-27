@@ -327,10 +327,7 @@ class RdsStore {
         `ALTER TABLE ${ACCOUNTS_TABLE}
          ADD COLUMN IF NOT EXISTS last_log_in TEXT DEFAULT NULL`
       );
-      await this.pool.query(
-        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
-         ADD COLUMN IF NOT EXISTS followup_parent_id TEXT DEFAULT ''`
-      );
+      await this.migrateFollowupParentIdColumn();
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS account_id INTEGER`
@@ -412,6 +409,23 @@ class RdsStore {
     if (this.initPromise) {
       await this.initPromise;
     }
+  }
+
+  async migrateFollowupParentIdColumn() {
+    await this.pool.query(
+      `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+       ADD COLUMN IF NOT EXISTS followup_parent_id TEXT DEFAULT ''`
+    );
+
+    await this.pool.query(
+      `UPDATE ${ALFECODE_RUNS_TABLE}
+       SET followup_parent_id = NULLIF(payload_json::jsonb ->> 'followupParentId', '')
+       WHERE (followup_parent_id IS NULL OR followup_parent_id = '')
+         AND payload_json IS NOT NULL
+         AND payload_json <> ''
+         AND jsonb_typeof(payload_json::jsonb) = 'object'
+         AND COALESCE(payload_json::jsonb ->> 'followupParentId', '') <> ''`
+    );
   }
 
   async loadAllSettings() {
@@ -526,6 +540,7 @@ class RdsStore {
   }
 
   async loadSessionSetting(sessionId, key) {
+    await this.ensureReady();
     try {
       const result = await this.pool.query(
         `SELECT value FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1 AND key = $2`,
@@ -541,6 +556,7 @@ class RdsStore {
 
   async loadSessionRuns(sessionId) {
     if (!this.enabled) return;
+    await this.ensureReady();
     try {
       const result = await this.pool.query(
         `SELECT status, script_status, followup_parent_id, payload_json
