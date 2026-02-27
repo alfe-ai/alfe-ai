@@ -6011,7 +6011,62 @@ const appendMergeChunk = (text, type = "output") => {
       return collectMatchingFollowups(loadedRuns);
     };
 
+    const fetchFollowupsFromDbByParent = async (rootParentId, projectDirValue) => {
+      const discoveredRuns = [];
+      const discoveredRunIds = new Set();
+      const parentQueue = [normaliseRunId(rootParentId || "")];
+      const seenParents = new Set();
+
+      while (parentQueue.length) {
+        const parentCandidate = normaliseRunId(parentQueue.shift() || "");
+        if (!parentCandidate || seenParents.has(parentCandidate)) {
+          continue;
+        }
+        seenParents.add(parentCandidate);
+
+        const url = new URL(buildRunsDataUrl("", projectDirValue), window.location.origin);
+        url.searchParams.set("followup_parent_id", parentCandidate);
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+          throw new Error(`Failed to load follow-up runs (status ${response.status})`);
+        }
+        const payload = await response.json().catch(() => ({}));
+        const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
+
+        loadedRuns.forEach((entry) => {
+          const entryRunId = normaliseRunId(entry?.id || "");
+          if (!entryRunId || discoveredRunIds.has(entryRunId)) {
+            return;
+          }
+          discoveredRunIds.add(entryRunId);
+          discoveredRuns.push(entry);
+          parentQueue.push(entryRunId);
+        });
+      }
+
+      if (selectedRunIsFollowup && selectedRunId) {
+        const alreadyIncluded = discoveredRuns.some((entry) => normaliseRunId(entry?.id || "") === selectedRunId);
+        if (!alreadyIncluded && run && typeof run === "object") {
+          discoveredRuns.push(run);
+        }
+      }
+
+      return discoveredRuns;
+    };
+
     try {
+      const dbMatchesWithProjectDir = await fetchFollowupsFromDbByParent(parentId, projectDirHint);
+      if (dbMatchesWithProjectDir.length) {
+        return dbMatchesWithProjectDir;
+      }
+
+      if (projectDirHint) {
+        const dbMatchesWithoutProjectDir = await fetchFollowupsFromDbByParent(parentId, "");
+        if (dbMatchesWithoutProjectDir.length) {
+          return dbMatchesWithoutProjectDir;
+        }
+      }
+
       const matchesWithProjectDir = await fetchMatchingRuns(projectDirHint);
       if (matchesWithProjectDir.length) {
         return matchesWithProjectDir;
