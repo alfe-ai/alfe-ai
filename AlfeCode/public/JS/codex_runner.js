@@ -5942,12 +5942,28 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const loadFollowupRunsForParent = async (run) => {
-    const parentId = normaliseRunId(run?.id || "");
+    const selectedRunId = normaliseRunId(run?.id || "");
+    const explicitParentId = normaliseRunId(getFollowupParentId(run) || "");
+    const parentId = explicitParentId || selectedRunId;
+    const selectedRunIsFollowup = Boolean(explicitParentId);
     if (!parentId) {
       return [];
     }
+
+    const collectMatchingFollowups = (candidateRuns) => {
+      const list = Array.isArray(candidateRuns) ? candidateRuns : [];
+      const matched = list.filter((entry) => getFollowupParentId(entry) === parentId);
+      if (selectedRunIsFollowup && selectedRunId) {
+        const alreadyIncluded = matched.some((entry) => normaliseRunId(entry?.id || "") === selectedRunId);
+        if (!alreadyIncluded && run && typeof run === "object") {
+          matched.push(run);
+        }
+      }
+      return matched;
+    };
+
     const runs = Array.isArray(runsSidebarRuns) ? runsSidebarRuns : [];
-    const matchesFromSidebar = runs.filter((entry) => getFollowupParentId(entry) === parentId);
+    const matchesFromSidebar = collectMatchingFollowups(runs);
     if (matchesFromSidebar.length) {
       return matchesFromSidebar;
     }
@@ -5963,7 +5979,7 @@ const appendMergeChunk = (text, type = "output") => {
       }
       const payload = await response.json().catch(() => ({}));
       const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
-      return loadedRuns.filter((entry) => getFollowupParentId(entry) === parentId);
+      return collectMatchingFollowups(loadedRuns);
     } catch (error) {
       console.error("[Codex Runner] Failed to load follow-up runs", error);
     }
