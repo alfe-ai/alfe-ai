@@ -5417,13 +5417,28 @@ ${cleanedFinalOutput}`;
         if (typeof name !== "string") {
             return null;
         }
-        const trimmed = name.trim();
-        const match = trimmed.match(/^(.*)-(\d{10,})$/);
-        if (!match) {
+        let candidate = name.trim();
+        if (!candidate) {
             return null;
         }
-        const baseName = (match[1] || "").trim();
-        return baseName || null;
+
+        let removedSuffix = false;
+        while (true) {
+            const match = candidate.match(/^(.*)-(\d{10,})$/);
+            if (!match) {
+                break;
+            }
+            candidate = (match[1] || "").trim();
+            removedSuffix = true;
+            if (!candidate) {
+                break;
+            }
+        }
+
+        if (!removedSuffix || !candidate) {
+            return null;
+        }
+        return candidate;
     };
 
     const resolveEditorTargetForProjectDir = (projectDir, sessionId) => {
