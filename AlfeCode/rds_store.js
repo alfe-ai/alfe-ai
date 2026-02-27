@@ -1367,7 +1367,7 @@ class RdsStore {
 
     try {
       const result = await this.pool.query(
-        `SELECT status, script_status, final_output_message, created_at, updated_at, payload_json, numeric_id, account_id, branch, model, base_revision, commit_revision, run_directory, followup_parent_id
+        `SELECT run_id, status, script_status, final_output_message, created_at, updated_at, payload_json, numeric_id, account_id, branch, model, base_revision, commit_revision, run_directory, followup_parent_id
          FROM ${ALFECODE_RUNS_TABLE}
          WHERE session_id = $1 AND followup_parent_id = $2
          ORDER BY updated_at ASC, numeric_id ASC NULLS LAST`,
@@ -1381,6 +1381,7 @@ class RdsStore {
         } catch (_error) {
           parsedRun = {};
         }
+        if (typeof row.run_id === "string" && row.run_id.trim()) parsedRun.id = row.run_id;
         if (typeof row.status === "string" && row.status.trim()) parsedRun.status = row.status;
         if (typeof row.script_status === "string" && row.script_status.trim()) parsedRun.scriptStatus = row.script_status;
         if (typeof row.final_output_message === "string" && row.final_output_message.trim()) parsedRun.finalOutputMessage = row.final_output_message;
