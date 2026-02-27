@@ -39,6 +39,7 @@ USE_QWEN_CLI=false
 APPROVAL_MODE=""
 QWEN_ARGS=()
 QWEN_MODEL=""
+REUSE_PROJECT_DIR=false
 
 escape_config_value() {
   local value="$1"
@@ -545,6 +546,8 @@ while [[ $# -gt 0 ]]; do
     --qwen-model)
       [[ $# -ge 2 ]] || { echo "Error: --qwen-model requires a model id" >&2; exit 1; }
       QWEN_MODEL="$2"; shift 2 ;;
+    --reuse-project-dir)
+      REUSE_PROJECT_DIR=true; shift ;;
     --approval-mode)
       [[ $# -ge 2 ]] || { echo "Error: --approval-mode requires a mode value" >&2; exit 1; }
       APPROVAL_MODE="$2"; shift 2 ;;
@@ -1032,6 +1035,29 @@ run_here_or_in_project() {
       return 2
     fi
     maybe_git_pull "$PROJECT_DIR"
+
+    if $REUSE_PROJECT_DIR; then
+      log_meta "Reusing existing project directory without snapshot: $PROJECT_DIR"
+      printf '%s%s\n' "$CODEX_SNAPSHOT_MARKER" "$PROJECT_DIR"
+      (
+        export CODEX_ORIGINAL_PROJECT_DIR="$PROJECT_DIR"
+        export CODEX_EFFECTIVE_PROJECT_DIR="$PROJECT_DIR"
+        if $USE_QWEN_CLI; then
+          if should_use_vm; then
+            log_meta "Qwen CLI run requested; VM mode ignored."
+          fi
+          cd "$PROJECT_DIR" && run_qwen "${QWEN_ARGS[@]}"
+        else
+          if should_use_vm; then
+            run_codex_in_vm "$PROJECT_DIR" "$@"
+          else
+            cd "$PROJECT_DIR" && run_codex "$@"
+          fi
+        fi
+      )
+      return
+    fi
+
     # Before running, create a copy of the current repository and create a
     # git branch for this run. The copy path uses the millisecond timestamp
     # so each run snapshot is unique.
