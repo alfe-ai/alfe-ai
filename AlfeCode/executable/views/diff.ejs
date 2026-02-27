@@ -1247,12 +1247,6 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             <div class="diff-inner"></div>
         </section>
     </div>
-    <% if (diffOutput) { %>
-    <details class="raw-diff">
-        <summary>View raw diff</summary>
-        <pre><%= diffOutput %></pre>
-    </details>
-    <% } %>
 
     <div id="diffPromptModal" class="prompt-modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="diffPromptModalHeader">
         <div class="prompt-modal-content">
