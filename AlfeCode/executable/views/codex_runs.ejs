@@ -288,9 +288,6 @@
             </tr>
         </thead>
         <tbody id="runsTableBody">
-            <tr class="empty-state">
-                <td colspan="12">No runs recorded yet.</td>
-            </tr>
         </tbody>
     </table>
 </div>
@@ -557,7 +554,7 @@
                 row.className = 'empty-state';
                 const cell = document.createElement('td');
                 cell.colSpan = 12;
-                cell.textContent = 'No runs recorded yet.';
+                cell.textContent = '';
                 row.appendChild(cell);
                 tableBody.appendChild(row);
                 const emptyMessage = filterMessage || statusMessage || 'No runs available for the selected filters.';
@@ -789,7 +786,7 @@ async function loadRunsOnce() {
             const displayDir = repoFilterMeta.normalized || repoFilterMeta.raw || repoDirectory || '';
             const directoryLabel = displayDir ? `"${displayDir}"` : 'the requested project directory';
             if (!repoFilterMeta.matched && runs.length === 0) {
-                filterMessage = `No runs recorded yet for ${directoryLabel}.`;
+                filterMessage = ``;
             } else if (!repoFilterMeta.matched && repoFilterMeta.recoveredWithAllRuns && runs.length) {
                 filterMessage = `No runs matched ${directoryLabel}. Showing all runs for this session.`;
             } else if (repoFilterMeta.usedFallback && repoFilterMeta.matched && displayDir) {
