@@ -4,7 +4,8 @@
   "description": "An application for software development with AI models.",
   "main": "executable/server_webserver.js",
   "scripts": {
-    "start": "node executable/server_webserver.js"
+    "start": "node executable/server_webserver.js",
+    "hotwheel-game": "node hotwheel_game_server.js"
   },
   "dependencies": {
     "body-parser": "^1.20.3",

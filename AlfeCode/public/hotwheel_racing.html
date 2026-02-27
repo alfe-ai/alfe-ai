@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotwheel Racing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #1a2980, #26d0ce);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+        
+        h1 {
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            background-color: #2c3e50;
+            border: 3px solid #3498db;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .track {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #34495e;
+        }
+        
+        .start-line {
+            position: absolute;
+            top: 50%;
+            left: 50px;
+            width: 5px;
+            height: 300px;
+            background: white;
+            transform: translateY(-50%);
+        }
+        
+        .finish-line {
+            position: absolute;
+            top: 50%;
+            right: 50px;
+            width: 5px;
+            height: 300px;
+            background: white;
+            transform: translateY(-50%);
+        }
+        
+        .hotwheel {
+            position: absolute;
+            width: 40px;
+            height: 20px;
+            background: #e74c3c;
+            border-radius: 10px;
+            bottom: 50px;
+            transition: left 0.1s linear;
+        }
+        
+        .hotwheel::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 10px;
+            background: #2c3e50;
+            border-radius: 5px;
+            top: -5px;
+            left: 10px;
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        #status {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        #lap-counter {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hotwheel Racing Game</h1>
+    
+    <div id="game-container">
+        <div class="track">
+            <div class="start-line"></div>
+            <div class="finish-line"></div>
+        </div>
+    </div>
+    
+    <div id="status">Ready to race!</div>
+    <div id="lap-counter">Laps completed: 0</div>
+    
+    <div class="controls">
+        <button onclick="startRace()">Start Race</button>
+        <button onclick="resetGame()">Reset Game</button>
+        <button onclick="simulateLap()">Complete Lap</button>
+    </div>
+    
+    <div id="game-info">
+        <p>Players: 2 Hotwheels racing on a track</p>
+        <p>Track: Mountain Loop</p>
+    </div>
+
+    <script>
+        let gameStatus = 'ready';
+        let lapCount = 0;
+        let hotwheel1Position = 50;
+        let hotwheel2Position = 50;
+        let racing = false;
+        let raceInterval;
+        
+        const gameContainer = document.getElementById('game-container');
+        const hotwheel1 = document.createElement('div');
+        const hotwheel2 = document.createElement('div');
+        const statusDisplay = document.getElementById('status');
+        const lapCounter = document.getElementById('lap-counter');
+        
+        // Initialize hotwheels
+        hotwheel1.className = 'hotwheel';
+        hotwheel1.id = 'hotwheel1';
+        hotwheel2.className = 'hotwheel';
+        hotwheel2.id = 'hotwheel2';
+        
+        gameContainer.appendChild(hotwheel1);
+        gameContainer.appendChild(hotwheel2);
+        
+        // Position the hotwheels
+        function positionHotwheels() {
+            hotwheel1.style.left = hotwheel1Position + 'px';
+            hotwheel2.style.left = hotwheel2Position + 'px';
+            hotwheel1.style.bottom = '100px';
+            hotwheel2.style.bottom = '50px';
+        }
+        
+        // Update the game display
+        function updateGame() {
+            positionHotwheels();
+            lapCounter.textContent = 'Laps completed: ' + lapCount;
+        }
+        
+        // Start the race
+        function startRace() {
+            if (gameStatus !== 'ready' && gameStatus !== 'finished') return;
+            gameStatus = 'in_progress';
+            statusDisplay.textContent = 'Race in progress!';
+            racing = true;
+            
+            // Move hotwheels randomly
+            raceInterval = setInterval(() => {
+                if (!racing) return;
+                
+                // Move hotwheels to simulate racing
+                hotwheel1Position += Math.floor(Math.random() * 5) + 1;
+                hotwheel2Position += Math.floor(Math.random() * 5) + 1;
+                
+                // Check if one car finishes
+                const finishLine = gameContainer.offsetWidth - 100;
+                if (hotwheel1Position >= finishLine || hotwheel2Position >= finishLine) {
+                    racing = false;
+                    clearInterval(raceInterval);
+                    gameStatus = 'finished';
+                    statusDisplay.textContent = 'Race finished! Winner: Player 1 or 2';
+                    return;
+                }
+                
+                updateGame();
+            }, 100);
+        }
+        
+        // Reset the game
+        function resetGame() {
+            racing = false;
+            clearInterval(raceInterval);
+            gameStatus = 'ready';
+            lapCount = 0;
+            hotwheel1Position = 50;
+            hotwheel2Position = 50;
+            statusDisplay.textContent = 'Ready to race!';
+            updateGame();
+        }
+        
+        // Simulate completion of a lap
+        function simulateLap() {
+            if (gameStatus !== 'in_progress') {
+                statusDisplay.textContent = 'Start the race first!';
+                return;
+            }
+            lapCount++;
+            updateGame();
+        }
+        
+        // Initialize the game
+        updateGame();
+    </script>
+</body>
+</html>
