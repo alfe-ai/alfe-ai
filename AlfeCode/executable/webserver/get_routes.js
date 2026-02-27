@@ -5783,9 +5783,7 @@ ${cleanedFinalOutput}`;
         const offsetParam = parseIntegerParam(req.query.offset, 0, { min: 0 });
 
         try {
-            const __t0_buildGitCommitSlice = Date.now();
-                const slice = buildGitCommitSlice(resolvedProjectDir, offsetParam, limitParam);
-                __timing_entries.push(`buildGitCommitSlice:${Date.now()-__t0_buildGitCommitSlice}ms`);
+            const slice = buildGitCommitSlice(resolvedProjectDir, offsetParam, limitParam);
             const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId) || "";
 
             res.json({
