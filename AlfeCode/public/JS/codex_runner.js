@@ -1527,6 +1527,17 @@
     finalOutput.setAttribute("aria-labelledby", outputLabelId);
     sessionEl.appendChild(finalOutput);
 
+    const followupActions = document.createElement("div");
+    followupActions.className = "followup-actions";
+    const followupDiffButton = document.createElement("button");
+    followupDiffButton.type = "button";
+    followupDiffButton.className = "nav-button followup-view-diff-button";
+    followupDiffButton.textContent = "View Diff / Merge";
+    followupDiffButton.disabled = true;
+    followupDiffButton.setAttribute("aria-disabled", "true");
+    followupActions.appendChild(followupDiffButton);
+    sessionEl.appendChild(followupActions);
+
     followupSectionEl.appendChild(sessionEl);
 
     const session = {
@@ -1539,6 +1550,9 @@
       outputTabsContainer: tabsContainer,
       outputLogEl: combinedOutput,
       finalLogEl: finalOutput,
+      followupDiffButton,
+      followupRunId: "",
+      followupProjectDir: "",
       activeTab: "combined",
       outputValue: "",
       finalValue: "",
@@ -4386,9 +4400,25 @@
       || "",
     );
 
-    const params = new URLSearchParams({ run_id: runId });
-    if (projectDir) {
-      params.set("repo_directory", projectDir);
+    await openRunDiffModal({
+      runId,
+      projectDir,
+      force,
+      fallbackUrl: (mergeDiffButton && mergeDiffButton.getAttribute("data-href")) || "",
+    });
+  };
+
+
+  const openRunDiffModal = async ({ runId, projectDir = "", force = false, fallbackUrl = "" } = {}) => {
+    const normalizedRunId = normaliseRunId(runId || "");
+    if (!normalizedRunId) {
+      return;
+    }
+
+    const normalizedProjectDir = normaliseProjectDir(projectDir || "");
+    const params = new URLSearchParams({ run_id: normalizedRunId });
+    if (normalizedProjectDir) {
+      params.set("repo_directory", normalizedProjectDir);
     }
     if (currentSessionId) {
       params.set("sessionId", currentSessionId);
@@ -4413,9 +4443,9 @@
       await openMergeDiffModal(diffUrl);
     } catch (error) {
       console.warn("Failed to open run diff url in modal", error);
-      const fallbackUrl = (mergeDiffButton && mergeDiffButton.getAttribute("data-href")) || "";
-      if (fallbackUrl) {
-        await openMergeDiffModal(fallbackUrl);
+      const fallback = typeof fallbackUrl === "string" ? fallbackUrl.trim() : "";
+      if (fallback) {
+        await openMergeDiffModal(fallback);
       }
     }
   };
@@ -5934,6 +5964,26 @@ const appendMergeChunk = (text, type = "output") => {
     if (session.outputTabsContainer) {
       const hasFinalOutput = Boolean(session.finalValue && session.finalValue.trim());
       session.outputTabsContainer.classList.toggle("is-hidden", !hasFinalOutput);
+    }
+
+    const followupRunId = normaliseRunId(run.id || "");
+    const followupProjectDir = normaliseProjectDir(
+      run.effectiveProjectDir || run.projectDir || run.requestedProjectDir || "",
+    );
+    session.followupRunId = followupRunId;
+    session.followupProjectDir = followupProjectDir;
+
+    if (session.followupDiffButton) {
+      const hasRunId = Boolean(followupRunId);
+      session.followupDiffButton.disabled = !hasRunId;
+      session.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
+      session.followupDiffButton.onclick = async () => {
+        await openRunDiffModal({
+          runId: session.followupRunId,
+          projectDir: session.followupProjectDir,
+          force: true,
+        });
+      };
     }
 
     setFollowupActiveTab(session, "combined");
