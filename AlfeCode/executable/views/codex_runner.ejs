@@ -2527,6 +2527,43 @@
             box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
         }
 
+        #switchBranchSearch {
+            margin-bottom: 10px;
+        }
+
+        #branchList {
+            margin-top: 0;
+            max-height: 260px;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.6);
+            padding: 6px;
+        }
+
+        .branch-list-option {
+            border-radius: 8px;
+            padding: 8px 10px;
+            cursor: pointer;
+            color: var(--text-color);
+            user-select: none;
+        }
+
+        .branch-list-option:hover {
+            background: rgba(124, 58, 237, 0.2);
+        }
+
+        .branch-list-option.is-selected {
+            background: rgba(124, 58, 237, 0.35);
+            border: 1px solid rgba(124, 58, 237, 0.75);
+        }
+
+        .branch-list-hint {
+            margin-top: 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
         #switchBranchModal .switch-branch-actions {
             margin-top: 18px;
             display: flex;
@@ -4290,8 +4327,11 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
           <button type="button" class="switch-branch-create" id="switchBranchCreateButton">Or Create a New Branch</button>
         </div>
         <div id="branchSelectContainer">
-          <label for="branchSelect">Select existing branch:</label>
-          <select id="branchSelect"></select>
+          <label for="switchBranchSearch">Select existing branch:</label>
+          <input id="switchBranchSearch" type="text" placeholder="Search branches..." autocomplete="off" />
+          <div id="branchList" role="listbox" aria-label="Branch list"></div>
+          <input id="branchSelect" type="hidden" />
+          <div id="branchListHint" class="branch-list-hint"></div>
           <div class="switch-branch-actions">
             <button type="button" class="nav-button" id="switchBranchSubmitButton">Switch</button>
           </div>
