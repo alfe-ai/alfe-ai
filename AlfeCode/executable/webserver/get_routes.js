@@ -74,7 +74,9 @@ function setupGetRoutes(deps) {
     const DEFAULT_GIT_LOG_LIMIT = 20;
     const MAX_GIT_LOG_LIMIT = 200;
     const configIpWhitelist = new Set();
+    const configUserWhitelist = new Set();
     const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+    const configUserWhitelistEnv = process.env.CONFIG_USER_WHITELIST || "";
     if (configIpWhitelistEnv) {
         configIpWhitelistEnv
             .split(",")
@@ -84,6 +86,13 @@ function setupGetRoutes(deps) {
                 configIpWhitelist.add(ip);
                 configIpWhitelist.add(`::ffff:${ip}`);
             });
+    }
+    if (configUserWhitelistEnv) {
+        configUserWhitelistEnv
+            .split(",")
+            .map((email) => String(email || "").trim().toLowerCase())
+            .filter(Boolean)
+            .forEach((email) => configUserWhitelist.add(email));
     }
     const FILE_TREE_EXCLUDES = new Set([
         ".git",
@@ -159,6 +168,35 @@ function setupGetRoutes(deps) {
         }
         const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
         return whitelist.has(ip) || whitelist.has(normalized);
+    };
+    const getRequestEmail = (req) => {
+        const candidate =
+            req?.account?.email
+            || req?.user?.email
+            || req?.session?.account?.email
+            || req?.body?.email
+            || req?.query?.email
+            || req?.headers?.["x-user-email"]
+            || req?.headers?.["x-forwarded-email"]
+            || "";
+        return String(candidate || "").trim().toLowerCase();
+    };
+    const isUserAllowed = (email, whitelist) => {
+        if (whitelist.size === 0) {
+            return false;
+        }
+        if (!email) {
+            return false;
+        }
+        return whitelist.has(email);
+    };
+    const isConfigAccessAllowed = (req) => {
+        if (configUserWhitelist.size === 0) {
+            return false;
+        }
+        const allowedByIp = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowedByUser = isUserAllowed(getRequestEmail(req), configUserWhitelist);
+        return allowedByIp || allowedByUser;
     };
 
     const normalizeProviderName = (value) => {
@@ -658,7 +696,7 @@ function setupGetRoutes(deps) {
             return res.status(401).json({ error: "not logged in" });
         }
         const account = await rdsStore.getAccountBySession(sessionId);
-        const allowConfigIpControls = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowConfigIpControls = isConfigAccessAllowed(req);
         if (!account) {
             return res.json({
                 success: false,
@@ -3763,7 +3801,7 @@ ${cleanedFinalOutput}`;
         const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
         const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
-        const allowModelOrderEdit = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowModelOrderEdit = isConfigAccessAllowed(req);
         const allowConfigIpControls = allowModelOrderEdit;
         const allowAccountPlanEdit = allowModelOrderEdit;
         const allowVmRunsLink = allowModelOrderEdit;
@@ -3794,13 +3832,13 @@ ${cleanedFinalOutput}`;
         });
     });
     app.get('/agent/model-only/order', (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!isConfigAccessAllowed(req)) {
             return res.status(403).send("Forbidden.");
         }
         res.render('model_only_order');
     });
     app.get('/agent/model-only/order/data', (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!isConfigAccessAllowed(req)) {
             return res.status(403).json({ message: "Forbidden." });
         }
         const { models, error } = loadModelOnlyConfigRaw();
@@ -3821,7 +3859,7 @@ ${cleanedFinalOutput}`;
         });
     });
     app.post('/agent/model-only/order', (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!isConfigAccessAllowed(req)) {
             return res.status(403).json({ message: "Forbidden." });
         }
         const requestedOrder = req.body?.order;
@@ -3899,7 +3937,7 @@ ${cleanedFinalOutput}`;
         if (!request) {
             return res.status(404).send("Support request not found.");
         }
-        const allowAdminReply = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowAdminReply = isConfigAccessAllowed(req);
         return res.render('support_request', { request, allowAdminReply });
     });
 

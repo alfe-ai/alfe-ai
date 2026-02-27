@@ -97,7 +97,9 @@ function setupPostRoutes(deps) {
     const accountsEnabled = parseBooleanEnvWithDefault(process.env.ACCOUNTS_ENABLED, true);
     const allowRepoAddOnFreePlan = parseBooleanEnvWithDefault(process.env.ALLOW_REPO_ADD_ON_FREE_PLAN, false);
     const configIpWhitelist = new Set();
+    const configUserWhitelist = new Set();
     const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+    const configUserWhitelistEnv = process.env.CONFIG_USER_WHITELIST || "";
     if (configIpWhitelistEnv) {
         configIpWhitelistEnv
             .split(",")
@@ -107,6 +109,14 @@ function setupPostRoutes(deps) {
                 configIpWhitelist.add(ip);
                 configIpWhitelist.add(`::ffff:${ip}`);
             });
+    }
+
+    if (configUserWhitelistEnv) {
+        configUserWhitelistEnv
+            .split(",")
+            .map((email) => String(email || "").trim().toLowerCase())
+            .filter(Boolean)
+            .forEach((email) => configUserWhitelist.add(email));
     }
 
     const normalizeAccountEmail = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
@@ -409,7 +419,35 @@ function setupPostRoutes(deps) {
         const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
         return whitelist.has(ip) || whitelist.has(normalized);
     };
-    const canUseConfigIpControls = (req) => isIpAllowed(getRequestIp(req), configIpWhitelist);
+    const getRequestEmail = (req) => {
+        const candidate =
+            req?.account?.email
+            || req?.user?.email
+            || req?.session?.account?.email
+            || req?.body?.email
+            || req?.query?.email
+            || req?.headers?.["x-user-email"]
+            || req?.headers?.["x-forwarded-email"]
+            || "";
+        return String(candidate || "").trim().toLowerCase();
+    };
+    const isUserAllowed = (email, whitelist) => {
+        if (whitelist.size === 0) {
+            return false;
+        }
+        if (!email) {
+            return false;
+        }
+        return whitelist.has(email);
+    };
+    const canUseConfigIpControls = (req) => {
+        if (configUserWhitelist.size === 0) {
+            return false;
+        }
+        const allowedByIp = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowedByUser = isUserAllowed(getRequestEmail(req), configUserWhitelist);
+        return allowedByIp || allowedByUser;
+    };
     const normalizeHostname = (req) => {
         const header = req.hostname || req.get("host") || "";
         return header.split(":")[0].toLowerCase();
@@ -600,8 +638,7 @@ function setupPostRoutes(deps) {
         const requestId = req.params?.id;
         let request = null;
         if (role === "admin") {
-            const requestIp = getRequestIp(req);
-            if (!isIpAllowed(requestIp, configIpWhitelist)) {
+            if (!canUseConfigIpControls(req)) {
                 return res.status(403).json({ error: "Admin reply is not allowed from this IP." });
             }
             request = await rdsStore.getSupportRequestByIdForAdmin({ requestId });
