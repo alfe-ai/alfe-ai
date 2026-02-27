@@ -1,12 +1,15 @@
-// Example test file to demonstrate testing patterns
-test('example test case', () => {
-  // This is a simple example test
-  expect(2 + 2).toBe(4);
-});
+/**
+ * Example test file for the AlfeCode project
+ * This file demonstrates the testing structure
+ */
 
-test('example test with string', () => {
-  // Another example with string operations
-  const message = 'Hello, World!';
-  expect(message).toBe('Hello, World!');
-  expect(message).toHaveLength(13);
+describe('Example Test Suite', () => {
+  test('should pass this example test', () => {
+    expect(true).toBe(true);
+  });
+
+  test('should demonstrate a simple calculation', () => {
+    const result = 2 + 2;
+    expect(result).toBe(4);
+  });
 });
