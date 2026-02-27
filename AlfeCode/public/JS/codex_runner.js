@@ -5971,8 +5971,8 @@ const appendMergeChunk = (text, type = "output") => {
     const projectDirHint = normaliseProjectDir(
       run?.requestedProjectDir || run?.projectDir || run?.effectiveProjectDir || "",
     );
-    try {
-      const url = buildRunsDataUrl("", projectDirHint);
+    const fetchMatchingRuns = async (projectDirValue) => {
+      const url = buildRunsDataUrl("", projectDirValue);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load follow-up runs (status ${response.status})`);
@@ -5980,6 +5980,22 @@ const appendMergeChunk = (text, type = "output") => {
       const payload = await response.json().catch(() => ({}));
       const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
       return collectMatchingFollowups(loadedRuns);
+    };
+
+    try {
+      const matchesWithProjectDir = await fetchMatchingRuns(projectDirHint);
+      if (matchesWithProjectDir.length) {
+        return matchesWithProjectDir;
+      }
+
+      // Some historical runs have an inconsistent/missing projectDir value. Fall back to
+      // querying all runs so follow-up sessions still hydrate on page reload.
+      if (projectDirHint) {
+        const matchesWithoutProjectDir = await fetchMatchingRuns("");
+        if (matchesWithoutProjectDir.length) {
+          return matchesWithoutProjectDir;
+        }
+      }
     } catch (error) {
       console.error("[Codex Runner] Failed to load follow-up runs", error);
     }
@@ -6229,12 +6245,20 @@ const appendMergeChunk = (text, type = "output") => {
     const followupRuns = await renderFollowupSessionsFromHistory(run);
     if (Array.isArray(followupRuns) && followupRuns.length) {
       const latestFollowup = followupRuns[followupRuns.length - 1];
-      const latestBranch = extractBranchFromRun(latestFollowup);
-      const currentHref = mergeDiffButton ? mergeDiffButton.getAttribute('data-href') : '';
-      const hasBranchDiff = typeof currentHref === 'string' && currentHref.includes('branch=');
-      if (latestBranch && (!hasActiveMergeDiffLink() || !hasBranchDiff)) {
-        enableMergeDiffButtonFromSavedRun(latestFollowup);
+      const latestFollowupRunId = normaliseRunId(latestFollowup?.id || "");
+      if (latestFollowupRunId) {
+        currentRunContext = buildRunContext({
+          ...currentRunContext,
+          runId: latestFollowupRunId,
+          branchName: extractBranchFromRun(latestFollowup) || currentRunContext.branchName,
+          effectiveProjectDir: normaliseProjectDir(
+            latestFollowup?.effectiveProjectDir || latestFollowup?.projectDir || latestFollowup?.requestedProjectDir || "",
+          ) || currentRunContext.effectiveProjectDir,
+        });
+        setRunsSidebarActiveRun(latestFollowupRunId);
       }
+      enableMergeDiffButtonFromSavedRun(latestFollowup);
+      updateRefreshRunButtonVisibility();
     }
 
     if (hasHydratedFinalOutput) {
