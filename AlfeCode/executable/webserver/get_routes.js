@@ -4552,6 +4552,9 @@ ${cleanedFinalOutput}`;
         if (projectDir) {
             args.push("--project-dir", projectDir);
         }
+        if (followupParentIdRaw) {
+            args.push("--reuse-project-dir");
+        }
         if (wantsOpenRouterHeaders) {
             if (openRouterReferer) {
                 args.push("--openrouter-referer", openRouterReferer);
