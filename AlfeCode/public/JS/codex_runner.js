@@ -5952,7 +5952,36 @@ const appendMergeChunk = (text, type = "output") => {
 
     const collectMatchingFollowups = (candidateRuns) => {
       const list = Array.isArray(candidateRuns) ? candidateRuns : [];
-      const matched = list.filter((entry) => getFollowupParentId(entry) === parentId);
+      const matched = [];
+      const includedRunIds = new Set();
+      const parentIdsToTraverse = [parentId];
+      const traversedParentIds = new Set();
+
+      while (parentIdsToTraverse.length) {
+        const candidateParentId = normaliseRunId(parentIdsToTraverse.shift() || "");
+        if (!candidateParentId || traversedParentIds.has(candidateParentId)) {
+          continue;
+        }
+        traversedParentIds.add(candidateParentId);
+
+        list.forEach((entry) => {
+          const entryParentId = getFollowupParentId(entry);
+          if (entryParentId !== candidateParentId) {
+            return;
+          }
+          const entryRunId = normaliseRunId(entry?.id || "");
+          const uniqueKey = entryRunId || `${candidateParentId}:${matched.length}`;
+          if (includedRunIds.has(uniqueKey)) {
+            return;
+          }
+          includedRunIds.add(uniqueKey);
+          matched.push(entry);
+          if (entryRunId && !traversedParentIds.has(entryRunId)) {
+            parentIdsToTraverse.push(entryRunId);
+          }
+        });
+      }
+
       if (selectedRunIsFollowup && selectedRunId) {
         const alreadyIncluded = matched.some((entry) => normaliseRunId(entry?.id || "") === selectedRunId);
         if (!alreadyIncluded && run && typeof run === "object") {
@@ -6505,6 +6534,32 @@ const appendMergeChunk = (text, type = "output") => {
       || run.followup_parent
       || "",
     );
+  };
+
+  const resolveFollowupRootParentId = (runIdValue) => {
+    const fallbackId = normaliseRunId(runIdValue || "");
+    if (!fallbackId) {
+      return "";
+    }
+
+    const runs = Array.isArray(runsSidebarRuns) ? runsSidebarRuns : [];
+    if (!runs.length) {
+      return fallbackId;
+    }
+
+    const seen = new Set();
+    let currentId = fallbackId;
+    while (currentId && !seen.has(currentId)) {
+      seen.add(currentId);
+      const currentRun = runs.find((entry) => normaliseRunId(entry?.id || "") === currentId);
+      const parentId = normaliseRunId(getFollowupParentId(currentRun) || "");
+      if (!parentId) {
+        return currentId;
+      }
+      currentId = parentId;
+    }
+
+    return fallbackId;
   };
 
   const getSidebarBadgeInfo = (run, { hasActiveFollowup = false } = {}) => {
@@ -8669,7 +8724,7 @@ const appendMergeChunk = (text, type = "output") => {
       params.append("projectDir", effectiveProjectDirForRun);
     }
     const followupParentId = continuingExistingRun
-      ? normaliseRunId(currentRunContext && currentRunContext.runId ? currentRunContext.runId : "")
+      ? resolveFollowupRootParentId(currentRunContext && currentRunContext.runId ? currentRunContext.runId : "")
       : "";
     if (followupParentId) {
       params.append("followupParentId", followupParentId);
