@@ -8777,13 +8777,20 @@ const appendMergeChunk = (text, type = "output") => {
     const continuingExistingRun = Boolean(config.enableFollowups) && hadExistingRun && hasExistingOutput;
 
     const normalizedProjectDir = normaliseProjectDir(projectDir);
-    const effectiveProjectDirForRun =
-      normalizedProjectDir
-      || (currentRunContext && currentRunContext.effectiveProjectDir)
+    const followupProjectDir =
+      (currentRunContext && currentRunContext.effectiveProjectDir)
       || (currentSnapshotProjectDir ? normaliseProjectDir(currentSnapshotProjectDir) : "")
-      || currentRunContext.projectDir
-      || codexDefaultProjectDir
+      || (currentRunContext && currentRunContext.projectDir)
       || "";
+    const effectiveProjectDirForRun =
+      continuingExistingRun
+        ? followupProjectDir
+        : (
+          normalizedProjectDir
+          || followupProjectDir
+          || codexDefaultProjectDir
+          || ""
+        );
     lastRequestedProjectDir = effectiveProjectDirForRun;
     const preserveRunSelection = Boolean(continuingExistingRun);
     if (!preserveRunSelection) {
@@ -8852,12 +8859,9 @@ const appendMergeChunk = (text, type = "output") => {
     incrementCodeUsageCount();
 
     const params = new URLSearchParams();
-    // Prefer an explicit project dir if provided; otherwise send the effective
-    // project dir (which may be a snapshot/copy branch) so the server continues
-    // working on the existing run snapshot.
-    if (normalizedProjectDir) {
-      params.append("projectDir", normalizedProjectDir);
-    } else if (effectiveProjectDirForRun) {
+    // Always send the effective project dir. For follow-ups this keeps the run
+    // pinned to the parent run snapshot/branch directory.
+    if (effectiveProjectDirForRun) {
       params.append("projectDir", effectiveProjectDirForRun);
     }
     const followupParentId = continuingExistingRun
