@@ -4153,6 +4153,7 @@ ${cleanedFinalOutput}`;
             `[INFO] Codex model resolved for run ${sessionId}: final="${model}" requested="${requestedModelLabel}" default="${defaultCodexModel}" invalidReason="${invalidModelLabel}"`,
         );
 
+        const initialBaseRevision = resolveGitCommitRevision(projectDir);
         const runRecord = {
             id: randomUUID(),
             startedAt: new Date().toISOString(),
@@ -4188,9 +4189,9 @@ ${cleanedFinalOutput}`;
             finalMessage: "",
             error: "",
             invalidModelReason,
-            baseRevision: "",
+            baseRevision: initialBaseRevision,
             commitRevision: "",
-            runDirectory: "",
+            runDirectory: projectDir,
         };
         const envOverrides = {};
         let accountOpenRouterApiKey = "";
