@@ -1653,6 +1653,14 @@
     session.followupDiffButton.disabled = !hasRunId;
     session.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
     session.followupDiffButton.onclick = async () => {
+      console.debug("[ViewDiffDebug] followup-diff-button:clicked", {
+        sessionIndex: session.index,
+        runId: session.followupRunId,
+        parentRunId: session.followupParentRunId,
+        projectDir: session.followupProjectDir,
+        sessionId: session.followupSessionId,
+        disabled: session.followupDiffButton.disabled,
+      });
       await openRunDiffModal({
         runId: session.followupRunId,
         fallbackRunId: "",
@@ -4398,6 +4406,11 @@
   };
 
   const openMergeDiffModal = async (url) => {
+    console.debug("[ViewDiffDebug] openMergeDiffModal:start", {
+      url,
+      hasGitLogModal: Boolean(document.getElementById("gitLogModal")),
+      hasGitLogIframe: Boolean(document.getElementById("gitLogIframe")),
+    });
     try {
       const modal = document.getElementById('gitLogModal');
       const iframe = document.getElementById('gitLogIframe');
@@ -4410,9 +4423,18 @@
       }
 
       const { loaded, rawText } = await loadDiffIframeContent(iframe, url);
+      console.debug("[ViewDiffDebug] openMergeDiffModal:iframe-load-result", {
+        url,
+        loaded,
+        rawTextLength: typeof rawText === "string" ? rawText.length : 0,
+      });
 
       if (!loaded) {
         const renderedFallback = renderDiffFallbackContent(iframe, url, rawText);
+        console.debug("[ViewDiffDebug] openMergeDiffModal:fallback-render", {
+          url,
+          renderedFallback,
+        });
         if (!renderedFallback) {
           iframe.onload = () => { hideGitLogLoader(); };
           iframe.src = url;
@@ -4421,7 +4443,15 @@
 
       if (modal) { modal.classList.remove('is-hidden'); }
       document.body.style.overflow = 'hidden';
+      console.debug("[ViewDiffDebug] openMergeDiffModal:done", {
+        url,
+        modalVisible: Boolean(modal && !modal.classList.contains("is-hidden")),
+      });
     } catch (e) {
+      console.warn("[ViewDiffDebug] openMergeDiffModal:error", {
+        url,
+        message: e?.message || String(e),
+      });
       hideGitLogLoader();
       window.open(url, '_blank', 'noopener');
     }
@@ -4466,7 +4496,22 @@
 
   const openRunDiffModal = async ({ runId, fallbackRunId = "", projectDir = "", sessionId = "", force = false, fallbackUrl = "" } = {}) => {
     const normalizedRunId = normaliseRunId(runId || "");
+    console.debug("[ViewDiffDebug] openRunDiffModal:start", {
+      runId,
+      fallbackRunId,
+      projectDir,
+      sessionId,
+      force,
+      fallbackUrl,
+      normalizedRunId,
+    });
     if (!normalizedRunId) {
+      console.warn("[ViewDiffDebug] openRunDiffModal:missing-run-id", {
+        runId,
+        fallbackRunId,
+        projectDir,
+        sessionId,
+      });
       return;
     }
 
@@ -4487,15 +4532,33 @@
     const fetchDiffUrl = async (targetRunId) => {
       const targetParams = new URLSearchParams(params);
       targetParams.set("run_id", targetRunId);
+      const requestUrl = `/agent/runs/diff-url?${targetParams.toString()}`;
+      console.debug("[ViewDiffDebug] openRunDiffModal:fetch-diff-url:start", {
+        targetRunId,
+        requestUrl,
+      });
       const response = await fetch(`/agent/runs/diff-url?${targetParams.toString()}`, {
         method: "GET",
         credentials: "same-origin",
+      });
+      console.debug("[ViewDiffDebug] openRunDiffModal:fetch-diff-url:response", {
+        targetRunId,
+        status: response.status,
+        ok: response.ok,
       });
       if (!response.ok) {
         throw new Error(`Failed to resolve diff url (status ${response.status})`);
       }
       const payload = await response.json().catch(() => ({}));
       const diffUrl = typeof payload?.url === "string" ? payload.url.trim() : "";
+      console.debug("[ViewDiffDebug] openRunDiffModal:fetch-diff-url:payload", {
+        targetRunId,
+        hasUrl: Boolean(diffUrl),
+        runId: payload?.run_id || "",
+        baseRevision: payload?.base_revision || "",
+        commitRevision: payload?.commit_revision || "",
+        runDirectory: payload?.run_directory || "",
+      });
       if (!diffUrl) {
         throw new Error("Diff url response missing url");
       }
@@ -4507,16 +4570,34 @@
       try {
         diffUrl = await fetchDiffUrl(normalizedRunId);
       } catch (primaryError) {
+        console.warn("[ViewDiffDebug] openRunDiffModal:primary-fetch-failed", {
+          normalizedRunId,
+          normalizedFallbackRunId,
+          message: primaryError?.message || String(primaryError),
+        });
         if (!normalizedFallbackRunId || normalizedFallbackRunId === normalizedRunId) {
           throw primaryError;
         }
         diffUrl = await fetchDiffUrl(normalizedFallbackRunId);
       }
+      console.debug("[ViewDiffDebug] openRunDiffModal:resolved-url", {
+        normalizedRunId,
+        normalizedFallbackRunId,
+        diffUrl,
+      });
       await openMergeDiffModal(diffUrl);
     } catch (error) {
-      console.warn("Failed to open run diff url in modal", error);
+      console.warn("[ViewDiffDebug] openRunDiffModal:error", {
+        normalizedRunId,
+        normalizedFallbackRunId,
+        fallbackUrl,
+        message: error?.message || String(error),
+      });
       const fallback = typeof fallbackUrl === "string" ? fallbackUrl.trim() : "";
       if (fallback) {
+        console.debug("[ViewDiffDebug] openRunDiffModal:using-fallback-url", {
+          fallback,
+        });
         await openMergeDiffModal(fallback);
       }
     }
@@ -6051,13 +6132,21 @@ const appendMergeChunk = (text, type = "output") => {
 
     if (session.followupDiffButton) {
       const hasRunId = Boolean(followupRunId);
-      session.followupDiffButton.disabled = !hasRunId;
-      session.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
-      session.followupDiffButton.onclick = async () => {
-        await openRunDiffModal({
-          runId: session.followupRunId,
-          fallbackRunId: "",
-          projectDir: session.followupProjectDir,
+    session.followupDiffButton.disabled = !hasRunId;
+    session.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
+    session.followupDiffButton.onclick = async () => {
+      console.debug("[ViewDiffDebug] followup-diff-button:clicked", {
+        sessionIndex: session.index,
+        runId: session.followupRunId,
+        parentRunId: session.followupParentRunId,
+        projectDir: session.followupProjectDir,
+        sessionId: session.followupSessionId,
+        disabled: session.followupDiffButton.disabled,
+      });
+      await openRunDiffModal({
+        runId: session.followupRunId,
+        fallbackRunId: "",
+        projectDir: session.followupProjectDir,
           sessionId: session.followupSessionId,
           force: true,
         });
