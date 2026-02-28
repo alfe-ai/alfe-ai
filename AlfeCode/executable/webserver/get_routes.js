@@ -5068,8 +5068,16 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const runId = (req.query.run_id || req.query.runId || "").toString().trim();
         const repoDirectoryFilter = (req.query.repo_directory || req.query.projectDir || "").toString().trim();
+        console.log("[ViewDiffDebug] /agent/runs/diff-url request", {
+            sessionId,
+            runId,
+            repoDirectoryFilter,
+            force: (req.query.force || "").toString(),
+            query: req.query,
+        });
 
         if (!runId) {
+            console.warn("[ViewDiffDebug] /agent/runs/diff-url missing run_id", { sessionId, query: req.query });
             return res.status(400).json({ error: "run_id is required." });
         }
 
@@ -5081,6 +5089,10 @@ ${cleanedFinalOutput}`;
                 console.warn("Failed loading run from RDS for diff url:", error?.message || error);
             }
         }
+        console.log("[ViewDiffDebug] /agent/runs/diff-url resolved from rds", {
+            runId,
+            found: Boolean(resolvedRun),
+        });
 
         if (!resolvedRun) {
             try {
@@ -5091,8 +5103,13 @@ ${cleanedFinalOutput}`;
                 console.warn("Failed loading run history fallback for diff url:", error?.message || error);
             }
         }
+        console.log("[ViewDiffDebug] /agent/runs/diff-url resolved from history", {
+            runId,
+            found: Boolean(resolvedRun),
+        });
 
         if (!resolvedRun) {
+            console.warn("[ViewDiffDebug] /agent/runs/diff-url run not found", { runId, sessionId });
             return res.status(404).json({ error: "Run not found." });
         }
 
@@ -5107,6 +5124,13 @@ ${cleanedFinalOutput}`;
             || "").toString().trim();
 
         if (!baseRev || !compRev || !projectDir) {
+            console.warn("[ViewDiffDebug] /agent/runs/diff-url missing diff metadata", {
+                runId,
+                baseRev,
+                compRev,
+                projectDir,
+                resolvedRunKeys: Object.keys(resolvedRun || {}),
+            });
             return res.status(422).json({
                 error: "Run is missing base_revision, commit_revision, or run_directory.",
                 run_id: runId,
@@ -5133,12 +5157,22 @@ ${cleanedFinalOutput}`;
             diffParams.set("userPrompt", userPromptForDiff);
         }
 
+        const resolvedUrl = `/agent/git-diff?${diffParams.toString()}`;
+        console.log("[ViewDiffDebug] /agent/runs/diff-url resolved", {
+            runId,
+            baseRev,
+            compRev,
+            projectDir,
+            hasUserPrompt: Boolean(userPromptForDiff),
+            url: resolvedUrl,
+        });
+
         return res.json({
             run_id: runId,
             base_revision: baseRev,
             commit_revision: compRev,
             run_directory: projectDir,
-            url: `/agent/git-diff?${diffParams.toString()}`,
+            url: resolvedUrl,
         });
     });
 
@@ -7940,6 +7974,17 @@ ${err}`;
         const runIdQuery = (req.query.run_id || "").toString().trim();
         const rowIndexQuery = (req.query.rowIndex || req.query.row_index || "").toString().trim();
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
+        console.log("[ViewDiffDebug] /agent/git-diff request", {
+            sessionId,
+            runIdQuery,
+            rowIndexQuery,
+            projectDirParam,
+            resolvedProjectDir,
+            baseRevInput,
+            compRevInput,
+            mergeReady,
+            prefetchOnly,
+        });
 
         let errorMessage = "";
 
