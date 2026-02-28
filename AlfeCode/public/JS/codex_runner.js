@@ -1718,6 +1718,9 @@
   const promptModalTextarea = document.getElementById("promptModalTextarea");
   const promptModalCopyButton = document.getElementById("promptModalCopyButton");
   const promptModalCloseButton = document.getElementById("promptModalCloseButton");
+  const diffMetadataErrorModal = document.getElementById("diffMetadataErrorModal");
+  const diffMetadataErrorModalCloseButton = document.getElementById("diffMetadataErrorModalCloseButton");
+  const diffMetadataErrorModalOkButton = document.getElementById("diffMetadataErrorModalOkButton");
   const switchBranchModal = document.getElementById("switchBranchModal");
   const switchBranchModalCloseButton = document.getElementById("switchBranchModalCloseButton");
   const switchBranchCreateButton = document.getElementById("switchBranchCreateButton");
@@ -4547,7 +4550,11 @@
         ok: response.ok,
       });
       if (!response.ok) {
-        throw new Error(`Failed to resolve diff url (status ${response.status})`);
+        const errorPayload = await response.json().catch(() => ({}));
+        const requestError = new Error(`Failed to resolve diff url (status ${response.status})`);
+        requestError.status = response.status;
+        requestError.payload = errorPayload;
+        throw requestError;
       }
       const payload = await response.json().catch(() => ({}));
       const diffUrl = typeof payload?.url === "string" ? payload.url.trim() : "";
@@ -4563,6 +4570,30 @@
         throw new Error("Diff url response missing url");
       }
       return diffUrl;
+    };
+
+    const isMissingDiffMetadataError = (error) => {
+      if (!error || typeof error !== "object") {
+        return false;
+      }
+
+      const status = Number(error.status);
+      if (status === 422) {
+        return true;
+      }
+
+      const payloadError = (error.payload && error.payload.error ? String(error.payload.error) : "").toLowerCase();
+      return payloadError.includes("missing base_revision") || payloadError.includes("missing diff metadata");
+    };
+
+    const showDiffMetadataErrorModal = () => {
+      if (!diffMetadataErrorModal) {
+        return;
+      }
+      diffMetadataErrorModal.classList.remove("is-hidden");
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = "hidden";
+      }
     };
 
     try {
@@ -4599,9 +4630,47 @@
           fallback,
         });
         await openMergeDiffModal(fallback);
+        return;
+      }
+
+      if (isMissingDiffMetadataError(error)) {
+        showDiffMetadataErrorModal();
       }
     }
   };
+
+  if (diffMetadataErrorModal) {
+    diffMetadataErrorModal.addEventListener("click", (event) => {
+      if (event.target === diffMetadataErrorModal) {
+        diffMetadataErrorModal.classList.add("is-hidden");
+        if (typeof document !== "undefined" && document.body) {
+          document.body.style.overflow = "";
+        }
+      }
+    });
+  }
+
+  if (diffMetadataErrorModalCloseButton) {
+    diffMetadataErrorModalCloseButton.addEventListener("click", () => {
+      if (diffMetadataErrorModal) {
+        diffMetadataErrorModal.classList.add("is-hidden");
+      }
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = "";
+      }
+    });
+  }
+
+  if (diffMetadataErrorModalOkButton) {
+    diffMetadataErrorModalOkButton.addEventListener("click", () => {
+      if (diffMetadataErrorModal) {
+        diffMetadataErrorModal.classList.add("is-hidden");
+      }
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = "";
+      }
+    });
+  }
 
   const shouldEnableRefreshStyleActions = () => {
     const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();

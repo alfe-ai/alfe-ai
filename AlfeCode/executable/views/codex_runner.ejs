@@ -4185,6 +4185,19 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
       </div>
     </div>
 
+    <div id="diffMetadataErrorModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="diffMetadataErrorModalHeader">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="diffMetadataErrorModalCloseButton" aria-label="Close">×</button>
+        <div class="modal-title-row">
+          <h2 id="diffMetadataErrorModalHeader">Error Loading Diff - Run Finishing</h2>
+        </div>
+        <p>Please wait for the run to complete before viewing the diff. There was an issue loading the diff metadata, please try again.</p>
+        <div class="modal-buttons">
+          <button id="diffMetadataErrorModalOkButton" class="primary" type="button">Ok</button>
+        </div>
+      </div>
+    </div>
+
     <div id="authModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Sign Up or Log In">
         <div class="modal-content modal-content--auth">
             <button class="modal-close" type="button" id="authModalCloseButton">×</button>
