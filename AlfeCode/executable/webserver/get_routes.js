@@ -3434,8 +3434,6 @@ ${cleanedFinalOutput}`;
             nonRefreshDiffButtonHidden,
             mainMergeButtonDisabled,
             subscriptionCheckoutUrl,
-<<<<<<< HEAD
-=======
             initialAccountInfo: account
                 ? {
                     email: account.email,
@@ -3444,7 +3442,6 @@ ${cleanedFinalOutput}`;
                     timezone: account.timezone,
                 }
                 : null,
->>>>>>> main
             disableSubscriptionLink,
             shopifyAuthEnabled: true,
             shopifyAuthStartUrl: "/auth/shopify/start",
