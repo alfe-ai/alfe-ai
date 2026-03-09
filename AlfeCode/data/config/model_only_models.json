@@ -319,7 +319,7 @@
         "qwen"
       ],
       "qwen_cli": true,
-      "plus_model": true,
+      "plus_model": false,
       "list_order": 0,
       "usage": "free",
       "url": "https://openrouter.ai/api/v1",
