@@ -3434,7 +3434,6 @@ ${cleanedFinalOutput}`;
             nonRefreshDiffButtonHidden,
             mainMergeButtonDisabled,
             subscriptionCheckoutUrl,
-<<<<<<< HEAD
             initialAccountInfo: account
                 ? {
                     email: account.email,
@@ -3443,9 +3442,7 @@ ${cleanedFinalOutput}`;
                     timezone: account.timezone,
                 }
                 : null,
-=======
             disableSubscriptionLink,
->>>>>>> c9501568 (Merge pull request #2579 from alfe-ai/codex/add-disable_subscription_link-env-variable)
             shopifyAuthEnabled: true,
             shopifyAuthStartUrl: "/auth/shopify/start",
         });
