@@ -9,9 +9,9 @@ fi
 
 SCREEN_NAME="alfeDEV"
 
-clear
-git stash || true
-git pull
+#clear
+#git stash || true
+#git pull
 
 git --no-pager log -n 3
 bash -c "npm install"
