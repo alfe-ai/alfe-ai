@@ -2793,6 +2793,7 @@ ${cleanedFinalOutput}`;
         const showEngineOnAgent = parseBooleanFlag(process.env.SHOW_ENGINE_ON_AGENT);
         const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         const accountButtonEnabled = accountsEnabled;
+        const disableSubscriptionLink = parseBooleanFlagWithDefault(process.env.DISABLE_SUBSCRIPTION_LINK, false);
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
         const backlogButtonVisible = parseBooleanFlagWithDefault(process.env.BACKLOG_BUTTON_VISIBLE, true);
@@ -2836,6 +2837,7 @@ ${cleanedFinalOutput}`;
             fileTreeButtonVisible,
             backlogButtonVisible,
             subscriptionCheckoutUrl,
+            disableSubscriptionLink,
             shopifyAuthEnabled: true,
             shopifyAuthStartUrl: "/auth/shopify/start",
         });
