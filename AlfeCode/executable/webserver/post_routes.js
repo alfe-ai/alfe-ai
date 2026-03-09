@@ -1,6 +1,7 @@
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
+const net = require("net");
 const { execSync, spawn } = require("child_process");
 const crypto = require("crypto");
 const rdsStore = require("../../rds_store");
@@ -94,8 +95,11 @@ function setupPostRoutes(deps) {
     };
     const MERGE_TEMP_CLEANUP_ENABLED = isTruthyEnvValue(process.env.STERLING_MERGE_CLEANUP_ENABLED);
     const accountsEnabled = parseBooleanEnvWithDefault(process.env.ACCOUNTS_ENABLED, true);
+    const allowRepoAddOnFreePlan = parseBooleanEnvWithDefault(process.env.ALLOW_REPO_ADD_ON_FREE_PLAN, false);
     const configIpWhitelist = new Set();
+    const configUserWhitelist = new Set();
     const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+    const configUserWhitelistEnv = process.env.CONFIG_USER_WHITELIST || "";
     if (configIpWhitelistEnv) {
         configIpWhitelistEnv
             .split(",")
@@ -105,6 +109,14 @@ function setupPostRoutes(deps) {
                 configIpWhitelist.add(ip);
                 configIpWhitelist.add(`::ffff:${ip}`);
             });
+    }
+
+    if (configUserWhitelistEnv) {
+        configUserWhitelistEnv
+            .split(",")
+            .map((email) => String(email || "").trim().toLowerCase())
+            .filter(Boolean)
+            .forEach((email) => configUserWhitelist.add(email));
     }
 
     const normalizeAccountEmail = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
@@ -164,6 +176,147 @@ function setupPostRoutes(deps) {
         }
         return false;
     };
+
+    const generateAndStoreOpenrouterApiKey = async (account) => {
+        const obfuscateSecret = (value) => {
+            const normalized = typeof value === "string" ? value.trim() : "";
+            if (!normalized) return "";
+            if (normalized.length <= 8) return "***";
+            return `${normalized.slice(0, 4)}...${normalized.slice(-4)}`;
+        };
+
+        console.log("[AlfeCode][register][keygen] starting key generation", {
+            hasAccount: !!account,
+            accountId: account?.id || null,
+            hasEmail: typeof account?.email === "string" && account.email.trim().length > 0,
+        });
+
+        if (!account?.id) {
+            console.error("[AlfeCode][register][keygen] missing account id");
+            throw new Error("Missing account id for key generation.");
+        }
+        const litellmHost = typeof process.env.LITELLM_HOST === "string"
+            ? process.env.LITELLM_HOST.trim().replace(/\/+$/, "")
+            : "";
+        console.log("[AlfeCode][register][keygen] resolved LiteLLM host", {
+            litellmHost,
+            hasHost: !!litellmHost,
+        });
+        if (!litellmHost) {
+            console.error("[AlfeCode][register][keygen] missing LITELLM_HOST env var");
+            throw new Error("Missing LITELLM_HOST configuration.");
+        }
+
+        const masterKey = typeof process.env.LITELLM_MASTER_KEY === "string"
+            ? process.env.LITELLM_MASTER_KEY.trim()
+            : (typeof process.env.LITELLM_API_KEY === "string" ? process.env.LITELLM_API_KEY.trim() : "");
+        console.log("[AlfeCode][register][keygen] resolved LiteLLM auth", {
+            hasMasterKey: !!masterKey,
+            keyPreview: obfuscateSecret(masterKey),
+        });
+        if (!masterKey) {
+            console.error("[AlfeCode][register][keygen] missing LITELLM_MASTER_KEY/LITELLM_API_KEY env var");
+            throw new Error("Missing LiteLLM master key configuration.");
+        }
+
+        const requestPayload = {
+            user_id: String(account.id),
+            duration: "30d",
+            metadata: {
+                user_id: String(account.id),
+                email: account.email || "",
+                source: "model-only",
+            },
+        };
+
+        console.log("[AlfeCode][register][keygen] issuing LiteLLM key request", {
+            endpoint: `${litellmHost}/key/generate`,
+            payload: requestPayload,
+        });
+
+        const keyResponse = await fetch(`${litellmHost}/key/generate`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${masterKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestPayload),
+        });
+
+        console.log("[AlfeCode][register][keygen] received LiteLLM response", {
+            status: keyResponse.status,
+            ok: keyResponse.ok,
+        });
+
+        const keyPayload = await keyResponse.json().catch(() => ({}));
+        console.log("[AlfeCode][register][keygen] parsed LiteLLM payload", {
+            payloadKeys: keyPayload && typeof keyPayload === "object" ? Object.keys(keyPayload) : [],
+            hasKey: typeof keyPayload?.key === "string" && keyPayload.key.trim().length > 0,
+            tokenCandidates: {
+                token_id: typeof keyPayload?.token_id === "string" && keyPayload.token_id.trim().length > 0,
+                token: typeof keyPayload?.token === "string" && keyPayload.token.trim().length > 0,
+                key_id: typeof keyPayload?.key_id === "string" && keyPayload.key_id.trim().length > 0,
+                id: typeof keyPayload?.id === "string" && keyPayload.id.trim().length > 0,
+                dataTokenId: typeof keyPayload?.data?.token_id === "string" && keyPayload.data.token_id.trim().length > 0,
+                keyInfoTokenId: typeof keyPayload?.key_info?.token_id === "string" && keyPayload.key_info.token_id.trim().length > 0,
+            },
+        });
+
+        if (!keyResponse.ok) {
+            const keyError = typeof keyPayload?.error === "string"
+                ? keyPayload.error
+                : `LiteLLM key generation failed with status ${keyResponse.status}.`;
+            console.error("[AlfeCode][register][keygen] LiteLLM key generation failed", {
+                status: keyResponse.status,
+                keyError,
+            });
+            throw new Error(keyError);
+        }
+
+        const openrouterApiKey = typeof keyPayload?.key === "string"
+            ? keyPayload.key.trim()
+            : "";
+        if (!openrouterApiKey) {
+            console.error("[AlfeCode][register][keygen] LiteLLM response missing generated key", {
+                payloadKeys: keyPayload && typeof keyPayload === "object" ? Object.keys(keyPayload) : [],
+            });
+            throw new Error("LiteLLM did not return `key` (sk-...).");
+        }
+
+        const keyHashId = [
+            keyPayload?.token_id,
+            keyPayload?.token,
+            keyPayload?.key_id,
+            keyPayload?.id,
+            keyPayload?.data?.token_id,
+            keyPayload?.data?.token,
+            keyPayload?.data?.key_id,
+            keyPayload?.key_info?.token_id,
+            keyPayload?.key_info?.token,
+            keyPayload?.key_info?.key_id,
+        ].find((value) => typeof value === "string" && value.trim().length > 0)?.trim() || "";
+
+        console.log("[AlfeCode][register][keygen] extracted key material", {
+            openrouterApiKeyPreview: obfuscateSecret(openrouterApiKey),
+            openrouterApiKeyLength: openrouterApiKey.length,
+            keyHashId,
+            hasKeyHashId: !!keyHashId,
+        });
+
+        if (!keyHashId) {
+            console.warn("[AlfeCode][register] LiteLLM response missing token id; storing generated key with empty key_hash_id", {
+                accountId: account.id,
+            });
+        }
+
+        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey, keyHashId);
+        console.log("[AlfeCode][register][keygen] persisted key material to account", {
+            accountId: account.id,
+            hasKeyHashId: !!keyHashId,
+        });
+
+        return openrouterApiKey;
+    };
     const getSessionIdFromRequest = (req) => {
         const header = req.headers?.cookie || "";
         const cookies = {};
@@ -211,7 +364,7 @@ function setupPostRoutes(deps) {
             if (!account || isLoggedOutPlan(account.plan)) {
                 return false;
             }
-            return account.plan === "Free";
+            return account.plan === "Free" && !allowRepoAddOnFreePlan;
         } catch (error) {
             console.warn("[WARN] Failed to check account session:", error);
             return false;
@@ -227,6 +380,35 @@ function setupPostRoutes(deps) {
             "";
         return ip.trim();
     };
+    const getRequestIpAddresses = (req) => {
+        const candidates = [];
+        const forwarded = req.headers["x-forwarded-for"];
+        if (Array.isArray(forwarded)) {
+            forwarded.forEach((entry) => {
+                String(entry || "").split(",").forEach((part) => candidates.push(part.trim()));
+            });
+        } else if (forwarded) {
+            String(forwarded).split(",").forEach((part) => candidates.push(part.trim()));
+        }
+        if (req.ip) candidates.push(String(req.ip).trim());
+        if (req.connection?.remoteAddress) candidates.push(String(req.connection.remoteAddress).trim());
+        if (req.socket?.remoteAddress) candidates.push(String(req.socket.remoteAddress).trim());
+
+        let ipv4 = "";
+        let ipv6 = "";
+        for (const raw of candidates) {
+            if (!raw) continue;
+            const normalized = raw.replace(/^::ffff:/i, "");
+            const version = net.isIP(normalized) ? net.isIP(normalized) : net.isIP(raw);
+            if (version === 4 && !ipv4) {
+                ipv4 = normalized;
+            } else if (version === 6 && !ipv6) {
+                ipv6 = raw;
+            }
+            if (ipv4 && ipv6) break;
+        }
+        return { ipv4, ipv6 };
+    };
     const isIpAllowed = (ip, whitelist) => {
         if (whitelist.size === 0) {
             return false;
@@ -236,6 +418,35 @@ function setupPostRoutes(deps) {
         }
         const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
         return whitelist.has(ip) || whitelist.has(normalized);
+    };
+    const getRequestEmail = (req) => {
+        const candidate =
+            req?.account?.email
+            || req?.user?.email
+            || req?.session?.account?.email
+            || req?.body?.email
+            || req?.query?.email
+            || req?.headers?.["x-user-email"]
+            || req?.headers?.["x-forwarded-email"]
+            || "";
+        return String(candidate || "").trim().toLowerCase();
+    };
+    const isUserAllowed = (email, whitelist) => {
+        if (whitelist.size === 0) {
+            return false;
+        }
+        if (!email) {
+            return false;
+        }
+        return whitelist.has(email);
+    };
+    const canUseConfigIpControls = (req) => {
+        if (configUserWhitelist.size === 0) {
+            return false;
+        }
+        const allowedByIp = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowedByUser = isUserAllowed(getRequestEmail(req), configUserWhitelist);
+        return allowedByIp || allowedByUser;
     };
     const normalizeHostname = (req) => {
         const header = req.hostname || req.get("host") || "";
@@ -279,7 +490,7 @@ function setupPostRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
         }
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Plan changes are restricted to whitelisted IP addresses." });
         }
         const sessionId = getSessionIdFromRequest(req);
@@ -343,22 +554,25 @@ function setupPostRoutes(deps) {
         if (!rdsStore?.enabled) {
             return res.status(503).json({ error: "Account update is not configured on this server." });
         }
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Openrouter key updates are restricted to whitelisted IP addresses." });
         }
         const sessionId = getSessionIdFromRequest(req);
         if (!sessionId) {
             return res.status(401).json({ error: "not logged in" });
         }
-        const openrouterApiKey = typeof req.body?.openrouterApiKey === "string"
-            ? req.body.openrouterApiKey.trim()
-            : "";
         const account = await rdsStore.getAccountBySession(sessionId);
         if (!account) {
             return res.status(401).json({ error: "not logged in" });
         }
-        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey);
-        return res.json({ success: true, openrouterApiKey });
+
+        try {
+            const openrouterApiKey = await generateAndStoreOpenrouterApiKey(account);
+            return res.json({ success: true, openrouterApiKey });
+        } catch (error) {
+            console.error("Failed to generate LiteLLM key:", error);
+            return res.status(502).json({ error: error?.message || "Failed to generate LiteLLM key." });
+        }
     });
     app.post("/api/support", async (req, res) => {
         if (!rdsStore?.enabled) {
@@ -424,8 +638,7 @@ function setupPostRoutes(deps) {
         const requestId = req.params?.id;
         let request = null;
         if (role === "admin") {
-            const requestIp = getRequestIp(req);
-            if (!isIpAllowed(requestIp, configIpWhitelist)) {
+            if (!canUseConfigIpControls(req)) {
                 return res.status(403).json({ error: "Admin reply is not allowed from this IP." });
             }
             request = await rdsStore.getSupportRequestByIdForAdmin({ requestId });
@@ -472,20 +685,13 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/logout", async (req, res) => {
-        const sessionId = getSessionIdFromRequest(req);
-        if (rdsStore?.enabled && sessionId) {
-            const account = await rdsStore.getAccountBySession(sessionId);
-            if (account) {
-                await rdsStore.setAccountSession(account.id, "");
-            }
-        }
         const hostname = normalizeHostname(req);
         res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
         return res.json({ success: true });
     });
 
     app.post("/api/session/refresh", async (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Session refresh is restricted to whitelisted IP addresses." });
         }
         const currentSessionId = getSessionIdFromRequest(req);
@@ -514,7 +720,7 @@ function setupPostRoutes(deps) {
     });
 
     app.post("/api/usage/reset", (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!canUseConfigIpControls(req)) {
             return res.status(403).json({ error: "Usage reset is restricted to whitelisted IP addresses." });
         }
         return res.json({ success: true });
@@ -578,23 +784,61 @@ function setupPostRoutes(deps) {
             });
         }
 
-        if (await rdsStore.getAccountByEmail(email)) {
-            return res.status(400).json({ error: "Account already exists." });
-        }
-
         const passwordHash = hashPassword(password);
         const normalizedEmail = normalizeAccountEmail(email);
 
+        console.log("[AlfeCode][register] checking if account already exists", { normalizedEmail });
+        if (await rdsStore.getAccountByEmail(normalizedEmail)) {
+            console.log("[AlfeCode][register] account already exists", { normalizedEmail });
+            return res.status(400).json({ error: "Account already exists." });
+        }
+
+        let createdAccount = null;
         try {
-            await rdsStore.createAccount({
+            console.log("[AlfeCode][register] creating account record", {
+                normalizedEmail,
+                hasSessionId: !!sessionId,
+            });
+            createdAccount = await rdsStore.createAccount({
                 email: normalizedEmail,
                 passwordHash,
                 sessionId,
+            });
+            console.log("[AlfeCode][register] account record created", {
+                accountId: createdAccount?.id || null,
+                hasSessionId: !!createdAccount?.session_id,
             });
         } catch (error) {
             console.error("[AlfeCode][register] failed to create account", error);
             return res.status(500).json({ error: "Failed to create account." });
         }
+
+        if (createdAccount?.id) {
+            try {
+                console.log("[AlfeCode][register] auto-generating OpenRouter key for new account", {
+                    accountId: createdAccount.id,
+                    normalizedEmail,
+                });
+                await generateAndStoreOpenrouterApiKey({
+                    id: createdAccount.id,
+                    email: normalizedEmail,
+                });
+                console.log("[AlfeCode][register] auto-generated OpenRouter key for new account", {
+                    accountId: createdAccount.id,
+                });
+            } catch (error) {
+                console.error("[AlfeCode][register] failed to auto-generate LiteLLM key", {
+                    accountId: createdAccount.id,
+                    error: error?.message || error,
+                });
+            }
+        }
+
+        console.log("[AlfeCode][register] registration completed", {
+            success: true,
+            normalizedEmail,
+            accountId: createdAccount?.id || null,
+        });
 
         return res.json({
             success: true,
@@ -659,6 +903,16 @@ function setupPostRoutes(deps) {
         } else if (sessionId) {
             await rdsStore.setAccountSession(account.id, sessionId);
         }
+
+        console.log("[AlfeCode][login] updating last_log_in", {
+            accountId: account.id,
+            email: account.email,
+        });
+        await rdsStore.setAccountLastLogin(account.id);
+        console.log("[AlfeCode][login] updated last_log_in", {
+            accountId: account.id,
+        });
+        await rdsStore.createAccountLoginRecord(account.id, getRequestIpAddresses(req));
 
         if (resolvedSessionId) {
             const hostname = req.hostname
@@ -906,12 +1160,17 @@ function setupPostRoutes(deps) {
             MAX_STATUS_HISTORY,
         );
 
+        // Determine the current status based on the merge result
+        const mergeStatus = exitCode === 0 ? 'Merged' : 'Merge Failed';
+
         const updatePayload = {
             id: normalisedRunId,
             gitMergeExitCode: exitCode,
             gitMergeExit: exitCode,
             git_merge_parent_exit_code: exitCode,
             statusHistory: nextStatusHistory,
+            scriptStatus: defaultStatusMessage,
+            status: mergeStatus,
         };
 
         if (stdout) {

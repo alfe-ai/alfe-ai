@@ -27,9 +27,14 @@
             box-sizing: border-box;
         }
 
+        body.is-resizing,
+        body.is-resizing * {
+            cursor: col-resize !important;
+        }
+
         body {
             margin: 0;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             align-items: stretch;
             justify-content: center;
@@ -38,20 +43,23 @@
                 var(--bg);
             color: var(--text);
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            overflow: hidden;
         }
 
         .page {
-            margin: 24px;
-            max-width: 1280px;
+            margin: 0;
+            max-width: none;
             width: 100%;
+            height: 100vh;
             background: var(--panel);
-            border-radius: 14px;
+            border-radius: 0;
             padding: 16px 16px 22px;
             display: flex;
             flex-direction: column;
             gap: 14px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
+            overflow: hidden;
         }
 
         .header-row {
@@ -150,6 +158,116 @@
             color: var(--text);
             padding: 8px 10px;
             font-size: 13px;
+            font-family: inherit;
+        }
+
+        .sidebar-prompt-trigger {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            text-align: left;
+            margin: 0;
+            background: #0b1324;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            padding: 8px 10px;
+            font-size: 13px;
+            font-family: inherit;
+            line-height: 1.4;
+            cursor: pointer;
+        }
+
+        .sidebar-prompt-trigger:hover {
+            background: rgba(59, 130, 246, 0.14);
+            border-color: rgba(96, 165, 250, 0.5);
+        }
+
+        .sidebar-prompt-trigger-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-prompt-trigger-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            color: var(--muted);
+        }
+
+        .prompt-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.78);
+            z-index: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .prompt-modal-overlay.is-hidden {
+            display: none;
+        }
+
+        .prompt-modal-content {
+            width: min(720px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(2, 6, 23, 0.55);
+            padding: 20px;
+            position: relative;
+        }
+
+        .prompt-modal-copy {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: auto;
+            min-width: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .prompt-modal-copy:hover {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text);
+        }
+
+        .prompt-modal-header {
+            margin: 0 38px 12px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .prompt-modal-textarea {
+            width: 100%;
+            min-height: 240px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            background: #0b1324;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
             font-family: inherit;
         }
 
@@ -362,18 +480,180 @@
 
         .diff-shell {
             display: grid;
-            grid-template-columns: 260px 1fr;
-            gap: 12px;
+            grid-template-columns: var(--diff-sidebar-width, clamp(280px, 26vw, 720px)) 10px minmax(0, 1fr);
+            gap: 0;
             min-height: 360px;
             min-width: 0;
+            flex: 1;
+            overflow: hidden;
         }
 
         .diff-sidebar {
             display: flex;
             flex-direction: column;
             gap: 12px;
-            align-self: flex-start;
+            align-self: stretch;
             min-width: 0;
+            min-height: 0;
+            overflow-y: scroll;
+            scrollbar-gutter: stable;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.65) rgba(15, 23, 42, 0.7);
+            padding-right: 10px;
+        }
+
+        .diff-sidebar::-webkit-scrollbar,
+        .diff-inner::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .diff-sidebar::-webkit-scrollbar-track,
+        .diff-inner::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 999px;
+        }
+
+        .diff-sidebar::-webkit-scrollbar-thumb,
+        .diff-inner::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.65);
+            border-radius: 999px;
+            border: 2px solid rgba(15, 23, 42, 0.85);
+        }
+
+        .diff-sidebar::-webkit-scrollbar-thumb:hover,
+        .diff-inner::-webkit-scrollbar-thumb:hover {
+            background: rgba(96, 165, 250, 0.8);
+        }
+
+        .diff-sidebar-resizer {
+            width: 10px;
+            cursor: col-resize;
+            border-radius: 999px;
+            background: transparent;
+            position: relative;
+        }
+
+        .diff-sidebar-resizer::before {
+            content: "";
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            left: 3px;
+            width: 4px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.24);
+            transition: background 0.2s ease;
+        }
+
+        .diff-sidebar-resizer:hover::before,
+        body.is-resizing .diff-sidebar-resizer::before {
+            background: rgba(96, 165, 250, 0.8);
+        }
+
+        .sidebar-context-card {
+            background: var(--panel-soft);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-context-collapsible {
+            margin: 0;
+        }
+
+        .sidebar-context-collapsible > summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .sidebar-context-collapsible > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sidebar-context-collapsible > summary::after {
+            content: "▸";
+            color: var(--muted);
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-context-collapsible[open] > summary::after {
+            transform: rotate(90deg);
+        }
+
+        .sidebar-context-collapsible-body {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-context-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .sidebar-context-item.base-revision-hidden {
+            display: none;
+        }
+
+        .sidebar-context-label {
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .sidebar-context-value {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .sidebar-markdown {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-markdown p {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .sidebar-markdown pre {
+            margin: 0;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: rgba(15, 23, 42, 0.82);
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .sidebar-markdown code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #e2e8f0;
         }
 
         .commit-list {
@@ -534,6 +814,7 @@
             flex-direction: column;
             gap: 10px;
             min-width: 0;
+            min-height: 0;
         }
 
         .file-meta {
@@ -549,12 +830,14 @@
         .diff-view {
             position: relative;
             flex: 1;
-            min-height: auto;
+            min-height: 0;
             border-radius: 10px;
             border: none;
             background: transparent;
-            overflow: visible;
+            overflow: hidden;
             min-width: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .diff-inner {
@@ -563,6 +846,12 @@
             flex-direction: column;
             gap: 24px;
             padding-bottom: 6px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: scroll;
+            scrollbar-gutter: stable;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.65) rgba(15, 23, 42, 0.7);
         }
 
         .diff-file-section {
@@ -770,6 +1059,15 @@
         @media (max-width: 1100px) {
             .diff-shell {
                 grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .diff-sidebar {
+                padding-right: 0;
+            }
+
+            .diff-sidebar-resizer {
+                display: none;
             }
 
             .commit-list {
@@ -788,61 +1086,70 @@
 </head>
 <body>
 <%- include('partials/session_banner') %>
+<% const resolvedModelDisplayName = typeof modelDisplayName === 'string' && modelDisplayName.trim() ? modelDisplayName.trim() : ''; %>
+<%
+const escapeHtml = (value) => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const renderMarkdownCodeBlocks = (value) => {
+    if (typeof value !== 'string' || !value) {
+        return '';
+    }
+
+    const normalized = value.replace(/\r\n?/g, '\n');
+    const fencePattern = /```([^\n`]*)\n?([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match;
+    const fragments = [];
+
+    while ((match = fencePattern.exec(normalized)) !== null) {
+        const textChunk = normalized.slice(lastIndex, match.index);
+        if (textChunk.trim()) {
+            fragments.push(`<p>${escapeHtml(textChunk)}</p>`);
+        }
+
+        const lang = (match[1] || '').trim();
+        const codeContent = match[2].replace(/^\n+|\n+$/g, '');
+        const langClass = lang ? ` class="language-${escapeHtml(lang)}"` : '';
+        fragments.push(`<pre><code${langClass}>${escapeHtml(codeContent)}</code></pre>`);
+        lastIndex = fencePattern.lastIndex;
+    }
+
+    const remainder = normalized.slice(lastIndex);
+    if (remainder.trim()) {
+        fragments.push(`<p>${escapeHtml(remainder)}</p>`);
+    }
+
+    if (!fragments.length) {
+        return `<p>${escapeHtml(normalized)}</p>`;
+    }
+
+    return fragments.join('');
+};
+
+const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
+    typeof comparisonFinalOutput === 'string' ? comparisonFinalOutput : ''
+);
+%>
 <div class="page">
     <div class="header-row">
         <div class="header-main">
-            <% if (baseRev || compRev) { %>
+            <% if (resolvedModelDisplayName) { %>
             <div class="revision-info">
-                <span class="revision-pill">Base: <%= baseRev || '—' %></span>
+                <span class="revision-pill">Model: <%= resolvedModelDisplayName %></span>
             </div>
             <% } %>
 
-            <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? (comparisonPromptLine.trim().split(/\r?\n/)[0] || '') : ''; %>
+            <% const comparisonPromptValue = typeof comparisonPrompt === 'string' ? comparisonPrompt.trim() : ''; %>
+            <% const comparisonPromptLineValue = typeof comparisonPromptLine === 'string' ? comparisonPromptLine.trim() : ''; %>
 <% const comparisonCommitMessage = (typeof compMeta !== 'undefined' && compMeta && (compMeta.fullMessage || compMeta.message)) ? (compMeta.fullMessage || compMeta.message) : ''; %>
-            <% if (comparisonCommitMessage) { %>
-            <div class="commit-message-box" aria-label="Comparison commit message">
-                <div class="commit-message-title">Compare: <%= compRev || '—' %></div>
-                <% if (comparisonPromptLineValue) { %>
-                <div class="read-only-prompt-row">
-                    <span class="read-only-prompt-label">Prompt</span>
-                    <input
-                        type="text"
-                        class="read-only-prompt-input"
-                        value="<%= comparisonPromptLineValue %>"
-                        readonly
-                        aria-readonly="true"
-                        tabindex="-1"
-                    />
-                </div>
-                <% } %>
-                <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
-                <div class="final-output-block" aria-label="Final output">
-                    <span class="final-output-label">Final output</span>
-                    <pre class="final-output-text"><%= comparisonFinalOutput %></pre>
-                </div>
-                <% } %>
-                <form class="diff-followup-form" id="diffFollowupForm">
-                    <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
-                    <textarea
-                        id="diffFollowupPrompt"
-                        class="diff-followup-input"
-                        name="followupPrompt"
-                        placeholder="Add a follow-up prompt for this run"
-                        rows="2"
-                    ></textarea>
-                    <div class="diff-followup-actions">
-                        <span class="diff-followup-status" id="diffFollowupStatus" aria-live="polite"></span>
-                        <button type="submit" class="diff-followup-submit" aria-label="Send follow-up">
-                            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
-                            </svg>
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <% } %>
+<% const renderCommitList = typeof showCommitList !== 'undefined' ? !!showCommitList : false; %>
         </div>
+
         <div class="header-actions">
             <div class="merge-button-wrapper<%= mergeReady ? '' : ' is-merge-disabled' %>" id="mergeButtonWrapper">
                 <button
@@ -850,7 +1157,7 @@
                     id="mergeButton"
                     class="nav-button<%= mergeReady ? ' is-merge-ready' : '' %>"
                     <%= mergeReady ? '' : 'disabled aria-disabled="true"' %>
-                    title="<%= mergeReady ? 'Merge current branch into the configured parent branch' : 'Merge is available after agent finishes running.' %>"
+                    title="<%= mergeReady ? 'Merge into the configured project branch' : 'Merge is available after agent finishes running' %>"
                 >
                     <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M18 3a2 2 0 11-4 0 2 2 0 014 0zM6 21a2 2 0 11-4 0 2 2 0 014 0zM18 21a2 2 0 11-4 0 2 2 0 014 0zM8.5 12.5l6-3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -859,7 +1166,7 @@
                 </button>
                 <div class="merge-disabled-tooltip" id="mergeDisabledTooltip" aria-hidden="<%= mergeReady ? 'true' : 'false' %>">
                     <% if (!mergeReady) { %>
-                        Merge is available after agent finishes running.
+                        Merge is available after agent finishes running
                     <% } %>
                 </div>
             </div>
@@ -882,15 +1189,100 @@
         <% if (structuredDiff && structuredDiff.length) { %>
     <div class="diff-shell">
         <div class="diff-sidebar" aria-label="Commits and files">
-            <% if (showCommitList) { %><aside class="commit-list" aria-label="Commits">
+            <% if (baseRev || compRev || comparisonCommitMessage) { %>
+            <aside class="sidebar-context-card" aria-label="Git revision info">
+                <details class="sidebar-context-collapsible">
+                    <summary>Git Commit Info</summary>
+                    <div class="sidebar-context-collapsible-body">
+                <% if (baseRev) { %>
+                <div class="sidebar-context-item base-revision-hidden">
+                    <span class="sidebar-context-label">Base revision</span>
+                    <p class="sidebar-context-value"><%= baseRev %></p>
+                </div>
+                <% } %>
+                <% if (compRev) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Revision</span>
+                    <p class="sidebar-context-value"><%= compRev %></p>
+                </div>
+                <% } %>
+                <% if (typeof branchDisplayName === 'string' && branchDisplayName.trim()) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Branch</span>
+                    <p class="sidebar-context-value"><%= branchDisplayName %></p>
+                </div>
+                <% } %>
+                <% if (comparisonCommitMessage) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Commit message</span>
+                    <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
+                </div>
+                <% } %>
+                    </div>
+                </details>
+            </aside>
+            <% } %>
+            <% if (renderCommitList) { %><aside class="commit-list" aria-label="Commits">
                 <h4>Commits</h4>
                 <ul id="commit-list"></ul>
             </aside>
-            <% } %><aside class="file-list" aria-label="Changed files">
+            <% } %>
+            <% if (comparisonPromptLineValue || (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string')) { %>
+            <aside class="sidebar-context-card" aria-label="Prompt and AI response">
+                <% if (comparisonPromptLineValue) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">User prompt</span>
+                    <button
+                        type="button"
+                        class="sidebar-prompt-trigger"
+                        id="diffPromptTrigger"
+                        data-full-prompt="<%- escapeHtml(comparisonPromptValue || comparisonPromptLineValue) %>"
+                        aria-haspopup="dialog"
+                        aria-controls="diffPromptModal"
+                    >
+                        <span class="sidebar-prompt-trigger-text"><%= comparisonPromptLineValue %></span>
+                        <span class="sidebar-prompt-trigger-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 5h10v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                                <path d="M5 19l14-14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+                <% } %>
+                <% if (typeof comparisonFinalOutput !== 'undefined' && comparisonFinalOutput && typeof comparisonFinalOutput === 'string') { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">AI summary</span>
+                    <div class="sidebar-context-value sidebar-markdown"><%- comparisonFinalOutputHtml %></div>
+                </div>
+                <% } %>
+            </aside>
+            <% } %>
+            <aside class="file-list" aria-label="Changed files">
                 <h4>Files</h4>
                 <ul id="file-list"></ul>
             </aside>
+            <form class="diff-followup-form" id="diffFollowupForm">
+                <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
+                <textarea
+                    id="diffFollowupPrompt"
+                    class="diff-followup-input"
+                    name="followupPrompt"
+                    placeholder="Add a follow-up prompt for this run"
+                    rows="2"
+                ></textarea>
+                <div class="diff-followup-actions">
+                    <span class="diff-followup-status" id="diffFollowupStatus" aria-live="polite"></span>
+                    <button type="submit" class="diff-followup-submit" aria-label="Send follow-up">
+                        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </form>
         </div>
+        <div class="diff-sidebar-resizer" id="diffSidebarResizer" role="separator" aria-label="Resize sidebar" aria-orientation="vertical" tabindex="0"></div>
         <section id="diff" class="viewer-panel diff-view stacked" aria-label="Diff viewer">
             <div class="file-meta" aria-live="polite">
                 <span id="current-file-label">Select a file</span>
@@ -898,12 +1290,14 @@
             <div class="diff-inner"></div>
         </section>
     </div>
-    <% if (diffOutput) { %>
-    <details class="raw-diff">
-        <summary>View raw diff</summary>
-        <pre><%= diffOutput %></pre>
-    </details>
-    <% } %>
+
+    <div id="diffPromptModal" class="prompt-modal-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="diffPromptModalHeader">
+        <div class="prompt-modal-content">
+            <button type="button" class="prompt-modal-copy" id="diffPromptModalCopy" aria-label="Copy prompt" title="Copy prompt">⎘</button>
+            <h3 id="diffPromptModalHeader" class="prompt-modal-header">Your Sent Prompt</h3>
+            <textarea id="diffPromptModalTextarea" class="prompt-modal-textarea" readonly spellcheck="false"></textarea>
+        </div>
+    </div>
 <script id="structured-diff-data" type="application/json"><%-
     JSON.stringify(structuredDiff || [])
         .replace(/</g, '\u003c')
@@ -916,7 +1310,7 @@
         .replace(/<\//g, '<\\\\/')
         .replace(/\u2028|\u2029/g, '')
 %></script>
-<% if (showCommitList) { %><script id="commit-list-data" type="application/json"><%-
+<% if (renderCommitList) { %><script id="commit-list-data" type="application/json"><%-
     JSON.stringify(typeof commitList !== 'undefined' ? commitList : [])
         .replace(/</g, '\u003c')
         .replace(/<\//g, '<\\\\/')
@@ -1236,15 +1630,19 @@
             title.textContent = file.label;
             header.appendChild(title);
 
-            // add edit-in-editor button
-            const editBtn = document.createElement('button');
-            editBtn.type = 'button';
-            editBtn.className = 'open-in-editor-button';
-            editBtn.title = 'Open in editor';
-            editBtn.setAttribute('aria-label', 'Open file in editor');
-            editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 21v-3.75L14.81 5.44a1.5 1.5 0 012.12 0l1.63 1.63a1.5 1.5 0 010 2.12L6.75 21H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
-            editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openEditorForFile(file.label); });
-            header.appendChild(editBtn);
+            // Check if we should show the editor button based on HIDE_DIFF_FILE_EDIT environment variable
+            const hideDiffFileEdit = <%- JSON.stringify(process.env.HIDE_DIFF_FILE_EDIT === 'true' || process.env.HIDE_DIFF_FILE_EDIT === '1') %>;
+            if (!hideDiffFileEdit) {
+                // add edit-in-editor button
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'open-in-editor-button';
+                editBtn.title = 'Open in editor';
+                editBtn.setAttribute('aria-label', 'Open file in editor');
+                editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 21v-3.75L14.81 5.44a1.5 1.5 0 012.12 0l1.63 1.63a1.5 1.5 0 010 2.12L6.75 21H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+                editBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openEditorForFile(file.label); });
+                header.appendChild(editBtn);
+            }
 
 
             const rowCount = normalizedRowCount(file.rows);
@@ -1403,10 +1801,191 @@
     }
 
     renderFileList();
-    <% if (showCommitList) { %>renderCommitList();<% } %>
+    <% if (renderCommitList) { %>renderCommitList();<% } %>
 </script>
 <% } %>
 <script>
+    (function () {
+        const diffShell = document.querySelector('.diff-shell');
+        const resizer = document.getElementById('diffSidebarResizer');
+        if (!diffShell || !resizer) return;
+
+        const COOKIE_NAME = 'alfe_diff_sidebar_width';
+        const minWidth = 280;
+        const maxWidth = 760;
+        let dragging = false;
+        let currentWidth = null;
+
+        const isDesktop = () => window.matchMedia('(min-width: 1101px)').matches;
+
+        const clampWidth = (width) => {
+            if (typeof width !== 'number' || Number.isNaN(width)) return null;
+            return Math.min(maxWidth, Math.max(minWidth, width));
+        };
+
+        const applyWidth = (width) => {
+            const clamped = clampWidth(width);
+            if (!clamped) return;
+            currentWidth = clamped;
+            diffShell.style.setProperty('--diff-sidebar-width', `${clamped}px`);
+            resizer.setAttribute('aria-valuenow', String(clamped));
+        };
+
+        const readCookieWidth = () => {
+            const match = document.cookie
+                .split('; ')
+                .find((part) => part.startsWith(`${COOKIE_NAME}=`));
+            if (!match) return null;
+            const parsed = parseInt(decodeURIComponent(match.split('=')[1] || ''), 10);
+            return clampWidth(parsed);
+        };
+
+        const persistCookieWidth = (width) => {
+            const clamped = clampWidth(width);
+            if (!clamped) return;
+            document.cookie = `${COOKIE_NAME}=${encodeURIComponent(String(clamped))}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+        };
+
+        const stopDragging = (persist = true) => {
+            if (!dragging) return;
+            dragging = false;
+            document.body.style.userSelect = '';
+            document.body.classList.remove('is-resizing');
+            if (persist && currentWidth) persistCookieWidth(currentWidth);
+        };
+
+        const resetLayout = () => {
+            if (!isDesktop()) {
+                stopDragging(false);
+                diffShell.style.removeProperty('--diff-sidebar-width');
+                return;
+            }
+            const stored = readCookieWidth();
+            if (stored) applyWidth(stored);
+        };
+
+        const storedWidth = readCookieWidth();
+        if (storedWidth && isDesktop()) applyWidth(storedWidth);
+
+        resizer.addEventListener('mousedown', (event) => {
+            if (event.button !== 0 || !isDesktop()) return;
+            dragging = true;
+            document.body.style.userSelect = 'none';
+            document.body.classList.add('is-resizing');
+            event.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (event) => {
+            if (!dragging) return;
+            if (!isDesktop()) {
+                stopDragging(false);
+                return;
+            }
+            const rect = diffShell.getBoundingClientRect();
+            applyWidth(Math.round(event.clientX - rect.left));
+        });
+
+        window.addEventListener('mouseup', () => stopDragging(true));
+        window.addEventListener('blur', () => stopDragging(true));
+        window.addEventListener('resize', resetLayout);
+
+        resizer.addEventListener('keydown', (event) => {
+            if (!isDesktop()) return;
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const step = event.shiftKey ? 40 : 20;
+            const baseWidth = currentWidth || readCookieWidth() || minWidth;
+            const next = event.key === 'ArrowLeft' ? baseWidth - step : baseWidth + step;
+            applyWidth(next);
+            if (currentWidth) persistCookieWidth(currentWidth);
+        });
+
+        resetLayout();
+    })();
+
+
+    (function () {
+        const trigger = document.getElementById('diffPromptTrigger');
+        const modal = document.getElementById('diffPromptModal');
+        const copyButton = document.getElementById('diffPromptModalCopy');
+        const textarea = document.getElementById('diffPromptModalTextarea');
+
+        if (!trigger || !modal || !textarea) {
+            return;
+        }
+
+        let previousFocus = null;
+
+        const closeModal = () => {
+            modal.classList.add('is-hidden');
+            document.body.style.overflow = '';
+            if (previousFocus && typeof previousFocus.focus === 'function') {
+                previousFocus.focus();
+            }
+            previousFocus = null;
+        };
+
+        const openModal = () => {
+            const fullPrompt = trigger.getAttribute('data-full-prompt') || '';
+            if (!fullPrompt.trim()) {
+                return;
+            }
+            previousFocus = document.activeElement;
+            textarea.value = fullPrompt;
+            textarea.scrollTop = 0;
+            modal.classList.remove('is-hidden');
+            document.body.style.overflow = 'hidden';
+            textarea.focus();
+            textarea.setSelectionRange(0, 0);
+        };
+
+        trigger.addEventListener('click', openModal);
+        trigger.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openModal();
+            }
+        });
+
+        if (copyButton) {
+            copyButton.addEventListener('click', () => {
+                const resetLabel = () => {
+                    window.setTimeout(() => {
+                        copyButton.textContent = '\u2398';
+                    }, 1200);
+                };
+                try {
+                    navigator.clipboard.writeText(textarea.value || '');
+                    copyButton.textContent = '✓';
+                    resetLabel();
+                } catch (err) {
+                    try {
+                        textarea.focus();
+                        textarea.select();
+                        document.execCommand('copy');
+                        copyButton.textContent = '✓';
+                        resetLabel();
+                    } catch (_fallbackErr) {
+                        copyButton.textContent = '!';
+                        resetLabel();
+                    }
+                }
+            });
+        }
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.classList.contains('is-hidden')) {
+                closeModal();
+            }
+        });
+    })();
+
     (function () {
         const form = document.getElementById("diffFollowupForm");
         const input = document.getElementById("diffFollowupPrompt");
@@ -1422,7 +2001,21 @@
             status.textContent = message || "";
         };
 
-        form.addEventListener("submit", (event) => {
+        // Function to get the submit on enter setting
+        const getSubmitOnEnterSetting = () => {
+            try {
+                const stored = localStorage.getItem('submitOnEnter');
+                if (stored === null) {
+                    return true;
+                }
+                return stored === 'true';
+            } catch (e) {
+                return true; // Default to true for backward compatibility
+            }
+        };
+
+        // Handle form submission
+        const handleSubmit = (event) => {
             event.preventDefault();
             const prompt = typeof input.value === "string" ? input.value.trim() : "";
             if (!prompt) {
@@ -1439,6 +2032,17 @@
                 setStatus("Follow-up sent.");
             } catch (_err) {
                 setStatus("Unable to send follow-up.");
+            }
+        };
+
+        form.addEventListener("submit", handleSubmit);
+
+        // Add keyboard event handling for Enter/Return key
+        input.addEventListener("keydown", (event) => {
+            // Only handle Enter/Return if the setting is enabled
+            if (event.key === "Enter" && !event.shiftKey && getSubmitOnEnterSetting()) {
+                event.preventDefault();
+                handleSubmit(event);
             }
         });
     })();

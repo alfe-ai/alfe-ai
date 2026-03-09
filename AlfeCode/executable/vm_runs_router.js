@@ -68,7 +68,9 @@ const getInstanceIp = async (instanceId, region) => {
 
 const router = express.Router();
 const configIpWhitelist = new Set();
+const configUserWhitelist = new Set();
 const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+const configUserWhitelistEnv = process.env.CONFIG_USER_WHITELIST || "";
 if (configIpWhitelistEnv) {
     configIpWhitelistEnv
         .split(",")
@@ -78,6 +80,13 @@ if (configIpWhitelistEnv) {
             configIpWhitelist.add(ip);
             configIpWhitelist.add(`::ffff:${ip}`);
         });
+}
+if (configUserWhitelistEnv) {
+    configUserWhitelistEnv
+        .split(",")
+        .map((email) => String(email || "").trim().toLowerCase())
+        .filter(Boolean)
+        .forEach((email) => configUserWhitelist.add(email));
 }
 
 const getRequestIp = (req) => {
@@ -114,8 +123,36 @@ const isIpAllowed = (ip, whitelist) => {
     return whitelist.has(ip) || whitelist.has(normalized);
 };
 
+const getRequestEmail = (req) => {
+    const candidate =
+        req?.account?.email
+        || req?.user?.email
+        || req?.session?.account?.email
+        || req?.body?.email
+        || req?.query?.email
+        || req?.headers?.["x-user-email"]
+        || req?.headers?.["x-forwarded-email"]
+        || "";
+    return String(candidate || "").trim().toLowerCase();
+};
+
+const isUserAllowed = (email, whitelist) => {
+    if (whitelist.size === 0) {
+        return false;
+    }
+    if (!email) {
+        return false;
+    }
+    return whitelist.has(email);
+};
+
 const requireConfigWhitelist = (req, res, next) => {
-    if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+    if (configUserWhitelist.size === 0) {
+        return res.status(403).send("Access denied.");
+    }
+    const allowedByIp = isIpAllowed(getRequestIp(req), configIpWhitelist);
+    const allowedByUser = isUserAllowed(getRequestEmail(req), configUserWhitelist);
+    if (!allowedByIp && !allowedByUser) {
         return res.status(403).send("Access denied.");
     }
     return next();

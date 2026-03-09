@@ -81,9 +81,7 @@ export default class TaskDBAws {
     this.activityCache = [];
     this.imageSessionStartCache = new Map();
     this.imageCountCache = new Map();
-    this.ipImageCountCache = new Map();
     this.searchCountCache = new Map();
-    this.ipSearchCountCache = new Map();
     this.imageTitleCache = new Map();
     this.imageStatusCache = new Map();
     this.imagePortfolioCache = new Map();
@@ -166,12 +164,95 @@ export default class TaskDBAws {
         PRIMARY KEY (session_id, key)
       );`);
 
-      await client.query(`CREATE TABLE IF NOT EXISTS activity_timeline (
-        id SERIAL PRIMARY KEY,
-        timestamp TEXT NOT NULL,
-        action TEXT NOT NULL,
-        details TEXT
+      await client.query(`CREATE TABLE IF NOT EXISTS session_views (
+        session_id TEXT PRIMARY KEY,
+        view_count INTEGER NOT NULL DEFAULT 0,
+        account_id INTEGER,
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
       );`);
+      await client.query(`CREATE TABLE IF NOT EXISTS page_views (
+        id SERIAL PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        route TEXT NOT NULL DEFAULT '',
+        viewed_at TEXT NOT NULL,
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
+      );`);
+      await client.query('ALTER TABLE session_views ADD COLUMN IF NOT EXISTS account_id INTEGER;');
+      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
+      await client.query("ALTER TABLE session_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';");
+      await client.query("ALTER TABLE page_views ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';");
+      await client.query("ALTER TABLE page_views ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';");
+      await client.query(`DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'session_views'
+            AND column_name = 'ipv4_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE session_views
+            ALTER COLUMN ipv4_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv4_address IS NULL OR btrim(ipv4_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv4_address]
+            END;
+          ALTER TABLE session_views ALTER COLUMN ipv4_address SET DEFAULT '{}';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'session_views'
+            AND column_name = 'ipv6_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE session_views
+            ALTER COLUMN ipv6_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv6_address IS NULL OR btrim(ipv6_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv6_address]
+            END;
+          ALTER TABLE session_views ALTER COLUMN ipv6_address SET DEFAULT '{}';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'page_views'
+            AND column_name = 'ipv4_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE page_views
+            ALTER COLUMN ipv4_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv4_address IS NULL OR btrim(ipv4_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv4_address]
+            END;
+          ALTER TABLE page_views ALTER COLUMN ipv4_address SET DEFAULT '{}';
+        END IF;
+
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'page_views'
+            AND column_name = 'ipv6_address'
+            AND data_type = 'text'
+        ) THEN
+          ALTER TABLE page_views
+            ALTER COLUMN ipv6_address TYPE TEXT[]
+            USING CASE
+              WHEN ipv6_address IS NULL OR btrim(ipv6_address) = '' THEN ARRAY[]::TEXT[]
+              ELSE ARRAY[ipv6_address]
+            END;
+          ALTER TABLE page_views ALTER COLUMN ipv6_address SET DEFAULT '{}';
+        END IF;
+      END $$;`);
+
+      // Migration: remove deprecated activity_timeline table.
+      await client.query('DROP TABLE IF EXISTS activity_timeline;');
 
       await client.query(`CREATE TABLE IF NOT EXISTS chat_tabs (
         id SERIAL PRIMARY KEY,
@@ -214,7 +295,6 @@ export default class TaskDBAws {
         image_title TEXT DEFAULT '',
         image_status TEXT DEFAULT '',
         session_id TEXT DEFAULT '',
-        ip_address TEXT DEFAULT '',
         image_uuid TEXT DEFAULT '',
         publish_portfolio INTEGER DEFAULT 0,
         product_url TEXT DEFAULT '',
@@ -235,13 +315,23 @@ export default class TaskDBAws {
       await client.query(`CREATE TABLE IF NOT EXISTS accounts (
         id SERIAL PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
+        password_hash TEXT,
         session_id TEXT DEFAULT '',
+        aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free',
-        disabled BOOLEAN DEFAULT false
+        disabled BOOLEAN DEFAULT false,
+        last_log_in TEXT DEFAULT NULL
+      );`);
+
+      await client.query(`CREATE TABLE IF NOT EXISTS log_ins (
+        account_id INTEGER NOT NULL REFERENCES accounts(id),
+        logged_in_at TEXT NOT NULL,
+        app TEXT DEFAULT '',
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT ''
       );`);
 
       // Migration: remove deprecated task-planning tables if they exist.
@@ -284,7 +374,6 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_title TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_status TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS session_id TEXT DEFAULT '';");
-      await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS ip_address TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_uuid TEXT DEFAULT '';");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS publish_portfolio INTEGER DEFAULT 0;");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS product_url TEXT DEFAULT '';");
@@ -292,10 +381,17 @@ export default class TaskDBAws {
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS project_context TEXT;");
       await client.query("ALTER TABLE chat_pairs ADD COLUMN IF NOT EXISTS image_hidden INTEGER DEFAULT 0;");
 
+      await client.query('ALTER TABLE chat_pairs DROP COLUMN IF EXISTS ip_address;');
+
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS totp_secret TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT '';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'Free';");
       await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false;");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS aurora_session_id TEXT DEFAULT ''; ");
+      await client.query("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS last_log_in TEXT DEFAULT NULL;");
+      await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT '';");
+      await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT '';");
+      await client.query("ALTER TABLE log_ins ADD COLUMN IF NOT EXISTS app TEXT DEFAULT '';");
       await client.query("UPDATE accounts SET disabled = false WHERE disabled IS NULL;");
     } finally {
       client.release();
@@ -315,7 +411,50 @@ export default class TaskDBAws {
     }
   }
 
-  async getTableData(tableName, limit = 200) {
+  async getAllAccountsWithIps() {
+    await this._initPromise;
+    const client = await this.pool.connect();
+    try {
+      // Get accounts and their associated IPs from both session_views (for AlfeCode sessions)
+      // and the Aurora session_id field in accounts
+      const query = `
+        SELECT 
+          a.id,
+          a.email,
+          a.session_id as alfe_session_id,
+          a.aurora_session_id,
+          sv.ipv4_address as alfe_ipv4_addresses,
+          sv.ipv6_address as alfe_ipv6_addresses
+        FROM accounts a
+        LEFT JOIN session_views sv ON a.session_id = sv.session_id
+        ORDER BY a.id
+      `;
+      
+      const result = await client.query(query);
+      
+      // Format the results to show IPs in a user-friendly format
+      const accounts = result.rows.map(row => {
+        // Get IP arrays from session_views or return empty arrays
+        const alfeIpv4 = Array.isArray(row.alfe_ipv4_addresses) ? row.alfe_ipv4_addresses.join(', ') : '';
+        const alfeIpv6 = Array.isArray(row.alfe_ipv6_addresses) ? row.alfe_ipv6_addresses.join(', ') : '';
+        
+        return {
+          id: row.id,
+          email: row.email,
+          alfe_session_id: row.alfe_session_id,
+          aurora_session_id: row.aurora_session_id,
+          alfe_ipv4_addresses: alfeIpv4,
+          alfe_ipv6_addresses: alfeIpv6
+        };
+      });
+      
+      return accounts;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getTableData(tableName, limit = 200, offset = 0) {
     const tables = await this.listTables();
     if (!tables.includes(tableName)) {
       throw new Error(`Unknown table: ${tableName}`);
@@ -329,13 +468,14 @@ export default class TaskDBAws {
       const columns = columnResult.rows.map((row) => row.column_name);
       const safeName = `"${tableName.replace(/"/g, '""')}"`;
       const dataResult = await client.query(
-        `SELECT * FROM ${safeName} LIMIT $1`,
-        [limit]
+        `SELECT * FROM ${safeName} LIMIT $1 OFFSET $2`,
+        [limit, offset]
       );
       return {
         columns,
         rows: dataResult.rows,
         limit,
+        offset,
         rowCount: dataResult.rows.length
       };
     } finally {
@@ -349,8 +489,8 @@ export default class TaskDBAws {
     if (!sql) {
       throw new Error('Query is required.');
     }
-    const lowered = sql.toLowerCase();
-    if (!/^(select|with|explain)\b/.test(lowered)) {
+    const normalized = sql.replace(/^(?:\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/g, '').toLowerCase();
+    if (!/^(select|with|explain)\b/.test(normalized)) {
       throw new Error('Only read-only SELECT/WITH/EXPLAIN queries are allowed.');
     }
 
@@ -364,6 +504,34 @@ export default class TaskDBAws {
         rows: rows.slice(0, limit),
         limit,
         rowCount: Math.min(rows.length, limit),
+        totalRows: rows.length
+      };
+    } finally {
+      client.release();
+    }
+  }
+
+  async runWriteQuery(sqlText) {
+    await this._initPromise;
+    const sql = typeof sqlText === 'string' ? sqlText.trim() : '';
+    if (!sql) {
+      throw new Error('Query is required.');
+    }
+    const normalized = sql.replace(/^(?:\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/g, '').toLowerCase();
+    const allowedStarts = ['insert', 'update', 'delete', 'create', 'drop', 'alter', 'begin', 'commit', 'rollback', 'truncate'];
+    if (!allowedStarts.some(start => normalized.startsWith(start))) {
+      throw new Error('Only writable queries (INSERT, UPDATE, DELETE, etc.) are allowed.');
+    }
+
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(sql);
+      const columns = (result.fields || []).map((field) => field.name);
+      const rows = result.rows || [];
+      return {
+        columns,
+        rows: rows,
+        rowCount: result.rowCount || (rows.length > 0 ? rows.length : result.command === 'UPDATE' ? result.rowCount : 0),
         totalRows: rows.length
       };
     } finally {
@@ -562,8 +730,7 @@ export default class TaskDBAws {
       chatTabId = 1,
       systemContext = "",
       projectContext = "",
-      sessionId = "",
-      ipAddress = ""
+      sessionId = ""
   ) {
     await this._initPromise;
     const timestamp = new Date().toISOString();
@@ -571,12 +738,12 @@ export default class TaskDBAws {
       `INSERT INTO chat_pairs (
          user_text, ai_text, model, timestamp, ai_timestamp,
          chat_tab_id, system_context, project_context, token_info,
-         citations_json, image_url, image_alt, image_title, session_id, ip_address
+         citations_json, image_url, image_alt, image_title, session_id
        )
        VALUES (
          $1, '', '', $2, NULL,
          $3, $4, $5, NULL,
-         NULL, NULL, '', '', $6, $7
+         NULL, NULL, '', '', $6
        )
        RETURNING id`,
       [
@@ -585,8 +752,7 @@ export default class TaskDBAws {
         chatTabId,
         systemContext,
         projectContext,
-        sessionId,
-        ipAddress
+        sessionId
       ]
     );
     return rows[0]?.id ?? null;
@@ -807,24 +973,118 @@ export default class TaskDBAws {
     );
   }
 
+  async incrementSessionViewCount(sessionId, ipAddresses = {}, route = '') {
+    if (!sessionId) return;
+    await this._initPromise;
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const pageRoute = typeof route === 'string' ? route.trim() : '';
+    const viewedAt = new Date().toISOString();
+    await this.pool.query(
+      `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
+       VALUES (
+         $1,
+         1,
+         (SELECT id FROM accounts WHERE aurora_session_id = $1 LIMIT 1),
+         CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END,
+         CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END
+       )
+       ON CONFLICT (session_id)
+       DO UPDATE SET
+         view_count = session_views.view_count + 1,
+         account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE aurora_session_id = $1 LIMIT 1)),
+         ipv4_address = (
+           SELECT array_agg(DISTINCT element)
+           FROM unnest(
+             array_cat(
+               COALESCE(session_views.ipv4_address, ARRAY[]::TEXT[]),
+               CASE WHEN $2 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$2] END
+             )
+           ) AS element
+         ),
+         ipv6_address = (
+           SELECT array_agg(DISTINCT element)
+           FROM unnest(
+             array_cat(
+               COALESCE(session_views.ipv6_address, ARRAY[]::TEXT[]),
+               CASE WHEN $3 = '' THEN ARRAY[]::TEXT[] ELSE ARRAY[$3] END
+             )
+           ) AS element
+         )`,
+      [sessionId, ipv4, ipv6]
+    );
+    await this.pool.query(
+      `INSERT INTO page_views (session_id, route, viewed_at, ipv4_address, ipv6_address)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [sessionId, pageRoute, viewedAt, ipv4 ? [ipv4] : [], ipv6 ? [ipv6] : []]
+    );
+  }
+
   async createAccount(email, passwordHash, sessionId = '', timezone = '', plan = 'Free') {
     const ts = new Date().toISOString();
     const { rows } = await this.pool.query(
-      `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
+       VALUES ($1, $2, '', $3, $4, $5, $6)
        RETURNING id`,
       [email, passwordHash, sessionId, ts, timezone, plan]
     );
-    return rows[0]?.id;
+    const accountId = rows[0]?.id;
+    if (accountId && sessionId) {
+      await this.pool.query(
+        `INSERT INTO session_views (session_id, view_count, account_id)
+         VALUES ($1, 0, $2)
+         ON CONFLICT (session_id)
+         DO UPDATE SET account_id = EXCLUDED.account_id`,
+        [sessionId, accountId]
+      );
+    }
+    return accountId;
   }
 
   async getAccountByEmail(email) {
-    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE email = $1', [email]);
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!normalizedEmail) return null;
+    const directMatch = await this.pool.query('SELECT * FROM accounts WHERE email = $1', [normalizedEmail]);
+    if (directMatch.rows[0]) return directMatch.rows[0];
+    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE LOWER(TRIM(email)) = $1', [normalizedEmail]);
     return rows[0] || null;
   }
 
   async setAccountSession(id, sessionId) {
-    await this.pool.query('UPDATE accounts SET session_id = $1 WHERE id = $2', [sessionId, id]);
+    await this.pool.query('UPDATE accounts SET aurora_session_id = $1 WHERE id = $2', [sessionId, id]);
+    if (sessionId) {
+      await this.pool.query(
+        `INSERT INTO session_views (session_id, view_count, account_id)
+         VALUES ($1, 0, $2)
+         ON CONFLICT (session_id)
+         DO UPDATE SET account_id = EXCLUDED.account_id`,
+        [sessionId, id]
+      );
+    }
+  }
+
+  async setAccountAuroraSessionIfMissing(id, sessionId) {
+    if (!sessionId) return;
+    await this.pool.query(
+      "UPDATE accounts SET aurora_session_id = $1 WHERE id = $2 AND (aurora_session_id IS NULL OR aurora_session_id = '')",
+      [sessionId, id]
+    );
+  }
+
+  async setAccountLastLogin(id) {
+    const now = new Date().toISOString();
+    await this.pool.query('UPDATE accounts SET last_log_in = $1 WHERE id = $2', [now, id]);
+  }
+
+  async recordAccountLogin(id, ipAddresses = {}, appName = 'Aurora') {
+    const now = new Date().toISOString();
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const app = typeof appName === 'string' ? appName.trim() : 'Aurora';
+    await this.pool.query(
+      'INSERT INTO log_ins (account_id, logged_in_at, app, ipv4_address, ipv6_address) VALUES ($1, $2, $3, $4, $5)',
+      [id, now, app || 'Aurora', ipv4, ipv6]
+    );
   }
 
   async setAccountTotpSecret(id, secret) {
@@ -845,11 +1105,11 @@ export default class TaskDBAws {
 
   async getAccountBySession(sessionId) {
     if (!sessionId) return null;
-    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE session_id = $1', [sessionId]);
+    const { rows } = await this.pool.query('SELECT * FROM accounts WHERE aurora_session_id = $1', [sessionId]);
     const account = rows[0] || null;
     if (!account) return null;
     if (account.disabled) {
-      await this.pool.query("UPDATE accounts SET session_id = '' WHERE id = $1", [account.id]);
+      await this.pool.query("UPDATE accounts SET aurora_session_id = '' WHERE id = $1", [account.id]);
       return null;
     }
     return account;
@@ -873,6 +1133,23 @@ export default class TaskDBAws {
       this.imageSessionStartCache.set(targetId, srcStart);
     }
     await this.pool.query('DELETE FROM image_sessions WHERE session_id = $1', [sourceId]);
+    await this.pool.query(
+      `INSERT INTO session_views (session_id, view_count, account_id)
+       SELECT
+         $1,
+         COALESCE(t.view_count, 0) + COALESCE(s.view_count, 0),
+         COALESCE(t.account_id, s.account_id, a.id)
+       FROM (SELECT 1) x
+       LEFT JOIN session_views t ON t.session_id = $1
+       LEFT JOIN session_views s ON s.session_id = $2
+       LEFT JOIN accounts a ON a.aurora_session_id = $1
+       ON CONFLICT (session_id)
+       DO UPDATE SET
+         view_count = EXCLUDED.view_count,
+         account_id = COALESCE(session_views.account_id, EXCLUDED.account_id)`,
+      [targetId, sourceId]
+    );
+    await this.pool.query('DELETE FROM session_views WHERE session_id = $1', [sourceId]);
     this.imageSessionStartCache.delete(sourceId);
     this.imageCountCache.delete(sourceId);
     this.imageCountCache.delete(targetId);
@@ -935,49 +1212,24 @@ export default class TaskDBAws {
   }
 
   logActivity(action, details) {
-    void this.logActivityAsync(action, details).catch((err) => {
-      console.warn('[TaskDBAws] Failed to log activity:', err);
-    });
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
   }
 
   async logActivityAsync(action, details) {
-    await this._initPromise;
-    const timestamp = new Date().toISOString();
-    await this.pool.query(
-      'INSERT INTO activity_timeline (timestamp, action, details) VALUES ($1, $2, $3)',
-      [timestamp, action, details ?? '']
-    );
-    const cached = this.activityCache;
-    if (cached?.length) {
-      cached.unshift({
-        id: null,
-        timestamp,
-        action,
-        details: details ?? ''
-      });
-    }
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
+    return;
   }
 
   getActivity() {
-    if (this.activityCache.length) {
-      return this.activityCache;
-    }
-    void this.getActivityAsync()
-        .then((rows) => {
-          this.activityCache = rows;
-        })
-        .catch((err) => {
-          console.warn('[TaskDBAws] Failed to load activity timeline:', err);
-        });
     return [];
   }
 
   async getActivityAsync() {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      'SELECT * FROM activity_timeline ORDER BY id DESC'
-    );
-    return rows;
+    return [];
   }
 
   ensureImageSession(sessionId) {
@@ -1340,29 +1592,12 @@ export default class TaskDBAws {
     return rows[0]?.count ?? 0;
   }
 
-  countImagesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const cached = this.ipImageCountCache.get(ipAddress);
-    if (typeof cached === 'number') {
-      return cached;
-    }
-    void this.countImagesForIpAsync(ipAddress)
-        .then((count) => {
-          this.ipImageCountCache.set(ipAddress, count);
-        })
-        .catch((err) => {
-          console.warn('[TaskDBAws] Failed to count images for IP:', err);
-        });
+  countImagesForIp() {
     return 0;
   }
 
-  async countImagesForIpAsync(ipAddress) {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      'SELECT COUNT(*)::int AS count FROM chat_pairs WHERE ip_address = $1 AND image_url IS NOT NULL',
-      [ipAddress]
-    );
-    return rows[0]?.count ?? 0;
+  async countImagesForIpAsync() {
+    return 0;
   }
 
   countSearchesForSession(sessionId) {
@@ -1393,32 +1628,12 @@ export default class TaskDBAws {
     return rows[0]?.count ?? 0;
   }
 
-  countSearchesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const cached = this.ipSearchCountCache.get(ipAddress);
-    if (typeof cached === 'number') {
-      return cached;
-    }
-    void this.countSearchesForIpAsync(ipAddress)
-        .then((count) => {
-          this.ipSearchCountCache.set(ipAddress, count);
-        })
-        .catch((err) => {
-          console.warn('[TaskDBAws] Failed to count searches for IP:', err);
-        });
+  countSearchesForIp() {
     return 0;
   }
 
-  async countSearchesForIpAsync(ipAddress) {
-    await this._initPromise;
-    const { rows } = await this.pool.query(
-      `SELECT COUNT(*)::int AS count
-         FROM chat_pairs cp
-         JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
-        WHERE cp.ip_address = $1 AND ct.tab_type = 'search'`,
-      [ipAddress]
-    );
-    return rows[0]?.count ?? 0;
+  async countSearchesForIpAsync() {
+    return 0;
   }
 
   ensureDesignChatTab() {

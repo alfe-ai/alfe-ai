@@ -105,7 +105,7 @@ const themeVisibilityConfig = (() => {
   return { hidden };
 })();
 
-const DEFAULT_CODE_REDIRECT_TARGET = 'https://code.alfe.sh';
+const DEFAULT_CODE_REDIRECT_TARGET = window.AURORA_FLAGS?.codeRedirect?.target || 'https://internal-chat.alfe.bot';
 const codeRedirectConfig = (() => {
   const flags = window.AURORA_FLAGS || {};
   const cfg = flags.codeRedirect || {};
@@ -153,6 +153,26 @@ const featureFlagConfig = (() => {
       flags.collapseReasoningByDefaultVisible,
       false
     ),
+  };
+})();
+
+const shopifyAuthConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const cfg = flags.shopifyAuth || {};
+  const startUrl =
+    typeof cfg.startUrl === 'string' && cfg.startUrl.trim()
+      ? cfg.startUrl.trim()
+      : '/auth/shopify/start';
+  const enabledValue = cfg.enabled;
+  const enabled =
+    enabledValue === true ||
+    enabledValue === 'true' ||
+    enabledValue === 1 ||
+    enabledValue === '1' ||
+    typeof enabledValue === 'undefined';
+  return {
+    enabled,
+    startUrl,
   };
 })();
 
@@ -1866,6 +1886,9 @@ function openAuthModal({ preferredStep } = {}){
   if(!ensureAccountsEnabled()){
     return;
   }
+  if(shopifyAuthConfig.enabled && startShopifyAuth({ preferredStep: preferredStep || 'signup' })){
+    return;
+  }
   const saved = loadAuthModalState();
   if(saved?.email){
     setAuthEmailValue(saved.email);
@@ -1879,6 +1902,22 @@ function openAuthModal({ preferredStep } = {}){
     showAuthEmailStep({ keepEmail: true });
   }
   showModal(document.getElementById("authModal"));
+}
+
+function startShopifyAuth({ preferredStep = 'signup' } = {}){
+  const returnTo = `${window.location.pathname || '/'}${window.location.search || ''}${window.location.hash || ''}`;
+  try {
+    const url = new URL(shopifyAuthConfig.startUrl, window.location.origin);
+    url.searchParams.set('returnTo', returnTo || '/');
+    if(preferredStep){
+      url.searchParams.set('preferredStep', preferredStep);
+    }
+    window.location.assign(url.toString());
+    return true;
+  } catch(error){
+    console.warn('Unable to start Shopify auth redirect.', error);
+    return false;
+  }
 }
 
 function openSignupModal(e){
@@ -4612,7 +4651,7 @@ function renderFavoritesGroup(container, favorites, indented = true){
   const archivedToggle = document.createElement('button');
   archivedToggle.className = 'favorites-archived-toggle';
   archivedToggle.type = 'button';
-  archivedToggle.textContent = 'Archive';
+  archivedToggle.textContent = 'Archived';
   archivedToggle.setAttribute('aria-pressed', showArchivedTabs ? 'true' : 'false');
   archivedToggle.classList.toggle('active', showArchivedTabs);
   archivedToggle.addEventListener('click', async (e) => {
@@ -8876,7 +8915,7 @@ async function focusExistingCodeChat(){
 async function handleCodeNavClick(fromIcon = false){
   try {
     // Direct the Code button to the GitHub repo for AlfeCode
-    const target = 'https://code.alfe.sh';
+    const target = window.AURORA_FLAGS?.codeRedirect?.target || 'https://internal-chat.alfe.bot';
     window.location.href = target;
   } catch (err) {
     console.error('[CodeNav] Failed to open code repo', err);

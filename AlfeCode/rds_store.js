@@ -7,6 +7,9 @@ const SESSION_SETTINGS_TABLE = "session_settings";
 const ACCOUNTS_TABLE = "accounts";
 const PROJECTVIEW_JSON_TABLE = "projectview_json";
 const ALFECODE_RUNS_TABLE = "alfecode_runs";
+const SESSION_VIEWS_TABLE = "session_views";
+const PAGE_VIEWS_TABLE = "page_views";
+const LOG_INS_TABLE = "log_ins";
 const SUPPORT_REQUESTS_TABLE = "support_requests";
 const SUPPORT_REQUEST_REPLIES_TABLE = "support_request_replies";
 const SUPPORT_REQUEST_DEFAULT_STATUS = "Awaiting Support Reply";
@@ -63,6 +66,8 @@ class RdsStore {
     this.settings = new Map();
     this.sessionSettings = new Map();
     this.sessionRuns = new Map();
+    this.sessionRunWriteVersions = new Map();
+    this.sessionRunWritePromises = new Map();
     this.ready = false;
     this.initPromise = null;
 
@@ -96,13 +101,16 @@ class RdsStore {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT,
         session_id TEXT DEFAULT '',
+        aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free',
         ever_subscribed BOOLEAN DEFAULT false,
         openrouter_api_key TEXT DEFAULT '',
-        disabled BOOLEAN DEFAULT false
+        key_hash_id TEXT DEFAULT '',
+        disabled BOOLEAN DEFAULT false,
+        last_log_in TEXT DEFAULT NULL
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PROJECTVIEW_JSON_TABLE} (
         session_id TEXT PRIMARY KEY,
@@ -113,16 +121,179 @@ class RdsStore {
         session_id TEXT NOT NULL,
         run_id TEXT NOT NULL,
         numeric_id BIGINT,
+        followup_parent_id TEXT DEFAULT '',
         status TEXT DEFAULT '',
+        script_status TEXT DEFAULT '',
         final_output_message TEXT DEFAULT '',
         created_at TEXT DEFAULT '',
         updated_at TEXT DEFAULT '',
         payload_json TEXT NOT NULL,
+        account_id INTEGER,
+        branch TEXT DEFAULT '',
+        model TEXT DEFAULT '',
+        base_revision TEXT DEFAULT '',
+        commit_revision TEXT DEFAULT '',
+        run_directory TEXT DEFAULT '',
         PRIMARY KEY (session_id, run_id)
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SESSION_VIEWS_TABLE} (
+        session_id TEXT PRIMARY KEY,
+        view_count INTEGER NOT NULL DEFAULT 0,
+        account_id INTEGER,
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${PAGE_VIEWS_TABLE} (
+        id SERIAL PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        route TEXT NOT NULL DEFAULT '',
+        viewed_at TEXT NOT NULL,
+        ipv4_address TEXT[] DEFAULT '{}',
+        ipv6_address TEXT[] DEFAULT '{}'
+      );`);
+      await this.pool.query(`CREATE TABLE IF NOT EXISTS ${LOG_INS_TABLE} (
+        account_id INTEGER NOT NULL,
+        logged_in_at TEXT NOT NULL,
+        app TEXT DEFAULT '',
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT ''
       );`);
       await this.pool.query(
         `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
          ON ${ALFECODE_RUNS_TABLE} (session_id, updated_at DESC)`
+      );
+      await this.pool.query(
+        `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_followup_parent
+         ON ${ALFECODE_RUNS_TABLE} (session_id, followup_parent_id, updated_at DESC)`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS account_id INTEGER`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${SESSION_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${PAGE_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv4_address TEXT[] DEFAULT '{}';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${PAGE_VIEWS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv6_address TEXT[] DEFAULT '{}';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${LOG_INS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv4_address TEXT DEFAULT '';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${LOG_INS_TABLE}
+         ADD COLUMN IF NOT EXISTS ipv6_address TEXT DEFAULT '';`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${LOG_INS_TABLE}
+         ADD COLUMN IF NOT EXISTS app TEXT DEFAULT '';`
+      );
+
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${SESSION_VIEWS_TABLE}'
+               AND column_name = 'ipv4_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address DROP DEFAULT;
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv4_address IS NULL OR btrim(ipv4_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv4_address::text]
+             END;
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address SET DEFAULT '{}'::TEXT[];
+           END IF;
+         END
+         $$;`
+      );
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${PAGE_VIEWS_TABLE}'
+               AND column_name = 'ipv4_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${PAGE_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address DROP DEFAULT;
+             ALTER TABLE ${PAGE_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv4_address IS NULL OR btrim(ipv4_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv4_address::text]
+             END;
+             ALTER TABLE ${PAGE_VIEWS_TABLE}
+             ALTER COLUMN ipv4_address SET DEFAULT '{}'::TEXT[];
+           END IF;
+         END
+         $$;`
+      );
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${PAGE_VIEWS_TABLE}'
+               AND column_name = 'ipv6_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${PAGE_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address DROP DEFAULT;
+             ALTER TABLE ${PAGE_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv6_address IS NULL OR btrim(ipv6_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv6_address::text]
+             END;
+             ALTER TABLE ${PAGE_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address SET DEFAULT '{}'::TEXT[];
+           END IF;
+         END
+         $$;`
+      );
+      await this.pool.query(
+        `DO $$
+         BEGIN
+           IF EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = '${SESSION_VIEWS_TABLE}'
+               AND column_name = 'ipv6_address'
+               AND udt_name <> '_text'
+           ) THEN
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address DROP DEFAULT;
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address TYPE TEXT[]
+             USING CASE
+               WHEN ipv6_address IS NULL OR btrim(ipv6_address::text) = '' THEN '{}'::TEXT[]
+               ELSE ARRAY[ipv6_address::text]
+             END;
+             ALTER TABLE ${SESSION_VIEWS_TABLE}
+             ALTER COLUMN ipv6_address SET DEFAULT '{}'::TEXT[];
+           END IF;
+         END
+         $$;`
       );
       await this.pool.query(
         `ALTER TABLE ${PROJECTVIEW_JSON_TABLE}
@@ -142,7 +313,48 @@ class RdsStore {
       );
       await this.pool.query(
         `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS key_hash_id TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
          ADD COLUMN IF NOT EXISTS disabled BOOLEAN DEFAULT false`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS aurora_session_id TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ACCOUNTS_TABLE}
+         ADD COLUMN IF NOT EXISTS last_log_in TEXT DEFAULT NULL`
+      );
+      await this.migrateFollowupParentIdColumn();
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS account_id INTEGER`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS branch TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS model TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS base_revision TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS commit_revision TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS run_directory TEXT DEFAULT ''`
+      );
+      await this.pool.query(
+        `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+         ADD COLUMN IF NOT EXISTS script_status TEXT DEFAULT ''`
       );
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
@@ -166,7 +378,6 @@ class RdsStore {
         email TEXT DEFAULT '',
         category TEXT NOT NULL,
         message TEXT NOT NULL,
-        user_agent TEXT DEFAULT '',
         status TEXT NOT NULL DEFAULT '${SUPPORT_REQUEST_DEFAULT_STATUS}'
       );`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS ${SUPPORT_REQUEST_REPLIES_TABLE} (
@@ -200,6 +411,23 @@ class RdsStore {
     }
   }
 
+  async migrateFollowupParentIdColumn() {
+    await this.pool.query(
+      `ALTER TABLE ${ALFECODE_RUNS_TABLE}
+       ADD COLUMN IF NOT EXISTS followup_parent_id TEXT DEFAULT ''`
+    );
+
+    await this.pool.query(
+      `UPDATE ${ALFECODE_RUNS_TABLE}
+       SET followup_parent_id = NULLIF(payload_json::jsonb ->> 'followupParentId', '')
+       WHERE (followup_parent_id IS NULL OR followup_parent_id = '')
+         AND payload_json IS NOT NULL
+         AND payload_json <> ''
+         AND jsonb_typeof(payload_json::jsonb) = 'object'
+         AND COALESCE(payload_json::jsonb ->> 'followupParentId', '') <> ''`
+    );
+  }
+
   async loadAllSettings() {
     const result = await this.pool.query(`SELECT key, value FROM ${SETTINGS_TABLE}`);
     result.rows.forEach((row) => {
@@ -209,7 +437,7 @@ class RdsStore {
 
   async loadAllSessionRuns() {
     const result = await this.pool.query(
-      `SELECT session_id, payload_json
+      `SELECT session_id, status, script_status, followup_parent_id, payload_json
        FROM ${ALFECODE_RUNS_TABLE}
        ORDER BY updated_at DESC, numeric_id DESC NULLS LAST`
     );
@@ -224,6 +452,15 @@ class RdsStore {
         continue;
       }
       if (!parsed || typeof parsed !== "object") continue;
+      if (typeof row.status === "string" && row.status.trim()) {
+        parsed.status = row.status;
+      }
+      if (typeof row.script_status === "string" && row.script_status.trim()) {
+        parsed.scriptStatus = row.script_status;
+      }
+      if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) {
+        parsed.followupParentId = row.followup_parent_id;
+      }
       const existing = this.sessionRuns.get(row.session_id) || [];
       existing.push(parsed);
       this.sessionRuns.set(row.session_id, existing);
@@ -267,8 +504,26 @@ class RdsStore {
   setSessionRuns(sessionId, runs) {
     if (!this.enabled) return;
     const normalizedRuns = Array.isArray(runs) ? runs : [];
-    this.sessionRuns.set(sessionId, normalizedRuns.map((entry) => ({ ...entry })));
-    this.queueReplaceSessionRuns(sessionId, normalizedRuns);
+    const clonedRuns = normalizedRuns.map((entry) => ({ ...entry }));
+    this.sessionRuns.set(sessionId, clonedRuns);
+
+    const nextVersion = (this.sessionRunWriteVersions.get(sessionId) || 0) + 1;
+    this.sessionRunWriteVersions.set(sessionId, nextVersion);
+
+    const previousWrite = this.sessionRunWritePromises.get(sessionId) || Promise.resolve();
+    const nextWrite = previousWrite
+      .catch(() => {
+        // Keep write queue moving even after previous failures.
+      })
+      .then(() => this.queueReplaceSessionRuns(sessionId, clonedRuns, nextVersion));
+
+    this.sessionRunWritePromises.set(sessionId, nextWrite);
+
+    nextWrite.finally(() => {
+      if (this.sessionRunWritePromises.get(sessionId) === nextWrite) {
+        this.sessionRunWritePromises.delete(sessionId);
+      }
+    });
   }
 
   prefetchSessionSetting(sessionId, key) {
@@ -285,6 +540,7 @@ class RdsStore {
   }
 
   async loadSessionSetting(sessionId, key) {
+    await this.ensureReady();
     try {
       const result = await this.pool.query(
         `SELECT value FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1 AND key = $2`,
@@ -300,9 +556,10 @@ class RdsStore {
 
   async loadSessionRuns(sessionId) {
     if (!this.enabled) return;
+    await this.ensureReady();
     try {
       const result = await this.pool.query(
-        `SELECT payload_json
+        `SELECT status, script_status, followup_parent_id, payload_json
          FROM ${ALFECODE_RUNS_TABLE}
          WHERE session_id = $1
          ORDER BY updated_at DESC, numeric_id DESC NULLS LAST`,
@@ -313,6 +570,15 @@ class RdsStore {
         try {
           const parsed = JSON.parse(row.payload_json || "{}");
           if (parsed && typeof parsed === "object") {
+            if (typeof row.status === "string" && row.status.trim()) {
+              parsed.status = row.status;
+            }
+            if (typeof row.script_status === "string" && row.script_status.trim()) {
+              parsed.scriptStatus = row.script_status;
+            }
+            if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) {
+              parsed.followupParentId = row.followup_parent_id;
+            }
             parsedRuns.push(parsed);
           }
         } catch (parseError) {
@@ -351,8 +617,69 @@ class RdsStore {
     }
   }
 
-  async queueReplaceSessionRuns(sessionId, runs) {
+  async incrementSessionViewCount(sessionId, ipAddresses = {}, route = "") {
+    if (!this.enabled || !sessionId) return;
+    const ipv4 = typeof ipAddresses?.ipv4 === "string" ? ipAddresses.ipv4.trim() : "";
+    const ipv6 = typeof ipAddresses?.ipv6 === "string" ? ipAddresses.ipv6.trim() : "";
+    const pageRoute = typeof route === "string" ? route.trim() : "";
+    const viewedAt = new Date().toISOString();
+    try {
+      // To prevent duplicate IP addresses, we use array_agg with distinct elements
+      // This is a workaround for PostgreSQL not having native set operations for arrays
+      await this.pool.query(
+        `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id, ipv4_address, ipv6_address)
+         VALUES (
+           $1,
+           1,
+           (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1),
+           CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END,
+           CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+         )
+         ON CONFLICT (session_id)
+         DO UPDATE SET
+           view_count = ${SESSION_VIEWS_TABLE}.view_count + 1,
+           account_id = COALESCE(
+             ${SESSION_VIEWS_TABLE}.account_id,
+             (SELECT id FROM ${ACCOUNTS_TABLE} WHERE session_id = $1 LIMIT 1)
+           ),
+           ipv4_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv4_address::TEXT, ''), '{}')::TEXT[],
+                 CASE WHEN $2 = '' THEN '{}'::TEXT[] ELSE ARRAY[$2] END
+               )
+             ) AS element
+           ),
+           ipv6_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 COALESCE(NULLIF(${SESSION_VIEWS_TABLE}.ipv6_address::TEXT, ''), '{}')::TEXT[],
+                 CASE WHEN $3 = '' THEN '{}'::TEXT[] ELSE ARRAY[$3] END
+               )
+             ) AS element
+           )`,
+        [sessionId, ipv4, ipv6]
+      );
+      await this.pool.query(
+        `INSERT INTO ${PAGE_VIEWS_TABLE} (session_id, route, viewed_at, ipv4_address, ipv6_address)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [sessionId, pageRoute, viewedAt, ipv4 ? [ipv4] : [], ipv6 ? [ipv6] : []]
+      );
+    } catch (error) {
+      console.error("[RdsStore] Failed to increment session view count:", error?.message || error);
+    }
+  }
+
+  async queueReplaceSessionRuns(sessionId, runs, version = null) {
     await this.ensureReady();
+    if (Number.isFinite(version)) {
+      const latestVersion = this.sessionRunWriteVersions.get(sessionId) || 0;
+      if (version < latestVersion) {
+        return;
+      }
+    }
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
@@ -361,6 +688,10 @@ class RdsStore {
         [sessionId]
       );
 
+      // Get account_id from session
+      const account = await this.getAccountBySession(sessionId);
+      const accountId = account?.id || null;
+
       for (const run of runs) {
         if (!run || typeof run !== "object") {
           continue;
@@ -368,27 +699,69 @@ class RdsStore {
         const runId = (run.id || run.runId || `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`).toString();
         const numericId = Number.isFinite(Number(run.numericId)) ? Number(run.numericId) : null;
         const status = typeof run.status === "string" ? run.status : "";
+        const followupParentId = (
+          run.followupParentId
+          || run.followupParentRunId
+          || run.followup_parent_id
+          || run.followup_parent
+          || ""
+        ).toString().trim();
+        const scriptStatus = typeof run.scriptStatus === "string"
+          ? run.scriptStatus
+          : (Array.isArray(run.statusHistory) && run.statusHistory.length
+            ? String(run.statusHistory[run.statusHistory.length - 1] || "")
+            : "");
         const finalOutputMessage = typeof run.finalOutputMessage === "string"
           ? run.finalOutputMessage
           : (typeof run.finalOutput === "string" ? run.finalOutput : "");
-        const createdAt = typeof run.createdAt === "string" ? run.createdAt : "";
+        const createdAt = typeof run.createdAt === "string" && run.createdAt.trim()
+          ? run.createdAt
+          : (typeof run.startedAt === "string" && run.startedAt.trim()
+            ? run.startedAt
+            : (typeof run.updatedAt === "string" && run.updatedAt.trim()
+              ? run.updatedAt
+              : new Date().toISOString()));
         const updatedAt = typeof run.updatedAt === "string"
           ? run.updatedAt
           : (typeof run.endedAt === "string" ? run.endedAt : (typeof run.createdAt === "string" ? run.createdAt : new Date().toISOString()));
 
+        // Extract branch from run
+        const branch = ((run.branchName || run.gitBranch || run.branch || '') ?? '').toString().trim();
+
+        // Extract model from run
+        const model = (run.model || run.modelId || '').toString().trim();
+
+        const baseRevision = (run.baseRevision || run.base_revision || '').toString().trim();
+        const commitRevision = (run.commitRevision || run.commit_revision || '').toString().trim();
+        const runDirectory = (
+          run.runDirectory
+          || run.run_directory
+          || run.effectiveProjectDir
+          || run.projectDir
+          || ''
+        ).toString().trim();
+
         await client.query(
           `INSERT INTO ${ALFECODE_RUNS_TABLE}
-           (session_id, run_id, numeric_id, status, final_output_message, created_at, updated_at, payload_json)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           (session_id, run_id, numeric_id, followup_parent_id, status, script_status, final_output_message, created_at, updated_at, payload_json, account_id, branch, model, base_revision, commit_revision, run_directory)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
           [
             sessionId,
             runId,
             numericId,
+            followupParentId,
             status,
+            scriptStatus,
             finalOutputMessage,
             createdAt,
             updatedAt,
             JSON.stringify(run),
+            accountId,
+            branch,
+            model,
+            baseRevision,
+            commitRevision,
+            runDirectory,
           ]
         );
       }
@@ -413,7 +786,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, disabled
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, key_hash_id, disabled
          FROM ${ACCOUNTS_TABLE}
          WHERE email = $1
          LIMIT 1`,
@@ -438,7 +811,17 @@ class RdsStore {
          RETURNING id, email, session_id, created_at`,
         [normalized, typeof passwordHash === "string" && passwordHash ? passwordHash : null, sessionId || '', new Date().toISOString(), '', 'Free']
       );
-      return result.rows[0] || null;
+      const created = result.rows[0] || null;
+      if (created?.id && created?.session_id) {
+        await this.pool.query(
+          `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id)
+           VALUES ($1, 0, $2)
+           ON CONFLICT (session_id)
+           DO UPDATE SET account_id = EXCLUDED.account_id`,
+          [created.session_id, created.id]
+        );
+      }
+      return created;
     } catch (error) {
       console.error("[RdsStore] Failed to create account:", error?.message || error);
       throw error;
@@ -451,12 +834,84 @@ class RdsStore {
     try {
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
-         SET session_id = $1
-         WHERE id = $2`,
-        [sessionId || "", id]
+         SET session_id = $1,
+             last_log_in = $2
+         WHERE id = $3`,
+        [sessionId || "", new Date().toISOString(), id]
       );
+      if (sessionId) {
+        await this.pool.query(
+          `INSERT INTO ${SESSION_VIEWS_TABLE} (session_id, view_count, account_id)
+           VALUES ($1, 0, $2)
+           ON CONFLICT (session_id)
+           DO UPDATE SET account_id = EXCLUDED.account_id`,
+          [sessionId, id]
+        );
+      }
     } catch (error) {
       console.error("[RdsStore] Failed to update account session:", error?.message || error);
+    }
+  }
+
+  async setAccountLastLogin(id) {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    const lastLoginIso = new Date().toISOString();
+    console.log("[RdsStore] setAccountLastLogin: updating account", {
+      accountId: id,
+      lastLoginIso,
+    });
+    try {
+      const updateResult = await this.pool.query(
+        `UPDATE ${ACCOUNTS_TABLE}
+         SET last_log_in = $1
+         WHERE id = $2`,
+        [lastLoginIso, id]
+      );
+      console.log("[RdsStore] setAccountLastLogin: update query finished", {
+        accountId: id,
+        rowCount: updateResult?.rowCount ?? null,
+      });
+    } catch (error) {
+      console.error("[RdsStore] Failed to update account last login:", {
+        accountId: id,
+        lastLoginIso,
+        error: error?.message || error,
+      });
+    }
+  }
+
+  async createAccountLoginRecord(id, ipAddresses = {}, appName = 'AlfeCode') {
+    if (!this.enabled) return;
+    await this.ensureReady();
+    const loggedInAtIso = new Date().toISOString();
+    const ipv4 = typeof ipAddresses?.ipv4 === "string" ? ipAddresses.ipv4.trim() : "";
+    const ipv6 = typeof ipAddresses?.ipv6 === "string" ? ipAddresses.ipv6.trim() : "";
+    const app = typeof appName === "string" ? appName.trim() : "AlfeCode";
+    console.log("[RdsStore] createAccountLoginRecord: writing login row", {
+      accountId: id,
+      loggedInAtIso,
+      app,
+      ipv4,
+      ipv6,
+    });
+
+    try {
+      const insertResult = await this.pool.query(
+        `INSERT INTO ${LOG_INS_TABLE} (account_id, logged_in_at, app, ipv4_address, ipv6_address)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, loggedInAtIso, app || "AlfeCode", ipv4, ipv6]
+      );
+      console.log("[RdsStore] createAccountLoginRecord: insert finished", {
+        accountId: id,
+        rowCount: insertResult?.rowCount ?? null,
+      });
+    } catch (error) {
+      console.error("[RdsStore] Failed to insert account login row:", {
+        accountId: id,
+        loggedInAtIso,
+        error: error?.message || error,
+      });
     }
   }
 
@@ -490,15 +945,20 @@ class RdsStore {
     }
   }
 
-  async setAccountOpenrouterApiKey(id, openrouterApiKey) {
+  async setAccountOpenrouterApiKey(id, openrouterApiKey, keyHashId = "") {
     if (!this.enabled) return;
     await this.ensureReady();
     try {
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
-         SET openrouter_api_key = $1
-         WHERE id = $2`,
-        [(openrouterApiKey || "").toString().trim(), id]
+         SET openrouter_api_key = $1,
+             key_hash_id = $2
+         WHERE id = $3`,
+        [
+          (openrouterApiKey || "").toString().trim(),
+          (keyHashId || "").toString().trim(),
+          id,
+        ]
       );
     } catch (error) {
       console.error("[RdsStore] Failed to update account OpenRouter API key:", error?.message || error);
@@ -512,7 +972,7 @@ class RdsStore {
     if (!normalized) return null;
     try {
       const result = await this.pool.query(
-        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, disabled
+        `SELECT id, email, password_hash, session_id, created_at, totp_secret, timezone, plan, ever_subscribed, openrouter_api_key, key_hash_id, disabled
          FROM ${ACCOUNTS_TABLE}
          WHERE session_id = $1
          LIMIT 1`,
@@ -554,6 +1014,22 @@ class RdsStore {
         [targetId, sourceId]
       );
       await client.query(`DELETE FROM ${SESSION_SETTINGS_TABLE} WHERE session_id = $1`, [sourceId]);
+      await client.query(
+        `WITH resolved_account AS (
+           SELECT id
+           FROM ${ACCOUNTS_TABLE}
+           WHERE session_id = $1
+           UNION
+           SELECT id
+           FROM ${ACCOUNTS_TABLE}
+           WHERE session_id = $2
+           LIMIT 1
+         )
+         UPDATE ${SESSION_VIEWS_TABLE}
+         SET account_id = COALESCE(${SESSION_VIEWS_TABLE}.account_id, (SELECT id FROM resolved_account))
+         WHERE session_id IN ($1, $2)`,
+        [targetId, sourceId]
+      );
       await client.query("COMMIT");
     } catch (error) {
       try {
@@ -567,7 +1043,7 @@ class RdsStore {
     }
   }
 
-  async createSupportRequest({ sessionId, accountId, email, category, message, userAgent, status }) {
+  async createSupportRequest({ sessionId, accountId, email, category, message, status }) {
     if (!this.enabled) return null;
     await this.ensureReady();
     const normalizedCategory = (category || "").toString().trim();
@@ -577,8 +1053,8 @@ class RdsStore {
     try {
       const result = await this.pool.query(
         `INSERT INTO ${SUPPORT_REQUESTS_TABLE}
-         (created_at, session_id, account_id, email, category, message, user_agent, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         (created_at, session_id, account_id, email, category, message, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id, created_at, status`,
         [
           new Date().toISOString(),
@@ -587,7 +1063,6 @@ class RdsStore {
           (email || "").toString().trim().toLowerCase(),
           normalizedCategory,
           normalizedMessage,
-          (userAgent || "").toString().trim(),
           normalizedStatus,
         ]
       );
@@ -807,6 +1282,124 @@ class RdsStore {
     } catch (error) {
       console.error("[RdsStore] Failed to save ProjectView projects:", error?.message || error);
       throw error;
+    }
+  }
+
+  async getRunById(sessionId, runId) {
+    if (!this.enabled) return null;
+    await this.ensureReady();
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    const normalizedRunId = (runId || "").toString().trim();
+    if (!normalizedSessionId || !normalizedRunId) return null;
+    try {
+      const result = await this.pool.query(
+        `SELECT * FROM ${ALFECODE_RUNS_TABLE}
+         WHERE session_id = $1 AND run_id = $2
+         LIMIT 1`,
+        [normalizedSessionId, normalizedRunId]
+      );
+      if (!result.rows.length) return null;
+      const row = result.rows[0];
+      
+      // Parse the payload JSON and add fields from the database
+      let parsedRun;
+      try {
+        parsedRun = JSON.parse(row.payload_json || "{}");
+      } catch (parseError) {
+        console.error("[RdsStore] Failed to parse run payload:", parseError?.message || parseError);
+        parsedRun = {};
+      }
+      
+      // Add fields from the database that might not be in the payload
+      if (typeof row.status === "string" && row.status.trim()) {
+        parsedRun.status = row.status;
+      }
+      if (typeof row.script_status === "string" && row.script_status.trim()) {
+        parsedRun.scriptStatus = row.script_status;
+      }
+      if (typeof row.final_output_message === "string" && row.final_output_message.trim()) {
+        parsedRun.finalOutputMessage = row.final_output_message;
+      }
+      if (typeof row.created_at === "string" && row.created_at.trim()) {
+        parsedRun.createdAt = row.created_at;
+      }
+      if (typeof row.updated_at === "string" && row.updated_at.trim()) {
+        parsedRun.updatedAt = row.updated_at;
+      }
+      if (typeof row.model === "string" && row.model.trim()) {
+        parsedRun.model = row.model;
+      }
+      if (typeof row.branch === "string" && row.branch.trim()) {
+        parsedRun.branch = row.branch;
+      }
+      if (typeof row.base_revision === "string" && row.base_revision.trim()) {
+        parsedRun.baseRevision = row.base_revision;
+      }
+      if (typeof row.commit_revision === "string" && row.commit_revision.trim()) {
+        parsedRun.commitRevision = row.commit_revision;
+      }
+      if (typeof row.run_directory === "string" && row.run_directory.trim()) {
+        parsedRun.runDirectory = row.run_directory;
+      }
+      if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) {
+        parsedRun.followupParentId = row.followup_parent_id;
+      }
+      if (Number.isFinite(row.numeric_id)) {
+        parsedRun.numericId = row.numeric_id;
+      }
+      if (Number.isFinite(row.account_id)) {
+        parsedRun.accountId = row.account_id;
+      }
+      
+      return parsedRun;
+    } catch (error) {
+      console.error("[RdsStore] Failed to load run by session and run id:", error?.message || error);
+      return null;
+    }
+  }
+
+  async getFollowupRunsByParent(sessionId, parentRunId) {
+    if (!this.enabled) return [];
+    await this.ensureReady();
+    const normalizedSessionId = (sessionId || "").toString().trim();
+    const normalizedParentRunId = (parentRunId || "").toString().trim();
+    if (!normalizedSessionId || !normalizedParentRunId) return [];
+
+    try {
+      const result = await this.pool.query(
+        `SELECT run_id, status, script_status, final_output_message, created_at, updated_at, payload_json, numeric_id, account_id, branch, model, base_revision, commit_revision, run_directory, followup_parent_id
+         FROM ${ALFECODE_RUNS_TABLE}
+         WHERE session_id = $1 AND followup_parent_id = $2
+         ORDER BY updated_at ASC, numeric_id ASC NULLS LAST`,
+        [normalizedSessionId, normalizedParentRunId]
+      );
+
+      return (result.rows || []).map((row) => {
+        let parsedRun;
+        try {
+          parsedRun = JSON.parse(row.payload_json || "{}");
+        } catch (_error) {
+          parsedRun = {};
+        }
+        if (typeof row.run_id === "string" && row.run_id.trim()) parsedRun.id = row.run_id;
+        if (typeof row.status === "string" && row.status.trim()) parsedRun.status = row.status;
+        if (typeof row.script_status === "string" && row.script_status.trim()) parsedRun.scriptStatus = row.script_status;
+        if (typeof row.final_output_message === "string" && row.final_output_message.trim()) parsedRun.finalOutputMessage = row.final_output_message;
+        if (typeof row.created_at === "string" && row.created_at.trim()) parsedRun.createdAt = row.created_at;
+        if (typeof row.updated_at === "string" && row.updated_at.trim()) parsedRun.updatedAt = row.updated_at;
+        if (typeof row.model === "string" && row.model.trim()) parsedRun.model = row.model;
+        if (typeof row.branch === "string" && row.branch.trim()) parsedRun.branch = row.branch;
+        if (typeof row.base_revision === "string" && row.base_revision.trim()) parsedRun.baseRevision = row.base_revision;
+        if (typeof row.commit_revision === "string" && row.commit_revision.trim()) parsedRun.commitRevision = row.commit_revision;
+        if (typeof row.run_directory === "string" && row.run_directory.trim()) parsedRun.runDirectory = row.run_directory;
+        if (typeof row.followup_parent_id === "string" && row.followup_parent_id.trim()) parsedRun.followupParentId = row.followup_parent_id;
+        if (Number.isFinite(row.numeric_id)) parsedRun.numericId = row.numeric_id;
+        if (Number.isFinite(row.account_id)) parsedRun.accountId = row.account_id;
+        return parsedRun;
+      });
+    } catch (error) {
+      console.error("[RdsStore] Failed to load follow-up runs by parent:", error?.message || error);
+      return [];
     }
   }
 }

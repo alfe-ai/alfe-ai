@@ -112,6 +112,44 @@ export default class TaskDB {
       );
     `);
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_views (
+                                            session_id TEXT PRIMARY KEY,
+                                            view_count INTEGER NOT NULL DEFAULT 0,
+                                            account_id INTEGER,
+                                            ipv4_address TEXT[] DEFAULT '{}',
+                                            ipv6_address TEXT[] DEFAULT '{}'
+      );
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS page_views (
+                                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                            session_id TEXT NOT NULL,
+                                            route TEXT NOT NULL DEFAULT '',
+                                            viewed_at TEXT NOT NULL,
+                                            ipv4_address TEXT,
+                                            ipv6_address TEXT
+      );
+    `);
+    try {
+      this.db.exec('ALTER TABLE session_views ADD COLUMN account_id INTEGER;');
+      console.debug('[TaskDB Debug] Added session_views.account_id column');
+    } catch(e) {
+      // column already exists
+    }
+    try {
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv4_address TEXT[] DEFAULT '{}';");
+      console.debug('[TaskDB Debug] Added session_views.ipv4_address column');
+    } catch(e) {
+      // column already exists
+    }
+    try {
+      this.db.exec("ALTER TABLE session_views ADD COLUMN ipv6_address TEXT[] DEFAULT '{}';");
+      console.debug('[TaskDB Debug] Added session_views.ipv6_address column');
+    } catch(e) {
+      // column already exists
+    }
+
     this.db.exec(
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_issues_github ON issues(github_id);`
     );
@@ -122,14 +160,8 @@ export default class TaskDB {
     // Migration: remove deprecated sterlingproxy table.
     this.db.exec("DROP TABLE IF EXISTS sterlingproxy;");
 
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS activity_timeline (
-                                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                     timestamp TEXT NOT NULL,
-                                                     action TEXT NOT NULL,
-                                                     details TEXT
-      );
-    `);
+    // Migration: remove deprecated activity_timeline table.
+    this.db.exec("DROP TABLE IF EXISTS activity_timeline;");
 
     this.db.exec(`
         CREATE TABLE IF NOT EXISTS chat_tabs (
@@ -358,12 +390,6 @@ export default class TaskDB {
       //console.debug("[TaskDB Debug] chat_pairs.session_id column exists, skipping.", e.message);
     }
     try {
-      this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN ip_address TEXT DEFAULT '';`);
-      console.debug("[TaskDB Debug] Added chat_pairs.ip_address column");
-    } catch(e) {
-      //console.debug("[TaskDB Debug] chat_pairs.ip_address column exists, skipping.", e.message);
-    }
-    try {
       this.db.exec(`ALTER TABLE chat_pairs ADD COLUMN image_uuid TEXT DEFAULT '';`);
       console.debug("[TaskDB Debug] Added chat_pairs.image_uuid column");
     } catch(e) {
@@ -399,6 +425,8 @@ export default class TaskDB {
     } catch(e) {
       //console.debug("[TaskDB Debug] chat_pairs.image_hidden column exists, skipping.", e.message);
     }
+
+    this.dropChatPairsIpAddressColumn();
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS image_sessions (
@@ -450,13 +478,26 @@ export default class TaskDB {
       CREATE TABLE IF NOT EXISTS accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
+        password_hash TEXT,
         session_id TEXT DEFAULT '',
+        aurora_session_id TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         totp_secret TEXT DEFAULT '',
         timezone TEXT DEFAULT '',
         plan TEXT DEFAULT 'Free',
-        disabled INTEGER DEFAULT 0
+        disabled INTEGER DEFAULT 0,
+        last_log_in TEXT DEFAULT NULL
+      );
+    `);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS log_ins (
+        account_id INTEGER NOT NULL,
+        logged_in_at TEXT NOT NULL,
+        app TEXT DEFAULT '',
+        ipv4_address TEXT DEFAULT '',
+        ipv6_address TEXT DEFAULT '',
+        FOREIGN KEY(account_id) REFERENCES accounts(id)
       );
     `);
 
@@ -488,7 +529,35 @@ export default class TaskDB {
       // column exists
     }
 
+    try {
+      this.db.exec("ALTER TABLE accounts ADD COLUMN aurora_session_id TEXT DEFAULT ''; ");
+      console.debug("[TaskDB Debug] Added accounts.aurora_session_id column");
+    } catch(e) {
+      // column exists
+    }
+
     this.db.exec("UPDATE accounts SET disabled=0 WHERE disabled IS NULL;");
+
+    try {
+      this.db.exec("ALTER TABLE log_ins ADD COLUMN ipv4_address TEXT DEFAULT ''; ");
+      console.debug('[TaskDB Debug] Added log_ins.ipv4_address column');
+    } catch(e) {
+      // column exists
+    }
+
+    try {
+      this.db.exec("ALTER TABLE log_ins ADD COLUMN ipv6_address TEXT DEFAULT ''; ");
+      console.debug('[TaskDB Debug] Added log_ins.ipv6_address column');
+    } catch(e) {
+      // column exists
+    }
+
+    try {
+      this.db.exec("ALTER TABLE log_ins ADD COLUMN app TEXT DEFAULT ''; ");
+      console.debug('[TaskDB Debug] Added log_ins.app column');
+    } catch(e) {
+      // column exists
+    }
 
     // Migration: remove the deprecated upwork_jobs table if it exists.
     this.db.exec('DROP TABLE IF EXISTS upwork_jobs;');
@@ -768,6 +837,45 @@ export default class TaskDB {
         .run(sessionId, key, val);
   }
 
+  incrementSessionViewCount(sessionId, ipAddresses = {}, route = '') {
+    if (!sessionId) return;
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const pageRoute = typeof route === 'string' ? route.trim() : '';
+    const viewedAt = new Date().toISOString();
+    this.db
+      .prepare(
+        `INSERT INTO session_views (session_id, view_count, account_id, ipv4_address, ipv6_address)
+         VALUES (?, 1, (SELECT id FROM accounts WHERE aurora_session_id = ? LIMIT 1), ?, ?)
+         ON CONFLICT(session_id)
+         DO UPDATE SET
+           view_count = view_count + 1,
+           account_id = COALESCE(session_views.account_id, (SELECT id FROM accounts WHERE aurora_session_id = excluded.session_id LIMIT 1)),
+           ipv4_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 session_views.ipv4_address,
+                 CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END
+               )
+             ) AS element
+           ),
+           ipv6_address = (
+             SELECT array_agg(DISTINCT element)
+             FROM unnest(
+               array_cat(
+                 session_views.ipv6_address,
+                 CASE WHEN ? = '' THEN '{}' ELSE ARRAY[?] END
+               )
+             ) AS element
+           )`
+      )
+      .run(sessionId, sessionId, ipv4, ipv6, ipv4, ipv4, ipv6, ipv6);
+    this.db
+      .prepare(`INSERT INTO page_views (session_id, route, viewed_at, ipv4_address, ipv6_address) VALUES (?, ?, ?, ?, ?)`)
+      .run(sessionId, pageRoute, viewedAt, ipv4, ipv6);
+  }
+
   listProjects(includeArchived = false) {
     const stmt = this.db.prepare(
         `SELECT p.project,
@@ -875,15 +983,13 @@ export default class TaskDB {
   }
 
   logActivity(action, details) {
-    this.db
-        .prepare("INSERT INTO activity_timeline (timestamp, action, details) VALUES (?, ?, ?)")
-        .run(new Date().toISOString(), action, details ?? "");
+    // No-op: activity_timeline table has been removed.
+    void action;
+    void details;
   }
 
   getActivity() {
-    return this.db
-        .prepare("SELECT * FROM activity_timeline ORDER BY id DESC")
-        .all();
+    return [];
   }
 
   addFeedback(message, type = 'misc') {
@@ -892,25 +998,83 @@ export default class TaskDB {
         .run(message, type, new Date().toISOString());
   }
 
+  dropChatPairsIpAddressColumn() {
+    const columns = this.db.prepare("PRAGMA table_info(chat_pairs)").all();
+    const hasIpAddress = columns.some((column) => column.name === 'ip_address');
+    if (!hasIpAddress) {
+      return;
+    }
+
+    this.db.exec('BEGIN');
+    try {
+      this.db.exec('DROP TABLE IF EXISTS chat_pairs_new;');
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS chat_pairs_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_text TEXT NOT NULL,
+          ai_text TEXT,
+          model TEXT,
+          timestamp TEXT NOT NULL,
+          ai_timestamp TEXT,
+          chat_tab_id INTEGER DEFAULT 1,
+          system_context TEXT,
+          project_context TEXT,
+          token_info TEXT,
+          citations_json TEXT,
+          image_url TEXT,
+          image_alt TEXT DEFAULT '',
+          image_title TEXT DEFAULT '',
+          image_status TEXT DEFAULT '',
+          session_id TEXT DEFAULT '',
+          image_uuid TEXT DEFAULT '',
+          publish_portfolio INTEGER DEFAULT 0,
+          product_url TEXT DEFAULT '',
+          ebay_url TEXT DEFAULT '',
+          image_hidden INTEGER DEFAULT 0
+        );
+      `);
+      this.db.exec(`
+        INSERT INTO chat_pairs_new (
+          id, user_text, ai_text, model, timestamp, ai_timestamp,
+          chat_tab_id, system_context, project_context, token_info,
+          citations_json, image_url, image_alt, image_title, image_status,
+          session_id, image_uuid, publish_portfolio, product_url, ebay_url, image_hidden
+        )
+        SELECT
+          id, user_text, ai_text, model, timestamp, ai_timestamp,
+          chat_tab_id, system_context, project_context, token_info,
+          citations_json, image_url, image_alt, image_title, image_status,
+          session_id, image_uuid, publish_portfolio, product_url, ebay_url, COALESCE(image_hidden, 0)
+        FROM chat_pairs;
+      `);
+      this.db.exec('DROP TABLE chat_pairs;');
+      this.db.exec('ALTER TABLE chat_pairs_new RENAME TO chat_pairs;');
+      this.db.exec('COMMIT');
+      console.debug('[TaskDB Debug] Removed chat_pairs.ip_address column');
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      console.warn('[TaskDB Debug] Failed to remove chat_pairs.ip_address column:', error.message);
+    }
+  }
+
   async createChatPair(
       userText,
       chatTabId = 1,
       systemContext = "",
       projectContext = "",
-      sessionId = "",
-      ipAddress = ""
+      sessionId = ""
   ) {
     const timestamp = new Date().toISOString();
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
-        citations_json, image_url, image_alt, image_title, session_id, ip_address
+        citations_json, image_url, image_alt, image_title, session_id
       )
       VALUES (
         @user_text, '', '', @timestamp, NULL,
         @chat_tab_id, @system_context, @project_context, NULL,
-        NULL, NULL, '', '', @session_id, @ip_address
+        NULL, NULL, '', '', @session_id
       )
     `).run({
       user_text: userText,
@@ -919,8 +1083,7 @@ export default class TaskDB {
       system_context: systemContext,
       project_context: projectContext,
       citations_json: null,
-      session_id: sessionId,
-      ip_address: ipAddress
+      session_id: sessionId
     });
     return lastInsertRowid;
   }
@@ -944,16 +1107,16 @@ export default class TaskDB {
     });
   }
 
-  createImagePair(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', ipAddress = '', model = '', publish = 0, productUrl = '', ebayUrl = '') {
+  createImagePair(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', model = '', publish = 0, productUrl = '', ebayUrl = '') {
     const ts = new Date().toISOString();
     const uuid = randomUUID().split('-')[0];
     const { lastInsertRowid } = this.db.prepare(`
       INSERT INTO chat_pairs (
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
-        citations_json, image_url, image_alt, image_title, image_status, session_id, ip_address, image_uuid, publish_portfolio, product_url, ebay_url
-      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', '', NULL, NULL, @url, @alt, @title, @status, @session_id, @ip_address, @uuid, @publish, @product_url, @ebay_url)
-    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, ip_address: ipAddress, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl, citations_json: null });
+        citations_json, image_url, image_alt, image_title, image_status, session_id, image_uuid, publish_portfolio, product_url, ebay_url
+      ) VALUES ('', '', @model, @ts, @ts, @chat_tab_id, '', '', NULL, NULL, @url, @alt, @title, @status, @session_id, @uuid, @publish, @product_url, @ebay_url)
+    `).run({ ts, chat_tab_id: chatTabId, url, alt: altText, title, status, session_id: sessionId, uuid, model, publish: publish ? 1 : 0, product_url: productUrl, ebay_url: ebayUrl, citations_json: null });
     return lastInsertRowid;
   }
 
@@ -1236,12 +1399,12 @@ export default class TaskDB {
         user_text, ai_text, model, timestamp, ai_timestamp,
         chat_tab_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, image_status,
-        session_id, ip_address, image_uuid, publish_portfolio, product_url
+        session_id, image_uuid, publish_portfolio, product_url
       )
       SELECT user_text, ai_text, model, timestamp, ai_timestamp,
         @new_id, system_context, project_context, token_info,
         image_url, image_alt, image_title, image_status,
-        session_id, ip_address, image_uuid, publish_portfolio, product_url
+        session_id, image_uuid, publish_portfolio, product_url
       FROM chat_pairs WHERE chat_tab_id=@old_id
     `).run({ new_id: lastInsertRowid, old_id: tabId });
 
@@ -1485,14 +1648,8 @@ export default class TaskDB {
     return row ? row.count : 0;
   }
 
-  countImagesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const row = this.db
-        .prepare(
-            "SELECT COUNT(*) AS count FROM chat_pairs WHERE ip_address=? AND image_url IS NOT NULL"
-        )
-        .get(ipAddress);
-    return row ? row.count : 0;
+  countImagesForIp() {
+    return 0;
   }
 
   countSearchesForSession(sessionId) {
@@ -1508,24 +1665,15 @@ export default class TaskDB {
     return row ? row.count : 0;
   }
 
-  countSearchesForIp(ipAddress) {
-    if (!ipAddress) return 0;
-    const row = this.db
-        .prepare(
-            `SELECT COUNT(*) AS count
-               FROM chat_pairs cp
-               JOIN chat_tabs ct ON cp.chat_tab_id = ct.id
-              WHERE cp.ip_address = ? AND ct.tab_type = 'search'`
-        )
-        .get(ipAddress);
-    return row ? row.count : 0;
+  countSearchesForIp() {
+    return 0;
   }
 
   setImageStatus(url, status) {
     const stmt = this.db.prepare("UPDATE chat_pairs SET image_status=? WHERE image_url=?");
     const info = stmt.run(status, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', status, '', '', '', 0, '', '');
+      this.createImagePair(url, '', 1, '', status, '', '', 0, '', '');
     }
   }
 
@@ -1533,7 +1681,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET image_title=? WHERE image_url=?");
     const info = stmt.run(title, url);
     if (info.changes === 0) {
-      this.createImagePair(url, '', 1, title, '', '', '', '', 0, '', '');
+      this.createImagePair(url, '', 1, title, '', '', '', 0, '', '');
     }
   }
 
@@ -1541,7 +1689,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET publish_portfolio=? WHERE image_url=?");
     const info = stmt.run(flag ? 1 : 0, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', flag ? 1 : 0, '', '');
+      this.createImagePair(url, '', 1, '', '', '', '', flag ? 1 : 0, '', '');
     }
   }
 
@@ -1549,7 +1697,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET product_url=? WHERE image_url=?");
     const info = stmt.run(productUrl, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', 0, productUrl, '');
+      this.createImagePair(url, '', 1, '', '', '', '', 0, productUrl, '');
     }
   }
 
@@ -1564,7 +1712,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET ebay_url=? WHERE image_url=?");
     const info = stmt.run(ebayUrl, url);
     if(info.changes === 0){
-      this.createImagePair(url, '', 1, '', '', '', '', '', 0, '', ebayUrl);
+      this.createImagePair(url, '', 1, '', '', '', '', 0, '', ebayUrl);
     }
   }
 
@@ -1587,7 +1735,7 @@ export default class TaskDB {
     const stmt = this.db.prepare("UPDATE chat_pairs SET image_hidden=? WHERE image_url=?");
     const info = stmt.run(hidden ? 1 : 0, url);
     if(info.changes === 0){
-      const id = this.createImagePair(url, '', 1, '', '', '', '', '', 0, '', '');
+      const id = this.createImagePair(url, '', 1, '', '', '', '', 0, '', '');
       this.db.prepare("UPDATE chat_pairs SET image_hidden=? WHERE id=?").run(hidden ? 1 : 0, id);
     }
   }
@@ -1626,19 +1774,67 @@ export default class TaskDB {
     const ts = new Date().toISOString();
     const { lastInsertRowid } = this.db
         .prepare(
-            `INSERT INTO accounts (email, password_hash, session_id, created_at, timezone, plan)
-             VALUES (?, ?, ?, ?, ?, ?)`
+            `INSERT INTO accounts (email, password_hash, session_id, aurora_session_id, created_at, timezone, plan)
+             VALUES (?, ?, '', ?, ?, ?, ?)`
         )
         .run(email, passwordHash, sessionId, ts, timezone, plan);
+    if (sessionId) {
+      this.db
+        .prepare(
+          `INSERT INTO session_views (session_id, view_count, account_id)
+           VALUES (?, 0, ?)
+           ON CONFLICT(session_id)
+           DO UPDATE SET account_id = excluded.account_id`
+        )
+        .run(sessionId, lastInsertRowid);
+    }
     return lastInsertRowid;
   }
 
   getAccountByEmail(email) {
-    return this.db.prepare('SELECT * FROM accounts WHERE email=?').get(email);
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!normalizedEmail) return null;
+    const directMatch = this.db.prepare('SELECT * FROM accounts WHERE email=?').get(normalizedEmail);
+    if (directMatch) return directMatch;
+    return this.db.prepare('SELECT * FROM accounts WHERE LOWER(TRIM(email))=?').get(normalizedEmail);
   }
 
   setAccountSession(id, sessionId) {
-    this.db.prepare('UPDATE accounts SET session_id=? WHERE id=?').run(sessionId, id);
+    this.db.prepare('UPDATE accounts SET aurora_session_id=? WHERE id=?').run(sessionId, id);
+    if (sessionId) {
+      this.db
+        .prepare(
+          `INSERT INTO session_views (session_id, view_count, account_id)
+           VALUES (?, 0, ?)
+           ON CONFLICT(session_id)
+           DO UPDATE SET account_id = excluded.account_id`
+        )
+        .run(sessionId, id);
+    }
+  }
+
+  setAccountAuroraSessionIfMissing(id, sessionId) {
+    if (!sessionId) return;
+    this.db
+      .prepare(
+        "UPDATE accounts SET aurora_session_id=? WHERE id=? AND (aurora_session_id IS NULL OR aurora_session_id='')"
+      )
+      .run(sessionId, id);
+  }
+
+  setAccountLastLogin(id) {
+    const now = new Date().toISOString();
+    this.db.prepare('UPDATE accounts SET last_log_in=? WHERE id=?').run(now, id);
+  }
+
+  recordAccountLogin(id, ipAddresses = {}, appName = 'Aurora') {
+    const now = new Date().toISOString();
+    const ipv4 = typeof ipAddresses?.ipv4 === 'string' ? ipAddresses.ipv4.trim() : '';
+    const ipv6 = typeof ipAddresses?.ipv6 === 'string' ? ipAddresses.ipv6.trim() : '';
+    const app = typeof appName === 'string' ? appName.trim() : 'Aurora';
+    this.db
+      .prepare('INSERT INTO log_ins (account_id, logged_in_at, app, ipv4_address, ipv6_address) VALUES (?, ?, ?, ?, ?)')
+      .run(id, now, app || 'Aurora', ipv4, ipv6);
   }
 
   setAccountTotpSecret(id, secret) {
@@ -1658,10 +1854,10 @@ export default class TaskDB {
   }
 
   getAccountBySession(sessionId) {
-    const account = this.db.prepare('SELECT * FROM accounts WHERE session_id=?').get(sessionId);
+    const account = this.db.prepare('SELECT * FROM accounts WHERE aurora_session_id=?').get(sessionId);
     if (!account) return null;
     if (account.disabled) {
-      this.db.prepare("UPDATE accounts SET session_id='' WHERE id=?").run(account.id);
+      this.db.prepare("UPDATE accounts SET aurora_session_id='' WHERE id=?").run(account.id);
       return null;
     }
     return account;
@@ -1670,8 +1866,8 @@ export default class TaskDB {
   mergeSessions(targetId, sourceId) {
     if (!targetId || !sourceId || targetId === sourceId) return;
 
-    await this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
-    await this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    this.db.prepare('UPDATE chat_tabs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
+    this.db.prepare('UPDATE chat_pairs SET session_id=? WHERE session_id=?').run(targetId, sourceId);
 
     const srcStart = this.getImageSessionStart(sourceId);
     const tgtStart = this.getImageSessionStart(targetId);
@@ -1685,7 +1881,27 @@ export default class TaskDB {
       }
     }
     this.db.prepare('DELETE FROM image_sessions WHERE session_id=?').run(sourceId);
+
+    this.db.prepare(
+      `INSERT INTO session_views (session_id, view_count, account_id)
+       VALUES (
+         ?,
+         COALESCE((SELECT view_count FROM session_views WHERE session_id = ?), 0)
+         + COALESCE((SELECT view_count FROM session_views WHERE session_id = ?), 0),
+         COALESCE(
+           (SELECT account_id FROM session_views WHERE session_id = ?),
+           (SELECT account_id FROM session_views WHERE session_id = ?),
+           (SELECT id FROM accounts WHERE aurora_session_id = ? LIMIT 1)
+         )
+       )
+       ON CONFLICT(session_id)
+       DO UPDATE SET
+         view_count = excluded.view_count,
+         account_id = COALESCE(session_views.account_id, excluded.account_id)`
+    ).run(targetId, targetId, sourceId, targetId, sourceId, targetId);
+    this.db.prepare('DELETE FROM session_views WHERE session_id=?').run(sourceId);
   }
+
 
   addUpworkJob() {
     throw new Error('upwork_jobs has been removed from the database schema.');
@@ -1732,7 +1948,7 @@ export default class TaskDB {
       .map((row) => row.name);
   }
 
-  getTableData(tableName, limit = 200) {
+  getTableData(tableName, limit = 200, offset = 0) {
     const tables = this.listTables();
     if (!tables.includes(tableName)) {
       throw new Error(`Unknown table: ${tableName}`);
@@ -1741,9 +1957,9 @@ export default class TaskDB {
     const columnInfo = this.db.prepare(`PRAGMA table_info(${safeName})`).all();
     const columns = columnInfo.map((col) => col.name);
     const rows = this.db
-      .prepare(`SELECT * FROM ${safeName} LIMIT ?`)
-      .all(limit);
-    return { columns, rows, limit, rowCount: rows.length };
+      .prepare(`SELECT * FROM ${safeName} LIMIT ? OFFSET ?`)
+      .all(limit, offset);
+    return { columns, rows, limit, offset, rowCount: rows.length };
   }
 
   runReadOnlyQuery(sqlText, limit = 200) {
@@ -1751,8 +1967,8 @@ export default class TaskDB {
     if (!sql) {
       throw new Error("Query is required.");
     }
-    const lowered = sql.toLowerCase();
-    if (!/^(select|with|pragma|explain)\b/.test(lowered)) {
+    const normalized = sql.replace(/^(?:\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/g, "").toLowerCase();
+    if (!/^(select|with|pragma|explain)\b/.test(normalized)) {
       throw new Error("Only read-only SELECT/WITH/PRAGMA/EXPLAIN queries are allowed.");
     }
 
@@ -1767,6 +1983,31 @@ export default class TaskDB {
       limit,
       rowCount: limitedRows.length,
       totalRows: rows.length
+    };
+  }
+
+  runWriteQuery(sqlText) {
+    const sql = typeof sqlText === "string" ? sqlText.trim() : "";
+    if (!sql) {
+      throw new Error("Query is required.");
+    }
+    const normalized = sql.replace(/^(?:\s|--[^\n]*\n|\/\*[\s\S]*?\*\/)+/g, "").toLowerCase();
+    const allowedStarts = ["insert", "update", "delete", "create", "drop", "alter", "begin", "commit", "rollback", "truncate"];
+    if (!allowedStarts.some(start => normalized.startsWith(start))) {
+      throw new Error("Only writable queries (INSERT, UPDATE, DELETE, etc.) are allowed.");
+    }
+
+    const statement = this.db.prepare(sql);
+    const result = statement.run();
+    const columns = statement.columns().map((col) => col.name);
+
+    return {
+      columns,
+      rows: [],
+      rowCount: result.changes,
+      totalRows: 0,
+      lastInsertRowid: Number.isFinite(result.lastInsertRowid) ? result.lastInsertRowid : null,
+      message: `Query executed successfully. ${result.changes} row${result.changes === 1 ? "" : "s"} affected.`
     };
   }
 }

@@ -39,6 +39,7 @@ USE_QWEN_CLI=false
 APPROVAL_MODE=""
 QWEN_ARGS=()
 QWEN_MODEL=""
+REUSE_PROJECT_DIR=false
 
 escape_config_value() {
   local value="$1"
@@ -545,6 +546,8 @@ while [[ $# -gt 0 ]]; do
     --qwen-model)
       [[ $# -ge 2 ]] || { echo "Error: --qwen-model requires a model id" >&2; exit 1; }
       QWEN_MODEL="$2"; shift 2 ;;
+    --reuse-project-dir)
+      REUSE_PROJECT_DIR=true; shift ;;
     --approval-mode)
       [[ $# -ge 2 ]] || { echo "Error: --approval-mode requires a mode value" >&2; exit 1; }
       APPROVAL_MODE="$2"; shift 2 ;;
@@ -788,6 +791,17 @@ run_qwen() {
   )"; then
     openai_base_url_value="$qwen_model_base_url"
   fi
+
+  # If webserver injected an account-level OpenAI key, force it for this run
+  # only for models that resolve to LiteLLM.
+  if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" ]]; then
+    local normalized_openai_base_url="${openai_base_url_value%/}"
+    if [[ "$normalized_openai_base_url" == "https://litellm.alfe.sh/v1" ]]; then
+      printf '[info] overriding OPENAI_API_KEY from ACCOUNT_DB_OPENAI_API_KEY\n'
+      openai_api_key_value="$ACCOUNT_DB_OPENAI_API_KEY"
+      export OPENAI_API_KEY="$ACCOUNT_DB_OPENAI_API_KEY"
+    fi
+  fi
   local strip_free_suffix
   strip_free_suffix() {
     local value="$1"
@@ -873,6 +887,9 @@ run_qwen() {
   fi
   case "${CODEX_SHOW_API_KEY,,}" in
     1|true|yes|on)
+      if [[ -n "${ACCOUNT_DB_OPENAI_API_KEY:-}" ]]; then
+        printf '[info] account DB OPENAI_API_KEY=%s\n' "$ACCOUNT_DB_OPENAI_API_KEY"
+      fi
       printf '[info] env OPENAI_API_KEY=%s\n' "$openai_api_key_value"
       ;;
   esac
@@ -1018,6 +1035,29 @@ run_here_or_in_project() {
       return 2
     fi
     maybe_git_pull "$PROJECT_DIR"
+
+    if $REUSE_PROJECT_DIR; then
+      log_meta "Reusing existing project directory without snapshot: $PROJECT_DIR"
+      printf '%s%s\n' "$CODEX_SNAPSHOT_MARKER" "$PROJECT_DIR"
+      (
+        export CODEX_ORIGINAL_PROJECT_DIR="$PROJECT_DIR"
+        export CODEX_EFFECTIVE_PROJECT_DIR="$PROJECT_DIR"
+        if $USE_QWEN_CLI; then
+          if should_use_vm; then
+            log_meta "Qwen CLI run requested; VM mode ignored."
+          fi
+          cd "$PROJECT_DIR" && run_qwen "${QWEN_ARGS[@]}"
+        else
+          if should_use_vm; then
+            run_codex_in_vm "$PROJECT_DIR" "$@"
+          else
+            cd "$PROJECT_DIR" && run_codex "$@"
+          fi
+        fi
+      )
+      return
+    fi
+
     # Before running, create a copy of the current repository and create a
     # git branch for this run. The copy path uses the millisecond timestamp
     # so each run snapshot is unique.

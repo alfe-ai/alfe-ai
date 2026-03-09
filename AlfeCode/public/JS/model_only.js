@@ -1099,31 +1099,31 @@
     }
   }
 
-  async function saveOpenrouterApiKey(openrouterApiKey) {
+  async function generateOpenrouterApiKey() {
     if (!allowConfigIpControls) {
       showAccountOpenrouterApiKeyFeedback('Forbidden.', 'error');
       return;
     }
     if (!editOpenrouterApiKeyButton) return;
-    showAccountOpenrouterApiKeyFeedback('Saving key...');
+    showAccountOpenrouterApiKeyFeedback('Generating key...');
     editOpenrouterApiKeyButton.disabled = true;
     try {
       const response = await fetch('/api/account/openrouter-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ openrouterApiKey }),
+        body: JSON.stringify({}),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const errorMessage = payload?.error || `Failed to save key (status ${response.status}).`;
+        const errorMessage = payload?.error || `Failed to generate key (status ${response.status}).`;
         throw new Error(errorMessage);
       }
-      setAccountOpenrouterApiKeyValue(payload?.openrouterApiKey || openrouterApiKey);
-      showAccountOpenrouterApiKeyFeedback('Saved.', 'success');
+      setAccountOpenrouterApiKeyValue(payload?.openrouterApiKey || '');
+      showAccountOpenrouterApiKeyFeedback('Generated.', 'success');
     } catch (error) {
       console.error('Failed to save Openrouter API key:', error);
-      showAccountOpenrouterApiKeyFeedback(error.message || 'Failed to save key.', 'error');
+      showAccountOpenrouterApiKeyFeedback(error.message || 'Failed to generate key.', 'error');
     } finally {
       editOpenrouterApiKeyButton.disabled = false;
     }
@@ -1488,6 +1488,14 @@
     });
   }
 
+  // Add event listener for the bottom logout button
+  const logoutButtonBottom = document.getElementById('logoutButtonBottom');
+  if (logoutButtonBottom) {
+    logoutButtonBottom.addEventListener('click', function() {
+      void handleLogout();
+    });
+  }
+
   async function handleSessionRefresh() {
     if (!allowConfigIpControls) {
       showSessionRefreshFeedback('Forbidden.', 'error');
@@ -1563,12 +1571,7 @@
 
   if (editOpenrouterApiKeyButton) {
     editOpenrouterApiKeyButton.addEventListener('click', function() {
-      const currentKey = accountOpenrouterApiKey ? (accountOpenrouterApiKey.textContent || '').trim() : '';
-      const nextKey = window.prompt('Enter your Openrouter.ai API key', currentKey === '—' ? '' : currentKey);
-      if (nextKey === null) {
-        return;
-      }
-      void saveOpenrouterApiKey(nextKey.trim());
+      void generateOpenrouterApiKey();
     });
   }
 

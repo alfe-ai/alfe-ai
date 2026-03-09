@@ -450,6 +450,103 @@
             color: var(--accent);
         }
 
+        /* Tooltip styles */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip-arrow {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border: 5px solid transparent;
+            border-top-color: var(--accent);
+        }
+
+        .prompt-tooltip {
+            background-color: rgba(124, 58, 237, 0.95);
+            font-size: 1.6575rem;
+        }
+
+        .prompt-tooltip-arrow {
+            border-top-color: rgba(124, 58, 237, 0.95);
+        }
+
+        .prompt-tooltip-container {
+            display: block;
+            width: 100%;
+        }
+
+        .tooltip-text {
+            margin: 0;
+        }
+
+        .view-diff-tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-diff-tooltip {
+            left: auto;
+            top: 50%;
+            right: calc(100% + 12px);
+            transform: translateY(-50%);
+            min-width: 320px;
+            width: max-content;
+            max-width: 360px;
+            white-space: normal;
+        }
+
+        .view-diff-tooltip.is-disabled {
+            display: none !important;
+        }
+
+        .view-diff-tooltip .tooltip-text {
+            white-space: nowrap;
+            line-height: 1.35;
+            text-align: left;
+        }
+
+        .view-diff-tooltip-arrow {
+            top: 50%;
+            left: 100%;
+            transform: translateY(-50%);
+            border: 6px solid transparent;
+            border-left-color: rgba(124, 58, 237, 0.95);
+        }
+
         .container {
             width: 100%;
             max-width: none;
@@ -1695,6 +1792,13 @@
             outline-offset: 2px;
         }
 
+        .nav-button[disabled] {
+            opacity: 0.45;
+            filter: saturate(0);
+            box-shadow: none;
+            transform: none;
+        }
+
         .status {
             margin-top: 28px;
             padding: 18px 22px;
@@ -1712,8 +1816,25 @@
             margin-top: 32px;
         }
 
+        .followup-section-title {
+            margin: 0 0 14px;
+            color: #86efac;
+            font-size: 1.7rem;
+            letter-spacing: 0.01em;
+        }
+
         .followup-session + .followup-session {
             margin-top: 28px;
+        }
+
+        .followup-actions {
+            margin-top: 14px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .followup-view-diff-button {
+            min-width: 176px;
         }
 
         .followup-status {
@@ -2446,6 +2567,43 @@
             box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
         }
 
+        #switchBranchSearch {
+            margin-bottom: 10px;
+        }
+
+        #branchList {
+            margin-top: 0;
+            max-height: 260px;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid var(--surface-border);
+            background: rgba(15, 23, 42, 0.6);
+            padding: 6px;
+        }
+
+        .branch-list-option {
+            border-radius: 8px;
+            padding: 8px 10px;
+            cursor: pointer;
+            color: var(--text-color);
+            user-select: none;
+        }
+
+        .branch-list-option:hover {
+            background: rgba(124, 58, 237, 0.2);
+        }
+
+        .branch-list-option.is-selected {
+            background: rgba(124, 58, 237, 0.35);
+            border: 1px solid rgba(124, 58, 237, 0.75);
+        }
+
+        .branch-list-hint {
+            margin-top: 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
         #switchBranchModal .switch-branch-actions {
             margin-top: 18px;
             display: flex;
@@ -3021,7 +3179,107 @@
         }
 
         /* Merge button default: subtle grey-white */
-        .merge-button-wrapper {
+                .update-button-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+        .update-button-wrapper .update-button-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translate(-50%, 6px);
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.95);
+            color: rgba(241, 245, 249, 0.95);
+            border-radius: 8px;
+            font-size: 1.105rem;
+            line-height: 1.3;
+            white-space: nowrap;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            z-index: 5;
+        }
+        .update-button-wrapper:hover .update-button-tooltip,
+        .update-button-wrapper:focus-within .update-button-tooltip {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+
+        .refresh-view-diff-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .refresh-view-diff-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            transform: translateY(-6px);
+            min-width: 240px;
+            max-width: 300px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.95);
+            color: #f8fafc;
+            font-size: 1.105rem;
+            line-height: 1.3;
+            text-align: center;
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.35);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 30;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            white-space: normal;
+        }
+
+        .refresh-view-diff-wrapper:hover .refresh-view-diff-tooltip,
+        .refresh-view-diff-wrapper:focus-within .refresh-view-diff-tooltip {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+
+        .merge-output-toggle-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .merge-output-toggle-tooltip {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            transform: translateY(-6px);
+            min-width: 240px;
+            max-width: 300px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.95);
+            color: #f8fafc;
+            font-size: 1.105rem;
+            line-height: 1.3;
+            text-align: center;
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.35);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 30;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            white-space: normal;
+        }
+
+        .merge-output-toggle-wrapper:hover .merge-output-toggle-tooltip,
+        .merge-output-toggle-wrapper:focus-within .merge-output-toggle-tooltip {
+            opacity: 1;
+            transform: translateY(0);
+        }
+.merge-button-wrapper {
             position: relative;
             display: inline-flex;
         }
@@ -3034,7 +3292,7 @@
             background: rgba(15, 23, 42, 0.95);
             color: rgba(241, 245, 249, 0.95);
             border-radius: 8px;
-            font-size: 0.85rem;
+            font-size: 1.105rem;
             line-height: 1.3;
             width: auto;
             max-width: none;
@@ -3070,6 +3328,12 @@
             border-color: transparent;
             box-shadow: 0 18px 32px rgba(124, 58, 237, 0.28);
         }
+
+        <% if (mainMergeButtonDisabled) { %>
+        #mergeButtonWrapper {
+            display: none !important;
+        }
+        <% } %>
 
 
         /* Archived toggle active style */
@@ -3122,8 +3386,8 @@
         /* Repositories dropdown */
         .repos-dropdown { position: absolute; display: none; z-index: 4000; }
         .repos-dropdown.is-visible { display: block; }
-        .repos-dropdown__inner { width: 420px; height: 360px; background: linear-gradient(180deg, rgba(6,8,15,0.98), rgba(12,16,28,0.95)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(2,6,23,0.6); border-radius: 12px; overflow: hidden; }
-        .repos-dropdown__inner iframe { width: 100%; height: 100%; border: none; }
+        .repos-dropdown__inner { width: 420px; height: 360px; padding: 2px; background: linear-gradient(180deg, rgba(6,8,15,0.98), rgba(12,16,28,0.95)); border:2px solid #7c3aed; box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.4), 0 12px 40px rgba(2,6,23,0.6); border-radius: 12px; overflow: hidden; }
+        .repos-dropdown__inner iframe { width: 100%; height: 100%; border: 0; border-radius: 10px; }
 
     
         /* Tooltip for Branch button */
@@ -3381,7 +3645,7 @@
 <button type="button" id="runsSidebarOpenRunsButton" class="runs-sidebar__icon-button is-hidden" aria-label="Detail run" title="Detail run">
                         Detail
                     </button>
-<button type="button" id="runsSidebarArchiveToggle" class="runs-sidebar__icon-button" aria-pressed="false" aria-label="Archive" title="Archive">Archive</button>
+<button type="button" id="runsSidebarArchiveToggle" class="runs-sidebar__icon-button" aria-pressed="false" aria-label="Archived" title="Archived">Archived</button>
 
                 </div>
             </div>
@@ -3403,7 +3667,6 @@
             <div class="runs-sidebar__body">
                 <div id="runsSidebarLoading" class="runs-sidebar__status runs-sidebar__loading is-hidden" role="status" aria-live="polite"></div>
                 <div id="runsSidebarError" class="runs-sidebar__status runs-sidebar__error is-hidden" role="alert"></div>
-                <div id="runsSidebarEmpty" class="runs-sidebar__status runs-sidebar__empty is-hidden">No runs recorded yet.</div>
                 <div id="runsSidebarList" class="runs-sidebar__list" role="list" aria-labelledby="runsSidebarTitle"></div>
             </div>
             <div id="runsSidebarPagination" class="runs-sidebar__pagination is-hidden" aria-live="polite">
@@ -3747,28 +4010,40 @@
             </div>
             <div>
                 <label for="prompt">Prompt</label>
-                <textarea
-                    id="prompt"
-                    name="prompt"
-                    placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
+                <div class="tooltip-container prompt-tooltip-container">
+                    <div id="promptTooltip" class="tooltip prompt-tooltip" role="tooltip">
+                        <span class="tooltip-text">Enter a prompt to get started</span>
+                        <div class="tooltip-arrow prompt-tooltip-arrow"></div>
+                    </div>
+                    <textarea
+                        id="prompt"
+                        name="prompt"
+                        placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
 
 Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
-                    required
-                    autocomplete="off"
-                    spellcheck="false"
-                    rows="6"
-                ></textarea>
+                        required
+                        autocomplete="off"
+                        spellcheck="false"
+                        rows="6"
+                    ></textarea>
+                </div>
             </div>
 
             <div class="actions">
-                <button
-                    type="button"
-                    id="updateBranchButton"
-                    class="secondary"
-                    title="Update this branch with changes from its parent"
-                >
-                    Pull updates
-                </button>
+                <div class="update-button-wrapper">
+                    <button
+                        type="button"
+                        id="updateBranchButton"
+                        class="secondary"
+                        title="Pull updates from&#10;configured project branch"
+                        aria-describedby="updateBranchTooltip"
+                    >
+                        Pull updates
+                    </button>
+                    <div class="update-button-tooltip" id="updateBranchTooltip" role="tooltip" aria-hidden="true">
+                        Pull updates from<br />configured project branch
+                    </div>
+                </div>
                 <div class="merge-button-wrapper" id="mergeButtonWrapper">
                     <button
                         type="button"
@@ -3776,7 +4051,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                         class="secondary"
                         disabled
                         aria-disabled="true"
-                        title="Merge is available after&#10;agent finishes running."
+                        title="Merge is available after&#10;agent finishes running"
                     >
                         <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:8px;opacity:0.95;">
                             <path d="M18 3a2 2 0 11-4 0 2 2 0 014 0zM6 21a2 2 0 11-4 0 2 2 0 014 0zM18 21a2 2 0 11-4 0 2 2 0 014 0zM8.5 12.5l6-3v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3784,7 +4059,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                         <span>Merge</span>
                     </button>
                     <div class="merge-disabled-tooltip" id="mergeDisabledTooltip" role="tooltip" aria-hidden="true">
-                        Merge is available after<br />agent finishes running.
+                        Merge is available after<br />agent finishes running
                     </div>
                 </div>
 
@@ -3872,16 +4147,33 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 <small>Commit revision: <code id="gitFpushRevisionCode"></code></small>
             </div>
         <% } %>
-        <div id="mergeOutputContainer" class="is-hidden">
-            <div class="merge-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
+        <div id="mergeOutputContainer">
+            <div class="merge-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:5px;margin-bottom:5px;">
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button id="mergeToggleButton" class="tab-button" type="button" aria-expanded="false">Show merge output</button>
+                    <div class="merge-output-toggle-wrapper">
+                        <button id="mergeToggleButton" class="tab-button" type="button" aria-expanded="false" aria-describedby="mergeOutputToggleTooltip">Show merge output</button>
+                        <div class="merge-output-toggle-tooltip" id="mergeOutputToggleTooltip" role="tooltip" aria-hidden="true">
+                            After merge is complete,<br />view merge output
+                        </div>
+                    </div>
                     <span id="mergeSummary" class="status-text">&nbsp;</span>
                 </div>
-                <div style="margin-left:12px;">
+                <div class="view-diff-tooltip-container" style="margin-left:12px;">
+                    <div id="viewDiffTooltip" class="tooltip prompt-tooltip view-diff-tooltip is-disabled" role="tooltip" aria-hidden="true">
+                        <span class="tooltip-text">View code changes<br />Merge to configured project branch</span>
+                        <div class="tooltip-arrow prompt-tooltip-arrow view-diff-tooltip-arrow"></div>
+                    </div>
+                    <div class="refresh-view-diff-wrapper">
+                        <button id="refreshRunPageButton" class="nav-button" type="button" aria-label="View Diff" aria-describedby="refreshViewDiffTooltip" disabled>
+                            View Diff / Merge
+                        </button>
+                        <div class="refresh-view-diff-tooltip" id="refreshViewDiffTooltip" role="tooltip" aria-hidden="true">
+                            View code changes<br />Merge to configured project branch
+                        </div>
+                    </div>
                     <!-- View Diff visible before merge -->
-                    <button id="openMergeDiffButton" class="nav-button" type="button" title="View Diff" aria-label="View Diff" disabled>
-                        View Diff
+                    <button id="openMergeDiffButton" class="nav-button<%= nonRefreshDiffButtonHidden ? ' is-hidden' : '' %>" type="button" title="View Diff" aria-label="View Diff" disabled>
+                        View Diff / Merge
                     </button>
                 </div>
             </div>
@@ -3912,6 +4204,19 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             autocomplete="off"
             aria-labelledby="promptModalHeader"
           ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="diffMetadataErrorModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-labelledby="diffMetadataErrorModalHeader">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="diffMetadataErrorModalCloseButton" aria-label="Close">×</button>
+        <div class="modal-title-row">
+          <h2 id="diffMetadataErrorModalHeader">Error Loading Diff - Run Finishing</h2>
+        </div>
+        <p>Please wait for the run to complete before viewing the diff. There was an issue loading the diff metadata, please try again.</p>
+        <div class="modal-buttons">
+          <button id="diffMetadataErrorModalOkButton" class="primary" type="button">Ok</button>
         </div>
       </div>
     </div>
@@ -3975,6 +4280,18 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <span id="signupSubmitSpinner" class="auth-submit-spinner is-hidden" aria-live="polite" aria-label="Registering"></span>
                 </div>
               </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="accountDisabledModal" class="modal-overlay is-hidden auth-modal" role="dialog" aria-modal="true" aria-label="Account disabled">
+        <div class="modal-content">
+            <div class="modal-title-row">
+                <h2>Account disabled</h2>
+            </div>
+            <p>Your account has been disabled. Please check your email for further details.</p>
+            <div class="modal-buttons">
+                <button id="accountDisabledOkButton" class="primary" type="button">Ok</button>
             </div>
         </div>
     </div>
@@ -4063,8 +4380,11 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
           <button type="button" class="switch-branch-create" id="switchBranchCreateButton">Or Create a New Branch</button>
         </div>
         <div id="branchSelectContainer">
-          <label for="branchSelect">Select existing branch:</label>
-          <select id="branchSelect"></select>
+          <label for="switchBranchSearch">Select existing branch:</label>
+          <input id="switchBranchSearch" type="text" placeholder="Search branches..." autocomplete="off" />
+          <div id="branchList" role="listbox" aria-label="Branch list"></div>
+          <input id="branchSelect" type="hidden" />
+          <div id="branchListHint" class="branch-list-hint"></div>
           <div class="switch-branch-actions">
             <button type="button" class="nav-button" id="switchBranchSubmitButton">Switch</button>
           </div>
@@ -4177,7 +4497,12 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 accountButtonEnabled: <%- JSON.stringify(typeof accountButtonEnabled === "undefined" ? true : accountButtonEnabled) %>,
                 userPromptVisibleCodex: <%- JSON.stringify(typeof userPromptVisibleCodex === "undefined" ? false : userPromptVisibleCodex) %>,
                 agentModelDropdownDisabled: <%- JSON.stringify(typeof agentModelDropdownDisabled !== 'undefined' ? agentModelDropdownDisabled : false) %>,
+                nonRefreshDiffButtonHidden: <%- JSON.stringify(typeof nonRefreshDiffButtonHidden !== 'undefined' ? nonRefreshDiffButtonHidden : false) %>,
                 subscriptionCheckoutUrl: <%- JSON.stringify(subscriptionCheckoutUrl || "") %>,
+<<<<<<< HEAD
+=======
+                initialAccountInfo: <%- JSON.stringify(initialAccountInfo || null) %>,
+>>>>>>> main
                 disableSubscriptionLink: <%- JSON.stringify(!!disableSubscriptionLink) %>,
                 shopifyAuthEnabled: <%- JSON.stringify(typeof shopifyAuthEnabled === "undefined" ? true : shopifyAuthEnabled) %>,
                 shopifyAuthStartUrl: <%- JSON.stringify(shopifyAuthStartUrl || "/auth/shopify/start") %>,
@@ -4187,6 +4512,78 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <script src="/JS/codex_runner.js" defer></script>
 
 <script>
+// Tooltip logic
+(function(){
+    const tooltip = document.getElementById('promptTooltip');
+    const promptField = document.getElementById('prompt');
+    const tooltipCookie = 'promptTooltipShown';
+    const tooltipLoggedInCookie = 'promptTooltipSuppressedForLoggedIn';
+    const config = window.CodexRunnerConfig || {};
+
+    // Check if user is logged in based on actual account data.
+    const isUserLoggedIn = !!(config.initialAccountInfo && config.initialAccountInfo.email);
+
+    // Function to check if cookie exists
+    function hasCookie(cookieName) {
+        return document.cookie.split(';').some((cookie) => {
+            const [name, value] = cookie.trim().split('=');
+            return name === cookieName;
+        });
+    }
+
+    function setCookie(cookieName, cookieValue, maxAgeDays) {
+        const expirationDate = new Date();
+        expirationDate.setTime(expirationDate.getTime() + (maxAgeDays * 24 * 60 * 60 * 1000));
+        document.cookie = `${cookieName}=${cookieValue};expires=${expirationDate.toUTCString()};path=/`;
+    }
+
+    // For logged-in users, always suppress this tooltip and persist with a cookie.
+    if (isUserLoggedIn) {
+        setCookie(tooltipLoggedInCookie, 'true', 30);
+        setCookie(tooltipCookie, 'true', 30);
+        if (tooltip) {
+            tooltip.classList.remove('show');
+        }
+        return;
+    }
+
+    // Show tooltip after a brief delay if user is not logged in and has not seen it before.
+    if (!hasCookie(tooltipCookie) && !hasCookie(tooltipLoggedInCookie)) {
+        setTimeout(() => {
+            if (tooltip && promptField) {
+                tooltip.classList.add('show');
+                // Don't set the cookie here, let the form submit handle it
+            }
+        }, 1000);
+    }
+
+    // Add click handler to dismiss tooltip but don't set cookie yet
+    if (tooltip && promptField) {
+        tooltip.addEventListener('click', function() {
+            tooltip.classList.remove('show');
+            // Don't set the cookie here, let the form submit handle it
+        });
+    }
+
+    // Hide tooltip when user starts typing
+    if (promptField) {
+        promptField.addEventListener('focus', function() {
+            if (tooltip) {
+                tooltip.classList.remove('show');
+            }
+        });
+    }
+    
+    // Set cookie when user submits their first run
+    const form = document.getElementById('codexForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+            // Set cookie when form is submitted to prevent tooltip from showing
+            setCookie(tooltipCookie, 'true', 30);
+        });
+    }
+})();
+
 (function(){
   const sidebar = document.getElementById('runsSidebar');
   // Prefer the repo header button for the repositories dropdown; fall back to the Runs title if unavailable.

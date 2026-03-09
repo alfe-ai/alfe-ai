@@ -3,6 +3,7 @@ import fs from "fs";
 import { mkdir, readFile, writeFile, access, unlink, readdir } from "fs/promises";
 import path from "path";
 import https from "https";
+import net from "net";
 import { URL, fileURLToPath } from "url";
 import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
@@ -39,11 +40,28 @@ const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
 );
 const MIN_PASSWORD_LENGTH = 8;
 
+const AURORA_LOGIN_REDIRECT_TARGET = process.env.AURORA_LOGIN_REDIRECT_TARGET || "https://internal-chat.alfe.bot";
 const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
 const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
   false
 );
+
+// Shopify Configuration
+const SHOPIFY_STORE_BASE_URL = process.env.SHOPIFY_STORE_BASE_URL;
+const SHOPIFY_SUBSCRIPTION_VARIANT_ID = process.env.SHOPIFY_SUBSCRIPTION_VARIANT_ID;
+const SHOPIFY_SELLING_PLAN_ID = process.env.SHOPIFY_SELLING_PLAN_ID;
+const SHOPIFY_CUSTOMER_ACCOUNT_LOGIN_URL = process.env.SHOPIFY_CUSTOMER_ACCOUNT_LOGIN_URL;
+const SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID = process.env.SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID;
+const SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT = process.env.SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT;
+const SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT = process.env.SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT;
+const SHOPIFY_CUSTOMER_ACCOUNT_LOGOUT_ENDPOINT = process.env.SHOPIFY_CUSTOMER_ACCOUNT_LOGOUT_ENDPOINT;
+const SHOPIFY_CUSTOMER_ACCOUNT_SCOPES = process.env.SHOPIFY_CUSTOMER_ACCOUNT_SCOPES || process.env.SHOPIFY_CUSTOMER_ACCOUNTS_SCOPES || 'openid email customer-account-api:full';
+const SHOPIFY_SHOP = process.env.SHOPIFY_SHOP;
+
+const SHOPIFY_AUTH_START_PATH = "/auth/shopify/start";
+// For Shopify authentication, use customer account authorization endpoint instead of default
+const SHOPIFY_AUTH_DEFAULT_START_URL = SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT || `${AURORA_LOGIN_REDIRECT_TARGET}${SHOPIFY_AUTH_START_PATH}`;
 
 function normalizeSterlingBaseUrl(url) {
   return url.replace(/\/+$/, "");
@@ -652,6 +670,23 @@ if(sterlingProxyTarget){
 app.use(compression());
 // Body parser must come before any routes that access req.body
 app.use(bodyParser.json());
+
+app.use((req, res, next) => {
+  const { sessionId } = ensureSessionIdCookie(req, res);
+  req.sessionId = sessionId;
+  res.locals.sessionId = sessionId;
+
+  if (isPageViewRequest(req)) {
+    const reqPath = req.path || req.originalUrl || req.url || '';
+    const ipAddresses = getRequestIpAddresses(req);
+    Promise.resolve(db.incrementSessionViewCount(sessionId, ipAddresses, reqPath)).catch((error) => {
+      console.error("[Server Debug] Failed to increment session view count:", error);
+    });
+  }
+
+  next();
+});
+
 const jobHistoryPath = path.join(__dirname, "../jobsHistory.json");
 const jobManager = new JobManager({ historyPath: jobHistoryPath });
 
@@ -709,10 +744,10 @@ function getOpenAiClient(options = {}) {
     console.debug("[Server Debug] Using openrouter.ai with provided OPENROUTER_API_KEY.");
     return new OpenAI({
       apiKey: openRouterKey,
-      baseURL: "https://openrouter.ai/api/v1",
+      baseURL: process.env.OPENAI_BASE_URL,
       defaultHeaders: {
-        "X-Title": "MyAwesomeApp",
-        "HTTP-Referer": "https://alfe.sh"
+        "X-Title": "Alfe AI",
+        "HTTP-Referer": "https://alfe.bot"
       }
     });
   }
@@ -927,6 +962,52 @@ function getSessionIdFromRequest(req) {
   return cookies.sessionId || "";
 }
 
+function isPageViewRequest(req) {
+  if ((req.method || "").toUpperCase() !== "GET") {
+    return false;
+  }
+  const reqPath = req.path || req.url || "";
+  if (!reqPath || reqPath.startsWith("/api/")) {
+    return false;
+  }
+  if (/\.(?:js|mjs|css|png|jpe?g|gif|webp|svg|ico|map|json|txt|woff2?|ttf|eot)$/i.test(reqPath)) {
+    return false;
+  }
+  const accept = (req.headers.accept || "").toLowerCase();
+  return accept.includes("text/html") || accept.includes("application/xhtml+xml");
+}
+
+
+function getRequestIpAddresses(req) {
+  const candidates = [];
+  const forwarded = req.headers["x-forwarded-for"];
+  if (Array.isArray(forwarded)) {
+    forwarded.forEach((entry) => {
+      String(entry || "").split(",").forEach((part) => candidates.push(part.trim()));
+    });
+  } else if (forwarded) {
+    String(forwarded).split(",").forEach((part) => candidates.push(part.trim()));
+  }
+  if (req.ip) candidates.push(String(req.ip).trim());
+  if (req.connection?.remoteAddress) candidates.push(String(req.connection.remoteAddress).trim());
+  if (req.socket?.remoteAddress) candidates.push(String(req.socket.remoteAddress).trim());
+
+  let ipv4 = "";
+  let ipv6 = "";
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const normalized = raw.replace(/^::ffff:/i, "");
+    const version = net.isIP(normalized) ? net.isIP(normalized) : net.isIP(raw);
+    if (version === 4 && !ipv4) {
+      ipv4 = normalized;
+    } else if (version === 6 && !ipv6) {
+      ipv6 = raw;
+    }
+    if (ipv4 && ipv6) break;
+  }
+  return { ipv4, ipv6 };
+}
+
 function resolveTabPath(tab) {
   if (!tab) return null;
   if (tab.path_alias && tab.path_alias.trim()) {
@@ -948,6 +1029,37 @@ function verifyPassword(password, stored) {
   const [salt, hash] = stored.split('$');
   const h = pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
   return h === hash;
+}
+
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  const payloadSegment = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  const padded = payloadSegment + '='.repeat((4 - (payloadSegment.length % 4)) % 4);
+  try {
+    return JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+  } catch (_err) {
+    return null;
+  }
+}
+
+function normalizeAccountEmail(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function getEmailFromShopifyTokenData(tokenData) {
+  if (!tokenData || typeof tokenData !== 'object') return '';
+
+  const directEmail = normalizeAccountEmail(tokenData.email);
+  if (directEmail) return directEmail;
+
+  const idPayload = decodeJwtPayload(tokenData.id_token);
+  const idPayloadEmail = normalizeAccountEmail(idPayload?.email || idPayload?.email_address);
+  if (idPayloadEmail) return idPayloadEmail;
+
+  const accessPayload = decodeJwtPayload(tokenData.access_token);
+  return normalizeAccountEmail(accessPayload?.email || accessPayload?.email_address);
 }
 
 // Updated to include ".json" suffix
@@ -1275,7 +1387,9 @@ if (whitelistIps.size > 0) {
 }
 
 const configIpWhitelist = new Set();
+const configUserWhitelist = new Set();
 const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+const configUserWhitelistEnv = process.env.CONFIG_USER_WHITELIST || "";
 if (configIpWhitelistEnv) {
   configIpWhitelistEnv
     .split(",")
@@ -1285,6 +1399,14 @@ if (configIpWhitelistEnv) {
       configIpWhitelist.add(ip);
       configIpWhitelist.add(`::ffff:${ip}`);
     });
+}
+
+if (configUserWhitelistEnv) {
+  configUserWhitelistEnv
+    .split(",")
+    .map((email) => String(email || "").trim().toLowerCase())
+    .filter(Boolean)
+    .forEach((email) => configUserWhitelist.add(email));
 }
 
 function getRequestIp(req) {
@@ -1307,6 +1429,38 @@ function isIpAllowed(ip, whitelist) {
   }
   const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
   return whitelist.has(ip) || whitelist.has(normalized);
+}
+
+function getRequestEmail(req) {
+  const candidate =
+    req?.account?.email ||
+    req?.user?.email ||
+    req?.session?.account?.email ||
+    req?.body?.email ||
+    req?.query?.email ||
+    req?.headers?.["x-user-email"] ||
+    req?.headers?.["x-forwarded-email"] ||
+    "";
+  return String(candidate || "").trim().toLowerCase();
+}
+
+function isUserAllowed(email, whitelist) {
+  if (whitelist.size === 0) {
+    return false;
+  }
+  if (!email) {
+    return false;
+  }
+  return whitelist.has(email);
+}
+
+function isConfigAccessAllowed(req) {
+  if (configUserWhitelist.size === 0) {
+    return false;
+  }
+  const allowedByIp = isIpAllowed(getRequestIp(req), configIpWhitelist);
+  const allowedByUser = isUserAllowed(getRequestEmail(req), configUserWhitelist);
+  return allowedByIp || allowedByUser;
 }
 
 // Determine uploads directory
@@ -1429,7 +1583,7 @@ app.get("/api/tasks", async (req, res) => {
 });
 
 app.get("/api/db/tables", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /api/db/tables blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1450,7 +1604,7 @@ app.get("/api/db/tables", (req, res) => {
 
 app.get("/api/db/table/:name", (req, res) => {
   const tableName = req.params.name;
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /api/db/table blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1461,7 +1615,8 @@ app.get("/api/db/table/:name", (req, res) => {
         return res.status(501).json({ error: "Database table read not supported." });
       }
       const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 200, 1000));
-      const data = await Promise.resolve(db.getTableData(tableName, limit));
+      const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+      const data = await Promise.resolve(db.getTableData(tableName, limit, offset));
       res.json(data);
     } catch (err) {
       console.error("[Server Debug] GET /api/db/table error:", err);
@@ -1474,7 +1629,7 @@ app.get("/api/db/table/:name", (req, res) => {
 });
 
 app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] POST /api/db/query blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1497,8 +1652,69 @@ app.post("/api/db/query", express.json({ limit: "200kb" }), (req, res) => {
   })();
 });
 
+app.post("/api/db/query/write/verify", express.json({ limit: "50kb" }), (req, res) => {
+  if (!isConfigAccessAllowed(req)) {
+    console.warn("[Server Debug] POST /api/db/query/write/verify blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const dbAdminWriteToken = process.env.DB_ADMIN_WRITE_TOKEN;
+  const providedToken = req.body?.token;
+
+  if (!dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write/verify: DB_ADMIN_WRITE_TOKEN not configured");
+    return res.status(500).json({ error: "Server not configured for writable queries" });
+  }
+
+  if (!providedToken || providedToken !== dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write/verify: Invalid or missing token");
+    return res.status(403).json({ error: "Invalid or missing admin token" });
+  }
+
+  return res.json({ ok: true });
+});
+
+app.post("/api/db/query/write", express.json({ limit: "200kb" }), (req, res) => {
+  if (!isConfigAccessAllowed(req)) {
+    console.warn("[Server Debug] POST /api/db/query/write blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const dbAdminWriteToken = process.env.DB_ADMIN_WRITE_TOKEN;
+  const providedToken = req.body?.token;
+
+  if (!dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write: DB_ADMIN_WRITE_TOKEN not configured");
+    return res.status(500).json({ error: "Server not configured for writable queries" });
+  }
+
+  if (!providedToken || providedToken !== dbAdminWriteToken) {
+    console.warn("[Server Debug] POST /api/db/query/write: Invalid or missing token");
+    return res.status(403).json({ error: "Invalid or missing admin token" });
+  }
+
+  console.debug("[Server Debug] POST /api/db/query/write called with valid token.");
+  (async () => {
+    try {
+      if (typeof db.runWriteQuery !== "function") {
+        return res.status(501).json({ error: "Database write query execution not supported." });
+      }
+      const sql = typeof req.body?.query === "string" ? req.body.query : "";
+      if (!sql) {
+        return res.status(400).json({ error: "Query is required." });
+      }
+      const data = await Promise.resolve(db.runWriteQuery(sql));
+      res.json(data);
+    } catch (err) {
+      console.error("[Server Debug] POST /api/db/query/write error:", err);
+      const message = err?.message || "Internal server error";
+      res.status(400).json({ error: message });
+    }
+  })();
+});
+
 app.get("/api/db/info", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /api/db/info blocked by CONFIG_IP_WHITELIST");
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -1510,6 +1726,25 @@ app.get("/api/db/info", (req, res) => {
     console.error("[Server Debug] GET /api/db/info error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+app.get("/api/db/account_ips", (req, res) => {
+  if (!isConfigAccessAllowed(req)) {
+    console.warn("[Server Debug] GET /api/db/account_ips blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  console.debug("[Server Debug] GET /api/db/account_ips called.");
+  (async () => {
+    try {
+      // For the account_ips endpoint, we'll fetch accounts with their associated IPs
+      // We'll fetch accounts and their IPs from session_views table
+      const accounts = await db.getAllAccountsWithIps();
+      res.json({ accounts });
+    } catch (err) {
+      console.error("[Server Debug] GET /api/db/account_ips error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  })();
 });
 
 app.get("/api/projects", (req, res) => {
@@ -1916,6 +2151,7 @@ app.post("/api/register", async (req, res) => {
     }
     const hash = hashPassword(password);
     const id = await db.createAccount(email, hash, sessionId);
+    await db.setAccountAuroraSessionIfMissing(id, sessionId);
     res.json({ success: true, id, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/register failed:", err);
@@ -1971,12 +2207,16 @@ app.post("/api/login", async (req, res) => {
       }
     }
 
-    if (account.session_id && account.session_id !== sessionId) {
-      await db.mergeSessions(account.session_id, sessionId); // Fixed to use separate queries in rds_store.js
-      sessionId = account.session_id;
+    if (account.aurora_session_id && account.aurora_session_id !== sessionId) {
+      await db.mergeSessions(account.aurora_session_id, sessionId); // Fixed to use separate queries in rds_store.js
+      sessionId = account.aurora_session_id;
     }
 
     await db.setAccountSession(account.id, sessionId);
+    await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
+    // Update last login timestamp
+    await db.setAccountLastLogin(account.id);
+    await db.recordAccountLogin(account.id, getRequestIpAddresses(req));
     res.json({ success: true, id: account.id, email: account.email, sessionId, accountsEnabled });
   } catch (err) {
     console.error("[AlfeChat] POST /api/login failed:", err);
@@ -2585,9 +2825,6 @@ app.post("/api/chat", async (req, res) => {
     const userMessage = req.body.message || "";
     const chatTabId = req.body.tabId || 1;
     const sessionId = req.body.sessionId || "";
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
-        .split(",")[0]
-        .trim();
     const tabInfo = await db.getChatTab(chatTabId, sessionId || null);
     if (!tabInfo) {
       return res.status(403).json({ error: "Forbidden" });
@@ -2602,16 +2839,6 @@ app.post("/api/chat", async (req, res) => {
             error: "Search limit reached for this session",
             type: "search_session_limit",
             counts: { sessionCount: sessionSearchCount, sessionLimit: FREE_SEARCH_LIMIT }
-          });
-        }
-      }
-      if (ipAddress) {
-        const ipSearchCount = db.countSearchesForIp(ipAddress);
-        if (ipSearchCount >= FREE_SEARCH_LIMIT) {
-          return res.status(429).json({
-            error: "Search limit reached for this IP",
-            type: "search_ip_limit",
-            counts: { ipCount: ipSearchCount, ipLimit: FREE_SEARCH_LIMIT }
           });
         }
       }
@@ -2679,8 +2906,7 @@ app.post("/api/chat", async (req, res) => {
         chatTabId,
         systemContext,
         projectContext,
-        sessionId,
-        ipAddress
+        sessionId
     );
     conversation.push({ role: "user", content: finalUserMessage });
     db.logActivity("User chat", JSON.stringify({ tabId: chatTabId, message: userMessage, userTime }));
@@ -2874,9 +3100,6 @@ app.post("/api/chat/pairs/prefab", async (req, res) => {
     const sessionId = req.body.sessionId || "";
     const text = (req.body.text || "").trim();
     const kind = (req.body.kind || "prefab").toLowerCase();
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
-        .split(",")[0]
-        .trim();
 
     if (!text) {
       return res.status(400).json({ error: "Missing text" });
@@ -2891,7 +3114,7 @@ app.post("/api/chat/pairs/prefab", async (req, res) => {
     }
 
     const { systemContext, projectContext } = await buildContextsForTab(tabInfo);
-    const pairId = await db.createChatPair('', chatTabId, systemContext, projectContext, sessionId, ipAddress);
+    const pairId = await db.createChatPair('', chatTabId, systemContext, projectContext, sessionId);
     const modelLabel = kind === 'greeting' ? 'prefab/greeting' : 'prefab/manual';
     await db.finalizeChatPair(pairId, text, modelLabel, new Date().toISOString());
     db.logActivity("AI chat (prefab)", JSON.stringify({ tabId: chatTabId, response: text, kind }));
@@ -3382,16 +3605,12 @@ app.post("/api/upload", upload.single("myfile"), (req, res) => {
   }
 
   const sessionId = getSessionIdFromRequest(req);
-  const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "")
-    .split(",")[0]
-    .trim();
-
   if (sessionId) {
     db.ensureImageSession(sessionId);
   }
 
   const url = `/uploads/${req.file.filename}`;
-  db.createImagePair(url, "", 1, "", "Uploaded", sessionId, ipAddress, "", 0, "", "");
+  db.createImagePair(url, "", 1, "", "Uploaded", sessionId, "", 0, "", "");
 
   db.logActivity("File upload", JSON.stringify({ filename: req.file.originalname }));
   res.json({ success: true, file: req.file });
@@ -3445,11 +3664,10 @@ app.get("/api/upload/list", async (req, res) => {
 app.get("/api/image/counts", (req, res) => {
   try {
     const sessionId = req.query.sessionId || "";
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     const sessionCount = sessionId ? db.countImagesForSession(sessionId) : 0;
-    const ipCount = ipAddress ? db.countImagesForIp(ipAddress) : 0;
+    const ipCount = 0;
     const searchSessionCount = sessionId ? db.countSearchesForSession(sessionId) : 0;
-    const searchIpCount = ipAddress ? db.countSearchesForIp(ipAddress) : 0;
+    const searchIpCount = 0;
 
     const sessionLimit = sessionId
       ? db.imageLimitForSession(sessionId, FREE_IMAGE_LIMIT)
@@ -4409,7 +4627,6 @@ app.post("/api/image/generate", async (req, res) => {
   try {
     const { prompt, n, size, model, provider, tabId, sessionId } = req.body || {};
     const finalPrompt = (prompt || "").trim();
-    const ipAddress = (req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     console.debug(
       "[Server Debug] /api/image/generate =>",
       JSON.stringify({ prompt, n, size, model, provider, tabId, sessionId })
@@ -4458,16 +4675,6 @@ app.post("/api/image/generate", async (req, res) => {
       }
     }
 
-    if (ipAddress) {
-      const ipCount = db.countImagesForIp(ipAddress);
-      if (ipCount >= FREE_IMAGE_LIMIT) {
-        return res.status(429).json({
-          error: 'Image generation limit reached for this IP',
-          type: 'image_ip_limit',
-          counts: { ipCount, ipLimit: FREE_IMAGE_LIMIT }
-        });
-      }
-    }
 
     if (service === "stable-diffusion") {
       const sdBase = process.env.STABLE_DIFFUSION_URL;
@@ -4498,7 +4705,7 @@ app.post("/api/image/generate", async (req, res) => {
       const tab = tabRecord ? tabRecord.id : parseInt(tabId, 10) || 1;
       const imageTitle = await deriveImageTitle(prompt);
       const modelId = model ? `stable-diffusion/${model}` : 'stable-diffusion';
-      db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, ipAddress, modelId, 1);
+      db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, modelId, 1);
       return res.json({ success: true, url: localUrl, title: imageTitle });
     }
 
@@ -4616,7 +4823,7 @@ app.post("/api/image/generate", async (req, res) => {
     const tab = tabRecord ? tabRecord.id : parseInt(tabId, 10) || 1;
     const imageTitle = await deriveImageTitle(prompt, openaiClient);
     const modelId = `openai/${modelName}`;
-    db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, ipAddress, modelId, 1);
+    db.createImagePair(localUrl, prompt || '', tab, imageTitle, 'Generated', sessionId, modelId, 1);
 
     res.json({ success: true, url: localUrl, title: imageTitle });
   } catch (err) {
@@ -4957,6 +5164,7 @@ if (projectViewEnabled) {
 }
 
 app.get("/aurora-config.js", (_req, res) => {
+  const configuredShopifyStartUrl = (process.env.SHOPIFY_AUTH_START_URL || "").trim();
   const flags = {
     codeRedirect: {
       enabled: codeAlfeRedirectEnabled,
@@ -4967,6 +5175,10 @@ app.get("/aurora-config.js", (_req, res) => {
     },
     imageUpload: {
       enabled: IMAGE_UPLOAD_ENABLED,
+    },
+    shopifyAuth: {
+      enabled: parseBooleanEnv(process.env.SHOPIFY_AUTH_ENABLED, true),
+      startUrl: configuredShopifyStartUrl || SHOPIFY_AUTH_START_PATH,
     },
     searchEnabled2026: SEARCH_ENABLED_2026,
     imagesEnabled2026: IMAGES_ENABLED_2026,
@@ -4981,6 +5193,171 @@ app.get("/aurora-config.js", (_req, res) => {
     .type("application/javascript")
     .set("Cache-Control", "no-store")
     .send(`${script}\n`);
+});
+
+app.get(SHOPIFY_AUTH_START_PATH, (req, res) => {
+  // Check if required Shopify environment variables are set
+  if (!SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID || !SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT) {
+    console.error("[Server Debug] Missing required Shopify environment variables for authentication.");
+    return res.status(500).send("Shopify configuration incomplete. Missing required environment variables.");
+  }
+
+  // Build the authorization URL for Shopify Customer Account API
+  try {
+    const authUrl = new URL(SHOPIFY_CUSTOMER_ACCOUNT_AUTHORIZATION_ENDPOINT);
+    
+    // Add required OAuth parameters
+    authUrl.searchParams.set('client_id', SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID);
+    authUrl.searchParams.set('scope', SHOPIFY_CUSTOMER_ACCOUNT_SCOPES);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('redirect_uri', `${req.protocol}://${req.get('host')}/auth/shopify/callback`);
+    
+    // Generate a random state parameter for security
+    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    authUrl.searchParams.set('state', state);
+    
+    // Instead of traditional sessions, we could store state in session cookie ID
+    const { sessionId } = req;
+    if (sessionId) {
+      // Store state in the database associated with session ID
+      // Since we don't have a direct way to store temporary states with DB in this app,
+      // we'll rely on the state param validation, which is typically sufficient
+    }
+
+    // Pass along any returnTo or other query parameters to preserve app state
+    if (req.query.returnTo) {
+      authUrl.searchParams.set('returnTo', req.query.returnTo);
+    }
+    if (req.query.preferredStep) {
+      authUrl.searchParams.set('preferred_step', req.query.preferredStep);
+    }
+
+    console.log(`[Server Debug] Redirecting to Shopify auth: ${authUrl.toString()}`);
+    return res.redirect(302, authUrl.toString());
+  } catch (error) {
+    console.error("[Server Debug] Failed to build Shopify auth redirect URL:", error);
+    return res.status(500).send("Unable to start Shopify authentication.");
+  }
+});
+
+// Callback route for Shopify OAuth
+app.get('/auth/shopify/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+
+  if (error) {
+    console.error(`[Server Debug] Shopify OAuth error: ${error}`);
+    return res.status(400).send(`Authentication failed: ${error}`);
+  }
+
+  if (!code) {
+    console.error('[Server Debug] Missing authorization code in callback');
+    return res.status(400).send('Missing authorization code');
+  }
+
+  try {
+    // Verify state parameter
+    // Note: In an ideal scenario, we'd store the originally generated state somewhere
+    // (database, memory cache) and validate it here. For now, we'll skip this for simplicity
+    // but it's a security best practice to validate the returned state matches the original.
+
+    // Exchange code for tokens using Shopify customer account token endpoint
+    if (!SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT || !SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID) {
+      console.error('[Server Debug] Missing Shopify client credentials for token exchange');
+      return res.status(500).send('Invalid server configuration');
+    }
+
+    // Create token request to Shopify
+    const tokenBody = new URLSearchParams();
+    tokenBody.set('client_id', SHOPIFY_CUSTOMER_ACCOUNT_OAUTH_CLIENT_ID);
+    tokenBody.set('grant_type', 'authorization_code');
+    tokenBody.set('code', code);
+    tokenBody.set('redirect_uri', `${req.protocol}://${req.get('host')}/auth/shopify/callback`);
+
+    const tokenResponse = await fetch(SHOPIFY_CUSTOMER_ACCOUNT_TOKEN_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: tokenBody,
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error(`Token exchange failed: ${tokenResponse.statusText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log('[Server Debug] Shopify OAuth token received');
+
+    // At this point, you would typically store the access_token in session/database
+    // and redirect user back to the app. We'll store the session id to link it to the
+    // user's Aurora account if they're logged in.
+    
+    let redirectTo = '/';
+    if (req.query.returnTo) {
+      try {
+        const returnToUrl = new URL(req.query.returnTo, `${req.protocol}://${req.get('host')}`);
+        // Validate it's a safe local redirection
+        if (returnToUrl.hostname === req.get('host')) {
+          redirectTo = returnToUrl.pathname + returnToUrl.search;
+        }
+      } catch (e) {
+        console.error('[Server Debug] Invalid returnTo URL', e);
+      }
+    }
+
+    // Get sessionId from the current request and ensure it's linked to an account.
+    let sessionId = getSessionIdFromRequest(req);
+    if (!sessionId) {
+      const createdSession = ensureSessionIdCookie(req, res);
+      sessionId = createdSession.sessionId;
+    }
+
+    const shopifyEmail = getEmailFromShopifyTokenData(tokenData);
+    console.log('[Server Debug] Shopify callback token payload keys:', Object.keys(tokenData || {}), 'hasEmail=', Boolean(shopifyEmail));
+    let account = sessionId ? await db.getAccountBySession(sessionId) : null;
+    if (!account && shopifyEmail) {
+      account = await db.getAccountByEmail(shopifyEmail);
+      if (!account) {
+        const newAccountId = await db.createAccount(shopifyEmail, null, sessionId);
+        if (newAccountId) {
+          account = await db.getAccountByEmail(shopifyEmail);
+          console.log('[Server Debug] Shopify callback created new Aurora account', {
+            accountId: newAccountId,
+            email: shopifyEmail,
+          });
+        }
+      }
+    }
+
+    if (account) {
+      if (account.aurora_session_id && account.aurora_session_id !== sessionId) {
+        await db.mergeSessions(account.aurora_session_id, sessionId);
+        sessionId = account.aurora_session_id;
+      }
+      await db.setAccountSession(account.id, sessionId);
+      await db.setAccountAuroraSessionIfMissing(account.id, sessionId);
+      await db.setAccountLastLogin(account.id);
+      await db.recordAccountLogin(account.id, getRequestIpAddresses(req));
+
+      const hostname = normalizeHostname(req);
+      const cookie = buildSessionCookie(sessionId, hostname);
+      if (cookie) {
+        res.append("Set-Cookie", cookie);
+      }
+
+      console.log('[Server Debug] Shopify callback linked Aurora account/session', {
+        accountId: account.id,
+        sessionIdPreview: sessionId ? `${sessionId.slice(0, 8)}…` : '',
+      });
+    } else {
+      console.warn('[Server Debug] Shopify callback completed but no Aurora account matched session/email.');
+    }
+
+    res.redirect(302, redirectTo);
+  } catch (error) {
+    console.error('[Server Debug] Error processing Shopify OAuth callback:', error);
+    res.status(500).send('Authentication failed');
+  }
 });
 
 app.get("/code/how-it-works.html", (_req, res) => {
@@ -5050,12 +5427,31 @@ app.get("/activity", (req, res) => {
 });
 
 app.get("/db", (req, res) => {
-  if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+  if (!isConfigAccessAllowed(req)) {
     console.warn("[Server Debug] GET /db blocked by CONFIG_IP_WHITELIST");
     return res.status(403).send("Forbidden");
   }
   console.debug("[Server Debug] GET /db => Serving db.html");
   res.sendFile(path.join(__dirname, "../public/db.html"));
+});
+
+app.get("/db/:table", (req, res) => {
+  if (!isConfigAccessAllowed(req)) {
+    console.warn("[Server Debug] GET /db/:table blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).send("Forbidden");
+  }
+  const tableName = req.params.table;
+  console.debug(`[Server Debug] GET /db/:table => Serving db.html for table: ${tableName}`);
+  res.sendFile(path.join(__dirname, "../public/db.html"));
+});
+
+app.get("/db_account_ips", (req, res) => {
+  if (!isConfigAccessAllowed(req)) {
+    console.warn("[Server Debug] GET /db_account_ips blocked by CONFIG_IP_WHITELIST");
+    return res.status(403).send("Forbidden");
+  }
+  console.debug("[Server Debug] GET /db_account_ips => Serving db_account_ips.html");
+  res.sendFile(path.join(__dirname, "../public/db_account_ips.html"));
 });
 
 app.get("/ai_models", (req, res) => {

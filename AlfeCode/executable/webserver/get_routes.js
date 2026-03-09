@@ -1,4 +1,5 @@
 const fs = require("fs");
+const net = require("net");
 const path = require("path");
 const crypto = require("crypto");
 const { randomUUID } = require("crypto");
@@ -73,7 +74,9 @@ function setupGetRoutes(deps) {
     const DEFAULT_GIT_LOG_LIMIT = 20;
     const MAX_GIT_LOG_LIMIT = 200;
     const configIpWhitelist = new Set();
+    const configUserWhitelist = new Set();
     const configIpWhitelistEnv = process.env.CONFIG_IP_WHITELIST || "";
+    const configUserWhitelistEnv = process.env.CONFIG_USER_WHITELIST || "";
     if (configIpWhitelistEnv) {
         configIpWhitelistEnv
             .split(",")
@@ -83,6 +86,13 @@ function setupGetRoutes(deps) {
                 configIpWhitelist.add(ip);
                 configIpWhitelist.add(`::ffff:${ip}`);
             });
+    }
+    if (configUserWhitelistEnv) {
+        configUserWhitelistEnv
+            .split(",")
+            .map((email) => String(email || "").trim().toLowerCase())
+            .filter(Boolean)
+            .forEach((email) => configUserWhitelist.add(email));
     }
     const FILE_TREE_EXCLUDES = new Set([
         ".git",
@@ -108,6 +118,36 @@ function setupGetRoutes(deps) {
     const SHOPIFY_DISCOVERY_CACHE_TTL_MS = 5 * 60 * 1000;
     const MAX_FILE_TREE_DEPTH = 5;
 
+    const getRequestIpAddresses = (req) => {
+        const candidates = [];
+        const forwarded = req.headers["x-forwarded-for"];
+        if (Array.isArray(forwarded)) {
+            forwarded.forEach((entry) => {
+                String(entry || "").split(",").forEach((part) => candidates.push(part.trim()));
+            });
+        } else if (forwarded) {
+            String(forwarded).split(",").forEach((part) => candidates.push(part.trim()));
+        }
+        if (req.ip) candidates.push(String(req.ip).trim());
+        if (req.connection?.remoteAddress) candidates.push(String(req.connection.remoteAddress).trim());
+        if (req.socket?.remoteAddress) candidates.push(String(req.socket.remoteAddress).trim());
+
+        let ipv4 = "";
+        let ipv6 = "";
+        for (const raw of candidates) {
+            if (!raw) continue;
+            const normalized = raw.replace(/^::ffff:/i, "");
+            const version = net.isIP(normalized) ? net.isIP(normalized) : net.isIP(raw);
+            if (version === 4 && !ipv4) {
+                ipv4 = normalized;
+            } else if (version === 6 && !ipv6) {
+                ipv6 = raw;
+            }
+            if (ipv4 && ipv6) break;
+        }
+        return { ipv4, ipv6 };
+    };
+
     const getRequestIp = (req) => {
         const forwarded = req.headers["x-forwarded-for"];
         const forwardedIp = Array.isArray(forwarded) ? forwarded[0] : forwarded;
@@ -128,6 +168,35 @@ function setupGetRoutes(deps) {
         }
         const normalized = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
         return whitelist.has(ip) || whitelist.has(normalized);
+    };
+    const getRequestEmail = (req) => {
+        const candidate =
+            req?.account?.email
+            || req?.user?.email
+            || req?.session?.account?.email
+            || req?.body?.email
+            || req?.query?.email
+            || req?.headers?.["x-user-email"]
+            || req?.headers?.["x-forwarded-email"]
+            || "";
+        return String(candidate || "").trim().toLowerCase();
+    };
+    const isUserAllowed = (email, whitelist) => {
+        if (whitelist.size === 0) {
+            return false;
+        }
+        if (!email) {
+            return false;
+        }
+        return whitelist.has(email);
+    };
+    const isConfigAccessAllowed = (req) => {
+        if (configUserWhitelist.size === 0) {
+            return false;
+        }
+        const allowedByIp = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowedByUser = isUserAllowed(getRequestEmail(req), configUserWhitelist);
+        return allowedByIp || allowedByUser;
     };
 
     const normalizeProviderName = (value) => {
@@ -175,6 +244,95 @@ function setupGetRoutes(deps) {
             parts.push("Domain=.alfe.sh");
         }
         return parts.join("; ");
+    };
+    const generateAndStoreOpenrouterApiKey = async (account, callbackRequestId = "") => {
+        const obfuscateSecret = (value) => {
+            const normalized = typeof value === "string" ? value.trim() : "";
+            if (!normalized) return "";
+            if (normalized.length <= 8) return "***";
+            return `${normalized.slice(0, 4)}...${normalized.slice(-4)}`;
+        };
+
+        if (!account?.id) {
+            throw new Error("Missing account id for key generation.");
+        }
+
+        const litellmHost = typeof process.env.LITELLM_HOST === "string"
+            ? process.env.LITELLM_HOST.trim().replace(/\/+$/, "")
+            : "";
+        if (!litellmHost) {
+            throw new Error("Missing LITELLM_HOST configuration.");
+        }
+
+        const masterKey = typeof process.env.LITELLM_MASTER_KEY === "string"
+            ? process.env.LITELLM_MASTER_KEY.trim()
+            : (typeof process.env.LITELLM_API_KEY === "string" ? process.env.LITELLM_API_KEY.trim() : "");
+        if (!masterKey) {
+            throw new Error("Missing LiteLLM master key configuration.");
+        }
+
+        const requestPayload = {
+            user_id: String(account.id),
+            duration: "30d",
+            metadata: {
+                user_id: String(account.id),
+                email: account.email || "",
+                source: "shopify-callback",
+            },
+        };
+
+        console.info("[Shopify callback][keygen] Requesting LiteLLM key", {
+            callbackRequestId,
+            accountId: account.id,
+            endpoint: `${litellmHost}/key/generate`,
+            hasMasterKey: Boolean(masterKey),
+            masterKeyPreview: obfuscateSecret(masterKey),
+        });
+
+        const keyResponse = await fetch(`${litellmHost}/key/generate`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${masterKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestPayload),
+        });
+
+        const keyPayload = await keyResponse.json().catch(() => ({}));
+        if (!keyResponse.ok) {
+            const keyError = typeof keyPayload?.error === "string"
+                ? keyPayload.error
+                : `LiteLLM key generation failed with status ${keyResponse.status}.`;
+            throw new Error(keyError);
+        }
+
+        const openrouterApiKey = typeof keyPayload?.key === "string"
+            ? keyPayload.key.trim()
+            : "";
+        if (!openrouterApiKey) {
+            throw new Error("LiteLLM did not return `key` (sk-...).");
+        }
+
+        const keyHashId = [
+            keyPayload?.token_id,
+            keyPayload?.token,
+            keyPayload?.key_id,
+            keyPayload?.id,
+            keyPayload?.data?.token_id,
+            keyPayload?.data?.token,
+            keyPayload?.data?.key_id,
+            keyPayload?.key_info?.token_id,
+            keyPayload?.key_info?.token,
+            keyPayload?.key_info?.key_id,
+        ].find((value) => typeof value === "string" && value.trim().length > 0)?.trim() || "";
+
+        await rdsStore.setAccountOpenrouterApiKey(account.id, openrouterApiKey, keyHashId);
+        console.info("[Shopify callback][keygen] Stored LiteLLM key", {
+            callbackRequestId,
+            accountId: account.id,
+            keyPreview: obfuscateSecret(openrouterApiKey),
+            hasKeyHashId: Boolean(keyHashId),
+        });
     };
     const normalizeBaseUrl = (value) => {
         if (typeof value !== "string") {
@@ -403,6 +561,12 @@ function setupGetRoutes(deps) {
         return base64UrlEncode(crypto.createHash("sha256").update(verifier).digest());
     };
 
+    // Route to serve the db_account_ips.html page
+    app.get("/db_account_ips", (req, res) => {
+        const dbAccountIpsPath = path.join(__dirname, "..", "Aurora", "public", "db_account_ips.html");
+        res.sendFile(dbAccountIpsPath);
+    });
+
     const storeShopifyAuthState = ({ returnTo, codeVerifier }) => {
         const state = randomUUID();
         shopifyAuthStateStore.set(state, {
@@ -532,6 +696,7 @@ function setupGetRoutes(deps) {
             return res.status(401).json({ error: "not logged in" });
         }
         const account = await rdsStore.getAccountBySession(sessionId);
+        const allowConfigIpControls = isConfigAccessAllowed(req);
         if (!account) {
             return res.json({
                 success: false,
@@ -540,17 +705,21 @@ function setupGetRoutes(deps) {
                 everSubscribed: false,
             });
         }
-        return res.json({
+        const response = {
             success: true,
             id: account.id,
             email: account.email,
             plan: account.plan,
+            disabled: Boolean(account.disabled),
             timezone: account.timezone,
             sessionId: account.session_id,
             totpEnabled: Boolean(account.totp_secret),
             everSubscribed: Boolean(account.ever_subscribed),
-            openrouterApiKey: (account.openrouter_api_key || "").toString(),
-        });
+        };
+        if (allowConfigIpControls) {
+            response.openrouterApiKey = (account.openrouter_api_key || "").toString();
+        }
+        return res.json(response);
     });
     app.get("/api/support", async (req, res) => {
         if (!rdsStore?.enabled) {
@@ -623,6 +792,7 @@ function setupGetRoutes(deps) {
         }
         return parseBooleanFlag(value);
     };
+    const ALLOW_REPO_ADD_ON_FREE_PLAN = parseBooleanFlag(process.env.ALLOW_REPO_ADD_ON_FREE_PLAN);
     const USER_PROMPT_VISIBLE_CODEX = parseBooleanFlag(process.env.USER_PROMPT_VISIBLE_CODEX);
     const shouldStripCodexUserPrompt = !USER_PROMPT_VISIBLE_CODEX;
     const CODEX_HIDDEN_PROMPT_LINES = [
@@ -1160,6 +1330,35 @@ function setupGetRoutes(deps) {
         return "HEAD";
     };
 
+    const resolveGitCommitRevision = (directory) => {
+        const targetDir = typeof directory === "string" ? directory.trim() : "";
+        if (!targetDir) {
+            return "";
+        }
+
+        let stats;
+        try {
+            stats = fs.statSync(targetDir);
+        } catch (_err) {
+            return "";
+        }
+
+        if (!stats.isDirectory()) {
+            return "";
+        }
+
+        try {
+            return execSync("git rev-parse HEAD", {
+                cwd: targetDir,
+                stdio: ["ignore", "pipe", "ignore"],
+            })
+                .toString()
+                .trim();
+        } catch (_err) {
+            return "";
+        }
+    };
+
     const buildStatusOnlyText = (statusHistory, prompt) => {
         if (!Array.isArray(statusHistory) || statusHistory.length === 0) {
             return "";
@@ -1252,7 +1451,7 @@ function setupGetRoutes(deps) {
             /^#{1,6}\s+\S/, // Markdown heading
             /^\*\*[^*]+\*\*$/, // Bold line such as **Result**
             /^__[^_]+__$/, // Underlined header
-            /^[^:]+:\s*$/, // Title followed by a colon
+            /^(final output|summary|result|changes?|commit message):\s*$/i, // Known title followed by a colon
         ];
 
         while (index < lines.length) {
@@ -1320,6 +1519,175 @@ function setupGetRoutes(deps) {
         return resolvedResult;
     };
 
+    const normalizeQwenDisplayText = (value) => {
+        if (typeof value !== "string" || !value) {
+            return "";
+        }
+
+        return value
+            .replace(/\r/g, "")
+            .replace(/<system-reminder\b[^>]*>[\s\S]*?<\/system-reminder>/gi, "")
+            .replace(/\\n/g, "\n")
+            .replace(/\\t/g, "\t")
+            .replace(/\\\"/g, "\"")
+            .replace(/\\\\/g, "\\");
+    };
+
+    const collectQwenCliDisplayMessagesFromEvent = (parsed) => {
+        if (!parsed || typeof parsed !== "object") {
+            return [];
+        }
+
+        const suppressToolOutput = (toolName) => toolName === "todo_write";
+        const messages = [];
+
+        if (parsed.type === "assistant" && parsed.message && Array.isArray(parsed.message.content)) {
+            for (const contentItem of parsed.message.content) {
+                if (!contentItem || typeof contentItem !== "object") {
+                    continue;
+                }
+
+                const isTextLikeContent =
+                    (contentItem.type === "text" && typeof contentItem.text === "string")
+                    || (contentItem.type === "thinking" && typeof contentItem.thinking === "string");
+
+                if (isTextLikeContent) {
+                    const rawText = contentItem.type === "thinking" ? contentItem.thinking : contentItem.text;
+                    const normalized = normalizeQwenDisplayText(rawText).trim();
+                    if (normalized) {
+                        messages.push(normalized);
+                    }
+                    continue;
+                }
+
+                if (contentItem.type === "tool_use" && typeof contentItem.name === "string" && contentItem.name) {
+                    if (!suppressToolOutput(contentItem.name)) {
+                        messages.push(`Using tool: ${contentItem.name}`);
+                    }
+                }
+            }
+        }
+
+        if (parsed.type === "user" && parsed.message && Array.isArray(parsed.message.content)) {
+            for (const contentItem of parsed.message.content) {
+                if (!contentItem || typeof contentItem !== "object") {
+                    continue;
+                }
+
+                if (contentItem.type === "tool_result" && typeof contentItem.content === "string") {
+                    const normalized = normalizeQwenDisplayText(contentItem.content).trim();
+                    const isTodoWriteReminder = normalized.includes("Todos have been modified successfully")
+                        && normalized.includes("continue to use the todo list");
+                    if (!isTodoWriteReminder && normalized) {
+                        messages.push(normalized);
+                    }
+                }
+            }
+        }
+
+        return messages;
+    };
+
+    const extractQwenCliDisplayTextFromStreamJson = (text) => {
+        if (typeof text !== "string" || !text) {
+            return "";
+        }
+
+        const lines = text.replace(/\r/g, "").split("\n");
+        const displayLines = [];
+
+        for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line || line.charAt(0) !== "{" || !line.includes('"type"')) {
+                continue;
+            }
+
+            let parsed;
+            try {
+                parsed = JSON.parse(line);
+            } catch {
+                continue;
+            }
+
+            const eventMessages = collectQwenCliDisplayMessagesFromEvent(parsed);
+            if (eventMessages.length) {
+                displayLines.push(...eventMessages);
+            }
+        }
+
+        return displayLines.join("\n").trim();
+    };
+
+    // Determine the current status of the run based on exit codes and final message.
+    // This function returns the logical status (e.g., 'Running', 'Complete', 'Merged', 'Failed').
+    const resolveRunStatus = (record) => {
+        if (!record || typeof record !== "object") {
+            return 'Unknown';
+        }
+
+        // If the run hasn't finished yet
+        if (!record.finishedAt) {
+            // Check if the run has started (has output or is in running state)
+            const hasOutput = (record.stdout && record.stdout.length > 0) || (record.stderr && record.stderr.length > 0);
+            if (hasOutput) {
+                return 'Running';
+            }
+            // If no output yet, keep the existing status (e.g., 'pending')
+            if (record.status) {
+                return record.status;
+            }
+            return 'Running';
+        }
+
+        // Check for agent failure first
+        if (typeof record.exitCode === 'number' && record.exitCode !== 0) {
+            return 'Failed';
+        }
+
+        // Check for merge failure
+        const gitMergeExitCode = typeof record.git_merge_parent_exit_code === 'number'
+            ? record.git_merge_parent_exit_code
+            : record.gitMergeExitCode;
+        if (typeof gitMergeExitCode === 'number' && gitMergeExitCode !== 0) {
+            return 'Merge Failed';
+        }
+
+        // Check for git_fpush failure
+        if (typeof record.gitFpushExitCode === 'number' && record.gitFpushExitCode !== 0) {
+            return 'Git Push Failed';
+        }
+
+        // If the run finished with an error
+        if (record.error && typeof record.error === 'string' && record.error.trim()) {
+            return 'Failed';
+        }
+
+        // If we reached here, the run completed successfully
+        // If there was a merge, it succeeded, so status is 'Merged'
+        // If no merge was needed, status is 'Complete'
+        if (typeof gitMergeExitCode === 'number' && gitMergeExitCode === 0) {
+            return 'Merged';
+        }
+        return 'Complete';
+    };
+
+    const resolveScriptStatus = (record) => {
+        if (!record || typeof record !== "object") {
+            return "";
+        }
+
+        if (Array.isArray(record.statusHistory) && record.statusHistory.length > 0) {
+            const latest = record.statusHistory[record.statusHistory.length - 1];
+            return typeof latest === "string" ? latest : String(latest || "");
+        }
+
+        if (typeof record.scriptStatus === "string") {
+            return record.scriptStatus;
+        }
+
+        return "";
+    };
+
     const resolveQwenCliFinalOutput = (record) => {
         if (!record || typeof record !== "object") {
             return "";
@@ -1341,7 +1709,12 @@ function setupGetRoutes(deps) {
 
         const resultFromStreamJson = extractQwenCliResultFromStreamJson(combinedText);
         if (resultFromStreamJson) {
-            return resultFromStreamJson;
+            return stripInitialHeaders(normalizeQwenDisplayText(resultFromStreamJson).trim());
+        }
+
+        const displayFromStreamJson = extractQwenCliDisplayTextFromStreamJson(combinedText);
+        if (displayFromStreamJson) {
+            return stripInitialHeaders(displayFromStreamJson);
         }
 
         return combinedText;
@@ -1406,8 +1779,14 @@ function setupGetRoutes(deps) {
             return "";
         }
 
-        // If OpenRouter is configured, call its chat completions endpoint to
-        // generate a verbose commit summary from the cleaned final output.
+        // Optional: call OpenRouter to rewrite final output into a verbose
+        // commit summary. Keep this disabled by default so read-only pages
+        // like View Diff do not trigger external LLM requests.
+        const openRouterSummaryEnabled = isTruthyFlag(process.env.ENABLE_OPENROUTER_FINAL_OUTPUT_SUMMARY);
+        if (!openRouterSummaryEnabled) {
+            return cleanedFinalOutput;
+        }
+
         const openrouterKey = process.env.OPENROUTER_API_KEY || "";
         const openrouterModel = (process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b").toString();
         if (!openrouterKey) {
@@ -2738,6 +3117,140 @@ ${cleanedFinalOutput}`;
         return defaultCodexProjectDir;
     };
 
+    const extractCommitHashForDiffFromFinalOutput = (finalOutputText) => {
+        if (typeof finalOutputText !== "string" || !finalOutputText.trim()) {
+            return "";
+        }
+
+        // Git output can include ANSI color codes (for example, `\x1b[33m`)
+        // directly before hashes. Strip escape sequences before attempting to
+        // parse commit hashes so colored output still resolves correctly.
+        const decolorizedText = finalOutputText.replace(/\u001b\[[0-9;]*m/g, "");
+        const matches = decolorizedText.match(/[0-9a-f]{7,40}/gi) || [];
+        if (!matches.length) {
+            return "";
+        }
+
+        // Prefer the longest hash token so full 40-char SHAs win over short
+        // abbreviated hashes when both are present in output.
+        return matches.sort((a, b) => b.length - a.length)[0] || "";
+    };
+
+    const resolveFullCommitHash = (cwd, revision) => {
+        const token = typeof revision === "string" ? revision.trim() : "";
+        if (!token) {
+            return "";
+        }
+        if (!/^[0-9a-f]{7,40}$/i.test(token)) {
+            return "";
+        }
+
+        try {
+            const full = execSync(`git rev-parse --verify ${token}^{commit}`, {
+                cwd,
+                stdio: ["pipe", "pipe", "pipe"],
+            }).toString().trim();
+            return /^[0-9a-f]{40}$/i.test(full) ? full : "";
+        } catch (_err) {
+            return "";
+        }
+    };
+
+    const resolveRunForViewDiffRedirect = (sessionId, runId, projectDirParam) => {
+        try {
+            const runs = typeof loadCodexRuns === "function" ? loadCodexRuns(sessionId) : [];
+            const fallbackRuns = typeof loadCodexRuns === "function" ? loadCodexRuns() : [];
+            const allRuns = [];
+            const seenRunIds = new Set();
+
+            const appendRuns = (entries) => {
+                if (!Array.isArray(entries)) {
+                    return;
+                }
+                entries.forEach((entry) => {
+                    if (!entry || typeof entry !== "object") {
+                        return;
+                    }
+                    const entryId = String(entry.id || "").trim();
+                    if (entryId && seenRunIds.has(entryId)) {
+                        return;
+                    }
+                    if (entryId) {
+                        seenRunIds.add(entryId);
+                    }
+                    allRuns.push(entry);
+                });
+            };
+
+            appendRuns(runs);
+            appendRuns(fallbackRuns);
+
+            if (!allRuns.length) {
+                return null;
+            }
+
+            const normalisedRunId = typeof runId === "string" ? runId.trim() : "";
+            if (normalisedRunId) {
+                const byId = allRuns.find((run) => run && String(run.id || "").trim() === normalisedRunId);
+                if (byId) {
+                    return byId;
+                }
+            }
+
+            const normalisedProjectDir = typeof projectDirParam === "string" && projectDirParam.trim()
+                ? path.resolve(projectDirParam.trim())
+                : "";
+            if (!normalisedProjectDir) {
+                return null;
+            }
+
+            for (let i = allRuns.length - 1; i >= 0; i -= 1) {
+                const candidate = allRuns[i];
+                const candidateDir = candidate && (candidate.projectDir || candidate.requestedProjectDir || candidate.effectiveProjectDir);
+                if (!candidateDir) {
+                    continue;
+                }
+
+                try {
+                    if (path.resolve(candidateDir) === normalisedProjectDir) {
+                        return candidate;
+                    }
+                } catch (_err) {
+                    // ignore invalid candidate path
+                }
+            }
+        } catch (err) {
+            console.warn("Failed to resolve run for /agent viewDiff redirect:", err?.message || err);
+        }
+
+        return null;
+    };
+
+    const normalizeCandidateProjectDirs = (...dirs) => {
+        const normalized = [];
+        const seen = new Set();
+        dirs.forEach((rawDir) => {
+            if (typeof rawDir !== "string") {
+                return;
+            }
+            const trimmed = rawDir.trim();
+            if (!trimmed) {
+                return;
+            }
+            try {
+                const resolved = path.resolve(trimmed);
+                if (seen.has(resolved)) {
+                    return;
+                }
+                seen.add(resolved);
+                normalized.push(resolved);
+            } catch (_err) {
+                // ignore invalid path candidates
+            }
+        });
+        return normalized;
+    };
+
     const renderCodexRunner = async (req, res) => {
         // Defer git cache prewarm until after the response is finished so the UI
         // can be rendered immediately. The prewarm is best-effort and may be
@@ -2759,7 +3272,87 @@ ${cleanedFinalOutput}`;
         const codexConfig = typeof loadCodexConfig === "function" ? loadCodexConfig() : {};
         const repoDirectoryParam = (req?.query?.repo_directory || "").toString();
         const projectDirParam = (req?.query?.projectDir || "").toString();
+        const requestedRunId = (req?.query?.run_id || req?.query?.runId || "").toString();
+        const requestedViewDiff = parseBooleanFlag(req?.query?.viewDiff);
         const resolvedDefaultProjectDir = resolveDefaultProjectDirForSession(sessionId);
+        const resolvedProjectDirForViewDiff = (projectDirParam || repoDirectoryParam || resolvedDefaultProjectDir || "").toString().trim();
+
+        console.info("[ViewDiff Debug] Incoming /agent request", {
+            sessionId: sessionId ? `${String(sessionId).slice(0, 8)}…` : "",
+            requestedViewDiff,
+            requestedRunId,
+            repoDirectoryParam,
+            projectDirParam,
+            resolvedDefaultProjectDir,
+            resolvedProjectDirForViewDiff,
+        });
+
+        if (requestedViewDiff) {
+            const resolvedRun = resolveRunForViewDiffRedirect(sessionId, requestedRunId, resolvedProjectDirForViewDiff);
+            console.info("[ViewDiff Debug] Resolved run", {
+                found: !!resolvedRun,
+                runId: resolvedRun ? String(resolvedRun.id || "") : "",
+                runProjectDir: resolvedRun ? String(resolvedRun.projectDir || "") : "",
+                runRequestedProjectDir: resolvedRun ? String(resolvedRun.requestedProjectDir || "") : "",
+                runEffectiveProjectDir: resolvedRun ? String(resolvedRun.effectiveProjectDir || "") : "",
+            });
+            if (resolvedRun) {
+                const finalOutputText = await resolveFinalOutputTextForCommit(resolvedRun);
+                const commitHash = extractCommitHashForDiffFromFinalOutput(finalOutputText);
+                const candidateDirs = normalizeCandidateProjectDirs(
+                    resolvedProjectDirForViewDiff,
+                    resolvedRun.effectiveProjectDir,
+                    resolvedRun.requestedProjectDir,
+                    resolvedRun.projectDir,
+                    repoDirectoryParam,
+                    projectDirParam,
+                    resolvedDefaultProjectDir,
+                );
+                console.info("[ViewDiff Debug] Diff extraction result", {
+                    commitHash,
+                    finalOutputLength: typeof finalOutputText === "string" ? finalOutputText.length : 0,
+                    candidateDirs,
+                });
+                for (const candidateDir of candidateDirs) {
+                    const fullCommitHash = resolveFullCommitHash(candidateDir, commitHash);
+                    if (!fullCommitHash) {
+                        console.info("[ViewDiff Debug] Commit hash not found in candidate repo", {
+                            candidateDir,
+                            commitHash,
+                        });
+                        continue;
+                    }
+                    let parentHash = "";
+                    try {
+                        parentHash = execSync(`git rev-parse --verify ${fullCommitHash}^`, {
+                            cwd: candidateDir,
+                            stdio: ["pipe", "pipe", "pipe"],
+                        }).toString().trim();
+                    } catch (_err) {
+                        parentHash = "";
+                    }
+                    console.info("[ViewDiff Debug] Redirecting to git diff", {
+                        candidateDir,
+                        fullCommitHash,
+                        parentHash,
+                    });
+                    const diffParams = new URLSearchParams({
+                        projectDir: candidateDir,
+                        baseRev: parentHash || `${fullCommitHash}^`,
+                        compRev: fullCommitHash,
+                        mergeReady: "1",
+                        run_id: String(resolvedRun.id || "").trim(),
+                    });
+                    return res.redirect(`/agent/git-diff?${diffParams.toString()}`);
+                }
+                console.warn("[ViewDiff Debug] Could not resolve full commit hash in any candidate directory", {
+                    commitHash,
+                    candidateDirs,
+                    runId: String(resolvedRun.id || "").trim(),
+                });
+            }
+        }
+
         const isIframeMode = (typeof iframeParam === 'undefined') ? true : parseBooleanFlag(iframeParam);
         const defaultAgentInstructions =
             typeof codexConfig?.defaultAgentInstructions === "string"
@@ -2797,6 +3390,8 @@ ${cleanedFinalOutput}`;
         const agentModelDropdownDisabled = parseBooleanFlag(process.env.AGENT_MODEL_DROPDOWN_DISABLED);
         const fileTreeButtonVisible = parseBooleanFlagWithDefault(process.env.FILE_TREE_BUTTON_VISIBLE, true);
         const backlogButtonVisible = parseBooleanFlagWithDefault(process.env.BACKLOG_BUTTON_VISIBLE, true);
+        const nonRefreshDiffButtonHidden = parseBooleanFlag(process.env.NON_REFRESH_DIFF_BUTTON_HIDDEN);
+        const mainMergeButtonDisabled = parseBooleanFlag(process.env.MAIN_MERGE_BUTTON_DISABLED);
         let account = null;
         if (rdsStore?.enabled) {
             const sessionId = getSessionIdFromRequest(req);
@@ -2836,7 +3431,20 @@ ${cleanedFinalOutput}`;
             agentModelDropdownDisabled,
             fileTreeButtonVisible,
             backlogButtonVisible,
+            nonRefreshDiffButtonHidden,
+            mainMergeButtonDisabled,
             subscriptionCheckoutUrl,
+<<<<<<< HEAD
+=======
+            initialAccountInfo: account
+                ? {
+                    email: account.email,
+                    plan: account.plan,
+                    sessionId: account.session_id,
+                    timezone: account.timezone,
+                }
+                : null,
+>>>>>>> main
             disableSubscriptionLink,
             shopifyAuthEnabled: true,
             shopifyAuthStartUrl: "/auth/shopify/start",
@@ -2907,6 +3515,27 @@ ${cleanedFinalOutput}`;
         const code = typeof req?.query?.code === "string" ? req.query.code.trim() : "";
         const authState = consumeShopifyAuthState(state);
         const returnTo = authState?.returnTo || "/agent";
+        const addReasonToReturnTo = (targetUrl, reason) => {
+            if (!targetUrl || !reason) {
+                return targetUrl;
+            }
+            try {
+                const normalized = new URL(targetUrl, `${req.protocol}://${req.get("host")}`);
+                normalized.searchParams.set("reason", reason);
+                const isRelative = !/^https?:\/\//i.test(targetUrl);
+                return isRelative
+                    ? `${normalized.pathname}${normalized.search}${normalized.hash}`
+                    : normalized.toString();
+            } catch (error) {
+                console.warn("[Shopify callback] Unable to append reason query parameter.", {
+                    callbackRequestId,
+                    targetUrl,
+                    reason,
+                    error,
+                });
+                return targetUrl;
+            }
+        };
         console.info("[Shopify callback] Parsed callback state", {
             callbackRequestId,
             statePreview: sanitizeValueForLog(state),
@@ -3005,14 +3634,45 @@ ${cleanedFinalOutput}`;
                         account = createdAccount
                             ? await rdsStore.getAccountByEmail(shopifyEmail)
                             : null;
+
+                        if (account?.id) {
+                            try {
+                                await generateAndStoreOpenrouterApiKey(account, callbackRequestId);
+                            } catch (keyError) {
+                                console.error("[Shopify callback] Failed to auto-generate LiteLLM key for new Shopify account.", {
+                                    callbackRequestId,
+                                    accountId: account.id,
+                                    error: keyError?.message || keyError,
+                                });
+                            }
+                        }
                     }
 
                     if (account?.disabled) {
+                        const disabledReturnTo = addReasonToReturnTo(returnTo, "disabled-account");
                         console.warn("[Shopify callback] Account exists but is disabled.", {
                             callbackRequestId,
                             email: shopifyEmail,
+                            redirectTo: disabledReturnTo,
                         });
+                        return res.redirect(disabledReturnTo);
                     } else if (account) {
+                        console.info("[Shopify callback] Updating account last_log_in", {
+                            callbackRequestId,
+                            accountId: account.id,
+                            email: shopifyEmail,
+                        });
+                        await rdsStore.setAccountLastLogin(account.id);
+                        console.info("[Shopify callback] Updated account last_log_in", {
+                            callbackRequestId,
+                            accountId: account.id,
+                        });
+                        await rdsStore.createAccountLoginRecord(account.id, getRequestIpAddresses(req));
+                        console.info("[Shopify callback] Wrote log_ins row", {
+                            callbackRequestId,
+                            accountId: account.id,
+                        });
+
                         const incomingSessionId = getSessionIdFromRequest(req);
                         let resolvedSessionId = incomingSessionId;
 
@@ -3067,14 +3727,6 @@ ${cleanedFinalOutput}`;
         const returnTo = resolveAuthReturnTo(req);
         const cookies = getRequestCookies(req);
         const idToken = typeof cookies.alfe_shopify_id_token === "string" ? cookies.alfe_shopify_id_token : "";
-
-        const sessionId = getSessionIdFromRequest(req);
-        if (rdsStore?.enabled && sessionId) {
-            const account = await rdsStore.getAccountBySession(sessionId);
-            if (account) {
-                await rdsStore.setAccountSession(account.id, "");
-            }
-        }
 
         const hostname = normalizeHostname(req);
         res.append("Set-Cookie", buildExpiredSessionCookie(hostname));
@@ -3154,7 +3806,7 @@ ${cleanedFinalOutput}`;
         const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
         const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
-        const allowModelOrderEdit = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowModelOrderEdit = isConfigAccessAllowed(req);
         const allowConfigIpControls = allowModelOrderEdit;
         const allowAccountPlanEdit = allowModelOrderEdit;
         const allowVmRunsLink = allowModelOrderEdit;
@@ -3185,13 +3837,13 @@ ${cleanedFinalOutput}`;
         });
     });
     app.get('/agent/model-only/order', (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!isConfigAccessAllowed(req)) {
             return res.status(403).send("Forbidden.");
         }
         res.render('model_only_order');
     });
     app.get('/agent/model-only/order/data', (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!isConfigAccessAllowed(req)) {
             return res.status(403).json({ message: "Forbidden." });
         }
         const { models, error } = loadModelOnlyConfigRaw();
@@ -3212,7 +3864,7 @@ ${cleanedFinalOutput}`;
         });
     });
     app.post('/agent/model-only/order', (req, res) => {
-        if (!isIpAllowed(getRequestIp(req), configIpWhitelist)) {
+        if (!isConfigAccessAllowed(req)) {
             return res.status(403).json({ message: "Forbidden." });
         }
         const requestedOrder = req.body?.order;
@@ -3290,7 +3942,7 @@ ${cleanedFinalOutput}`;
         if (!request) {
             return res.status(404).send("Support request not found.");
         }
-        const allowAdminReply = isIpAllowed(getRequestIp(req), configIpWhitelist);
+        const allowAdminReply = isConfigAccessAllowed(req);
         return res.render('support_request', { request, allowAdminReply });
     });
 
@@ -3471,7 +4123,7 @@ ${cleanedFinalOutput}`;
         });
     });
 
-    app.get("/agent/stream", (req, res) => {
+    app.get("/agent/stream", async (req, res) => {
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDir = (req.query.projectDir || "").toString().trim();
         const prompt = (req.query.prompt || "").toString().trim();
@@ -3506,6 +4158,7 @@ ${cleanedFinalOutput}`;
             `[INFO] Codex model resolved for run ${sessionId}: final="${model}" requested="${requestedModelLabel}" default="${defaultCodexModel}" invalidReason="${invalidModelLabel}"`,
         );
 
+        const initialBaseRevision = resolveGitCommitRevision(projectDir);
         const runRecord = {
             id: randomUUID(),
             startedAt: new Date().toISOString(),
@@ -3525,6 +4178,7 @@ ${cleanedFinalOutput}`;
             enginePreference,
             qwenDebugEnvEnabled,
             followupParentId: followupParentIdRaw,
+            status: 'pending',
             statusHistory: [],
             metaMessages: [],
             stdout: "",
@@ -3540,8 +4194,33 @@ ${cleanedFinalOutput}`;
             finalMessage: "",
             error: "",
             invalidModelReason,
+            baseRevision: initialBaseRevision,
+            commitRevision: "",
+            runDirectory: projectDir,
         };
         const envOverrides = {};
+        let accountOpenRouterApiKey = "";
+        if (rdsStore?.enabled && sessionId) {
+            try {
+                const account = await rdsStore.getAccountBySession(sessionId);
+                const accountOpenRouterApiKeyRaw = (account?.openrouter_api_key || "").toString().trim();
+                if (accountOpenRouterApiKeyRaw) {
+                    accountOpenRouterApiKey = accountOpenRouterApiKeyRaw;
+                    // run_codex.sh/run_qwen.sh both ultimately rely on OPENAI_API_KEY
+                    // for CLI auth, while provider-specific plumbing also reads
+                    // OPENROUTER_API_KEY. Set both so account-level override is
+                    // consistently applied across qwen/codex/cline flows.
+                    envOverrides.OPENAI_API_KEY = accountOpenRouterApiKeyRaw;
+                    envOverrides.OPENROUTER_API_KEY = accountOpenRouterApiKeyRaw;
+                    envOverrides.LITELLM_API_KEY = accountOpenRouterApiKeyRaw;
+                    // Debug-only value consumed by run_codex.sh when
+                    // CODEX_SHOW_API_KEY=true.
+                    envOverrides.ACCOUNT_DB_OPENAI_API_KEY = accountOpenRouterApiKeyRaw;
+                }
+            } catch (accountLookupError) {
+                console.error(`[WARN] Failed to load account OpenRouter API key for session ${sessionId}: ${accountLookupError.message}`);
+            }
+        }
         let vmSession = null;
         let vmHostPort = null;
         let effectiveProjectDir = projectDir;
@@ -3610,6 +4289,10 @@ ${cleanedFinalOutput}`;
                     updateRunBranchFromDir(branchTargetDir, { force: true, skipPersist: true });
                 }
             }
+
+            // Keep script status and logical status in separate fields.
+            runRecord.scriptStatus = resolveScriptStatus(runRecord);
+            runRecord.status = resolveRunStatus(runRecord);
 
             const now = Date.now();
             if (!force && runPersisted && now - lastRunRecordPersistTs < RUN_RECORD_PERSIST_INTERVAL_MS) {
@@ -3817,6 +4500,7 @@ ${cleanedFinalOutput}`;
                 requestedProjectDir: projectDir,
                 effectiveProjectDir,
                 qwenCli: useQwenCli,
+                usingAccountOpenRouterApiKey: Boolean(accountOpenRouterApiKey),
             },
         });
 
@@ -3873,6 +4557,9 @@ ${cleanedFinalOutput}`;
 
         if (projectDir) {
             args.push("--project-dir", projectDir);
+        }
+        if (followupParentIdRaw) {
+            args.push("--reuse-project-dir");
         }
         if (wantsOpenRouterHeaders) {
             if (openRouterReferer) {
@@ -3955,6 +4642,10 @@ ${cleanedFinalOutput}`;
             }
             effectiveProjectDir = trimmed;
             runRecord.effectiveProjectDir = trimmed;
+            runRecord.runDirectory = trimmed;
+            if (!runRecord.baseRevision) {
+                runRecord.baseRevision = resolveGitCommitRevision(trimmed);
+            }
             updateRunBranchFromDir(trimmed, { force: true });
             emit({
                 event: "meta",
@@ -4198,6 +4889,12 @@ ${cleanedFinalOutput}`;
                             completeGitFpush(() => {
                                 gitFpushChild = null;
                                 runRecord.gitFpushExitCode = gitCode;
+                                if (gitCode === 0) {
+                                    const commitRevision = resolveGitCommitRevision(resolvedProjectDir);
+                                    if (commitRevision) {
+                                        runRecord.commitRevision = commitRevision;
+                                    }
+                                }
                                 const gitMessage = `git_fpush.sh exited with code ${gitCode}.`;
                                 emit({
                                     event: "status",
@@ -4251,6 +4948,31 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoDirectoryFilter = (req.query.repo_directory || "").toString().trim();
         const runIdFilter = (req.query.run_id || "").toString().trim();
+        const followupParentIdFilter = (req.query.followup_parent_id || req.query.followupParentId || "").toString().trim();
+
+        if (followupParentIdFilter && rdsStore?.enabled && typeof rdsStore.getFollowupRunsByParent === "function") {
+            Promise.resolve(rdsStore.getFollowupRunsByParent(sessionId, followupParentIdFilter))
+                .then((dbRuns) => {
+                    const runs = Array.isArray(dbRuns) ? dbRuns : [];
+                    res.json({
+                        runs,
+                        source: "rds-followup-parent",
+                        repoFilter: {
+                            applied: false,
+                            raw: repoDirectoryFilter,
+                            normalized: repoDirectoryFilter ? normaliseProjectDir(repoDirectoryFilter) : "",
+                            matched: true,
+                            usedFallback: false,
+                            recoveredWithAllRuns: false,
+                        },
+                    });
+                })
+                .catch((error) => {
+                    console.error(`[ERROR] Failed to load follow-up runs from RDS: ${error?.message || error}`);
+                    res.status(500).json({ error: "Failed to load follow-up runs." });
+                });
+            return;
+        }
 
         let runs = [];
         try {
@@ -4346,6 +5068,118 @@ ${cleanedFinalOutput}`;
         }
 
         res.json({ runs: filteredRuns, repoFilter: repoFilterMeta });
+    });
+
+    app.get("/agent/runs/diff-url", async (req, res) => {
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        const runId = (req.query.run_id || req.query.runId || "").toString().trim();
+        const repoDirectoryFilter = (req.query.repo_directory || req.query.projectDir || "").toString().trim();
+        console.log("[ViewDiffDebug] /agent/runs/diff-url request", {
+            sessionId,
+            runId,
+            repoDirectoryFilter,
+            force: (req.query.force || "").toString(),
+            query: req.query,
+        });
+
+        if (!runId) {
+            console.warn("[ViewDiffDebug] /agent/runs/diff-url missing run_id", { sessionId, query: req.query });
+            return res.status(400).json({ error: "run_id is required." });
+        }
+
+        let resolvedRun = null;
+        if (rdsStore && typeof rdsStore.getRunById === "function") {
+            try {
+                resolvedRun = await rdsStore.getRunById(sessionId, runId);
+            } catch (error) {
+                console.warn("Failed loading run from RDS for diff url:", error?.message || error);
+            }
+        }
+        console.log("[ViewDiffDebug] /agent/runs/diff-url resolved from rds", {
+            runId,
+            found: Boolean(resolvedRun),
+        });
+
+        if (!resolvedRun) {
+            try {
+                const loadedRuns = loadCodexRuns(sessionId);
+                const runs = Array.isArray(loadedRuns) ? loadedRuns : [];
+                resolvedRun = runs.find((entry) => String(entry?.id || "").trim() === runId) || null;
+            } catch (error) {
+                console.warn("Failed loading run history fallback for diff url:", error?.message || error);
+            }
+        }
+        console.log("[ViewDiffDebug] /agent/runs/diff-url resolved from history", {
+            runId,
+            found: Boolean(resolvedRun),
+        });
+
+        if (!resolvedRun) {
+            console.warn("[ViewDiffDebug] /agent/runs/diff-url run not found", { runId, sessionId });
+            return res.status(404).json({ error: "Run not found." });
+        }
+
+        const baseRev = (resolvedRun.baseRevision || resolvedRun.base_revision || "").toString().trim();
+        const compRev = (resolvedRun.commitRevision || resolvedRun.commit_revision || "").toString().trim();
+        const projectDir = (resolvedRun.runDirectory
+            || resolvedRun.run_directory
+            || resolvedRun.projectDir
+            || resolvedRun.requestedProjectDir
+            || resolvedRun.effectiveProjectDir
+            || repoDirectoryFilter
+            || "").toString().trim();
+
+        if (!baseRev || !compRev || !projectDir) {
+            console.warn("[ViewDiffDebug] /agent/runs/diff-url missing diff metadata", {
+                runId,
+                baseRev,
+                compRev,
+                projectDir,
+                resolvedRunKeys: Object.keys(resolvedRun || {}),
+            });
+            return res.status(422).json({
+                error: "Run is missing base_revision, commit_revision, or run_directory.",
+                run_id: runId,
+                base_revision: baseRev,
+                commit_revision: compRev,
+                run_directory: projectDir,
+            });
+        }
+
+        const diffParams = new URLSearchParams({
+            baseRev,
+            compRev,
+            projectDir,
+            mergeReady: "1",
+            run_id: runId,
+        });
+
+        const userPromptForDiff = (
+            resolvedRun.userPrompt
+            || resolvedRun.user_prompt
+            || ""
+        ).toString().trim();
+        if (userPromptForDiff) {
+            diffParams.set("userPrompt", userPromptForDiff);
+        }
+
+        const resolvedUrl = `/agent/git-diff?${diffParams.toString()}`;
+        console.log("[ViewDiffDebug] /agent/runs/diff-url resolved", {
+            runId,
+            baseRev,
+            compRev,
+            projectDir,
+            hasUserPrompt: Boolean(userPromptForDiff),
+            url: resolvedUrl,
+        });
+
+        return res.json({
+            run_id: runId,
+            base_revision: baseRev,
+            commit_revision: compRev,
+            run_directory: projectDir,
+            url: resolvedUrl,
+        });
     });
 
     app.get("/agent/runs", (req, res) => {
@@ -4619,6 +5453,34 @@ ${cleanedFinalOutput}`;
         return `/${encodeURIComponent(safeRepo)}/chat/${encodeURIComponent(safeChat)}/editor`;
     };
 
+    const splitGeneratedRunRepoName = (name) => {
+        if (typeof name !== "string") {
+            return null;
+        }
+        let candidate = name.trim();
+        if (!candidate) {
+            return null;
+        }
+
+        let removedSuffix = false;
+        while (true) {
+            const match = candidate.match(/^(.*)-(\d{10,})$/);
+            if (!match) {
+                break;
+            }
+            candidate = (match[1] || "").trim();
+            removedSuffix = true;
+            if (!candidate) {
+                break;
+            }
+        }
+
+        if (!removedSuffix || !candidate) {
+            return null;
+        }
+        return candidate;
+    };
+
     const resolveEditorTargetForProjectDir = (projectDir, sessionId) => {
         const rawDir = typeof projectDir === "string" ? projectDir.trim() : "";
         if (!rawDir) {
@@ -4736,6 +5598,18 @@ ${cleanedFinalOutput}`;
                         } catch (_e) { /* ignore */ }
                         if (repoName) {
                             break;
+                        }
+                    }
+
+                    if (!repoName) {
+                        const baseName = normalizeRepoBase(path.basename(resolvedDir));
+                        const baseFromGeneratedName = splitGeneratedRunRepoName(baseName);
+                        if (baseFromGeneratedName && repoConfig[baseFromGeneratedName]) {
+                            repoName = baseFromGeneratedName;
+                            const existingPath = repoConfig[baseFromGeneratedName]?.gitRepoLocalPath;
+                            if (typeof existingPath === "string" && existingPath.trim()) {
+                                resolvedDir = path.resolve(existingPath);
+                            }
                         }
                     }
 
@@ -5030,9 +5904,7 @@ ${cleanedFinalOutput}`;
         const offsetParam = parseIntegerParam(req.query.offset, 0, { min: 0 });
 
         try {
-            const __t0_buildGitCommitSlice = Date.now();
-                const slice = buildGitCommitSlice(resolvedProjectDir, offsetParam, limitParam);
-                __timing_entries.push(`buildGitCommitSlice:${Date.now()-__t0_buildGitCommitSlice}ms`);
+            const slice = buildGitCommitSlice(resolvedProjectDir, offsetParam, limitParam);
             const repoName = resolveRepoNameByLocalPath(resolvedProjectDir, sessionId) || "";
 
             res.json({
@@ -5932,9 +6804,23 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoConfig = loadRepoConfig(sessionId);
         const repoList = [];
+        const isGeneratedRunRepoName = (name) => {
+            if (typeof name !== "string") {
+                return false;
+            }
+            const trimmed = name.trim();
+            if (!trimmed) {
+                return false;
+            }
+            const baseName = splitGeneratedRunRepoName(trimmed);
+            return Boolean(baseName && repoConfig && repoConfig[baseName]);
+        };
         if (repoConfig) {
             for (const repoName in repoConfig) {
                 if (Object.prototype.hasOwnProperty.call(repoConfig, repoName)) {
+                    if (isGeneratedRunRepoName(repoName)) {
+                        continue;
+                    }
                     repoList.push({
                         name: repoName,
                         gitRepoLocalPath: repoConfig[repoName].gitRepoLocalPath,
@@ -5963,7 +6849,7 @@ ${cleanedFinalOutput}`;
                 const account = await rdsStore.getAccountBySession(sessionId);
                 if (!account || isLoggedOutPlan(account.plan)) {
                     showLoggedOutMessage = true;
-                } else if (account.plan === "Free") {
+                } else if (account.plan === "Free" && !ALLOW_REPO_ADD_ON_FREE_PLAN) {
                     showSubscribeMessage = true;
                 }
             }
@@ -6588,7 +7474,7 @@ res.render("editor", {
         return Boolean(value);
     };
 
-    const extractComparisonPromptLine = (value) => {
+    const extractComparisonPrompt = (value) => {
         if (typeof value !== 'string') {
             return '';
         }
@@ -6596,7 +7482,15 @@ res.render("editor", {
         if (!trimmed) {
             return '';
         }
-        const firstLine = trimmed.split(/\r?\n/)[0].trim();
+        return trimmed.replace(/\r/g, '');
+    };
+
+    const extractComparisonPromptLine = (value) => {
+        const fullPrompt = extractComparisonPrompt(value);
+        if (!fullPrompt) {
+            return '';
+        }
+        const firstLine = fullPrompt.split(/\n/)[0].trim();
         return firstLine;
     };
 
@@ -6623,21 +7517,24 @@ res.render("editor", {
         const branchName = branchParam.replace(/^['"]+|['"]+$/g, "");
         const mergeReady = isTruthyFlag(req.query.mergeReady);
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
+        const comparisonPrompt = extractComparisonPrompt(req.query.userPrompt || "");
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         const comparisonFinalOutputParam = typeof req.query.finalOutput === "string" ? req.query.finalOutput : "";
+        const runIdQuery = (req.query.run_id || "").toString().trim();
+        const rowIndexQuery = (req.query.rowIndex || req.query.row_index || "").toString().trim();
         const comparisonFinalOutputFromQuery = comparisonFinalOutputParam
             ? normalizeFinalOutputForDiff(comparisonFinalOutputParam)
             : "";
 
         if (!branchParam) {
             return res.status(400).render("diff", { errorMessage: 'branch parameter is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
-                        comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
+                        comparisonPrompt, comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
         }
 
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
         if (!resolvedProjectDir) {
             return res.status(400).render("diff", { errorMessage: 'Project directory is required.', gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, mergeReady,
-                        comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
+                        comparisonPrompt, comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
         }
 
         try {
@@ -6782,6 +7679,7 @@ res.render("editor", {
                         projectDir: resolvedProjectDir,
                         errorMessage: `Unable to resolve branch '${branchName}' for diff.`,
                         mergeReady,
+                        comparisonPrompt,
                         comparisonPromptLine,
                         comparisonFinalOutput: comparisonFinalOutputFromQuery,
                     });
@@ -6862,12 +7760,77 @@ ${err}`;
             }
             const comparisonFinalOutput = comparisonFinalOutputFromQuery
                 || normalizeFinalOutputForDiff(
+                    await extractFinalOutputForRunReference(
+                        sessionId,
+                        resolvedProjectDir,
+                        runIdQuery,
+                        rowIndexQuery
+                    )
+                )
+                || normalizeFinalOutputForDiff(
                     await extractFinalOutputForCommit(
                         sessionId,
                         resolvedProjectDir,
                         compMeta.hash || compRev
                     )
                 );
+
+            // Query the database for model and run metadata
+            let model = '';
+            let runBranch = '';
+            if (runIdQuery && typeof rdsStore !== 'undefined') {
+                try {
+                    const result = await rdsStore.getRunById(sessionId, runIdQuery);
+                    if (result && typeof result === 'object') {
+                        if (result.model) {
+                            model = result.model;
+                        }
+                        const resolvedRunBranch = (
+                            result.branchName
+                            || result.gitBranch
+                            || result.branch
+                            || ''
+                        ).toString().trim();
+                        if (resolvedRunBranch) {
+                            runBranch = resolvedRunBranch;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Failed to query model from database for run:', runIdQuery, err);
+                }
+            }
+
+            const branchDisplayName = (runBranch || branchName || '').toString().trim();
+
+            const modelOnlyLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
+                if (entry && typeof entry.id === 'string') {
+                    const modelId = entry.id.trim();
+                    if (modelId) {
+                        acc[modelId] = typeof entry.label === 'string' && entry.label.trim()
+                            ? entry.label.trim()
+                            : modelId;
+                    }
+                }
+                return acc;
+            }, {});
+            const modelDisplayName = (() => {
+                if (typeof model === 'string') {
+                    const modelId = model.trim();
+                    if (!modelId) return '';
+                    return modelOnlyLookup[modelId] || modelId;
+                }
+                if (model && typeof model === 'object') {
+                    const rawModelId = typeof model.id === 'string'
+                        ? model.id
+                        : typeof model.name === 'string'
+                            ? model.name
+                            : '';
+                    const modelId = rawModelId.trim();
+                    if (!modelId) return '';
+                    return modelOnlyLookup[modelId] || modelId;
+                }
+                return '';
+            })();
 
             res.render("diff", {
                 gitRepoNameCLI: repoName || resolvedProjectDir,
@@ -6886,15 +7849,19 @@ ${err}`;
                 compMeta,
                 commitList,
                 mergeReady,
+                comparisonPrompt,
                 comparisonPromptLine,
                 comparisonFinalOutput,
                 chatNumber,
-                showCommitList: SHOW_COMMIT_LIST
+                showCommitList: SHOW_COMMIT_LIST,
+                model: model,
+                modelDisplayName,
+                branchDisplayName
             });
         } catch (err) {
             console.error('[ERROR] /agent/git-diff-branch-merge:', err);
             return res.status(500).render('diff', { gitRepoNameCLI: projectDirParam || '', baseRev: '', compRev: '', diffOutput: '', structuredDiff: [], debugMode: !!process.env.DEBUG, environment: res.locals.environment, editorBaseUrl: res.locals.editorBaseUrl, diffFormAction: "/agent/git-diff", repoLinksEnabled: false, projectDir: projectDirParam, errorMessage: 'Internal server error', mergeReady,
-                comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
+                comparisonPrompt, comparisonPromptLine, comparisonFinalOutput: comparisonFinalOutputFromQuery });
         }
     });
 
@@ -6945,15 +7912,85 @@ ${err}`;
         }
     };
 
+    const extractFinalOutputForRunReference = async (sessionId, projectDir, runId, rowIndex) => {
+        if (!sessionId) {
+            return "";
+        }
+
+        try {
+            const runs = typeof loadCodexRuns === "function" ? loadCodexRuns(sessionId) : [];
+            if (!Array.isArray(runs) || !runs.length) {
+                return "";
+            }
+
+            const normalisedRunId = typeof runId === "string" ? runId.trim() : "";
+            if (normalisedRunId) {
+                const matchedById = runs.find((run) => run && String(run.id || "").trim() === normalisedRunId);
+                if (matchedById) {
+                    return await resolveFinalOutputTextForCommit(matchedById);
+                }
+            }
+
+            const numericRowIndex = Number.isFinite(Number(rowIndex)) ? Number(rowIndex) : null;
+            if (numericRowIndex === null || numericRowIndex < 0) {
+                return "";
+            }
+
+            const resolvedProjectDir = projectDir ? path.resolve(projectDir) : "";
+            const projectRuns = runs.filter((run) => {
+                if (!run || typeof run !== "object") {
+                    return false;
+                }
+                if (!resolvedProjectDir) {
+                    return true;
+                }
+                const runProjectDir = run.projectDir || run.requestedProjectDir || run.effectiveProjectDir || "";
+                if (!runProjectDir) {
+                    return false;
+                }
+                try {
+                    return path.resolve(runProjectDir) === resolvedProjectDir;
+                } catch (_err) {
+                    return false;
+                }
+            });
+
+            const matchedByRowIndex = projectRuns[numericRowIndex] || runs[numericRowIndex];
+            if (!matchedByRowIndex) {
+                return "";
+            }
+
+            return await resolveFinalOutputTextForCommit(matchedByRowIndex);
+        } catch (err) {
+            console.error("Failed to extract final output for run reference:", err);
+            return "";
+        }
+    };
+
     app.get("/agent/git-diff", async (req, res) => {
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const projectDirParam = (req.query.projectDir || "").toString().trim();
         const baseRevInput = (req.query.baseRev || "").toString();
         const compRevInput = (req.query.compRev || "").toString();
         const mergeReady = isTruthyFlag(req.query.mergeReady);
+        const runStatusQuery = (req.query.run_status || req.query.runStatus || "").toString().trim().toLowerCase();
         const prefetchOnly = isTruthyFlag(req.query.prefetch);
+        const comparisonPrompt = extractComparisonPrompt(req.query.userPrompt || "");
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
+        const runIdQuery = (req.query.run_id || "").toString().trim();
+        const rowIndexQuery = (req.query.rowIndex || req.query.row_index || "").toString().trim();
         const resolvedProjectDir = projectDirParam ? path.resolve(projectDirParam) : "";
+        console.log("[ViewDiffDebug] /agent/git-diff request", {
+            sessionId,
+            runIdQuery,
+            rowIndexQuery,
+            projectDirParam,
+            resolvedProjectDir,
+            baseRevInput,
+            compRevInput,
+            mergeReady,
+            prefetchOnly,
+        });
 
         let errorMessage = "";
 
@@ -7107,8 +8144,14 @@ ${err}`;
         const compMeta = compRev ? getCommitMeta(resolvedProjectDir, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         let comparisonFinalOutput = "";
         if (!errorMessage) {
+            const fromRunReference = await extractFinalOutputForRunReference(
+                sessionId,
+                resolvedProjectDir,
+                runIdQuery,
+                rowIndexQuery
+            );
             comparisonFinalOutput = normalizeFinalOutputForDiff(
-                await extractFinalOutputForCommit(
+                fromRunReference || await extractFinalOutputForCommit(
                     sessionId,
                     resolvedProjectDir,
                     compMeta.hash || compRev
@@ -7116,6 +8159,122 @@ ${err}`;
             );
         }
         const commitList = getCommitList(resolvedProjectDir, baseRev, compRev);
+
+        let runModel = "";
+        let runBranch = "";
+        let runIsMerged = runStatusQuery === "merged";
+        if (runIdQuery) {
+            if (rdsStore && typeof rdsStore.getRunById === "function") {
+                try {
+                    const runRecord = await rdsStore.getRunById(sessionId, runIdQuery);
+                    if (runRecord && runRecord.model) {
+                        runModel = runRecord.model;
+                    }
+
+                    const resolvedRunStatus = (
+                        (runRecord && runRecord.status)
+                        || (runRecord && runRecord.finalStatus)
+                        || ""
+                    ).toString().trim().toLowerCase();
+                    if (resolvedRunStatus === "merged") {
+                        runIsMerged = true;
+                    }
+
+                    if (!runIsMerged && runRecord && Array.isArray(runRecord.statusHistory)) {
+                        runIsMerged = runRecord.statusHistory.some((entry) => {
+                            const normalized = (entry || "").toString().trim().toLowerCase();
+                            return normalized === "merged" || normalized === "merged.";
+                        });
+                    }
+
+                    const resolvedRunBranch = (
+                        (runRecord && (runRecord.branchName || runRecord.gitBranch || runRecord.branch))
+                        || ""
+                    ).toString().trim();
+                    if (resolvedRunBranch) {
+                        runBranch = resolvedRunBranch;
+                    }
+                } catch (error) {
+                    console.warn("Failed loading run model from RDS for diff page:", error?.message || error);
+                }
+            }
+
+            if (!runModel) {
+                try {
+                    const loadedRuns = loadCodexRuns(sessionId);
+                    const runs = Array.isArray(loadedRuns) ? loadedRuns : [];
+                    const matchedRun = runs.find((entry) => String(entry?.id || "").trim() === runIdQuery);
+                    if (matchedRun && matchedRun.model) {
+                        runModel = matchedRun.model;
+                    }
+                    const resolvedRunStatus = (
+                        matchedRun?.status
+                        || matchedRun?.finalStatus
+                        || ""
+                    ).toString().trim().toLowerCase();
+                    if (resolvedRunStatus === "merged") {
+                        runIsMerged = true;
+                    }
+                    if (!runIsMerged && matchedRun && Array.isArray(matchedRun.statusHistory)) {
+                        runIsMerged = matchedRun.statusHistory.some((entry) => {
+                            const normalized = (entry || "").toString().trim().toLowerCase();
+                            return normalized === "merged" || normalized === "merged.";
+                        });
+                    }
+                    if (!runBranch && matchedRun) {
+                        const resolvedRunBranch = (
+                            matchedRun.branchName
+                            || matchedRun.gitBranch
+                            || matchedRun.branch
+                            || ""
+                        ).toString().trim();
+                        if (resolvedRunBranch) {
+                            runBranch = resolvedRunBranch;
+                        }
+                    }
+                } catch (error) {
+                    console.warn("Failed loading run model from history for diff page:", error?.message || error);
+                }
+            }
+        }
+
+        const branchDisplayName = (
+            runBranch
+            || resolveBranchDisplayNameForCommit(resolvedProjectDir, compMeta.hash || compRev)
+            || ""
+        ).toString().trim();
+
+        const modelOnlyLookup = loadModelOnlyModels({ includePlus: true }).reduce((acc, entry) => {
+            if (entry && typeof entry.id === "string") {
+                const modelId = entry.id.trim();
+                if (modelId) {
+                    acc[modelId] = typeof entry.label === "string" && entry.label.trim()
+                        ? entry.label.trim()
+                        : modelId;
+                }
+            }
+            return acc;
+        }, {});
+        const modelDisplayName = (() => {
+            if (typeof runModel === "string") {
+                const modelId = runModel.trim();
+                if (!modelId) return "";
+                return modelOnlyLookup[modelId] || modelId;
+            }
+            if (runModel && typeof runModel === "object") {
+                const rawModelId = typeof runModel.id === "string"
+                    ? runModel.id
+                    : typeof runModel.name === "string"
+                        ? runModel.name
+                        : "";
+                const modelId = rawModelId.trim();
+                if (!modelId) return "";
+                return modelOnlyLookup[modelId] || modelId;
+            }
+            return "";
+        })();
+
+        const effectiveMergeReady = mergeReady && !runIsMerged;
 
         res.status(statusCode).render("diff", {
             gitRepoNameCLI: repoName || resolvedProjectDir,
@@ -7133,10 +8292,14 @@ ${err}`;
             baseMeta,
             compMeta,
             commitList,
-            mergeReady,
+            mergeReady: effectiveMergeReady,
+            comparisonPrompt,
             comparisonPromptLine,
             comparisonFinalOutput,
             chatNumber,
+            model: runModel,
+            modelDisplayName,
+            branchDisplayName,
         });
     });
 
@@ -7321,11 +8484,42 @@ ${err}`;
         }
     };
 
+    const resolveBranchDisplayNameForCommit = (cwd, commitHash) => {
+        if (!cwd || !commitHash) {
+            return '';
+        }
+
+        try {
+            const branchOut = execSync(`git branch -a --contains ${commitHash}`, {
+                cwd,
+                stdio: ['pipe', 'pipe', 'ignore'],
+            }).toString();
+
+            const branches = branchOut
+                .split(/\r?\n/)
+                .map((line) => line.replace(/^\*\s*/, '').trim())
+                .filter(Boolean)
+                .filter((line) => !line.includes('HEAD ->'));
+
+            if (!branches.length) {
+                return '';
+            }
+
+            const preferredBranch = branches.find((branch) => !branch.startsWith('remotes/')) || branches[0];
+            return preferredBranch
+                .replace(/^remotes\//, '')
+                .replace(/^origin\//, '');
+        } catch (err) {
+            return '';
+        }
+    };
+
 /* ---------- New diff page ---------- */
     app.get("/:repoName/diff", async (req, res) => {
         const { repoName } = req.params;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const { baseRev, compRev } = req.query;
+        const comparisonPrompt = extractComparisonPrompt(req.query.userPrompt || "");
         const comparisonPromptLine = extractComparisonPromptLine(req.query.userPrompt || "");
         let diffOutput = "";
         const repoCfg = loadSingleRepoConfig(repoName, sessionId);
@@ -7350,6 +8544,7 @@ ${err}`;
         const baseMeta = baseRev ? getCommitMeta(gitRepoLocalPath, baseRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const compMeta = compRev ? getCommitMeta(gitRepoLocalPath, compRev) : { hash: "", authorName: "", authorEmail: "", message: "", fullMessage: "" };
         const commitList = getCommitList(gitRepoLocalPath, baseRev, compRev);
+        const branchDisplayName = resolveBranchDisplayNameForCommit(gitRepoLocalPath, compMeta.hash || compRev);
 
         const mergeReady = isTruthyFlag(req.query.mergeReady);
 
@@ -7378,10 +8573,12 @@ ${err}`;
             compMeta,
             commitList,
             mergeReady,
+            comparisonPrompt,
             comparisonPromptLine,
             comparisonFinalOutput,
             chatNumber,
-            showCommitList: SHOW_COMMIT_LIST
+            showCommitList: SHOW_COMMIT_LIST,
+            branchDisplayName
         });
     });
 }

@@ -1,6 +1,7 @@
 (() => {
   const config = window.CODEX_RUNNER_CONFIG || {};
   const shouldStripCodexUserPrompt = config.userPromptVisibleCodex !== true;
+  const nonRefreshDiffButtonHidden = config.nonRefreshDiffButtonHidden === true;
   const CODEX_HIDDEN_PROMPT_LINES = [
     'Do not ask to commit changes, we run a script to automatically stage, commit, and push after you finish.',
     'Do not ask anything like "Do you want me to run `git commit` with a message?"',
@@ -1098,6 +1099,117 @@
   const deleteLocalButton = document.getElementById("deleteLocalButton");
   const mergeDisabledTooltip = document.getElementById("mergeDisabledTooltip");
   const mergeDiffButton = document.getElementById("openMergeDiffButton");
+  const viewDiffTooltip = document.getElementById("viewDiffTooltip");
+  const VIEW_DIFF_TOOLTIP_COOKIE = "viewDiffTooltipDismissed";
+  let viewDiffTooltipShown = false;
+  let viewDiffTooltipEnabled = false;
+
+  const hasCookie = (cookieName) => {
+    if (!cookieName || typeof document === "undefined") {
+      return false;
+    }
+    return document.cookie.split(";").some((cookie) => {
+      const [name] = cookie.trim().split("=");
+      return name === cookieName;
+    });
+  };
+
+  const setCookie = (cookieName, cookieValue, maxAgeDays) => {
+    if (!cookieName || typeof document === "undefined") {
+      return;
+    }
+    const expirationDate = new Date();
+    expirationDate.setTime(expirationDate.getTime() + (maxAgeDays * 24 * 60 * 60 * 1000));
+    document.cookie = `${cookieName}=${cookieValue};expires=${expirationDate.toUTCString()};path=/`;
+  };
+
+  const hideViewDiffTooltip = () => {
+    if (!viewDiffTooltip) {
+      return;
+    }
+    viewDiffTooltip.classList.remove("show");
+    viewDiffTooltip.setAttribute("aria-hidden", "true");
+  };
+
+  const getVisibleViewDiffButton = () => {
+    const candidates = [mergeDiffButton, refreshRunPageButton];
+    const visibleButtons = candidates.filter((button) => {
+      if (!button) {
+        return false;
+      }
+      return !button.classList.contains("is-hidden");
+    });
+    return visibleButtons.find((button) => !button.disabled) || visibleButtons[0] || null;
+  };
+
+  const setViewDiffTooltipEnabled = (isEnabled) => {
+    viewDiffTooltipEnabled = Boolean(isEnabled);
+    if (!viewDiffTooltip) {
+      return;
+    }
+    viewDiffTooltip.classList.toggle("is-disabled", !viewDiffTooltipEnabled);
+    if (!viewDiffTooltipEnabled) {
+      hideViewDiffTooltip();
+    }
+  };
+
+  const syncViewDiffTooltipEnabledState = () => {
+    const visibleViewDiffButton = getVisibleViewDiffButton();
+    setViewDiffTooltipEnabled(Boolean(visibleViewDiffButton && !visibleViewDiffButton.disabled));
+  };
+
+  const maybeShowViewDiffTooltip = () => {
+    if (!viewDiffTooltipEnabled || !viewDiffTooltip) {
+      hideViewDiffTooltip();
+      return;
+    }
+    if (hasCookie(VIEW_DIFF_TOOLTIP_COOKIE)) {
+      hideViewDiffTooltip();
+      return;
+    }
+    if (viewDiffTooltipShown) {
+      return;
+    }
+    const visibleViewDiffButton = getVisibleViewDiffButton();
+    if (!visibleViewDiffButton || visibleViewDiffButton.disabled) {
+      hideViewDiffTooltip();
+      return;
+    }
+    viewDiffTooltip.classList.add("show");
+    viewDiffTooltip.setAttribute("aria-hidden", "false");
+    viewDiffTooltipShown = true;
+  };
+
+  const completeViewDiffTooltipOnboarding = () => {
+    setCookie(VIEW_DIFF_TOOLTIP_COOKIE, "true", 30);
+    hideViewDiffTooltip();
+  };
+
+  if (viewDiffTooltip) {
+    viewDiffTooltip.addEventListener("click", hideViewDiffTooltip);
+  }
+
+  if (mergeDiffButton && nonRefreshDiffButtonHidden) {
+    mergeDiffButton.classList.add('is-hidden');
+    mergeDiffButton.disabled = true;
+    mergeDiffButton.setAttribute('aria-disabled', 'true');
+  }
+  const refreshRunPageButton = document.getElementById("refreshRunPageButton");
+  const observeViewDiffButtonState = (button) => {
+    if (!button || typeof MutationObserver === 'undefined') {
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      syncViewDiffTooltipEnabledState();
+      maybeShowViewDiffTooltip();
+    });
+    observer.observe(button, {
+      attributes: true,
+      attributeFilter: ["class", "disabled", "aria-disabled"],
+    });
+  };
+  observeViewDiffButtonState(mergeDiffButton);
+  observeViewDiffButtonState(refreshRunPageButton);
   const openEditorTopButton = document.getElementById("openEditorTopButton");
   defaultModelInput = document.getElementById("defaultModelInput");
   const defaultModelSaveButton = document.getElementById("defaultModelSaveButton");
@@ -1178,6 +1290,7 @@
   const resetFollowupSessions = () => {
     followupSessions = [];
     activeFollowupSession = null;
+    followupRunActive = false;
     followupSessionCounter = 0;
     if (followupSectionEl) {
       followupSectionEl.innerHTML = "";
@@ -1351,6 +1464,14 @@
 
     followupSectionEl.classList.remove("is-hidden");
 
+    let followupSectionTitle = followupSectionEl.querySelector(".followup-section-title");
+    if (!followupSectionTitle) {
+      followupSectionTitle = document.createElement("h3");
+      followupSectionTitle.className = "followup-section-title";
+      followupSectionTitle.textContent = "";
+      followupSectionEl.appendChild(followupSectionTitle);
+    }
+
     followupSessionCounter += 1;
     const sessionEl = document.createElement("div");
     sessionEl.className = "followup-session";
@@ -1415,6 +1536,17 @@
     finalOutput.setAttribute("aria-labelledby", outputLabelId);
     sessionEl.appendChild(finalOutput);
 
+    const followupActions = document.createElement("div");
+    followupActions.className = "followup-actions";
+    const followupDiffButton = document.createElement("button");
+    followupDiffButton.type = "button";
+    followupDiffButton.className = "nav-button followup-view-diff-button";
+    followupDiffButton.textContent = "View Diff / Merge";
+    followupDiffButton.disabled = true;
+    followupDiffButton.setAttribute("aria-disabled", "true");
+    followupActions.appendChild(followupDiffButton);
+    sessionEl.appendChild(followupActions);
+
     followupSectionEl.appendChild(sessionEl);
 
     const session = {
@@ -1427,6 +1559,11 @@
       outputTabsContainer: tabsContainer,
       outputLogEl: combinedOutput,
       finalLogEl: finalOutput,
+      followupDiffButton,
+      followupRunId: "",
+      followupParentRunId: "",
+      followupProjectDir: "",
+      followupSessionId: "",
       activeTab: "combined",
       outputValue: "",
       finalValue: "",
@@ -1481,6 +1618,58 @@
     activeFollowupSession = null;
     followupRunActive = false;
   };
+
+  const syncActiveFollowupDiffButton = ({ runId = "", parentRunId = "", projectDir = "", sessionId = "" } = {}) => {
+    if (!activeFollowupSession) {
+      return;
+    }
+
+    const session = activeFollowupSession;
+
+    const normalizedRunId = normaliseRunId(runId);
+    const normalizedProjectDir = normaliseProjectDir(projectDir);
+    if (normalizedRunId) {
+      session.followupRunId = normalizedRunId;
+    }
+    if (normalizedProjectDir) {
+      session.followupProjectDir = normalizedProjectDir;
+    }
+
+    const normalizedParentRunId = normaliseRunId(parentRunId);
+    if (normalizedParentRunId) {
+      session.followupParentRunId = normalizedParentRunId;
+    }
+
+    const normalizedSessionId = normaliseRunId(sessionId);
+    if (normalizedSessionId) {
+      session.followupSessionId = normalizedSessionId;
+    }
+
+    if (!session.followupDiffButton) {
+      return;
+    }
+
+    const hasRunId = Boolean(session.followupRunId);
+    session.followupDiffButton.disabled = !hasRunId;
+    session.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
+    session.followupDiffButton.onclick = async () => {
+      console.debug("[ViewDiffDebug] followup-diff-button:clicked", {
+        sessionIndex: session.index,
+        runId: session.followupRunId,
+        parentRunId: session.followupParentRunId,
+        projectDir: session.followupProjectDir,
+        sessionId: session.followupSessionId,
+        disabled: session.followupDiffButton.disabled,
+      });
+      await openRunDiffModal({
+        runId: session.followupRunId,
+        fallbackRunId: "",
+        projectDir: session.followupProjectDir,
+        sessionId: session.followupSessionId,
+        force: true,
+      });
+    };
+  };
   const runsSidebarFilterInput = document.getElementById("runsSidebarFilter");
   const runsSidebarOpenRunsButton = document.getElementById("runsSidebarOpenRunsButton");
   const runsSidebarArchiveToggle = document.getElementById("runsSidebarArchiveToggle");
@@ -1529,9 +1718,15 @@
   const promptModalTextarea = document.getElementById("promptModalTextarea");
   const promptModalCopyButton = document.getElementById("promptModalCopyButton");
   const promptModalCloseButton = document.getElementById("promptModalCloseButton");
+  const diffMetadataErrorModal = document.getElementById("diffMetadataErrorModal");
+  const diffMetadataErrorModalCloseButton = document.getElementById("diffMetadataErrorModalCloseButton");
+  const diffMetadataErrorModalOkButton = document.getElementById("diffMetadataErrorModalOkButton");
   const switchBranchModal = document.getElementById("switchBranchModal");
   const switchBranchModalCloseButton = document.getElementById("switchBranchModalCloseButton");
   const switchBranchCreateButton = document.getElementById("switchBranchCreateButton");
+  const branchSearchInput = document.getElementById("switchBranchSearch");
+  const branchList = document.getElementById("branchList");
+  const branchListHint = document.getElementById("branchListHint");
   const branchSelect = document.getElementById("branchSelect");
   const switchBranchSubmitButton = document.getElementById("switchBranchSubmitButton");
   const switchBranchMessage = document.getElementById("switchBranchMessage");
@@ -1539,7 +1734,10 @@
   let runsSidebarFilter = "";
   let runsSidebarIsLoading = false;
   let runsSidebarRefreshIntervalId = null;
+  let accountStatusHeartbeatIntervalId = null;
+  globalThis.__disabledAccountLogoutInFlight = false;
   const RUNS_SIDEBAR_REFRESH_INTERVAL_MS = 2000;
+  const ACCOUNT_STATUS_HEARTBEAT_MS = 2000;
   const RUNS_SIDEBAR_PAGE_SIZE = 20;
   let runsSidebarCurrentPage = 1;
   let runsSidebarTotalPages = 1;
@@ -1632,11 +1830,133 @@
     return runBranch;
   };
 
-  const resetSwitchBranchForm = () => {
-    if (branchSelect) {
-      branchSelect.innerHTML = "";
-      branchSelect.disabled = false;
+  const BRANCH_PAGE_SIZE = 200;
+  const switchBranchState = {
+    allBranches: [],
+    filteredBranches: [],
+    renderedCount: 0,
+    selectedBranch: "",
+    searchTerm: "",
+    isDisabled: false,
+  };
+
+  const setSwitchBranchDisabled = (disabled) => {
+    switchBranchState.isDisabled = !!disabled;
+    if (branchSearchInput) {
+      branchSearchInput.disabled = !!disabled;
     }
+    if (branchList) {
+      branchList.setAttribute("aria-disabled", disabled ? "true" : "false");
+    }
+  };
+
+  const updateBranchListHint = () => {
+    if (!branchListHint) {
+      return;
+    }
+    if (switchBranchState.isDisabled) {
+      branchListHint.textContent = "";
+      return;
+    }
+    const total = switchBranchState.filteredBranches.length;
+    if (!total) {
+      branchListHint.textContent = "No branches match your search.";
+      return;
+    }
+    const rendered = switchBranchState.renderedCount;
+    if (rendered < total) {
+      branchListHint.textContent = `Showing ${rendered} of ${total} branches. Scroll to load more.`;
+      return;
+    }
+    branchListHint.textContent = `Showing ${total} branch${total === 1 ? "" : "es"}.`;
+  };
+
+  const appendBranchOptions = () => {
+    if (!branchList) {
+      return;
+    }
+    const total = switchBranchState.filteredBranches.length;
+    if (switchBranchState.renderedCount >= total) {
+      updateBranchListHint();
+      return;
+    }
+
+    const start = switchBranchState.renderedCount;
+    const end = Math.min(start + BRANCH_PAGE_SIZE, total);
+    const fragment = document.createDocumentFragment();
+    for (let index = start; index < end; index += 1) {
+      const branchName = switchBranchState.filteredBranches[index];
+      const option = document.createElement("div");
+      option.className = "branch-list-option";
+      option.dataset.branch = branchName;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", switchBranchState.selectedBranch === branchName ? "true" : "false");
+      if (switchBranchState.selectedBranch === branchName) {
+        option.classList.add("is-selected");
+      }
+      option.textContent = formatBranchDisplayName(branchName) || branchName;
+      option.addEventListener("click", () => {
+        switchBranchState.selectedBranch = branchName;
+        if (branchSelect) {
+          branchSelect.value = branchName;
+        }
+        if (branchList) {
+          branchList.querySelectorAll(".branch-list-option").forEach((entry) => {
+            const isSelected = entry.dataset.branch === branchName;
+            entry.classList.toggle("is-selected", isSelected);
+            entry.setAttribute("aria-selected", isSelected ? "true" : "false");
+          });
+        }
+      });
+      fragment.appendChild(option);
+    }
+    branchList.appendChild(fragment);
+    switchBranchState.renderedCount = end;
+    updateBranchListHint();
+  };
+
+  const applyBranchFilter = () => {
+    const searchTerm = (switchBranchState.searchTerm || "").toLowerCase();
+    switchBranchState.filteredBranches = switchBranchState.allBranches.filter((branchName) => {
+      const formattedName = formatBranchDisplayName(branchName).toLowerCase();
+      return branchName.toLowerCase().includes(searchTerm) || formattedName.includes(searchTerm);
+    });
+    switchBranchState.renderedCount = 0;
+    if (branchList) {
+      branchList.innerHTML = "";
+    }
+
+    if (
+      switchBranchState.selectedBranch
+      && !switchBranchState.filteredBranches.includes(switchBranchState.selectedBranch)
+    ) {
+      switchBranchState.selectedBranch = switchBranchState.filteredBranches[0] || "";
+      if (branchSelect) {
+        branchSelect.value = switchBranchState.selectedBranch;
+      }
+    }
+
+    appendBranchOptions();
+  };
+
+  const resetSwitchBranchForm = () => {
+    switchBranchState.allBranches = [];
+    switchBranchState.filteredBranches = [];
+    switchBranchState.renderedCount = 0;
+    switchBranchState.selectedBranch = "";
+    switchBranchState.searchTerm = "";
+    setSwitchBranchDisabled(false);
+    if (branchSearchInput) {
+      branchSearchInput.value = "";
+    }
+    if (branchList) {
+      branchList.innerHTML = "";
+      branchList.scrollTop = 0;
+    }
+    if (branchSelect) {
+      branchSelect.value = "";
+    }
+    updateBranchListHint();
     if (switchBranchMessage) {
       switchBranchMessage.textContent = "";
       switchBranchMessage.style.color = "";
@@ -1673,9 +1993,7 @@
         switchBranchMessage.textContent = "Select a repository to switch branches.";
         switchBranchMessage.style.color = "#fca5a5";
       }
-      if (branchSelect) {
-        branchSelect.disabled = true;
-      }
+      setSwitchBranchDisabled(true);
       return;
     }
 
@@ -1695,36 +2013,36 @@
       if (!data || !Array.isArray(data.branches)) {
         throw new Error("Invalid branch data");
       }
+      const sanitizedBranches = data.branches.filter(
+        (branch) => typeof branch === "string" && branch.trim(),
+      );
+      switchBranchState.allBranches = sanitizedBranches;
+      const currentBranch = resolveActiveBranchName();
+      const initialBranch = currentBranch && sanitizedBranches.includes(currentBranch)
+        ? currentBranch
+        : (sanitizedBranches[0] || "");
+      switchBranchState.selectedBranch = initialBranch;
       if (branchSelect) {
-        branchSelect.innerHTML = "";
-        const fragment = document.createDocumentFragment();
-        data.branches.forEach((branch) => {
-          if (typeof branch !== "string" || !branch.trim()) {
-            return;
-          }
-          const option = document.createElement("option");
-          option.value = branch;
-          option.textContent = formatBranchDisplayName(branch) || branch;
-          fragment.appendChild(option);
-        });
-        branchSelect.appendChild(fragment);
-        const currentBranch = resolveActiveBranchName();
-        if (currentBranch) {
-          const matchingOption = Array.from(branchSelect.options).find(
-            (option) => option.value === currentBranch,
-          );
-          if (matchingOption) {
-            branchSelect.value = matchingOption.value;
-          }
+        branchSelect.value = initialBranch;
+      }
+      applyBranchFilter();
+
+      if (!sanitizedBranches.length) {
+        setSwitchBranchDisabled(true);
+        if (switchBranchMessage) {
+          switchBranchMessage.textContent = "No branches available.";
         }
-        if (!branchSelect.options.length) {
-          branchSelect.disabled = true;
-          if (switchBranchMessage) {
-            switchBranchMessage.textContent = "No branches available.";
+      } else if (switchBranchMessage) {
+        switchBranchMessage.textContent = "";
+      }
+      if (branchSearchInput) {
+        window.setTimeout(() => {
+          try {
+            branchSearchInput.focus({ preventScroll: true });
+          } catch (_error) {
+            branchSearchInput.focus();
           }
-        } else if (switchBranchMessage) {
-          switchBranchMessage.textContent = "";
-        }
+        }, 0);
       }
     } catch (error) {
       console.error("[Codex Runner] Failed to load branches:", error);
@@ -1732,9 +2050,7 @@
         switchBranchMessage.textContent = "Unable to load branches.";
         switchBranchMessage.style.color = "#fca5a5";
       }
-      if (branchSelect) {
-        branchSelect.disabled = true;
-      }
+      setSwitchBranchDisabled(true);
     }
   };
 
@@ -2197,6 +2513,25 @@
     });
   }
 
+  if (branchSearchInput) {
+    branchSearchInput.addEventListener("input", () => {
+      switchBranchState.searchTerm = branchSearchInput.value || "";
+      applyBranchFilter();
+      if (branchList) {
+        branchList.scrollTop = 0;
+      }
+    });
+  }
+
+  if (branchList) {
+    branchList.addEventListener("scroll", () => {
+      const nearBottom = branchList.scrollTop + branchList.clientHeight >= branchList.scrollHeight - 16;
+      if (nearBottom) {
+        appendBranchOptions();
+      }
+    });
+  }
+
   if (switchBranchCreateButton) {
     switchBranchCreateButton.addEventListener("click", async () => {
       const repoName = resolveActiveRepoName();
@@ -2355,7 +2690,6 @@
   let gitFpushCommitRevision = "";
   let gitFpushLogCaptureActive = false;
   let mergeDiffLockedAfterMerge = false;
-  let autoOpenMergeDiffOnEnable = false;
   let hydratingRunFromHistory = false;
   let pendingGitFpushHash = "";
   let pendingGitFpushHashProjectDir = "";
@@ -2393,7 +2727,9 @@
   };
 
   const MERGE_DISABLED_TOOLTIP_TEXT =
-    "Merge is available after<br />agent finishes running.";
+    "Merge is available after agent finishes running";
+  const MERGE_DISABLED_TOOLTIP_HTML =
+    "Merge is available after<br />agent finishes running";
 
   let mergeTooltipPinned = false;
   let currentMergeDisabledReason = null;
@@ -2441,7 +2777,7 @@
       return;
     }
 
-    setMergeTooltipContent(MERGE_DISABLED_TOOLTIP_TEXT);
+    setMergeTooltipContent(MERGE_DISABLED_TOOLTIP_HTML);
     setMergeTooltipVisibility(mergeTooltipPinned);
   };
 
@@ -3114,6 +3450,7 @@
 
   const normaliseRunId = (value) => (typeof value === "string" ? value.trim() : "");
 
+
   const parseRunIdFromHash = (hashValue) => {
     if (!hashValue) {
       return "";
@@ -3129,6 +3466,29 @@
       return normaliseRunId(decodeURIComponent(trimmed.slice(4)));
     }
     return normaliseRunId(decodeURIComponent(trimmed));
+  };
+
+  const maybePromoteHashRunIdToQueryForViewDiff = () => {
+    const currentUrl = new URL(window.location.href);
+    const viewDiffEnabled = (currentUrl.searchParams.get("viewDiff") || "").toLowerCase() === "true";
+    if (!viewDiffEnabled) {
+      return;
+    }
+
+    if (currentUrl.searchParams.get("run_id") || currentUrl.searchParams.get("runId")) {
+      return;
+    }
+
+    const runIdFromHash = parseRunIdFromHash(currentUrl.hash || "");
+    if (!runIdFromHash) {
+      return;
+    }
+
+    // URL fragments are not sent to the server. Promote #run=<id> to run_id
+    // so the backend can resolve the run and redirect to /agent/git-diff.
+    currentUrl.searchParams.set("run_id", runIdFromHash);
+    currentUrl.hash = "";
+    window.location.replace(currentUrl.toString());
   };
 
   const buildRunsPageHref = (projectDirValue, _runIdValue) => {
@@ -3197,6 +3557,8 @@
       return null;
     }
   };
+
+  maybePromoteHashRunIdToQueryForViewDiff();
 
   const existingRunIdFromHash = parseRunIdFromHash(window.location.hash || "");
   runsSidebarSelectedRunId = normaliseRunId(existingRunIdFromHash);
@@ -3704,37 +4066,44 @@
   /// --- Merge Diff button helpers ---
   const extractFirstHashFromText = (text) => {
     if (!text || typeof text !== 'string') return null;
-    const m = text.match(/[0-9a-f]{7,40}/i);
+    // Only match standalone hash tokens. Without word boundaries, regular
+    // words like "feedback" could incorrectly yield "feedbac" and produce
+    // invalid base/comp revisions for the diff page.
+    const m = text.match(/\b[0-9a-f]{7,40}\b/i);
     return m ? m[0] : null;
   };
 
-  const getFinalOutputForDiff = () => {
-    const activeFinalOutput = getActiveFinalOutputText();
-    if (typeof activeFinalOutput !== "string") {
-      return "";
+  const appendCurrentRunReferenceToDiffParams = (params) => {
+    if (!params || typeof params.set !== 'function') {
+      return;
     }
-    if (!activeFinalOutput.trim()) {
-      return "";
+    const runId = currentRunContext && currentRunContext.runId
+      ? String(currentRunContext.runId).trim()
+      : '';
+    if (runId) {
+      params.set('run_id', runId);
     }
-    return activeFinalOutput;
+    const rowIndexRaw = currentRunContext && (
+      currentRunContext.rowIndex
+      || currentRunContext.runRowIndex
+      || currentRunContext.runIndex
+    );
+    const rowIndex = Number.isFinite(Number(rowIndexRaw)) ? Number(rowIndexRaw) : null;
+    if (rowIndex !== null) {
+      params.set('rowIndex', String(rowIndex));
+    }
+
+    const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "")
+      .toString()
+      .trim()
+      .toLowerCase();
+    const runStatus = /\bmerged\b/.test(statusText) ? "merged" : "";
+    if (runStatus) {
+      params.set('run_status', runStatus);
+    }
   };
 
-  const getFinalOutputFromRunRecord = async (runId, projectDirValue) => {
-    try {
-      const run = await fetchRunFromHistory(runId, projectDirValue);
-      if (run) {
-        const resolved = resolveFinalOutputForSavedRun(run);
-        if (resolved) {
-          return resolved;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to fetch final output from run record:', e);
-    }
-    return null;
-  };
-
-  const buildMergeDiffUrl = (hash, projectDirValue, finalOutput) => {
+  const buildMergeDiffUrl = (hash, projectDirValue) => {
     if (!hash) return '';
     const baseRev = `${hash}^`;
     const params = new URLSearchParams({ baseRev, compRev: hash });
@@ -3745,14 +4114,11 @@
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
     }
-    const finalOutputForDiff = finalOutput || getFinalOutputForDiff();
-    if (finalOutputForDiff) {
-      params.set('finalOutput', finalOutputForDiff);
-    }
+    appendCurrentRunReferenceToDiffParams(params);
 
     return `/agent/git-diff?${params.toString()}`;
   };
-  const buildMergeDiffUrlForBranch = (branch, projectDirValue, finalOutput) => {
+  const buildMergeDiffUrlForBranch = (branch, projectDirValue) => {
     if (!branch) return '';
     const params = new URLSearchParams({ branch });
     const dir = normaliseProjectDir(projectDirValue) || normaliseProjectDir(currentSnapshotProjectDir) || (currentRunContext && currentRunContext.projectDir) || '';
@@ -3762,10 +4128,7 @@
     if (promptForDiff) {
       params.set('userPrompt', promptForDiff);
     }
-    const finalOutputForDiff = finalOutput || getFinalOutputForDiff();
-    if (finalOutputForDiff) {
-      params.set('finalOutput', finalOutputForDiff);
-    }
+    appendCurrentRunReferenceToDiffParams(params);
 
     // Use a server-side resolver to find the parent-merge commit for this branch
     return `/agent/git-diff-branch-merge?${params.toString()}`;
@@ -3787,17 +4150,17 @@
     }
   };
 
-  const enableMergeDiffAfterPrefetch = ({ branch, hash, projectDirValue, finalOutput }) => {
+  const enableMergeDiffAfterPrefetch = ({ branch, hash, projectDirValue }) => {
     const useBranch = Boolean(branch);
     const diffUrl = useBranch
-      ? buildMergeDiffUrlForBranch(branch, projectDirValue || "", finalOutput)
-      : buildMergeDiffUrl(hash, projectDirValue || "", finalOutput);
+      ? buildMergeDiffUrlForBranch(branch, projectDirValue || "")
+      : buildMergeDiffUrl(hash, projectDirValue || "");
 
     if (!diffUrl) {
       if (useBranch) {
-        enableMergeDiffButtonForBranch(branch, projectDirValue || "", finalOutput);
+        enableMergeDiffButtonForBranch(branch, projectDirValue || "");
       } else if (hash) {
-        enableMergeDiffButtonForHash(hash, projectDirValue || "", finalOutput);
+        enableMergeDiffButtonForHash(hash, projectDirValue || "");
       }
       return;
     }
@@ -3806,9 +4169,9 @@
       .catch(() => false)
       .finally(() => {
         if (useBranch) {
-          enableMergeDiffButtonForBranch(branch, projectDirValue || "", finalOutput);
+          enableMergeDiffButtonForBranch(branch, projectDirValue || "");
         } else if (hash) {
-          enableMergeDiffButtonForHash(hash, projectDirValue || "", finalOutput);
+          enableMergeDiffButtonForHash(hash, projectDirValue || "");
         }
       });
   };
@@ -3879,6 +4242,17 @@
     return isFromSameOrigin || isFromGitLogIframe;
   };
 
+  const triggerMergeFromViewDiffModal = () => {
+    if (typeof window.__alfeStartMergeFlow === "function") {
+      window.__alfeStartMergeFlow();
+      return;
+    }
+    if (mergeButton) {
+      mergeButton.removeAttribute("disabled");
+      mergeButton.click();
+    }
+  };
+
   const handleDiffModalMergeRequest = (event) => {
     if (!event || !event.data || event.data.type !== VIEW_DIFF_MERGE_MESSAGE_TYPE) {
       return;
@@ -3888,11 +4262,9 @@
     if (!isTrustedDiffModalMessage(event)) {
       return;
     }
-    // Close the diff modal and trigger the merge button in the parent if enabled.
+    // Close the diff modal and trigger merge in the parent.
     closeGitLogModal();
-    if (mergeButton && !mergeButton.disabled) {
-      mergeButton.click();
-    }
+    triggerMergeFromViewDiffModal();
   };
 
   const handleDiffModalBackRequest = (event) => {
@@ -4037,6 +4409,11 @@
   };
 
   const openMergeDiffModal = async (url) => {
+    console.debug("[ViewDiffDebug] openMergeDiffModal:start", {
+      url,
+      hasGitLogModal: Boolean(document.getElementById("gitLogModal")),
+      hasGitLogIframe: Boolean(document.getElementById("gitLogIframe")),
+    });
     try {
       const modal = document.getElementById('gitLogModal');
       const iframe = document.getElementById('gitLogIframe');
@@ -4049,9 +4426,18 @@
       }
 
       const { loaded, rawText } = await loadDiffIframeContent(iframe, url);
+      console.debug("[ViewDiffDebug] openMergeDiffModal:iframe-load-result", {
+        url,
+        loaded,
+        rawTextLength: typeof rawText === "string" ? rawText.length : 0,
+      });
 
       if (!loaded) {
         const renderedFallback = renderDiffFallbackContent(iframe, url, rawText);
+        console.debug("[ViewDiffDebug] openMergeDiffModal:fallback-render", {
+          url,
+          renderedFallback,
+        });
         if (!renderedFallback) {
           iframe.onload = () => { hideGitLogLoader(); };
           iframe.src = url;
@@ -4060,7 +4446,15 @@
 
       if (modal) { modal.classList.remove('is-hidden'); }
       document.body.style.overflow = 'hidden';
+      console.debug("[ViewDiffDebug] openMergeDiffModal:done", {
+        url,
+        modalVisible: Boolean(modal && !modal.classList.contains("is-hidden")),
+      });
     } catch (e) {
+      console.warn("[ViewDiffDebug] openMergeDiffModal:error", {
+        url,
+        message: e?.message || String(e),
+      });
       hideGitLogLoader();
       window.open(url, '_blank', 'noopener');
     }
@@ -4082,6 +4476,254 @@
     hideMergeDiffButton();
   };
 
+  const openRefreshViewDiffModal = async ({ force = false } = {}) => {
+    const runId = normaliseRunId((currentRunContext && currentRunContext.runId) || "");
+    if (!runId) {
+      return;
+    }
+
+    const projectDir = normaliseProjectDir(
+      (currentRunContext && (currentRunContext.projectDir || currentRunContext.requestedProjectDir || currentRunContext.effectiveProjectDir))
+      || (projectDirInput ? projectDirInput.value : "")
+      || "",
+    );
+
+    await openRunDiffModal({
+      runId,
+      projectDir,
+      force,
+      fallbackUrl: (mergeDiffButton && mergeDiffButton.getAttribute("data-href")) || "",
+    });
+  };
+
+
+  const openRunDiffModal = async ({ runId, fallbackRunId = "", projectDir = "", sessionId = "", force = false, fallbackUrl = "" } = {}) => {
+    const normalizedRunId = normaliseRunId(runId || "");
+    console.debug("[ViewDiffDebug] openRunDiffModal:start", {
+      runId,
+      fallbackRunId,
+      projectDir,
+      sessionId,
+      force,
+      fallbackUrl,
+      normalizedRunId,
+    });
+    if (!normalizedRunId) {
+      console.warn("[ViewDiffDebug] openRunDiffModal:missing-run-id", {
+        runId,
+        fallbackRunId,
+        projectDir,
+        sessionId,
+      });
+      return;
+    }
+
+    const normalizedProjectDir = normaliseProjectDir(projectDir || "");
+    const normalizedFallbackRunId = normaliseRunId(fallbackRunId || "");
+    const params = new URLSearchParams({ run_id: normalizedRunId });
+    if (normalizedProjectDir) {
+      params.set("repo_directory", normalizedProjectDir);
+    }
+    const normalizedSessionId = normaliseRunId(sessionId || currentSessionId || "");
+    if (normalizedSessionId) {
+      params.set("sessionId", normalizedSessionId);
+    }
+    if (force) {
+      params.set("force", "1");
+    }
+
+    const fetchDiffUrl = async (targetRunId) => {
+      const targetParams = new URLSearchParams(params);
+      targetParams.set("run_id", targetRunId);
+      const requestUrl = `/agent/runs/diff-url?${targetParams.toString()}`;
+      console.debug("[ViewDiffDebug] openRunDiffModal:fetch-diff-url:start", {
+        targetRunId,
+        requestUrl,
+      });
+      const response = await fetch(`/agent/runs/diff-url?${targetParams.toString()}`, {
+        method: "GET",
+        credentials: "same-origin",
+      });
+      console.debug("[ViewDiffDebug] openRunDiffModal:fetch-diff-url:response", {
+        targetRunId,
+        status: response.status,
+        ok: response.ok,
+      });
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        const requestError = new Error(`Failed to resolve diff url (status ${response.status})`);
+        requestError.status = response.status;
+        requestError.payload = errorPayload;
+        throw requestError;
+      }
+      const payload = await response.json().catch(() => ({}));
+      const diffUrl = typeof payload?.url === "string" ? payload.url.trim() : "";
+      console.debug("[ViewDiffDebug] openRunDiffModal:fetch-diff-url:payload", {
+        targetRunId,
+        hasUrl: Boolean(diffUrl),
+        runId: payload?.run_id || "",
+        baseRevision: payload?.base_revision || "",
+        commitRevision: payload?.commit_revision || "",
+        runDirectory: payload?.run_directory || "",
+      });
+      if (!diffUrl) {
+        throw new Error("Diff url response missing url");
+      }
+      return diffUrl;
+    };
+
+    const isMissingDiffMetadataError = (error) => {
+      if (!error || typeof error !== "object") {
+        return false;
+      }
+
+      const status = Number(error.status);
+      if (status === 422) {
+        return true;
+      }
+
+      const payloadError = (error.payload && error.payload.error ? String(error.payload.error) : "").toLowerCase();
+      return payloadError.includes("missing base_revision") || payloadError.includes("missing diff metadata");
+    };
+
+    const showDiffMetadataErrorModal = () => {
+      if (!diffMetadataErrorModal) {
+        return;
+      }
+      diffMetadataErrorModal.classList.remove("is-hidden");
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = "hidden";
+      }
+    };
+
+    try {
+      let diffUrl = "";
+      try {
+        diffUrl = await fetchDiffUrl(normalizedRunId);
+      } catch (primaryError) {
+        console.warn("[ViewDiffDebug] openRunDiffModal:primary-fetch-failed", {
+          normalizedRunId,
+          normalizedFallbackRunId,
+          message: primaryError?.message || String(primaryError),
+        });
+        if (!normalizedFallbackRunId || normalizedFallbackRunId === normalizedRunId) {
+          throw primaryError;
+        }
+        diffUrl = await fetchDiffUrl(normalizedFallbackRunId);
+      }
+      console.debug("[ViewDiffDebug] openRunDiffModal:resolved-url", {
+        normalizedRunId,
+        normalizedFallbackRunId,
+        diffUrl,
+      });
+      await openMergeDiffModal(diffUrl);
+    } catch (error) {
+      console.warn("[ViewDiffDebug] openRunDiffModal:error", {
+        normalizedRunId,
+        normalizedFallbackRunId,
+        fallbackUrl,
+        message: error?.message || String(error),
+      });
+      const fallback = typeof fallbackUrl === "string" ? fallbackUrl.trim() : "";
+      if (fallback) {
+        console.debug("[ViewDiffDebug] openRunDiffModal:using-fallback-url", {
+          fallback,
+        });
+        await openMergeDiffModal(fallback);
+        return;
+      }
+
+      if (isMissingDiffMetadataError(error)) {
+        showDiffMetadataErrorModal();
+      }
+    }
+  };
+
+  if (diffMetadataErrorModal) {
+    diffMetadataErrorModal.addEventListener("click", (event) => {
+      if (event.target === diffMetadataErrorModal) {
+        diffMetadataErrorModal.classList.add("is-hidden");
+        if (typeof document !== "undefined" && document.body) {
+          document.body.style.overflow = "";
+        }
+      }
+    });
+  }
+
+  if (diffMetadataErrorModalCloseButton) {
+    diffMetadataErrorModalCloseButton.addEventListener("click", () => {
+      if (diffMetadataErrorModal) {
+        diffMetadataErrorModal.classList.add("is-hidden");
+      }
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = "";
+      }
+    });
+  }
+
+  if (diffMetadataErrorModalOkButton) {
+    diffMetadataErrorModalOkButton.addEventListener("click", () => {
+      if (diffMetadataErrorModal) {
+        diffMetadataErrorModal.classList.add("is-hidden");
+      }
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = "";
+      }
+    });
+  }
+
+  const shouldEnableRefreshStyleActions = () => {
+    const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
+    const normalizedStatus = statusText.replace(/\u2026/g, "...");
+    const runIsMerged = normalizedStatus === "merged" || normalizedStatus === "merged.";
+    const hasCurrentRunId = Boolean(normaliseRunId((currentRunContext && currentRunContext.runId) || ""));
+    const hasFinalOutput = typeof finalOutputText === "string" && finalOutputText.trim() !== "";
+    const runIsActive = Boolean(eventSource)
+      || normalizedStatus === "running..."
+      || normalizedStatus === "merging...";
+    const runLooksComplete = hasCurrentRunId && !runIsActive && !runIsMerged;
+    const finalOutputReady = hasFinalOutput && !runInFlight && !followupRunActive;
+    const hasPreparedDiffUrl = Boolean(
+      mergeDiffButton
+      && typeof mergeDiffButton.getAttribute("data-href") === "string"
+      && mergeDiffButton.getAttribute("data-href").trim() !== "",
+    );
+
+    return Boolean(
+      runLooksComplete
+      || finalOutputReady
+      || (nonRefreshDiffButtonHidden && hasPreparedDiffUrl),
+    );
+  };
+
+  const updateRefreshRunButtonVisibility = () => {
+    if (!refreshRunPageButton) {
+      return;
+    }
+
+    const shouldEnableRefreshButton = shouldEnableRefreshStyleActions();
+
+    ensureMergeDiffContainerVisible();
+    refreshRunPageButton.disabled = !shouldEnableRefreshButton;
+    refreshRunPageButton.setAttribute("aria-disabled", shouldEnableRefreshButton ? "false" : "true");
+    syncViewDiffTooltipEnabledState();
+    maybeShowViewDiffTooltip();
+
+    if (!nonRefreshDiffButtonHidden || !shouldEnableRefreshButton) {
+      return;
+    }
+  };
+
+  if (refreshRunPageButton) {
+    refreshRunPageButton.addEventListener("click", async () => {
+      await openRefreshViewDiffModal({ force: true });
+    });
+  }
+
+  window.setTimeout(() => {
+    maybeShowViewDiffTooltip();
+  }, 1200);
+
   const hideMergeDiffButton = () => {
     if (!mergeDiffButton) return;
     mergeDiffButton.disabled = true;
@@ -4089,6 +4731,9 @@
     mergeDiffButton.setAttribute('aria-disabled', 'true');
     mergeDiffButton.onclick = null;
     mergeDiffButton.classList.add('is-hidden');
+    updateRefreshRunButtonVisibility();
+    syncViewDiffTooltipEnabledState();
+    maybeShowViewDiffTooltip();
   };
 
   const hasActiveMergeDiffLink = () => {
@@ -4096,7 +4741,7 @@
       return false;
     }
 
-    if (mergeDiffButton.classList.contains("is-hidden")) {
+    if (!nonRefreshDiffButtonHidden && mergeDiffButton.classList.contains("is-hidden")) {
       return false;
     }
 
@@ -4234,20 +4879,18 @@
 
     if (branch) {
       if (options.prefetchFirst) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, branchProjectDir);
-        enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: branchProjectDir });
       } else {
-        enableMergeDiffButtonForBranch(branch, branchProjectDir, null);
+        enableMergeDiffButtonForBranch(branch, branchProjectDir);
       }
       return true;
     }
 
     if (hash) {
       if (options.prefetchFirst) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, hashProjectDir);
-        enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ hash, projectDirValue: hashProjectDir });
       } else {
-        enableMergeDiffButtonForHash(hash, hashProjectDir, null);
+        enableMergeDiffButtonForHash(hash, hashProjectDir);
       }
       return true;
     }
@@ -4255,7 +4898,7 @@
     return false;
   };
 
-  const enableMergeDiffButtonForBranch = (branch, projectDirValue, finalOutput) => {
+  const enableMergeDiffButtonForBranch = (branch, projectDirValue) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4267,26 +4910,35 @@
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
-    const url = buildMergeDiffUrlForBranch(branch, projectDirValue || '', finalOutput);
+    const url = buildMergeDiffUrlForBranch(branch, projectDirValue || '');
     if (!url) {
       mergeDiffButton.disabled = true;
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
     ensureMergeDiffContainerVisible();
+    if (nonRefreshDiffButtonHidden) {
+      mergeDiffButton.setAttribute('data-href', url);
+      mergeDiffButton.setAttribute('aria-disabled', 'true');
+      mergeDiffButton.classList.add('is-hidden');
+      mergeDiffButton.onclick = null;
+      updateRefreshRunButtonVisibility();
+      return;
+    }
     mergeDiffButton.disabled = false;
     mergeDiffButton.setAttribute('data-href', url);
     mergeDiffButton.setAttribute('aria-disabled', 'false');
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
-    if (autoOpenMergeDiffOnEnable) {
-      autoOpenMergeDiffOnEnable = false;
-      setTimeout(() => mergeDiffButton.click(), 0);
-    }
+    updateRefreshRunButtonVisibility();
+    syncViewDiffTooltipEnabledState();
+    maybeShowViewDiffTooltip();
   };
 
   const extractBranchFromText = (text) => {
@@ -4296,7 +4948,7 @@
   };
 
 
-  const enableMergeDiffButtonForHash = (hash, projectDirValue, finalOutput) => {
+  const enableMergeDiffButtonForHash = (hash, projectDirValue) => {
     if (mergeDiffLockedAfterMerge) {
       hideMergeDiffButton();
       return;
@@ -4308,32 +4960,41 @@
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
-    const url = buildMergeDiffUrl(hash, projectDirValue || '', finalOutput);
+    const url = buildMergeDiffUrl(hash, projectDirValue || '');
     if (!url) {
       mergeDiffButton.disabled = true;
       mergeDiffButton.setAttribute('aria-disabled', 'true');
       mergeDiffButton.onclick = null;
       mergeDiffButton.classList.add('is-hidden');
+      syncViewDiffTooltipEnabledState();
       return;
     }
     ensureMergeDiffContainerVisible();
+    if (nonRefreshDiffButtonHidden) {
+      mergeDiffButton.setAttribute('data-href', url);
+      mergeDiffButton.setAttribute('aria-disabled', 'true');
+      mergeDiffButton.classList.add('is-hidden');
+      mergeDiffButton.onclick = null;
+      updateRefreshRunButtonVisibility();
+      return;
+    }
     mergeDiffButton.disabled = false;
     mergeDiffButton.setAttribute('data-href', url);
     mergeDiffButton.setAttribute('aria-disabled', 'false');
     mergeDiffButton.classList.remove('is-hidden');
     mergeDiffButton.onclick = () => { openMergeDiffModal(url); };
-    if (autoOpenMergeDiffOnEnable) {
-      autoOpenMergeDiffOnEnable = false;
-      setTimeout(() => mergeDiffButton.click(), 0);
-    }
+    updateRefreshRunButtonVisibility();
+    syncViewDiffTooltipEnabledState();
+    maybeShowViewDiffTooltip();
   };
 
-  const tryEnableMergeDiffFromText = (text, projectDirValue, finalOutput) => {
+  const tryEnableMergeDiffFromText = (text, projectDirValue) => {
     const hash = extractFirstHashFromText(text || '');
     if (hash) {
-      enableMergeDiffButtonForHash(hash, projectDirValue, finalOutput);
+      enableMergeDiffButtonForHash(hash, projectDirValue);
     }
   };
 
@@ -4382,13 +5043,14 @@
   };
 
   const getMergeDisabledReason = () => {
+    const mergeEnabledByRefreshState = shouldEnableRefreshStyleActions();
     if (mergeInFlight) {
       return "in-flight";
     }
     if (runControlsDisabled) {
       return "run-controls";
     }
-    if (!mergeReady) {
+    if (!mergeReady && !mergeEnabledByRefreshState) {
       return "not-ready";
     }
     return null;
@@ -4398,13 +5060,17 @@
     if (!mergeButton) {
       return;
     }
-    const shouldDisable = runControlsDisabled || mergeInFlight || !mergeReady;
+    const statusText = ((statusTextEl && statusTextEl.textContent) || (statusEl && statusEl.textContent) || "").trim().toLowerCase();
+    const normalizedStatus = statusText.replace(/\u2026/g, "...");
+    const runIsMerged = normalizedStatus === "merged" || normalizedStatus === "merged.";
+    const mergeEnabledByRefreshState = shouldEnableRefreshStyleActions();
+    const shouldDisable = runIsMerged || runControlsDisabled || mergeInFlight || (!mergeReady && !mergeEnabledByRefreshState);
     const disabledReason = shouldDisable ? getMergeDisabledReason() : null;
     mergeButton.disabled = shouldDisable;
     mergeButton.setAttribute("aria-disabled", shouldDisable ? "true" : "false");
     mergeButton.classList.toggle("is-merge-ready", !shouldDisable);
     if (!shouldDisable) {
-      mergeButton.title = "Merge current branch into the configured parent branch";
+      mergeButton.title = "Merge into the configured project branch";
     } else if (disabledReason === "in-flight") {
       mergeButton.removeAttribute("title");
     } else {
@@ -4419,7 +5085,7 @@
     mergeDiffLockedAfterMerge = false;
     applyMergeButtonState();
     // Disable merge-diff button when merge state resets
-    enableMergeDiffButtonForHash("", "", null);
+    enableMergeDiffButtonForHash("", "");
     gitFpushActive = false;
     gitFpushDetectedChanges = false;
     gitFpushDetectedNoChanges = false;
@@ -4433,15 +5099,6 @@
   const setMergeReady = (ready) => {
     mergeReady = !!ready;
     applyMergeButtonState();
-  };
-
-  const enableAutoOpenMergeDiffIfAllowed = () => {
-    if (hydratingRunFromHistory) {
-      autoOpenMergeDiffOnEnable = false;
-      return false;
-    }
-    autoOpenMergeDiffOnEnable = true;
-    return true;
   };
 
   const handleGitFpushCompletionMessage = async (message) => {
@@ -4459,7 +5116,7 @@
         || detectGitNoChangeIndicator(message));
       if (!hasDetectedChanges) {
         setMergeReady(false);
-        enableMergeDiffButtonForHash("", "", null);
+        enableMergeDiffButtonForHash("", "");
         pendingGitFpushHash = "";
         pendingGitFpushHashProjectDir = "";
         pendingGitFpushBranch = "";
@@ -4482,18 +5139,15 @@
 
       // Also try to extract a branch name emitted by git_fpush.sh and use it to enable the merge diff button.
       const branch = extractBranchFromText(message);
-      enableAutoOpenMergeDiffIfAllowed();
       if (branch) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, effectiveProjectDir);
-        enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ branch, projectDirValue: effectiveProjectDir });
         consumePendingGitFpushDiff({ prefetchFirst: true });
         markGitFpushPhaseComplete();
         return;
       }
 
       if (detectedHash) {
-        const finalOutput = await getFinalOutputFromRunRecord(currentRunContext.runId, effectiveProjectDir);
-        enableMergeDiffAfterPrefetch({ hash: detectedHash, projectDirValue: effectiveProjectDir, finalOutput });
+        enableMergeDiffAfterPrefetch({ hash: detectedHash, projectDirValue: effectiveProjectDir });
         consumePendingGitFpushDiff({ prefetchFirst: true });
         markGitFpushPhaseComplete();
         return;
@@ -4532,6 +5186,25 @@
       return;
     }
 
+    const mergedCandidates = [
+      run.finalMessage,
+      run.gitMergeStdout,
+      run.gitMergeStderr,
+      ...(Array.isArray(run.statusHistory) ? run.statusHistory : []),
+    ];
+    const alreadyMerged = mergedCandidates.some((candidate) => {
+      if (!candidate && candidate !== 0) {
+        return false;
+      }
+      const text = String(candidate);
+      return MERGE_SUCCESS_PATTERNS.some((pattern) => pattern.test(text));
+    });
+    if (alreadyMerged) {
+      setMergeReady(false);
+      enableMergeDiffButtonForHash("", "");
+      return;
+    }
+
     if (Number(run.gitFpushExitCode) !== 0) {
       return;
     }
@@ -4565,7 +5238,7 @@
       || candidateTexts.some((candidate) => detectGitChangeIndicator(candidate));
     if (hasExplicitNoChanges || !hasGitChanges) {
       setMergeReady(false);
-      enableMergeDiffButtonForHash("", "", null);
+      enableMergeDiffButtonForHash("", "");
       return;
     }
 
@@ -4573,15 +5246,14 @@
 
     const branchFromRun = extractBranchFromRun(run);
     if (branchFromRun) {
-      const finalOutput = resolveFinalOutputForSavedRun(run);
-      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir, finalOutput);
+      enableMergeDiffButtonForBranch(branchFromRun, diffProjectDir);
     }
 
     for (const candidate of candidateTexts) {
       if (hasActiveMergeDiffLink()) {
         return;
       }
-      tryEnableMergeDiffFromText(candidate, diffProjectDir, null);
+      tryEnableMergeDiffFromText(candidate, diffProjectDir);
     }
   };
 
@@ -4929,7 +5601,7 @@
     projectDirInput.addEventListener("blur", handleProjectDirChange);
   }
 
-  let eventSource = null;
+  var eventSource = null;
   let streamClosedByServer = false;
   let activeOutputTab = "combined";
   let currentStdoutPrompt = "";
@@ -4941,7 +5613,7 @@
   let stdoutPromptPendingBuffer = "";
   let suppressStdoutOutput = false;
   let skippingGitPullStdoutBlock = false;
-  let followupRunActive = false;
+  var followupRunActive = false;
 
   const gitPullUpdatingRegex = /^updating\s+[0-9a-f]+\.\.[0-9a-f]+/i;
   const gitPullRangeLineRegex = /^\s*[0-9a-f]{7,}\.\.[0-9a-f]{7,}\s+\S+\s+->\s+\S+/i;
@@ -5312,9 +5984,8 @@ const clearMergeOutput = () => {
     mergeOutputEl.textContent = "";
     mergeOutputBuffer = [];
     if (mergeSummaryEl) { mergeSummaryEl.textContent = ''; }
-    // hide the container until merge clicked
-    const container = document.getElementById('mergeOutputContainer');
-    if (container) { container.classList.add('is-hidden'); }
+    // Keep the action row visible so refresh-style View Diff remains consistently available.
+    ensureMergeDiffContainerVisible();
 };
 
 const appendMergeChunk = (text, type = "output") => {
@@ -5517,18 +6188,97 @@ const appendMergeChunk = (text, type = "output") => {
       session.outputTabsContainer.classList.toggle("is-hidden", !hasFinalOutput);
     }
 
+    const followupRunId = normaliseRunId(run.id || "");
+    const followupParentRunId = getFollowupParentId(run);
+    const followupProjectDir = normaliseProjectDir(
+      run.effectiveProjectDir || run.projectDir || run.requestedProjectDir || "",
+    );
+    const followupSessionId = normaliseRunId(run.sessionId || run.session_id || "");
+    session.followupRunId = followupRunId;
+    session.followupParentRunId = followupParentRunId;
+    session.followupProjectDir = followupProjectDir;
+    session.followupSessionId = followupSessionId;
+
+    if (session.followupDiffButton) {
+      const hasRunId = Boolean(followupRunId);
+    session.followupDiffButton.disabled = !hasRunId;
+    session.followupDiffButton.setAttribute("aria-disabled", hasRunId ? "false" : "true");
+    session.followupDiffButton.onclick = async () => {
+      console.debug("[ViewDiffDebug] followup-diff-button:clicked", {
+        sessionIndex: session.index,
+        runId: session.followupRunId,
+        parentRunId: session.followupParentRunId,
+        projectDir: session.followupProjectDir,
+        sessionId: session.followupSessionId,
+        disabled: session.followupDiffButton.disabled,
+      });
+      await openRunDiffModal({
+        runId: session.followupRunId,
+        fallbackRunId: "",
+        projectDir: session.followupProjectDir,
+          sessionId: session.followupSessionId,
+          force: true,
+        });
+      };
+    }
+
     setFollowupActiveTab(session, "combined");
     setFollowupSessionStatus(session, resolveFollowupSessionState(run));
     return session;
   };
 
   const loadFollowupRunsForParent = async (run) => {
-    const parentId = normaliseRunId(run?.id || "");
+    const selectedRunId = normaliseRunId(run?.id || "");
+    const explicitParentId = normaliseRunId(getFollowupParentId(run) || "");
+    const parentId = explicitParentId || selectedRunId;
+    const selectedRunIsFollowup = Boolean(explicitParentId);
     if (!parentId) {
       return [];
     }
+
+    const collectMatchingFollowups = (candidateRuns) => {
+      const list = Array.isArray(candidateRuns) ? candidateRuns : [];
+      const matched = [];
+      const includedRunIds = new Set();
+      const parentIdsToTraverse = [parentId];
+      const traversedParentIds = new Set();
+
+      while (parentIdsToTraverse.length) {
+        const candidateParentId = normaliseRunId(parentIdsToTraverse.shift() || "");
+        if (!candidateParentId || traversedParentIds.has(candidateParentId)) {
+          continue;
+        }
+        traversedParentIds.add(candidateParentId);
+
+        list.forEach((entry) => {
+          const entryParentId = getFollowupParentId(entry);
+          if (entryParentId !== candidateParentId) {
+            return;
+          }
+          const entryRunId = normaliseRunId(entry?.id || "");
+          const uniqueKey = entryRunId || `${candidateParentId}:${matched.length}`;
+          if (includedRunIds.has(uniqueKey)) {
+            return;
+          }
+          includedRunIds.add(uniqueKey);
+          matched.push(entry);
+          if (entryRunId && !traversedParentIds.has(entryRunId)) {
+            parentIdsToTraverse.push(entryRunId);
+          }
+        });
+      }
+
+      if (selectedRunIsFollowup && selectedRunId) {
+        const alreadyIncluded = matched.some((entry) => normaliseRunId(entry?.id || "") === selectedRunId);
+        if (!alreadyIncluded && run && typeof run === "object") {
+          matched.push(run);
+        }
+      }
+      return matched;
+    };
+
     const runs = Array.isArray(runsSidebarRuns) ? runsSidebarRuns : [];
-    const matchesFromSidebar = runs.filter((entry) => getFollowupParentId(entry) === parentId);
+    const matchesFromSidebar = collectMatchingFollowups(runs);
     if (matchesFromSidebar.length) {
       return matchesFromSidebar;
     }
@@ -5536,15 +6286,86 @@ const appendMergeChunk = (text, type = "output") => {
     const projectDirHint = normaliseProjectDir(
       run?.requestedProjectDir || run?.projectDir || run?.effectiveProjectDir || "",
     );
-    try {
-      const url = buildRunsDataUrl("", projectDirHint);
+    const fetchMatchingRuns = async (projectDirValue) => {
+      const url = buildRunsDataUrl("", projectDirValue);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load follow-up runs (status ${response.status})`);
       }
       const payload = await response.json().catch(() => ({}));
       const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
-      return loadedRuns.filter((entry) => getFollowupParentId(entry) === parentId);
+      return collectMatchingFollowups(loadedRuns);
+    };
+
+    const fetchFollowupsFromDbByParent = async (rootParentId, projectDirValue) => {
+      const discoveredRuns = [];
+      const discoveredRunIds = new Set();
+      const parentQueue = [normaliseRunId(rootParentId || "")];
+      const seenParents = new Set();
+
+      while (parentQueue.length) {
+        const parentCandidate = normaliseRunId(parentQueue.shift() || "");
+        if (!parentCandidate || seenParents.has(parentCandidate)) {
+          continue;
+        }
+        seenParents.add(parentCandidate);
+
+        const url = new URL(buildRunsDataUrl("", projectDirValue), window.location.origin);
+        url.searchParams.set("followup_parent_id", parentCandidate);
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+          throw new Error(`Failed to load follow-up runs (status ${response.status})`);
+        }
+        const payload = await response.json().catch(() => ({}));
+        const loadedRuns = Array.isArray(payload?.runs) ? payload.runs : [];
+
+        loadedRuns.forEach((entry) => {
+          const entryRunId = normaliseRunId(entry?.id || "");
+          if (!entryRunId || discoveredRunIds.has(entryRunId)) {
+            return;
+          }
+          discoveredRunIds.add(entryRunId);
+          discoveredRuns.push(entry);
+          parentQueue.push(entryRunId);
+        });
+      }
+
+      if (selectedRunIsFollowup && selectedRunId) {
+        const alreadyIncluded = discoveredRuns.some((entry) => normaliseRunId(entry?.id || "") === selectedRunId);
+        if (!alreadyIncluded && run && typeof run === "object") {
+          discoveredRuns.push(run);
+        }
+      }
+
+      return discoveredRuns;
+    };
+
+    try {
+      const dbMatchesWithProjectDir = await fetchFollowupsFromDbByParent(parentId, projectDirHint);
+      if (dbMatchesWithProjectDir.length) {
+        return dbMatchesWithProjectDir;
+      }
+
+      if (projectDirHint) {
+        const dbMatchesWithoutProjectDir = await fetchFollowupsFromDbByParent(parentId, "");
+        if (dbMatchesWithoutProjectDir.length) {
+          return dbMatchesWithoutProjectDir;
+        }
+      }
+
+      const matchesWithProjectDir = await fetchMatchingRuns(projectDirHint);
+      if (matchesWithProjectDir.length) {
+        return matchesWithProjectDir;
+      }
+
+      // Some historical runs have an inconsistent/missing projectDir value. Fall back to
+      // querying all runs so follow-up sessions still hydrate on page reload.
+      if (projectDirHint) {
+        const matchesWithoutProjectDir = await fetchMatchingRuns("");
+        if (matchesWithoutProjectDir.length) {
+          return matchesWithoutProjectDir;
+        }
+      }
     } catch (error) {
       console.error("[Codex Runner] Failed to load follow-up runs", error);
     }
@@ -5590,7 +6411,6 @@ const appendMergeChunk = (text, type = "output") => {
     }
 
     hydratingRunFromHistory = true;
-    autoOpenMergeDiffOnEnable = false;
 
     try {
       resetFollowupSessions();
@@ -5671,7 +6491,6 @@ const appendMergeChunk = (text, type = "output") => {
         || (typeof run.effectivePrompt === "string" && run.effectivePrompt)
         || "";
     if (promptInput && promptValue) {
-      promptInput.value = promptValue;
     }
     updatePromptPreview(promptValue);
 
@@ -5779,7 +6598,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (run.gitMergeStdout) {
       appendMergeChunk(`\n--- Merge stdout ---\n${run.gitMergeStdout}`, "output");
     }
-    tryEnableMergeDiffFromText(run.gitMergeStdout, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '', null);
+    tryEnableMergeDiffFromText(run.gitMergeStdout, currentRunContext && currentRunContext.projectDir ? currentRunContext.projectDir : '');
 
     // After restoring a saved run ensure run controls and merge button state are refreshed.
     try { setRunControlsDisabledState(false, { forceRefresh: true }); } catch (e) { /* ignore */ }
@@ -5796,12 +6615,12 @@ const appendMergeChunk = (text, type = "output") => {
     const followupRuns = await renderFollowupSessionsFromHistory(run);
     if (Array.isArray(followupRuns) && followupRuns.length) {
       const latestFollowup = followupRuns[followupRuns.length - 1];
-      const latestBranch = extractBranchFromRun(latestFollowup);
-      const currentHref = mergeDiffButton ? mergeDiffButton.getAttribute('data-href') : '';
-      const hasBranchDiff = typeof currentHref === 'string' && currentHref.includes('branch=');
-      if (latestBranch && (!hasActiveMergeDiffLink() || !hasBranchDiff)) {
-        enableMergeDiffButtonFromSavedRun(latestFollowup);
-      }
+      // Keep the primary run highlighted in the sidebar. Follow-up runs are not
+      // listed as standalone sidebar items, so selecting a follow-up run id here
+      // clears the visible highlight after reloading history.
+      setRunsSidebarActiveRun(currentRunContext.runId);
+      enableMergeDiffButtonFromSavedRun(latestFollowup);
+      updateRefreshRunButtonVisibility();
     }
 
     if (hasHydratedFinalOutput) {
@@ -5811,7 +6630,6 @@ const appendMergeChunk = (text, type = "output") => {
     }
     } finally {
       hydratingRunFromHistory = false;
-      autoOpenMergeDiffOnEnable = false;
     }
   };
 
@@ -6051,6 +6869,32 @@ const appendMergeChunk = (text, type = "output") => {
     );
   };
 
+  const resolveFollowupRootParentId = (runIdValue) => {
+    const fallbackId = normaliseRunId(runIdValue || "");
+    if (!fallbackId) {
+      return "";
+    }
+
+    const runs = Array.isArray(runsSidebarRuns) ? runsSidebarRuns : [];
+    if (!runs.length) {
+      return fallbackId;
+    }
+
+    const seen = new Set();
+    let currentId = fallbackId;
+    while (currentId && !seen.has(currentId)) {
+      seen.add(currentId);
+      const currentRun = runs.find((entry) => normaliseRunId(entry?.id || "") === currentId);
+      const parentId = normaliseRunId(getFollowupParentId(currentRun) || "");
+      if (!parentId) {
+        return currentId;
+      }
+      currentId = parentId;
+    }
+
+    return fallbackId;
+  };
+
   const getSidebarBadgeInfo = (run, { hasActiveFollowup = false } = {}) => {
     if (hasActiveFollowup) {
       return { text: "Running", variant: "running" };
@@ -6177,10 +7021,36 @@ const appendMergeChunk = (text, type = "output") => {
 
     const filterValue = runsSidebarFilter ? runsSidebarFilter.trim().toLowerCase() : "";
     const activeFollowupParents = new Set();
+    const latestFollowupByParentId = new Map();
+    const getRunRecencyTimestamp = (run) => {
+      const candidate =
+        run?.startedAt
+        || run?.createdAt
+        || run?.updatedAt
+        || run?.finishedAt
+        || "";
+      const timestamp = candidate ? new Date(candidate).getTime() : 0;
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+    const isRunMoreRecent = (candidateRun, existingRun) => {
+      if (!existingRun) {
+        return true;
+      }
+      const candidateRunning = !candidateRun?.finishedAt;
+      const existingRunning = !existingRun?.finishedAt;
+      if (candidateRunning !== existingRunning) {
+        return candidateRunning;
+      }
+      return getRunRecencyTimestamp(candidateRun) >= getRunRecencyTimestamp(existingRun);
+    };
     const followupFilteredRuns = Array.isArray(runs)
       ? runs.filter((run) => {
         const followupParentId = getFollowupParentId(run);
         if (followupParentId) {
+          const existingLatestFollowup = latestFollowupByParentId.get(followupParentId);
+          if (isRunMoreRecent(run, existingLatestFollowup)) {
+            latestFollowupByParentId.set(followupParentId, run);
+          }
           if (!run?.finishedAt) {
             activeFollowupParents.add(followupParentId);
           }
@@ -6229,7 +7099,7 @@ const appendMergeChunk = (text, type = "output") => {
       if (!runsSidebarFilteredTotal) {
         runsSidebarEmptyEl.textContent = filterValue
           ? (runsSidebarShowArchived ? "No archived runs match your search." : "No runs match your search.")
-          : (runsSidebarShowArchived ? "No archived runs." : "No runs recorded yet.");
+          : (runsSidebarShowArchived ? "No archived runs." : "");
         runsSidebarEmptyEl.classList.remove("is-hidden");
       } else {
         runsSidebarEmptyEl.classList.add("is-hidden");
@@ -6298,7 +7168,13 @@ const appendMergeChunk = (text, type = "output") => {
               if (!resp.ok) {
                 console.error('[Codex Runner] Failed to archive/unarchive run', resp.status);
               } else {
+                // Check if this is the currently selected run
+                const isCurrentlySelected = id === runsSidebarSelectedRunId;
                 await loadRunsSidebar({ projectDir: getProjectDirHintForHistory(), force: true });
+                // If the archived run was the currently selected run, trigger new task creation
+                if (isCurrentlySelected && typeof prepareNewTask === 'function') {
+                  prepareNewTask();
+                }
               }
             } catch (err) { console.error('[Codex Runner] Archive action failed', err); }
             finally { archiveBtn.disabled = false; archiveBtn.classList.remove('is-active'); }
@@ -6369,8 +7245,10 @@ const appendMergeChunk = (text, type = "output") => {
       const metaEl = button.querySelector('.runs-sidebar__item-meta');
       if (metaEl) {
         // badge
-        const badgeInfo = getSidebarBadgeInfo(run, {
-          hasActiveFollowup: Boolean(normalizedRunId && activeFollowupParents.has(normalizedRunId)),
+        const latestFollowupRun = normalizedRunId ? latestFollowupByParentId.get(normalizedRunId) : null;
+        const hasSelectedRunActiveFollowup = Boolean(normalizedRunId && followupRunActive && runsSidebarSelectedRunId === normalizedRunId);
+        const badgeInfo = getSidebarBadgeInfo(latestFollowupRun || run, {
+          hasActiveFollowup: Boolean(normalizedRunId && activeFollowupParents.has(normalizedRunId)) || hasSelectedRunActiveFollowup,
         });
         let badge = metaEl.querySelector('.runs-sidebar__badge');
         if (badgeInfo) {
@@ -6664,9 +7542,14 @@ const appendMergeChunk = (text, type = "output") => {
           force: true,
           skipIfLoading: true,
         });
-        fetchAccountInfo({ reloadOnPlanChange: true });
       }, RUNS_SIDEBAR_REFRESH_INTERVAL_MS);
     }
+  }
+
+  if (!accountStatusHeartbeatIntervalId) {
+    accountStatusHeartbeatIntervalId = window.setInterval(() => {
+      fetchAccountInfo({ reloadOnPlanChange: true });
+    }, ACCOUNT_STATUS_HEARTBEAT_MS);
   }
 
   if (fullOutputTabButton) {
@@ -6745,6 +7628,7 @@ const appendMergeChunk = (text, type = "output") => {
       try {
         markRunMergedInSidebar((currentRunContext && currentRunContext.runId) || '', message || 'Merged');
       } catch (e) { /* ignore */ }
+      setMergeReady(false);
       lockMergeDiffButton();
     }
 
@@ -6781,6 +7665,8 @@ const appendMergeChunk = (text, type = "output") => {
     } catch (_error) {
       /* ignore final output refresh errors */
     }
+
+    updateRefreshRunButtonVisibility();
   };
 
   const prepareNewTask = () => {
@@ -6920,7 +7806,7 @@ const appendMergeChunk = (text, type = "output") => {
       try { fileTreeStatus.disabled = disabled; } catch (e) { /* ignore */ }
     }
     if (mergeButton) {
-      mergeButton.disabled = disabled || !mergeReady;
+      mergeButton.disabled = disabled || (!mergeReady && !shouldEnableRefreshStyleActions());
       mergeButton.setAttribute('aria-disabled', mergeButton.disabled ? 'true' : 'false');
     }
     if (mergeDiffButton) {
@@ -7104,8 +7990,8 @@ const appendMergeChunk = (text, type = "output") => {
 
   /// Tracks stderr output to extract the post-"codex" commit message for the Final output tab.
   let stderrCommitBuffer = "";
-  let finalOutputText = "";
-  let followupFinalOutputText = "";
+  var finalOutputText = "";
+  var followupFinalOutputText = "";
   let qwenCliRunActive = false;
   let followupQwenCliRunActive = false;
   let qwenCliOutputText = "";
@@ -7185,7 +8071,7 @@ const appendMergeChunk = (text, type = "output") => {
       /^#{1,6}\s+\S/, // Markdown heading
       /^\*\*[^*]+\*\*$/, // Bold line such as **Result**
       /^__[^_]+__$/, // Underlined header
-      /^[^:]+:\s*$/, // Title followed by a colon
+      /^(final output|summary|result|changes?|commit message):\s*$/i, // Known title followed by a colon
     ];
 
     while (index < lines.length) {
@@ -7475,6 +8361,31 @@ const appendMergeChunk = (text, type = "output") => {
     return resolvedResult;
   };
 
+  const isLikelyQwenStreamJson = (text) => {
+    if (typeof text !== "string" || !text) {
+      return false;
+    }
+
+    const lines = text.replace(/\r/g, "").split("\n");
+    let typedJsonLines = 0;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line || line.charAt(0) !== "{" || !line.includes('"type"')) {
+        continue;
+      }
+      const parsed = safeParseJson(line);
+      if (parsed && typeof parsed.type === "string") {
+        typedJsonLines += 1;
+      }
+      if (typedJsonLines >= 2) {
+        return true;
+      }
+    }
+
+    return typedJsonLines > 0 && /"type"\s*:\s*"result"/i.test(text);
+  };
+
   const resolveFinalOutputForSavedRun = (run) => {
     if (!run || typeof run !== "object") {
       return "";
@@ -7503,6 +8414,9 @@ const appendMergeChunk = (text, type = "output") => {
     ];
 
     for (const candidate of directCandidates) {
+      if (run.qwenCli === true && isLikelyQwenStreamJson(candidate)) {
+        continue;
+      }
       const normalised = normaliseCandidate(candidate, { qwenCli: run.qwenCli === true });
       if (normalised) {
         return normalised;
@@ -7586,6 +8500,8 @@ const appendMergeChunk = (text, type = "output") => {
         setActiveOutputTab("combined");
       }
     }
+
+    updateRefreshRunButtonVisibility();
   };
 
   const extractCommitMessageFromBuffer = () => {
@@ -7832,13 +8748,13 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
-  if (mergeButton) {
-    mergeButton.addEventListener("click", async () => {
+  const startMergeFlow = async () => {
+      if (mergeInFlight) {
+        return;
+      }
+
       mergeTooltipPinned = false;
       setMergeTooltipVisibility(false);
-
-      // Ensure merge operations do not auto-open the diff modal
-      autoOpenMergeDiffOnEnable = false;
 
       const effectiveDir = resolveEffectiveProjectDirForMerge();
       if (!effectiveDir) {
@@ -7899,20 +8815,15 @@ const appendMergeChunk = (text, type = "output") => {
           "status",
         );
         // Attempt to locate a merge commit hash in the merge output and enable the Merge Diff button
-        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir, null);
+        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
 
         // Set merged status in UI
         try { setStatus('Merged.', 'merged'); } catch (e) { console.warn('Failed to set merged status', e); }
         // Attempt to locate a merge commit hash in the merge output and enable the Merge Diff button
-        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir, null);
+        tryEnableMergeDiffFromText(statusOutput || payload?.output || payload?.message || '', effectiveDir);
 
-        // If a merge diff was detected and the button is enabled, open the modal to show the merge commit diff
-        try {
-          // merge completed; enable diff button below merge output for user to open
-        } catch (e) { console.warn('Failed to enable merge diff button', e); }
-
-        autoOpenMergeDiffOnEnable = false;
         setMergeReady(false);
+        completeViewDiffTooltipOnboarding();
       } catch (error) {
         const errorMessage = error && error.message
           ? error.message
@@ -7929,7 +8840,20 @@ const appendMergeChunk = (text, type = "output") => {
         // Re-enable run controls after merge completes
         try { setRunControlsDisabledState(false); } catch (e) { console.warn('Failed to re-enable run controls after merge', e); }
       }
+  };
+
+  if (typeof window !== "undefined") {
+    window.__alfeStartMergeFlow = startMergeFlow;
+  }
+
+  if (mergeButton) {
+    mergeButton.addEventListener("click", async () => {
+      if (mergeButton.disabled || mergeInFlight) {
+        return;
+      }
+      await startMergeFlow();
     });
+  }
 
   if (updateBranchButton) {
     updateBranchButton.addEventListener('click', async () => {
@@ -7961,7 +8885,6 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
-  }
 
   if (defaultModelSaveButton && defaultModelInput) {
   // Delete local checkout for a run
@@ -8134,7 +9057,7 @@ const appendMergeChunk = (text, type = "output") => {
       params.append("projectDir", effectiveProjectDirForRun);
     }
     const followupParentId = continuingExistingRun
-      ? normaliseRunId(currentRunContext && currentRunContext.runId ? currentRunContext.runId : "")
+      ? resolveFollowupRootParentId(currentRunContext && currentRunContext.runId ? currentRunContext.runId : "")
       : "";
     if (followupParentId) {
       params.append("followupParentId", followupParentId);
@@ -8297,6 +9220,16 @@ const appendMergeChunk = (text, type = "output") => {
         effectiveProjectDir: effectiveDirForContext,
         branchName: branchFromPayload,
       });
+
+      if (followupRunActive) {
+        syncActiveFollowupDiffButton({
+          runId: runIdValue,
+          parentRunId: getFollowupParentId(payload),
+          projectDir: effectiveDirForContext || projectDirForUrl,
+          sessionId: payload && (payload.sessionId || payload.session_id),
+        });
+      }
+
       updateRunsSidebarHeading(currentRunContext.projectDir);
       updateProjectInfoProjectDir();
     try{ updateRunDirectoryNotice(currentRunContext && currentRunContext.effectiveProjectDir ? currentRunContext.effectiveProjectDir : (currentRunContext && currentRunContext.projectDir) ); }catch(e){}
@@ -8342,8 +9275,22 @@ const appendMergeChunk = (text, type = "output") => {
               || (currentRunContext && currentRunContext.projectDir)
               || "",
           );
-        }
       }
+
+  };
+
+  if (typeof window !== "undefined") {
+    window.__alfeStartMergeFlow = startMergeFlow;
+  }
+
+  if (mergeButton) {
+    mergeButton.addEventListener("click", async () => {
+      if (mergeButton.disabled || mergeInFlight) {
+        return;
+      }
+      await startMergeFlow();
+    });
+  }
     });
 
     eventSource.addEventListener("stderr", (event) => {
@@ -8822,6 +9769,8 @@ const appendMergeChunk = (text, type = "output") => {
   const authModalTitle = document.getElementById("authModalTitle");
   const accountModal = document.getElementById("accountModal");
   const accountModalCloseButton = document.getElementById("accountModalCloseButton");
+  const accountDisabledModal = document.getElementById("accountDisabledModal");
+  const accountDisabledOkButton = document.getElementById("accountDisabledOkButton");
   const sterlingSettingsModal = document.getElementById("sterlingSettingsModal");
   const sterlingSettingsIframe = document.getElementById("sterlingSettingsIframe");
   const authEmailInput = document.getElementById("authEmailInput");
@@ -8845,7 +9794,9 @@ const appendMergeChunk = (text, type = "output") => {
   const AUTH_MODAL_READY_KEY = "__alfeAuthModalReady";
   let authEmailValue = "";
   let authModalStep = "email";
-  let accountInfo = null;
+  let accountInfo = config.initialAccountInfo && config.initialAccountInfo.email
+    ? config.initialAccountInfo
+    : null;
 
   const closeRepoAddModal = () => {
     const repoAddModal = document.getElementById("repoAddModal");
@@ -8964,6 +9915,30 @@ const appendMergeChunk = (text, type = "output") => {
     showToast.timeoutId = window.setTimeout(() => {
       toastEl.classList.remove("show");
     }, duration);
+  };
+
+  const isModalVisible = (modalEl) => Boolean(modalEl && !modalEl.classList.contains("is-hidden"));
+
+  const syncBodyOverflowWithModalState = () => {
+    const hasVisibleModal = [authModal, accountModal, usageLimitModal, subscribeModal, accountDisabledModal]
+      .some((modalEl) => isModalVisible(modalEl));
+    document.body.style.overflow = hasVisibleModal ? "hidden" : "";
+  };
+
+  const showAccountDisabledModal = () => {
+    if (!accountDisabledModal) {
+      return;
+    }
+    accountDisabledModal.classList.remove("is-hidden");
+    syncBodyOverflowWithModalState();
+  };
+
+  const hideAccountDisabledModal = () => {
+    if (!accountDisabledModal) {
+      return;
+    }
+    accountDisabledModal.classList.add("is-hidden");
+    syncBodyOverflowWithModalState();
   };
 
   const persistAuthModalState = () => {
@@ -9239,7 +10214,7 @@ const appendMergeChunk = (text, type = "output") => {
   };
 
   const showSignupForm = () => {
-    if (!authEmailValue || !isBasicEmailValid(authEmailValue)) {
+    if (!allowEmptyEmail && (!authEmailValue || !isBasicEmailValid(authEmailValue))) {
       if (authEmailValue) {
         showToast("Enter a valid email address");
       }
@@ -9269,8 +10244,8 @@ const appendMergeChunk = (text, type = "output") => {
     }
   };
 
-  const showLoginForm = () => {
-    if (!authEmailValue || !isBasicEmailValid(authEmailValue)) {
+  const showLoginForm = ({ allowEmptyEmail = false } = {}) => {
+    if (!allowEmptyEmail && (!authEmailValue || !isBasicEmailValid(authEmailValue))) {
       if (authEmailValue) {
         showToast("Enter a valid email address");
       }
@@ -9536,6 +10511,13 @@ const appendMergeChunk = (text, type = "output") => {
     });
   }
 
+  if (accountDisabledOkButton) {
+    accountDisabledOkButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      hideAccountDisabledModal();
+    });
+  }
+
   const getModalCloseButtonFromEvent = (event) => {
     const target = event && event.target;
     if (target instanceof Element) {
@@ -9595,29 +10577,64 @@ const appendMergeChunk = (text, type = "output") => {
     return plan.trim().toLowerCase();
   };
 
+  const applyAccountResponse = ({ resp, data, previousPlan, reloadOnPlanChange }) => {
+    if (resp.ok && data?.disabled) {
+      globalThis.__disabledAccountLogoutInFlight = true;
+      const logoutUrl = new URL("/auth/shopify/logout", window.location.origin);
+      logoutUrl.searchParams.set("returnTo", "/agent?reason=disabled-account");
+      window.location.assign(logoutUrl.toString());
+      return true;
+    }
+    if (resp.ok && data?.email) {
+      const nextPlan = normalizeAccountPlan(data.plan);
+      if (reloadOnPlanChange && previousPlan && nextPlan && previousPlan !== nextPlan) {
+        window.location.reload();
+        return true;
+      }
+      setAccountInfo({
+        email: data.email,
+        plan: data.plan,
+        sessionId: data.sessionId,
+        timezone: data.timezone
+      });
+      return true;
+    }
+    return false;
+  };
+
   const fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
+    if (globalThis.__disabledAccountLogoutInFlight) {
+      return;
+    }
     const previousPlan = normalizeAccountPlan(accountInfo?.plan);
     try {
-      const params = currentSessionId
-        ? `?sessionId=${encodeURIComponent(currentSessionId)}`
-        : "";
-      const resp = await fetch(`/api/account${params}`, { cache: "no-store" });
-      const data = await resp.json().catch(() => null);
-      if (resp.ok && data?.email) {
-        const nextPlan = normalizeAccountPlan(data.plan);
-        if (reloadOnPlanChange && previousPlan && nextPlan && previousPlan !== nextPlan) {
-          window.location.reload();
+      const defaultResp = await fetch("/api/account", { cache: "no-store" });
+      const defaultData = await defaultResp.json().catch(() => null);
+      if (applyAccountResponse({
+        resp: defaultResp,
+        data: defaultData,
+        previousPlan,
+        reloadOnPlanChange
+      })) {
+        return;
+      }
+
+      if (currentSessionId) {
+        const fallbackResp = await fetch(`/api/account?sessionId=${encodeURIComponent(currentSessionId)}`, {
+          cache: "no-store"
+        });
+        const fallbackData = await fallbackResp.json().catch(() => null);
+        if (applyAccountResponse({
+          resp: fallbackResp,
+          data: fallbackData,
+          previousPlan,
+          reloadOnPlanChange
+        })) {
           return;
         }
-        setAccountInfo({
-          email: data.email,
-          plan: data.plan,
-          sessionId: data.sessionId,
-          timezone: data.timezone
-        });
-      } else {
-        setAccountInfo(null);
       }
+
+      setAccountInfo(null);
     } catch (err) {
       console.error("Account lookup failed", err);
       setAccountInfo(null);
@@ -9680,6 +10697,11 @@ const appendMergeChunk = (text, type = "output") => {
       if (lbl) {
         lbl.style.display = "block";
       }
+    }
+    if (data?.error === "account disabled") {
+      hideAuthModal();
+      showAccountDisabledModal();
+      return;
     }
     showToast(data?.error || "Login failed");
   };
@@ -9812,6 +10834,21 @@ const appendMergeChunk = (text, type = "output") => {
         setSignupLoading(false);
       }
     });
+  }
+
+  if (accountInfo) {
+    setAccountInfo(accountInfo);
+  } else {
+    updateAccountButton(null);
+  }
+
+  const authReason = new URLSearchParams(window.location.search || "").get("reason");
+  if (authReason === "disabled-account") {
+    hideAuthModal();
+    showAccountDisabledModal();
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete("reason");
+    window.history.replaceState({}, "", currentUrl.toString());
   }
 
   fetchAccountInfo();
