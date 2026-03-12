@@ -1451,6 +1451,8 @@ if (process.env.DEBUG) {
 
 const httpsPort = parseInt(process.env.HTTPS_PORT, 10) || 443;
 const httpsDisabled = String(process.env.ENABLE_HTTPS || "true").toLowerCase() === "false";
+const enableHttpToHttpsRedirect = String(process.env.ENABLE_HTTP_TO_HTTPS_REDIRECT || "true").toLowerCase() !== "false";
+const httpToHttpsRedirectPort = parseInt(process.env.HTTP_TO_HTTPS_REDIRECT_PORT, 10) || 80;
 const configDir = path.join(PROJECT_ROOT, "data", "config");
 const defaultKeyPath = path.join(configDir, "selfsigned-key.pem");
 const defaultCertPath = path.join(configDir, "selfsigned-cert.pem");
@@ -1637,9 +1639,37 @@ if (!httpsDisabled && httpsOptions) {
     console.log("[DEBUG] HTTPS server disabled or certificates unavailable. Skipping HTTPS listener.");
 }
 
+let httpRedirectServerStarted = false;
+if (httpsServerStarted && enableHttpToHttpsRedirect) {
+    if (httpToHttpsRedirectPort === httpsPort) {
+        console.warn(`[WARN] HTTP->HTTPS redirect listener skipped because redirect port ${httpToHttpsRedirectPort} matches HTTPS port ${httpsPort}.`);
+    } else {
+        try { ensurePortIsFree(httpToHttpsRedirectPort); } catch (e) { console.warn("[WARN] Failed to free HTTP redirect port", e); }
+        try {
+            http.createServer((req, res) => {
+                const hostHeader = String(req.headers.host || "").trim();
+                const hostWithoutPort = hostHeader.replace(/:\d+$/, "");
+                const redirectHost = hostWithoutPort || "localhost";
+                const destinationPort = httpsPort === 443 ? "" : `:${httpsPort}`;
+                const location = `https://${redirectHost}${destinationPort}${req.url || "/"}`;
+
+                res.statusCode = 301;
+                res.setHeader("Location", location);
+                res.end();
+            }).listen(httpToHttpsRedirectPort, () => {
+                console.log(`[DEBUG] HTTP redirect server running => http://localhost:${httpToHttpsRedirectPort} -> https://localhost:${httpsPort}`);
+            });
+            httpRedirectServerStarted = true;
+        } catch (error) {
+            console.error(`[ERROR] Failed to start HTTP redirect listener on port ${httpToHttpsRedirectPort}: ${error.message}`);
+        }
+    }
+}
 
 if (httpsServerStarted && httpsPort === httpPort) {
     console.log(`[DEBUG] HTTP listener skipped because HTTPS is using port ${httpsPort}.`);
+} else if (httpRedirectServerStarted && httpToHttpsRedirectPort === httpPort) {
+    console.log(`[DEBUG] HTTP app listener skipped because HTTP redirect server is using port ${httpPort}.`);
 } else {
     try { ensurePortIsFree(httpPort); } catch(e) { console.warn('[WARN] Failed to free httpPort', e); }
     http.createServer(app).listen(httpPort, () => {
