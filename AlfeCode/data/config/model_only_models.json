@@ -208,23 +208,23 @@
       "key": "litellm"
     },
     {
-      "id": "openrouter/qwen/qwen3-14b",
-      "label": "Qwen 3 14B",
-      "disabled": true,
+      "id": "openrouter/qwen/qwen3-32b",
+      "label": "Qwen 3 32B",
+      "disabled": false,
       "engine_options": [
         "auto",
         "qwen"
       ],
       "pricing": {
-        "inputPerMTokens": 0.05,
-        "outputPerMTokens": 0.22
+        "inputPerMTokens": 0.08,
+        "outputPerMTokens": 0.24
       },
       "qwen_cli": true,
-      "list_order": 1003,
+      "list_order": 1,
       "plus_model": false,
       "usage": "free",
-      "url": "https://litellm.alfe.sh/v1",
-      "key": "litellm"
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "openrouter/qwen/qwen3-coder:free",
@@ -274,10 +274,10 @@
     },
     {
       "id": "openrouter/qwen/qwen3-coder-30b-a3b-instruct",
-      "label": "Qwen3 Coder 30B A3B Instruct",
+      "label": "Qwen: Qwen3 Coder 30B A3B Instruct",
       "created": "2025-07-31",
       "contextTokens": 160000,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -287,11 +287,8 @@
         "outputPerMTokens": 0.27
       },
       "qwen_cli": true,
-      "list_order": 0,
-      "plus_model": false,
-      "usage": "low",
-      "url": "https://litellm.alfe.sh/v1",
-      "key": "litellm"
+      "list_order": 13,
+      "plus_model": false
     },
     {
       "id": "google/gemini-2.0-flash-001",
@@ -322,9 +319,9 @@
         "qwen"
       ],
       "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 999,
-      "usage": "medium",
+      "plus_model": false,
+      "list_order": 0,
+      "usage": "free",
       "url": "https://openrouter.ai/api/v1",
       "key": "openrouter"
     },
@@ -387,7 +384,7 @@
       "qwen_cli": true,
       "contextTokens": 131072,
       "plus_model": false,
-      "usage": "low",
+      "usage": "medium",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
     },
@@ -407,7 +404,7 @@
       "qwen_cli": true,
       "contextTokens": 131072,
       "plus_model": true,
-      "usage": "low",
+      "usage": "medium",
       "url": "https://openrouter.ai/api/v1",
       "key": "openrouter"
     },
@@ -523,195 +520,6 @@
       "qwen_cli": false,
       "plus_model": false,
       "list_order": 28
-    },
-    {
-      "id": "openrouter/qwen/qwen3-32b",
-      "label": "Qwen3 32B",
-      "disabled": true,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 1000,
-      "usage": "free",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/qwen/qwen3-235b-a22b",
-      "label": "Qwen3 235B A22B",
-      "disabled": true,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 0.455,
-        "outputPerMTokens": 1.82
-      },
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 1001,
-      "usage": "high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/qwen/qwen3-coder-plus",
-      "label": "Qwen3 Coder Plus",
-      "disabled": false,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 1.00,
-        "outputPerMTokens": 5.00
-      },
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 1002,
-      "usage": "very high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/qwen/qwen3-coder-next",
-      "label": "Qwen3 Coder Next",
-      "disabled": true,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 0.12,
-        "outputPerMTokens": 0.75
-      },
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 13,
-      "usage": "medium",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "z-ai/glm-4.6:exacto",
-      "label": "Z.ai: GLM 4.6 (exacto)",
-      "disabled": true,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 0.44,
-        "outputPerMTokens": 1.76
-      },
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 1004,
-      "usage": "high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/qwen/qwen3-coder:exacto",
-      "label": "Qwen3 Coder 480B A35B (exacto)",
-      "disabled": true,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 0.22,
-        "outputPerMTokens": 1.80
-      },
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 1005,
-      "usage": "high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/qwen/qwen3-coder-flash",
-      "label": "Qwen3 Coder Flash",
-      "disabled": true,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 0.30,
-        "outputPerMTokens": 1.50
-      },
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 1006,
-      "usage": "high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/z-ai/glm-4.7-flash",
-      "label": "Z.ai: GLM 4.7 Flash",
-      "disabled": true,
-      "list_order": 1007,
-      "pricing": {
-        "inputPerMTokens": 0.06,
-        "outputPerMTokens": 0.40
-      },
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "qwen_cli": true,
-      "contextTokens": 131072,
-      "plus_model": true,
-      "usage": "low",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/z-ai/glm-4.7",
-      "label": "Z.ai: GLM 4.7",
-      "disabled": true,
-      "list_order": 1008,
-      "pricing": {
-        "inputPerMTokens": 0.38,
-        "outputPerMTokens": 1.7
-      },
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "qwen_cli": true,
-      "contextTokens": 131072,
-      "plus_model": true,
-      "usage": "high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
-    },
-    {
-      "id": "openrouter/z-ai/glm-5",
-      "label": "Z.ai: GLM 5",
-      "disabled": true,
-      "list_order": 1009,
-      "pricing": {
-        "inputPerMTokens": 0.95,
-        "outputPerMTokens": 2.55
-      },
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "qwen_cli": true,
-      "contextTokens": 131072,
-      "plus_model": true,
-      "usage": "very high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
     }
   ]
 }
