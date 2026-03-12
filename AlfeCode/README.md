@@ -91,6 +91,12 @@ To run the web server over HTTPS, provide paths to your SSL certificate files:
 If both files exist the server starts in HTTPS mode, otherwise it falls back to HTTP.
 You can generate a certificate automatically with `../setup_certbot.sh <domain> <email>`.
 
+When HTTPS is active, AlfeCode also starts an HTTP redirect listener (default port `80`) that sends
+all requests to HTTPS. This is controlled by:
+
+- `ENABLE_HTTP_TO_HTTPS_REDIRECT` – defaults to `true`; set to `false` to disable HTTP redirects
+- `HTTP_TO_HTTPS_REDIRECT_PORT` – defaults to `80`
+
 To authenticate node heartbeat pings, set a shared key in `.env` using `ALFECODE_NODE_PING_KEY`.
 On Debian/Ubuntu shells you can generate a 32-byte hex key with:
 ```
