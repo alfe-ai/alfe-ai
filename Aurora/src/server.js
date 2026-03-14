@@ -34,6 +34,11 @@ const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
 const IMAGE_UPLOAD_ENABLED = parseBooleanEnv(process.env.IMAGE_UPLOAD_ENABLED, false);
 const SEARCH_ENABLED_2026 = parseBooleanEnv(process.env.SEARCH_ENABLED_2026, true);
 const IMAGES_ENABLED_2026 = parseBooleanEnv(process.env.IMAGES_ENABLED_2026, true);
+const ENFORCE_HTTPS_REDIRECT = parseBooleanEnv(process.env.ENFORCE_HTTPS_REDIRECT, true);
+const HTTPS_REDIRECT_HOSTS = (process.env.HTTPS_REDIRECT_HOSTS || "chat.alfe.bot")
+  .split(",")
+  .map(host => host.trim().toLowerCase())
+  .filter(Boolean);
 const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
   process.env["2FA_ENABLED_2026"],
   false
@@ -588,6 +593,29 @@ if (db.getSetting("new_tab_opens_search") === undefined) {
 }
 
 const app = express();
+app.set("trust proxy", true);
+
+if (ENFORCE_HTTPS_REDIRECT) {
+  app.use((req, res, next) => {
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
+      .split(",")[0]
+      .trim()
+      .toLowerCase();
+    const isHttps = req.secure || forwardedProto === "https";
+    const host = String(req.headers.host || "");
+    const hostname = String(req.hostname || "").toLowerCase();
+    const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    const hostAllowed =
+      HTTPS_REDIRECT_HOSTS.length === 0 ||
+      HTTPS_REDIRECT_HOSTS.includes(hostname);
+
+    if (!isHttps && !isLocalHost && hostAllowed) {
+      return res.redirect(301, `https://${host}${req.originalUrl}`);
+    }
+
+    next();
+  });
+}
 
 // Auto-hide cookie banner when requested via env var HIDE_COOKIE_BANNER=true
 const _hideCookieBanner = parseBooleanEnv(process.env.HIDE_COOKIE_BANNER, false);
