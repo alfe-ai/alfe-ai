@@ -158,6 +158,26 @@ function redirectHandler(req, res) {
   res.end();
 }
 
+function listenWithDualStack(server, port, label) {
+  const tryIpv4 = () => {
+    server.listen({ port, host: '0.0.0.0' }, () => {
+      console.log(`[redirect] ${label} listening on 0.0.0.0:${port} -> ${NORMALIZED_TARGET}`);
+    });
+  };
+
+  server.once('error', (error) => {
+    if (error.code === 'EAFNOSUPPORT') {
+      tryIpv4();
+      return;
+    }
+    throw error;
+  });
+
+  server.listen({ port, host: '::', ipv6Only: false }, () => {
+    console.log(`[redirect] ${label} listening on [::]:${port} -> ${NORMALIZED_TARGET}`);
+  });
+}
+
 function start() {
   if (!Number.isFinite(HTTP_PORT) || HTTP_PORT <= 0) {
     throw new Error(`Invalid HTTP_PORT: ${HTTP_PORT}`);
@@ -173,13 +193,8 @@ function start() {
     cert: fs.readFileSync(HTTPS_CERT_PATH),
   };
 
-  http.createServer(redirectHandler).listen(HTTP_PORT, () => {
-    console.log(`[redirect] HTTP  listening on :${HTTP_PORT} -> ${NORMALIZED_TARGET}`);
-  });
-
-  https.createServer(httpsOptions, redirectHandler).listen(HTTPS_PORT, () => {
-    console.log(`[redirect] HTTPS listening on :${HTTPS_PORT} -> ${NORMALIZED_TARGET}`);
-  });
+  listenWithDualStack(http.createServer(redirectHandler), HTTP_PORT, 'HTTP ');
+  listenWithDualStack(https.createServer(httpsOptions, redirectHandler), HTTPS_PORT, 'HTTPS');
 }
 
 start();
