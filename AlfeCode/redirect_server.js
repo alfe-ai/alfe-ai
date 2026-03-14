@@ -15,16 +15,12 @@
  *  - HTTPS_CERT_PATH=/path/to/cert.pem
  */
 
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import http from 'node:http';
-import https from 'node:https';
-import { execSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const http = require('node:http');
+const https = require('node:https');
+const { execSync } = require('node:child_process');
 
 function loadEnvFile(envPath) {
   const content = fs.readFileSync(envPath, 'utf8');
