@@ -26,6 +26,47 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function loadEnvFile(envPath) {
+  const content = fs.readFileSync(envPath, 'utf8');
+  for (const rawLine of content.split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf('=');
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    if (!key || Object.prototype.hasOwnProperty.call(process.env, key)) {
+      continue;
+    }
+
+    let value = line.slice(separatorIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+}
+
+const dotenvPathCandidates = [
+  path.join(__dirname, '.env'),
+  path.join(__dirname, '.env.local'),
+];
+
+for (const dotenvPath of dotenvPathCandidates) {
+  if (fs.existsSync(dotenvPath)) {
+    loadEnvFile(dotenvPath);
+  }
+}
+
 const REDIRECT_TARGET = String(process.env.REDIRECT_TARGET || 'https://chat.alfe.bot').trim();
 const HTTP_PORT = Number.parseInt(process.env.HTTP_PORT || '80', 10);
 const HTTPS_PORT = Number.parseInt(process.env.HTTPS_PORT || '443', 10);
