@@ -105,7 +105,7 @@ const themeVisibilityConfig = (() => {
   return { hidden };
 })();
 
-const DEFAULT_CODE_REDIRECT_TARGET = window.AURORA_FLAGS?.codeRedirect?.target || 'https://internal-chat.alfe.bot';
+const DEFAULT_CODE_REDIRECT_TARGET = window.AURORA_FLAGS?.codeRedirect?.target || 'https://code.alfe.sh';
 const codeRedirectConfig = (() => {
   const flags = window.AURORA_FLAGS || {};
   const cfg = flags.codeRedirect || {};
@@ -8915,8 +8915,7 @@ async function focusExistingCodeChat(){
 async function handleCodeNavClick(fromIcon = false){
   try {
     // Direct the Code button to the GitHub repo for AlfeCode
-    const target = window.AURORA_FLAGS?.codeRedirect?.target || 'https://internal-chat.alfe.bot';
-    window.location.href = target;
+    window.location.href = codeRedirectConfig.target;
   } catch (err) {
     console.error('[CodeNav] Failed to open code repo', err);
   }
