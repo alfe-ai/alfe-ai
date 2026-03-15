@@ -13,6 +13,7 @@
  *  - HTTPS_PORT=443
  *  - HTTPS_KEY_PATH=/path/to/key.pem
  *  - HTTPS_CERT_PATH=/path/to/cert.pem
+ *  - HTTPS_SNI_CERTS=alfe.bot|/path/to/key.pem|/path/to/cert.pem,www.alfe.bot|/path/to/key.pem|/path/to/cert.pem
  */
 
 const fs = require('node:fs');
@@ -20,6 +21,7 @@ const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
+const tls = require('node:tls');
 const { execSync } = require('node:child_process');
 
 function loadEnvFile(envPath) {
@@ -72,6 +74,7 @@ const DEFAULT_KEY_PATH = path.join(CERT_DIR, 'redirect-selfsigned-key.pem');
 const DEFAULT_CERT_PATH = path.join(CERT_DIR, 'redirect-selfsigned-cert.pem');
 const HTTPS_KEY_PATH = process.env.HTTPS_KEY_PATH || DEFAULT_KEY_PATH;
 const HTTPS_CERT_PATH = process.env.HTTPS_CERT_PATH || DEFAULT_CERT_PATH;
+const HTTPS_SNI_CERTS = String(process.env.HTTPS_SNI_CERTS || '').trim();
 
 function normalizeTarget(target) {
   if (!target) return 'https://code.alfe.bot';
@@ -141,6 +144,53 @@ function ensureSelfSignedCert() {
   }
 }
 
+function parseSniCertificateEntries(rawSniCerts) {
+  if (!rawSniCerts) {
+    return [];
+  }
+
+  return rawSniCerts
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const [servernameRaw, keyPathRaw, certPathRaw] = entry.split('|');
+      const servername = String(servernameRaw || '').trim().toLowerCase();
+      const keyPath = String(keyPathRaw || '').trim();
+      const certPath = String(certPathRaw || '').trim();
+
+      if (!servername || !keyPath || !certPath) {
+        throw new Error(
+          `Invalid HTTPS_SNI_CERTS entry: "${entry}". Expected format: domain|/path/to/key.pem|/path/to/cert.pem`,
+        );
+      }
+
+      return { servername, keyPath, certPath };
+    });
+}
+
+function buildSniSecureContextMap(rawSniCerts) {
+  const entries = parseSniCertificateEntries(rawSniCerts);
+  const secureContextMap = new Map();
+
+  for (const entry of entries) {
+    if (!fs.existsSync(entry.keyPath) || !fs.existsSync(entry.certPath)) {
+      throw new Error(
+        `HTTPS_SNI_CERTS entry for ${entry.servername} points to missing file(s): ${entry.keyPath}, ${entry.certPath}`,
+      );
+    }
+
+    const secureContext = tls.createSecureContext({
+      key: fs.readFileSync(entry.keyPath),
+      cert: fs.readFileSync(entry.certPath),
+    });
+
+    secureContextMap.set(entry.servername, secureContext);
+  }
+
+  return secureContextMap;
+}
+
 function buildRedirectLocation(req) {
   const suffix = req.url || '/';
   return `${NORMALIZED_TARGET}${suffix.startsWith('/') ? suffix : `/${suffix}`}`;
@@ -188,6 +238,24 @@ function start() {
     key: fs.readFileSync(HTTPS_KEY_PATH),
     cert: fs.readFileSync(HTTPS_CERT_PATH),
   };
+
+  const sniSecureContextMap = buildSniSecureContextMap(HTTPS_SNI_CERTS);
+  if (sniSecureContextMap.size > 0) {
+    httpsOptions.SNICallback = (servername, callback) => {
+      const normalizedServername = String(servername || '').trim().toLowerCase();
+      const secureContext = sniSecureContextMap.get(normalizedServername);
+
+      if (callback) {
+        callback(null, secureContext || undefined);
+        return;
+      }
+
+      return secureContext;
+    };
+    console.log(
+      `[redirect] Loaded SNI certs for: ${Array.from(sniSecureContextMap.keys()).join(', ')}`,
+    );
+  }
 
   listenWithDualStack(http.createServer(redirectHandler), HTTP_PORT, 'HTTP ');
   listenWithDualStack(https.createServer(httpsOptions, redirectHandler), HTTPS_PORT, 'HTTPS');
