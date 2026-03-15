@@ -159,6 +159,14 @@ class RdsStore {
         ipv6_address TEXT DEFAULT ''
       );`);
       await this.pool.query(
+        `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
+         ON ${ALFECODE_RUNS_TABLE} (session_id, updated_at DESC)`
+      );
+      await this.pool.query(
+        `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_followup_parent
+         ON ${ALFECODE_RUNS_TABLE} (session_id, followup_parent_id, updated_at DESC)`
+      );
+      await this.pool.query(
         `ALTER TABLE ${SESSION_VIEWS_TABLE}
          ADD COLUMN IF NOT EXISTS account_id INTEGER`
       );
@@ -347,14 +355,6 @@ class RdsStore {
       await this.pool.query(
         `ALTER TABLE ${ALFECODE_RUNS_TABLE}
          ADD COLUMN IF NOT EXISTS script_status TEXT DEFAULT ''`
-      );
-      await this.pool.query(
-        `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_updated
-         ON ${ALFECODE_RUNS_TABLE} (session_id, updated_at DESC)`
-      );
-      await this.pool.query(
-        `CREATE INDEX IF NOT EXISTS idx_${ALFECODE_RUNS_TABLE}_session_followup_parent
-         ON ${ALFECODE_RUNS_TABLE} (session_id, followup_parent_id, updated_at DESC)`
       );
       await this.pool.query(
         `UPDATE ${ACCOUNTS_TABLE}
