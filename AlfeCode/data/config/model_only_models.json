@@ -294,6 +294,25 @@
       "key": "openrouter"
     },
     {
+      "id": "openrouter/qwen/qwen3-coder-plus",
+      "label": "Qwen3 Coder Plus",
+      "disabled": false,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "pricing": {
+        "inputPerMTokens": 1.00,
+        "outputPerMTokens": 5.00
+      },
+      "qwen_cli": true,
+      "plus_model": false,
+      "list_order": 0,
+      "usage": "free",
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
+    },
+    {
       "id": "google/gemini-2.0-flash-001",
       "label": "Google: Gemini 2.0 Flash",
       "disabled": true,
