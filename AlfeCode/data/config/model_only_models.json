@@ -210,7 +210,7 @@
     {
       "id": "openrouter/qwen/qwen3-32b",
       "label": "Qwen 3 32B",
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -277,7 +277,7 @@
       "label": "Qwen: Qwen3 Coder 30B A3B Instruct",
       "created": "2025-07-31",
       "contextTokens": 160000,
-      "disabled": true,
+      "disabled": false,
       "engine_options": [
         "auto",
         "qwen"
@@ -287,8 +287,11 @@
         "outputPerMTokens": 0.27
       },
       "qwen_cli": true,
-      "list_order": 13,
-      "plus_model": false
+      "list_order": 0,
+      "plus_model": false,
+      "usage": "free",
+      "url": "https://openrouter.ai/api/v1",
+      "key": "openrouter"
     },
     {
       "id": "google/gemini-2.0-flash-001",
@@ -308,7 +311,7 @@
     {
       "id": "openrouter/kwaipilot/kat-coder-pro",
       "label": "KwaiPilot: KAT Coder Pro",
-      "disabled": false,
+      "disabled": true,
       "contextTokens": 256000,
       "pricing": {
         "inputPerMTokens": 0.207,
@@ -320,7 +323,7 @@
       ],
       "qwen_cli": true,
       "plus_model": false,
-      "list_order": 0,
+      "list_order": 1,
       "usage": "free",
       "url": "https://openrouter.ai/api/v1",
       "key": "openrouter"
