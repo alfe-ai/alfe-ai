@@ -57,6 +57,10 @@ Set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` to the SSL key and certificate files
 to enable HTTPS across the included servers. If the files are missing the
 services fall back to HTTP.
 
+For multi-domain TLS on `redirect_code_alfe_bot.js`, set `HTTPS_SNI_CERTS`
+using comma-separated `domain|keyPath|certPath` entries, for example:
+`alfe.bot|/etc/letsencrypt/live/alfe.bot/privkey.pem|/etc/letsencrypt/live/alfe.bot/fullchain.pem,www.alfe.bot|/etc/letsencrypt/live/www.alfe.bot/privkey.pem|/etc/letsencrypt/live/www.alfe.bot/fullchain.pem`.
+
 ### Third-party components
 
 The platform depends on the `codex-cli` npm package as an external tool. It
