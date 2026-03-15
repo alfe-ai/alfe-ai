@@ -4493,6 +4493,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                 isIframeMode: <%- JSON.stringify(!!iframeMode) %>,
                 editorLaunchConfig: <%- JSON.stringify(editorLaunchConfig || null) %>,
                 enableFollowups: <%- JSON.stringify(enableFollowups || false) %>,
+                passCustomAgentInstructionsToQwen: <%- JSON.stringify(typeof passCustomAgentInstructionsToQwen === "undefined" ? true : passCustomAgentInstructionsToQwen) %>,
                 defaultSubmitOnEnter: <%- JSON.stringify(typeof defaultSubmitOnEnter === 'undefined' ? true : defaultSubmitOnEnter) %>,
                 accountButtonEnabled: <%- JSON.stringify(typeof accountButtonEnabled === "undefined" ? true : accountButtonEnabled) %>,
                 userPromptVisibleCodex: <%- JSON.stringify(typeof userPromptVisibleCodex === "undefined" ? false : userPromptVisibleCodex) %>,
