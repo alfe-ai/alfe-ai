@@ -9009,12 +9009,8 @@ const appendMergeChunk = (text, type = "output") => {
           : config.defaultModel || config.defaultCodexModel || "";
 
     const trimmedInstructions = agentInstructions ? agentInstructions.trim() : "";
-    const passCustomAgentInstructionsToQwen = typeof config.passCustomAgentInstructionsToQwen === "undefined"
-      ? true
-      : Boolean(config.passCustomAgentInstructionsToQwen);
     const promptSections = [];
-    const shouldIncludeCustomInstructions = !(resolveEnginePreference() === "qwen" && !passCustomAgentInstructionsToQwen);
-    if (trimmedInstructions && shouldIncludeCustomInstructions) {
+    if (trimmedInstructions) {
       promptSections.push(trimmedInstructions);
     }
 
@@ -9072,7 +9068,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (prompt) {
       params.append("userPrompt", prompt);
     }
-    if (trimmedInstructions && shouldIncludeCustomInstructions) {
+    if (trimmedInstructions) {
       params.append("agentInstructions", trimmedInstructions);
     }
     if (selectedModel) {
