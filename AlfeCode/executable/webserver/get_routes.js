@@ -3384,6 +3384,7 @@ ${cleanedFinalOutput}`;
         const showNewTaskButton = parseBooleanFlag(process.env.ENABLE_NEW_TASK_BUTTON);
         const showRunDirectory = parseBooleanFlag(process.env.SHOW_RUN_DIRECTORY);
         const showEngineOnAgent = parseBooleanFlag(process.env.SHOW_ENGINE_ON_AGENT);
+        const passCustomAgentInstructionsToQwen = parseBooleanFlagWithDefault(process.env.PASS_CUSTOM_AGENT_INSTRUCTIONS_TO_QWEN, true);
         const accountsEnabled = parseBooleanFlagWithDefault(process.env.ACCOUNTS_ENABLED, true);
         const accountButtonEnabled = accountsEnabled;
         const disableSubscriptionLink = parseBooleanFlagWithDefault(process.env.DISABLE_SUBSCRIPTION_LINK, false);
@@ -3422,6 +3423,7 @@ ${cleanedFinalOutput}`;
             showNewTaskButton,
             showRunDirectory,
             showEngineOnAgent,
+            passCustomAgentInstructionsToQwen,
             accountButtonEnabled,
             accountsEnabled,
             userPromptVisibleCodex: parseBooleanFlag(process.env.USER_PROMPT_VISIBLE_CODEX),
