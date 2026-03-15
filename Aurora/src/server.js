@@ -48,7 +48,10 @@ const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
 const MIN_PASSWORD_LENGTH = 8;
 
 const AURORA_LOGIN_REDIRECT_TARGET = process.env.AURORA_LOGIN_REDIRECT_TARGET || "https://internal-chat.alfe.bot";
-const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
+const DEFAULT_CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
+const CODE_ALFE_REDIRECT_TARGET =
+  (process.env.CODE_ALFE_REDIRECT_TARGET || "").trim() ||
+  DEFAULT_CODE_ALFE_REDIRECT_TARGET;
 const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
   false
