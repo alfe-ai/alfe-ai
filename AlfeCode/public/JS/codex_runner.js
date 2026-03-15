@@ -8,6 +8,7 @@
     'Do not mention anything like "The file is staged."',
     'Python command is available via "python3" Python 3.11.2',
     'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
+    'When starting, please check AGENTS.md in repository root for further instructions.',
     'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
   ];
 
@@ -53,16 +54,6 @@
   };
   const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
   let enginePreference = engineFromLocal;
-  let fetchAccountInfo = async () => {};
-  const resolveEnginePreference = () => {
-    if (engineSelectInline && engineSelectInline.value) {
-      return normalizeEnginePreference(engineSelectInline.value);
-    }
-    if (enginePreference) {
-      return normalizeEnginePreference(enginePreference);
-    }
-    return normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
-  };
   const qwenDebugEnvEnabled = window.MODEL_ONLY_CONFIG && window.MODEL_ONLY_CONFIG.qwenDebugEnabled;
   const qwenShowDebugInfoFromLocal = (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) !== null)
     ? (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) === 'true')
@@ -5503,6 +5494,7 @@
     "Do not ask anything like \"Do you want me to run `git commit` with a message?\"",
     "Python command is available via \"python3 version\" Python 3.11.2",
     "Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.",
+    "When starting, please check AGENTS.md in repository root for further instructions.",
     "Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:",
     "-"
   ].join("\n");
@@ -9017,12 +9009,8 @@ const appendMergeChunk = (text, type = "output") => {
           : config.defaultModel || config.defaultCodexModel || "";
 
     const trimmedInstructions = agentInstructions ? agentInstructions.trim() : "";
-    const passCustomAgentInstructionsToQwen = typeof config.passCustomAgentInstructionsToQwen === "undefined"
-      ? true
-      : Boolean(config.passCustomAgentInstructionsToQwen);
     const promptSections = [];
-    const shouldIncludeCustomInstructions = !(resolveEnginePreference() === "qwen" && !passCustomAgentInstructionsToQwen);
-    if (trimmedInstructions && shouldIncludeCustomInstructions) {
+    if (trimmedInstructions) {
       promptSections.push(trimmedInstructions);
     }
 
@@ -9080,7 +9068,7 @@ const appendMergeChunk = (text, type = "output") => {
     if (prompt) {
       params.append("userPrompt", prompt);
     }
-    if (trimmedInstructions && shouldIncludeCustomInstructions) {
+    if (trimmedInstructions) {
       params.append("agentInstructions", trimmedInstructions);
     }
     if (selectedModel) {
@@ -9748,6 +9736,7 @@ const appendMergeChunk = (text, type = "output") => {
     'Do not mention anything like "The file is staged."',
     'Python command is available via "python3 version" Python 3.11.2',
     'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
+    'When starting, please check AGENTS.md in repository root for further instructions.',
     'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
   ];
 
@@ -10613,7 +10602,7 @@ const appendMergeChunk = (text, type = "output") => {
     return false;
   };
 
-  fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
+  const fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
     if (globalThis.__disabledAccountLogoutInFlight) {
       return;
     }
