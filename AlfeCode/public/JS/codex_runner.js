@@ -54,16 +54,6 @@
   };
   const engineFromLocal = normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
   let enginePreference = engineFromLocal;
-  let fetchAccountInfo = async () => {};
-  const resolveEnginePreference = () => {
-    if (engineSelectInline && engineSelectInline.value) {
-      return normalizeEnginePreference(engineSelectInline.value);
-    }
-    if (enginePreference) {
-      return normalizeEnginePreference(enginePreference);
-    }
-    return normalizeEnginePreference(localStorage.getItem(ENGINE_STORAGE_KEY));
-  };
   const qwenDebugEnvEnabled = window.MODEL_ONLY_CONFIG && window.MODEL_ONLY_CONFIG.qwenDebugEnabled;
   const qwenShowDebugInfoFromLocal = (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) !== null)
     ? (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) === 'true')
@@ -10616,7 +10606,7 @@ const appendMergeChunk = (text, type = "output") => {
     return false;
   };
 
-  fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
+  const fetchAccountInfo = async ({ reloadOnPlanChange = false } = {}) => {
     if (globalThis.__disabledAccountLogoutInFlight) {
       return;
     }
