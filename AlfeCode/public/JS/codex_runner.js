@@ -8,7 +8,7 @@
     'Do not mention anything like "The file is staged."',
     'Python command is available via "python3" Python 3.11.2',
     'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
-    'When starting, please check AGENTS.md in repository root for further instructions.',
+    '.',
     'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
   ];
 
@@ -5494,7 +5494,7 @@
     "Do not ask anything like \"Do you want me to run `git commit` with a message?\"",
     "Python command is available via \"python3 version\" Python 3.11.2",
     "Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.",
-    "When starting, please check AGENTS.md in repository root for further instructions.",
+    ".",
     "Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:",
     "-"
   ].join("\n");
@@ -9736,7 +9736,7 @@ const appendMergeChunk = (text, type = "output") => {
     'Do not mention anything like "The file is staged."',
     'Python command is available via "python3 version" Python 3.11.2',
     'Whenever you need to modify source files, skip git apply and instead programmatically read the target file, replace the desired text (or insert the new snippet) using a Python script (e.g., Path.read_text()/write_text()), then stage the changes.',
-    'When starting, please check AGENTS.md in repository root for further instructions.',
+    '.',
     'Unless otherwise specified, NOW MAKE CODE CHANGES FOR THE USERS SPECIFIED REQUEST BELOW:',
   ];
 
