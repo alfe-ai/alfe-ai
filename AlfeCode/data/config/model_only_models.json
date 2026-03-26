@@ -289,7 +289,7 @@
       "qwen_cli": true,
       "list_order": 0,
       "plus_model": false,
-      "usage": "low",
+      "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
     },
@@ -324,7 +324,7 @@
       "qwen_cli": true,
       "plus_model": true,
       "list_order": 999,
-      "usage": "medium",
+      "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
     },
@@ -573,7 +573,7 @@
       "qwen_cli": true,
       "plus_model": true,
       "list_order": 1002,
-      "usage": "very high",
+      "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
     },
