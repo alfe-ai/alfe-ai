@@ -737,11 +737,16 @@
             padding: 12px;
             overflow: hidden;
             box-shadow: var(--shadow);
-            flex: 1;
+            flex: 1 1 260px;
+            min-height: 220px;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .file-list h4 {
-            margin: 0 0 10px;
+            margin: 0;
             font-size: 14px;
         }
 
@@ -752,6 +757,49 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: scroll;
+            scrollbar-gutter: stable;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.65) rgba(15, 23, 42, 0.7);
+        }
+
+        .file-list ul::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .file-list ul::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 999px;
+        }
+
+        .file-list ul::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.65);
+            border-radius: 999px;
+        }
+
+        .file-list ul::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.85);
+        }
+
+        .file-list ul::-webkit-scrollbar-button:single-button {
+            display: block;
+            height: 14px;
+            background-color: rgba(15, 23, 42, 0.95);
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 7px 7px;
+        }
+
+        .file-list ul::-webkit-scrollbar-button:single-button:vertical:decrement {
+            border-radius: 999px 999px 0 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M1 5.5L4 2.5L7 5.5' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        }
+
+        .file-list ul::-webkit-scrollbar-button:single-button:vertical:increment {
+            border-radius: 0 0 999px 999px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M1 2.5L4 5.5L7 2.5' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         }
 
         .file-list button {

@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { mkdir, readFile, writeFile, access, unlink, readdir } from "fs/promises";
 import path from "path";
+import http from "http";
 import https from "https";
 import net from "net";
 import { URL, fileURLToPath } from "url";
@@ -34,6 +35,12 @@ const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
 const IMAGE_UPLOAD_ENABLED = parseBooleanEnv(process.env.IMAGE_UPLOAD_ENABLED, false);
 const SEARCH_ENABLED_2026 = parseBooleanEnv(process.env.SEARCH_ENABLED_2026, true);
 const IMAGES_ENABLED_2026 = parseBooleanEnv(process.env.IMAGES_ENABLED_2026, true);
+const ENFORCE_HTTPS_REDIRECT = parseBooleanEnv(process.env.ENFORCE_HTTPS_REDIRECT, true);
+const HTTPS_REDIRECT_HOSTS = (process.env.HTTPS_REDIRECT_HOSTS || "")
+  .split(",")
+  .map(host => host.trim().toLowerCase())
+  .filter(Boolean);
+const HTTPS_REDIRECT_ALL_HOSTS = HTTPS_REDIRECT_HOSTS.length === 0 || HTTPS_REDIRECT_HOSTS.includes("*");
 const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
   process.env["2FA_ENABLED_2026"],
   false
@@ -41,7 +48,10 @@ const TWO_FACTOR_ENABLED_2026 = parseBooleanEnv(
 const MIN_PASSWORD_LENGTH = 8;
 
 const AURORA_LOGIN_REDIRECT_TARGET = process.env.AURORA_LOGIN_REDIRECT_TARGET || "https://internal-chat.alfe.bot";
-const CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
+const DEFAULT_CODE_ALFE_REDIRECT_TARGET = "https://code.alfe.sh";
+const CODE_ALFE_REDIRECT_TARGET =
+  (process.env.CODE_ALFE_REDIRECT_TARGET || "").trim() ||
+  DEFAULT_CODE_ALFE_REDIRECT_TARGET;
 const codeAlfeRedirectEnabled = parseBooleanEnv(
   process.env.CODE_ALFE_REDIRECT,
   false
@@ -588,6 +598,27 @@ if (db.getSetting("new_tab_opens_search") === undefined) {
 }
 
 const app = express();
+app.set("trust proxy", true);
+
+if (ENFORCE_HTTPS_REDIRECT) {
+  app.use((req, res, next) => {
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "")
+      .split(",")[0]
+      .trim()
+      .toLowerCase();
+    const isHttps = req.secure || forwardedProto === "https";
+    const host = String(req.headers.host || "");
+    const hostname = String(req.hostname || "").toLowerCase();
+    const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    const hostAllowed = HTTPS_REDIRECT_ALL_HOSTS || HTTPS_REDIRECT_HOSTS.includes(hostname);
+
+    if (!isHttps && !isLocalHost && hostAllowed) {
+      return res.redirect(301, `https://${host}${req.originalUrl}`);
+    }
+
+    next();
+  });
+}
 
 // Auto-hide cookie banner when requested via env var HIDE_COOKIE_BANNER=true
 const _hideCookieBanner = parseBooleanEnv(process.env.HIDE_COOKIE_BANNER, false);
@@ -6200,6 +6231,26 @@ const PORT =
 process.env.AURORA_PORT = String(PORT);
 const keyPath = process.env.HTTPS_KEY_PATH;
 const certPath = process.env.HTTPS_CERT_PATH;
+const HTTP_REDIRECT_PORT = Number(process.env.AURORA_HTTP_REDIRECT_PORT || 80);
+const HTTPS_PUBLIC_PORT = Number(process.env.HTTPS_PUBLIC_PORT || 443);
+
+function buildHttpsRedirectUrl({ hostHeader, url = "/" }) {
+  const hostWithNoDefaultHttpPort = String(hostHeader || "")
+    .trim()
+    .replace(/:80$/, "");
+  const hostname = hostWithNoDefaultHttpPort.split(":")[0].toLowerCase();
+  const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  if (!hostWithNoDefaultHttpPort || isLocalHost) {
+    return null;
+  }
+
+  const hostWithoutPort = hostWithNoDefaultHttpPort.replace(/:\d+$/, "");
+  const httpsHost = HTTPS_PUBLIC_PORT === 443
+    ? hostWithoutPort
+    : `${hostWithoutPort}:${HTTPS_PUBLIC_PORT}`;
+
+  return `https://${httpsHost}${url}`;
+}
 
 console.log('keyPath: ', keyPath);
 console.log('certPath: ', certPath);
@@ -6209,6 +6260,29 @@ if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
     key: fs.readFileSync(keyPath),
     cert: fs.readFileSync(certPath)
   };
+
+  if (ENFORCE_HTTPS_REDIRECT) {
+    http.createServer((req, res) => {
+      const host = String(req.headers.host || "");
+      const hostname = host.split(":")[0].toLowerCase();
+      const hostAllowed = HTTPS_REDIRECT_ALL_HOSTS || HTTPS_REDIRECT_HOSTS.includes(hostname);
+      const redirectUrl = hostAllowed
+        ? buildHttpsRedirectUrl({ hostHeader: host, url: req.url || "/" })
+        : null;
+
+      if (redirectUrl) {
+        res.writeHead(301, { Location: redirectUrl });
+        res.end();
+        return;
+      }
+
+      res.statusCode = 400;
+      res.end("Bad Request");
+    }).listen(HTTP_REDIRECT_PORT, () => {
+      console.log(`[AlfeChat] HTTP redirect server running on port ${HTTP_REDIRECT_PORT} -> HTTPS port ${HTTPS_PUBLIC_PORT}`);
+    });
+  }
+
   https.createServer(options, app).listen(PORT, () => {
     console.log(`[AlfeChat] HTTPS server running on port ${PORT} (url=https://localhost:${PORT})`);
   });

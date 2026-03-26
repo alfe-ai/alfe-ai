@@ -2,7 +2,7 @@
 
 ### Alfe AI: Software Development, Project Management, and Image Design Platform
 
-The first version of the Alfe AI Code Cloud Platform https://alfe.sh <!-- has been released --> (beta-3.11).
+The first version of the Alfe AI Code Cloud Platform https://alfe.bot <!-- has been released --> (beta-3.11).
 
 <img width="1781" height="1509" alt="image" src="https://github.com/user-attachments/assets/d5a7a336-95c6-4603-b411-a62498d21fc4" />
 
@@ -56,6 +56,10 @@ wget https://raw.githubusercontent.com/alfe-ai/alfe-ai-Aurelix/refs/heads/Aurora
 Set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` to the SSL key and certificate files
 to enable HTTPS across the included servers. If the files are missing the
 services fall back to HTTP.
+
+For multi-domain TLS on `redirect_code_alfe_bot.js`, set `HTTPS_SNI_CERTS`
+using comma-separated `domain|keyPath|certPath` entries, for example:
+`alfe.bot|/etc/letsencrypt/live/alfe.bot/privkey.pem|/etc/letsencrypt/live/alfe.bot/fullchain.pem,www.alfe.bot|/etc/letsencrypt/live/www.alfe.bot/privkey.pem|/etc/letsencrypt/live/www.alfe.bot/fullchain.pem`.
 
 ### Third-party components
 

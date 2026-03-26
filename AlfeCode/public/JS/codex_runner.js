@@ -9783,6 +9783,8 @@ const appendMergeChunk = (text, type = "output") => {
   const subscribeModal = document.getElementById("subscribeModal");
   const subscribeModalCloseButton = document.getElementById("subscribeModalCloseButton");
   const subscribeModalActionButton = document.getElementById("subscribeModalActionButton");
+  const subscriptionDisabledTooltip = document.getElementById("subscriptionDisabledTooltip");
+  const disableSubscriptionLink = config.disableSubscriptionLink === true;
   const currentSessionId = (typeof window !== "undefined" && window.currentSessionId)
     ? window.currentSessionId
     : new URLSearchParams(window.location.search || "").get("sessionId");
@@ -9835,6 +9837,7 @@ const appendMergeChunk = (text, type = "output") => {
       return;
     }
     subscribeModal.classList.add("is-hidden");
+    hideSubscriptionDisabledTooltip();
     document.body.style.overflow = "";
   };
 
@@ -9859,6 +9862,47 @@ const appendMergeChunk = (text, type = "output") => {
       : "").trim();
     const encodedEmail = encodeURIComponent(accountEmail);
     return `https://subscription.alfe.bot/customer_authentication/login?return_to=%2Fpages%2Fcheckout-js&locale=en&ui_hint=full&login_hint=${encodedEmail}`;
+  };
+
+  const hideSubscriptionDisabledTooltip = () => {
+    if (!subscriptionDisabledTooltip) {
+      return;
+    }
+    subscriptionDisabledTooltip.classList.remove("is-visible");
+    subscriptionDisabledTooltip.classList.add("is-hidden");
+    window.clearTimeout(hideSubscriptionDisabledTooltip.timeoutId);
+  };
+
+  const showSubscriptionDisabledTooltipAtPoint = (clientX, clientY) => {
+    if (!subscriptionDisabledTooltip) {
+      return;
+    }
+    const x = Number.isFinite(clientX) ? clientX : window.innerWidth / 2;
+    const y = Number.isFinite(clientY) ? clientY : window.innerHeight / 2;
+    subscriptionDisabledTooltip.classList.remove("is-hidden");
+    subscriptionDisabledTooltip.classList.remove("is-visible");
+
+    const margin = 12;
+    const tooltipRect = subscriptionDisabledTooltip.getBoundingClientRect();
+    const nextLeft = Math.min(
+      Math.max(margin, x + 10),
+      Math.max(margin, window.innerWidth - tooltipRect.width - margin)
+    );
+    const nextTop = Math.min(
+      Math.max(margin, y + 14),
+      Math.max(margin, window.innerHeight - tooltipRect.height - margin)
+    );
+    subscriptionDisabledTooltip.style.left = `${Math.round(nextLeft)}px`;
+    subscriptionDisabledTooltip.style.top = `${Math.round(nextTop)}px`;
+
+    window.requestAnimationFrame(() => {
+      subscriptionDisabledTooltip.classList.add("is-visible");
+    });
+
+    window.clearTimeout(hideSubscriptionDisabledTooltip.timeoutId);
+    hideSubscriptionDisabledTooltip.timeoutId = window.setTimeout(() => {
+      hideSubscriptionDisabledTooltip();
+    }, 1600);
   };
 
   const showToast = (msg, duration = 1500) => {
@@ -10396,6 +10440,10 @@ const appendMergeChunk = (text, type = "output") => {
   if (subscribeModalActionButton) {
     subscribeModalActionButton.addEventListener("click", (event) => {
       event.preventDefault();
+      if (disableSubscriptionLink) {
+        showSubscriptionDisabledTooltipAtPoint(event.clientX, event.clientY);
+        return;
+      }
       hideSubscribeModal();
       const subscriptionAuthenticationUrl = buildSubscriptionAuthenticationUrl();
       if (subscriptionAuthenticationUrl || subscriptionCheckoutUrl) {
