@@ -107,6 +107,20 @@
     return normalizedPlan === "lite" || normalizedPlan === "plus" || normalizedPlan === "pro";
   };
 
+  const isFreeUsageModel = (modelOrUsage) => {
+    if (!modelOrUsage) return false;
+    const usageValue = typeof modelOrUsage === "object"
+      ? modelOrUsage.usage
+      : modelOrUsage;
+    return (usageValue || "").toString().trim().toLowerCase() === "free";
+  };
+
+  const isPlanRestrictedPlusModel = (model, plan) => {
+    if (!model || !model.plus_model) return false;
+    if (isFreeUsageModel(model)) return false;
+    return !hasPlusModelAccess(plan);
+  };
+
   const createUsageBadge = (usage) => {
     const badge = resolveUsageBadge(usage);
     if (!badge) return null;
@@ -920,12 +934,16 @@
     sortedModels.forEach((model) => {
       const label = formatModelLabel(model);
       const isDisabled = shouldDisableModel(model, planName, limits, usageCount);
-      const isProDisabled = model.plus_model && !hasPlusModelAccess(planName);
+      const isProDisabled = isPlanRestrictedPlusModel(model, planName);
 
       selects.forEach((select) => {
         const option = document.createElement("option");
         option.value = model.id;
         option.textContent = label;
+        option.dataset.plusModel = model.plus_model ? "true" : "false";
+        if (model.usage) {
+          option.dataset.usage = model.usage;
+        }
         if (isDisabled) {
           option.classList.add("usage-limit-disabled");
           option.dataset.usageLimitDisabled = "true";
@@ -942,6 +960,10 @@
         optionButton.type = "button";
         optionButton.className = "model-select-option";
         optionButton.dataset.modelId = model.id;
+        optionButton.dataset.plusModel = model.plus_model ? "true" : "false";
+        if (model.usage) {
+          optionButton.dataset.usage = model.usage;
+        }
         const isUsageLimitDisabled = isDisabled;
         const blockedByPlan = isProDisabled && !isUsageLimitDisabled;
         optionButton.disabled = false;
