@@ -750,6 +750,14 @@
             font-size: 14px;
         }
 
+        .file-list-scroll-wrap {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .file-list ul {
             list-style: none;
             padding: 0;
@@ -763,6 +771,31 @@
             scrollbar-gutter: stable;
             scrollbar-width: thin;
             scrollbar-color: rgba(148, 163, 184, 0.65) rgba(15, 23, 42, 0.7);
+        }
+
+        .file-list-scroll-btn {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--muted);
+            border-radius: 8px;
+            height: 24px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .file-list-scroll-btn:hover {
+            background: rgba(30, 41, 59, 0.95);
+            color: #e2e8f0;
+            border-color: rgba(148, 163, 184, 0.45);
+        }
+
+        .file-list-scroll-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         .file-list ul::-webkit-scrollbar {
@@ -1308,7 +1341,11 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             <% } %>
             <aside class="file-list" aria-label="Changed files">
                 <h4>Files</h4>
-                <ul id="file-list"></ul>
+                <div class="file-list-scroll-wrap">
+                    <button type="button" class="file-list-scroll-btn" id="fileListScrollUp" aria-label="Scroll files list up">▲</button>
+                    <ul id="file-list"></ul>
+                    <button type="button" class="file-list-scroll-btn" id="fileListScrollDown" aria-label="Scroll files list down">▼</button>
+                </div>
             </aside>
             <form class="diff-followup-form" id="diffFollowupForm">
                 <label class="diff-followup-label" for="diffFollowupPrompt">Follow-up prompt</label>
@@ -1548,6 +1585,8 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
     const diffInner = diffEl?.querySelector('.diff-inner');
     const commitListEl = document.getElementById('commit-list');
     const fileListEl = document.getElementById('file-list');
+    const fileListScrollUpButton = document.getElementById('fileListScrollUp');
+    const fileListScrollDownButton = document.getElementById('fileListScrollDown');
     const fileLabelEl = document.getElementById('current-file-label');
     let focusedFileIndex = 0;
     const currentCompRev = '<%= compRev || "" %>';
@@ -1731,6 +1770,18 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
         renderFileList();
     };
 
+    const updateFileListScrollButtons = () => {
+        if (!fileListEl) return;
+        const canScrollUp = fileListEl.scrollTop > 0;
+        const canScrollDown = fileListEl.scrollTop + fileListEl.clientHeight < fileListEl.scrollHeight - 1;
+        if (fileListScrollUpButton) {
+            fileListScrollUpButton.disabled = !canScrollUp;
+        }
+        if (fileListScrollDownButton) {
+            fileListScrollDownButton.disabled = !canScrollDown;
+        }
+    };
+
     const renderFileList = () => {
         if (!fileListEl) return;
         fileListEl.innerHTML = '';
@@ -1779,6 +1830,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             li.appendChild(btn);
             fileListEl.appendChild(li);
         });
+        updateFileListScrollButtons();
     };
 
     const condenseHash = (hash) => (hash ? hash.slice(0, 7) : '');
@@ -1849,6 +1901,20 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
     }
 
     renderFileList();
+    updateFileListScrollButtons();
+    if (fileListEl) {
+        fileListEl.addEventListener('scroll', updateFileListScrollButtons);
+    }
+    if (fileListScrollUpButton && fileListEl) {
+        fileListScrollUpButton.addEventListener('click', () => {
+            fileListEl.scrollBy({ top: -120, behavior: 'smooth' });
+        });
+    }
+    if (fileListScrollDownButton && fileListEl) {
+        fileListScrollDownButton.addEventListener('click', () => {
+            fileListEl.scrollBy({ top: 120, behavior: 'smooth' });
+        });
+    }
     <% if (renderCommitList) { %>renderCommitList();<% } %>
 </script>
 <% } %>
