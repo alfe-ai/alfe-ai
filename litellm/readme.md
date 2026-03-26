@@ -103,3 +103,54 @@ curl -k -sS https://localhost/v1/chat/completions \
 "messages": [{"role":"user","content":"ping"}],
 "mock_testing_fallbacks": true
 }' | head -c 1000 && echo
+
+
+## Expired key error (`Authentication Error - Expired Key`)
+
+If you see an error like:
+
+`[API Error: 400 Authentication Error - Expired Key ...]`
+
+and your provider key (for example OpenRouter) is still active, this usually means a **LiteLLM proxy key** expired (not your upstream provider key).
+
+### 1) Generate a new LiteLLM master key (Linux/Mac)
+
+```bash
+export LITELLM_MASTER_KEY="sk-$(openssl rand -base64 32 | tr -d '\n')"
+echo "$LITELLM_MASTER_KEY"
+```
+
+If you run with Docker Compose, put this value in `/opt/litellm/.env` as `LITELLM_MASTER_KEY=...` and restart:
+
+```bash
+cd /opt/litellm
+docker compose restart litellm
+docker compose logs -f --tail=200 litellm
+```
+
+### 2) Use the master key to generate a new virtual key
+
+```bash
+MASTER=$(grep '^LITELLM_MASTER_KEY=' /opt/litellm/.env | cut -d= -f2)
+
+curl -sS -X POST http://127.0.0.1:4000/key/generate \
+  -H "Authorization: Bearer $MASTER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "default-user",
+    "models": ["openrouter/*"],
+    "duration": null
+  }'
+```
+
+Set `"duration": null` to avoid automatic expiry for that generated key.
+
+### 3) Confirm where the error is coming from
+
+The timestamped expiry message format indicates LiteLLM key management rejected the proxy key before/while routing the request.  
+Check LiteLLM logs:
+
+```bash
+cd /opt/litellm
+docker compose logs -f --tail=200 litellm
+```
