@@ -3837,7 +3837,7 @@
                             type="button"
                             title="Subscribe"
                             aria-label="Subscribe"
-                            data-subscribe-url="/agent/model-only"
+                            data-subscribe-url="/agent/settings"
                             style="display:none;"
                             onclick="(function(){ if (window.alfeTriggerSubscribeModal) { window.alfeTriggerSubscribeModal(); return; } if (window.alfeOpenSubscribeModal) { window.alfeOpenSubscribeModal(); return; } try { if (window.parent && window.parent !== window && window.parent.alfeOpenSubscribeModal) { window.parent.alfeOpenSubscribeModal(); return; } } catch (error) {} var modal = document.getElementById('subscribeModal'); if (modal) { modal.classList.remove('is-hidden'); document.body.style.overflow = 'hidden'; } })()"
                         >
@@ -4453,7 +4453,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
           id="sterlingSettingsIframe"
           class="modal-iframe"
           src=""
-          data-default-src="/agent/model-only"
+          data-default-src="/agent/settings"
           title="Settings"
           style="width:100%;height:80vh;border:0;border-radius:6px;"
         ></iframe>
@@ -4738,7 +4738,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     }
   };
   if(sterlingSettingsBtn && sterlingSettingsModal){
-    const defaultSettingsUrl = (sterlingSettingsIframe && (sterlingSettingsIframe.dataset.defaultSrc || sterlingSettingsIframe.getAttribute('data-default-src'))) || '/agent/model-only';
+    const defaultSettingsUrl = (sterlingSettingsIframe && (sterlingSettingsIframe.dataset.defaultSrc || sterlingSettingsIframe.getAttribute('data-default-src'))) || '/agent/settings';
     sterlingSettingsBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       showSettingsLoader();
