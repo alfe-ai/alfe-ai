@@ -163,7 +163,7 @@
     <div class="status" id="status">Loading model list…</div>
     <div class="model-list" id="modelList"></div>
     <div class="footer">
-      <span>Need to jump back? <a href="/agent/model-only">Return to settings</a></span>
+      <span>Need to jump back? <a href="/agent/settings">Return to settings</a></span>
     </div>
   </div>
 
@@ -257,7 +257,7 @@
     const saveOrder = async () => {
       try {
         setStatus('Saving order…');
-        const response = await fetch('/agent/model-only/order', {
+        const response = await fetch('/agent/settings/order', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -289,7 +289,7 @@
 
     const loadModels = async () => {
       try {
-        const response = await fetch('/agent/model-only/order/data');
+        const response = await fetch('/agent/settings/order/data');
         if (!response.ok) {
           throw new Error('Unable to load models.');
         }
