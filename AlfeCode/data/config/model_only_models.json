@@ -289,7 +289,7 @@
       "qwen_cli": true,
       "list_order": 0,
       "plus_model": false,
-      "usage": "low",
+      "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
     },
@@ -324,9 +324,9 @@
       "qwen_cli": true,
       "plus_model": true,
       "list_order": 999,
-      "usage": "medium",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
+      "usage": "free",
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "kat-coder-air-v1",
@@ -573,9 +573,9 @@
       "qwen_cli": true,
       "plus_model": true,
       "list_order": 1002,
-      "usage": "very high",
-      "url": "https://openrouter.ai/api/v1",
-      "key": "openrouter"
+      "usage": "free",
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "openrouter/qwen/qwen3-coder-next",
