@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Alfe AI - Home</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* Aurora-like purple/cyan theme for home page */
+    :root {
+      --accent: #8a2be2;
+      --accent-light: #7dd3fc;
+      --bg: #0b1723;
+      --card: #0f1724;
+      --text: #eaeef2;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0b1220, #08121a);
+      color: var(--text);
+      font-family: Segoe UI, Arial, sans-serif;
+      padding: 2rem;
+      margin: 0;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(125,211,252,0.08);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(2,6,23,0.6);
+    }
+    
+    h1 {
+      color: var(--accent);
+      text-align: center;
+      text-shadow: 0 2px 18px rgba(138,43,226,0.12);
+      margin-top: 0;
+    }
+    
+    .feature-list {
+      margin: 20px 0;
+      padding: 0;
+    }
+    
+    .feature-list li {
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: rgba(15, 23, 36, 0.4);
+      border: 1px solid rgba(125, 211, 252, 0.08);
+    }
+    
+    .feature-list li a {
+      color: var(--accent-light);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    
+    .feature-list li a:hover {
+      text-decoration: underline;
+    }
+    
+    .games-section {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(125, 211, 252, 0.1);
+    }
+    
+    .game-link {
+      display: block;
+      text-align: center;
+      margin: 20px 0;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--accent), #6a1b9a);
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .game-link:hover {
+      transform: scale(1.05);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Alfe AI</h1>
+    <p>AI-assisted software development, chat, and task management platform</p>
+    
+    <h2>Features</h2>
+    <ul class="feature-list">
+      <li>AI-powered code generation and assistance</li>
+      <li>Chat interface with AI assistants</li>
+      <li>Task management and project organization</li>
+      <li>Image generation capabilities</li>
+    </ul>
+    
+    <div class="games-section">
+      <h2>Games</h2>
+      <a href="/snake-game.html" class="game-link">Play Snake Game</a>
+    </div>
+  </div>
+</body>
+</html>

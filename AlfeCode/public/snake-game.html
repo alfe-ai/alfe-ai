@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Snake Game</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* Aurora-like purple/cyan theme for snake game */
+    :root {
+      --accent: #8a2be2;
+      --accent-light: #7dd3fc;
+      --bg: #0b1723;
+      --card: #0f1724;
+      --text: #eaeef2;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0b1220, #08121a);
+      color: var(--text);
+      font-family: Segoe UI, Arial, sans-serif;
+      padding: 2rem;
+      margin: 0;
+    }
+    
+    .game-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(125,211,252,0.08);
+      padding: 18px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(2,6,23,0.6);
+    }
+    
+    h1 {
+      color: var(--accent);
+      text-align: center;
+      text-shadow: 0 2px 18px rgba(138,43,226,0.12);
+      margin-top: 0;
+    }
+    
+    .game-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+    
+    #game-board {
+      display: block;
+      margin: 0 auto;
+      border: 2px solid var(--accent);
+      background-color: #0a0f18;
+    }
+    
+    .controls {
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s;
+    }
+    
+    button:hover {
+      background: #6a1b9a;
+    }
+    
+    .instructions {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: rgba(15, 23, 36, 0.7);
+      border-radius: 8px;
+      border: 1px solid rgba(125, 211, 252, 0.08);
+    }
+    
+    .instructions h3 {
+      color: var(--accent-light);
+      margin-top: 0;
+    }
+    
+    .instructions ul {
+      padding-left: 20px;
+    }
+    
+    .instructions li {
+      margin-bottom: 8px;
+    }
+    
+    .game-over {
+      text-align: center;
+      padding: 20px;
+      font-size: 1.5rem;
+      color: #ff4d4d;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>🐍 Snake Game</h1>
+    
+    <div class="game-info">
+      <div>Score: <span id="score">0</span></div>
+      <div>High Score: <span id="high-score">0</span></div>
+    </div>
+    
+    <canvas id="game-board" width="400" height="400"></canvas>
+    
+    <div class="controls">
+      <button id="start-btn">Start Game</button>
+      <button id="pause-btn">Pause</button>
+      <button id="reset-btn">Reset</button>
+    </div>
+    
+    <div class="instructions">
+      <h3>How to Play</h3>
+      <ul>
+        <li>Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to control the snake</li>
+        <li>Eat the <span style="color: #ff4d4d;">red food</span> to grow and earn points</li>
+        <li>Avoid hitting the walls or yourself</li>
+        <li>Press <strong>Space</strong> to pause/resume the game</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="/JS/snake-game.js"></script>
+</body>
+</html>
