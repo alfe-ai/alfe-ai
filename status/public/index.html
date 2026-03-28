@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>System Status</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --card: #111827;
+        --border: #334155;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --online: #16a34a;
+        --offline: #dc2626;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 45%);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.5rem, 2vw, 2rem);
+      }
+
+      p {
+        margin: 0 0 1.5rem;
+        color: var(--muted);
+      }
+
+      .card {
+        background: color-mix(in oklab, var(--card), black 15%);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 0.95rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid color-mix(in oklab, var(--border), transparent 30%);
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-weight: 600;
+      }
+
+      .dot {
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 999px;
+      }
+
+      .online {
+        color: #86efac;
+      }
+
+      .online .dot {
+        background: var(--online);
+        box-shadow: 0 0 0.4rem color-mix(in oklab, var(--online), white 20%);
+      }
+
+      .offline {
+        color: #fca5a5;
+      }
+
+      .offline .dot {
+        background: var(--offline);
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 1rem;
+        }
+
+        th,
+        td {
+          padding: 0.8rem;
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Infrastructure Status</h1>
+      <p>Mock data for initial status page scaffolding.</p>
+
+      <section class="card">
+        <table aria-label="Server status table">
+          <thead>
+            <tr>
+              <th>Server</th>
+              <th>Region</th>
+              <th>Updated</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>api-gateway-01</td>
+              <td>us-east-1</td>
+              <td>2 minutes ago</td>
+              <td>
+                <span class="status online"><span class="dot"></span>Online</span>
+              </td>
+            </tr>
+            <tr>
+              <td>auth-service-02</td>
+              <td>us-west-2</td>
+              <td>1 minute ago</td>
+              <td>
+                <span class="status online"><span class="dot"></span>Online</span>
+              </td>
+            </tr>
+            <tr>
+              <td>worker-cluster-07</td>
+              <td>eu-central-1</td>
+              <td>5 minutes ago</td>
+              <td>
+                <span class="status offline"><span class="dot"></span>Offline</span>
+              </td>
+            </tr>
+            <tr>
+              <td>cdn-edge-11</td>
+              <td>ap-southeast-1</td>
+              <td>just now</td>
+              <td>
+                <span class="status online"><span class="dot"></span>Online</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>
