@@ -3401,7 +3401,46 @@ ${cleanedFinalOutput}`;
         }
         const accountEmail = typeof account?.email === "string" ? account.email : "";
         const subscriptionCheckoutUrl = buildShopifySubscriptionCheckoutUrl(accountEmail);
-        
+
+        // Extract project name from project directory
+        const sanitizeRepoName = (name, fallback = "Code") => {
+            if (typeof name !== "string") {
+                return fallback;
+            }
+            const trimmed = name.trim();
+            if (!trimmed) {
+                return fallback;
+            }
+            return trimmed.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 160) || fallback;
+        };
+
+        const normalizeRepoBase = (base) => {
+            if (typeof base !== "string") {
+                return "";
+            }
+            let normalized = base.trim();
+            if (normalized.endsWith(".git")) {
+                normalized = normalized.slice(0, -4);
+            }
+            const gitDashIndex = normalized.indexOf(".git-");
+            if (gitDashIndex > 0) {
+                normalized = normalized.slice(0, gitDashIndex);
+            }
+            return normalized;
+        };
+
+        const getProjectName = (projectDir, defaultProjectDir) => {
+            const dir = projectDir || defaultProjectDir;
+            if (!dir) {
+                return "Code";
+            }
+            const base = path.basename(dir);
+            const normalizedBase = normalizeRepoBase(base);
+            return sanitizeRepoName(normalizedBase || base, "Code");
+        };
+
+        const projectName = getProjectName(projectDirParam || repoDirectoryParam, resolvedDefaultProjectDir);
+
         res.render("codex_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
@@ -3433,6 +3472,7 @@ ${cleanedFinalOutput}`;
             backlogButtonVisible,
             nonRefreshDiffButtonHidden,
             mainMergeButtonDisabled,
+            projectName,
             subscriptionCheckoutUrl,
             initialAccountInfo: account
                 ? {
