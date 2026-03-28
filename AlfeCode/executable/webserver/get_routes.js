@@ -3835,7 +3835,7 @@ ${cleanedFinalOutput}`;
         res.type('application/javascript');
         res.send(script);
     });
-    app.get('/agent/model-only', async (req, res) => {
+    const renderSettingsPage = async (req, res) => {
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const engineDropdownHidden = parseBooleanFlag(process.env.ENGINE_DROPDOWN_HIDDEN);
         const modelDropdownHidden = parseBooleanFlag(process.env.MODEL_DROPDOWN_HIDDEN);
@@ -3872,14 +3872,21 @@ ${cleanedFinalOutput}`;
             qwenDebugEnabled,
             account
         });
+    };
+    app.get('/agent/settings', renderSettingsPage);
+    app.get('/agent/model-only', (req, res) => {
+        res.redirect(302, '/agent/settings');
     });
-    app.get('/agent/model-only/order', (req, res) => {
+    app.get('/agent/settings/order', (req, res) => {
         if (!isConfigAccessAllowed(req)) {
             return res.status(403).send("Forbidden.");
         }
         res.render('model_only_order');
     });
-    app.get('/agent/model-only/order/data', (req, res) => {
+    app.get('/agent/model-only/order', (req, res) => {
+        res.redirect(302, '/agent/settings/order');
+    });
+    app.get('/agent/settings/order/data', (req, res) => {
         if (!isConfigAccessAllowed(req)) {
             return res.status(403).json({ message: "Forbidden." });
         }
@@ -3900,7 +3907,10 @@ ${cleanedFinalOutput}`;
             models: sorted.map(({ index, ...entry }) => entry),
         });
     });
-    app.post('/agent/model-only/order', (req, res) => {
+    app.get('/agent/model-only/order/data', (req, res) => {
+        res.redirect(302, '/agent/settings/order/data');
+    });
+    app.post('/agent/settings/order', (req, res) => {
         if (!isConfigAccessAllowed(req)) {
             return res.status(403).json({ message: "Forbidden." });
         }
@@ -3947,6 +3957,9 @@ ${cleanedFinalOutput}`;
         } catch (err) {
             res.status(500).json({ message: err.message });
         }
+    });
+    app.post('/agent/model-only/order', (req, res) => {
+        res.redirect(307, '/agent/settings/order');
     });
     app.get('/help.html', async (req, res) => {
         let account = null;
@@ -6502,7 +6515,7 @@ ${cleanedFinalOutput}`;
         });
     });
 
-    app.get("/agent/model-only/models", (req, res) => {
+    app.get("/agent/settings/models", (req, res) => {
         const showPlusModels = parseBooleanFlag(process.env.PLUS_MODELS_VISIBLE);
         const allModels = loadModelOnlyModels({ includePlus: true });
         const models = showPlusModels
@@ -6555,6 +6568,9 @@ ${cleanedFinalOutput}`;
             defaultProvider,
             defaultModel: disabledModelIds.has(resolvedDefaultModel) ? "" : resolvedDefaultModel,
         });
+    });
+    app.get("/agent/model-only/models", (req, res) => {
+        res.redirect(302, "/agent/settings/models");
     });
 
     const isOpenRouterRateLimitsEnabled = () => {

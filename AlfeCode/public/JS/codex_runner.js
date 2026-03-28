@@ -1020,7 +1020,7 @@
       || config.defaultModel
       || "";
     try {
-      const response = await fetch("/agent/model-only/models");
+      const response = await fetch("/agent/settings/models");
       if (!response.ok) {
         throw new Error(`Unable to load models (status ${response.status}).`);
       }

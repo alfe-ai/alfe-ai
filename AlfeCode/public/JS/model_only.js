@@ -516,7 +516,7 @@
     const models = (window.__providerModels = (window.__providerModels || {}));
     const list = models[activeProvider];
     if (!list) {
-      fetch('/agent/model-only/models')
+      fetch('/agent/settings/models')
         .then(r => r.json())
         .then(d => {
           window.__providerModels = d.providers || {};
@@ -1299,7 +1299,7 @@
 
   async function load(){
     try{
-      const res = await fetch('/agent/model-only/models');
+      const res = await fetch('/agent/settings/models');
       if (!res.ok) throw new Error('Failed to load models');
       const data = await res.json();
       const providers = Object.keys(data.providers || {});
