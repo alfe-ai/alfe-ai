@@ -2,7 +2,7 @@
 <html lang="en" class="agent-scale-80">
 <head>
     <meta charset="UTF-8">
-    <title>Alfe AI - Code</title>
+    <title>Alfe AI - <%= projectName %></title>
     <meta name="description" content="Alfe AI: FLOSS, Self-hostable, AI Software Development, Chat, and Image Design - a cloud-based code-assistant interface for running and managing agents.">
     <link id="favicon" rel="icon" href="/alfe_favicon_64x64.ico">
     <link rel="alternate icon" href="/alfe_favicon_64x64.ico" type="image/x-icon">
@@ -731,6 +731,7 @@
         }
 
         .runs-sidebar__pagination {
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -811,15 +812,14 @@
         }
 
         .runs-sidebar__footer {
+            flex-shrink: 0;
             margin-top: 4px;
             padding: 12px 16px;
             font-size: 0.82rem;
             color: rgba(203, 213, 225, 0.7);
             text-align: left;
             border-top: 1px solid rgba(148, 163, 184, 0.12);
-            position: sticky;
-            bottom: 0;
-            left: 0;
+            position: relative;
             align-self: flex-start;
             width: 100%;
             background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.88) 100%);

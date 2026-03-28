@@ -1429,15 +1429,6 @@ setupGetRoutes({
 });
 
 /**
- * Import the api_connector.js router
- */
-const apiConnector = require("../alfe/Aurelix/dev/api_connector.js");
-
-// Host the routes from apiConnector at /api
-app.use("/api", apiConnector);
-
-
-/**
  * Start server
  */
 const debugPort = 3444;
