@@ -310,7 +310,7 @@
     },
     {
       "id": "openrouter/kwaipilot/kat-coder-pro",
-      "label": "KwaiPilot: KAT Coder Pro",
+      "label": "KwaiPilot: KAT Coder Pro V1",
       "disabled": false,
       "contextTokens": 256000,
       "pricing": {
@@ -324,6 +324,45 @@
       "qwen_cli": true,
       "plus_model": true,
       "list_order": 999,
+      "usage": "free",
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
+    },
+    {
+      "id": "openrouter/kwaipilot/kat-coder-pro-v2",
+      "label": "KwaiPilot: KAT Coder Pro V2",
+      "disabled": false,
+      "contextTokens": 256000,
+      "pricing": {
+        "inputPerMTokens": 0.207,
+        "outputPerMTokens": 0.828
+      },
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "qwen_cli": true,
+      "plus_model": true,
+      "list_order": 999,
+      "usage": "free",
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
+    },
+    {
+      "id": "openrouter/qwen/qwen3-coder-plus",
+      "label": "Qwen3 Coder Plus",
+      "disabled": false,
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "pricing": {
+        "inputPerMTokens": 1.00,
+        "outputPerMTokens": 5.00
+      },
+      "qwen_cli": true,
+      "plus_model": true,
+      "list_order": 1002,
       "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
@@ -557,25 +596,6 @@
       "usage": "high",
       "url": "https://openrouter.ai/api/v1",
       "key": "openrouter"
-    },
-    {
-      "id": "openrouter/qwen/qwen3-coder-plus",
-      "label": "Qwen3 Coder Plus",
-      "disabled": false,
-      "engine_options": [
-        "auto",
-        "qwen"
-      ],
-      "pricing": {
-        "inputPerMTokens": 1.00,
-        "outputPerMTokens": 5.00
-      },
-      "qwen_cli": true,
-      "plus_model": true,
-      "list_order": 1002,
-      "usage": "free",
-      "url": "https://litellm.alfe.sh/v1",
-      "key": "litellm"
     },
     {
       "id": "openrouter/qwen/qwen3-coder-next",
