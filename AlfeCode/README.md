@@ -70,7 +70,7 @@ found 0 vulnerabilities
 
 5. Run `./run.sh` to run as the Development Environment.
 
-6. Access the server at http://localhost:3001
+6. Access the frontend server at `http://localhost:3000` (default) and the backend server at `http://localhost:3333` (default).
 
 7. Add a git repository to work on with http://localhost:3001/repositories/add , paste in the SSH url for the git repository to work on.
 
@@ -82,6 +82,22 @@ https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
 <!-- 8. In new chats, you can copy Agent Instructions from here: https://github.com/alfe-ai (This will soon be integrated with the app)--><!--, I implemented this in an older branch, multiple agent support.)-->
 
 ### Environment variables
+
+### Separated frontend/backend deployment
+
+AlfeCode now supports a separated deployment model:
+
+- `npm run start:frontend` launches the static frontend server (`executable/frontend_webserver.js`).
+- `npm run start:backend` launches the backend/API server (`executable/server_webserver.js`).
+
+The frontend server does **not** load backend code, agent prompts, or database modules.
+
+Recommended variables:
+
+- `BACKEND_ORIGIN` – backend origin for browser API calls from frontend pages (for example `https://api.alfe.sh`).
+- `FRONTEND_ORIGIN` – frontend origin that is allowed by backend CORS (for example `https://app.alfe.sh`).
+- `SERVE_FRONTEND_FROM_BACKEND` – set to `true` only for legacy single-server mode.
+- `ENABLE_CROSS_SITE_COOKIES` – set to `true` when frontend/backend are on different sites and shared session cookies are required.
 
 To run the web server over HTTPS, provide paths to your SSL certificate files:
 

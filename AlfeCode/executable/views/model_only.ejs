@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="alfe-backend-origin" content="<%= process.env.BACKEND_ORIGIN || '' %>" />
   <title>Settings</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
@@ -665,6 +666,7 @@
       qwenDebugEnabled: <%- JSON.stringify(typeof qwenDebugEnabled === "undefined" ? false : qwenDebugEnabled) %>,
     };
   </script>
+  <script src="/JS/backend_origin.js"></script>
   <script src="/JS/model_only.js"></script>
     <% if (showGitLogButtonTarget) { %>
     <script>

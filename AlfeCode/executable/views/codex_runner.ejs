@@ -2,6 +2,7 @@
 <html lang="en" class="agent-scale-80">
 <head>
     <meta charset="UTF-8">
+    <meta name="alfe-backend-origin" content="<%= process.env.BACKEND_ORIGIN || '' %>">
     <title>Alfe AI - Code</title>
     <meta name="description" content="Alfe AI: FLOSS, Self-hostable, AI Software Development, Chat, and Image Design - a cloud-based code-assistant interface for running and managing agents.">
     <link id="favicon" rel="icon" href="/alfe_favicon_64x64.ico">
@@ -4506,6 +4507,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             }
         );
     </script>
+                    <script src="/JS/backend_origin.js"></script>
                     <script src="/JS/codex_runner.js" defer></script>
 
 <script>

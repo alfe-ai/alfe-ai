@@ -376,6 +376,10 @@ function normalizeHostname(req) {
 
 function buildSessionCookie(sessionId, hostname) {
     const expires = new Date(Date.now() + ONE_YEAR_MS);
+    const crossSiteCookiesEnabled = String(process.env.ENABLE_CROSS_SITE_COOKIES || "").toLowerCase() === "true";
+    const cookieSecure = crossSiteCookiesEnabled
+        ? true
+        : String(process.env.SESSION_COOKIE_SECURE || "").toLowerCase() === "true";
     const parts = [
         `sessionId=${encodeURIComponent(sessionId)}`,
         "Path=/",
@@ -386,6 +390,10 @@ function buildSessionCookie(sessionId, hostname) {
     if (hostname === "alfe.sh" || hostname.endsWith(".alfe.sh")) {
         parts.push("Domain=.alfe.sh");
     }
+    if (cookieSecure) {
+        parts.push("Secure");
+    }
+    parts.push(crossSiteCookiesEnabled ? "SameSite=None" : "SameSite=Lax");
 
     return parts.join("; ");
 }
@@ -670,6 +678,21 @@ function ensureSessionIdCookie(req, res) {
     return { sessionId, created };
 }
 
+const frontendOrigin = (process.env.FRONTEND_ORIGIN || "").trim();
+
+app.use((req, res, next) => {
+    if (frontendOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", frontendOrigin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-alfecode-node-key");
+        if (req.method === "OPTIONS") {
+            return res.status(204).end();
+        }
+    }
+    next();
+});
+
 app.use((req, res, next) => {
     const { sessionId } = ensureSessionIdCookie(req, res);
     req.sessionId = sessionId;
@@ -688,9 +711,11 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static assets
-app.use(express.static(path.join(PROJECT_ROOT, "public")));
-app.use(express.static(path.join(PROJECT_ROOT, "images")));
+const serveFrontendFromBackend = String(process.env.SERVE_FRONTEND_FROM_BACKEND || "").toLowerCase() === "true";
+if (serveFrontendFromBackend) {
+    app.use(express.static(path.join(PROJECT_ROOT, "public")));
+    app.use(express.static(path.join(PROJECT_ROOT, "images")));
+}
 
 app.use((req, res, next) => {
     res.locals.sterlingCodexBaseUrl = resolveSterlingCodexBaseUrl(req);

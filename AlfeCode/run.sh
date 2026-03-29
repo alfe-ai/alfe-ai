@@ -57,9 +57,19 @@ if [ -x "$GITHOST_SCRIPT" ]; then
 fi
 
 while true; do
-    echo "Starting webserver..."
-    node executable/server_webserver.js
+    echo "Starting backend webserver..."
+    node executable/server_webserver.js &
+    BACKEND_PID=$!
+
+    echo "Starting frontend webserver..."
+    node executable/frontend_webserver.js &
+    FRONTEND_PID=$!
+
+    wait -n ${BACKEND_PID} ${FRONTEND_PID}
     EXIT_CODE=$?
-    echo "Webserver exited with code ${EXIT_CODE}. Restarting in 2 seconds..."
+
+    echo "A webserver exited with code ${EXIT_CODE}. Restarting both in 2 seconds..."
+    kill ${BACKEND_PID} ${FRONTEND_PID} 2>/dev/null || true
+    wait ${BACKEND_PID} ${FRONTEND_PID} 2>/dev/null || true
     sleep 2
 done
