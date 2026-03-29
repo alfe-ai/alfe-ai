@@ -1,0 +1,39 @@
+model_list:
+  - model_name: kwaipilot/kat-coder-pro
+    litellm_params:
+      model: openrouter/kwaipilot/kat-coder-pro
+      api_base: https://openrouter.ai/api/v1
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      headers:
+        HTTP-Referer: "https://alfe.bot"
+        X-Title: "Alfe AI"
+    model_info:
+      # dollars per token
+      input_cost_per_token: 0.00000030
+      output_cost_per_token: 0.00000120
+
+  - model_name: kwaipilot/kat-coder-pro-v2
+    litellm_params:
+      model: openrouter/kwaipilot/kat-coder-pro-v2
+      api_base: https://openrouter.ai/api/v1
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      headers:
+        HTTP-Referer: "https://alfe.bot"
+        X-Title: "Alfe AI"
+    model_info:
+      # dollars per token
+      input_cost_per_token: 0.00000030
+      output_cost_per_token: 0.00000120
+
+  - model_name: qwen/qwen3-coder-plus
+    litellm_params:
+      model: openrouter/qwen/qwen3-coder-plus
+      api_base: https://openrouter.ai/api/v1
+      api_key: "os.environ/OPENROUTER_API_KEY"
+      headers:
+        HTTP-Referer: "https://alfe.bot"
+        X-Title: "Alfe AI"
+    model_info:
+      # dollars per token
+      input_cost_per_token: 0.00000180
+      output_cost_per_token: 0.00000900
