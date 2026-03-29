@@ -1340,7 +1340,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             </aside>
             <% } %>
             <aside class="file-list" aria-label="Changed files">
-                <h4>Files (<%= files.length %>)</h4>
+                <h4>Files (<%= Array.isArray(structuredDiff) ? structuredDiff.length : 0 %>)</h4>
                 <div class="file-list-scroll-wrap">
                     <button type="button" class="file-list-scroll-btn" id="fileListScrollUp" aria-label="Scroll files list up">▲</button>
                     <ul id="file-list"></ul>
