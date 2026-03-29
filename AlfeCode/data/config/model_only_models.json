@@ -330,7 +330,7 @@
     },
     {
       "id": "kat-coder-air-v1",
-      "label": "KwaiPilot: KAT Coder Air",
+      "label": "KwaiPilot: KAT Coder Air V1",
       "disabled": true,
       "contextTokens": 128000,
       "engine_options": [
@@ -342,6 +342,26 @@
       "plus_model": false,
       "list_order": 1,
       "usage": "free"
+    },
+    {
+      "id": "openrouter/kwaipilot/kat-coder-pro-v2",
+      "label": "KwaiPilot: KAT Coder Pro V2",
+      "disabled": false,
+      "contextTokens": 256000,
+      "pricing": {
+        "inputPerMTokens": 0.207,
+        "outputPerMTokens": 0.828
+      },
+      "engine_options": [
+        "auto",
+        "qwen"
+      ],
+      "qwen_cli": true,
+      "plus_model": true,
+      "list_order": 2,
+      "usage": "free",
+      "url": "https://litellm.alfe.sh/v1",
+      "key": "litellm"
     },
     {
       "id": "openrouter/mistralai/devstral-2512:free",
@@ -572,7 +592,7 @@
       },
       "qwen_cli": true,
       "plus_model": true,
-      "list_order": 1002,
+      "list_order": 3,
       "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
