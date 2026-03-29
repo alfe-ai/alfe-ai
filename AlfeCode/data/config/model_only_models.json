@@ -343,7 +343,7 @@
       ],
       "qwen_cli": true,
       "plus_model": true,
-      "list_order": 999,
+      "list_order": 1000,
       "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
