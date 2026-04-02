@@ -614,24 +614,26 @@
 
         .sidebar-compare-revision-button {
             align-self: flex-start;
-            border: 1px solid rgba(96, 165, 250, 0.45);
-            background: rgba(37, 99, 235, 0.18);
-            color: #dbeafe;
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 12px;
-            font-weight: 600;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(15, 23, 42, 0.45);
+            color: rgba(226, 232, 240, 0.82);
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.2;
             cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
 
         .sidebar-compare-revision-button:hover {
-            background: rgba(59, 130, 246, 0.28);
-            border-color: rgba(96, 165, 250, 0.65);
+            background: rgba(30, 41, 59, 0.6);
+            border-color: rgba(148, 163, 184, 0.45);
+            color: rgba(241, 245, 249, 0.92);
         }
 
         .sidebar-compare-revision-button:focus-visible {
-            outline: 2px solid rgba(96, 165, 250, 0.95);
+            outline: 2px solid rgba(148, 163, 184, 0.65);
             outline-offset: 2px;
         }
 
@@ -1298,23 +1300,23 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 <details class="sidebar-context-collapsible">
                     <summary>Git Commit Info</summary>
                     <div class="sidebar-context-collapsible-body">
-                <% if (baseRev) { %>
-                <div class="sidebar-context-item base-revision-hidden">
-                    <span class="sidebar-context-label">Base revision</span>
-                    <p class="sidebar-context-value"><%= baseRev %></p>
+                <% if (compRev) { %>
+                <div class="sidebar-context-item">
+                    <span class="sidebar-context-label">Revision</span>
+                    <p class="sidebar-context-value"><%= compRev %></p>
                 </div>
+                <% } %>
+                <% if (baseRev) { %>
                 <button
                     type="button"
                     class="sidebar-compare-revision-button"
                     id="compareRevisionToggle"
                     aria-expanded="false"
                     aria-controls="compareRevisionItem"
-                >Compare Revision</button>
-                <% } %>
-                <% if (compRev) { %>
-                <div class="sidebar-context-item">
-                    <span class="sidebar-context-label">Revision</span>
-                    <p class="sidebar-context-value"><%= compRev %></p>
+                >Show compare revision</button>
+                <div class="sidebar-context-item base-revision-hidden" id="compareRevisionItem">
+                    <span class="sidebar-context-label">Compare revision</span>
+                    <p class="sidebar-context-value"><%= baseRev %></p>
                 </div>
                 <% } %>
                 <% if (typeof branchDisplayName === 'string' && branchDisplayName.trim()) { %>
@@ -1327,12 +1329,6 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">Commit message</span>
                     <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
-                </div>
-                <% } %>
-                <% if (baseRev) { %>
-                <div class="sidebar-context-item base-revision-hidden" id="compareRevisionItem">
-                    <span class="sidebar-context-label">Compare revision</span>
-                    <p class="sidebar-context-value"><%= baseRev %></p>
                 </div>
                 <% } %>
                     </div>
@@ -1958,6 +1954,7 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
             const isHidden = compareRevisionItem.classList.contains('base-revision-hidden');
             compareRevisionItem.classList.toggle('base-revision-hidden', !isHidden);
             compareRevisionToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+            compareRevisionToggle.textContent = isHidden ? 'Hide compare revision' : 'Show compare revision';
         });
     }
     <% if (renderCommitList) { %>renderCommitList();<% } %>
