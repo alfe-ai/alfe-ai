@@ -1359,6 +1359,25 @@ function setupGetRoutes(deps) {
         }
     };
 
+    const resolveGitParentRevision = (directory, revision) => {
+        const targetDir = typeof directory === "string" ? directory.trim() : "";
+        const targetRevision = typeof revision === "string" ? revision.trim() : "";
+        if (!targetDir || !targetRevision) {
+            return "";
+        }
+
+        try {
+            return execSync(`git rev-parse ${targetRevision}^`, {
+                cwd: targetDir,
+                stdio: ["ignore", "pipe", "ignore"],
+            })
+                .toString()
+                .trim();
+        } catch (_err) {
+            return "";
+        }
+    };
+
     const buildStatusOnlyText = (statusHistory, prompt) => {
         if (!Array.isArray(statusHistory) || statusHistory.length === 0) {
             return "";
@@ -4693,8 +4712,9 @@ ${cleanedFinalOutput}`;
             effectiveProjectDir = trimmed;
             runRecord.effectiveProjectDir = trimmed;
             runRecord.runDirectory = trimmed;
-            if (!runRecord.baseRevision) {
-                runRecord.baseRevision = resolveGitCommitRevision(trimmed);
+            const resolvedBaseRevision = resolveGitCommitRevision(trimmed);
+            if (resolvedBaseRevision) {
+                runRecord.baseRevision = resolvedBaseRevision;
             }
             updateRunBranchFromDir(trimmed, { force: true });
             emit({
@@ -4943,6 +4963,10 @@ ${cleanedFinalOutput}`;
                                     const commitRevision = resolveGitCommitRevision(resolvedProjectDir);
                                     if (commitRevision) {
                                         runRecord.commitRevision = commitRevision;
+                                        const parentRevision = resolveGitParentRevision(resolvedProjectDir, commitRevision);
+                                        if (parentRevision) {
+                                            runRecord.baseRevision = parentRevision;
+                                        }
                                     }
                                 }
                                 const gitMessage = `git_fpush.sh exited with code ${gitCode}.`;
