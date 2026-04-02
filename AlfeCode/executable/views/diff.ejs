@@ -612,6 +612,29 @@
             display: none;
         }
 
+        .sidebar-compare-revision-button {
+            align-self: flex-start;
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            background: rgba(37, 99, 235, 0.18);
+            color: #dbeafe;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .sidebar-compare-revision-button:hover {
+            background: rgba(59, 130, 246, 0.28);
+            border-color: rgba(96, 165, 250, 0.65);
+        }
+
+        .sidebar-compare-revision-button:focus-visible {
+            outline: 2px solid rgba(96, 165, 250, 0.95);
+            outline-offset: 2px;
+        }
+
         .sidebar-context-label {
             font-size: 10px;
             letter-spacing: 0.08em;
@@ -1280,6 +1303,13 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                     <span class="sidebar-context-label">Base revision</span>
                     <p class="sidebar-context-value"><%= baseRev %></p>
                 </div>
+                <button
+                    type="button"
+                    class="sidebar-compare-revision-button"
+                    id="compareRevisionToggle"
+                    aria-expanded="false"
+                    aria-controls="compareRevisionItem"
+                >Compare Revision</button>
                 <% } %>
                 <% if (compRev) { %>
                 <div class="sidebar-context-item">
@@ -1297,6 +1327,12 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
                 <div class="sidebar-context-item">
                     <span class="sidebar-context-label">Commit message</span>
                     <pre class="sidebar-context-value"><%= comparisonCommitMessage %></pre>
+                </div>
+                <% } %>
+                <% if (baseRev) { %>
+                <div class="sidebar-context-item base-revision-hidden" id="compareRevisionItem">
+                    <span class="sidebar-context-label">Compare revision</span>
+                    <p class="sidebar-context-value"><%= baseRev %></p>
                 </div>
                 <% } %>
                     </div>
@@ -1913,6 +1949,15 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
     if (fileListScrollDownButton && fileListEl) {
         fileListScrollDownButton.addEventListener('click', () => {
             fileListEl.scrollBy({ top: 120, behavior: 'smooth' });
+        });
+    }
+    const compareRevisionToggle = document.getElementById('compareRevisionToggle');
+    const compareRevisionItem = document.getElementById('compareRevisionItem');
+    if (compareRevisionToggle && compareRevisionItem) {
+        compareRevisionToggle.addEventListener('click', () => {
+            const isHidden = compareRevisionItem.classList.contains('base-revision-hidden');
+            compareRevisionItem.classList.toggle('base-revision-hidden', !isHidden);
+            compareRevisionToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
         });
     }
     <% if (renderCommitList) { %>renderCommitList();<% } %>
