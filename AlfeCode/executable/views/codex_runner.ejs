@@ -3491,16 +3491,17 @@
             bottom: 10px;
             width: 34px;
             height: 34px;
+            padding: 0;
             border-radius: 999px;
-            border: none;
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-            color: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.34);
+            background: rgba(2, 6, 23, 0.82);
+            color: #a855f7;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 3;
-            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.45);
         }
         .prompt-image-upload-button svg {
             width: 16px;
@@ -3510,7 +3511,9 @@
         .prompt-image-upload-button:hover,
         .prompt-image-upload-button:focus-visible {
             transform: translateY(-1px);
-            box-shadow: 0 14px 24px rgba(124, 58, 237, 0.35);
+            background: rgba(2, 6, 23, 0.95);
+            color: #9333ea;
+            box-shadow: 0 12px 24px rgba(2, 6, 23, 0.58);
             outline: none;
         }
         .prompt-image-upload-list {
