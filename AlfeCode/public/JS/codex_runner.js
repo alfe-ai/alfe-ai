@@ -784,7 +784,7 @@
       promptImageUploadList.classList.add("is-hidden");
       return;
     }
-    pendingPromptImages.forEach((file) => {
+    pendingPromptImages.forEach((file, index) => {
       const chip = document.createElement("span");
       chip.className = "prompt-image-upload-chip";
       const icon = document.createElement("svg");
@@ -797,7 +797,26 @@
       path.setAttribute("d", "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2 0v8.5l3.5-3.5a1 1 0 0 1 1.4 0l2.6 2.6 1.5-1.5a1 1 0 0 1 1.4 0L18 14V6zm0 12h12v-1.2l-2.8-2.8-1.5 1.5a1 1 0 0 1-1.4 0l-2.6-2.6L6 16.6zm2-9.75a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0");
       icon.appendChild(path);
       chip.appendChild(icon);
-      chip.appendChild(document.createTextNode(file && file.name ? file.name : "image"));
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "prompt-image-upload-chip__name";
+      nameSpan.textContent = file && file.name ? file.name : "image";
+      chip.appendChild(nameSpan);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "prompt-image-upload-chip__remove";
+      removeBtn.setAttribute("type", "button");
+      removeBtn.setAttribute("aria-label", `Remove ${file && file.name ? file.name : "image"}`);
+      removeBtn.setAttribute("title", "Remove image");
+      removeBtn.innerHTML = "&#10005;";
+      removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        pendingPromptImages.splice(index, 1);
+        renderPromptImageChips();
+        resetPromptImageInputValue();
+      });
+      chip.appendChild(removeBtn);
+
       promptImageUploadList.appendChild(chip);
     });
     promptImageUploadList.classList.remove("is-hidden");
