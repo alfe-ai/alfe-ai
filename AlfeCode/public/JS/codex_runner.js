@@ -2627,7 +2627,7 @@
     promptPreviewCopyButton.addEventListener('click', (e) => {
       e.stopPropagation();
       try {
-        const promptText = promptPreviewTextEl ? promptPreviewTextEl.textContent : '';
+        const promptText = lastUserPrompt || '';
         if (promptText) {
           navigator.clipboard.writeText(promptText);
           const prev = promptPreviewCopyButton.textContent;
