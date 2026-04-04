@@ -893,8 +893,7 @@
     });
     promptImageInput.addEventListener("change", () => {
       const selected = Array.from(promptImageInput.files || []);
-      pendingPromptImages = selected;
-      renderPromptImageChips();
+      addImageFiles(selected);
     });
   }
 
