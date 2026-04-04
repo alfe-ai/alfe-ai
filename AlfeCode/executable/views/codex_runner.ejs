@@ -190,6 +190,7 @@
             display: flex;
             align-items: baseline;
             gap: 0.45rem;
+            line-height: 1.3;
         }
 
         .sidebar-brand-name {
@@ -197,6 +198,9 @@
             text-decoration: none;
             font-weight: 700;
             letter-spacing: inherit;
+            display: inline-flex;
+            flex-direction: column;
+            line-height: 1.3;
         }
 
         .sidebar-brand-name:hover {
@@ -216,6 +220,16 @@
             letter-spacing: 0.05em;
             text-transform: uppercase;
             line-height: 1;
+        }
+
+        .sidebar-formerly {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            letter-spacing: 0.03em;
+            margin-top: 0.15rem;
+            line-height: 1.2;
         }
 
         .sidebar-version {
@@ -3662,8 +3676,7 @@
                             <% if (typeof environment !== 'undefined' && environment && environment !== 'unknown') { %>
                                 <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
                             <% } %>
-                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="Alfe AI" onclick="if(event){event.preventDefault();}">Alfe AI</a>
-                            <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
+                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="AlSH BETA, formerly Alfe" onclick="if(event){event.preventDefault();}">AlSH <span class="sidebar-beta-badge" aria-label="Beta">BETA</span><br><span class="sidebar-formerly">formerly Alfe</span></a>
                         </h1>
                     </div>
                 </div>
