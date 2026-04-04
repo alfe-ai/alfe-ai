@@ -422,6 +422,11 @@
       </label>
       <span id="promptHintsFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
       <label style="font-weight:600;display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input type="checkbox" id="alwaysNewChatFromMainCheckbox" name="alwaysNewChatFromMain">
+        <span>Main prompt always starts a new chat (no follow-up)</span>
+      </label>
+      <span id="alwaysNewChatFromMainFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
+      <label style="font-weight:600;display:flex;align-items:center;gap:8px;margin-top:8px;">
         <input type="checkbox" id="showDemoReposCheckbox" name="showDemoRepos">
         <span>Show Demo repositories in list</span>
       </label>
@@ -767,6 +772,54 @@
             clearFeedbackTimeout();
             showFeedback('Saving...');
             try{ localStorage.setItem(STORAGE_KEY_HINTS, checkbox.checked ? 'true' : 'false'); }catch(e){}
+            send(checkbox.checked);
+            feedbackTimeout = setTimeout(function(){
+              showFeedback('Saved', 'success');
+              feedbackTimeout = null;
+            }, 300);
+          });
+        }catch(e){ /* noop */ }
+      }catch(e){ /* noop */ }
+    })();
+    </script>
+    <script>
+    (function(){
+      try{
+        const STORAGE_KEY_ALWAYS_NEW_CHAT = 'alwaysNewChatFromMain';
+        const checkbox = document.getElementById('alwaysNewChatFromMainCheckbox');
+        const feedback = document.getElementById('alwaysNewChatFromMainFeedback');
+        let feedbackTimeout = null;
+        function send(val){ try{ window.parent.postMessage({type:'sterling:settings', key:'alwaysNewChatFromMain', value:val}, '*'); }catch(e){} }
+        function clearFeedbackTimeout(){
+          if (!feedbackTimeout) return;
+          clearTimeout(feedbackTimeout);
+          feedbackTimeout = null;
+        }
+        function showFeedback(message, type){
+          if (!feedback) return;
+          if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('hidden');
+            feedback.classList.remove('success', 'error');
+            return;
+          }
+          feedback.textContent = message;
+          feedback.classList.remove('hidden', 'success', 'error');
+          if (type === 'success') {
+            feedback.classList.add('success');
+          } else if (type === 'error') {
+            feedback.classList.add('error');
+          }
+        }
+        try{
+          let cur = (function(){ try{ return localStorage.getItem(STORAGE_KEY_ALWAYS_NEW_CHAT); }catch(e){ return null; } })();
+          if (cur === null) { cur = 'false'; }
+          if (checkbox) checkbox.checked = (cur === 'true');
+          send(checkbox ? checkbox.checked : (cur === 'true'));
+          if (checkbox) checkbox.addEventListener('change', function(){
+            clearFeedbackTimeout();
+            showFeedback('Saving...');
+            try{ localStorage.setItem(STORAGE_KEY_ALWAYS_NEW_CHAT, checkbox.checked ? 'true' : 'false'); }catch(e){}
             send(checkbox.checked);
             feedbackTimeout = setTimeout(function(){
               showFeedback('Saved', 'success');

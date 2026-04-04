@@ -41,6 +41,8 @@
   let submitOnEnterDefault = (typeof submitOnEnterFromLocal !== 'undefined') ? submitOnEnterFromLocal : (config.defaultSubmitOnEnter !== false);
   const promptHintsFromLocal = (localStorage.getItem('showPromptHints') !== null) ? (localStorage.getItem('showPromptHints') === 'true') : undefined;
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
+  const alwaysNewChatFromMainFromLocal = (localStorage.getItem('alwaysNewChatFromMain') !== null) ? (localStorage.getItem('alwaysNewChatFromMain') === 'true') : undefined;
+  let alwaysNewChatFromMain = (typeof alwaysNewChatFromMainFromLocal !== 'undefined') ? alwaysNewChatFromMainFromLocal : false;
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
   const QWEN_SHOW_DEBUG_INFO_STORAGE_KEY = 'qwenShowDebugInfo';
@@ -403,6 +405,13 @@
       if(d.key === 'submitOnEnter'){
         try{ submitOnEnterDefault = (d.value === true || d.value === 'true'); }catch(e){}
       }
+      if (d.key === 'alwaysNewChatFromMain') {
+        try {
+          alwaysNewChatFromMain = (d.value === true || d.value === 'true');
+          localStorage.setItem('alwaysNewChatFromMain', alwaysNewChatFromMain ? 'true' : 'false');
+        } catch (e) {}
+        updatePromptPlaceholder();
+      }
       if (d.key === 'showPromptHints') {
         try{ showPromptHints = (d.value === true || d.value === 'true'); }catch(e){}
         updatePromptPlaceholder();
@@ -600,7 +609,7 @@
     try {
       const promptEl = promptInput;
       if (!promptEl) return;
-      const hasSelectedRun = Boolean(config.enableFollowups && (Boolean(runsSidebarSelectedRunId) || (currentRunContext && currentRunContext.runId)));
+      const hasSelectedRun = Boolean(!alwaysNewChatFromMain && config.enableFollowups && (Boolean(runsSidebarSelectedRunId) || (currentRunContext && currentRunContext.runId)));
       const suggestions = [
   'Make a snake game.',
   'Create a to-do app.',
@@ -8992,7 +9001,7 @@ const appendMergeChunk = (text, type = "output") => {
       && typeof outputEl.textContent === "string"
       && outputEl.textContent.trim()
     );
-    const continuingExistingRun = Boolean(config.enableFollowups) && hadExistingRun && hasExistingOutput;
+    const continuingExistingRun = Boolean(config.enableFollowups) && !alwaysNewChatFromMain && hadExistingRun && hasExistingOutput;
 
     const normalizedProjectDir = normaliseProjectDir(projectDir);
     const effectiveProjectDirForRun =
