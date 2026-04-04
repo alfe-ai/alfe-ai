@@ -181,6 +181,29 @@ function setupPostRoutes(deps) {
         || "https://api.openai.com/v1/responses";
     const ALFECODE_IMAGE_OPENAI_API_KEY = (process.env.ALFECODE_IMAGE_OPENAI_API_KEY || "").trim();
     const ALFECODE_IMAGE_MODEL = "gpt-5.4";
+    const ALFECODE_IMAGE_ALLOWED_MIME_TYPES = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/gif",
+    ]);
+    const ALFECODE_IMAGE_MAX_UPLOAD_BYTES = Math.min(
+        Math.max(parseInt(process.env.ALFECODE_IMAGE_MAX_UPLOAD_BYTES || `${10 * 1024 * 1024}`, 10) || (10 * 1024 * 1024), 1),
+        512 * 1024 * 1024,
+    );
+    const ALFECODE_IMAGE_ALLOW_NON_RESPONSES_ENDPOINT = parseBooleanEnvWithDefault(
+        normalizeBooleanEnvValue(process.env.ALFECODE_IMAGE_ALLOW_NON_RESPONSES_ENDPOINT),
+        false,
+    );
+    const isResponsesEndpoint = (endpoint) => {
+        try {
+            const parsed = new URL(endpoint);
+            const pathname = (parsed.pathname || "").replace(/\/+$/, "");
+            return pathname.endsWith("/v1/responses");
+        } catch (_err) {
+            return false;
+        }
+    };
 
     const generateAndStoreOpenrouterApiKey = async (account) => {
         const obfuscateSecret = (value) => {
@@ -1325,9 +1348,24 @@ function setupPostRoutes(deps) {
             if (!req.file) {
                 return res.status(400).json({ error: "No image file received." });
             }
+            if (!ALFECODE_IMAGE_ALLOW_NON_RESPONSES_ENDPOINT && !isResponsesEndpoint(ALFECODE_IMAGE_OPENAI_API_ENDPOINT)) {
+                return res.status(500).json({
+                    error: "ALFECODE_IMAGE_OPENAI_API_ENDPOINT must point to a /v1/responses endpoint.",
+                });
+            }
             if (!ALFECODE_IMAGE_OPENAI_API_KEY) {
                 return res.status(500).json({
                     error: "ALFECODE_IMAGE_OPENAI_API_KEY is not configured.",
+                });
+            }
+            if (!ALFECODE_IMAGE_ALLOWED_MIME_TYPES.has(req.file.mimetype || "")) {
+                return res.status(400).json({
+                    error: "Unsupported image type. Use PNG, JPEG, WEBP, or non-animated GIF.",
+                });
+            }
+            if (!Number.isFinite(req.file.size) || req.file.size <= 0 || req.file.size > ALFECODE_IMAGE_MAX_UPLOAD_BYTES) {
+                return res.status(400).json({
+                    error: `Invalid image size. File must be between 1 byte and ${ALFECODE_IMAGE_MAX_UPLOAD_BYTES} bytes.`,
                 });
             }
 
@@ -1386,6 +1424,16 @@ function setupPostRoutes(deps) {
                         if (typeof block?.text === "string" && block.text.trim()) {
                             descriptionCandidates.push(block.text.trim());
                         }
+                        if (Array.isArray(block?.content)) {
+                            for (const nestedBlock of block.content) {
+                                if (typeof nestedBlock?.text === "string" && nestedBlock.text.trim()) {
+                                    descriptionCandidates.push(nestedBlock.text.trim());
+                                }
+                            }
+                        }
+                    }
+                    if (typeof item?.summary === "string" && item.summary.trim()) {
+                        descriptionCandidates.push(item.summary.trim());
                     }
                 }
             }

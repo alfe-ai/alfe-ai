@@ -111,6 +111,8 @@ For `/agent` prompt image recognition, configure these image-specific OpenAI var
 
 - `ALFECODE_IMAGE_OPENAI_API_ENDPOINT` – OpenAI-compatible endpoint for image analysis (default: `https://api.openai.com/v1/responses`)
 - `ALFECODE_IMAGE_OPENAI_API_KEY` – API key for the image-analysis endpoint
+- `ALFECODE_IMAGE_MAX_UPLOAD_BYTES` – optional upload cap in bytes for image analysis (default: `10485760`, max allowed: `536870912`)
+- `ALFECODE_IMAGE_ALLOW_NON_RESPONSES_ENDPOINT` – optional safety override; set `true` only if intentionally targeting a non-`/v1/responses` endpoint
 
 The `/agent` image prompt helper uses model `gpt-5.4`.
 
