@@ -787,7 +787,22 @@
     pendingPromptImages.forEach((file) => {
       const chip = document.createElement("span");
       chip.className = "prompt-image-upload-chip";
-      chip.textContent = file && file.name ? file.name : "image";
+      const icon = document.createElement("svg");
+      icon.setAttribute("aria-hidden", "true");
+      icon.setAttribute("focusable", "false");
+      icon.setAttribute("width", "14");
+      icon.setAttribute("height", "14");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("fill", "none");
+      icon.setAttribute("stroke", "currentColor");
+      icon.setAttribute("stroke-width", "2");
+      icon.setAttribute("stroke-linecap", "round");
+      icon.setAttribute("stroke-linejoin", "round");
+      icon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>';
+      chip.appendChild(icon);
+      const name = document.createElement("span");
+      name.textContent = file && file.name ? file.name : "image";
+      chip.appendChild(name);
       promptImageUploadList.appendChild(chip);
     });
     promptImageUploadList.classList.remove("is-hidden");
