@@ -787,12 +787,12 @@
     pendingPromptImages.forEach((file, index) => {
       const chip = document.createElement("span");
       chip.className = "prompt-image-upload-chip";
-      const icon = document.createElement("svg");
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       icon.className = "prompt-image-upload-chip__icon";
       icon.setAttribute("viewBox", "0 0 24 24");
       icon.setAttribute("aria-hidden", "true");
       icon.setAttribute("focusable", "false");
-      const path = document.createElement("path");
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("fill", "currentColor");
       path.setAttribute("d", "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2 0v8.5l3.5-3.5a1 1 0 0 1 1.4 0l2.6 2.6 1.5-1.5a1 1 0 0 1 1.4 0L18 14V6zm0 12h12v-1.2l-2.8-2.8-1.5 1.5a1 1 0 0 1-1.4 0l-2.6-2.6L6 16.6zm2-9.75a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0");
       icon.appendChild(path);
