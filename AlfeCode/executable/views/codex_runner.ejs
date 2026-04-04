@@ -1901,6 +1901,30 @@
             color: rgba(226, 232, 240, 0.75);
         }
 
+        .prompt-preview-copy-btn {
+            flex-shrink: 0;
+            background: transparent;
+            border: 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            color: rgba(226, 232, 240, 0.7);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .prompt-preview-copy-btn:hover {
+            background: rgba(0, 0, 0, 0.12);
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .prompt-preview-copy-btn:active {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
         .status-text {
             display: inline-block;
         }
@@ -4194,6 +4218,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <path d="M5 19l14-14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
             </span>
+            <button id="promptPreviewCopyButton" type="button" class="prompt-preview-copy-btn" title="Copy prompt" aria-label="Copy prompt">⎘</button>
         </div>
         <div id="outputTabs" class="output-tabs is-hidden" role="tablist" aria-label="Agent output views">
             <button
