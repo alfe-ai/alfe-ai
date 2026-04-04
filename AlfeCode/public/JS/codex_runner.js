@@ -42,7 +42,7 @@
   const promptHintsFromLocal = (localStorage.getItem('showPromptHints') !== null) ? (localStorage.getItem('showPromptHints') === 'true') : undefined;
   let showPromptHints = (typeof promptHintsFromLocal !== 'undefined') ? promptHintsFromLocal : (config.defaultShowPromptHints !== false);
   const alwaysNewChatFromMainFromLocal = (localStorage.getItem('alwaysNewChatFromMain') !== null) ? (localStorage.getItem('alwaysNewChatFromMain') === 'true') : undefined;
-  let alwaysNewChatFromMain = (typeof alwaysNewChatFromMainFromLocal !== 'undefined') ? alwaysNewChatFromMainFromLocal : false;
+  let alwaysNewChatFromMain = (typeof alwaysNewChatFromMainFromLocal !== 'undefined') ? alwaysNewChatFromMainFromLocal : true;
   const ENGINE_STORAGE_KEY = 'enginePreference';
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
   const QWEN_SHOW_DEBUG_INFO_STORAGE_KEY = 'qwenShowDebugInfo';
