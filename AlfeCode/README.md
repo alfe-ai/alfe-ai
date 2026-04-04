@@ -107,6 +107,13 @@ Then add it to `.env` (same value on the CNC server and each node):
 ALFECODE_NODE_PING_KEY=your_generated_value_here
 ```
 
+For `/agent` prompt image recognition, configure these image-specific OpenAI variables:
+
+- `ALFECODE_IMAGE_OPENAI_API_ENDPOINT` – OpenAI-compatible endpoint for image analysis (default: `https://api.openai.com/v1/responses`)
+- `ALFECODE_IMAGE_OPENAI_API_KEY` – API key for the image-analysis endpoint
+
+The `/agent` image prompt helper uses model `gpt-5.4`.
+
 ### Related Repositories:  
 Alfe AI / Agent Instructions: https://github.com/alfe-ai
 

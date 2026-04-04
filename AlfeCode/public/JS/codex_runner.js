@@ -591,6 +591,9 @@
   const gitFpushRevisionNotice = document.getElementById("gitFpushRevisionNotice");
   const gitFpushRevisionCode = document.getElementById("gitFpushRevisionCode");
   const promptInput = document.getElementById("prompt");
+  const promptImageInput = document.getElementById("promptImageInput");
+  const promptImageUploadButton = document.getElementById("promptImageUploadButton");
+  const promptImageUploadList = document.getElementById("promptImageUploadList");
   const usageLimitModal = document.getElementById("usageLimitModal");
   const usageLimitModalCloseButton = document.getElementById("usageLimitModalCloseButton");
   const subscribeModal = document.getElementById("subscribeModal");
@@ -762,6 +765,80 @@
       usageLimitProCodeUsageLimit.textContent = "n/10000 cycles";
     }
   };
+
+  let pendingPromptImages = [];
+
+  const resetPromptImageInputValue = () => {
+    if (!promptImageInput) return;
+    try {
+      promptImageInput.value = "";
+    } catch (_error) {
+      // ignore
+    }
+  };
+
+  const renderPromptImageChips = () => {
+    if (!promptImageUploadList) return;
+    promptImageUploadList.innerHTML = "";
+    if (!Array.isArray(pendingPromptImages) || pendingPromptImages.length === 0) {
+      promptImageUploadList.classList.add("is-hidden");
+      return;
+    }
+    pendingPromptImages.forEach((file) => {
+      const chip = document.createElement("span");
+      chip.className = "prompt-image-upload-chip";
+      chip.textContent = file && file.name ? file.name : "image";
+      promptImageUploadList.appendChild(chip);
+    });
+    promptImageUploadList.classList.remove("is-hidden");
+  };
+
+  const clearPendingPromptImages = () => {
+    pendingPromptImages = [];
+    renderPromptImageChips();
+    resetPromptImageInputValue();
+  };
+
+  const describePendingPromptImages = async (promptText) => {
+    if (!Array.isArray(pendingPromptImages) || pendingPromptImages.length === 0) {
+      return "";
+    }
+    const descriptions = [];
+    for (const imageFile of pendingPromptImages) {
+      const formData = new FormData();
+      formData.append("imageFile", imageFile);
+      formData.append("prompt", promptText || "");
+      const response = await fetch("/agent/image/describe", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Image upload failed (${response.status}).`);
+      }
+      const payload = await response.json();
+      const description = (payload && typeof payload.description === "string")
+        ? payload.description.trim()
+        : "";
+      if (!description) {
+        continue;
+      }
+      const name = imageFile && imageFile.name ? imageFile.name : "image";
+      descriptions.push(`[Image: ${name}] ${description}`);
+    }
+    return descriptions.join("\n");
+  };
+
+  if (promptImageUploadButton && promptImageInput) {
+    promptImageUploadButton.addEventListener("click", () => {
+      promptImageInput.click();
+    });
+    promptImageInput.addEventListener("change", () => {
+      const selected = Array.from(promptImageInput.files || []);
+      pendingPromptImages = selected;
+      renderPromptImageChips();
+    });
+  }
 
   const showUsageLimitModal = () => {
     if (!usageLimitModal) return;
@@ -9479,15 +9556,31 @@ const appendMergeChunk = (text, type = "output") => {
   }
 
   if (form) {
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const projectDir = projectDirInput ? projectDirInput.value.trim() : "";
-      const prompt = promptInput ? promptInput.value.trim() : "";
+      let prompt = promptInput ? promptInput.value.trim() : "";
       const agentInstructions = agentInstructionsInput ? agentInstructionsInput.value : "";
 
-      if (!prompt) {
+      if (!prompt && pendingPromptImages.length === 0) {
         setStatus("Prompt is required.", "error");
         return;
+      }
+
+      if (pendingPromptImages.length > 0) {
+        try {
+          setStatus("Analyzing image(s)…", "pending");
+          const imageDescriptions = await describePendingPromptImages(prompt);
+          if (imageDescriptions) {
+            const separator = prompt ? "\n\n" : "";
+            prompt = `${prompt}${separator}Image context:\n${imageDescriptions}`.trim();
+          }
+        } catch (error) {
+          setStatus(error.message || "Image analysis failed.", "error");
+          return;
+        } finally {
+          clearPendingPromptImages();
+        }
       }
 
       startStream(projectDir, prompt, agentInstructions);
