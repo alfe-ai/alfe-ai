@@ -203,6 +203,22 @@
             color: var(--accent-strong);
         }
 
+        .sidebar-beta-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.12rem 0.5rem;
+            border-radius: 999px;
+            background: #7e22ce;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
         .sidebar-brand-subtitle {
             margin: 0.2rem 0 0;
             font-size: 0.82rem;
@@ -3656,6 +3672,7 @@
                                 <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
                             <% } %>
                             <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="AlSH.ai" onclick="if(event){event.preventDefault();}">AlSH.ai</a>
+                            <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
                         </h1>
                         <p class="sidebar-brand-subtitle">formerly Alfe</p>
                     </div>
