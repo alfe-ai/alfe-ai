@@ -3545,6 +3545,38 @@
             height: 14px;
             color: #94a3b8;
         }
+        .prompt-image-upload-chip__name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .prompt-image-upload-chip__remove {
+            flex-shrink: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: #ef4444;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 2px;
+            transition: background-color 0.15s ease;
+        }
+        .prompt-image-upload-chip__remove:hover,
+        .prompt-image-upload-chip__remove:focus-visible {
+            background: rgba(239, 68, 68, 0.15);
+            outline: none;
+        }
+        .prompt-image-upload-chip:hover .prompt-image-upload-chip__remove,
+        .prompt-image-upload-chip:focus-within .prompt-image-upload-chip__remove {
+            display: inline-flex;
+        }
 </style>
 </head>
 <body>
