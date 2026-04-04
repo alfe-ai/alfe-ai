@@ -177,6 +177,21 @@ function setupPostRoutes(deps) {
         return false;
     };
 
+    const ALFECODE_IMAGE_OPENAI_API_ENDPOINT = (process.env.ALFECODE_IMAGE_OPENAI_API_ENDPOINT || "").trim()
+        || "https://api.openai.com/v1/responses";
+    const ALFECODE_IMAGE_OPENAI_API_KEY = (process.env.ALFECODE_IMAGE_OPENAI_API_KEY || "").trim();
+    const ALFECODE_IMAGE_MODEL = "gpt-5.4";
+    const ALFECODE_IMAGE_MAX_BYTES = Number.parseInt(process.env.ALFECODE_IMAGE_MAX_BYTES || "", 10) > 0
+        ? Number.parseInt(process.env.ALFECODE_IMAGE_MAX_BYTES, 10)
+        : 512 * 1024 * 1024;
+    const ALFECODE_IMAGE_ALLOWED_MIME_TYPES = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/webp",
+        "image/gif",
+    ]);
+
     const generateAndStoreOpenrouterApiKey = async (account) => {
         const obfuscateSecret = (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
@@ -1311,6 +1326,141 @@ function setupPostRoutes(deps) {
         } catch (error) {
             console.error("[ERROR] /file_summarizer/summarize:", error);
             return res.status(500).json({ error: "Failed to generate summary. Check provider configuration." });
+        }
+    });
+
+    app.post("/agent/image/describe", upload.single("imageFile"), async (req, res) => {
+        const uploadedPath = req.file && req.file.path ? req.file.path : "";
+        try {
+            if (!req.file) {
+                return res.status(400).json({ error: "No image file received." });
+            }
+            if (!ALFECODE_IMAGE_OPENAI_API_KEY) {
+                return res.status(500).json({
+                    error: "ALFECODE_IMAGE_OPENAI_API_KEY is not configured.",
+                });
+            }
+            const mimeType = (req.file.mimetype || "").toLowerCase();
+            if (!ALFECODE_IMAGE_ALLOWED_MIME_TYPES.has(mimeType)) {
+                return res.status(400).json({
+                    error: "Unsupported image type. Allowed: PNG, JPEG/JPG, WEBP, GIF.",
+                });
+            }
+            let sizeBytes = req.file.size;
+            if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) {
+                try {
+                    sizeBytes = fs.statSync(req.file.path).size;
+                } catch (_statError) {
+                    sizeBytes = 0;
+                }
+            }
+            if (!sizeBytes || sizeBytes > ALFECODE_IMAGE_MAX_BYTES) {
+                return res.status(400).json({
+                    error: `Image exceeds max size of ${ALFECODE_IMAGE_MAX_BYTES} bytes.`,
+                });
+            }
+
+            const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+            const imageBuffer = fs.readFileSync(req.file.path);
+            const base64Image = imageBuffer.toString("base64");
+            const userPromptPrefix = prompt
+                ? `User prompt context: ${prompt}\n\n`
+                : "";
+
+            const payload = {
+                model: ALFECODE_IMAGE_MODEL,
+                input: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "input_text",
+                                text: `${userPromptPrefix}Describe this image for a coding agent. Be concrete and concise.`,
+                            },
+                            {
+                                type: "input_image",
+                                image_url: `data:${mimeType};base64,${base64Image}`,
+                                detail: "original",
+                            },
+                        ],
+                    },
+                ],
+                max_output_tokens: 220,
+            };
+
+            const imageController = new AbortController();
+            const requestTimeout = setTimeout(() => {
+                imageController.abort();
+            }, 60_000);
+            const response = await fetch(ALFECODE_IMAGE_OPENAI_API_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${ALFECODE_IMAGE_OPENAI_API_KEY}`,
+                },
+                body: JSON.stringify(payload),
+                signal: imageController.signal,
+            });
+            clearTimeout(requestTimeout);
+
+            const responseText = await response.text();
+            let responsePayload = {};
+            if (responseText) {
+                try {
+                    responsePayload = JSON.parse(responseText);
+                } catch (_parseError) {
+                    responsePayload = { raw: responseText };
+                }
+            }
+            if (!response.ok) {
+                const upstreamMessage = responsePayload?.error?.message
+                    || responsePayload?.error
+                    || responsePayload?.raw
+                    || "Image analysis request failed.";
+                return res.status(response.status).json({ error: upstreamMessage });
+            }
+
+            const descriptionCandidates = [];
+            if (typeof responsePayload?.output_text === "string" && responsePayload.output_text.trim()) {
+                descriptionCandidates.push(responsePayload.output_text.trim());
+            }
+            if (Array.isArray(responsePayload?.output)) {
+                for (const item of responsePayload.output) {
+                    const content = Array.isArray(item?.content) ? item.content : [];
+                    for (const block of content) {
+                        if (typeof block?.text === "string" && block.text.trim()) {
+                            descriptionCandidates.push(block.text.trim());
+                        }
+                    }
+                }
+            }
+
+            const description = descriptionCandidates.find(Boolean) || "";
+            if (!description) {
+                return res.status(502).json({
+                    error: "Image analysis succeeded but returned no text description.",
+                });
+            }
+            return res.json({
+                success: true,
+                filename: req.file.originalname,
+                model: ALFECODE_IMAGE_MODEL,
+                description,
+            });
+        } catch (error) {
+            if (error && error.name === "AbortError") {
+                return res.status(504).json({ error: "Image analysis request timed out." });
+            }
+            console.error("[ERROR] /agent/image/describe:", error);
+            return res.status(500).json({ error: "Failed to analyze image." });
+        } finally {
+            if (uploadedPath) {
+                fs.unlink(uploadedPath, (unlinkErr) => {
+                    if (unlinkErr && unlinkErr.code !== "ENOENT") {
+                        console.error("[WARN] Failed to remove uploaded image:", unlinkErr.message);
+                    }
+                });
+            }
         }
     });
 
