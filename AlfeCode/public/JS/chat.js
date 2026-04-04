@@ -4,6 +4,132 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log("[DEBUG] chat.js => DOMContentLoaded, merging all logic.");
 
+    // ============ Image Attachment State ============
+    let attachedImages = []; // Array of { id, file, previewUrl }
+
+    function generateImageId() {
+        return 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    function addAttachedImage(file) {
+        const id = generateImageId();
+        const previewUrl = URL.createObjectURL(file);
+        attachedImages.push({ id, file, previewUrl });
+        renderImageAttachments();
+        return id;
+    }
+
+    function removeAttachedImage(id) {
+        const idx = attachedImages.findIndex(img => img.id === id);
+        if (idx !== -1) {
+            if (attachedImages[idx].previewUrl) {
+                URL.revokeObjectURL(attachedImages[idx].previewUrl);
+            }
+            attachedImages.splice(idx, 1);
+            renderImageAttachments();
+        }
+    }
+
+    function renderImageAttachments() {
+        const container = document.getElementById('imageAttachmentsPreview');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        attachedImages.forEach(img => {
+            const item = document.createElement('div');
+            item.className = 'image-attachment-item';
+            item.dataset.id = img.id;
+
+            const thumb = document.createElement('img');
+            thumb.src = img.previewUrl;
+            thumb.alt = img.file.name;
+            thumb.className = 'image-attachment-thumb';
+
+            const info = document.createElement('div');
+            info.className = 'image-attachment-info';
+
+            const name = document.createElement('span');
+            name.className = 'image-attachment-name';
+            name.textContent = img.file.name;
+
+            const size = document.createElement('span');
+            size.className = 'image-attachment-size';
+            size.textContent = formatFileSize(img.file.size);
+
+            info.appendChild(name);
+            info.appendChild(size);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'image-attachment-remove';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.title = 'Remove image';
+            removeBtn.addEventListener('click', () => removeAttachedImage(img.id));
+
+            item.appendChild(thumb);
+            item.appendChild(info);
+            item.appendChild(removeBtn);
+            container.appendChild(item);
+        });
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function handlePasteEvent(evt) {
+        const items = evt.clipboardData && evt.clipboardData.items;
+        if (!items) return;
+
+        let hasImage = false;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.startsWith('image/')) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    hasImage = true;
+                    addAttachedImage(file);
+                }
+            }
+        }
+
+        if (hasImage) {
+            evt.preventDefault();
+        }
+    }
+
+    // ============ Setup paste handler on chat input ============
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('paste', handlePasteEvent);
+    }
+
+    // ============ Setup image file input ============
+    const imageFileInput = document.getElementById('imageFileInput');
+    const attachImageButton = document.getElementById('attachImageButton');
+
+    if (attachImageButton && imageFileInput) {
+        attachImageButton.addEventListener('click', () => {
+            imageFileInput.click();
+        });
+
+        imageFileInput.addEventListener('change', (evt) => {
+            const files = Array.from(evt.target.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    addAttachedImage(file);
+                }
+            });
+            // Reset input so same file can be selected again
+            imageFileInput.value = '';
+        });
+    }
+
+    // Note: Image attachments are handled by the main chat form submit handler
+    // which appends attachedImages to the FormData before sending
+
     // ============ Git Status Modal ============
     const gitStatusButton = document.getElementById('gitStatusButton');
     const gitStatusModal = document.getElementById('gitStatusModal');
@@ -342,6 +468,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const formData = new FormData(chatForm);
 
+            // Append attached images to FormData
+            if (attachedImages && attachedImages.length > 0) {
+                attachedImages.forEach(img => {
+                    formData.append('imageFiles', img.file);
+                });
+            }
+
             // Disable inputs except submit button which becomes a stop button
             const chatInput = document.getElementById('chatInput');
             if (queueBtn) queueBtn.disabled = true;
@@ -494,6 +627,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         chatInput.disabled = false;
                         chatInput.value = ""; // clear input
                     }
+
+                    // Clear attached images after successful submission
+                    attachedImages.forEach(img => {
+                        if (img.previewUrl) URL.revokeObjectURL(img.previewUrl);
+                    });
+                    attachedImages = [];
+                    renderImageAttachments();
+
                     isProcessing = false;
                     fetchController = null;
 

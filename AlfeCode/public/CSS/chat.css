@@ -507,6 +507,121 @@ textarea {
     min-height: 140px;
 }
 
+/* Chat input wrapper with toolbar */
+.chat-input-wrapper {
+    position: relative;
+}
+
+.chat-input-wrapper textarea {
+    width: 100%;
+    padding-right: 50px;
+}
+
+.chat-input-toolbar {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.toolbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: rgba(124, 58, 237, 0.2);
+    color: var(--accent-strong);
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    box-shadow: none;
+}
+
+.toolbar-button:hover {
+    background: rgba(124, 58, 237, 0.35);
+    transform: scale(1.05);
+}
+
+.toolbar-button:active {
+    transform: scale(0.95);
+}
+
+/* Image attachments preview */
+.image-attachments-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.image-attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 12px;
+    max-width: 280px;
+}
+
+.image-attachment-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.image-attachment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.image-attachment-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.image-attachment-size {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.image-attachment-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(249, 115, 22, 0.2);
+    color: var(--negative);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+    box-shadow: none;
+}
+
+.image-attachment-remove:hover {
+    background: rgba(249, 115, 22, 0.4);
+}
+
 #chatForm {
     display: flex;
     flex-direction: column;
