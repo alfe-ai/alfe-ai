@@ -813,7 +813,7 @@
         }
         try{
           let cur = (function(){ try{ return localStorage.getItem(STORAGE_KEY_ALWAYS_NEW_CHAT); }catch(e){ return null; } })();
-          if (cur === null) { cur = 'false'; }
+          if (cur === null) { cur = 'true'; }
           if (checkbox) checkbox.checked = (cur === 'true');
           send(checkbox ? checkbox.checked : (cur === 'true'));
           if (checkbox) checkbox.addEventListener('change', function(){
