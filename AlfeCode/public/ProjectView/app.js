@@ -1324,10 +1324,23 @@ function renderAttachmentsList() {
   modalAttachments.forEach((att, i) => {
     const item = document.createElement('div');
     item.className = 'attachment-item';
-    const img = document.createElement('img');
-    img.src = att.data;
-    img.alt = att.name || ('attachment-' + i);
-    item.appendChild(img);
+    
+    // Create the image icon element
+    const icon = document.createElement('span');
+    icon.className = 'attachment-icon';
+    icon.textContent = '🖼️'; // Using emoji as a simple icon
+    icon.setAttribute('aria-hidden', 'true');
+    
+    // Create the filename element
+    const filename = document.createElement('span');
+    filename.className = 'attachment-filename';
+    filename.textContent = att.name || ('attachment-' + i);
+    
+    // Add elements in order: icon first, then filename
+    item.appendChild(icon);
+    item.appendChild(filename);
+    
+    // Remove button
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.textContent = 'Remove';
@@ -1336,6 +1349,7 @@ function renderAttachmentsList() {
       renderAttachmentsList();
     });
     item.appendChild(removeBtn);
+    
     taskAttachmentsList.appendChild(item);
   });
 }

@@ -622,6 +622,15 @@ button[aria-disabled='true']:hover {
   border-radius: 6px;
 }
 
+.attachment-icon {
+  color: var(--color-muted); /* Grey color as requested */
+  font-size: 1.2em;
+}
+
+.attachment-filename {
+  font-size: 0.9rem;
+}
+
 .attachment-item button {
   padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
