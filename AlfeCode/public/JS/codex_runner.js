@@ -869,6 +869,21 @@
     pendingPromptImages = pendingPromptImages.concat(imageFiles);
     renderPromptImageChips();
     resetPromptImageInputValue();
+
+    // Show green "Image attached." status for 2 seconds
+    if (statusEl && statusTextEl) {
+      const originalText = statusTextEl.textContent;
+      const originalClassList = Array.from(statusEl.classList);
+      statusTextEl.textContent = "Image attached.";
+      statusTextEl.style.color = "#34d399";
+      statusTextEl.style.fontWeight = "600";
+      setTimeout(() => {
+        statusTextEl.textContent = originalText;
+        statusTextEl.style.color = "";
+        statusTextEl.style.fontWeight = "";
+      }, 2000);
+    }
+
     return true;
   };
 
