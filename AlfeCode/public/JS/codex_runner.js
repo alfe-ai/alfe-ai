@@ -1832,6 +1832,7 @@
   const runsSidebarRefreshButton = document.getElementById("runsSidebarRefreshButton");
   const promptPreviewEl = document.getElementById("userPromptPreview");
   const promptPreviewTextEl = document.getElementById("userPromptPreviewText");
+  const promptPreviewCopyButton = document.getElementById("promptPreviewCopyButton");
   const promptModalEl = document.getElementById("promptModal");
   const promptModalTextarea = document.getElementById("promptModalTextarea");
   const promptModalCopyButton = document.getElementById("promptModalCopyButton");
@@ -2598,6 +2599,31 @@
             promptModalTextarea.select();
             document.execCommand('copy');
           }
+        } catch(e){}
+      }
+    });
+  }
+
+  if (promptPreviewCopyButton) {
+    promptPreviewCopyButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      try {
+        const promptText = promptPreviewTextEl ? promptPreviewTextEl.textContent : '';
+        if (promptText) {
+          navigator.clipboard.writeText(promptText);
+          const prev = promptPreviewCopyButton.textContent;
+          promptPreviewCopyButton.textContent = '✓';
+          setTimeout(() => { promptPreviewCopyButton.textContent = '⎘'; }, 1200);
+        }
+      } catch (e) {
+        try {
+          const range = document.createRange();
+          range.selectNodeContents(promptPreviewTextEl);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          document.execCommand('copy');
+          sel.removeAllRanges();
         } catch(e){}
       }
     });
