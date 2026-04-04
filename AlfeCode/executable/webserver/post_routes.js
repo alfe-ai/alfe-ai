@@ -177,6 +177,11 @@ function setupPostRoutes(deps) {
         return false;
     };
 
+    const ALFECODE_IMAGE_OPENAI_API_ENDPOINT = (process.env.ALFECODE_IMAGE_OPENAI_API_ENDPOINT || "").trim()
+        || "https://api.openai.com/v1/responses";
+    const ALFECODE_IMAGE_OPENAI_API_KEY = (process.env.ALFECODE_IMAGE_OPENAI_API_KEY || "").trim();
+    const ALFECODE_IMAGE_MODEL = "gpt-5.4";
+
     const generateAndStoreOpenrouterApiKey = async (account) => {
         const obfuscateSecret = (value) => {
             const normalized = typeof value === "string" ? value.trim() : "";
@@ -1311,6 +1316,98 @@ function setupPostRoutes(deps) {
         } catch (error) {
             console.error("[ERROR] /file_summarizer/summarize:", error);
             return res.status(500).json({ error: "Failed to generate summary. Check provider configuration." });
+        }
+    });
+
+    app.post("/agent/image/describe", upload.single("imageFile"), async (req, res) => {
+        const uploadedPath = req.file && req.file.path ? req.file.path : "";
+        try {
+            if (!req.file) {
+                return res.status(400).json({ error: "No image file received." });
+            }
+            if (!ALFECODE_IMAGE_OPENAI_API_KEY) {
+                return res.status(500).json({
+                    error: "ALFECODE_IMAGE_OPENAI_API_KEY is not configured.",
+                });
+            }
+
+            const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+            const imageBuffer = fs.readFileSync(req.file.path);
+            const mimeType = req.file.mimetype || "image/png";
+            const base64Image = imageBuffer.toString("base64");
+            const userPromptPrefix = prompt
+                ? `User prompt context: ${prompt}\n\n`
+                : "";
+
+            const payload = {
+                model: ALFECODE_IMAGE_MODEL,
+                input: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "input_text",
+                                text: `${userPromptPrefix}Describe this image for a coding agent. Be concrete and concise.`,
+                            },
+                            {
+                                type: "input_image",
+                                image_url: `data:${mimeType};base64,${base64Image}`,
+                                detail: "original",
+                            },
+                        ],
+                    },
+                ],
+                max_output_tokens: 220,
+            };
+
+            const response = await fetch(ALFECODE_IMAGE_OPENAI_API_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${ALFECODE_IMAGE_OPENAI_API_KEY}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const responsePayload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const upstreamMessage = responsePayload?.error?.message || responsePayload?.error || "Image analysis request failed.";
+                return res.status(response.status).json({ error: upstreamMessage });
+            }
+
+            const descriptionCandidates = [];
+            if (typeof responsePayload?.output_text === "string" && responsePayload.output_text.trim()) {
+                descriptionCandidates.push(responsePayload.output_text.trim());
+            }
+            if (Array.isArray(responsePayload?.output)) {
+                for (const item of responsePayload.output) {
+                    const content = Array.isArray(item?.content) ? item.content : [];
+                    for (const block of content) {
+                        if (typeof block?.text === "string" && block.text.trim()) {
+                            descriptionCandidates.push(block.text.trim());
+                        }
+                    }
+                }
+            }
+
+            const description = descriptionCandidates.find(Boolean) || "";
+            return res.json({
+                success: true,
+                filename: req.file.originalname,
+                model: ALFECODE_IMAGE_MODEL,
+                description,
+            });
+        } catch (error) {
+            console.error("[ERROR] /agent/image/describe:", error);
+            return res.status(500).json({ error: "Failed to analyze image." });
+        } finally {
+            if (uploadedPath) {
+                fs.unlink(uploadedPath, (unlinkErr) => {
+                    if (unlinkErr && unlinkErr.code !== "ENOENT") {
+                        console.error("[WARN] Failed to remove uploaded image:", unlinkErr.message);
+                    }
+                });
+            }
         }
     });
 

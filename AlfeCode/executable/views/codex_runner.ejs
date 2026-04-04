@@ -3478,6 +3478,54 @@
             box-shadow: 0 16px 36px rgba(124, 58, 237, 0.32);
             outline: none;
         }
+
+        .prompt-input-shell {
+            position: relative;
+        }
+        .prompt-image-upload-button {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.9);
+            color: #e2e8f0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 3;
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.5);
+        }
+        .prompt-image-upload-button:hover,
+        .prompt-image-upload-button:focus-visible {
+            background: rgba(30, 41, 59, 0.96);
+            border-color: rgba(148, 163, 184, 0.6);
+            outline: none;
+        }
+        .prompt-image-upload-list {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .prompt-image-upload-list.is-hidden {
+            display: none;
+        }
+        .prompt-image-upload-chip {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 999px;
+            padding: 3px 10px;
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 </style>
 </head>
 <body>
@@ -4015,17 +4063,28 @@
                         <span class="tooltip-text">Enter a prompt to get started</span>
                         <div class="tooltip-arrow prompt-tooltip-arrow"></div>
                     </div>
-                    <textarea
-                        id="prompt"
-                        name="prompt"
-                        placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
+                    <div class="prompt-input-shell">
+                        <textarea
+                            id="prompt"
+                            name="prompt"
+                            placeholder="<% const _s = ['Make a snake game.', 'Create a to-do app.', 'Build a calculator.', 'Implement a chat UI.', 'Write unit tests for a module.', 'Create a REST API endpoint.']; %>Start a new task or ask a question
 
 Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
-                        required
-                        autocomplete="off"
-                        spellcheck="false"
-                        rows="6"
-                    ></textarea>
+                            required
+                            autocomplete="off"
+                            spellcheck="false"
+                            rows="6"
+                        ></textarea>
+                        <input id="promptImageInput" type="file" accept="image/*" multiple class="is-hidden" aria-hidden="true" tabindex="-1">
+                        <button
+                            type="button"
+                            id="promptImageUploadButton"
+                            class="prompt-image-upload-button"
+                            aria-label="Upload image for prompt"
+                            title="Upload image for prompt"
+                        >🖼️</button>
+                    </div>
+                    <div id="promptImageUploadList" class="prompt-image-upload-list is-hidden" aria-live="polite"></div>
                 </div>
             </div>
 
