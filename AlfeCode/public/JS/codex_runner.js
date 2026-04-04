@@ -863,6 +863,15 @@
     return descriptions.join("\n");
   };
 
+  const addImageFiles = (files) => {
+    const imageFiles = Array.from(files).filter((file) => file && file.type && file.type.startsWith("image/"));
+    if (imageFiles.length === 0) return false;
+    pendingPromptImages = pendingPromptImages.concat(imageFiles);
+    renderPromptImageChips();
+    resetPromptImageInputValue();
+    return true;
+  };
+
   if (promptImageUploadButton && promptImageInput) {
     promptImageUploadButton.addEventListener("click", () => {
       promptImageInput.click();
@@ -871,6 +880,48 @@
       const selected = Array.from(promptImageInput.files || []);
       pendingPromptImages = selected;
       renderPromptImageChips();
+    });
+  }
+
+  // Handle paste events on the prompt textarea to capture images from clipboard
+  if (promptInput) {
+    promptInput.addEventListener("paste", (event) => {
+      const clipboardData = event.clipboardData || window.clipboardData;
+      if (!clipboardData) return;
+
+      const items = clipboardData.items;
+      if (!items || items.length === 0) return;
+
+      const imageFiles = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file" && item.type && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            imageFiles.push(file);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        event.preventDefault();
+        addImageFiles(imageFiles);
+      }
+    });
+
+    // Handle drop events on the prompt textarea to capture dragged images
+    promptInput.addEventListener("drop", (event) => {
+      const dataTransfer = event.dataTransfer;
+      if (!dataTransfer) return;
+
+      const files = dataTransfer.files;
+      if (!files || files.length === 0) return;
+
+      const imageFiles = Array.from(files).filter((file) => file && file.type && file.type.startsWith("image/"));
+      if (imageFiles.length > 0) {
+        event.preventDefault();
+        addImageFiles(imageFiles);
+      }
     });
   }
 
