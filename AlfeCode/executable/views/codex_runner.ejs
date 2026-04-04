@@ -3491,21 +3491,26 @@
             bottom: 10px;
             width: 34px;
             height: 34px;
-            border-radius: 0;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.9);
-            color: #e2e8f0;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+            color: #ffffff;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 3;
-            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.5);
+            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+        }
+        .prompt-image-upload-button svg {
+            width: 16px;
+            height: 16px;
+            display: block;
         }
         .prompt-image-upload-button:hover,
         .prompt-image-upload-button:focus-visible {
-            background: rgba(30, 41, 59, 0.96);
-            border-color: rgba(148, 163, 184, 0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 24px rgba(124, 58, 237, 0.35);
             outline: none;
         }
         .prompt-image-upload-list {
@@ -4085,7 +4090,11 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                             class="prompt-image-upload-button"
                             aria-label="Upload image for prompt"
                             title="Upload image for prompt"
-                        >🖼️</button>
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path fill="currentColor" d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2 0v8.5l3.5-3.5a1 1 0 0 1 1.4 0l2.6 2.6 1.5-1.5a1 1 0 0 1 1.4 0L18 14V6zm0 12h12v-1.2l-2.8-2.8-1.5 1.5a1 1 0 0 1-1.4 0l-2.6-2.6L6 16.6zm2-9.75a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0"/>
+                            </svg>
+                        </button>
                     </div>
                     <div id="promptImageUploadList" class="prompt-image-upload-list is-hidden" aria-live="polite"></div>
                 </div>
