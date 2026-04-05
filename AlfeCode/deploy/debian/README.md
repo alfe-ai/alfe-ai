@@ -18,7 +18,7 @@ Run on a fresh Debian host:
 ```bash
 sudo apt-get update
 sudo apt-get install -y git
-git clone https://github.com/AlSH-ai/alfe-ai.git /tmp/alfe-ai
+git clone https://github.com/AlSH-ai/AlSH.ai.git /tmp/alfe-ai
 sudo bash /tmp/alfe-ai/AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
 ```
 
@@ -50,7 +50,7 @@ sudo apt-get install -y \
 
 ```bash
 sudo mkdir -p /git
-sudo git clone https://github.com/AlSH-ai/alfe-ai.git /git/alfe-ai
+sudo git clone https://github.com/AlSH-ai/AlSH.ai.git /git/alfe-ai
 sudo mkdir -p /git/sterling
 sudo chown -R "$USER:$USER" /git/alfe-ai /git/sterling
 ```
