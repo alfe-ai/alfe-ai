@@ -3,12 +3,10 @@ set -euo pipefail
 
 # Standardized Debian bootstrap for AlfeCode.
 # Supports Debian 12+ and Ubuntu 22.04+.
+# Assumes this repository has already been checked out.
 
-REPO_URL_DEFAULT="https://github.com/AlSH-ai/AlSH.ai.git"
-REPO_URL="${REPO_URL:-$REPO_URL_DEFAULT}"
-INSTALL_ROOT="${INSTALL_ROOT:-/git}"
-INSTALL_DIR_NAME="${INSTALL_DIR_NAME:-alfe-ai}"
-INSTALL_PATH="${INSTALL_ROOT}/${INSTALL_DIR_NAME}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_PATH="${INSTALL_PATH:-$(cd "${SCRIPT_DIR}/../../.." && pwd)}"
 APP_SUBDIR="${APP_SUBDIR:-AlfeCode}"
 USER_REPO_ROOT="${USER_REPO_ROOT:-/git/sterling}"
 QWEN_INSTALL_SCRIPT_REL="${QWEN_INSTALL_SCRIPT_REL:-install-qwen-0.10.1-from-git.sh}"
@@ -47,13 +45,11 @@ need git
 need node
 need npm
 
-log "Preparing ${INSTALL_PATH}"
-mkdir -p "$INSTALL_ROOT"
+log "Using checked-out repository at ${INSTALL_PATH}"
 if [ ! -d "${INSTALL_PATH}/.git" ]; then
-  git clone "$REPO_URL" "$INSTALL_PATH"
-else
-  git -C "$INSTALL_PATH" fetch --all --tags --prune
-  git -C "$INSTALL_PATH" pull --ff-only
+  echo "ERROR: expected a git checkout at ${INSTALL_PATH}" >&2
+  echo "Run this script from within the checked-out repository, or set INSTALL_PATH." >&2
+  exit 1
 fi
 chown -R "$TARGET_USER:$TARGET_USER" "$INSTALL_PATH"
 

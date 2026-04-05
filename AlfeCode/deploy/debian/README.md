@@ -13,22 +13,23 @@ That separation avoids collisions with repositories cloned by AlfeCode during no
 
 ## Option A (recommended): One-command bootstrap script
 
-Run on a fresh Debian host:
+Run on a fresh Debian host after cloning this repository:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git
-git clone https://github.com/AlSH-ai/AlSH.ai.git /tmp/alfe-ai
-sudo bash /tmp/alfe-ai/AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
+git clone https://github.com/AlSH-ai/AlSH.ai.git
+cd AlSH.ai
+sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
 ```
 
 
 What the script does:
 
 1. Installs required system packages (`git`, `nodejs`, `npm`, `build-essential`, etc.).
-2. Clones/pulls this repository to `/git/alfe-ai`.
+2. Uses your existing checked-out repository (or `INSTALL_PATH` if set).
 3. Creates `/git/sterling` for user repositories.
-4. Runs `npm install` in `/git/alfe-ai/AlfeCode`.
+4. Runs `npm install` in `<your-checkout>/AlfeCode`.
 5. Runs `install-qwen-0.10.1-from-git.sh` to install and link `qwen`.
 6. Verifies `qwen --version` succeeds.
 7. Configures local git host + demo repo.
