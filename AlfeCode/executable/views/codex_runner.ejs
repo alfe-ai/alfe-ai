@@ -2,7 +2,7 @@
 <html lang="en" class="agent-scale-80">
 <head>
     <meta charset="UTF-8">
-    <title>Alfe AI - <%= projectName %></title>
+    <title>AlSH.ai - <%= projectName %></title>
     <meta name="description" content="Alfe AI: FLOSS, Self-hostable, AI Software Development, Chat, and Image Design - a cloud-based code-assistant interface for running and managing agents.">
     <link id="favicon" rel="icon" href="/alfe_favicon_64x64.ico">
     <link rel="alternate icon" href="/alfe_favicon_64x64.ico" type="image/x-icon">
@@ -211,11 +211,20 @@
             border-radius: 999px;
             background: #7e22ce;
             color: #fff;
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             font-weight: 700;
             letter-spacing: 0.05em;
             text-transform: uppercase;
             line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand-subtitle {
+            margin: 0.2rem 0 0;
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            line-height: 1.2;
         }
 
         .sidebar-version {
@@ -1625,7 +1634,6 @@
             min-height: 140px;
             line-height: 1.5;
             padding: 12px;
-            padding-left: 56px;
             padding-bottom: 52px;
         }
 
@@ -1900,6 +1908,30 @@
             width: 20px;
             height: 20px;
             color: rgba(226, 232, 240, 0.75);
+        }
+
+        .prompt-preview-copy-btn {
+            flex-shrink: 0;
+            background: transparent;
+            border: 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            color: rgba(226, 232, 240, 0.7);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .prompt-preview-copy-btn:hover {
+            background: rgba(0, 0, 0, 0.12);
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .prompt-preview-copy-btn:active {
+            background: rgba(0, 0, 0, 0.2);
         }
 
         .status-text {
@@ -3491,21 +3523,29 @@
             bottom: 10px;
             width: 34px;
             height: 34px;
-            border-radius: 0;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.9);
-            color: #e2e8f0;
+            padding: 0;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.34);
+            background: rgba(2, 6, 23, 0.82);
+            color: #a855f7;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 3;
-            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.5);
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.45);
+        }
+        .prompt-image-upload-button svg {
+            width: 16px;
+            height: 16px;
+            display: block;
         }
         .prompt-image-upload-button:hover,
         .prompt-image-upload-button:focus-visible {
-            background: rgba(30, 41, 59, 0.96);
-            border-color: rgba(148, 163, 184, 0.6);
+            transform: translateY(-1px);
+            background: rgba(2, 6, 23, 0.95);
+            color: #9333ea;
+            box-shadow: 0 12px 24px rgba(2, 6, 23, 0.58);
             outline: none;
         }
         .prompt-image-upload-list {
@@ -3524,10 +3564,129 @@
             border: 1px solid rgba(148, 163, 184, 0.25);
             border-radius: 999px;
             padding: 3px 10px;
+            min-height: 26px;
             max-width: 260px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .prompt-image-upload-chip__icon {
+            flex-shrink: 0;
+            width: 14px;
+            height: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            line-height: 1;
+        }
+        .prompt-image-upload-chip__icon svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .prompt-image-upload-chip__name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .prompt-image-upload-chip__remove {
+            flex-shrink: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: #ef4444;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 2px;
+            transition: background-color 0.15s ease;
+        }
+        .prompt-image-upload-chip__remove:hover,
+        .prompt-image-upload-chip__remove:focus-visible {
+            background: rgba(239, 68, 68, 0.15);
+            outline: none;
+        }
+        .prompt-image-upload-chip:hover .prompt-image-upload-chip__remove,
+        .prompt-image-upload-chip:focus-within .prompt-image-upload-chip__remove {
+            display: inline-flex;
+        }
+        .prompt-image-upload-chip__thumb {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+        .prompt-image-upload-chip:hover {
+            cursor: pointer;
+        }
+        /* Image Preview Modal */
+        #imagePreviewModal {
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        #imagePreviewModal .modal-content {
+            position: relative;
+            width: auto;
+            height: auto;
+            max-width: 90vw;
+            max-height: 90vh;
+            padding: 0;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--surface-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            margin: 0;
+        }
+        #imagePreviewModal .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 10002;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #e2e8f0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        #imagePreviewModal .modal-close:hover {
+            background: rgba(51, 65, 85, 0.95);
+        }
+        .image-preview-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+        }
+        .image-preview-container img {
+            max-width: 100%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 8px;
         }
 </style>
 </head>
@@ -3580,9 +3739,10 @@
                             <% if (typeof environment !== 'undefined' && environment && environment !== 'unknown') { %>
                                 <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
                             <% } %>
-                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="Alfe AI" onclick="if(event){event.preventDefault();}">Alfe AI</a>
+                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="AlSH.ai" onclick="if(event){event.preventDefault();}">AlSH.ai</a>
                             <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
                         </h1>
+                        <p class="sidebar-brand-subtitle">Formerly Alfe</p>
                     </div>
                 </div>
             </div>
@@ -3734,8 +3894,8 @@
                     <button
                         type="button"
                         class="github-link-button"
-                        onclick="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer');"
-                        oncontextmenu="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer'); return false;"
+                        onclick="window.open('https://github.com/AlSH-ai', '_blank', 'noopener,noreferrer');"
+                        oncontextmenu="window.open('https://github.com/AlSH-ai', '_blank', 'noopener,noreferrer'); return false;"
                     >
                         GitHub
                         <span aria-hidden="true" class="github-link-icon">
@@ -3799,8 +3959,8 @@
                           <button
                             type="button"
                             class="github-link-button nav-button"
-                            onclick="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer');"
-                            oncontextmenu="window.open('https://github.com/alfe-ai', '_blank', 'noopener,noreferrer'); return false;"
+                            onclick="window.open('https://github.com/AlSH-ai', '_blank', 'noopener,noreferrer');"
+                            oncontextmenu="window.open('https://github.com/AlSH-ai', '_blank', 'noopener,noreferrer'); return false;"
                             title="Open Alfe AI on GitHub" aria-label="Open Alfe AI on GitHub"
                           >
                             GitHub
@@ -4085,7 +4245,11 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                             class="prompt-image-upload-button"
                             aria-label="Upload image for prompt"
                             title="Upload image for prompt"
-                        >🖼️</button>
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path fill="currentColor" d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2 0v8.5l3.5-3.5a1 1 0 0 1 1.4 0l2.6 2.6 1.5-1.5a1 1 0 0 1 1.4 0L18 14V6zm0 12h12v-1.2l-2.8-2.8-1.5 1.5a1 1 0 0 1-1.4 0l-2.6-2.6L6 16.6zm2-9.75a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0"/>
+                            </svg>
+                        </button>
                     </div>
                     <div id="promptImageUploadList" class="prompt-image-upload-list is-hidden" aria-live="polite"></div>
                 </div>
@@ -4174,6 +4338,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
                     <path d="M5 19l14-14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
             </span>
+            <button id="promptPreviewCopyButton" type="button" class="prompt-preview-copy-btn" title="Copy prompt" aria-label="Copy prompt">⎘</button>
         </div>
         <div id="outputTabs" class="output-tabs is-hidden" role="tablist" aria-label="Agent output views">
             <button
@@ -4539,6 +4704,15 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
           title="Help guide"
           style="width:100%;height:80vh;border:0;border-radius:6px;"
         ></iframe>
+      </div>
+    </div>
+
+    <div id="imagePreviewModal" class="modal-overlay is-hidden" role="dialog" aria-modal="true" aria-label="Image Preview">
+      <div class="modal-content">
+        <button class="modal-close" type="button" id="imagePreviewCloseButton" aria-label="Close preview">×</button>
+        <div class="image-preview-container">
+          <img id="imagePreviewImg" src="" alt="Image Preview">
+        </div>
       </div>
     </div>
 
