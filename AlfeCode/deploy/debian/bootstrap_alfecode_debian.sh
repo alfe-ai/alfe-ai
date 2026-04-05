@@ -4,7 +4,7 @@ set -euo pipefail
 # Standardized Debian bootstrap for AlfeCode.
 # Supports Debian 12+ and Ubuntu 22.04+.
 
-REPO_URL_DEFAULT="https://github.com/alfe-ai/alfe-ai.git"
+REPO_URL_DEFAULT="https://github.com/AlSH-ai/alfe-ai.git"
 REPO_URL="${REPO_URL:-$REPO_URL_DEFAULT}"
 INSTALL_ROOT="${INSTALL_ROOT:-/git}"
 INSTALL_DIR_NAME="${INSTALL_DIR_NAME:-alfe-ai}"
