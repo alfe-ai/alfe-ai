@@ -7,9 +7,10 @@ set -euo pipefail
 REPO_URL_DEFAULT="https://github.com/alfe-ai/alfe-ai.git"
 REPO_URL="${REPO_URL:-$REPO_URL_DEFAULT}"
 INSTALL_ROOT="${INSTALL_ROOT:-/git}"
-INSTALL_DIR_NAME="${INSTALL_DIR_NAME:-sterling}"
+INSTALL_DIR_NAME="${INSTALL_DIR_NAME:-alfe-ai}"
 INSTALL_PATH="${INSTALL_ROOT}/${INSTALL_DIR_NAME}"
 APP_SUBDIR="${APP_SUBDIR:-AlfeCode}"
+USER_REPO_ROOT="${USER_REPO_ROOT:-/git/sterling}"
 QWEN_INSTALL_SCRIPT_REL="${QWEN_INSTALL_SCRIPT_REL:-install-qwen-0.10.1-from-git.sh}"
 
 need() {
@@ -61,6 +62,11 @@ if [ ! -d "$APP_PATH" ]; then
   exit 1
 fi
 
+
+log "Preparing user repository root at ${USER_REPO_ROOT}"
+mkdir -p "$USER_REPO_ROOT"
+chown -R "$TARGET_USER:$TARGET_USER" "$USER_REPO_ROOT"
+
 log "Installing Node dependencies"
 su - "$TARGET_USER" -c "cd '$APP_PATH' && npm install"
 
@@ -101,7 +107,8 @@ Next steps:
    ./run.sh
 
 Expected install location:
-- Repo root: $INSTALL_PATH
-- App root:  $APP_PATH
+- Repo root:        $INSTALL_PATH
+- App root:         $APP_PATH
+- User repos root:  $USER_REPO_ROOT
 
 MSG

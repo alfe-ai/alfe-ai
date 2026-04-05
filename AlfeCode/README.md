@@ -14,7 +14,7 @@ Windows Support is untested, official Windows support is planned.
 
 Scripts to assist with setup of a Debian VM with QEMU are here: https://github.com/alfe-ai
 
-Standardized Debian deployment (from scratch, including `/git/sterling` and Qwen CLI): `deploy/debian/README.md`
+Standardized Debian deployment (from scratch, with app code in `/git/alfe-ai`, user repos in `/git/sterling`, and Qwen CLI): `deploy/debian/README.md`
 
 ---
 
