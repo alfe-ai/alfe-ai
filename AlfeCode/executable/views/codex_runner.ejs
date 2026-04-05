@@ -3634,8 +3634,13 @@
         /* Image Preview Modal */
         #imagePreviewModal {
             z-index: 10001;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
         }
         #imagePreviewModal .modal-content {
+            width: auto;
+            height: auto;
             max-width: 90vw;
             max-height: 90vh;
             padding: 0;
@@ -3644,6 +3649,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 12px;
+            margin: 0;
         }
         #imagePreviewModal .modal-close {
             position: fixed;
