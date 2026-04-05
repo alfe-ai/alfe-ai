@@ -12,13 +12,13 @@ Linux, Debian, Ubuntu, and similar.
 
 Windows Support is untested, official Windows support is planned.
 
-Scripts to assist with setup of a Debian VM with QEMU are here: https://github.com/AlSH-ai
+Scripts to assist with setup of a Debian VM with QEMU are here: https://github.com/ALSH-ai
 
 Standardized Debian deployment (from scratch, with app code in `/git/alfe-ai`, user repos in `/git/sterling`, Qwen CLI, and local git host demo setup): `deploy/debian/README.md`
 
 ---
 
-1. Configure SSH key for GitHub. This script may be used: https://github.com/AlSH-ai
+1. Configure SSH key for GitHub. This script may be used: https://github.com/ALSH-ai
 ```
 user@t03012025:~/git$ ./generate_github_ssh_key.sh 
 Generating public/private rsa key pair.
@@ -81,7 +81,7 @@ found 0 vulnerabilities
 For comments and implementation touchpoints related to Qwen run behavior, see this thread with upgrade instructions: 
 https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
 
-<!-- 8. In new chats, you can copy Agent Instructions from here: https://github.com/AlSH-ai (This will soon be integrated with the app)--><!--, I implemented this in an older branch, multiple agent support.)-->
+<!-- 8. In new chats, you can copy Agent Instructions from here: https://github.com/ALSH-ai (This will soon be integrated with the app)--><!--, I implemented this in an older branch, multiple agent support.)-->
 
 ### Environment variables
 
@@ -119,11 +119,11 @@ For `/agent` prompt image recognition, configure these image-specific OpenAI var
 The `/agent` image prompt helper uses model `gpt-5.4`.
 
 ### Related Repositories:  
-Alfe AI / Agent Instructions: https://github.com/AlSH-ai
+Alfe AI / Agent Instructions: https://github.com/ALSH-ai
 
 ---
 
-See the [LICENSE](https://github.com/AlSH-ai) file.
+See the [LICENSE](https://github.com/ALSH-ai) file.
 
 **Copyright (c) 2022-2026 [Nicholas Lochner](https://lochner.tech)**  
 https://github.com/lochner-technology

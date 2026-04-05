@@ -1,8 +1,8 @@
-# AlSH.ai / Beta
+# ALSH.ai / Beta
 
-### AlSH.ai: Software Development, Project Management, and Image Design Platform
+### ALSH.ai: Software Development, Project Management, and Image Design Platform
 
-The first version of the AlSH.ai Code Cloud Platform https://alsh.ai <!-- has been released --> (beta-3.11).
+The first version of the ALSH.ai Code Cloud Platform https://alsh.ai <!-- has been released --> (beta-3.11).
 
 <img width="1554" height="1507" alt="image" src="https://github.com/user-attachments/assets/fb41b71b-6d88-4a80-a4e5-51b9c9170b51" />
 
@@ -38,8 +38,8 @@ The software development component is coming soon, and is available now as a Pre
 
 ![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)
 
-Alfe AI beta-2.30+ (Image Design): https://github.com/AlSH-ai
-Alfe AI beta-0.4x+ (Software Development): https://github.com/AlSH-ai
+Alfe AI beta-2.30+ (Image Design): https://github.com/ALSH-ai
+Alfe AI beta-0.4x+ (Software Development): https://github.com/ALSH-ai
 
 ## Deploying
 
