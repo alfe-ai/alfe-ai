@@ -787,21 +787,19 @@
     pendingPromptImages.forEach((file, index) => {
       const chip = document.createElement("span");
       chip.className = "prompt-image-upload-chip";
-      const icon = document.createElement("span");
-      icon.className = "prompt-image-upload-chip__icon";
-      icon.setAttribute("aria-hidden", "true");
+      chip.setAttribute("role", "button");
+      chip.setAttribute("tabindex", "0");
+      chip.setAttribute("title", "Click to preview image");
+      chip.setAttribute("aria-label", `Preview image: ${file && file.name ? file.name : "image"}`);
 
-      const iconSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      iconSvg.setAttribute("viewBox", "0 0 24 24");
-      iconSvg.setAttribute("width", "14");
-      iconSvg.setAttribute("height", "14");
-      iconSvg.setAttribute("focusable", "false");
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("fill", "currentColor");
-      path.setAttribute("d", "M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2 0v8.5l3.5-3.5a1 1 0 0 1 1.4 0l2.6 2.6 1.5-1.5a1 1 0 0 1 1.4 0L18 14V6zm0 12h12v-1.2l-2.8-2.8-1.5 1.5a1 1 0 0 1-1.4 0l-2.6-2.6L6 16.6zm2-9.75a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0");
-      iconSvg.appendChild(path);
-      icon.appendChild(iconSvg);
-      chip.appendChild(icon);
+      // Create thumbnail preview
+      const thumb = document.createElement("img");
+      thumb.className = "prompt-image-upload-chip__thumb";
+      thumb.setAttribute("aria-hidden", "true");
+      thumb.setAttribute("loading", "lazy");
+      const thumbUrl = URL.createObjectURL(file);
+      thumb.src = thumbUrl;
+      chip.appendChild(thumb);
 
       const nameSpan = document.createElement("span");
       nameSpan.className = "prompt-image-upload-chip__name";
@@ -821,6 +819,18 @@
         resetPromptImageInputValue();
       });
       chip.appendChild(removeBtn);
+
+      // Click to open preview modal
+      const openPreview = () => {
+        openImagePreviewModal(thumbUrl);
+      };
+      chip.addEventListener("click", openPreview);
+      chip.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openPreview();
+        }
+      });
 
       promptImageUploadList.appendChild(chip);
     });
@@ -951,6 +961,46 @@
     usageLimitModal.classList.add("is-hidden");
     document.body.style.overflow = "";
   };
+
+  // Image Preview Modal
+  const imagePreviewModal = document.getElementById("imagePreviewModal");
+  const imagePreviewImg = document.getElementById("imagePreviewImg");
+  const imagePreviewCloseButton = document.getElementById("imagePreviewCloseButton");
+
+  const openImagePreviewModal = (imageUrl) => {
+    if (!imagePreviewModal || !imagePreviewImg) return;
+    imagePreviewImg.src = imageUrl;
+    imagePreviewModal.classList.remove("is-hidden");
+    document.body.style.overflow = "hidden";
+  };
+
+  const closeImagePreviewModal = () => {
+    if (!imagePreviewModal) return;
+    imagePreviewModal.classList.add("is-hidden");
+    document.body.style.overflow = "";
+    if (imagePreviewImg) {
+      imagePreviewImg.src = "";
+    }
+  };
+
+  if (imagePreviewCloseButton) {
+    imagePreviewCloseButton.addEventListener("click", closeImagePreviewModal);
+  }
+
+  if (imagePreviewModal) {
+    imagePreviewModal.addEventListener("click", (e) => {
+      if (e.target === imagePreviewModal) {
+        closeImagePreviewModal();
+      }
+    });
+  }
+
+  // Close image preview on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeImagePreviewModal();
+    }
+  });
 
   const showSubscribeModal = () => {
     if (!subscribeModal) return;
