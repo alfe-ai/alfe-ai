@@ -9744,7 +9744,7 @@ const appendMergeChunk = (text, type = "output") => {
 
       if (pendingPromptImages.length > 0) {
         try {
-          setStatus("Analyzing image(s)…", "pending");
+          setStatus("Analyzing image(s)…", "active");
           const imageDescriptions = await describePendingPromptImages(prompt);
           if (imageDescriptions) {
             const separator = prompt ? "\n\n" : "";
