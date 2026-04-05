@@ -12,6 +12,8 @@ INSTALL_PATH="${INSTALL_ROOT}/${INSTALL_DIR_NAME}"
 APP_SUBDIR="${APP_SUBDIR:-AlfeCode}"
 USER_REPO_ROOT="${USER_REPO_ROOT:-/git/sterling}"
 QWEN_INSTALL_SCRIPT_REL="${QWEN_INSTALL_SCRIPT_REL:-install-qwen-0.10.1-from-git.sh}"
+ENABLE_LOCAL_GITHOST="${ENABLE_LOCAL_GITHOST:-false}"
+DEMO_REPO_NAME="${DEMO_REPO_NAME:-demo-repo}"
 
 need() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -86,6 +88,25 @@ if ! command -v qwen >/dev/null 2>&1; then
 fi
 qwen --version
 
+if [ "$ENABLE_LOCAL_GITHOST" = "true" ]; then
+  GITHOST_SCRIPT="$APP_PATH/githost/git-server.sh"
+  if [ ! -x "$GITHOST_SCRIPT" ]; then
+    echo "ERROR: local git host script not found or not executable: $GITHOST_SCRIPT" >&2
+    exit 1
+  fi
+
+  log "Configuring local git host server for demo repos"
+  bash "$GITHOST_SCRIPT" install
+
+  if [ ! -d "/srv/git/repositories/${DEMO_REPO_NAME}.git" ]; then
+    bash "$GITHOST_SCRIPT" create-repo "$DEMO_REPO_NAME"
+  else
+    log "Demo repo already exists: /srv/git/repositories/${DEMO_REPO_NAME}.git"
+  fi
+
+  bash "$GITHOST_SCRIPT" start-daemon
+fi
+
 log "Ensuring AlfeCode runtime data path"
 mkdir -p "$APP_PATH/data/config"
 if [ ! -f "$APP_PATH/data/config/repo_config.json" ]; then
@@ -103,7 +124,12 @@ Next steps:
 
 2) Create and fill .env with required keys (OPENAI_API_KEY, etc).
 
-3) Start AlfeCode:
+3) (Optional demo repos) configure local git host now:
+   sudo bash $APP_PATH/githost/git-server.sh install
+   sudo bash $APP_PATH/githost/git-server.sh create-repo demo-repo
+   sudo bash $APP_PATH/githost/git-server.sh start-daemon
+
+4) Start AlfeCode:
    ./run.sh
 
 Expected install location:
