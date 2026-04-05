@@ -38,8 +38,8 @@ The software development component is coming soon, and is available now as a Pre
 
 ![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)
 
-Alfe AI beta-2.30+ (Image Design): https://github.com/alfe-ai
-Alfe AI beta-0.4x+ (Software Development): https://github.com/alfe-ai
+Alfe AI beta-2.30+ (Image Design): https://github.com/AlSH-ai
+Alfe AI beta-0.4x+ (Software Development): https://github.com/AlSH-ai
 
 ## Deploying
 
