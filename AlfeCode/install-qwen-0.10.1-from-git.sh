@@ -55,7 +55,10 @@ fi
 echo "==> Installing dependencies (npm ci if possible, else npm install)"
 cd "${CLONE_DIR}"
 if [ -f package-lock.json ]; then
-  npm ci
+  if ! npm ci; then
+    echo "==> npm ci failed (likely lockfile drift); falling back to npm install"
+    npm install
+  fi
 else
   npm install
 fi
