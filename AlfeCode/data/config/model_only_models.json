@@ -277,7 +277,7 @@
       "label": "Qwen3 Coder 30B A3B Instruct",
       "created": "2025-07-31",
       "contextTokens": 160000,
-      "disabled": false,
+      "disabled": true,
       "engine_options": [
         "auto",
         "qwen"
@@ -287,7 +287,7 @@
         "outputPerMTokens": 0.27
       },
       "qwen_cli": true,
-      "list_order": 0,
+      "list_order": 1,
       "plus_model": false,
       "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
@@ -331,7 +331,7 @@
     {
       "id": "openrouter/kwaipilot/kat-coder-pro-v2",
       "label": "KwaiPilot: KAT Coder Pro",
-      "disabled": true,
+      "disabled": false,
       "contextTokens": 256000,
       "pricing": {
         "inputPerMTokens": 0.207,
@@ -343,7 +343,7 @@
       ],
       "qwen_cli": true,
       "plus_model": true,
-      "list_order": 1,
+      "list_order": 0,
       "usage": "free",
       "url": "https://litellm.alfe.sh/v1",
       "key": "litellm"
