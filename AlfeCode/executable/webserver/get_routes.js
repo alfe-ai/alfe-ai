@@ -3411,6 +3411,7 @@ ${cleanedFinalOutput}`;
         const backlogButtonVisible = parseBooleanFlagWithDefault(process.env.BACKLOG_BUTTON_VISIBLE, true);
         const nonRefreshDiffButtonHidden = parseBooleanFlag(process.env.NON_REFRESH_DIFF_BUTTON_HIDDEN);
         const mainMergeButtonDisabled = parseBooleanFlag(process.env.MAIN_MERGE_BUTTON_DISABLED);
+        const helpButtonHidden = parseBooleanFlag(process.env.HELP_BUTTON_HIDDEN);
         let account = null;
         if (rdsStore?.enabled) {
             const sessionId = getSessionIdFromRequest(req);
@@ -3491,6 +3492,7 @@ ${cleanedFinalOutput}`;
             backlogButtonVisible,
             nonRefreshDiffButtonHidden,
             mainMergeButtonDisabled,
+            helpButtonHidden,
             projectName,
             subscriptionCheckoutUrl,
             initialAccountInfo: account

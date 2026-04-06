@@ -4032,6 +4032,7 @@
                             Sign Up / Log In
                         </button>
                         <% } %>
+                        <% if (!helpButtonHidden) { %>
                         <button
                             id="helpGuideButton"
                             class="nav-button icon-only same-height"
@@ -4042,6 +4043,7 @@
                             <span aria-hidden="true">?</span>
                             <span class="sr-only">Open help guide</span>
                         </button>
+                        <% } %>
                         <button
                             id="subscribeButton"
                             class="nav-button icon-tone"
