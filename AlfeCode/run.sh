@@ -9,7 +9,7 @@ fi
 
 SCREEN_NAME="alfeDEV"
 
-clear
+#clear
 git stash || true
 git fetch
 git pull
