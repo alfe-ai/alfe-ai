@@ -12,7 +12,7 @@ The first version of the ALSH.ai Code Cloud Platform https://alsh.ai <!-- has be
 
 <img width="1772" height="651" alt="image" src="https://github.com/user-attachments/assets/8b15c1f2-a448-43e7-b714-1242a04d80e6" />
 
-<img width="771" height="687" alt="image" src="https://github.com/user-attachments/assets/23d6cab4-4d3a-44c0-a7d0-ac3b1164a4ad" />
+<img width="772" height="1415" alt="image" src="https://github.com/user-attachments/assets/b07d3e2c-9750-4533-b208-d6e5f68c439a" />
 
 <img width="1355" height="1017" alt="image" src="https://github.com/user-attachments/assets/e5aa1ffa-9f49-4863-aff0-80b1ee627896" />
 
