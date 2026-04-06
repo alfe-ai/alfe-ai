@@ -6,7 +6,7 @@
 
 The first version of the ALSH.ai Code Cloud Platform https://alsh.ai <!-- has been released --> (beta-3.11).
 
-<img width="1769" height="1504" alt="image" src="https://github.com/user-attachments/assets/25eedf42-bace-4fe6-b91b-fca8915d9180" />
+<img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5" />
 
 <img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153" />
 
