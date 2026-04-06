@@ -3860,6 +3860,7 @@ ${cleanedFinalOutput}`;
         const hideGitLogButtonTarget = parseBooleanFlag(process.env.MODEL_ONLY_HIDE_GIT_LOG_BUTTON_TARGET);
         const engineDropdownHidden = parseBooleanFlag(process.env.ENGINE_DROPDOWN_HIDDEN);
         const modelDropdownHidden = parseBooleanFlag(process.env.MODEL_DROPDOWN_HIDDEN);
+        const helpButtonHidden = parseBooleanFlag(process.env.HELP_BUTTON_HIDDEN);
         const apiPanelEnabled = parseBooleanFlag(process.env.API_PANEL_ENABLED);
         const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
@@ -3881,6 +3882,7 @@ ${cleanedFinalOutput}`;
             showGitLogButtonTarget: !hideGitLogButtonTarget,
             engineDropdownHidden,
             modelDropdownHidden,
+            helpButtonHidden,
             apiPanelEnabled,
             showPrintifyUploadUsage,
             searchEnabled2026,
