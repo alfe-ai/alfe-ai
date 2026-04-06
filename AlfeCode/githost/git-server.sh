@@ -134,9 +134,10 @@ create_repo(){
 # but is restricted to localhost only for safety.
 start_git_daemon(){
   ensure_root
-  # Ensure git-daemon package (part of git-core) is present
+  # Ensure git is present. On modern Debian releases, git-daemon is bundled
+  # with the git package and git-daemon-run may not exist.
   apt-get update
-  apt-get install -y git-daemon-run
+  apt-get install -y git
 
   # Create export-ok files for repos to be served anonymously
   mkdir -p "$REPO_ROOT"
