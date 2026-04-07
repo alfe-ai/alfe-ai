@@ -4,11 +4,11 @@
  * Standalone replacement redirect server.
  *
  * Starts:
- *  - HTTP listener (default: 80) that redirects to https://chat.alfe.bot
- *  - HTTPS listener (default: 443) that redirects to https://chat.alfe.bot
+ *  - HTTP listener (default: 80) that redirects to https://code.alsh.ai
+ *  - HTTPS listener (default: 443) that redirects to https://code.alsh.ai
  *
  * Environment variables:
- *  - REDIRECT_TARGET=https://chat.alfe.bot
+ *  - REDIRECT_TARGET=https://code.alsh.ai
  *  - HTTP_PORT=80
  *  - HTTPS_PORT=443
  *  - HTTPS_KEY_PATH=/path/to/key.pem
@@ -65,7 +65,7 @@ for (const dotenvPath of dotenvPathCandidates) {
   }
 }
 
-const REDIRECT_TARGET = String(process.env.REDIRECT_TARGET || 'https://code.alfe.bot').trim();
+const REDIRECT_TARGET = String(process.env.REDIRECT_TARGET || 'https://code.alsh.ai').trim();
 const HTTP_PORT = Number.parseInt(process.env.HTTP_PORT || '80', 10);
 const HTTPS_PORT = Number.parseInt(process.env.HTTPS_PORT || '443', 10);
 
@@ -77,15 +77,15 @@ const HTTPS_CERT_PATH = process.env.HTTPS_CERT_PATH || DEFAULT_CERT_PATH;
 const HTTPS_SNI_CERTS = String(process.env.HTTPS_SNI_CERTS || '').trim();
 
 function normalizeTarget(target) {
-  if (!target) return 'https://code.alfe.bot';
+  if (!target) return 'https://code.alsh.ai';
   try {
     const url = new URL(target);
     if (!url.protocol || (url.protocol !== 'https:' && url.protocol !== 'http:')) {
-      return 'https://code.alfe.bot';
+      return 'https://code.alsh.ai';
     }
     return url.toString().replace(/\/$/, '');
   } catch (_err) {
-    return 'https://code.alfe.bot';
+    return 'https://code.alsh.ai';
   }
 }
 
