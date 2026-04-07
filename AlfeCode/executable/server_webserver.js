@@ -691,6 +691,7 @@ app.use((req, res, next) => {
 // Serve static assets
 app.use(express.static(path.join(PROJECT_ROOT, "public")));
 app.use(express.static(path.join(PROJECT_ROOT, "images")));
+app.use("/images", express.static(path.join(PROJECT_ROOT, "images")));
 
 app.use((req, res, next) => {
     res.locals.sterlingCodexBaseUrl = resolveSterlingCodexBaseUrl(req);
