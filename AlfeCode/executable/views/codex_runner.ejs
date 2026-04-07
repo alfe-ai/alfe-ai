@@ -197,10 +197,20 @@
             text-decoration: none;
             font-weight: 700;
             letter-spacing: inherit;
+            display: inline-flex;
+            align-items: center;
         }
 
         .sidebar-brand-name:hover {
             color: var(--accent-strong);
+        }
+
+        .sidebar-brand-name-logo {
+            display: block;
+            height: 30px;
+            width: auto;
+            max-width: 180px;
+            object-fit: contain;
         }
 
         .sidebar-beta-badge {
@@ -3739,7 +3749,9 @@
                             <% if (typeof environment !== 'undefined' && environment && environment !== 'unknown') { %>
                                 <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
                             <% } %>
-                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="ALSH.ai" onclick="if(event){event.preventDefault();}">ALSH.ai</a>
+                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="ALSH.ai" onclick="if(event){event.preventDefault();}">
+                                <img class="sidebar-brand-name-logo" src="/images/alsh-logo.png" alt="ALSH.ai">
+                            </a>
                             <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
                         </h1>
                         <p class="sidebar-brand-subtitle">Formerly Alfe</p>
