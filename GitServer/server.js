@@ -111,14 +111,12 @@ function maybeStartGitDaemon() {
     [
       "daemon",
       "--reuseaddr",
-      "--base-path",
-      REPO_ROOT,
+      `--base-path=${REPO_ROOT}`,
       "--export-all",
       "--enable=receive-pack",
-      "--listen",
-      GIT_DAEMON_HOST,
-      "--port",
-      `${GIT_DAEMON_PORT}`,
+      `--listen=${GIT_DAEMON_HOST}`,
+      `--port=${GIT_DAEMON_PORT}`,
+      REPO_ROOT,
     ],
     {
       stdio: "inherit",
