@@ -1,0 +1,14 @@
+{
+  "name": "alfecode-demo-git-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "External git server for AlfeCode demo repositories",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:daemon": "bash ./start-daemon.sh"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
