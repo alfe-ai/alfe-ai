@@ -13,8 +13,11 @@ External git server project for hosting AlfeCode demo repositories.
 ```bash
 cd GitServer
 npm install
+cp sample.env .env
 npm start
 ```
+
+`server.js` automatically loads environment values from `GitServer/.env`.
 
 ## Environment variables
 
