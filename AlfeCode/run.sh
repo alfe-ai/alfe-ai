@@ -49,10 +49,21 @@ else
 fi
 echo "=================="
 
-# Start local git server daemon if available
+# Start external demo GitServer if present
+GITSERVER_DIR="$(cd "$(dirname "$0")/.." && pwd)/GitServer"
+if [ -f "$GITSERVER_DIR/package.json" ]; then
+    echo "Starting external GitServer project..."
+    (
+      cd "$GITSERVER_DIR"
+      npm install
+      nohup npm start > /tmp/alfecode-gitserver.log 2>&1 &
+    ) || echo "Failed to start GitServer."
+fi
+
+# Fallback: start local git server daemon if available
 GITHOST_SCRIPT="$(dirname "$0")/githost/git-server.sh"
 if [ -x "$GITHOST_SCRIPT" ]; then
-    echo "Starting local git server daemon..."
+    echo "Starting local git server daemon fallback..."
     sudo "$GITHOST_SCRIPT" start-daemon || echo "git-server start-daemon failed or requires sudo"
 fi
 

@@ -43,6 +43,8 @@ const DEFAULT_GIT_COMMIT_GRAPH_LIMIT = 400;
 const MAX_GIT_COMMIT_GRAPH_LIMIT = 2000;
 const GITHOST_SCRIPT_PATH = path.join(PROJECT_ROOT, "githost", "git-server.sh");
 const GITHOST_REPO_ROOT = path.join(path.sep, "srv", "git", "repositories");
+const DEMO_GIT_SERVER_API_URL = normalizeBaseUrl(process.env.DEMO_GIT_SERVER_API_URL || "http://127.0.0.1:4005");
+const DEMO_GIT_SERVER_API_TOKEN = (process.env.DEMO_GIT_SERVER_API_TOKEN || "").trim();
 const SESSION_GIT_BASE_PATH = (function(){
     // Prefer an explicit env override for session git base path. If not set,
     // store session repos under the application's data directory so the
@@ -450,7 +452,47 @@ function ensureGitRepository(repoDir) {
     }
 }
 
-function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_NAME) {
+function buildExternalGitServerCloneUrl(repoNameWithGitSuffix) {
+    const configuredCloneBase = normalizeBaseUrl(process.env.DEMO_GIT_SERVER_CLONE_BASE_URL || "git://127.0.0.1:9418");
+    if (!configuredCloneBase) {
+        return "";
+    }
+    return `${configuredCloneBase}/${repoNameWithGitSuffix}`;
+}
+
+async function ensureExternalDemoRepo(remoteRepoName) {
+    if (!DEMO_GIT_SERVER_API_URL) {
+        return null;
+    }
+    const endpoint = `${DEMO_GIT_SERVER_API_URL}/api/repos`;
+    const payload = JSON.stringify({ repoName: remoteRepoName });
+    const headers = {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(payload),
+    };
+    if (DEMO_GIT_SERVER_API_TOKEN) {
+        headers.Authorization = `Bearer ${DEMO_GIT_SERVER_API_TOKEN}`;
+    }
+
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: payload,
+    });
+    if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`External git server responded ${response.status}: ${body}`);
+    }
+
+    const data = await response.json();
+    const cloneUrl = typeof data?.cloneUrl === "string" ? data.cloneUrl.trim() : "";
+    return {
+        cloneUrl,
+        gitRepoURL: cloneUrl || buildExternalGitServerCloneUrl(`${remoteRepoName}.git`),
+    };
+}
+
+async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_NAME) {
     if (!sessionId) {
         return;
     }
@@ -462,10 +504,40 @@ function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_NAME) {
 
     const remoteRepoName = buildSessionRemoteRepoName(sessionId, repoName);
     const remoteRepoPath = path.join(GITHOST_REPO_ROOT, `${remoteRepoName}.git`);
+    const repoGitSuffix = `${remoteRepoName}.git`;
     const gitHostScriptExists = fs.existsSync(GITHOST_SCRIPT_PATH);
     let clonedFromRemote = false;
+    let gitRepoURL = "";
 
-    if (gitHostScriptExists) {
+    let externalProvisionSucceeded = false;
+    if (DEMO_GIT_SERVER_API_URL) {
+        try {
+            const externalRepo = await ensureExternalDemoRepo(remoteRepoName);
+            const cloneUrl = externalRepo?.cloneUrl || buildExternalGitServerCloneUrl(repoGitSuffix);
+            gitRepoURL = externalRepo?.gitRepoURL || cloneUrl;
+            if (cloneUrl) {
+                if (fs.existsSync(repoDir)) {
+                    const entries = fs.readdirSync(repoDir);
+                    if (entries.length > 0) {
+                        fs.rmSync(repoDir, { recursive: true, force: true });
+                        ensureDirectory(repoDir);
+                    }
+                } else {
+                    ensureDirectory(repoDir);
+                }
+
+                execSync(`git clone "${cloneUrl}" "${repoDir}"`, {
+                    stdio: "ignore",
+                });
+                clonedFromRemote = true;
+                externalProvisionSucceeded = true;
+            }
+        } catch (error) {
+            console.error(`[ERROR] ensureSessionDefaultRepo => External git server setup failed for '${remoteRepoName}': ${error.message}`);
+        }
+    }
+
+    if (!externalProvisionSucceeded && gitHostScriptExists) {
         try {
             execSync(`sudo "${GITHOST_SCRIPT_PATH}" create-repo "${remoteRepoName}"`, {
                 stdio: "inherit",
@@ -492,6 +564,7 @@ function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_NAME) {
                     stdio: "ignore",
                 });
                 clonedFromRemote = true;
+                gitRepoURL = remoteRepoPath;
             } catch (cloneError) {
                 console.error(
                     `[ERROR] ensureSessionDefaultRepo => Failed to clone remote repo '${remoteRepoName}': ${cloneError.message}`,
@@ -544,7 +617,6 @@ function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_NAME) {
     try {
         const repoConfig = loadRepoConfig(sessionId) || {};
         const normalizedPath = repoDir;
-        const gitRepoURL = clonedFromRemote && fs.existsSync(remoteRepoPath) ? remoteRepoPath : "";
         const existingEntry = repoConfig[repoName];
         const isDemoRepo = repoName === NEW_SESSION_REPO_NAME;
         const nextIsDemo = isDemoRepo ? true : existingEntry?.isDemo;
@@ -664,7 +736,9 @@ function ensureSessionIdCookie(req, res) {
     }
 
     if (created) {
-        ensureSessionDefaultRepo(sessionId);
+        ensureSessionDefaultRepo(sessionId).catch((error) => {
+            console.error(`[ERROR] ensureSessionIdCookie => Failed to initialize default repo: ${error.message}`);
+        });
     }
 
     return { sessionId, created };
