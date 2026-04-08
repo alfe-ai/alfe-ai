@@ -182,14 +182,41 @@
                 }
 
                 document.querySelectorAll('.repo-delete-form').forEach(function(form){
-                    form.addEventListener('submit', function(event){
+                    var deleteButton = form.querySelector('.repo-delete-button');
+                    var repoCard = form.closest('.repo');
+
+                    var confirmDelete = function() {
                         var repoName = form.dataset.repoName || '';
                         var message = repoName
                             ? 'Remove ' + repoName + ' from your repositories list? This will not delete local files.'
                             : 'Remove this repository from your list? This will not delete local files.';
-                        if (!window.confirm(message)) {
-                            event.preventDefault();
-                        }
+                        return window.confirm(message);
+                    };
+
+                    form.addEventListener('submit', function(event){
+                        event.preventDefault();
+                        if (!confirmDelete()) return;
+
+                        if (deleteButton) deleteButton.disabled = true;
+                        fetch(form.action, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                            body: new URLSearchParams(new FormData(form)).toString(),
+                            credentials: 'same-origin'
+                        })
+                            .then(function(response){
+                                if (!response.ok) throw new Error('Delete failed with status ' + response.status);
+                                if (repoCard) {
+                                    repoCard.remove();
+                                } else {
+                                    window.location.reload();
+                                }
+                            })
+                            .catch(function(error){
+                                console.error('[repositories] Failed to delete repository:', error);
+                                window.alert('Failed to remove repository. Please try again.');
+                                if (deleteButton) deleteButton.disabled = false;
+                            });
                     });
                 });
 
