@@ -3,6 +3,41 @@ const path = require("path");
 const { execFileSync, spawn } = require("child_process");
 const express = require("express");
 
+function loadDotEnv(envFilePath) {
+  if (!fs.existsSync(envFilePath)) {
+    return;
+  }
+
+  const fileContent = fs.readFileSync(envFilePath, "utf-8");
+  for (const rawLine of fileContent.split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    if (!key || process.env[key] !== undefined) {
+      continue;
+    }
+
+    let value = line.slice(separatorIndex + 1).trim();
+    const isWrappedWithQuotes =
+      (value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"));
+    if (isWrappedWithQuotes) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+}
+
+loadDotEnv(path.join(__dirname, ".env"));
+
 const app = express();
 app.use(express.json());
 
