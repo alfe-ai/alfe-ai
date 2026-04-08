@@ -40,6 +40,7 @@
         .repo-delete-form { margin:0; }
         .repo-delete-button { width:34px; height:34px; border-radius:999px; border:1px solid var(--nexum-border); background: rgba(15, 23, 42, 0.6); color:var(--nexum-muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
         .repo-delete-button:hover { color:#f87171; border-color: rgba(248, 113, 113, 0.6); background: rgba(248, 113, 113, 0.12); transform: translateY(-1px); }
+        .repo-delete-button.is-confirming { color:#f87171; border-color: rgba(248, 113, 113, 0.7); background: rgba(248, 113, 113, 0.18); box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25); }
         .repo-delete-button:focus-visible { outline:2px solid rgba(248, 113, 113, 0.6); outline-offset:2px; }
         footer { margin-top:28px; color:var(--nexum-muted); }
         .actions { margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; }
@@ -184,18 +185,43 @@
                 document.querySelectorAll('.repo-delete-form').forEach(function(form){
                     var deleteButton = form.querySelector('.repo-delete-button');
                     var repoCard = form.closest('.repo');
-
-                    var confirmDelete = function() {
-                        var repoName = form.dataset.repoName || '';
-                        var message = repoName
-                            ? 'Remove ' + repoName + ' from your repositories list? This will not delete local files.'
-                            : 'Remove this repository from your list? This will not delete local files.';
-                        return window.confirm(message);
+                    var repoName = form.dataset.repoName || '';
+                    var confirmTimeoutId = null;
+                    var setConfirmingState = function(isConfirming) {
+                        if (!deleteButton) return;
+                        if (isConfirming) {
+                            deleteButton.classList.add('is-confirming');
+                            deleteButton.setAttribute('title', 'Click again to confirm removal');
+                            deleteButton.setAttribute('aria-label', repoName ? ('Confirm removal of ' + repoName) : 'Confirm repository removal');
+                        } else {
+                            deleteButton.classList.remove('is-confirming');
+                            deleteButton.setAttribute('title', 'Delete repository');
+                            deleteButton.setAttribute('aria-label', repoName ? ('Delete repository ' + repoName) : 'Delete repository');
+                        }
                     };
+                    var armDeleteConfirmation = function() {
+                        form.dataset.confirmDelete = 'true';
+                        setConfirmingState(true);
+                        if (confirmTimeoutId) window.clearTimeout(confirmTimeoutId);
+                        confirmTimeoutId = window.setTimeout(function() {
+                            form.dataset.confirmDelete = 'false';
+                            setConfirmingState(false);
+                        }, 4000);
+                    };
+                    if (deleteButton) {
+                        deleteButton.addEventListener('click', function(event){
+                            if (form.dataset.confirmDelete === 'true') return;
+                            event.preventDefault();
+                            armDeleteConfirmation();
+                        });
+                    }
 
                     form.addEventListener('submit', function(event){
                         event.preventDefault();
-                        if (!confirmDelete()) return;
+                        if (form.dataset.confirmDelete !== 'true') {
+                            armDeleteConfirmation();
+                            return;
+                        }
 
                         if (deleteButton) deleteButton.disabled = true;
                         fetch(form.action, {
@@ -216,6 +242,8 @@
                                 console.error('[repositories] Failed to delete repository:', error);
                                 window.alert('Failed to remove repository. Please try again.');
                                 if (deleteButton) deleteButton.disabled = false;
+                                form.dataset.confirmDelete = 'false';
+                                setConfirmingState(false);
                             });
                     });
                 });
