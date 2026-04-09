@@ -1604,6 +1604,13 @@ body {
   color: #ffffff;
 }
 
+.sidebar-brand-image {
+  display: block;
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+}
+
 .sidebar-beta-badge {
   display: inline-flex;
   align-items: center;
