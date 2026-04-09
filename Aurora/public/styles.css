@@ -3283,6 +3283,16 @@ button:disabled {
   transform: translateY(-1px);
 }
 .table-download-btn { margin-left: 6px; }
+
+.table-delete-btn {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+.table-delete-btn:hover {
+  background: rgba(127, 29, 29, 0.7);
+  border-color: #ef4444;
+  color: #ffffff;
+}
 /* Ensure action buttons stay on one line */
 .table-action-cell {
   display: inline-flex;
@@ -3313,10 +3323,21 @@ button:disabled {
 /* Ensure table action buttons (Open/Download) are visible in light theme */
 body[data-theme="light"] .table-action-btn,
 body[data-theme="light"] .table-open-btn,
-body[data-theme="light"] .table-download-btn {
+body[data-theme="light"] .table-download-btn,
+body[data-theme="light"] .table-delete-btn {
   background: #ffffff !important;
   border: 1px solid #e5e7eb !important; /* tailwind gray-200 */
   color: #0f172a !important; /* gray-900 */
+}
+
+body[data-theme="light"] .table-delete-btn {
+  border-color: #fecaca !important;
+  color: #991b1b !important;
+}
+body[data-theme="light"] .table-delete-btn:hover {
+  background: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #7f1d1d !important;
 }
 body[data-theme="light"] .table-open-btn:hover,
 body[data-theme="light"] .table-download-btn:hover,
