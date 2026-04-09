@@ -370,7 +370,7 @@ async function loadRepos() {
   const payload = await response.json();
   if (!response.ok) {
     if (response.status === 401 && !authToken) {
-      throw new Error("Unauthorized. Enter API token and click \"Save token\".");
+      throw new Error('Unauthorized. Enter API token and click "Save token".');
     }
     throw new Error(payload.error || "Request failed (" + response.status + ")");
   }
