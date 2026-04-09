@@ -10189,7 +10189,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         botDiv.appendChild(botBody);
         addFilesFromCodeBlocks(p.ai_text || "");
         appendModelInfoIcon(botDiv, p.model);
-        appendModelLabel(botDiv, p.model, displayShort, p.token_info);
+        appendModelLabel(botDiv, p.model, p.model, p.token_info);
         if(p.citations_json){
           try {
             const cites = JSON.parse(p.citations_json);
@@ -10387,7 +10387,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   addFilesFromCodeBlocks(aiText || "");
 
   appendModelInfoIcon(botDiv, model);
-  appendModelLabel(botDiv, model, displayShort, tokenInfo);
+  appendModelLabel(botDiv, model, model, tokenInfo);
 
   if(citationsJson){
     try {
