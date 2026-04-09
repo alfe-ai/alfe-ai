@@ -48,7 +48,7 @@ ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, 
 
 ### Premium model path
 
-- **Default engine (paid/hosted):** **KAT-Coder-Pro V2**
+- **Default engine (paid/cloud):** **KAT-Coder-Pro V2**
 - **Routing:** via **OpenRouter** through **StreamLake**
 - **Billing:** subscription + credits
 - **Framing:** KAT is the premium default today, but it’s not the product—ALSH.ai is designed to keep model backends interchangeable over time.
