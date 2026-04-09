@@ -108,6 +108,7 @@ function setupGetRoutes(deps) {
         "venv",
         ".venv",
     ]);
+    const normalizeCommitAuthorName = () => "ALSH.ai";
     const SHOPIFY_AUTH_STATE_TTL_MS = 10 * 60 * 1000;
     const shopifyAuthStateStore = new Map();
     let shopifyDiscoveryCache = {
@@ -6208,7 +6209,7 @@ ${cleanedFinalOutput}`;
             const metaLines = metaRaw.split("\n");
             const hash = (metaLines.shift() || "").trim();
             const parentsLine = (metaLines.shift() || "").trim();
-            const author = (metaLines.shift() || "").trim();
+            const _author = (metaLines.shift() || "").trim();
             const date = (metaLines.shift() || "").trim();
             const subject = (metaLines.shift() || "").trim();
             const body = metaLines.join("\n").trim();
@@ -6264,7 +6265,7 @@ ${cleanedFinalOutput}`;
                 commit: {
                     hash,
                     parents: parentsLine ? parentsLine.split(/\s+/).filter(Boolean) : [],
-                    author,
+                    author: normalizeCommitAuthorName(_author),
                     date,
                     subject,
                     body,
@@ -8391,10 +8392,10 @@ ${err}`;
         try {
             const out = execSync(`git show -s --format=%H%n%an%n%ae%n%s%n%b ${rev}`, { cwd, maxBuffer: 1024 * 1024 }).toString();
             const parts = out.split(/\r?\n/);
-            const [hash = '', authorName = '', authorEmail = '', subject = '', ...bodyParts] = parts;
+            const [hash = '', _authorName = '', authorEmail = '', subject = '', ...bodyParts] = parts;
             const body = bodyParts.join('\n').replace(/\n+$/, '');
             const fullMessage = body ? `${subject}\n${body}` : subject;
-            return { hash, authorName, authorEmail, message: subject, fullMessage };
+            return { hash, authorName: normalizeCommitAuthorName(_authorName), authorEmail, message: subject, fullMessage };
         } catch (err) {
             return { hash: '', authorName: '', authorEmail: '', message: '', fullMessage: '' };
         }
