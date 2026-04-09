@@ -131,5 +131,5 @@ systemctl is-active git-daemon || systemctl is-active git-daemon.service
 
 If any command fails, re-run the bootstrap script and inspect output.
 
-### GitServer   
+## GitServer   
 GitServer may also need to be deployed depending on your use case. Instructions for GitServer deployment can be found in the GitServer directory.
