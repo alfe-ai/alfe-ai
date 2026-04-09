@@ -51,12 +51,12 @@ ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, 
 - **Default engine (paid/cloud):** **KAT-Coder-Pro V2**
 - **Routing:** via **OpenRouter** through **StreamLake**
 - **Billing:** subscription + credits
-- **Framing:** KAT is the premium default today, but it’s not the product—ALSH.ai is designed to keep model backends interchangeable over time.
+- KAT is the premium default today, but it’s not the product—ALSH.ai is designed to keep model backends interchangeable over time.
 
 ### Self-hosted and open model path
 
 - **Supported open path:** **Qwen3-Coder-30B-A3B**
-- **Positioning:** secondary path (capacity-limited), primarily for control/cost/privacy—**not** the primary monetization story.
+- Secondary path (capacity-limited)
 
 ## Getting started and deploy
 
