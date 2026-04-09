@@ -1226,6 +1226,7 @@ function getGitMetaData(repoPathInput) {
  * Basic list of commits
  */
 function getGitCommits(repoPath, options = {}) {
+    const normalizeCommitAuthor = () => "ALSH.ai";
     const limitRaw = Number(options.limit);
     const skipRaw = Number(options.skip);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0
@@ -1237,7 +1238,7 @@ function getGitCommits(repoPath, options = {}) {
 
     const args = [
         "log",
-        '--pretty=format:"%h - %an, %ad : %s"',
+        '--pretty=format:"%h - %ad : %s"',
         "--date=iso",
     ];
 
@@ -1255,7 +1256,17 @@ function getGitCommits(repoPath, options = {}) {
         }).toString();
         return gitLog
             .split("\n")
-            .map((line) => line.trimEnd())
+            .map((line) => {
+                const trimmed = line.trimEnd();
+                if (!trimmed) {
+                    return "";
+                }
+                const [hash = "", ...rest] = trimmed.split(" - ");
+                if (!hash || !rest.length) {
+                    return trimmed;
+                }
+                return `${hash} ${normalizeCommitAuthor()} - ${rest.join(" - ")}`;
+            })
             .filter((line) => line.length > 0);
     } catch (err) {
         console.error("[ERROR] getGitCommits:", err);
@@ -1267,6 +1278,7 @@ function getGitCommits(repoPath, options = {}) {
  * Build a commit graph
  */
 function getGitCommitGraph(repoPath, options = {}) {
+    const normalizeCommitAuthor = () => "ALSH.ai";
     const limitRaw = Number(options.limit);
     const skipRaw = Number(options.skip);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0
@@ -1295,14 +1307,14 @@ function getGitCommitGraph(repoPath, options = {}) {
 
         return gitLog.split("\n").map((line) => {
             const parts = line.split("\t");
-            const [hash, parents, author, date, refsOrMessage, maybeMessage] = parts;
+            const [hash, parents, _author, date, refsOrMessage, maybeMessage] = parts;
             const hasRefs = parts.length >= 6;
             const message = hasRefs ? maybeMessage : refsOrMessage;
             const refs = hasRefs ? refsOrMessage : "";
             return {
                 hash,
                 parents: parents ? parents.split(" ") : [],
-                author,
+                author: normalizeCommitAuthor(),
                 date,
                 refs: refs ? refs.trim() : "",
                 message,
