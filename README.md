@@ -60,7 +60,7 @@ ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, 
 
 ## Getting started and deploy
 
-The repo is fully MIT licensed and open source, but **self-deployment documentation is still being improved**. If you want to run your own instance today, start with the existing technical docs and scripts in this repo:
+The repo is fully MIT licensed and open source, but **self-deployment documentation is still being improved, with plans for easier options such as Docker, Snap, and Flatpak**. If you want to run your own instance today, start with the existing technical docs and scripts in this repo:
 
 - **AlfeCode (code agent / repo execution)**
   - Debian standardized deployment guide: [`AlfeCode/deploy/debian/README.md`](AlfeCode/deploy/debian/README.md)
