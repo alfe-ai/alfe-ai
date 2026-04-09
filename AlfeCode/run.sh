@@ -12,7 +12,11 @@ SCREEN_NAME="alfeDEV"
 #clear
 git stash || true
 git fetch
-git pull
+if git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1; then
+    git pull
+else
+    echo "No upstream configured for current branch; skipping git pull."
+fi
 
 git --no-pager log -n 3
 bash -c "npm install"

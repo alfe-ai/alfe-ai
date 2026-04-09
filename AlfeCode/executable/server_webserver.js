@@ -457,6 +457,53 @@ function ensureGitRepository(repoDir) {
     }
 }
 
+function ensureLocalGitIdentity(repoDir) {
+    if (!repoDir) {
+        return;
+    }
+    const commitUserName = (process.env.GIT_COMMIT_USER_NAME || "ALSH Bot").trim();
+    const commitUserEmail = (process.env.GIT_COMMIT_USER_EMAIL || "noreply@alsh.ai").trim();
+    try {
+        const existingName = execSync("git config --get user.name", {
+            cwd: repoDir,
+            stdio: ["ignore", "pipe", "ignore"],
+        }).toString().trim();
+        if (!existingName) {
+            execSync(`git config user.name "${commitUserName.replace(/"/g, '\\"')}"`, {
+                cwd: repoDir,
+                stdio: "ignore",
+            });
+        }
+    } catch (_nameErr) {
+        try {
+            execSync(`git config user.name "${commitUserName.replace(/"/g, '\\"')}"`, {
+                cwd: repoDir,
+                stdio: "ignore",
+            });
+        } catch (_setNameErr) {}
+    }
+
+    try {
+        const existingEmail = execSync("git config --get user.email", {
+            cwd: repoDir,
+            stdio: ["ignore", "pipe", "ignore"],
+        }).toString().trim();
+        if (!existingEmail) {
+            execSync(`git config user.email "${commitUserEmail.replace(/"/g, '\\"')}"`, {
+                cwd: repoDir,
+                stdio: "ignore",
+            });
+        }
+    } catch (_emailErr) {
+        try {
+            execSync(`git config user.email "${commitUserEmail.replace(/"/g, '\\"')}"`, {
+                cwd: repoDir,
+                stdio: "ignore",
+            });
+        } catch (_setEmailErr) {}
+    }
+}
+
 function buildExternalGitServerCloneUrl(repoNameWithGitSuffix) {
     if (!DEMO_GIT_SERVER_CLONE_BASE_URL) {
         return "";
@@ -618,6 +665,7 @@ async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_N
         if (!hasCommit) {
             try {
                 execSync("git checkout -B main", { cwd: repoDir, stdio: "ignore" });
+                ensureLocalGitIdentity(repoDir);
                 execSync("git add AGENTS.md", { cwd: repoDir, stdio: "ignore" });
                 execSync('git commit -m "Initial commit"', { cwd: repoDir, stdio: "ignore" });
                 if (clonedFromRemote) {
@@ -1083,8 +1131,30 @@ function getGitMetaData(repoPathInput) {
     let latestTag = "";
     let remoteUrl = "";
     let remoteName = "";
+    let hasHeadCommit = true;
 
     try {
+        execSync("git rev-parse --verify HEAD", {
+            cwd: repoPath,
+            stdio: "ignore",
+        });
+    } catch (_noHeadErr) {
+        hasHeadCommit = false;
+    }
+
+    try {
+        if (!hasHeadCommit) {
+            const _result = {
+                rev: "",
+                dateStr: "",
+                branchName: "",
+                latestTag: "No commits yet",
+                remoteUrl: "",
+                remoteName: "",
+            };
+            try { _setCache(gitMetaCache, repoPath, _result); } catch(_e){}
+            return _result;
+        }
         rev = execSync("git rev-parse HEAD", { cwd: repoPath })
             .toString()
             .trim();
