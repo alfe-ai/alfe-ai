@@ -23,8 +23,6 @@ npm start
 
 - `GIT_SERVER_API_HOST` (default `0.0.0.0`)
 - `GIT_SERVER_API_PORT` (default `4005`)
-- `GIT_SERVER_TLS_KEY_PATH` (optional path to TLS private key PEM; enables HTTPS when set with cert)
-- `GIT_SERVER_TLS_CERT_PATH` (optional path to TLS certificate PEM; enables HTTPS when set with key)
 - `GIT_SERVER_REPO_ROOT` (default `GitServer/data/repositories`)
 - `GIT_SERVER_API_TOKEN` (optional bearer token for repo creation API)
 - `GIT_DAEMON_LISTEN_HOST` (default `0.0.0.0`)
@@ -37,7 +35,7 @@ npm start
 
 Set these environment variables for `AlfeCode`:
 
-- `DEMO_GIT_SERVER_API_URL=https://<git-server-host>:4005`
+- `DEMO_GIT_SERVER_API_URL=http://<git-server-host>:4005`
 - `DEMO_GIT_SERVER_API_TOKEN=<optional-token>`
 - `DEMO_GIT_SERVER_CLONE_BASE_URL=git://<git-server-host>:9418`
 
