@@ -1,12 +1,12 @@
-# AlSH.ai — AI code agent for full-project execution
+# ALSH.ai — AI code agent for full-project execution
 
-> AlSH.ai is an AI code agent for full-project execution.
+> ALSH.ai is an AI code agent for full-project execution.
 
-AlSH.ai runs real end-to-end coding jobs against full repositories: it checks out code, executes an agent run from your prompt, and produces a reviewable diff you can merge. It’s fully open source (MIT), with a hosted experience plus an evolving self-host path.
+ALSH.ai runs real end-to-end coding jobs against full repositories: it checks out code, executes an agent run from your prompt, and produces a reviewable diff you can merge. It’s fully open source (MIT), with a hosted experience plus an evolving self-host path.
 
 **Come for the code agent. Stay for the workspace.**
 
-**Formerly Alfe.** AlSH.ai is the continuation of the Alfe project—same core direction, new name and product identity. You may still see “Alfe” referenced in code, docs, and legacy URLs while the transition finishes.
+**Formerly Alfe.** ALSH.ai is the continuation of the Alfe project—same core direction, new name and product identity. You may still see “Alfe” referenced in code, docs, and legacy URLs while the transition finishes.
 
 ## Key features
 
@@ -28,22 +28,22 @@ AlSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 
 > If you’re looking for a short demo video: it’s in progress. For now, here are a few UI screenshots from the current repo history.
 
-![AlSH.ai screenshot](https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5)
+![ALSH.ai screenshot](https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5)
 
-![AlSH.ai screenshot](https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153)
+![ALSH.ai screenshot](https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153)
 
-![AlSH.ai screenshot](https://github.com/user-attachments/assets/b07d3e2c-9750-4533-b208-d6e5f68c439a)
+![ALSH.ai screenshot](https://github.com/user-attachments/assets/b07d3e2c-9750-4533-b208-d6e5f68c439a)
 
 ## Model architecture
 
-AlSH.ai’s value is the **agent + workflow layer**: repo execution, branching, diffs, task/workspace integration, and the UI that ties it together. Models are **swappable backends**—you should be able to choose based on speed, cost, and privacy requirements.
+ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, diffs, task/workspace integration, and the UI that ties it together. Models are **swappable backends**—you should be able to choose based on speed, cost, and privacy requirements.
 
 ### Premium model path
 
 - **Default engine (paid/hosted):** **KAT-Coder-Pro V2**
 - **Routing:** via **OpenRouter** through **StreamLake**
 - **Billing:** subscription + credits
-- **Framing:** KAT is the premium default today, but it’s not the product—AlSH.ai is designed to keep model backends interchangeable over time.
+- **Framing:** KAT is the premium default today, but it’s not the product—ALSH.ai is designed to keep model backends interchangeable over time.
 
 ### Self-hosted and open model path
 
