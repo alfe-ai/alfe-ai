@@ -913,6 +913,7 @@ function normalizeProviderName(provider) {
  */
 function getOpenAIClient(provider) {
     provider = normalizeProviderName(provider);
+    const liteLlmBaseUrl = (process.env.LITELLM_HOST || "https://litellm.alfe.sh/v1").toString();
 
     if (provider === "openrouter") {
         const apiKey = process.env.OPENROUTER_API_KEY;
@@ -948,7 +949,7 @@ function getOpenAIClient(provider) {
             );
         }
         return new OpenAI({
-            baseURL: "https://openrouter.ai/api/v1",
+            baseURL: liteLlmBaseUrl,
             apiKey,
             defaultHeaders: {
                 "HTTP-Referer": refererWithTaskId,
