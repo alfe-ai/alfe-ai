@@ -1314,15 +1314,52 @@ function getGitBranches(repoPath) {
  */
 function gitUpdatePull(repoPath) {
     return new Promise((resolve, reject) => {
-        exec("git pull", { cwd: repoPath }, (err, stdout, stderr) => {
-            if (err) {
-                console.error("[ERROR] git pull failed:", stderr);
-                reject(stderr);
+        const runGit = (command) => {
+            return execSync(command, {
+                cwd: repoPath,
+                stdio: ["ignore", "pipe", "pipe"],
+            }).toString();
+        };
+
+        try {
+            const output = runGit("git pull");
+            console.log("[DEBUG] git pull success:", output);
+            resolve(output);
+            return;
+        } catch (pullError) {
+            const stderr = pullError?.stderr ? pullError.stderr.toString() : "";
+            const stdout = pullError?.stdout ? pullError.stdout.toString() : "";
+            const combinedOutput = `${stdout}\n${stderr}`.trim();
+            const missingTrackingInfo = /no tracking information for the current branch/i.test(combinedOutput)
+                || /has no upstream branch/i.test(combinedOutput);
+
+            if (!missingTrackingInfo) {
+                console.error("[ERROR] git pull failed:", combinedOutput || pullError.message);
+                reject(combinedOutput || pullError.message);
                 return;
             }
-            console.log("[DEBUG] git pull success:", stdout);
-            resolve(stdout);
-        });
+
+            try {
+                const currentBranch = runGit("git rev-parse --abbrev-ref HEAD").trim();
+                if (!currentBranch || currentBranch === "HEAD") {
+                    throw new Error("Cannot auto-configure upstream for detached HEAD.");
+                }
+
+                runGit("git remote get-url origin");
+                runGit(`git fetch origin "${currentBranch}" --prune`);
+                runGit(`git branch --set-upstream-to=origin/${currentBranch} "${currentBranch}"`);
+                const output = runGit("git pull");
+                console.log(`[DEBUG] git pull success after upstream auto-config for ${currentBranch}:`, output);
+                resolve(output);
+            } catch (upstreamError) {
+                const upstreamStderr = upstreamError?.stderr ? upstreamError.stderr.toString() : "";
+                const upstreamStdout = upstreamError?.stdout ? upstreamError.stdout.toString() : "";
+                const upstreamOutput = `${upstreamStdout}\n${upstreamStderr}`.trim();
+                const message = upstreamOutput || upstreamError.message || "git pull failed";
+                console.error("[ERROR] git pull failed after upstream auto-config attempt:", message);
+                reject(message);
+            }
+        }
     });
 }
 

@@ -2718,7 +2718,7 @@ function setupPostRoutes(deps) {
     });
 
     /* ---------- /agent/git-pull ---------- */
-    app.post('/agent/git-pull', (req, res) => {
+    app.post('/agent/git-pull', async (req, res) => {
         const projectDir = (req.body && req.body.projectDir) || (req.query && req.query.projectDir) || '';
         const effectiveProjectDir = projectDir || '';
         if (!effectiveProjectDir) {
@@ -2730,19 +2730,12 @@ function setupPostRoutes(deps) {
             if (!fs.existsSync(resolved)) {
                 return res.status(400).json({ error: `Path not found: ${resolved}` });
             }
-            // perform git pull
-            const exec = require('child_process').exec;
-            exec('git pull', { cwd: resolved }, (err, stdout, stderr) => {
-                if (err) {
-                    console.error('[ERROR] git pull failed:', stderr || err.message);
-                    return res.status(500).json({ error: stderr || err.message });
-                }
-                console.log('[DEBUG] git pull success:', stdout);
-                return res.json({ message: 'Git pull completed', output: stdout });
-            });
+            const pullOutput = await gitUpdatePull(resolved);
+            return res.json({ message: 'Git pull completed', output: pullOutput });
         } catch (err) {
             console.error('[ERROR] /agent/git-pull:', err);
-            return res.status(500).json({ error: 'Internal server error' });
+            const message = typeof err === "string" ? err : (err && err.message) ? err.message : "Internal server error";
+            return res.status(500).json({ error: message });
         }
     });
 
