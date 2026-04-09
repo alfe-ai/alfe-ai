@@ -249,6 +249,7 @@ app.get("/", (_req, res) => {
   .sub { color: #666; margin-bottom: 20px; }
   .toolbar { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
   button { cursor: pointer; }
+  input[type="password"] { padding: 4px 6px; min-width: 240px; }
   table { width: 100%; border-collapse: collapse; }
   th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
   th { background: #f5f5f5; }
@@ -264,6 +265,9 @@ app.get("/", (_req, res) => {
   <div class="toolbar">
     <button id="refreshBtn">Refresh</button>
     <span>Total repos: <strong id="repoCount">0</strong></span>
+    <label for="authToken" class="mono">API token:</label>
+    <input id="authToken" type="password" autocomplete="off" placeholder="Paste bearer token" />
+    <button id="saveTokenBtn">Save token</button>
   </div>
   <table>
     <thead>
@@ -288,6 +292,52 @@ const repoCount = document.getElementById("repoCount");
 const repoRoot = document.getElementById("repoRoot");
 const statusEl = document.getElementById("status");
 const refreshBtn = document.getElementById("refreshBtn");
+const authTokenInput = document.getElementById("authToken");
+const saveTokenBtn = document.getElementById("saveTokenBtn");
+
+function readTokenFromLocation() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const token = (params.get("token") || "").trim();
+    return token;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function loadStoredToken() {
+  const fromQuery = readTokenFromLocation();
+  if (fromQuery) {
+    try {
+      window.localStorage.setItem("gitServerApiToken", fromQuery);
+    } catch (_error) {
+      // Ignore unavailable storage.
+    }
+    return fromQuery;
+  }
+
+  try {
+    return (window.localStorage.getItem("gitServerApiToken") || "").trim();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function saveStoredToken(token) {
+  const cleanToken = String(token || "").trim();
+  try {
+    if (cleanToken) {
+      window.localStorage.setItem("gitServerApiToken", cleanToken);
+    } else {
+      window.localStorage.removeItem("gitServerApiToken");
+    }
+  } catch (_error) {
+    // Ignore unavailable storage.
+  }
+  return cleanToken;
+}
+
+let authToken = loadStoredToken();
 
 function fmtIso(iso) {
   if (!iso) return "-";
@@ -313,9 +363,13 @@ function setStatus(message, isError = false) {
 async function loadRepos() {
   setStatus("");
   repoRows.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
-  const response = await fetch("/api/repos");
+  const headers = authToken ? { Authorization: "Bearer " + authToken } : {};
+  const response = await fetch("/api/repos", { headers });
   const payload = await response.json();
   if (!response.ok) {
+    if (response.status === 401 && !authToken) {
+      throw new Error("Unauthorized. Enter API token and click \"Save token\".");
+    }
     throw new Error(payload.error || "Request failed (" + response.status + ")");
   }
 
@@ -363,6 +417,7 @@ repoRows.addEventListener("click", async (event) => {
   try {
     const response = await fetch('/api/repos/' + encodeURIComponent(repoName), {
       method: "DELETE",
+      headers: authToken ? { Authorization: "Bearer " + authToken } : {},
     });
     const payload = await response.json();
     if (!response.ok) {
@@ -375,6 +430,25 @@ repoRows.addEventListener("click", async (event) => {
     setStatus(error.message || "Delete failed", true);
   }
 });
+
+if (authTokenInput) {
+  authTokenInput.value = authToken;
+}
+
+if (saveTokenBtn) {
+  saveTokenBtn.addEventListener("click", async () => {
+    authToken = saveStoredToken(authTokenInput ? authTokenInput.value : "");
+    if (authTokenInput) {
+      authTokenInput.value = authToken;
+    }
+    setStatus(authToken ? "Saved API token." : "Cleared API token.");
+    try {
+      await loadRepos();
+    } catch (error) {
+      setStatus(error.message || "Failed to load repositories", true);
+    }
+  });
+}
 
 refreshBtn.addEventListener("click", () => {
   loadRepos().catch((error) => setStatus(error.message || "Failed to load repositories", true));
