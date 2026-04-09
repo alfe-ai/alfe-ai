@@ -599,7 +599,6 @@ async function renameTab(tabId){
   }
 }
 async function deleteTab(tabId){
-  if(!confirm("Are you sure you want to delete this tab (and all its messages)?")) return;
   const r = await fetch(`/api/chat/tabs/${tabId}`, { method: "DELETE" });
   if(r.ok){
     await loadTabs();
@@ -896,7 +895,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   delBtn.title = "Delete this chat message";
   delBtn.style.marginLeft = "8px";
   delBtn.addEventListener("click", async () => {
-    if (!confirm("Are you sure you want to delete this message?")) return;
     const resp = await fetch(`/api/chat/pair/${pairId}`, {
       method: "DELETE"
     });
