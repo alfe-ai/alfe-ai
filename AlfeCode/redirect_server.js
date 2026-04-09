@@ -4,11 +4,11 @@
  * Standalone Aurora replacement redirect server.
  *
  * Starts:
- *  - HTTP listener (default: 80) that redirects to https://chat.alfe.bot
- *  - HTTPS listener (default: 443) that redirects to https://chat.alfe.bot
+ *  - HTTP listener (default: 80) that redirects to https://chat.alsh.ai
+ *  - HTTPS listener (default: 443) that redirects to https://chat.alsh.ai
  *
  * Environment variables:
- *  - REDIRECT_TARGET=https://chat.alfe.bot
+ *  - REDIRECT_TARGET=https://chat.alsh.ai
  *  - HTTP_PORT=80
  *  - HTTPS_PORT=443
  *  - HTTPS_KEY_PATH=/path/to/key.pem
