@@ -8035,6 +8035,42 @@ function renderFileList(){
       document.body.removeChild(a);
     });
     tdAction.appendChild(dlBtn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "table-action-btn table-delete-btn";
+    deleteBtn.textContent = "Delete";
+    deleteBtn.title = "Delete this image";
+    deleteBtn.setAttribute("aria-label", "Delete this image");
+    deleteBtn?.addEventListener("click", async () => {
+      const fileName = displayName || f.name || "";
+      if(!fileName) return;
+      const confirmed = await showConfirmDialog({
+        title: "Delete image?",
+        message: `Delete ${fileName}? This action cannot be undone.`,
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        danger: true,
+      });
+      if(!confirmed) return;
+      deleteBtn.disabled = true;
+      try {
+        const resp = await fetch("/api/upload/hidden", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: fileName, hidden: true }),
+        });
+        if(!resp.ok){
+          throw new Error(`Failed to delete image (${resp.status})`);
+        }
+        tr.remove();
+      } catch (err) {
+        console.error("Failed to delete image", err);
+        alert(err?.message || "Failed to delete image.");
+        deleteBtn.disabled = false;
+      }
+    });
+    tdAction.appendChild(deleteBtn);
     tr.appendChild(tdIndex);
     tr.appendChild(tdId);
     tr.appendChild(tdThumb);
