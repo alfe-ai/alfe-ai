@@ -814,6 +814,15 @@ function setupGetRoutes(deps) {
         }
         return parseBooleanFlag(value);
     };
+    const resolveImagesEnabled2026 = () => {
+        if (typeof process.env.IMAGES_ENABLED_2026 !== "undefined") {
+            return parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
+        }
+        if (typeof process.env.IMAGES_ENABLED !== "undefined") {
+            return parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED, true);
+        }
+        return true;
+    };
     const ALLOW_REPO_ADD_ON_FREE_PLAN = parseBooleanFlag(process.env.ALLOW_REPO_ADD_ON_FREE_PLAN);
     const USER_PROMPT_VISIBLE_CODEX = parseBooleanFlag(process.env.USER_PROMPT_VISIBLE_CODEX);
     const shouldStripCodexUserPrompt = !USER_PROMPT_VISIBLE_CODEX;
@@ -3508,7 +3517,7 @@ ${cleanedFinalOutput}`;
             userPromptVisibleCodex: parseBooleanFlag(process.env.USER_PROMPT_VISIBLE_CODEX),
             showStoreButtons: parseBooleanFlag(process.env.SHOW_STORE_BADGES),
             showGithubButton: parseBooleanFlag(process.env.SHOW_GITHUB_BUTTON),
-            showImageDesign2026: parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true),
+            showImageDesign2026: resolveImagesEnabled2026(),
             agentModelDropdownDisabled,
             fileTreeButtonVisible,
             backlogButtonVisible,
@@ -3886,7 +3895,7 @@ ${cleanedFinalOutput}`;
         const apiPanelEnabled = parseBooleanFlag(process.env.API_PANEL_ENABLED);
         const showPrintifyUploadUsage = parseBooleanFlag(process.env.SHOW_PRINTIFY_UPLOAD_USAGE);
         const searchEnabled2026 = parseBooleanFlagWithDefault(process.env.SEARCH_ENABLED_2026, true);
-        const imagesEnabled2026 = parseBooleanFlagWithDefault(process.env.IMAGES_ENABLED_2026, true);
+        const imagesEnabled2026 = resolveImagesEnabled2026();
         const allowModelOrderEdit = isConfigAccessAllowed(req);
         const allowConfigIpControls = allowModelOrderEdit;
         const allowAccountPlanEdit = allowModelOrderEdit;
