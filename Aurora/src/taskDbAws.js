@@ -707,6 +707,23 @@ export default class TaskDBAws {
     return rows[0] || null;
   }
 
+  async getChatTabByPathAlias(alias, sessionId = null) {
+    if (!alias) return null;
+    await this._initPromise;
+    if (sessionId) {
+      const { rows } = await this.pool.query(
+        'SELECT * FROM chat_tabs WHERE path_alias = $1 AND session_id = $2',
+        [alias, sessionId]
+      );
+      return rows[0] || null;
+    }
+    const { rows } = await this.pool.query(
+      'SELECT * FROM chat_tabs WHERE path_alias = $1',
+      [alias]
+    );
+    return rows[0] || null;
+  }
+
   async getChatPairsPage(tabId = 1, limit = 10, offset = 0) {
     try {
       await this._initPromise;
@@ -1636,8 +1653,27 @@ export default class TaskDBAws {
     return 0;
   }
 
-  ensureDesignChatTab() {
-    throw new Error('Design chat tab is not supported for the AWS task DB backend.');
+  async ensureDesignChatTab(sessionId = '') {
+    const alias = '/chat/design';
+    const existing = await this.getChatTabByPathAlias(alias, sessionId || null);
+    if (existing) return existing;
+
+    const { id } = await this.createChatTab(
+      'Design Chat',
+      0,
+      '',
+      '',
+      '',
+      0,
+      'design',
+      sessionId,
+      0,
+      '',
+      0,
+      alias
+    );
+    if (!id) return null;
+    return this.getChatTab(id, sessionId || null);
   }
 
   // Placeholder methods for the rest of the TaskDB API used by server.js
