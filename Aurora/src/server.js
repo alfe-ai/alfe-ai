@@ -2851,7 +2851,13 @@ app.get("/api/ai/models", async (req, res) => {
 });
 
 app.post("/api/chat", async (req, res) => {
-  console.debug("[Server Debug] POST /api/chat => body:", req.body);
+  const requestBody = req.body || {};
+  const logBody = { ...requestBody };
+  if (Object.prototype.hasOwnProperty.call(logBody, "message")) {
+    delete logBody.message;
+    logBody.hasMessage = true;
+  }
+  console.debug("[Server Debug] POST /api/chat => body:", logBody);
   try {
     const userMessage = req.body.message || "";
     const chatTabId = req.body.tabId || 1;
