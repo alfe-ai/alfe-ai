@@ -117,6 +117,27 @@ function setupGetRoutes(deps) {
     };
     const SHOPIFY_DISCOVERY_CACHE_TTL_MS = 5 * 60 * 1000;
     const MAX_FILE_TREE_DEPTH = 5;
+    const defaultRepoInitBySession = new Map();
+
+    const ensureSessionDefaultRepoReady = (sessionId, repoName = NEW_SESSION_REPO_NAME) => {
+        if (!sessionId || typeof ensureSessionDefaultRepo !== "function") {
+            return Promise.resolve();
+        }
+        const cacheKey = `${sessionId}:${repoName}`;
+        if (defaultRepoInitBySession.has(cacheKey)) {
+            return defaultRepoInitBySession.get(cacheKey);
+        }
+        const initPromise = Promise.resolve()
+            .then(() => ensureSessionDefaultRepo(sessionId, repoName))
+            .catch((error) => {
+                console.error(`Failed to initialize default repo for session: ${error?.message || error}`);
+            })
+            .finally(() => {
+                defaultRepoInitBySession.delete(cacheKey);
+            });
+        defaultRepoInitBySession.set(cacheKey, initPromise);
+        return initPromise;
+    };
 
     const getRequestIpAddresses = (req) => {
         const candidates = [];
@@ -6452,10 +6473,8 @@ ${cleanedFinalOutput}`;
             }
 
             try {
-                ensureSessionDefaultRepo(freshSessionId);
-            } catch (error) {
-                console.error(`Failed to initialize default repo for new session: ${error?.message || error}`);
-            }
+                void ensureSessionDefaultRepoReady(freshSessionId);
+            } catch (_error) {}
 
             defaultRepoConfig = loadSingleRepoConfig(NEW_SESSION_REPO_NAME, freshSessionId);
             defaultRepoPath = defaultRepoConfig?.gitRepoLocalPath;
@@ -6470,7 +6489,10 @@ ${cleanedFinalOutput}`;
             return;
         }
 
-        res.redirect("/repositories");
+        if (sessionId) {
+            void ensureSessionDefaultRepoReady(sessionId);
+        }
+        res.redirect("/repositories?initializing=1");
     });
 
     /* ---------- Global instructions ---------- */
@@ -6885,6 +6907,9 @@ ${cleanedFinalOutput}`;
         const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
         const repoConfig = loadRepoConfig(sessionId);
         const repoList = [];
+        const isInitializingDefaultRepo = ["1", "true", "yes", "on"].includes(
+            String(req.query?.initializing || "").trim().toLowerCase(),
+        );
         const isGeneratedRunRepoName = (name) => {
             if (typeof name !== "string") {
                 return false;
@@ -6911,7 +6936,43 @@ ${cleanedFinalOutput}`;
                 }
             }
         }
-        res.render("repositories", { repos: repoList, sessionId: sessionId });
+        res.render("repositories", {
+            repos: repoList,
+            sessionId: sessionId,
+            initializingDefaultRepo: isInitializingDefaultRepo,
+            defaultRepoName: NEW_SESSION_REPO_NAME,
+        });
+    });
+
+    app.get("/api/session/default-repo-status", (req, res) => {
+        const sessionId = resolveSessionId(req) || getSessionIdFromRequest(req);
+        if (!sessionId) {
+            res.status(400).json({ ready: false, error: "No session found." });
+            return;
+        }
+        const repoName = NEW_SESSION_REPO_NAME;
+        const repoConfig = loadSingleRepoConfig(repoName, sessionId);
+        const repoPath = typeof repoConfig?.gitRepoLocalPath === "string" ? repoConfig.gitRepoLocalPath.trim() : "";
+        if (repoPath && fs.existsSync(repoPath)) {
+            const params = new URLSearchParams({
+                repo_directory: repoPath,
+                repo_name: repoName,
+            });
+            res.json({
+                ready: true,
+                repoName,
+                repoPath,
+                redirectUrl: `/agent?${params.toString()}`,
+            });
+            return;
+        }
+
+        void ensureSessionDefaultRepoReady(sessionId, repoName);
+        res.json({
+            ready: false,
+            initializing: true,
+            repoName,
+        });
     });
 
     app.get("/repositories/add", async (req, res) => {
