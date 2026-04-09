@@ -1,10 +1,30 @@
-<a href="https://alsh.ai"><img height="60" alt="image" src="https://github.com/user-attachments/assets/daaf0c91-6f84-42f6-9b06-db2844151ba7" /></a>
+# ALSH.ai — AI code agent for full-project execution
 
-# ALSH.ai / Beta
+> ALSH.ai is an AI code agent for full-project execution.
 
-### ALSH.ai: Software Development, Project Management, and Image Design Platform
+ALSH.ai runs real end-to-end coding jobs against full repositories: it checks out code, executes an agent run from your prompt, and produces a reviewable diff you can merge. It’s fully open source (MIT), with a hosted experience plus an evolving self-host path.
 
-The first version of the ALSH.ai Code Cloud Platform https://alsh.ai <!-- has been released --> (beta-3.11).
+**Come for the code agent. Stay for the workspace.**
+
+**Formerly Alfe.** ALSH.ai is the continuation of the Alfe project—same core direction, new name and product identity. You may still see “Alfe” referenced in code, docs, and legacy URLs while the transition finishes.
+
+## Key features
+
+- **AI code agent (primary): full-project execution**
+  - Runs against git repos (branch-based runs, patch generation, diff review, merge workflow).
+  - Optimized for “do the work” prompts rather than chat-only assistance.
+- **AI chat (supporting)**
+  - Workspace chat for planning, debugging, and iteration across a project.
+- **Project management (GitHub-style tasks)**
+  - Lightweight task boards / PM workflows tied to execution.
+- **AI search**
+  - Fast, query-first search workflows designed to support coding and research inside the workspace.
+- **AI image design**
+  - Generate and iterate on images inside the same workspace used for building.
+- **Git hosting / repo workflows**
+  - Repo operations and run outputs designed around standard git collaboration.
+
+## Screenshots and demo
 
 <img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5" />
 
@@ -18,110 +38,50 @@ The first version of the ALSH.ai Code Cloud Platform https://alsh.ai <!-- has be
 
 <img width="1314" height="1162" alt="image" src="https://github.com/user-attachments/assets/f2011c6e-f1ef-4548-8310-db39ceb2359d" />
 
-<img width="603" height="1178" alt="image" src="https://github.com/user-attachments/assets/0493dece-3756-4ece-9a9f-a8f05df387e3" />
-
 <img width="2083" height="749" alt="image" src="https://github.com/user-attachments/assets/d18cb826-4964-4289-9fbb-b42be684c321" />
 
----
+<img width="603" height="1178" alt="image" src="https://github.com/user-attachments/assets/0493dece-3756-4ece-9a9f-a8f05df387e3" />
 
+## Architecture
 
-### Old Beta v2 notes:
+ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, diffs, task/workspace integration, and the UI that ties it together. Models are **swappable backends**—you should be able to choose based on speed, cost, and privacy requirements.
 
+### Premium model path
 
-This initial cloud release includes the image design component of the Alfe AI Platform.
-It now defaults to OpenAI's **gpt-image-1** model for image generation via the built-in API. You
-can change the model globally via the new `image_gen_model` setting which accepts `gptimage1`,
-`dalle2`, or `dalle3`.
-If the model returns a base64 string instead of a URL, the server automatically decodes and saves the image.
-The server also includes an optional color swatch detector that can trim any palette band from the bottom of generated images. This feature is disabled by default and can be enabled via the `remove_color_swatches` setting.
-The software development component is coming soon, and is available now as a Pre-release on GitHub.
+- **Default engine (paid/hosted):** **KAT-Coder-Pro V2**
+- **Routing:** via **OpenRouter** through **StreamLake**
+- **Billing:** subscription + credits
+- **Framing:** KAT is the premium default today, but it’s not the product—ALSH.ai is designed to keep model backends interchangeable over time.
 
-![image](https://github.com/user-attachments/assets/b7d308f8-e2a6-4098-b707-8f8704a74049)
+### Self-hosted and open model path
 
-Alfe AI beta-2.30+ (Image Design): https://github.com/ALSH-ai
-Alfe AI beta-0.4x+ (Software Development): https://github.com/ALSH-ai
+- **Supported open path:** **Qwen3-Coder-30B-A3B**
+- **Positioning:** secondary path (capacity-limited), primarily for control/cost/privacy—**not** the primary monetization story.
 
-## Deploying
+## Getting started and deploy
 
-```
-wget https://raw.githubusercontent.com/alfe-ai/alfe-ai-Aurelix/refs/heads/Aurora/Aurelix/dev/main-rel2/deploy_aurelix.sh && chmod +x deploy_aurelix.sh && ./deploy_aurelix.sh
-```
+The repo is fully MIT licensed and open source, but **self-deployment documentation is still being improved**. If you want to run your own instance today, start with the existing technical docs and scripts in this repo:
 
-#### 2.0 Beta (Aurora/Aurelix)
+- **AlfeCode (code agent / repo execution)**
+  - Debian standardized deployment guide: [`AlfeCode/deploy/debian/README.md`](AlfeCode/deploy/debian/README.md)
+  - Related scripts live alongside the guide (e.g., bootstrap + installers).
+- **Aurora (workspace UI / services)**
+  - Current run notes: [`RUNNING.md`](RUNNING.md)
+  - Service-level notes: [`Aurora/README.md`](Aurora/README.md) and [`Aurora/.env.example`](Aurora/.env.example)
+- **LLM routing / proxy configuration**
+  - LiteLLM notes: [`litellm/readme.md`](litellm/readme.md)
+  - Model config example: [`litellm/litellm-config.yaml`](litellm/litellm-config.yaml)
 
-![image](https://github.com/user-attachments/assets/ec47be87-5577-45b2-a3af-17475860df46)
+If you hit gaps or outdated steps, please **open an issue**—tightening the self-host flow is an active effort.
 
-### Environment variables
+## License
 
-Set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` to the SSL key and certificate files
-to enable HTTPS across the included servers. If the files are missing the
-services fall back to HTTP.
+MIT. See [`LICENSE`](LICENSE).
 
-For multi-domain TLS on `redirect_code_alfe_bot.js`, set `HTTPS_SNI_CERTS`
-using comma-separated `domain|keyPath|certPath` entries, for example:
-`alfe.bot|/etc/letsencrypt/live/alfe.bot/privkey.pem|/etc/letsencrypt/live/alfe.bot/fullchain.pem,www.alfe.bot|/etc/letsencrypt/live/www.alfe.bot/privkey.pem|/etc/letsencrypt/live/www.alfe.bot/fullchain.pem`.
+## Contact
 
-### Third-party components
+- hello@lochner.tech
 
-The platform depends on the `codex-cli` npm package as an external tool. It
-remains under its original Apache 2.0 license and is not redistributed under
-the Alfe AI License. If you vendor or otherwise ship binaries or source that
-bundle `codex-cli`, include its Apache 2.0 LICENSE (and NOTICE file if
-provided) alongside your distribution so the required notices stay intact.
+## Company
 
-You can quickly obtain free certificates from Let's Encrypt by running the
-`setup_certbot.sh` script. It installs Certbot and generates the key and
-certificate files for the domain you specify.
-
-After obtaining the certificates, run `setup_ssl_permissions.sh <domain> [user]`
-to grant the specified user (default: `admin`) read access to the key and
-certificate so Aurora can run without root privileges.
-
-### Listening on port 443 without root
-
-The Aurora server reads its port from the `AURORA_PORT` environment variable
-(default: `3000`). Binding directly to port `443` typically requires root
-privileges. If you prefer to run the server as a regular user, you can forward
-incoming connections from port `443` to your configured `AURORA_PORT`.
-
-Run the helper script with `sudo` to set up the forwarding rule:
-
-```bash
-sudo ./forward_port_443.sh 3000
-```
-
-Replace `3000` with your chosen `AURORA_PORT`. After adding the rule, start the
-server normally and clients can connect using `https://your-domain/` on port
-`443` while the Node.js process continues to run on the higher port.
-
-### Passthrough SQL server
-
-Set `SQL_SERVER_PORT` in `.env` (see `Aurora/.env.example`) to configure the port
-for a simple HTTP interface to the SQLite database. Start the server with:
-
-```bash
-npm run sqlserver --prefix Aurora
-```
-
-Send POST requests to `/sql` with a JSON body containing a `sql` string and
-optional `params` array. Select queries return rows while other statements
-return change information.
-
-### Reasoning menu configuration
-
-The order of models shown in the reasoning tooltip can be customized.
-Edit `Aurora/public/reasoning_tooltip_config.js` and reorder the
-`chatModels` and `reasoningModels` arrays to suit your preferences.
-
-## Qwen CLI upgrade notes
-
-For Qwen run-path comments and upgrade context, see:
-https://chatgpt.com/c/698edc81-5688-8325-8c87-908e3b273373
-
-## LLMReverseProxy
-
-A reverse proxy solution that enables SSH access to local machines from a remote AWS host.
-
-To set up:
-1. Use the client in `LLMReverseProxy/client/` on local desktops
-2. Use the server in `LLMReverseProxy/server/` on the AWS host
+Built by Lochner Technology (lochner.tech).
