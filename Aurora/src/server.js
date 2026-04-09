@@ -4892,6 +4892,10 @@ app.all("/index.html", (req, res) => {
 });
 
 app.get("/", async (req, res) => {
+  if (["investors.alfe.bot", "investors.alfe.sh"].includes(req.hostname)) {
+    return res.sendFile(path.join(__dirname, "../public/investors.html"));
+  }
+
   let sessionId = getSessionIdFromRequest(req);
   if (req.hostname === "dev.alfe.sh") {
     try {
@@ -4989,6 +4993,10 @@ app.get("/", async (req, res) => {
   }
   console.debug("[Server Debug] GET / => Serving aurora.html");
   res.sendFile(path.join(__dirname, "../public/aurora.html"));
+});
+
+app.get("/investors", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/investors.html"));
 });
 
 app.get("/search", async (req, res) => {
