@@ -1747,6 +1747,13 @@ export default class TaskDB {
     return row ? !!row.image_hidden : false;
   }
 
+  deleteImageByUrl(url) {
+    const info = this.db
+        .prepare("DELETE FROM chat_pairs WHERE image_url=?")
+        .run(url);
+    return info?.changes || 0;
+  }
+
   isGeneratedImage(url) {
     const row = this.db
         .prepare("SELECT 1 FROM chat_pairs WHERE image_url=? LIMIT 1")

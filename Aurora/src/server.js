@@ -3819,6 +3819,30 @@ app.post("/api/upload/hidden", (req, res) => {
   }
 });
 
+app.post("/api/upload/delete", async (req, res) => {
+  try {
+    const { name } = req.body || {};
+    if (!name) {
+      return res.status(400).json({ error: "Missing name" });
+    }
+    const safeName = path.basename(String(name));
+    const url = `/uploads/${safeName}`;
+    const filePath = path.join(uploadsDir, safeName);
+
+    let fileDeleted = false;
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      fileDeleted = true;
+    }
+
+    const deletedRows = await db.deleteImageByUrl(url);
+    res.json({ success: true, fileDeleted, deletedRows });
+  } catch (err) {
+    console.error("[Server Debug] /api/upload/delete error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/api/ebay/bulkUpdate", (req, res) => {
   try {
     const { listings } = req.body || {};
