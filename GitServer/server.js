@@ -54,9 +54,10 @@ function requireAuth(req, res, next) {
   if (!API_TOKEN) {
     return next();
   }
-  const header = (req.headers.authorization || "").trim();
-  const expected = `Bearer ${API_TOKEN}`;
-  if (header !== expected) {
+  const header = String(req.headers.authorization || "").trim();
+  const tokenMatch = header.match(/^Bearer\s+(.+)$/i);
+  const providedToken = (tokenMatch ? tokenMatch[1] : header).trim();
+  if (providedToken !== API_TOKEN) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   return next();
@@ -266,7 +267,7 @@ app.get("/", (_req, res) => {
     <button id="refreshBtn">Refresh</button>
     <span>Total repos: <strong id="repoCount">0</strong></span>
     <label for="authToken" class="mono">API token:</label>
-    <input id="authToken" type="password" autocomplete="off" placeholder="Paste bearer token" />
+    <input id="authToken" type="password" autocomplete="off" placeholder="Paste API token" />
     <button id="saveTokenBtn">Save token</button>
   </div>
   <table>
@@ -324,7 +325,8 @@ function loadStoredToken() {
 }
 
 function saveStoredToken(token) {
-  const cleanToken = String(token || "").trim();
+  let cleanToken = String(token || "").trim();
+  cleanToken = cleanToken.replace(/^Bearer\s+/i, "").trim();
   try {
     if (cleanToken) {
       window.localStorage.setItem("gitServerApiToken", cleanToken);
