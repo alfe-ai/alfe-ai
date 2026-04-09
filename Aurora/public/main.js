@@ -2300,7 +2300,6 @@ function renderInitialGreeting(message=null){
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
   botHead.innerHTML = `
-    <div class="name-oval name-oval-ai">${window.agentName || 'Alfe'}</div>
     <span style="opacity:0.8;">${formatTimestamp(isoNow)}</span>
   `;
   botDiv.appendChild(botHead);
@@ -6287,10 +6286,6 @@ chatSendBtnEl?.addEventListener("click", async () => {
   const userHead = document.createElement("div");
   userHead.className = "bubble-header";
   const userTime = new Date().toISOString();
-  const userLabel = "You";
-  userHead.innerHTML = `
-    <div class="name-oval name-oval-user">${userLabel}</div>
-  `;
   userDiv.appendChild(userHead);
 
   // Show thumbnails for uploaded images
@@ -6341,10 +6336,7 @@ chatSendBtnEl?.addEventListener("click", async () => {
 
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
-  const { shortModel: pendingShortModel } = parseProviderModel(modelName);
-  const pendingTitle = pendingShortModel || modelName;
   botHead.innerHTML = `
-    <div class="name-oval name-oval-ai" title="${pendingTitle}">${window.agentName}</div>
     <span style="opacity:0.8;">…</span>
   `;
   botDiv.appendChild(botHead);
@@ -10122,10 +10114,6 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
           {
             const userHead = document.createElement("div");
             userHead.className = "bubble-header";
-            const userLabel = "You";
-            userHead.innerHTML = `
-              <div class="name-oval name-oval-user">${userLabel}</div>
-            `;
             const uCopy = document.createElement("button");
             uCopy.className = "bubble-copy-btn";
             uCopy.textContent = "\u2398"; // copy icon
@@ -10170,14 +10158,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         const botHead = document.createElement("div");
         botHead.className = "bubble-header";
 
-        const { provider, shortModel } = parseProviderModel(p.model);
-        const displayShort = shortModel;
-        const { label: providerLabel } = formatProviderDisplay(provider);
-        const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
-        const titleAttr = p.image_url ? "" : ` title="${providerTitle}"`;
-        botHead.innerHTML = `
-          <div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>
-        `;
+        botHead.innerHTML = ``;
         const aCopy = document.createElement("button");
         aCopy.className = "bubble-copy-btn";
         aCopy.textContent = "\u2398";
@@ -10312,8 +10293,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
     {
       const userHead = document.createElement("div");
       userHead.className = "bubble-header";
-      const userLabel = "You";
-      userHead.innerHTML = `<div class="name-oval name-oval-user">${userLabel}</div>`;
+      userHead.innerHTML = ``;
       const userCopyBtn = document.createElement("button");
       userCopyBtn.className = "bubble-copy-btn";
       userCopyBtn.textContent = "\u2398";
@@ -10365,12 +10345,7 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
 
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
-  const { provider, shortModel } = parseProviderModel(model);
-  const displayShort = shortModel;
-  const { label: providerLabel } = formatProviderDisplay(provider);
-  const providerTitle = providerLabel ? `${providerLabel} / ${displayShort}` : displayShort;
-  const titleAttr = imageUrl ? "" : ` title="${providerTitle}"`;
-  botHead.innerHTML = `<div class="name-oval name-oval-ai"${titleAttr}>${window.agentName}</div>`;
+  botHead.innerHTML = ``;
   const aiCopyBtn = document.createElement("button");
   aiCopyBtn.className = "bubble-copy-btn";
   aiCopyBtn.textContent = "\u2398";
@@ -11537,7 +11512,6 @@ function addImageChatBubble(url, altText="", title=""){
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
   botHead.innerHTML = `
-    <div class="name-oval name-oval-ai">${window.agentName}</div>
     <span style="opacity:0.8;">${formatTimestamp(new Date().toISOString())}</span>
   `;
   const imgCopyBtn = document.createElement("button");
