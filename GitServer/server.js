@@ -102,6 +102,98 @@ function createBareRepo(repoName) {
   return fullPath;
 }
 
+function safeStat(fullPath) {
+  try {
+    return fs.statSync(fullPath);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function collectRepoMetrics(dirPath) {
+  let totalSizeBytes = 0;
+  let lastModifiedAtMs = 0;
+  const stack = [dirPath];
+
+  while (stack.length > 0) {
+    const currentPath = stack.pop();
+    const stat = safeStat(currentPath);
+    if (!stat) {
+      continue;
+    }
+
+    lastModifiedAtMs = Math.max(lastModifiedAtMs, stat.mtimeMs || 0);
+
+    if (stat.isDirectory()) {
+      let entries = [];
+      try {
+        entries = fs.readdirSync(currentPath, { withFileTypes: true });
+      } catch (_error) {
+        entries = [];
+      }
+      for (const entry of entries) {
+        stack.push(path.join(currentPath, entry.name));
+      }
+    } else {
+      totalSizeBytes += stat.size || 0;
+    }
+  }
+
+  return {
+    totalSizeBytes,
+    lastModifiedAt: lastModifiedAtMs > 0 ? new Date(lastModifiedAtMs).toISOString() : null,
+  };
+}
+
+function getRepoCreatedAtIso(stat) {
+  if (!stat) {
+    return null;
+  }
+  const timeMs = stat.birthtimeMs && stat.birthtimeMs > 0 ? stat.birthtimeMs : stat.ctimeMs;
+  if (!timeMs || timeMs <= 0) {
+    return null;
+  }
+  return new Date(timeMs).toISOString();
+}
+
+function listRepositories() {
+  ensureRepoRoot();
+  const entries = fs.readdirSync(REPO_ROOT, { withFileTypes: true });
+  const repos = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.endsWith(".git")) {
+      continue;
+    }
+
+    const repoName = entry.name.replace(/\.git$/i, "");
+    const fullPath = path.join(REPO_ROOT, entry.name);
+    const stat = safeStat(fullPath);
+    const metrics = collectRepoMetrics(fullPath);
+
+    repos.push({
+      repoName,
+      path: fullPath,
+      cloneUrl: cloneUrl(repoName),
+      createdAt: getRepoCreatedAtIso(stat),
+      lastModifiedAt: metrics.lastModifiedAt,
+      totalSizeBytes: metrics.totalSizeBytes,
+    });
+  }
+
+  repos.sort((left, right) => left.repoName.localeCompare(right.repoName));
+  return repos;
+}
+
+function deleteRepository(repoName) {
+  const fullPath = repoPath(repoName);
+  if (!fs.existsSync(fullPath)) {
+    return false;
+  }
+  fs.rmSync(fullPath, { recursive: true, force: true });
+  return true;
+}
+
 function maybeStartGitDaemon() {
   if (String(process.env.GIT_SERVER_DISABLE_EMBEDDED_DAEMON || "").toLowerCase() === "true") {
     return;
@@ -129,8 +221,189 @@ function maybeStartGitDaemon() {
   });
 }
 
+function formatSize(sizeBytes) {
+  if (!Number.isFinite(sizeBytes) || sizeBytes < 0) {
+    return "-";
+  }
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = sizeBytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  const rounded = value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1);
+  return `${rounded} ${units[unitIndex]}`;
+}
+
+app.get("/", (_req, res) => {
+  res.type("html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GitServer Admin</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 24px; color: #222; }
+  h1 { margin-bottom: 4px; }
+  .sub { color: #666; margin-bottom: 20px; }
+  .toolbar { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
+  button { cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
+  th { background: #f5f5f5; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+  .actions button { padding: 4px 8px; }
+  .status { margin-top: 10px; min-height: 1.2em; }
+  .err { color: #b00020; }
+</style>
+</head>
+<body>
+  <h1>GitServer Admin</h1>
+  <div class="sub">Repository root: <span class="mono" id="repoRoot">loading...</span></div>
+  <div class="toolbar">
+    <button id="refreshBtn">Refresh</button>
+    <span>Total repos: <strong id="repoCount">0</strong></span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Repository</th>
+        <th>Created</th>
+        <th>Last Modified</th>
+        <th>Total Size</th>
+        <th>Clone URL</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="repoRows">
+      <tr><td colspan="6">Loading…</td></tr>
+    </tbody>
+  </table>
+  <div class="status" id="status"></div>
+
+<script>
+const repoRows = document.getElementById("repoRows");
+const repoCount = document.getElementById("repoCount");
+const repoRoot = document.getElementById("repoRoot");
+const statusEl = document.getElementById("status");
+const refreshBtn = document.getElementById("refreshBtn");
+
+function fmtIso(iso) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
+}
+
+function esc(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function setStatus(message, isError = false) {
+  statusEl.textContent = message || "";
+  statusEl.className = isError ? "status err" : "status";
+}
+
+async function loadRepos() {
+  setStatus("");
+  repoRows.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
+  const response = await fetch("/api/repos");
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || "Request failed (" + response.status + ")");
+  }
+
+  repoRoot.textContent = payload.repoRoot;
+  const repos = payload.repositories || [];
+  repoCount.textContent = String(repos.length);
+
+  if (repos.length === 0) {
+    repoRows.innerHTML = '<tr><td colspan="6">No repositories found.</td></tr>';
+    return;
+  }
+
+  repoRows.innerHTML = repos.map((repo) => {
+    const repoName = esc(repo.repoName);
+    const cloneUrl = esc(repo.cloneUrl || "-");
+    const created = esc(fmtIso(repo.createdAt));
+    const modified = esc(fmtIso(repo.lastModifiedAt));
+    const size = esc(repo.totalSizeHuman || "-");
+    return '<tr>'
+      + '<td class="mono">' + repoName + '</td>'
+      + '<td>' + created + '</td>'
+      + '<td>' + modified + '</td>'
+      + '<td>' + size + '</td>'
+      + '<td class="mono">' + cloneUrl + '</td>'
+      + '<td class="actions"><button data-repo="' + repoName + '">Delete</button></td>'
+      + '</tr>';
+  }).join("");
+}
+
+repoRows.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-repo]");
+  if (!button) {
+    return;
+  }
+
+  const repoName = button.getAttribute("data-repo");
+  const confirmed = window.confirm('Delete repository "' + repoName + '"? This cannot be undone.');
+  if (!confirmed) {
+    return;
+  }
+
+  button.disabled = true;
+  setStatus("Deleting " + repoName + "...");
+
+  try {
+    const response = await fetch('/api/repos/' + encodeURIComponent(repoName), {
+      method: "DELETE",
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || "Request failed (" + response.status + ")");
+    }
+    setStatus("Deleted " + repoName + ".");
+    await loadRepos();
+  } catch (error) {
+    button.disabled = false;
+    setStatus(error.message || "Delete failed", true);
+  }
+});
+
+refreshBtn.addEventListener("click", () => {
+  loadRepos().catch((error) => setStatus(error.message || "Failed to load repositories", true));
+});
+
+loadRepos().catch((error) => setStatus(error.message || "Failed to load repositories", true));
+</script>
+</body>
+</html>`);
+});
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, repoRoot: REPO_ROOT, daemon: { host: GIT_DAEMON_HOST, port: GIT_DAEMON_PORT } });
+});
+
+app.get("/api/repos", requireAuth, (_req, res) => {
+  try {
+    const repositories = listRepositories().map((repo) => ({
+      ...repo,
+      totalSizeHuman: formatSize(repo.totalSizeBytes),
+    }));
+
+    return res.json({
+      repoRoot: REPO_ROOT,
+      repositories,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 app.post("/api/repos", requireAuth, (req, res) => {
@@ -146,6 +419,24 @@ app.post("/api/repos", requireAuth, (req, res) => {
       path: fullPath,
       cloneUrl: cloneUrl(cleanedRepoName),
     });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/repos/:repoName", requireAuth, (req, res) => {
+  try {
+    const cleanedRepoName = sanitizeRepoName(req.params.repoName);
+    if (!cleanedRepoName) {
+      return res.status(400).json({ error: "repoName is required and must be [a-z0-9._-]" });
+    }
+
+    const deleted = deleteRepository(cleanedRepoName);
+    if (!deleted) {
+      return res.status(404).json({ error: "Repository not found" });
+    }
+
+    return res.json({ ok: true, repoName: cleanedRepoName });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
