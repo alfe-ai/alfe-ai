@@ -903,7 +903,7 @@ body {
 
 .bubble-copy-btn {
   position: absolute;
-  top: 4px;
+  top: 0;
   right: 36px;
   background: transparent;
   border: none;
@@ -918,12 +918,12 @@ body {
 .chat-user .bubble-copy-btn,
 .chat-user .bubble-edit-btn,
 .chat-user .bubble-delete-btn {
-  top: -3px;
+  top: 0;
 }
 
 .bubble-edit-btn {
   position: absolute;
-  top: 4px;
+  top: 0;
   right: 20px;
   background: transparent;
   border: none;
@@ -978,11 +978,13 @@ body {
   margin-bottom: 6px; /* increased for a bit more breathing room */
   font-size: 0.9rem;
   position: relative;
+  min-height: 1rem;
 }
 
-/* Extra space to place buttons above timestamp */
-.chat-user .bubble-header {
-  padding-top: 16px;
+/* Reserve vertical space so bubble action icons never overlap subbubble text */
+.chat-user .bubble-header,
+.chat-bot .bubble-header {
+  min-height: 1.1rem;
 }
 
 /* Date header separating chat days */
