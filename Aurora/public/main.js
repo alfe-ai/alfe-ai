@@ -8055,10 +8055,10 @@ function renderFileList(){
       if(!confirmed) return;
       deleteBtn.disabled = true;
       try {
-        const resp = await fetch("/api/upload/hidden", {
+        const resp = await fetch("/api/upload/delete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: fileName, hidden: true }),
+          body: JSON.stringify({ name: fileName }),
         });
         if(!resp.ok){
           throw new Error(`Failed to delete image (${resp.status})`);
@@ -10119,11 +10119,14 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         if(greetingText) persistPrefabGreeting(tabId, greetingText);
       } else {
         for (const p of pairs) {
+          const visibleImageUrl = p.image_hidden ? null : p.image_url;
+          const visibleImageAlt = p.image_hidden ? '' : p.image_alt;
+          const visibleImageTitle = p.image_hidden ? '' : p.image_title;
           addChatMessage(
               p.id, p.user_text, p.timestamp,
               p.ai_text, p.ai_timestamp,
               p.model, p.system_context, p.project_context, null, p.token_info, p.citations_json,
-              p.image_url, p.image_alt, p.image_title
+              visibleImageUrl, visibleImageAlt, visibleImageTitle
           );
         }
         if(placeholderEl) placeholderEl.style.display = "none";
@@ -10209,7 +10212,7 @@ async function loadChatHistory(tabId = currentTabId, reset=false) {
         botHead.appendChild(aCopy);
         botDiv.appendChild(botHead);
 
-        if(p.image_url){
+        if(p.image_url && !p.image_hidden){
           const img = document.createElement("img");
           img.src = p.image_url;
           img.alt = p.image_alt || "";

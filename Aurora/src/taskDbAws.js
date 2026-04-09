@@ -1342,6 +1342,22 @@ export default class TaskDBAws {
     return rows[0] ? !!rows[0].image_hidden : false;
   }
 
+  deleteImageByUrl(url) {
+    if (!url) return;
+    void this.deleteImageByUrlAsync(url).catch((err) => {
+      console.warn('[TaskDBAws] Failed to delete image rows:', err);
+    });
+  }
+
+  async deleteImageByUrlAsync(url) {
+    await this._initPromise;
+    const { rowCount } = await this.pool.query(
+      'DELETE FROM chat_pairs WHERE image_url = $1',
+      [url]
+    );
+    return rowCount || 0;
+  }
+
   getImageTitleForUrl(url) {
     if (!url) return '';
     const cached = this.imageTitleCache.get(url);
