@@ -401,6 +401,21 @@ async function loadRepos() {
   }).join("");
 }
 
+let pendingDeleteRepoName = "";
+let pendingDeleteTimer = null;
+
+function resetDeleteConfirmation(button) {
+  if (!button) {
+    return;
+  }
+  button.dataset.confirming = "";
+  button.textContent = "Delete";
+  if (pendingDeleteTimer) {
+    window.clearTimeout(pendingDeleteTimer);
+    pendingDeleteTimer = null;
+  }
+}
+
 repoRows.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-repo]");
   if (!button) {
@@ -408,12 +423,40 @@ repoRows.addEventListener("click", async (event) => {
   }
 
   const repoName = button.getAttribute("data-repo");
-  const confirmed = window.confirm('Delete repository "' + repoName + '"? This cannot be undone.');
-  if (!confirmed) {
+  if (!repoName) {
+    return;
+  }
+
+  const isConfirming = button.dataset.confirming === "true" && pendingDeleteRepoName === repoName;
+  if (!isConfirming) {
+    const existing = repoRows.querySelector('button[data-confirming="true"]');
+    if (existing && existing !== button) {
+      resetDeleteConfirmation(existing);
+    }
+    pendingDeleteRepoName = repoName;
+    button.dataset.confirming = "true";
+    button.textContent = "Confirm";
+    setStatus('Click "Confirm" again to delete "' + repoName + '".', true);
+    if (pendingDeleteTimer) {
+      window.clearTimeout(pendingDeleteTimer);
+    }
+    pendingDeleteTimer = window.setTimeout(() => {
+      if (button.dataset.confirming === "true") {
+        resetDeleteConfirmation(button);
+        if (pendingDeleteRepoName === repoName) {
+          pendingDeleteRepoName = "";
+        }
+      }
+    }, 5000);
     return;
   }
 
   button.disabled = true;
+  button.textContent = "Deleting...";
+  if (pendingDeleteTimer) {
+    window.clearTimeout(pendingDeleteTimer);
+    pendingDeleteTimer = null;
+  }
   setStatus("Deleting " + repoName + "...");
 
   try {
@@ -425,10 +468,13 @@ repoRows.addEventListener("click", async (event) => {
     if (!response.ok) {
       throw new Error(payload.error || "Request failed (" + response.status + ")");
     }
+    pendingDeleteRepoName = "";
     setStatus("Deleted " + repoName + ".");
     await loadRepos();
   } catch (error) {
     button.disabled = false;
+    resetDeleteConfirmation(button);
+    pendingDeleteRepoName = "";
     setStatus(error.message || "Delete failed", true);
   }
 });
