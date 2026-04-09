@@ -84,4 +84,4 @@ MIT. See [`LICENSE`](LICENSE).
 
 ## Company
 
-Built by Lochner Technology (lochner.tech).
+Built by Lochner Technology ([lochner.tech](https://lochner.tech)).
