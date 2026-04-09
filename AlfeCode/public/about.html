@@ -16,30 +16,30 @@
 </head>
 <body>
   <div class="about-card">
-  <h2>About ALSH.ai</h2>
-  <p class="muted">ALSH.ai is an open source platform that combines AI-assisted software development, chat, and task management.</p>
-  <p class="muted">All source code is available on <a href="https://github.com/ALSH-ai" target="_blank">GitHub</a> for self-hosting or customization. ALSH.ai has been developed with a focus on privacy and security, and your data is only used for purposes required by the application. Data is not sold or used for advertising. When using 3rd party LLM providers, we only use providers that do not train on your data.</p>
-  <p class="muted">ALSH.ai / our providers do not train on your data.</p>
-  <p class="muted">ALSH.ai is developed by <a href="https://lochner.tech" target="_blank">Lochner Tech</a>.</p>
-  <hr>
+    <h2>About ALSH.ai</h2>
+    <p class="muted">ALSH.ai is an open source AI platform for full-project code execution and secure chat.</p>
+    <p class="muted">It is designed for teams that want AI-assisted collaboration across code and chat workflows: task execution, code changes, diffs, and merge-ready output. All source code is available on <a href="https://github.com/ALSH-ai" target="_blank">GitHub</a> for self-hosting, auditing, and customization.</p>
+    <p class="muted">ALSH.ai is built with a focus on privacy and security. User data is used only to operate the product and is not sold or used for advertising. When third-party model providers are used, ALSH.ai is configured to use providers that do not train on your data.</p>
+    <p class="muted">ALSH.ai is developed by <a href="https://lochner.tech" target="_blank">Lochner Technology</a>.</p>
+    <hr>
 
-  <div style="margin-top:18px;">
-    <div data-how-it-works></div>
-    <script>
-      (function(){
-        var container = document.querySelector('[data-how-it-works]');
-        if (!container) return;
-        fetch('/how-it-works.html')
-          .then(function(response){
-            return response.ok ? response.text() : '';
-          })
-          .then(function(html){
-            if (html) container.innerHTML = html;
-          });
-      })();
-    </script>
-    <p>Read our <a href="https://chat.alsh.ai/terms.html" target="_blank">Terms of Service</a>, <a href="https://chat.alsh.ai/privacy.html" target="_blank">Privacy Policy</a>, and <a href="https://chat.alsh.ai/cookies.html" target="_blank">Cookies Policy</a>.</p>
-  <p class="muted">Copyright (c) 2022-2026</p>
+    <div style="margin-top:18px;">
+      <div data-how-it-works></div>
+      <script>
+        (function(){
+          var container = document.querySelector('[data-how-it-works]');
+          if (!container) return;
+          fetch('/how-it-works.html')
+            .then(function(response){
+              return response.ok ? response.text() : '';
+            })
+            .then(function(html){
+              if (html) container.innerHTML = html;
+            });
+        })();
+      </script>
+      <p>Read our <a href="https://chat.alsh.ai/terms.html" target="_blank">Terms of Service</a>, <a href="https://chat.alsh.ai/privacy.html" target="_blank">Privacy Policy</a>, and <a href="https://chat.alsh.ai/cookies.html" target="_blank">Cookies Policy</a>.</p>
+    </div>
   </div>
 </body>
 </html>
