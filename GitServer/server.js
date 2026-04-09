@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const https = require("https");
 const { execFileSync, spawn } = require("child_process");
 const express = require("express");
 
@@ -49,6 +50,43 @@ const GIT_DAEMON_HOST = process.env.GIT_DAEMON_LISTEN_HOST || "0.0.0.0";
 const GIT_DAEMON_PORT = Number.parseInt(process.env.GIT_DAEMON_PORT || "9418", 10);
 const CLONE_HOST = process.env.GIT_DAEMON_PUBLIC_HOST || "127.0.0.1";
 const CLONE_PORT = Number.parseInt(process.env.GIT_DAEMON_PUBLIC_PORT || `${GIT_DAEMON_PORT}`, 10);
+const ADMIN_HTTPS_ENABLED = String(process.env.GIT_SERVER_ADMIN_HTTPS_ENABLED || "true").toLowerCase() !== "false";
+const ADMIN_HTTPS_HOST = process.env.GIT_SERVER_ADMIN_HTTPS_HOST || "";
+const ADMIN_HTTPS_PORT = Number.parseInt(process.env.GIT_SERVER_ADMIN_HTTPS_PORT || "443", 10);
+const ADMIN_TLS_KEY_PATH = process.env.GIT_SERVER_ADMIN_TLS_KEY_PATH || "";
+const ADMIN_TLS_CERT_PATH = process.env.GIT_SERVER_ADMIN_TLS_CERT_PATH || "";
+
+function normalizeHostName(rawHost) {
+  const host = String(rawHost || "").trim();
+  if (!host) {
+    return "";
+  }
+  if (host.startsWith("[") && host.endsWith("]")) {
+    return host.slice(1, -1);
+  }
+  const colonCount = (host.match(/:/g) || []).length;
+  if (colonCount <= 1) {
+    return host.split(":")[0] || "";
+  }
+  return host;
+}
+
+function resolveAdminHost(req) {
+  if (ADMIN_HTTPS_HOST) {
+    return ADMIN_HTTPS_HOST;
+  }
+  const requestHost = normalizeHostName(req?.headers?.host || "");
+  if (requestHost) {
+    return requestHost;
+  }
+  return "127.0.0.1";
+}
+
+function buildAdminBaseUrl(req) {
+  const host = resolveAdminHost(req);
+  const portSegment = ADMIN_HTTPS_PORT === 443 ? "" : `:${ADMIN_HTTPS_PORT}`;
+  return `https://${host}${portSegment}`;
+}
 
 function requireAuth(req, res, next) {
   if (!API_TOKEN) {
@@ -238,6 +276,11 @@ function formatSize(sizeBytes) {
 }
 
 app.get("/", (_req, res) => {
+  if (ADMIN_HTTPS_ENABLED && !_req.secure) {
+    const adminUrl = `${buildAdminBaseUrl(_req)}/`;
+    return res.redirect(302, adminUrl);
+  }
+
   res.type("html").send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -568,6 +611,25 @@ ensureRepoRoot();
 maybeStartGitDaemon();
 app.listen(API_PORT, API_HOST, () => {
   console.log(`[GitServer] API listening on http://${API_HOST}:${API_PORT}`);
+  if (ADMIN_HTTPS_ENABLED) {
+    console.log(`[GitServer] Admin page redirect is enabled: https://${ADMIN_HTTPS_HOST || "<request-host>"}:${ADMIN_HTTPS_PORT}`);
+  }
   console.log(`[GitServer] Serving repositories from ${REPO_ROOT}`);
   console.log(`[GitServer] Clone URL base: git://${CLONE_HOST}:${CLONE_PORT}`);
 });
+
+if (ADMIN_HTTPS_ENABLED) {
+  if (!ADMIN_TLS_KEY_PATH || !ADMIN_TLS_CERT_PATH) {
+    console.warn("[GitServer] Admin HTTPS is enabled but TLS paths are missing; skipping HTTPS listener.");
+  } else if (!fs.existsSync(ADMIN_TLS_KEY_PATH) || !fs.existsSync(ADMIN_TLS_CERT_PATH)) {
+    console.warn(`[GitServer] Admin TLS files were not found (key: ${ADMIN_TLS_KEY_PATH}, cert: ${ADMIN_TLS_CERT_PATH}); skipping HTTPS listener.`);
+  } else {
+    const tlsOptions = {
+      key: fs.readFileSync(ADMIN_TLS_KEY_PATH),
+      cert: fs.readFileSync(ADMIN_TLS_CERT_PATH),
+    };
+    https.createServer(tlsOptions, app).listen(ADMIN_HTTPS_PORT, API_HOST, () => {
+      console.log(`[GitServer] Admin HTTPS listening on https://${API_HOST}:${ADMIN_HTTPS_PORT}`);
+    });
+  }
+}
