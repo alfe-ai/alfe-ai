@@ -45,6 +45,11 @@ const GITHOST_SCRIPT_PATH = path.join(PROJECT_ROOT, "githost", "git-server.sh");
 const GITHOST_REPO_ROOT = path.join(path.sep, "srv", "git", "repositories");
 const DEMO_GIT_SERVER_API_URL = normalizeBaseUrl(process.env.DEMO_GIT_SERVER_API_URL || "http://127.0.0.1:4005");
 const DEMO_GIT_SERVER_API_TOKEN = (process.env.DEMO_GIT_SERVER_API_TOKEN || "").trim();
+// Git daemon default port is 9418 (git://...), used for demo repository clone URLs.
+const DEFAULT_DEMO_GIT_SERVER_CLONE_BASE_URL = "git://127.0.0.1:9418";
+const DEMO_GIT_SERVER_CLONE_BASE_URL = normalizeBaseUrl(
+    (process.env.DEMO_GIT_SERVER_CLONE_BASE_URL || DEFAULT_DEMO_GIT_SERVER_CLONE_BASE_URL).trim(),
+);
 const SESSION_GIT_BASE_PATH = (function(){
     // Prefer an explicit env override for session git base path. If not set,
     // store session repos under the application's data directory so the
@@ -453,11 +458,10 @@ function ensureGitRepository(repoDir) {
 }
 
 function buildExternalGitServerCloneUrl(repoNameWithGitSuffix) {
-    const configuredCloneBase = normalizeBaseUrl(process.env.DEMO_GIT_SERVER_CLONE_BASE_URL || "git://127.0.0.1:9418");
-    if (!configuredCloneBase) {
+    if (!DEMO_GIT_SERVER_CLONE_BASE_URL) {
         return "";
     }
-    return `${configuredCloneBase}/${repoNameWithGitSuffix}`;
+    return `${DEMO_GIT_SERVER_CLONE_BASE_URL}/${repoNameWithGitSuffix}`;
 }
 
 async function ensureExternalDemoRepo(remoteRepoName) {
@@ -505,6 +509,7 @@ async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_N
     const remoteRepoName = buildSessionRemoteRepoName(sessionId, repoName);
     const remoteRepoPath = path.join(GITHOST_REPO_ROOT, `${remoteRepoName}.git`);
     const repoGitSuffix = `${remoteRepoName}.git`;
+    const configuredExternalCloneUrl = buildExternalGitServerCloneUrl(repoGitSuffix);
     const gitHostScriptExists = fs.existsSync(GITHOST_SCRIPT_PATH);
     let clonedFromRemote = false;
     let gitRepoURL = "";
@@ -513,7 +518,7 @@ async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_N
     if (DEMO_GIT_SERVER_API_URL) {
         try {
             const externalRepo = await ensureExternalDemoRepo(remoteRepoName);
-            const cloneUrl = externalRepo?.cloneUrl || buildExternalGitServerCloneUrl(repoGitSuffix);
+            const cloneUrl = externalRepo?.cloneUrl || configuredExternalCloneUrl;
             gitRepoURL = externalRepo?.gitRepoURL || cloneUrl;
             if (cloneUrl) {
                 if (fs.existsSync(repoDir)) {
@@ -576,6 +581,25 @@ async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_N
     if (!clonedFromRemote) {
         ensureDirectory(repoDir);
         ensureGitRepository(repoDir);
+        if (!gitRepoURL && configuredExternalCloneUrl) {
+            gitRepoURL = configuredExternalCloneUrl;
+        }
+        if (gitRepoURL) {
+            try {
+                const existingOrigin = execSync("git remote get-url origin", { cwd: repoDir, stdio: ["ignore", "pipe", "ignore"] })
+                    .toString()
+                    .trim();
+                if (existingOrigin && existingOrigin !== gitRepoURL) {
+                    execSync(`git remote set-url origin "${gitRepoURL}"`, { cwd: repoDir, stdio: "ignore" });
+                }
+            } catch (_originError) {
+                try {
+                    execSync(`git remote add origin "${gitRepoURL}"`, { cwd: repoDir, stdio: "ignore" });
+                } catch (setOriginErr) {
+                    console.error(`[ERROR] ensureSessionDefaultRepo => Failed to configure origin remote: ${setOriginErr.message}`);
+                }
+            }
+        }
     }
 
     // Create blank AGENTS.md and make an initial commit if repo has no commits
