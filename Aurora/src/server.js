@@ -1574,11 +1574,14 @@ app.use((req, res, next) => {
   try {
     if (!IMAGE_UPLOAD_ENABLED) {
       const isUploadApi = req.path.startsWith('/api/upload');
+      const isUploadMetadataWrite =
+        req.method === 'POST' &&
+        req.path === '/api/upload/hidden';
       const isReadOnlyUpload =
         req.method === 'GET' &&
         (req.path === '/api/upload/list' || req.path === '/api/upload/byId' || req.path === '/api/upload/title');
 
-      if (isUploadApi && !isReadOnlyUpload) {
+      if (isUploadApi && !isReadOnlyUpload && !isUploadMetadataWrite) {
         return res.status(403).json({ error: 'Image upload disabled' });
       }
 
