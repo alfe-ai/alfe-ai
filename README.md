@@ -2,25 +2,25 @@
 
 > ALSH.ai is an AI code agent for full-project execution.
 
-ALSH.ai runs real end-to-end coding jobs against full repositories: it checks out code, executes an agent run from your prompt, and produces a reviewable diff you can merge. It’s fully open source (MIT), with a hosted experience plus an evolving self-host path.
+ALSH.ai runs real end-to-end coding jobs against full repositories: it checks out code, executes an agent run from your prompt, and produces a reviewable diff you can merge. It’s fully open source (MIT), with a hosted cloud experience plus a self-host path.
 
 **Come for the code agent. Stay for the workspace.**
 
-**Formerly Alfe.** ALSH.ai is the continuation of the Alfe project—same core direction, new name and product identity. You may still see “Alfe” referenced in code, docs, and legacy URLs while the transition finishes.
+**Formerly Alfe.** ALSH.ai is the continuation of the Alfe project. You may still see “Alfe” referenced in code, docs, and legacy URLs while the transition finishes.
 
 ## Key features
 
 - **AI code agent (primary): full-project execution**
   - Runs against git repos (branch-based runs, patch generation, diff review, merge workflow).
   - Optimized for “do the work” prompts rather than chat-only assistance.
-- **AI chat (supporting)**
-  - Workspace chat for planning, debugging, and iteration across a project.
+- **AI chat**
+  - Workspace chat for planning and iteration.
 - **Project management (GitHub-style tasks)**
-  - Lightweight task boards / PM workflows tied to execution.
-- **AI search**
-  - Fast, query-first search workflows designed to support coding and research inside the workspace.
+  - Lightweight task boards / project management.
 - **AI image design**
-  - Generate and iterate on images inside the same workspace used for building.
+  - Generate and iterate on images inside the Chat workspace.
+- **AI search (included in chat)**
+  - Fast search.
 - **Git hosting / repo workflows**
   - Repo operations and run outputs designed around standard git collaboration.
 
