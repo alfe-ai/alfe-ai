@@ -24,7 +24,7 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 - **Git hosting / repo workflows**
   - Repo operations and run outputs designed around standard git collaboration.
 
-## Screenshots and demo
+## Screenshots
 
 <img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5" />
 
