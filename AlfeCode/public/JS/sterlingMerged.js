@@ -756,7 +756,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
     const userHead = document.createElement("div");
     userHead.className = "bubble-header";
     userHead.innerHTML = `
-      <div class="name-oval name-oval-user">User</div>
       <span style="opacity:0.8;">${formatTimestamp(userTs)}</span>
     `;
     userDiv.appendChild(userHead);
@@ -784,7 +783,6 @@ function addChatMessage(pairId, userText, userTs, aiText, aiTs, model, systemCon
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
   botHead.innerHTML = `
-    <div class="name-oval name-oval-ai">${window.agentName} (${model || ""})</div>
     <span style="opacity:0.8;">${aiTs ? formatTimestamp(aiTs) : "…"}</span>
   `;
   botDiv.appendChild(botHead);
@@ -972,7 +970,6 @@ chatSendBtnEl.addEventListener("click", async () => {
     const userHead = document.createElement("div");
     userHead.className = "bubble-header";
     userHead.innerHTML = `
-      <div class="name-oval name-oval-user">User</div>
       <span style="opacity:0.8;">${formatTimestamp(userTime)}</span>
     `;
     userDiv.appendChild(userHead);
@@ -989,7 +986,6 @@ chatSendBtnEl.addEventListener("click", async () => {
   const botHead = document.createElement("div");
   botHead.className = "bubble-header";
   botHead.innerHTML = `
-    <div class="name-oval name-oval-ai">${window.agentName} (${modelName})</div>
     <span style="opacity:0.8;">…</span>
   `;
   botDiv.appendChild(botHead);
