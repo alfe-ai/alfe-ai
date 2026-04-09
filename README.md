@@ -26,15 +26,23 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 
 ## Screenshots and demo
 
-> If you’re looking for a short demo video: it’s in progress. For now, here are a few UI screenshots from the current repo history.
+<img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5" />
 
-![ALSH.ai screenshot](https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5)
+<img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153" />
 
-![ALSH.ai screenshot](https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153)
+<img width="1772" height="651" alt="image" src="https://github.com/user-attachments/assets/8b15c1f2-a448-43e7-b714-1242a04d80e6" />
 
-![ALSH.ai screenshot](https://github.com/user-attachments/assets/b07d3e2c-9750-4533-b208-d6e5f68c439a)
+<img width="772" height="1415" alt="image" src="https://github.com/user-attachments/assets/b07d3e2c-9750-4533-b208-d6e5f68c439a" />
 
-## Model architecture
+<img width="1355" height="1017" alt="image" src="https://github.com/user-attachments/assets/e5aa1ffa-9f49-4863-aff0-80b1ee627896" />
+
+<img width="1314" height="1162" alt="image" src="https://github.com/user-attachments/assets/f2011c6e-f1ef-4548-8310-db39ceb2359d" />
+
+<img width="2083" height="749" alt="image" src="https://github.com/user-attachments/assets/d18cb826-4964-4289-9fbb-b42be684c321" />
+
+<img width="603" height="1178" alt="image" src="https://github.com/user-attachments/assets/0493dece-3756-4ece-9a9f-a8f05df387e3" />
+
+## Architecture
 
 ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, diffs, task/workspace integration, and the UI that ties it together. Models are **swappable backends**—you should be able to choose based on speed, cost, and privacy requirements.
 
