@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync, spawn } = require("child_process");
+const http = require("http");
+const https = require("https");
 const express = require("express");
 
 function loadDotEnv(envFilePath) {
@@ -49,6 +51,8 @@ const GIT_DAEMON_HOST = process.env.GIT_DAEMON_LISTEN_HOST || "0.0.0.0";
 const GIT_DAEMON_PORT = Number.parseInt(process.env.GIT_DAEMON_PORT || "9418", 10);
 const CLONE_HOST = process.env.GIT_DAEMON_PUBLIC_HOST || "127.0.0.1";
 const CLONE_PORT = Number.parseInt(process.env.GIT_DAEMON_PUBLIC_PORT || `${GIT_DAEMON_PORT}`, 10);
+const TLS_KEY_PATH = (process.env.GIT_SERVER_TLS_KEY_PATH || "").trim();
+const TLS_CERT_PATH = (process.env.GIT_SERVER_TLS_CERT_PATH || "").trim();
 
 function requireAuth(req, res, next) {
   if (!API_TOKEN) {
@@ -566,8 +570,26 @@ app.delete("/api/repos/:repoName", requireAuth, (req, res) => {
 
 ensureRepoRoot();
 maybeStartGitDaemon();
-app.listen(API_PORT, API_HOST, () => {
-  console.log(`[GitServer] API listening on http://${API_HOST}:${API_PORT}`);
+const tlsEnabled = Boolean(TLS_KEY_PATH && TLS_CERT_PATH);
+let server = null;
+let protocol = "http";
+
+if (tlsEnabled) {
+  try {
+    const key = fs.readFileSync(path.resolve(TLS_KEY_PATH), "utf-8");
+    const cert = fs.readFileSync(path.resolve(TLS_CERT_PATH), "utf-8");
+    server = https.createServer({ key, cert }, app);
+    protocol = "https";
+  } catch (error) {
+    console.warn(`[GitServer] Failed to load TLS certificates, falling back to HTTP: ${error.message}`);
+    server = http.createServer(app);
+  }
+} else {
+  server = http.createServer(app);
+}
+
+server.listen(API_PORT, API_HOST, () => {
+  console.log(`[GitServer] API listening on ${protocol}://${API_HOST}:${API_PORT}`);
   console.log(`[GitServer] Serving repositories from ${REPO_ROOT}`);
   console.log(`[GitServer] Clone URL base: git://${CLONE_HOST}:${CLONE_PORT}`);
 });
