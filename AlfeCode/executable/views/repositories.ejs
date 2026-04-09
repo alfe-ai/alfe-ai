@@ -60,8 +60,10 @@
             gap: 12px;
         }
         .default-repo-loader.is-visible { display: flex; }
-        .page.is-initializing-default-repo [data-main-content] { display: none; }
-        .page.is-initializing-default-repo .default-repo-loader { margin-top: 0; }
+        .page.is-initializing-default-repo [data-page-content] { display: none; }
+        .page.is-initializing-default-repo .default-repo-loader { display: flex; margin-top: 0; }
+        .default-repo-init-pending .page [data-page-content] { display: none; }
+        .default-repo-init-pending .page .default-repo-loader { display: flex; margin-top: 0; }
         .default-repo-loader__spinner {
             width: 18px;
             height: 18px;
@@ -76,11 +78,33 @@
             to { transform: rotate(360deg); }
         }
     </style>
+    <script>
+        (function(){
+            var shouldInitializeDefaultRepo = <%- JSON.stringify(Boolean(initializingDefaultRepo)) %>;
+            if (!shouldInitializeDefaultRepo) return;
+            function parseBooleanFlag(value){
+                if (Array.isArray(value)) return parseBooleanFlag(value[value.length-1]);
+                if (typeof value === 'boolean') return value;
+                if (typeof value === 'number') return value===1;
+                if (typeof value === 'string'){
+                    var normalized=value.trim().toLowerCase();
+                    if(!normalized) return false;
+                    return ['1','true','yes','y','on'].includes(normalized);
+                }
+                return false;
+            }
+            var params = new URLSearchParams(window.location.search);
+            var iframeParam = params.get('iframe');
+            var isIframeMode = (iframeParam===null) ? (window.self !== window.top) : parseBooleanFlag(iframeParam);
+            if (!isIframeMode) document.documentElement.classList.add('default-repo-init-pending');
+        })();
+    </script>
 </head>
 <body>
     <%- include('partials/session_banner') %>
     <div class="page">
-        <div data-main-content>
+        <div data-page-content>
+            <div data-main-content>
             <header>
                 <div class="actions">
                     <a class="button add-repo-button" href="/repositories/add" role="button">
@@ -118,6 +142,24 @@
                     </li>
                 <% }); %>
             </ul>
+            </div>
+            <footer>
+                <div
+                    class="how-it-works"
+                    data-how-it-works
+                    style="
+                        margin-top: 18px;
+                        padding: 18px;
+                        border-radius: 12px;
+                        background: linear-gradient(135deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.78));
+                        border: 1px solid var(--nexum-border);
+                        color: var(--nexum-muted);
+                    "
+                ></div>
+            </footer>
+            <div style="margin-top:12px;color:var(--nexum-muted);font-size:0.9rem;">Session ID: <%= sessionId %></div>
+
+            <div style="margin-top:8px;"><a href="/about.html" class="button secondary">About</a></div>
         </div>
         <div class="default-repo-loader" data-default-repo-loader aria-live="polite" role="status">
             <span class="default-repo-loader__spinner" aria-hidden="true"></span>
@@ -126,24 +168,6 @@
                 <div class="default-repo-loader__subtitle">Cloning your default repository and redirecting automatically.</div>
             </div>
         </div>
-        <footer>
-            <div
-                class="how-it-works"
-                data-how-it-works
-                style="
-                    margin-top: 18px;
-                    padding: 18px;
-                    border-radius: 12px;
-                    background: linear-gradient(135deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.78));
-                    border: 1px solid var(--nexum-border);
-                    color: var(--nexum-muted);
-                "
-            ></div>
-        </footer>
-        <div style="margin-top:12px;color:var(--nexum-muted);font-size:0.9rem;">Session ID: <%= sessionId %></div>
-
-        <div style="margin-top:8px;"><a href="/about.html" class="button secondary">About</a></div>
-
         <script>
             (function(){
                 var defaultRepoName = <%- JSON.stringify(defaultRepoName || 'Default') %>;
@@ -184,10 +208,6 @@
                     window.alert('Your default repository is taking longer than expected. Please refresh this page.');
                 }
 
-                if (shouldInitializeDefaultRepo) {
-                    void waitForDefaultRepoReady();
-                }
-
                 function parseBooleanFlag(value){
                     if (Array.isArray(value)) return parseBooleanFlag(value[value.length-1]);
                     if (typeof value === 'boolean') return value;
@@ -202,6 +222,13 @@
                 var params = new URLSearchParams(window.location.search);
                 var iframeParam = params.get('iframe');
                 var isIframeMode = (iframeParam===null) ? (window.self !== window.top) : parseBooleanFlag(iframeParam);
+                var shouldRunDefaultRepoInitialization = shouldInitializeDefaultRepo && !isIframeMode;
+                if (!shouldRunDefaultRepoInitialization) {
+                    setDefaultRepoLoaderVisible(false);
+                } else {
+                    void waitForDefaultRepoReady();
+                }
+                document.documentElement.classList.remove('default-repo-init-pending');
                 var howItWorksContainer = document.querySelector('[data-how-it-works]');
                 if(isIframeMode){
                     if(howItWorksContainer) howItWorksContainer.style.display='none';
