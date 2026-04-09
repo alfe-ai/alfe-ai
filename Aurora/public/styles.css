@@ -918,7 +918,15 @@ body {
 .chat-user .bubble-copy-btn,
 .chat-user .bubble-edit-btn,
 .chat-user .bubble-delete-btn {
-  top: 0;
+  top: -2px;
+}
+
+.chat-user .bubble-copy-btn {
+  right: 30px;
+}
+
+.chat-user .bubble-edit-btn {
+  right: 10px;
 }
 
 .bubble-edit-btn {
@@ -1088,7 +1096,7 @@ body {
 
 .chat-model-info {
   position: absolute;
-  top: 4px;
+  top: -2px;
   right: 64px;
   width: 18px;
   height: 18px;
