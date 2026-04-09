@@ -1,6 +1,6 @@
 // sessionId is defined in session.js and available globally
 // sessionId is provided globally by session.js
-const defaultTitle = "Alfe - AI Chat and Software Development Platform";
+const defaultTitle = "ALSH.ai - AI Chat and Software Development Platform";
 const DEFAULT_SEARCH_MODEL = "openai/gpt-4o-mini-search-preview";
 // Enable automatic scrolling of the chat by default so new messages stay in view.
 // Manual scrolling (e.g. via the scroll down button) can still force scrolling.
@@ -829,9 +829,9 @@ function updatePageTitle(){
   const tabTitle = fixedTitle || (active && active.name);
   if(tabTitle){
     if(active && active.task_id){
-      document.title = `Alfe - #${active.task_id} ${tabTitle}`;
+      document.title = `ALSH.ai - #${active.task_id} ${tabTitle}`;
     } else {
-      document.title = `Alfe - ${tabTitle}`;
+      document.title = `ALSH.ai - ${tabTitle}`;
     }
   } else {
     document.title = defaultTitle;
