@@ -316,10 +316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if(uploaderPanel) uploaderPanel.style.display = 'none';
     } else {
       // Ensure Image Design nav button is always visible regardless of upload config
-      const uploaderBtn = document.getElementById('navUploaderBtn');
-      if(uploaderBtn) uploaderBtn.style.display = '';
-      const uploaderIcon = document.getElementById('navUploaderIcon');
-      if(uploaderIcon) uploaderIcon.style.display = '';
+      setImageDesignNavVisibility(featureFlagConfig.imagesEnabled2026);
     }
   } catch(e) { console.warn('Error applying imageUploadConfig', e); }
 
@@ -668,6 +665,19 @@ let searchEnabled = false; // toggle search mode
 let reasoningEnabled = false; // toggle reasoning mode
 let aiResponsesEnabled = true; // allow AI responses
 
+function setImageDesignNavVisibility(visible){
+  const uploaderBtn = document.getElementById("navUploaderBtn");
+  const uploaderBtnListItem = uploaderBtn?.closest("li");
+  const uploaderIcon = document.getElementById("navUploaderIcon");
+  const thinImagesBtn = document.getElementById("thinIconImages");
+
+  [uploaderBtn, uploaderBtnListItem, uploaderIcon, thinImagesBtn].forEach((el) => {
+    if (!el) return;
+    el.hidden = !visible;
+    el.style.display = visible ? "" : "none";
+  });
+}
+
 const applyFeatureFlagVisibility = () => {
   const { searchEnabled2026, imagesEnabled2026 } = featureFlagConfig;
 
@@ -693,16 +703,7 @@ const applyFeatureFlagVisibility = () => {
   }
 
   if (!imagesEnabled2026) {
-    [
-      document.getElementById("navUploaderBtn"),
-      document.getElementById("navUploaderIcon"),
-      document.getElementById("thinIconImages")
-    ].forEach((el) => {
-      if (el) {
-        el.hidden = true;
-        el.style.display = "none";
-      }
-    });
+    setImageDesignNavVisibility(false);
     document.querySelectorAll('button[data-type="design"]').forEach((btn) => {
       btn.hidden = true;
       btn.style.display = "none";
@@ -711,6 +712,8 @@ const applyFeatureFlagVisibility = () => {
       option.disabled = true;
       option.hidden = true;
     });
+  } else {
+    setImageDesignNavVisibility(true);
   }
 };
 
