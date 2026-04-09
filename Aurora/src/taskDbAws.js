@@ -1318,6 +1318,21 @@ export default class TaskDBAws {
     return rows[0]?.session_id ?? '';
   }
 
+  setImageHidden(url, hidden) {
+    if (!url) return;
+    void this.setImageHiddenAsync(url, hidden).catch((err) => {
+      console.warn('[TaskDBAws] Failed to set image hidden flag:', err);
+    });
+  }
+
+  async setImageHiddenAsync(url, hidden) {
+    await this._initPromise;
+    await this.pool.query(
+      'UPDATE chat_pairs SET image_hidden = $1 WHERE image_url = $2',
+      [hidden ? 1 : 0, url]
+    );
+  }
+
   async getImageHiddenForUrl(url) {
     await this._initPromise;
     const { rows } = await this.pool.query(
