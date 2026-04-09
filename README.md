@@ -17,7 +17,7 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
   - Workspace chat for planning, debugging, and iteration across a project.
 - **Project management (GitHub-style tasks)**
   - Lightweight task boards / PM workflows tied to execution.
-- **AI search (Kagi-style)**
+- **AI search**
   - Fast, query-first search workflows designed to support coding and research inside the workspace.
 - **AI image design**
   - Generate and iterate on images inside the same workspace used for building.
