@@ -4786,7 +4786,12 @@ app.post("/api/image/generate", async (req, res) => {
       });
     }
 
-    const openaiClient = new OpenAI({ apiKey: openAiKey });
+    const imageOpenAiUrl = (process.env.IMAGES_OPENAI_URL || process.env.OPENAI_BASE_URL || "").trim();
+    const openAiClientConfig = { apiKey: openAiKey };
+    if (imageOpenAiUrl) {
+      openAiClientConfig.baseURL = imageOpenAiUrl;
+    }
+    const openaiClient = new OpenAI(openAiClientConfig);
 
     let modelName = (model || db.getSetting("image_gen_model") || "gptimage1").toLowerCase();
     if (modelName === "gptimage1") modelName = "gpt-image-1";
