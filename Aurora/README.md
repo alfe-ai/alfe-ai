@@ -15,6 +15,7 @@ npm start
 | Name             | Purpose                                               |
 | ---------------- | ----------------------------------------------------- |
 | `OPENAI_API_KEY` | OpenAI API key for AI features ([get here](https://platform.openai.com/api-keys)) |
+| `IMAGES_OPENAI_URL` | (Optional) OpenAI-compatible base URL used only for image generation requests; falls back to `OPENAI_BASE_URL` when unset |
 | `AI_MODEL`   | (Optional) Default AI model used if the database has no value (default: openrouter/openai/gpt-5-mini) |
 | `STABILITY_API_KEY` | (Optional) API key for the Stability AI upscaler |
 | `PRINTIFY_SCRIPT_PATH` | (Optional) Path to the Printify submission script. Defaults to the included run.sh |
