@@ -44,6 +44,7 @@
   </div>
   <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
     <button id="upscaleButton" hidden>Submit to Upscale</button>
+    <button id="removeBgButton" hidden>Remove Background</button>
     <button id="printifyPublishButton" hidden>Run Printify Publish</button>
     <button id="setProductUrlButton" hidden>Set Product URL</button>
     <button id="printifyFinishButton" style="margin-left:auto;">Programatic: Printify Finish</button>
@@ -462,6 +463,7 @@
     showOriginal();
 
     const upscaleBtn = document.getElementById('upscaleButton');
+    const removeBgBtn = document.getElementById('removeBgButton');
     printifyPublishBtn = document.getElementById('printifyPublishButton');
     setProductUrlBtn = document.getElementById('setProductUrlButton');
     productUrlCell = document.getElementById('productUrlCell');
@@ -494,6 +496,7 @@
       console.debug('Loaded Image page for file =>', file);
       if (file) {
       upscaleBtn.hidden = false;
+      if(removeBgBtn) removeBgBtn.hidden = false;
       if(printifyPublishBtn) printifyPublishBtn.hidden = true;
       if(setProductUrlBtn) setProductUrlBtn.hidden = false;
       if(printifyTitleInput && !printifyTitleInput.value){
@@ -528,6 +531,32 @@
           terminalEl.textContent = 'Upscale request failed.';
         }
       });
+      if(removeBgBtn){
+        removeBgBtn.addEventListener('click', async () => {
+          console.debug('Remove Background clicked with file =>', file);
+          terminalEl.textContent = '';
+          removeBgBtn.disabled = true;
+          try {
+            const res = await fetch('/api/pipelineQueue', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ file, dbId: idParam || undefined, type: 'removeBg', toTop: true })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.jobId) {
+              window.open(`jobs.html?jobId=${data.jobId}`, '_blank');
+              terminalEl.textContent = `Background removal job started with ID ${data.jobId}.`;
+            } else {
+              terminalEl.textContent = data.error || 'Remove background request failed.';
+            }
+          } catch (err) {
+            console.error('Remove background request error =>', err);
+            terminalEl.textContent = 'Remove background request failed.';
+          } finally {
+            removeBgBtn.disabled = false;
+          }
+        });
+      }
       if(printifyPublishBtn){
         printifyPublishBtn.addEventListener('click', async () => {
           const choice = document.querySelector('input[name="printifyVariant"]:checked');
@@ -660,6 +689,7 @@
       setInterval(checkPortfolio, 5000);
     } else {
       upscaleBtn.disabled = true;
+      if(removeBgBtn) removeBgBtn.disabled = true;
       if(printifyPublishBtn) printifyPublishBtn.disabled = true;
       if(setProductUrlBtn) setProductUrlBtn.disabled = true;
       console.debug('No file parameter found => Upscale disabled');
