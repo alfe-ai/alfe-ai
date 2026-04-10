@@ -1662,6 +1662,155 @@ export default class TaskDBAws {
     return rows[0]?.ebay_url ?? '';
   }
 
+  setImageStatus(url, status) {
+    if (!url) return;
+    this.imageStatusCache.set(url, status || '');
+    void this.setImageStatusAsync(url, status || '').catch((err) => {
+      console.warn('[TaskDBAws] Failed to set image status:', err);
+    });
+  }
+
+  async setImageStatusAsync(url, status) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET image_status = $1 WHERE image_url = $2',
+      [status, url]
+    );
+    if ((result?.rowCount || 0) === 0) {
+      await this.createImagePairAsync(url, '', 1, '', status, '', '', 0, '', '');
+    }
+  }
+
+  setImageTitle(url, title) {
+    if (!url) return;
+    this.imageTitleCache.set(url, title || '');
+    void this.setImageTitleAsync(url, title || '').catch((err) => {
+      console.warn('[TaskDBAws] Failed to set image title:', err);
+    });
+  }
+
+  async setImageTitleAsync(url, title) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET image_title = $1 WHERE image_url = $2',
+      [title, url]
+    );
+    if ((result?.rowCount || 0) === 0) {
+      await this.createImagePairAsync(url, '', 1, title, '', '', '', 0, '', '');
+    }
+  }
+
+  setImagePortfolio(url, flag) {
+    if (!url) return;
+    const enabled = !!flag;
+    this.imagePortfolioCache.set(url, enabled);
+    void this.setImagePortfolioAsync(url, enabled).catch((err) => {
+      console.warn('[TaskDBAws] Failed to set image portfolio flag:', err);
+    });
+  }
+
+  async setImagePortfolioAsync(url, flag) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET publish_portfolio = $1 WHERE image_url = $2',
+      [flag ? 1 : 0, url]
+    );
+    if ((result?.rowCount || 0) === 0) {
+      await this.createImagePairAsync(url, '', 1, '', '', '', '', flag ? 1 : 0, '', '');
+    }
+  }
+
+  setProductUrl(url, productUrl) {
+    if (!url) return;
+    const normalized = productUrl || '';
+    this.productUrlCache.set(url, normalized);
+    void this.setProductUrlAsync(url, normalized).catch((err) => {
+      console.warn('[TaskDBAws] Failed to set product url:', err);
+    });
+  }
+
+  async setProductUrlAsync(url, productUrl) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET product_url = $1 WHERE image_url = $2',
+      [productUrl, url]
+    );
+    if ((result?.rowCount || 0) === 0) {
+      await this.createImagePairAsync(url, '', 1, '', '', '', '', 0, productUrl, '');
+    }
+  }
+
+  setEbayUrl(url, ebayUrl) {
+    if (!url) return;
+    const normalized = ebayUrl || '';
+    this.ebayUrlCache.set(url, normalized);
+    void this.setEbayUrlAsync(url, normalized).catch((err) => {
+      console.warn('[TaskDBAws] Failed to set ebay url:', err);
+    });
+  }
+
+  async setEbayUrlAsync(url, ebayUrl) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET ebay_url = $1 WHERE image_url = $2',
+      [ebayUrl, url]
+    );
+    if ((result?.rowCount || 0) === 0) {
+      await this.createImagePairAsync(url, '', 1, '', '', '', '', 0, '', ebayUrl);
+    }
+  }
+
+  setEbayUrlForProductId(productId, ebayUrl) {
+    if (!productId) return 0;
+    void this.setEbayUrlForProductIdAsync(productId, ebayUrl || '').catch((err) => {
+      console.warn('[TaskDBAws] Failed to set ebay url for product id:', err);
+    });
+    return 0;
+  }
+
+  async setEbayUrlForProductIdAsync(productId, ebayUrl) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET ebay_url = $1 WHERE product_url LIKE $2',
+      [ebayUrl, `%${productId}%`]
+    );
+    return result?.rowCount || 0;
+  }
+
+  setUpscaledImage(originalUrl, upscaledPath) {
+    if (!originalUrl) return;
+    void this.setUpscaledImageAsync(originalUrl, upscaledPath).catch((err) => {
+      console.warn('[TaskDBAws] Failed to set upscaled image:', err);
+    });
+  }
+
+  async setUpscaledImageAsync(originalUrl, upscaledPath) {
+    await this._initPromise;
+    await this.pool.query(
+      `INSERT INTO upscaled_images (original, upscaled)
+       VALUES ($1, $2)
+       ON CONFLICT(original) DO UPDATE SET upscaled = EXCLUDED.upscaled`,
+      [originalUrl, upscaledPath]
+    );
+  }
+
+  getUpscaledImage(originalUrl) {
+    if (!originalUrl) return null;
+    void this.getUpscaledImageAsync(originalUrl).catch((err) => {
+      console.warn('[TaskDBAws] Failed to load upscaled image:', err);
+    });
+    return null;
+  }
+
+  async getUpscaledImageAsync(originalUrl) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT upscaled FROM upscaled_images WHERE original = $1',
+      [originalUrl]
+    );
+    return rows[0]?.upscaled ?? null;
+  }
+
   hoursSinceImageSessionStart(sessionId) {
     const start = this.getImageSessionStart(sessionId);
     if (!start) return 0;
