@@ -5,15 +5,23 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="${SCRIPT_DIR}/venv"
 
-# Create venv if it doesn't exist
-if [[ ! -d "$VENV_DIR" ]]; then
-  echo "Creating Python venv in $VENV_DIR..."
+ACTIVATE_PATH="$VENV_DIR/bin/activate"
+
+# Create/recreate venv when missing or incomplete
+if [[ ! -f "$ACTIVATE_PATH" ]]; then
+  if [[ -d "$VENV_DIR" ]]; then
+    echo "Existing venv is incomplete. Recreating $VENV_DIR..."
+    rm -rf "$VENV_DIR"
+  else
+    echo "Creating Python venv in $VENV_DIR..."
+  fi
+
   python3 -m venv "$VENV_DIR"
 fi
 
 # Activate venv
 # shellcheck disable=SC1090
-source "$VENV_DIR/bin/activate"
+source "$ACTIVATE_PATH"
 
 # Install / upgrade dependencies when missing
 REQS=(pillow rembg tqdm onnxruntime)
