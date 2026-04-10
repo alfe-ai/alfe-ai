@@ -4788,6 +4788,12 @@ app.get("/api/upscale/result", (req, res) => {
         const id = db.getImageIdForUrl(`/uploads/${file}`);
         return id ? [path.join(uploadsDir, `${id}_nobg${ext}`)] : [];
       })(),
+      path.join(uploadsDir, `${base}_nobg${ext}`),
+      path.join(uploadsDir, `${base}-nobg${ext}`),
+      path.join(uploadsDir, `${base}_no_bg${ext}`),
+      path.join(uploadsDir, `${base}-no_bg${ext}`),
+      path.join(uploadsDir, `${base}_no-bg${ext}`),
+      path.join(uploadsDir, `${base}-no-bg${ext}`),
       path.join(uploadsDir, `${base}_4096_nobg${ext}`),
       path.join(uploadsDir, `${base}-4096-nobg${ext}`),
       path.join(uploadsDir, `${base}_upscaled_nobg${ext}`),
