@@ -385,6 +385,12 @@ export default class PrintifyJobQueue {
       ];
       const nobgCandidates = [
         ...(job.dbId ? [path.join(searchDir, `${job.dbId}_nobg${ext}`)] : []),
+        path.join(searchDir, `${base}_nobg${ext}`),
+        path.join(searchDir, `${base}-nobg${ext}`),
+        path.join(searchDir, `${base}_no_bg${ext}`),
+        path.join(searchDir, `${base}-no_bg${ext}`),
+        path.join(searchDir, `${base}_no-bg${ext}`),
+        path.join(searchDir, `${base}-no-bg${ext}`),
         path.join(searchDir, `${base}_4096_nobg${ext}`),
         path.join(searchDir, `${base}-4096-nobg${ext}`),
         path.join(searchDir, `${base}_upscaled_nobg${ext}`),
