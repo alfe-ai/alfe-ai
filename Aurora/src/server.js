@@ -10,6 +10,7 @@ import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
 import TaskDBAws from "./taskDbAws.js";
+import PrintifyClient from "./printifyClient.js";
 
 dotenv.config();
 
@@ -727,6 +728,7 @@ const printifyToken =
   process.env.PRINTIFY_API_TOKEN || process.env.PRINTIFY_TOKEN || "";
 // Allow overriding the default shop ID via PRINTIFY_SHOP_ID
 const shopId = process.env.PRINTIFY_SHOP_ID || 18663958;
+const printifyUserAgent = process.env.PRINTIFY_USER_AGENT || "alfe-aurora/1.0";
 
 /**
  * Returns a configured OpenAI client, depending on "ai_service" setting.
@@ -4142,6 +4144,159 @@ app.post("/api/printify", async (req, res) => {
   } catch (err) {
     console.error("Error in /api/printify:", err);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/printify/gildan5000", async (req, res) => {
+  try {
+    const {
+      file,
+      sourceFile,
+      imageUrl,
+      publish = false,
+      title,
+      description,
+      colors = ["Black", "White"],
+      sizes = ["S", "M", "L", "XL"],
+      priceCents = 2999,
+      printProviderId,
+      printSides = "front"
+    } = req.body || {};
+    if (!file && !imageUrl) {
+      return res.status(400).json({ error: "Missing file or imageUrl" });
+    }
+
+    let filePath = null;
+    if (file) {
+      filePath = path.isAbsolute(file) ? file : path.join(uploadsDir, file);
+      if (!fs.existsSync(filePath)) {
+        return res.status(400).json({ error: "Design file not found" });
+      }
+    }
+
+    const client = new PrintifyClient({
+      token: printifyToken,
+      userAgent: printifyUserAgent
+    });
+
+    const shops = await client.getShops();
+    if (!Array.isArray(shops) || shops.length === 0) {
+      return res.status(400).json({ error: "No Printify shops found for this account" });
+    }
+    const chosenShop = String(shopId || "").trim()
+      ? shops.find((s) => String(s.id) === String(shopId)) || shops[0]
+      : shops[0];
+    const resolvedShopId = chosenShop.id;
+
+    // Printify Gildan 5000 => "Unisex Heavy Cotton Tee" blueprint id 6.
+    const blueprintId = 6;
+    const providers = await client.getPrintProviders(blueprintId);
+    const provider = providers.find((x) => String(x.id) === String(printProviderId));
+    if (!provider) {
+      return res.status(400).json({
+        error: "Invalid or missing printProviderId for Gildan 5000",
+        availableProviders: providers.map((p) => ({ id: p.id, title: p.title }))
+      });
+    }
+
+    const uploaded = imageUrl
+      ? await client.uploadImageFromUrl({
+          fileName: path.basename(filePath || sourceFile || file || "design.png"),
+          url: imageUrl
+        })
+      : await client.uploadImageFromFile({
+          filePath,
+          fileName: path.basename(filePath)
+        });
+
+    const designName = filePath
+      ? path.basename(filePath, path.extname(filePath))
+      : path.basename(String(imageUrl || "design"), path.extname(String(imageUrl || "design")));
+    const normalizedColors = Array.isArray(colors)
+      ? colors
+      : String(colors).split(",").map((x) => x.trim()).filter(Boolean);
+    const normalizedSizes = Array.isArray(sizes)
+      ? sizes
+      : String(sizes).split(",").map((x) => x.trim()).filter(Boolean);
+    const printPositions = String(printSides).toLowerCase() === "front_back"
+      ? ["front", "back"]
+      : ["front"];
+    const product = await client.createProduct({
+      shopId: resolvedShopId,
+      blueprintId,
+      printProviderId: provider.id,
+      title: title || `Gildan 5000 - ${designName}`,
+      description:
+        description ||
+        "Gildan 5000 unisex heavy cotton tee with front print, made to order.",
+      tags: ["gildan 5000", "tshirt", "aurora"],
+      imageId: uploaded.id,
+      x: 0.5,
+      y: 0.5,
+      scale: 1,
+      angle: 0,
+      background: "#FFFFFF",
+      printPositions,
+      colors: normalizedColors,
+      sizes: normalizedSizes,
+      priceCents: Number(priceCents),
+      visible: true
+    });
+
+    let publishResult = null;
+    if (publish && product?.id) {
+      publishResult = await client.publishProduct(resolvedShopId, product.id);
+    }
+
+    const source = sourceFile || file;
+    const sourceUrl = source.startsWith("/uploads/") ? source : `/uploads/${source}`;
+    db.setImageStatus(sourceUrl, "Printify Publish");
+    const productUrl = product?.id
+      ? `https://printify.com/app/products/${resolvedShopId}/${product.id}`
+      : null;
+    if (productUrl) {
+      db.setProductUrl(sourceUrl, productUrl);
+    }
+
+    return res.json({
+      ok: true,
+      shopId: resolvedShopId,
+      blueprintId,
+      providerId: provider.id,
+      productId: product?.id || null,
+      productUrl,
+      publishResult
+    });
+  } catch (err) {
+    console.error("Error in /api/printify/gildan5000:", err);
+    return res.status(err?.status || 500).json({
+      error: err?.message || "Failed to create Gildan 5000 product",
+      details: err?.details || null
+    });
+  }
+});
+
+app.get("/api/printify/gildan5000/providers", async (req, res) => {
+  try {
+    const client = new PrintifyClient({
+      token: printifyToken,
+      userAgent: printifyUserAgent
+    });
+    const providers = await client.getPrintProviders(6);
+    return res.json({
+      blueprintId: 6,
+      blueprintTitle: "Unisex Heavy Cotton Tee",
+      providers: providers.map((p) => ({
+        id: p.id,
+        title: p.title
+      }))
+    });
+  } catch (err) {
+    console.error("Error in /api/printify/gildan5000/providers:", err);
+    return res.status(err?.status || 500).json({
+      error: err?.message || "Failed to load Gildan 5000 providers",
+      details: err?.details || null
+    });
   }
 });
 

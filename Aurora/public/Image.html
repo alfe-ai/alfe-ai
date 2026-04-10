@@ -44,9 +44,40 @@
   </div>
   <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
     <button id="upscaleButton" hidden>Submit to Upscale</button>
-    <button id="printifyPublishButton" hidden>Run Printify Publish (placeholder)</button>
+    <button id="printifyPublishButton" hidden>Run Printify Publish</button>
     <button id="setProductUrlButton" hidden>Set Product URL</button>
     <button id="printifyFinishButton" style="margin-left:auto;">Programatic: Printify Finish</button>
+  </div>
+  <div id="printifyConfig" style="margin-top:0.75rem;display:none;border:1px solid #444;padding:0.5rem;border-radius:6px;">
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+      <label>Provider
+        <select id="printifyProviderSelect"></select>
+      </label>
+      <label>Price (cents)
+        <input id="printifyPriceInput" type="number" min="1" value="2999" style="width:100px;">
+      </label>
+      <label>Colors (comma)
+        <input id="printifyColorsInput" type="text" value="Black,White" style="width:180px;">
+      </label>
+      <label>Sizes (comma)
+        <input id="printifySizesInput" type="text" value="S,M,L,XL" style="width:180px;">
+      </label>
+      <label>Print sides
+        <select id="printifySidesSelect">
+          <option value="front">Front</option>
+          <option value="front_back">Front + Back</option>
+        </select>
+      </label>
+      <label><input id="printifyPublishChannelCheck" type="checkbox"> Publish after create</label>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;">
+      <label style="flex:1;min-width:260px;">Title
+        <input id="printifyTitleInput" type="text" style="width:100%;">
+      </label>
+      <label style="flex:2;min-width:320px;">Description
+        <input id="printifyDescriptionInput" type="text" style="width:100%;">
+      </label>
+    </div>
   </div>
   <pre id="upscaleTerminal" style="background:#000;color:#0f0;padding:0.5rem;margin-top:0.5rem;height:200px;overflow:auto;font-family:monospace;"></pre>
   <h3>Product Types</h3>
@@ -305,9 +336,39 @@
     let setProductUrlBtn;
     let productUrlCell;
     let printifyUrl = null;
+    let printifyProviderSelect;
+    let printifyPriceInput;
+    let printifyColorsInput;
+    let printifySizesInput;
+    let printifySidesSelect;
+    let printifyPublishChannelCheck;
+    let printifyTitleInput;
+    let printifyDescriptionInput;
+
+    async function loadGildanProviders(){
+      if(!printifyProviderSelect) return;
+      try{
+        const res = await fetch('/api/printify/gildan5000/providers');
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok){
+          throw new Error(data.error || 'Failed to load providers');
+        }
+        printifyProviderSelect.innerHTML = '';
+        (data.providers || []).forEach((provider, idx) => {
+          const opt = document.createElement('option');
+          opt.value = provider.id;
+          opt.textContent = `${provider.title} (${provider.id})`;
+          if(idx === 0) opt.selected = true;
+          printifyProviderSelect.appendChild(opt);
+        });
+      } catch(err){
+        console.error('Failed to load Gildan 5000 providers =>', err);
+      }
+    }
 
     function updateChoiceUI(){
       const choiceDiv = document.getElementById('printifyChoice');
+      const configDiv = document.getElementById('printifyConfig');
       const normalRadio = document.getElementById('choiceNormal');
       const nobgRadio = document.getElementById('choiceNobg');
       const normalPathSpan = document.getElementById('normalPath');
@@ -331,6 +392,7 @@
 
       if(upscaledPath || nobgPath){
         choiceDiv.style.display = '';
+        if(configDiv) configDiv.style.display = '';
         if(nobgPath){
           nobgRadio.checked = true;
         } else if(upscaledPath){
@@ -339,6 +401,7 @@
         if(printifyPublishBtn) printifyPublishBtn.hidden = false;
       } else {
         choiceDiv.style.display = 'none';
+        if(configDiv) configDiv.style.display = 'none';
         if(printifyPublishBtn) printifyPublishBtn.hidden = true;
       }
     }
@@ -402,6 +465,14 @@
     printifyPublishBtn = document.getElementById('printifyPublishButton');
     setProductUrlBtn = document.getElementById('setProductUrlButton');
     productUrlCell = document.getElementById('productUrlCell');
+    printifyProviderSelect = document.getElementById('printifyProviderSelect');
+    printifyPriceInput = document.getElementById('printifyPriceInput');
+    printifyColorsInput = document.getElementById('printifyColorsInput');
+    printifySizesInput = document.getElementById('printifySizesInput');
+    printifySidesSelect = document.getElementById('printifySidesSelect');
+    printifyPublishChannelCheck = document.getElementById('printifyPublishChannelCheck');
+    printifyTitleInput = document.getElementById('printifyTitleInput');
+    printifyDescriptionInput = document.getElementById('printifyDescriptionInput');
     const terminalEl = document.getElementById('upscaleTerminal');
     const jobsListEl = document.getElementById('jobsList');
 
@@ -425,6 +496,14 @@
       upscaleBtn.hidden = false;
       if(printifyPublishBtn) printifyPublishBtn.hidden = true;
       if(setProductUrlBtn) setProductUrlBtn.hidden = false;
+      if(printifyTitleInput && !printifyTitleInput.value){
+        const fileBase = (file || '').replace(/\.[^.]+$/, '');
+        printifyTitleInput.value = `Gildan 5000 - ${fileBase}`;
+      }
+      if(printifyDescriptionInput && !printifyDescriptionInput.value){
+        printifyDescriptionInput.value = 'Gildan 5000 unisex heavy cotton tee with front print, made to order.';
+      }
+      loadGildanProviders();
       upscaleBtn.addEventListener('click', async () => {
         console.debug('Submit to Upscale clicked with file =>', file);
         terminalEl.textContent = '';
@@ -455,23 +534,55 @@
           const variant = choice ? choice.value : (nobgFile ? 'nobg' : 'normal');
           const targetFile = variant === 'nobg' ? nobgFile : upscaledFile;
           const targetPath = variant === 'nobg' ? nobgPath : upscaledPath;
-          console.debug('Printify Publish placeholder clicked with file =>', targetPath);
+          console.debug('Printify Publish clicked with file =>', targetPath);
           terminalEl.textContent = '';
           if(!targetFile && !targetPath){
             terminalEl.textContent = 'Upscaled 4096 image not available.';
             console.debug('Printify Publish aborted => upscaled image missing');
             return;
           }
+          printifyPublishBtn.disabled = true;
           try {
-            await fetch('/api/upload/status', {
+            if(printifyProviderSelect && !printifyProviderSelect.value){
+              terminalEl.textContent = 'Choose a Printify provider first.';
+              return;
+            }
+            const res = await fetch('/api/printify/gildan5000', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: file, status: 'Printify Publish' })
+              body: JSON.stringify({
+                file: targetFile || targetPath,
+                sourceFile: file,
+                printProviderId: printifyProviderSelect ? printifyProviderSelect.value : undefined,
+                title: printifyTitleInput ? printifyTitleInput.value.trim() : '',
+                description: printifyDescriptionInput ? printifyDescriptionInput.value.trim() : '',
+                priceCents: printifyPriceInput ? Number(printifyPriceInput.value) : 2999,
+                colors: printifyColorsInput
+                  ? printifyColorsInput.value.split(',').map(v => v.trim()).filter(Boolean)
+                  : ['Black', 'White'],
+                sizes: printifySizesInput
+                  ? printifySizesInput.value.split(',').map(v => v.trim()).filter(Boolean)
+                  : ['S', 'M', 'L', 'XL'],
+                printSides: printifySidesSelect ? printifySidesSelect.value : 'front',
+                publish: !!(printifyPublishChannelCheck && printifyPublishChannelCheck.checked)
+              })
             });
+            const data = await res.json().catch(() => ({}));
+            if(!res.ok){
+              terminalEl.textContent = data.error || 'Printify Publish failed.';
+              return;
+            }
+            if(data.productUrl){
+              printifyUrl = data.productUrl;
+              updateProductTable();
+            }
+            terminalEl.textContent = `Created Gildan 5000 product${data.productId ? ` (${data.productId})` : ''}.`;
           } catch(err){
-            console.error('Failed to update status for Printify Publish =>', err);
+            console.error('Failed to run Printify Publish =>', err);
+            terminalEl.textContent = 'Printify Publish failed.';
+          } finally {
+            printifyPublishBtn.disabled = false;
           }
-          terminalEl.textContent = `Placeholder: Printify Publish would process ${targetPath || targetFile}.`;
           await checkStatus();
         });
       }
