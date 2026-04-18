@@ -82,7 +82,7 @@ MIT. See [`LICENSE`](LICENSE).
 
 ## Contact
 
-- hello@lochner.tech
+- engineering@lochner.tech
 
 ## Company
 
