@@ -1,6 +1,6 @@
 <a href="https://alsh.ai"><img height="60" alt="image" src="https://github.com/user-attachments/assets/daaf0c91-6f84-42f6-9b06-db2844151ba7" /></a>
 
-# ALSH.ai — AI code agent for full-project execution
+# ALSH.ai — AI code agent for full-project workflows
 
 ALSH.ai runs real end-to-end coding jobs against full repositories: it checks out code, executes an agent run from your prompt, and produces a reviewable diff you can merge. It’s fully open source (MIT), with a hosted cloud experience plus a self-host path.
 
@@ -10,7 +10,7 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 
 ## Key features
 
-- **AI code agent (primary): full-project execution**
+- **AI code agent (primary): full-project workflows**
   - Runs against git repos (branch-based runs, patch generation, diff review, merge workflow).
   - Optimized for “do the work” prompts rather than chat-only assistance.
 - **AI chat**
