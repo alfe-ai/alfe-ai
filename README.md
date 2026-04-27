@@ -60,11 +60,11 @@ ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, 
 
 ### Server architecture
 
-For my SaaS ALSH.ai https://alsh.ai, it is divided into separate components. For code.alsh.ai, it has separate front-end servers, a back-end working-environment server, a git host, a separate database server, and a separate LiteLLM proxy server.
+Server Architecture is divided into separate components. For code.alsh.ai, it has separate front-end servers, a back-end working-environment server, a git host, a separate database server, and a separate LiteLLM proxy server.
 
 The front-end is hosted as multiple round-robin webservers for easy scalability. The front-end servers do not retain any user information, so it is easy to scale up as many as needed, and it does not matter which front-end server the user connects to. The chat.alsh.ai has a separate front-end server, but shares the database server.
 
-The back-end working-environment server, to start, hosts the users working environment and runs the AI code agent on the working environment, it also hosts the Qwen 32b LLM model on the GPU. As users grow I will scale to multiple back-end servers similar to the front-end.
+The back-end working-environment server, to start, hosts the users working environment and runs the AI code agent on the working environment, it also hosts the Qwen 32b LLM model on the GPU. As users grow I will scale to multiple back-end servers similar to the front-end. The LiteLLM proxy server routes for the chat.alsh.ai front-end and for the advanced Kwaipilot: KAT-Coder-Pro V2 model for the code agent.
 
 The user data sent in chats/LLM prompts will be encrypted on disk/in database similar to Proton Mail encryption, so ideally data will not be accessible by ALSH.ai, only by users themselves. User git working directories will be encrypted the same way when the AI agent is not actively working on the users directory (This allows user code to remain as private as possible, if the user uses an external git integration like GitHub instead of the ALSH.ai git host.).
 
