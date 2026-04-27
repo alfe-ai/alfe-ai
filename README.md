@@ -58,6 +58,16 @@ ALSH.ai’s value is the **agent + workflow layer**: repo execution, branching, 
 - **Supported open path:** **Qwen3-Coder-30B-A3B**
 - Secondary path (capacity-limited)
 
+### Server architecture
+
+For my SaaS ALSH.ai https://alsh.ai, it is divided into separate components. For code.alsh.ai, it has separate front-end servers, a back-end working-environment server, a git host, a separate database server, and a separate LiteLLM proxy server.
+
+The front-end is hosted as multiple round-robin webservers for easy scalability. The front-end servers do not retain any user information, so it is easy to scale up as many as needed, and it does not matter which front-end server the user connects to. The chat.alsh.ai has a separate front-end server, but shares the database server.
+
+The back-end working-environment server, to start, hosts the users working environment and runs the AI code agent on the working environment, it also hosts the Qwen 32b LLM model on the GPU. As users grow I will scale to multiple back-end servers similar to the front-end.
+
+The user data sent in chats/LLM prompts will be encrypted on disk/in database similar to Proton Mail encryption, so ideally data will not be accessible by ALSH.ai, only by users themselves. User git working directories will be encrypted the same way when the AI agent is not actively working on the users directory (This allows user code to remain as private as possible, if the user uses an external git integration like GitHub instead of the ALSH.ai git host.).
+
 ## Getting started and deploy
 
 The repo is fully MIT licensed and open source, but **self-deployment documentation is still being improved, with plans for easier options such as Docker, Snap, and Flatpak**. If you want to run your own instance today, start with the existing technical docs and scripts in this repo:
