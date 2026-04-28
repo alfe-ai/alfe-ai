@@ -44,6 +44,38 @@
   const alwaysNewChatFromMainFromLocal = (localStorage.getItem('alwaysNewChatFromMain') !== null) ? (localStorage.getItem('alwaysNewChatFromMain') === 'true') : undefined;
   let alwaysNewChatFromMain = (typeof alwaysNewChatFromMainFromLocal !== 'undefined') ? alwaysNewChatFromMainFromLocal : true;
   const ENGINE_STORAGE_KEY = 'enginePreference';
+  const UI_THEME_STORAGE_KEY = 'sterlingUiTheme';
+  const DEFAULT_UI_THEME = 'blue';
+  const UI_THEMES = {
+    blue: {
+      '--bg-gradient': 'radial-gradient(circle at top left, rgba(37, 99, 235, 0.45), rgba(15, 23, 42, 0.95))',
+      '--accent': '#2563eb',
+      '--accent-strong': '#60a5fa',
+      '--accent-soft': 'rgba(37, 99, 235, 0.28)',
+    },
+    'dark-nexum-purple': {
+      '--bg-gradient': 'radial-gradient(circle at top left, rgba(124, 58, 237, 0.45), rgba(15, 23, 42, 0.95))',
+      '--accent': '#7c3aed',
+      '--accent-strong': '#8b5cf6',
+      '--accent-soft': 'rgba(124, 58, 237, 0.28)',
+    },
+  };
+  const normalizeUiTheme = (value) => {
+    const normalized = (value || '').toString().trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(UI_THEMES, normalized) ? normalized : DEFAULT_UI_THEME;
+  };
+  const applyUiTheme = (theme) => {
+    const root = document.documentElement;
+    if (!root) return;
+    const normalized = normalizeUiTheme(theme);
+    const themeVars = UI_THEMES[normalized];
+    Object.entries(themeVars).forEach(([key, val]) => {
+      root.style.setProperty(key, val);
+    });
+    try {
+      localStorage.setItem(UI_THEME_STORAGE_KEY, normalized);
+    } catch (error) {}
+  };
   const QWEN_DEBUG_ENV_STORAGE_KEY = 'qwenDebugEnv';
   const QWEN_SHOW_DEBUG_INFO_STORAGE_KEY = 'qwenShowDebugInfo';
   const CODE_USAGE_STORAGE_KEY = 'alfe.codeRunUsageCount';
@@ -61,6 +93,8 @@
     ? (localStorage.getItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY) === 'true')
     : undefined;
   let qwenShowDebugInfo = (typeof qwenShowDebugInfoFromLocal !== 'undefined') ? qwenShowDebugInfoFromLocal : false;
+  const uiThemeFromLocal = normalizeUiTheme(localStorage.getItem(UI_THEME_STORAGE_KEY));
+  applyUiTheme(uiThemeFromLocal);
 
   let currentRunContext = null;
   let runsSidebarSelectedRunId = null;
@@ -421,6 +455,9 @@
           qwenShowDebugInfo = (d.value === true || d.value === 'true');
           localStorage.setItem(QWEN_SHOW_DEBUG_INFO_STORAGE_KEY, qwenShowDebugInfo ? 'true' : 'false');
         } catch (e) {}
+      }
+      if (d.key === 'uiTheme') {
+        applyUiTheme(d.value);
       }
       if(d.key === 'defaultModel'){
         var newDefaultModel = typeof d.value === 'string' ? d.value.trim() : '';
