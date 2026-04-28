@@ -4,7 +4,6 @@ This guide standardizes a fresh Debian deployment for **AlfeCode**.
 
 It keeps app code and user repos separate:
 
-- **AlfeCode install path:** `/git/alfe-ai`
 - **User repo workspace root:** `/git/sterling`
 
 That separation avoids collisions with repositories cloned by AlfeCode during normal usage.
