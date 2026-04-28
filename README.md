@@ -72,10 +72,10 @@ The user data sent in chats/LLM prompts will be encrypted on disk/in database si
 
 The repo is fully MIT licensed and open source, but **self-deployment documentation is still being improved, with plans for easier options such as Docker, Snap, and Flatpak**. If you want to run your own instance today, start with the existing technical docs and scripts in this repo:
 
-- **AlfeCode (code agent / repo execution)**
+- **AlfeCode (code UI / code agent / repo execution)**
   - Debian standardized deployment guide: [`AlfeCode/deploy/debian/README.md`](AlfeCode/deploy/debian/README.md)
   - Related scripts live alongside the guide (e.g., bootstrap + installers).
-- **Aurora (workspace UI / services)**
+- **Aurora (chat workspace UI / services)**
   - Current run notes: [`RUNNING.md`](RUNNING.md)
   - Service-level notes: [`Aurora/README.md`](Aurora/README.md) and [`Aurora/.env.example`](Aurora/.env.example)
 - **LLM routing / proxy configuration**
