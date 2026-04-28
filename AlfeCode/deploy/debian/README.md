@@ -155,7 +155,7 @@ ALFECODE_VM_USER=<worker-ssh-user>
 ## Quick validation checklist
 
 ```bash
-test -d /git/alfe-ai && echo "OK: /git/alfe-ai exists"
+test -d /git/alfe-ai && echo "OK: /git/alfe-ai exists" # Only if using this directory, you can install in a different directory
 test -d /git/alfe-ai/AlfeCode && echo "OK: app directory exists"
 test -d /git/sterling && echo "OK: /git/sterling (user repos root) exists"
 command -v qwen && echo "OK: qwen is on PATH"
