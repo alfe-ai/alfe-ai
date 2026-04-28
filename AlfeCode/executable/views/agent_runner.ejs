@@ -657,9 +657,9 @@
 
         #runsSidebar {
             position: relative;
-            background: #0f172a !important;
+            background: linear-gradient(180deg, #0b1330 0%, #0a1433 35%, #0a1538 100%) !important;
             background-image: none !important;
-            border: 1px solid var(--surface-border) !important;
+            border: 1px solid rgba(73, 99, 177, 0.26) !important;
             border-left: none !important;
             box-shadow: none !important;
             backdrop-filter: none !important;
@@ -696,9 +696,9 @@
         }
 
         .runs-sidebar {
-            background: linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%);
+            background: linear-gradient(180deg, #0b1330 0%, #0a1433 35%, #0a1538 100%);
             border-radius: 24px 0 0 24px;
-            border: 1px solid var(--surface-border);
+            border: 1px solid rgba(73, 99, 177, 0.26);
             padding: clamp(20px, 3vw, 28px);
             padding-top: clamp(8px, 1.6vw, 18px);
             box-shadow: var(--shadow);
@@ -2059,7 +2059,7 @@
             color: #67e8f9;
         }
 
-        .codex-hide-meta .log-output .log-line.meta {
+        .agent-hide-meta .log-output .log-line.meta {
             display: none;
         }
 
@@ -4098,7 +4098,7 @@
             </div>
             <div id="defaultModelFeedback" class="default-model-feedback hidden" role="status" aria-live="polite"></div>
         </div>
-        <form id="codexForm">
+        <form id="agentForm">
             <div id="modelField" class="<%= agentModelDropdownDisabled ? 'is-hidden' : '' %>" style="<%= agentModelDropdownDisabled ? 'display: none;' : '' %>">
                 <label for="model">Model</label>
                 <select id="model" name="model">
@@ -4748,7 +4748,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
             }
         );
     </script>
-                    <script src="/JS/codex_runner.js" defer></script>
+                    <script src="/JS/agent_runner.js" defer></script>
 
 <script>
 // Tooltip logic
@@ -4814,7 +4814,7 @@ Try: <%= _s[Math.floor(Math.random()*_s.length)] %>"
     }
     
     // Set cookie when user submits their first run
-    const form = document.getElementById('codexForm');
+    const form = document.getElementById('agentForm');
     if (form) {
         form.addEventListener('submit', function() {
             // Set cookie when form is submitted to prevent tooltip from showing

@@ -626,7 +626,7 @@
     return "Logged-out Session";
   };
 
-  const form = document.getElementById("codexForm");
+  const form = document.getElementById("agentForm");
   const projectDirInput = document.getElementById("projectDir");
   const agentInstructionsInput = document.getElementById("agentInstructions");
   const openRouterRefererInput = document.getElementById("openRouterReferer");
@@ -2584,7 +2584,7 @@
     if (!target) {
       return;
     }
-    target.classList.toggle("codex-hide-meta", hidden);
+    target.classList.toggle("agent-hide-meta", hidden);
   };
 
   const updateFieldsVisibility = (hidden) => {
