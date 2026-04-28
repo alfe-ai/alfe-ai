@@ -5,21 +5,32 @@
   <title>Settings</title>
   <link rel="stylesheet" href="/styles.css" />
   <style>
+    :root{
+      --settings-bg:#0b1120;
+      --settings-card-bg:rgba(15,23,42,0.9);
+      --settings-border:rgba(71,85,105,0.4);
+      --settings-input-bg:#0f172a;
+      --settings-input-border:rgba(148,163,184,0.25);
+      --settings-text:#e2e8f0;
+      --settings-muted:#94a3b8;
+      --settings-accent:#7c3aed;
+      --settings-accent-strong:#a78bfa;
+    }
     body{
       font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
       display:flex;
       justify-content:center;
-      background:#0b1120;
-      color:#e2e8f0;
+      background:var(--settings-bg);
+      color:var(--settings-text);
       min-height:100vh;
       margin:0;
       padding:32px 20px;
     }
     .card{
-      background:rgba(15,23,42,0.9);
+      background:var(--settings-card-bg);
       padding:24px;
       border-radius:12px;
-      border:1px solid rgba(71,85,105,0.4);
+      border:1px solid var(--settings-border);
       width:min(520px, 100%);
       display:flex;
       flex-direction:column;
@@ -45,7 +56,7 @@
       margin:0;
       white-space:nowrap;
     }
-    select{font-size:1rem;padding:10px;margin:6px 0 0 0;width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,0.25);border-radius:8px;}
+    select{font-size:1rem;padding:10px;margin:6px 0 0 0;width:100%;background:var(--settings-input-bg);color:var(--settings-text);border:1px solid var(--settings-input-border);border-radius:8px;}
     .account-meta-select:disabled{
       appearance:none;
       -webkit-appearance:none;
@@ -56,12 +67,12 @@
     .account-meta-select:disabled::-ms-expand{
       display:none;
     }
-    label{font-size:0.85rem;color:#94a3b8;display:block;margin-top:8px;}
+    label{font-size:0.85rem;color:var(--settings-muted);display:block;margin-top:8px;}
     .footer{
       margin-top:auto;
       padding-top:12px;
       border-top:1px solid rgba(148,163,184,0.12);
-      color:#94a3b8;
+      color:var(--settings-muted);
       text-align:center;
       display:flex;
       justify-content:center;
@@ -83,9 +94,9 @@
     }
     .github-link-button:hover,
     .github-link-button:focus-visible{
-      border-color:#a78bfa;
+      border-color:var(--settings-accent-strong);
       transform:translateY(-1px);
-      box-shadow:0 10px 22px rgba(124,58,237,0.22);
+      box-shadow:0 10px 22px color-mix(in srgb, var(--settings-accent) 38%, transparent);
     }
     .github-link-icon svg{
       width:18px;
@@ -105,7 +116,7 @@
     .support-ticket h3{
       margin:0;
       font-size:1rem;
-      color:#e2e8f0;
+      color:var(--settings-text);
     }
     .section-title{
       margin:0 0 6px 0;
@@ -114,15 +125,15 @@
     }
     .support-ticket p{
       margin:0;
-      color:#cbd5f5;
+      color:color-mix(in srgb, var(--settings-text) 86%, #64748b);
       font-size:0.95rem;
     }
     .subscribe-button{
       align-self:flex-start;
       padding:0.5rem 0.9rem;
       border-radius:10px;
-      border:1px solid rgba(167,139,250,0.7);
-      background:linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(99,102,241,0.4) 100%);
+      border:1px solid color-mix(in srgb, var(--settings-accent-strong) 75%, transparent);
+      background:linear-gradient(135deg, color-mix(in srgb, var(--settings-accent) 35%, transparent) 0%, color-mix(in srgb, var(--settings-accent-strong) 40%, transparent) 100%);
       color:#f8fafc;
       font-weight:600;
       cursor:pointer;
@@ -131,8 +142,8 @@
     .subscribe-button:hover,
     .subscribe-button:focus-visible{
       transform:translateY(-1px);
-      border-color:#c4b5fd;
-      box-shadow:0 10px 22px rgba(124,58,237,0.22);
+      border-color:color-mix(in srgb, var(--settings-accent-strong) 90%, #fff 10%);
+      box-shadow:0 10px 22px color-mix(in srgb, var(--settings-accent) 38%, transparent);
     }
     .subscribe-button--inline{
       padding:0.15rem 0.55rem;
@@ -147,7 +158,7 @@
       align-items:center;
       gap:8px;
       font-size:0.85rem;
-      color:#94a3b8;
+      color:var(--settings-muted);
     }
     .logout-button{
       align-self:flex-start;
@@ -155,7 +166,7 @@
       border-radius:10px;
       border:1px solid rgba(148,163,184,0.5);
       background:rgba(15,23,42,0.6);
-      color:#e2e8f0;
+      color:var(--settings-text);
       font-weight:600;
       cursor:pointer;
       transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -178,7 +189,7 @@
     }
     .logout-feedback{
       font-size:0.75rem;
-      color:#94a3b8;
+      color:var(--settings-muted);
     }
     .logout-feedback.success{
       color:#a7f3d0;
@@ -188,7 +199,7 @@
     }
     select option:disabled,
     select option.engine-option-disabled{
-      color:#64748b;
+      color:color-mix(in srgb, var(--settings-muted) 72%, #334155);
     }
     .model-select-wrapper{
       position:relative;
@@ -355,6 +366,9 @@
     .hidden{
       display:none !important;
     }
+    .theme-select-row{
+      margin-top:4px;
+    }
   </style>
 </head>
 <body>
@@ -411,6 +425,14 @@
     <% } %>
     <h3 class="section-title">UI Settings</h3>
     <div class="support-ticket" aria-live="polite">
+      <div class="theme-select-row">
+        <label for="themeSelect" style="font-weight:600;margin-top:0;">Theme</label>
+        <select id="themeSelect" name="themeSelect">
+          <option value="blue">Blue</option>
+          <option value="dark-nexum-purple">Dark Nexum (Purple)</option>
+        </select>
+        <span id="themeFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
+      </div>
       <label style="font-weight:600;display:flex;align-items:center;gap:8px;">
         <input type="checkbox" id="submitOnEnterCheckbox" name="submitOnEnter">
         <span>Enter/Return submits prompt</span>
@@ -686,6 +708,85 @@
     })();
     </script>
     <% } %>
+    <script>
+    (function(){
+      try{
+        const STORAGE_KEY_THEME = 'sterlingUiTheme';
+        const DEFAULT_THEME = 'blue';
+        const themeSelect = document.getElementById('themeSelect');
+        const feedback = document.getElementById('themeFeedback');
+        let feedbackTimeout = null;
+        const THEMES = new Set(['blue', 'dark-nexum-purple']);
+        function normalizeTheme(value){
+          if(typeof value !== 'string') return DEFAULT_THEME;
+          const trimmed = value.trim().toLowerCase();
+          return THEMES.has(trimmed) ? trimmed : DEFAULT_THEME;
+        }
+        function applyThemeLocally(theme){
+          const root = document.documentElement;
+          if(!root) return;
+          if(theme === 'dark-nexum-purple'){
+            root.style.setProperty('--settings-bg', '#0b1120');
+            root.style.setProperty('--settings-card-bg', 'rgba(15,23,42,0.9)');
+            root.style.setProperty('--settings-border', 'rgba(71,85,105,0.4)');
+            root.style.setProperty('--settings-input-bg', '#0f172a');
+            root.style.setProperty('--settings-input-border', 'rgba(148,163,184,0.25)');
+            root.style.setProperty('--settings-text', '#e2e8f0');
+            root.style.setProperty('--settings-muted', '#94a3b8');
+            root.style.setProperty('--settings-accent', '#7c3aed');
+            root.style.setProperty('--settings-accent-strong', '#a78bfa');
+            return;
+          }
+          root.style.setProperty('--settings-bg', '#081124');
+          root.style.setProperty('--settings-card-bg', 'rgba(9,19,45,0.92)');
+          root.style.setProperty('--settings-border', 'rgba(56,114,255,0.38)');
+          root.style.setProperty('--settings-input-bg', '#0f2048');
+          root.style.setProperty('--settings-input-border', 'rgba(96,165,250,0.32)');
+          root.style.setProperty('--settings-text', '#dbeafe');
+          root.style.setProperty('--settings-muted', '#93c5fd');
+          root.style.setProperty('--settings-accent', '#2563eb');
+          root.style.setProperty('--settings-accent-strong', '#60a5fa');
+        }
+        function send(theme){
+          try{ window.parent.postMessage({type:'sterling:settings', key:'uiTheme', value:theme}, '*'); }catch(e){}
+        }
+        function showFeedback(message, type){
+          if (!feedback) return;
+          if (!message) {
+            feedback.textContent = '';
+            feedback.classList.add('hidden');
+            feedback.classList.remove('success', 'error');
+            return;
+          }
+          feedback.textContent = message;
+          feedback.classList.remove('hidden', 'success', 'error');
+          if (type === 'success') {
+            feedback.classList.add('success');
+          } else if (type === 'error') {
+            feedback.classList.add('error');
+          }
+        }
+        const currentTheme = normalizeTheme((function(){ try{ return localStorage.getItem(STORAGE_KEY_THEME); }catch(e){ return null; } })());
+        if(themeSelect){ themeSelect.value = currentTheme; }
+        applyThemeLocally(currentTheme);
+        send(currentTheme);
+        if(themeSelect){
+          themeSelect.addEventListener('change', function(){
+            const selected = normalizeTheme(themeSelect.value);
+            try{ localStorage.setItem(STORAGE_KEY_THEME, selected); }catch(e){}
+            applyThemeLocally(selected);
+            send(selected);
+            if (feedbackTimeout) {
+              clearTimeout(feedbackTimeout);
+              feedbackTimeout = null;
+            }
+            showFeedback('Saved', 'success');
+            feedbackTimeout = setTimeout(function(){ showFeedback(''); }, 1400);
+          });
+        }
+      }catch(e){ /* noop */ }
+    })();
+    </script>
     <script>
     (function(){
       try{
