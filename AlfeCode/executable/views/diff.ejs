@@ -17,6 +17,10 @@
             --text: #e5e7eb;
             --muted: #94a3b8;
             --success: #22c55e;
+            --accent: #1d4ed8;
+            --accent-strong: #3b82f6;
+            --accent-rgb: 29, 78, 216;
+            --accent-strong-rgb: 59, 130, 246;
             --added: rgba(16, 185, 129, 0.12);
             --removed: rgba(248, 113, 113, 0.16);
             --meta: rgba(245, 158, 11, 0.18);
@@ -438,13 +442,13 @@
         #mergeButton svg { opacity: 0.95; }
         #mergeButton:enabled:hover {
             transform: translateY(-1px);
-            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.32);
+            box-shadow: 0 16px 32px rgba(var(--accent-rgb), 0.32);
         }
         #mergeButton.is-merge-ready {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(139, 92, 246, 0.95));
+            background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.95), rgba(var(--accent-strong-rgb), 0.95));
             color: #fff;
             border-color: transparent;
-            box-shadow: 0 12px 26px rgba(124, 58, 237, 0.35);
+            box-shadow: 0 12px 26px rgba(var(--accent-rgb), 0.35);
         }
         .merge-button-wrapper.is-merge-disabled #mergeButton {
             background: rgba(255, 255, 255, 0.04);
@@ -1434,6 +1438,41 @@ const comparisonFinalOutputHtml = renderMarkdownCodeBlocks(
         .replace(/\u2028|\u2029/g, '')
 %></script><% } %>
 <script>
+    const UI_THEME_STORAGE_KEY = 'sterlingUiTheme';
+    const DEFAULT_UI_THEME = 'blue';
+    const UI_THEMES = {
+        blue: {
+            '--accent': '#1d4ed8',
+            '--accent-strong': '#3b82f6',
+            '--accent-rgb': '29, 78, 216',
+            '--accent-strong-rgb': '59, 130, 246',
+        },
+        'dark-nexum-purple': {
+            '--accent': '#7c3aed',
+            '--accent-strong': '#8b5cf6',
+            '--accent-rgb': '124, 58, 237',
+            '--accent-strong-rgb': '139, 92, 246',
+        },
+    };
+    const normalizeUiTheme = (value) => {
+        const normalized = (value || '').toString().trim().toLowerCase();
+        return Object.prototype.hasOwnProperty.call(UI_THEMES, normalized) ? normalized : DEFAULT_UI_THEME;
+    };
+    const applyUiTheme = (theme) => {
+        const root = document.documentElement;
+        if (!root) return;
+        const normalized = normalizeUiTheme(theme);
+        const themeVars = UI_THEMES[normalized];
+        Object.entries(themeVars).forEach(([key, val]) => {
+            root.style.setProperty(key, val);
+        });
+    };
+    try {
+        applyUiTheme(localStorage.getItem(UI_THEME_STORAGE_KEY));
+    } catch (_err) {
+        applyUiTheme(DEFAULT_UI_THEME);
+    }
+
     const structuredDiffData = document.getElementById('structured-diff-data');
     const rawDiffData = document.getElementById('raw-diff-data');
     const commitListData = document.getElementById('commit-list-data');
