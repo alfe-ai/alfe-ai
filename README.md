@@ -1,6 +1,6 @@
 <img width="2172" height="724" alt="image" src="https://github.com/user-attachments/assets/e22250eb-a6cf-4e6c-8cfb-f0bc2c1bc08a" />
 
-# ALSH.ai — AI code agent for full-project workflows
+# ALSH.ai | Alchemist Shell — AI code agent for full-project workflows
 
 ALSH.ai runs real end-to-end coding jobs against full repositories: it checks out code, executes an agent run from your prompt, and produces a reviewable diff you can merge. It’s fully open source (MIT), with a hosted cloud experience plus a self-host path.
 
