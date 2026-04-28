@@ -157,19 +157,6 @@
             margin-bottom: 18px;
         }
 
-        .sidebar-brand-top-left-link {
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .sidebar-brand-top-left-image {
-            display: block;
-            width: auto;
-            max-width: 100%;
-            height: 52px;
-            object-fit: contain;
-        }
-
         .sidebar-header {
             display: flex;
             align-items: center;
@@ -3754,9 +3741,26 @@
 
             <div class="runs-sidebar__header">
                 <div class="sidebar-brand">
-                    <a href="javascript:void(0)" class="sidebar-brand-top-left-link" aria-label="ALSH.ai" onclick="if(event){event.preventDefault();}">
-                        <img class="sidebar-brand-top-left-image" src="/images/alsh-top-left.png" alt="ALSH.ai">
-                    </a>
+                <div class="sidebar-header">
+                    <div class="sidebar-brand-icon">
+                        <a href="javascript:void(0)" class="sidebar-brand-icon-link" aria-label="Alfe AI" onclick="if(event){event.preventDefault();}">
+                            <img src="/alfe_favicon_chat_mountain_rect_purple_WHITEBG_64x64.png" alt="Alfe AI logo">
+                        </a>
+                    </div>
+        
+
+                    <div class="sidebar-brand-text">
+                        <h1 class="sidebar-brand-heading">
+                            <% if (typeof environment !== 'undefined' && environment && environment !== 'unknown') { %>
+                                <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
+                            <% } %>
+                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="ALSH.ai" onclick="if(event){event.preventDefault();}">
+                                <img class="sidebar-brand-name-logo" src="/images/alsh-logo.png" alt="ALSH.ai">
+                            </a>
+                            <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
+                        </h1>
+                        <p class="sidebar-brand-subtitle">Alchemist Shell</p>
+                    </div>
                 </div>
             </div>
             <div class="runs-sidebar__title-group">
