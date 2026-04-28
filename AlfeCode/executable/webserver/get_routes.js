@@ -3483,7 +3483,7 @@ ${cleanedFinalOutput}`;
 
         const projectName = getProjectName(projectDirParam || repoDirectoryParam, resolvedDefaultProjectDir);
 
-        res.render("codex_runner", {
+        res.render("agent_runner", {
             codexScriptPath,
             projectDir: projectDirParam || repoDirectoryParam,
             defaultProjectDir: resolvedDefaultProjectDir,
