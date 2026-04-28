@@ -109,6 +109,15 @@ Then add it to `.env` (same value on the CNC server and each node):
 ALFECODE_NODE_PING_KEY=your_generated_value_here
 ```
 
+To run the frontend/CNC separately from worker nodes, use these additional variables:
+
+- `ALFECODE_NODE=true` on worker nodes so they send heartbeats.
+- `ALFECODE_CNC_IP=https://your-frontend-host` on worker nodes so heartbeat posts to `/vm_runs/ping`.
+- `ALFECODE_NODE_ID=worker-name-01` (optional worker identifier shown in node ping records).
+- `ALFECODE_VM_HOST=worker-host-or-ip` on frontend/CNC to route agent and Qwen VM runs over SSH.
+- `ALFECODE_VM_SSH_PORT=22` on frontend/CNC to enable VM/worker SSH execution.
+- `ALFECODE_VM_USER=your-worker-user` on frontend/CNC for SSH login user.
+
 For `/agent` prompt image recognition, configure these image-specific OpenAI variables:
 
 - `ALFECODE_IMAGE_OPENAI_API_ENDPOINT` – OpenAI-compatible endpoint for image analysis (default: `https://api.openai.com/v1/responses`)
