@@ -52,12 +52,16 @@
       '--accent': '#2563eb',
       '--accent-strong': '#60a5fa',
       '--accent-soft': 'rgba(37, 99, 235, 0.28)',
+      '--accent-rgb': '37, 99, 235',
+      '--accent-strong-rgb': '96, 165, 250',
     },
     'dark-nexum-purple': {
       '--bg-gradient': 'radial-gradient(circle at top left, rgba(124, 58, 237, 0.45), rgba(15, 23, 42, 0.95))',
       '--accent': '#7c3aed',
       '--accent-strong': '#8b5cf6',
       '--accent-soft': 'rgba(124, 58, 237, 0.28)',
+      '--accent-rgb': '124, 58, 237',
+      '--accent-strong-rgb': '139, 92, 246',
     },
   };
   const normalizeUiTheme = (value) => {

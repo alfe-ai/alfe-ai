@@ -326,10 +326,10 @@
         }
 
         .runs-sidebar__collapsed-nav-link.is-active {
-            background: linear-gradient(150deg, rgba(59, 130, 246, 0.44), rgba(124, 58, 237, 0.56));
-            border-color: rgba(124, 58, 237, 0.52);
+            background: linear-gradient(150deg, rgba(var(--accent-rgb, 37, 99, 235), 0.5), rgba(var(--accent-strong-rgb, 96, 165, 250), 0.62));
+            border-color: rgba(var(--accent-rgb, 37, 99, 235), 0.58);
             color: #f8fafc !important;
-            box-shadow: 0 18px 36px rgba(67, 56, 202, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+            box-shadow: 0 18px 36px rgba(var(--accent-rgb, 37, 99, 235), 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18);
         }
 
         .sidebar-nav-item {
@@ -379,9 +379,9 @@
 
         .sidebar-nav-item.is-active {
             color: #f8fafc !important;
-            border-color: rgba(124, 58, 237, 0.5);
-            background: linear-gradient(140deg, rgba(59, 130, 246, 0.46), rgba(124, 58, 237, 0.64));
-            box-shadow: 0 18px 36px rgba(67, 56, 202, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+            border-color: rgba(var(--accent-rgb, 37, 99, 235), 0.55);
+            background: linear-gradient(140deg, rgba(var(--accent-rgb, 37, 99, 235), 0.5), rgba(var(--accent-strong-rgb, 96, 165, 250), 0.58));
+            box-shadow: 0 18px 36px rgba(var(--accent-rgb, 37, 99, 235), 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18);
         }
 
         .sidebar-version .repo-trigger {
@@ -672,8 +672,8 @@
         }
 
         #runsSidebar .runs-sidebar__new-task {
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.98) 100%) !important;
-            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.28) !important;
+            background: linear-gradient(135deg, rgba(var(--accent-rgb, 37, 99, 235), 0.95) 0%, rgba(var(--accent-strong-rgb, 96, 165, 250), 0.98) 100%) !important;
+            box-shadow: 0 18px 32px rgba(var(--accent-rgb, 37, 99, 235), 0.28) !important;
             color: #fff !important;
         }
 
@@ -916,27 +916,27 @@
             padding: 12px 16px;
             border-radius: 14px;
             border: none;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.98) 100%);
+            background: linear-gradient(135deg, rgba(var(--accent-rgb, 37, 99, 235), 0.95) 0%, rgba(var(--accent-strong-rgb, 96, 165, 250), 0.98) 100%);
             color: #fff;
             font-size: 0.95rem;
             font-weight: 600;
             letter-spacing: 0.02em;
             cursor: pointer;
-            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.28);
+            box-shadow: 0 18px 32px rgba(var(--accent-rgb, 37, 99, 235), 0.28);
             transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
         }
 
         .runs-sidebar__new-task:hover,
         .runs-sidebar__new-task:focus-visible {
             transform: translateY(-1px);
-            box-shadow: 0 22px 40px rgba(124, 58, 237, 0.32);
+            box-shadow: 0 22px 40px rgba(var(--accent-rgb, 37, 99, 235), 0.32);
             filter: brightness(1.05);
             outline: none;
         }
 
         .runs-sidebar__new-task:active {
             transform: translateY(0);
-            box-shadow: 0 16px 26px rgba(124, 58, 237, 0.24);
+            box-shadow: 0 16px 26px rgba(var(--accent-rgb, 37, 99, 235), 0.24);
         }
 
         .runs-sidebar__new-task[disabled] {
@@ -1743,10 +1743,10 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             line-height: 1;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.85) 0%, rgba(139, 92, 246, 0.95) 100%);
+            background: linear-gradient(135deg, rgba(var(--accent-rgb, 37, 99, 235), 0.9) 0%, rgba(var(--accent-strong-rgb, 96, 165, 250), 0.95) 100%);
             color: white;
             text-decoration: none;
-            box-shadow: 0 18px 32px rgba(124, 58, 237, 0.35);
+            box-shadow: 0 18px 32px rgba(var(--accent-rgb, 37, 99, 235), 0.35);
             transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease;
         }
 
@@ -1757,15 +1757,15 @@
             padding: 0;
             justify-content: center;
             gap: 0;
-            border: 1px solid rgba(167, 139, 250, 0.45);
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.32) 0%, rgba(79, 70, 229, 0.5) 100%);
-            box-shadow: 0 18px 36px rgba(76, 29, 149, 0.35);
+            border: 1px solid rgba(var(--accent-strong-rgb, 96, 165, 250), 0.5);
+            background: linear-gradient(135deg, rgba(var(--accent-rgb, 37, 99, 235), 0.34) 0%, rgba(var(--accent-strong-rgb, 96, 165, 250), 0.48) 100%);
+            box-shadow: 0 18px 36px rgba(var(--accent-rgb, 37, 99, 235), 0.28);
         }
 
         .nav-button.icon-tone {
-            border: 1px solid rgba(167, 139, 250, 0.45);
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.32) 0%, rgba(79, 70, 229, 0.5) 100%);
-            box-shadow: 0 18px 36px rgba(76, 29, 149, 0.35);
+            border: 1px solid rgba(var(--accent-strong-rgb, 96, 165, 250), 0.5);
+            background: linear-gradient(135deg, rgba(var(--accent-rgb, 37, 99, 235), 0.34) 0%, rgba(var(--accent-strong-rgb, 96, 165, 250), 0.48) 100%);
+            box-shadow: 0 18px 36px rgba(var(--accent-rgb, 37, 99, 235), 0.28);
         }
 
         .nav-button.icon-only.same-height {
@@ -1803,13 +1803,13 @@
 
         .nav-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.4);
+            box-shadow: 0 24px 40px rgba(var(--accent-rgb, 37, 99, 235), 0.4);
             opacity: 0.9;
             color: white;
         }
 
         .nav-button:focus-visible {
-            outline: 2px solid rgba(124, 58, 237, 0.8);
+            outline: 2px solid rgba(var(--accent-rgb, 37, 99, 235), 0.8);
             outline-offset: 2px;
         }
 
@@ -2008,9 +2008,9 @@
         }
 
         .tab-button.active {
-            background: rgba(124, 58, 237, 0.18);
-            border-color: rgba(124, 58, 237, 0.35);
-            color: #ede9fe;
+            background: rgba(var(--accent-rgb, 37, 99, 235), 0.2);
+            border-color: rgba(var(--accent-rgb, 37, 99, 235), 0.42);
+            color: #dbeafe;
         }
 
         .log-output {
