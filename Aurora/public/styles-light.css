@@ -12,10 +12,10 @@
   --surface-border-strong: rgba(71, 85, 105, 0.65);
   --text-color: #0f172a;
   --text-muted: #475569;
-  --accent: #2563eb;
-  --accent-soft: rgba(37, 99, 235, 0.16);
-  --accent-light: rgba(37, 99, 235, 0.1);
-  --accent-strong: #1d4ed8;
+  --accent: #7c3aed;
+  --accent-soft: rgba(124, 58, 237, 0.16);
+  --accent-light: rgba(124, 58, 237, 0.1);
+  --accent-strong: #6d28d9;
   --positive: #16a34a;
   --negative: #ea580c;
   --shadow: 0 18px 42px rgba(148, 163, 184, 0.28);
@@ -66,8 +66,8 @@ body {
 }
 
 .divider {
-  background: rgba(37, 99, 235, 0.12);
-  border-right: 1px solid rgba(37, 99, 235, 0.25);
+  background: rgba(124, 58, 237, 0.12);
+  border-right: 1px solid rgba(124, 58, 237, 0.25);
   border-left: 1px solid rgba(148, 163, 184, 0.3);
 }
 
@@ -162,9 +162,9 @@ select {
 }
 
 .chat-user {
-  background: linear-gradient(150deg, rgba(148, 163, 184, 0.35), rgba(37, 99, 235, 0.22));
-  border: 1px solid rgba(37, 99, 235, 0.25);
-  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.25);
+  background: linear-gradient(150deg, rgba(148, 163, 184, 0.35), rgba(124, 58, 237, 0.22));
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.25);
   color: var(--text-color);
 }
 
@@ -177,9 +177,9 @@ select {
 
 .chat-model-info {
   background: rgba(248, 250, 252, 0.98);
-  border-color: rgba(37, 99, 235, 0.35);
+  border-color: rgba(124, 58, 237, 0.35);
   color: var(--accent-strong);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
 }
 
 .chat-model-info::after {
@@ -196,7 +196,7 @@ select {
 }
 
 .modal-buttons button:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(124, 58, 237, 0.16);
   border-color: var(--accent);
   color: var(--text-color);
 }
@@ -213,7 +213,7 @@ select {
 }
 
 .top-right-buttons .top-btn:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(124, 58, 237, 0.16);
   border-color: var(--accent);
 }
 
@@ -224,6 +224,6 @@ select {
 }
 
 #scrollDownBtn:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(124, 58, 237, 0.16);
   border-color: var(--accent);
 }
