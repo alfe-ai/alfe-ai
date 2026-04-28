@@ -23,11 +23,21 @@ cd ALSH.ai
 sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
 ```
 
-For split frontend/CNC + worker deployment, run:
+For split frontend/CNC + worker deployment, run the bootstrap on **both servers** with role-specific mode:
+
+- **Frontend/CNC server:** use default standard mode (no split flag):
+
+```bash
+sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
+```
+
+- **Worker server:** use split mode:
 
 ```bash
 sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh --split-deployment
 ```
+
+> Important: `--split-deployment` is for worker-oriented installs and skips local git-daemon demo setup.
 
 What the script does:
 
