@@ -23,6 +23,11 @@ cd ALSH.ai
 sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
 ```
 
+For split frontend/CNC + worker deployment, run:
+
+```bash
+sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh --split-deployment
+```
 
 What the script does:
 
@@ -32,8 +37,9 @@ What the script does:
 4. Runs `npm install` in `<your-checkout>/AlfeCode`.
 5. Runs `install-qwen-0.10.1-from-git.sh` to install and link `qwen`.
 6. Verifies `qwen --version` succeeds.
-7. Configures local git host + demo repo.
+7. Configures local git host + demo repo (standard mode only).
 8. Creates `data/config/repo_config.json` if missing.
+9. In `--split-deployment` mode, skips local git-daemon demo setup for worker-oriented installs.
 
 ---
 
@@ -109,6 +115,27 @@ cd /git/alfe-ai/AlfeCode
 Open:
 
 - `http://localhost:3001`
+
+### 8) Optional split deployment wiring (frontend/CNC + worker)
+
+If this machine is the **worker node**, set in `.env`:
+
+```bash
+ALFECODE_NODE=true
+ALFECODE_CNC_IP=https://<frontend-cnc-host>
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_NODE_ID=worker-01
+SESSION_GIT_BASE_PATH=/git/sterling
+```
+
+If this machine is the **frontend/CNC**, set in `.env`:
+
+```bash
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_VM_HOST=<worker-host-or-ip>
+ALFECODE_VM_SSH_PORT=22
+ALFECODE_VM_USER=<worker-ssh-user>
+```
 
 ---
 
