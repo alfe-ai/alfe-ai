@@ -48,12 +48,12 @@
   const DEFAULT_UI_THEME = 'blue';
   const UI_THEMES = {
     blue: {
-      '--bg-gradient': 'radial-gradient(circle at top left, rgba(37, 99, 235, 0.45), rgba(15, 23, 42, 0.95))',
-      '--accent': '#2563eb',
-      '--accent-strong': '#60a5fa',
-      '--accent-soft': 'rgba(37, 99, 235, 0.28)',
-      '--accent-rgb': '37, 99, 235',
-      '--accent-strong-rgb': '96, 165, 250',
+      '--bg-gradient': 'radial-gradient(circle at top left, rgba(29, 78, 216, 0.38), rgba(15, 23, 42, 0.95))',
+      '--accent': '#1d4ed8',
+      '--accent-strong': '#3b82f6',
+      '--accent-soft': 'rgba(29, 78, 216, 0.22)',
+      '--accent-rgb': '29, 78, 216',
+      '--accent-strong-rgb': '59, 130, 246',
     },
     'dark-nexum-purple': {
       '--bg-gradient': 'radial-gradient(circle at top left, rgba(124, 58, 237, 0.45), rgba(15, 23, 42, 0.95))',
