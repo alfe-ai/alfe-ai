@@ -38,7 +38,7 @@ sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh --split-deployme
 
 > Important: `--split-deployment` is for worker-oriented installs and skips local git-daemon demo setup.
 
-**After deployment, Run:**
+### **After deployment, Run:**
 
 [Jump to Running AlfeCode Step](https://github.com/ALSH-ai/ALSH.ai/blob/main/AlfeCode/deploy/debian/README.md#7-run-alfecode)
 
