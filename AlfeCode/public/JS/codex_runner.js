@@ -63,6 +63,14 @@
       '--accent-rgb': '124, 58, 237',
       '--accent-strong-rgb': '139, 92, 246',
     },
+    green: {
+      '--bg-gradient': 'radial-gradient(circle at top left, rgba(22, 163, 74, 0.42), rgba(15, 23, 42, 0.95))',
+      '--accent': '#16a34a',
+      '--accent-strong': '#22c55e',
+      '--accent-soft': 'rgba(22, 163, 74, 0.28)',
+      '--accent-rgb': '22, 163, 74',
+      '--accent-strong-rgb': '34, 197, 94',
+    },
   };
   const normalizeUiTheme = (value) => {
     const normalized = (value || '').toString().trim().toLowerCase();

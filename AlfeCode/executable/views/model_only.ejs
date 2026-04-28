@@ -430,6 +430,7 @@
         <select id="themeSelect" name="themeSelect">
           <option value="blue">Blue</option>
           <option value="dark-nexum-purple">Purple</option>
+          <option value="green">Green</option>
         </select>
         <span id="themeFeedback" class="ui-settings-feedback hidden" aria-live="polite"></span>
       </div>
@@ -716,7 +717,7 @@
         const themeSelect = document.getElementById('themeSelect');
         const feedback = document.getElementById('themeFeedback');
         let feedbackTimeout = null;
-        const THEMES = new Set(['blue', 'dark-nexum-purple']);
+        const THEMES = new Set(['blue', 'dark-nexum-purple', 'green']);
         function normalizeTheme(value){
           if(typeof value !== 'string') return DEFAULT_THEME;
           const trimmed = value.trim().toLowerCase();
@@ -735,6 +736,18 @@
             root.style.setProperty('--settings-muted', '#94a3b8');
             root.style.setProperty('--settings-accent', '#7c3aed');
             root.style.setProperty('--settings-accent-strong', '#a78bfa');
+            return;
+          }
+          if(theme === 'green'){
+            root.style.setProperty('--settings-bg', '#071a12');
+            root.style.setProperty('--settings-card-bg', 'rgba(7,28,18,0.92)');
+            root.style.setProperty('--settings-border', 'rgba(34,197,94,0.34)');
+            root.style.setProperty('--settings-input-bg', '#0c2e1d');
+            root.style.setProperty('--settings-input-border', 'rgba(74,222,128,0.34)');
+            root.style.setProperty('--settings-text', '#dcfce7');
+            root.style.setProperty('--settings-muted', '#86efac');
+            root.style.setProperty('--settings-accent', '#16a34a');
+            root.style.setProperty('--settings-accent-strong', '#4ade80');
             return;
           }
           root.style.setProperty('--settings-bg', '#081124');
