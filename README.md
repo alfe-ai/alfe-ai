@@ -26,11 +26,11 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 
 ## Screenshots
 
-<img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/15fb43ea-563c-499b-8e04-f54c95e24cc5" />
+<img width="1959" height="1448" alt="1" src="https://github.com/user-attachments/assets/46655574-5274-479c-8c99-0307ddb003c3" />
 
 <img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153" />
 
-<img width="1772" height="651" alt="image" src="https://github.com/user-attachments/assets/8b15c1f2-a448-43e7-b714-1242a04d80e6" />
+<img width="1601" height="987" alt="3" src="https://github.com/user-attachments/assets/5ad5c804-fc47-409c-83de-7eaafcbf7bd3" />
 
 <img width="772" height="1415" alt="image" src="https://github.com/user-attachments/assets/b07d3e2c-9750-4533-b208-d6e5f68c439a" />
 
