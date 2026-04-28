@@ -2,7 +2,7 @@
 <html lang="en" class="agent-scale-80">
 <head>
     <meta charset="UTF-8">
-    <title>ALSH.ai - <%= projectName %></title>
+    <title><%= projectName %></title>
     <meta name="description" content="Alfe AI: FLOSS, Self-hostable, AI Software Development, Chat, and Image Design - a cloud-based code-assistant interface for running and managing agents.">
     <link id="favicon" rel="icon" href="/alfe_favicon_64x64.ico">
     <link rel="alternate icon" href="/alfe_favicon_64x64.ico" type="image/x-icon">
@@ -212,6 +212,14 @@
             height: 22.5px;
             width: auto;
             max-width: 180px;
+            object-fit: contain;
+        }
+
+        .sidebar-top-left-logo {
+            display: block;
+            height: auto;
+            width: 220px;
+            max-width: 100%;
             object-fit: contain;
         }
 
@@ -884,9 +892,9 @@
 
         .github-link-button:hover,
         .github-link-button:focus-visible {
-            border-color: #a78bfa;
+            border-color: #60a5fa;
             transform: translateY(-1px);
-            box-shadow: 0 10px 24px rgba(var(--accent-rgb, 124, 58, 237), 0.22);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
         }
 
         .github-link-icon svg {
@@ -3742,25 +3750,9 @@
             <div class="runs-sidebar__header">
                 <div class="sidebar-brand">
                 <div class="sidebar-header">
-                    <div class="sidebar-brand-icon">
-                        <a href="javascript:void(0)" class="sidebar-brand-icon-link" aria-label="Alfe AI" onclick="if(event){event.preventDefault();}">
-                            <img src="/alfe_favicon_chat_mountain_rect_purple_WHITEBG_64x64.png" alt="Alfe AI logo">
-                        </a>
-                    </div>
-        
-
-                    <div class="sidebar-brand-text">
-                        <h1 class="sidebar-brand-heading">
-                            <% if (typeof environment !== 'undefined' && environment && environment !== 'unknown') { %>
-                                <span class="environment-indicator <%= environment %>"><%= environment %>:</span>
-                            <% } %>
-                            <a href="javascript:void(0)" class="sidebar-brand-name" aria-label="ALSH.ai" onclick="if(event){event.preventDefault();}">
-                                <img class="sidebar-brand-name-logo" src="/images/alsh-logo.png" alt="ALSH.ai">
-                            </a>
-                            <span class="sidebar-beta-badge" aria-label="Beta">Beta</span>
-                        </h1>
-                        <p class="sidebar-brand-subtitle">Alchemist Shell</p>
-                    </div>
+                    <a href="javascript:void(0)" class="sidebar-brand-icon-link" aria-label="ALSH.ai" onclick="if(event){event.preventDefault();}">
+                        <img class="sidebar-top-left-logo" src="/images/alsh-top-left.png" alt="ALSH.ai">
+                    </a>
                 </div>
             </div>
             <div class="runs-sidebar__title-group">
