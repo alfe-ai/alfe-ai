@@ -131,5 +131,66 @@ systemctl is-active git-daemon || systemctl is-active git-daemon.service
 
 If any command fails, re-run the bootstrap script and inspect output.
 
+---
+
+## Split deployment: frontend/CNC + worker node (recommended for scale)
+
+Use this pattern when you want user working directories and Qwen execution to run on a separate server from the AlfeCode web frontend.
+
+### Server roles
+
+- **Frontend/CNC server**
+  - Runs AlfeCode web UI/API.
+  - Receives worker heartbeat pings at `/vm_runs/ping`.
+  - Triggers agent/Qwen runs over SSH to worker nodes.
+- **Worker server**
+  - Hosts user repo workspace (for example `/git/sterling`).
+  - Runs Qwen CLI and agent execution workload.
+  - Sends heartbeat pings to frontend/CNC.
+
+### Frontend/CNC setup (`/git/alfe-ai/AlfeCode/.env`)
+
+```bash
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_VM_HOST=<worker-host-or-ip>
+ALFECODE_VM_SSH_PORT=22
+ALFECODE_VM_USER=<worker-ssh-user>
+```
+
+### Worker setup (`/git/alfe-ai/AlfeCode/.env`)
+
+```bash
+ALFECODE_NODE=true
+ALFECODE_CNC_IP=https://<frontend-cnc-host>
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_NODE_ID=worker-01
+SESSION_GIT_BASE_PATH=/git/sterling
+```
+
+### Worker SSH prerequisites
+
+On the worker, ensure the SSH user can:
+
+- read/write the user workspace root (`/git/sterling`), and
+- execute `node`, `npm`, and `qwen`.
+
+### Split deployment validation
+
+From worker:
+
+```bash
+command -v qwen && qwen --version
+curl -k -X POST "https://<frontend-cnc-host>/vm_runs/ping" \
+  -H "Content-Type: application/json" \
+  -H "x-alfecode-node-key: <shared-secret>" \
+  -d '{"hostname":"worker-01","nodeId":"worker-01"}'
+```
+
+From frontend:
+
+```bash
+ssh -p 22 <worker-ssh-user>@<worker-host-or-ip> 'command -v qwen && qwen --version'
+```
+
 ## GitServer   
 GitServer may also need to be deployed depending on your use case. Instructions for GitServer deployment can be found in the GitServer directory.

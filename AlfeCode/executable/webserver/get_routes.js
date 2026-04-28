@@ -4501,13 +4501,13 @@ ${cleanedFinalOutput}`;
             }
         }
 
-        // If VM is ready, re-route agent run to it via SSH. For now, capture host port for downstream use.
+        // If VM is ready, re-route agent/Qwen run to it via SSH.
         if (vmHostPort) {
-            envOverrides.ALFECODE_VM_HOST_PORT = String(vmHostPort);
-            envOverrides.ALFECODE_VM_SESSION_ID = vmSession.sessionId;
-            if (vmSession.sshPort) {
-                envOverrides.ALFECODE_VM_SSH_PORT = String(vmSession.sshPort);
+            if (vmSession?.ipAddress) {
+                envOverrides.ALFECODE_VM_HOST = String(vmSession.ipAddress);
             }
+            envOverrides.ALFECODE_VM_SESSION_ID = vmSession.sessionId;
+            envOverrides.ALFECODE_VM_SSH_PORT = String(vmSession?.sshPort || vmHostPort);
         }
 
         const closeStream = () => {
