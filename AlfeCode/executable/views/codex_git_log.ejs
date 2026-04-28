@@ -8,20 +8,20 @@
         :root {
             color-scheme: dark;
             font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-            --bg-gradient: radial-gradient(circle at top left, rgba(124, 58, 237, 0.45), rgba(15, 23, 42, 0.95));
+            --bg-gradient: radial-gradient(circle at top left, rgba(37, 99, 235, 0.45), rgba(15, 23, 42, 0.95));
             --bg-main: rgba(15, 23, 42, 0.94);
             --surface: rgba(30, 41, 59, 0.92);
             --surface-soft: rgba(51, 65, 85, 0.65);
             --surface-border: rgba(71, 85, 105, 0.45);
             --text-color: #e2e8f0;
             --text-muted: #94a3b8;
-            --accent: #7c3aed;
-            --accent-strong: #8b5cf6;
+            --accent: #2563eb;
+            --accent-strong: #60a5fa;
             --danger: #f97316;
             --shadow: 0 24px 60px rgba(15, 23, 42, 0.6);
-            --hash-color: #8b5cf6;
-            --author-color: #c084fc;
-            --date-color: #a5b4fc;
+            --hash-color: #60a5fa;
+            --author-color: #93c5fd;
+            --date-color: #bfdbfe;
             --message-color: #e2e8f0;
             --refs-color: #fbbf24;
         }
@@ -128,7 +128,7 @@
         .project-form-row input[type="text"]:focus {
             outline: none;
             border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.25);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
             transform: translateY(-1px);
         }
 
@@ -210,12 +210,12 @@
         }
 
         #gitCommitList li.git-commit-row:hover {
-            background: rgba(124, 58, 237, 0.12);
-            box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.2);
+            background: rgba(37, 99, 235, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.2);
         }
 
         #gitCommitList li.git-commit-row:focus-visible {
-            outline: 2px solid rgba(124, 58, 237, 0.6);
+            outline: 2px solid rgba(37, 99, 235, 0.6);
             outline-offset: 2px;
         }
 
@@ -308,7 +308,7 @@
             letter-spacing: 0.02em;
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
             color: white;
-            box-shadow: 0 16px 32px rgba(124, 58, 237, 0.35);
+            box-shadow: 0 16px 32px rgba(37, 99, 235, 0.35);
             transition: transform 0.18s ease, box-shadow 0.18s ease;
             display: inline-flex;
             align-items: center;
@@ -318,7 +318,7 @@
         button:hover,
         .nav-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 24px 40px rgba(124, 58, 237, 0.38);
+            box-shadow: 0 24px 40px rgba(37, 99, 235, 0.38);
         }
 
         button:active,
@@ -371,7 +371,7 @@
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            border: 4px solid rgba(124, 58, 237, 0.18);
+            border: 4px solid rgba(37, 99, 235, 0.18);
             border-top-color: var(--accent);
             animation: spin 1s linear infinite;
         }
