@@ -772,6 +772,42 @@ export default class TaskDBAws {
     );
   }
 
+  createImagePair(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', model = '', publish = 0, productUrl = '', ebayUrl = '') {
+    void this.createImagePairAsync(
+      url,
+      altText,
+      chatTabId,
+      title,
+      status,
+      sessionId,
+      model,
+      publish,
+      productUrl,
+      ebayUrl
+    ).catch((err) => {
+      console.warn('[TaskDBAws] Failed to create image pair:', err);
+    });
+  }
+
+  async createImagePairAsync(url, altText = '', chatTabId = 1, title = '', status = 'Generated', sessionId = '', model = '', publish = 0, productUrl = '', ebayUrl = '') {
+    await this._initPromise;
+    const ts = new Date().toISOString();
+    const uuid = randomUUID().split('-')[0];
+    const { rows } = await this.pool.query(
+      `INSERT INTO chat_pairs (
+        user_text, ai_text, model, timestamp, ai_timestamp,
+        chat_tab_id, system_context, project_context, token_info,
+        citations_json, image_url, image_alt, image_title, image_status, session_id, image_uuid, publish_portfolio, product_url, ebay_url
+      ) VALUES (
+        '', '', $1, $2, $2,
+        $3, '', '', NULL,
+        NULL, $4, $5, $6, $7, $8, $9, $10, $11, $12
+      ) RETURNING id`,
+      [model, ts, chatTabId, url, altText, title, status, sessionId, uuid, publish ? 1 : 0, productUrl, ebayUrl]
+    );
+    return rows[0]?.id ?? null;
+  }
+
   async getPairById(id) {
     await this._initPromise;
     const { rows } = await this.pool.query(
