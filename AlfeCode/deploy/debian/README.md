@@ -364,6 +364,12 @@ To keep git access and repository working data on worker only:
 
 Result: the frontend coordinates runs, while repo checkout/auth material and user repo contents stay on worker storage.
 
+Implementation note (current behavior):
+
+- In split frontend mode (`ALFECODE_VM_HOST` + `ALFECODE_VM_USER` set on frontend/CNC, and `ALFECODE_NODE` not enabled there), `/repositories/add` performs `git clone` over SSH on worker.
+- `/repositories/generate-ssh-key` also runs on worker in split frontend mode and returns the worker public key to the UI.
+- Frontend local key generation is bypassed in split frontend mode.
+
 ### Worker SSH prerequisites
 
 On the worker, ensure the SSH user can:

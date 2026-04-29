@@ -79,6 +79,11 @@ const ALFECODE_CNC_IP = normalizeBaseUrl(process.env.ALFECODE_CNC_IP || '');
 const NODE_HEARTBEAT_INTERVAL_MS = 1000;
 const NODE_HEARTBEAT_ID = process.env.ALFECODE_NODE_ID || '';
 const NODE_PING_SHARED_KEY = (process.env.ALFECODE_NODE_PING_KEY || '').trim();
+const ALFECODE_VM_HOST = (process.env.ALFECODE_VM_HOST || "").trim();
+const ALFECODE_VM_USER = (process.env.ALFECODE_VM_USER || "").trim();
+const parsedVmSshPort = Number.parseInt(process.env.ALFECODE_VM_SSH_PORT || "22", 10);
+const ALFECODE_VM_SSH_PORT = Number.isFinite(parsedVmSshPort) && parsedVmSshPort > 0 ? parsedVmSshPort : 22;
+const IS_SPLIT_FRONTEND = Boolean(ALFECODE_VM_HOST && ALFECODE_VM_USER && !IS_ALFECODE_NODE);
 
 function parseBooleanEnv(value, defaultValue = false) {
     if (typeof value === "undefined" || value === null) {
@@ -1584,8 +1589,36 @@ function getActiveInactiveChats(jsonObj) {
  */
 function cloneRepository(repoName, repoURL, sessionId, callback) {
     const safeSession = sanitizeSessionId(sessionId) || "session";
-    const cloneBase = path.join(path.sep, "git", "sterling", safeSession);
+    const cloneBase = path.join(SESSION_GIT_BASE_PATH, safeSession);
     const clonePath = path.join(cloneBase, repoName);
+
+    if (IS_SPLIT_FRONTEND) {
+        const escapedCloneBase = cloneBase.replace(/'/g, "'\"'\"'");
+        const escapedClonePath = clonePath.replace(/'/g, "'\"'\"'");
+        const escapedRepoUrl = String(repoURL || "").replace(/'/g, "'\"'\"'");
+        const sshTarget = `${ALFECODE_VM_USER}@${ALFECODE_VM_HOST}`;
+        const remoteCommand = [
+            `mkdir -p '${escapedCloneBase}'`,
+            `if [ ! -d '${escapedClonePath}' ]; then git clone '${escapedRepoUrl}' '${escapedClonePath}'; fi`,
+        ].join(" && ");
+        exec(`ssh -p ${ALFECODE_VM_SSH_PORT} ${sshTarget} "${remoteCommand}"`, (error, stdout, stderr) => {
+            if (error) {
+                const stderrText = typeof stderr === "string" ? stderr : "";
+                const message = stderrText || error.message || "Failed to clone repository on worker.";
+                const permissionDenied =
+                    /permission denied \(publickey\)/i.test(stderrText)
+                    || /could not read from remote repository/i.test(stderrText);
+                const enhancedError = new Error(message);
+                enhancedError.code = error.code;
+                enhancedError.sshKeyRequired = permissionDenied;
+                enhancedError.stderr = stderrText;
+                console.error("[ERROR] cloneRepository(worker):", message);
+                return callback(enhancedError, null);
+            }
+            return callback(null, clonePath);
+        });
+        return;
+    }
 
     if (!fs.existsSync(cloneBase)) fs.mkdirSync(cloneBase, { recursive: true });
 
@@ -1644,6 +1677,12 @@ setupPostRoutes({
     upsertCodexRun,
     ensureSessionDefaultRepo,
     buildSessionCookie,
+    isSplitFrontend: IS_SPLIT_FRONTEND,
+    workerSshConfig: {
+        host: ALFECODE_VM_HOST,
+        user: ALFECODE_VM_USER,
+        port: ALFECODE_VM_SSH_PORT,
+    },
 });
 
 
