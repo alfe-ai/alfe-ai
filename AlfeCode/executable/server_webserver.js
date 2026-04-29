@@ -817,7 +817,7 @@ function ensureSessionIdCookie(req, res) {
             if (safeSessionDir) {
                 const gitRoot = process.env.SESSION_GIT_ROOT
                     ? path.resolve(process.env.SESSION_GIT_ROOT)
-                    : path.join(DATA_ROOT, "sessions", "_git");
+                    : path.join(SESSION_GIT_BASE_PATH, "_git");
                 const gitSessionDir = path.join(gitRoot, safeSessionDir);
                 if (!fs.existsSync(gitSessionDir)) {
                     fs.mkdirSync(gitSessionDir, { recursive: true });
