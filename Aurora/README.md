@@ -28,6 +28,9 @@ npm start
 | `HTTPS_KEY_PATH` | (Optional) Path to SSL private key for HTTPS |
 | `HTTPS_CERT_PATH` | (Optional) Path to SSL certificate for HTTPS |
 | `AURORA_PORT` | (Optional) Port for the web server (default: 3000) |
+| `IMAGES_ENABLED_2026` | (Optional) Controls whether Image Design tab/UI is visible (default: `true`) |
+| `DESIGN_TAB_FOR_ALL_PLANS` | (Optional) Set to `true` to allow Image Design tabs for all plans/users, not only Pro/Ultimate (default: `false`) |
+| `SEARCH_ENABLED_2026` | (Optional) Controls whether Search tab/UI is visible (default: `true`) |
 | `DISABLE_2FA` | (Optional) Set to `true` to skip TOTP verification during login |
 | `AWS_DB_URL` | PostgreSQL connection string for AWS RDS (Aurora) |
 | `AWS_DB_HOST` | Hostname for AWS RDS (used with the credentials below when `AWS_DB_URL` is not set) |
@@ -47,6 +50,21 @@ sudo ../setup_certbot.sh chat.alfe.sh <email>
 sudo ../setup_ssl_permissions.sh chat.alfe.sh [user]
 export HTTPS_KEY_PATH="/etc/letsencrypt/live/chat.alfe.sh/privkey.pem"
 export HTTPS_CERT_PATH="/etc/letsencrypt/live/chat.alfe.sh/fullchain.pem"
+```
+
+### Enabling the **Image Design** tab
+
+If you do not see the **Image Design** tab in the left sidebar/new-tab options:
+
+1. Ensure the Aurora server process has `IMAGES_ENABLED_2026=true`.
+2. Restart the server after changing env vars.
+3. Hard-refresh the browser (or open a new private/incognito window) so `/aurora-config.js` is reloaded.
+
+Example:
+
+```bash
+export IMAGES_ENABLED_2026=true
+npm start
 ```
 
 ### Obtaining API Keys
