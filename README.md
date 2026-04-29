@@ -26,21 +26,21 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 
 ## Screenshots
 
-<img width="1959" height="1448" alt="1" src="https://github.com/user-attachments/assets/46655574-5274-479c-8c99-0307ddb003c3" />
+<img width="1959" height="1448" alt="1" src="https://github.com/user-attachments/assets/46655574-5274-479c-8c99-0307ddb003c3" />  
 
-<img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153" />
+<img width="1772" height="1504" alt="image" src="https://github.com/user-attachments/assets/9e6ecda4-3454-474e-b270-b7a0b7414153" />  
 
-<img width="1601" height="987" alt="3" src="https://github.com/user-attachments/assets/5ad5c804-fc47-409c-83de-7eaafcbf7bd3" />
+<img width="1601" height="987" alt="3" src="https://github.com/user-attachments/assets/5ad5c804-fc47-409c-83de-7eaafcbf7bd3" />  
 
-<img width="772" height="1415" alt="image" src="https://github.com/user-attachments/assets/b07d3e2c-9750-4533-b208-d6e5f68c439a" />
+<img width="736" height="1483" alt="image" src="https://github.com/user-attachments/assets/845affac-7b18-4c2f-9dad-0aade6e9260c" />  
 
-<img width="1355" height="1017" alt="image" src="https://github.com/user-attachments/assets/e5aa1ffa-9f49-4863-aff0-80b1ee627896" />
+<img width="1794" height="1515" alt="image" src="https://github.com/user-attachments/assets/988235bf-5ee8-4fe8-8b45-5bc650b0f2fe" />  
 
-<img width="1314" height="1162" alt="image" src="https://github.com/user-attachments/assets/f2011c6e-f1ef-4548-8310-db39ceb2359d" />
+<img width="1480" height="1507" alt="image" src="https://github.com/user-attachments/assets/c4d34188-bbbd-459c-93bf-067f54e80bf9" />  
 
-<img width="2083" height="749" alt="image" src="https://github.com/user-attachments/assets/d18cb826-4964-4289-9fbb-b42be684c321" />
+<img width="1327" height="1498" alt="image" src="https://github.com/user-attachments/assets/a9a18b67-6b54-4bee-9a5e-bc9f3ddc632c" />  
 
-<img width="603" height="1178" alt="image" src="https://github.com/user-attachments/assets/0493dece-3756-4ece-9a9f-a8f05df387e3" />
+<img width="2083" height="749" alt="image" src="https://github.com/user-attachments/assets/d18cb826-4964-4289-9fbb-b42be684c321" />  
 
 ## Architecture
 
