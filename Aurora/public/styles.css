@@ -70,8 +70,8 @@ body {
 /* Sidebar */
 .sidebar {
   position: relative;
-  width: clamp(260px, 32vw, calc(100vw - 100px));
-  max-width: calc(100vw - 100px);
+  width: clamp(320px, 26vw, 420px);
+  max-width: 420px;
   background: linear-gradient(185deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.92));
   padding: 4.75rem 1.25rem 1.5rem 1.25rem;
   overflow-y: auto;
