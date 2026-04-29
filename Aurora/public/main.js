@@ -149,6 +149,7 @@ const featureFlagConfig = (() => {
   return {
     searchEnabled2026: normalizeFlag(flags.searchEnabled2026, true),
     imagesEnabled2026: normalizeFlag(flags.imagesEnabled2026, true),
+    designTabDebugEnabled: normalizeFlag(flags.designTabDebugEnabled, false),
     designTabForAllPlans: normalizeFlag(flags.designTabForAllPlans, false),
     twoFactorEnabled2026: normalizeFlag(flags.twoFactorEnabled2026, false),
     collapseReasoningByDefaultVisible: normalizeFlag(
@@ -2113,6 +2114,10 @@ async function openSettingsModal(e){
   if(archiveChatButtonCheck){
     archiveChatButtonCheck.checked = showArchiveChatButton;
   }
+  const designTabDebugSection = document.getElementById('designTabDebugSection');
+  if(designTabDebugSection){
+    designTabDebugSection.style.display = featureFlagConfig.designTabDebugEnabled ? '' : 'none';
+  }
   updateSettingsStatus(document.getElementById('archiveChatButtonSaveStatus'), '');
   const sessionIdEl = document.getElementById('settingsSessionIdText');
   if(sessionIdEl){
@@ -2123,7 +2128,9 @@ async function openSettingsModal(e){
     themeSelect.value = document.body.dataset.theme || getStoredTheme();
   }
   renderAccountSettingsSection();
-  await updateDesignTabDebugInfo();
+  if(featureFlagConfig.designTabDebugEnabled){
+    await updateDesignTabDebugInfo();
+  }
   if(!usageLimitCache){
     updateUsageLimitInfo();
   }
@@ -2146,6 +2153,7 @@ function updateSettingsModalStatus(message, state){
 }
 
 document.getElementById('designTabDebugRefreshBtn')?.addEventListener('click', async () => {
+  if(!featureFlagConfig.designTabDebugEnabled) return;
   await updateDesignTabDebugInfo();
 });
 

@@ -35,6 +35,7 @@ const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
 const IMAGE_UPLOAD_ENABLED = parseBooleanEnv(process.env.IMAGE_UPLOAD_ENABLED, false);
 const SEARCH_ENABLED_2026 = parseBooleanEnv(process.env.SEARCH_ENABLED_2026, true);
 const IMAGES_ENABLED_2026 = parseBooleanEnv(process.env.IMAGES_ENABLED_2026, true);
+const DESIGN_TAB_DEBUG_ENABLED = parseBooleanEnv(process.env.DESIGN_TAB_DEBUG_ENABLED, false);
 const DESIGN_TAB_FOR_ALL_PLANS = parseBooleanEnv(
   process.env.DESIGN_TAB_FOR_ALL_PLANS,
   false
@@ -5223,6 +5224,7 @@ app.get("/aurora-config.js", (_req, res) => {
     },
     searchEnabled2026: SEARCH_ENABLED_2026,
     imagesEnabled2026: IMAGES_ENABLED_2026,
+    designTabDebugEnabled: DESIGN_TAB_DEBUG_ENABLED,
     designTabForAllPlans: DESIGN_TAB_FOR_ALL_PLANS,
     twoFactorEnabled2026: TWO_FACTOR_ENABLED_2026,
     hideThemeOption: hideThemeOption,
