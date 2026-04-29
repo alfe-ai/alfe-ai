@@ -33,6 +33,8 @@ function parseBooleanEnv(value, defaultValue = false) {
 
 const accountsEnabled = parseBooleanEnv(process.env.ACCOUNTS_ENABLED, false);
 const IMAGE_UPLOAD_ENABLED = parseBooleanEnv(process.env.IMAGE_UPLOAD_ENABLED, false);
+const HIDE_IMAGE_ID_COLUMN = parseBooleanEnv(process.env.HIDE_IMAGE_ID_COLUMN, false);
+const HIDE_IMAGE_STATUS_COLUMN = parseBooleanEnv(process.env.HIDE_IMAGE_STATUS_COLUMN, false);
 const SEARCH_ENABLED_2026 = parseBooleanEnv(process.env.SEARCH_ENABLED_2026, true);
 const IMAGES_ENABLED_2026 = parseBooleanEnv(process.env.IMAGES_ENABLED_2026, true);
 const DESIGN_TAB_DEBUG_ENABLED = parseBooleanEnv(process.env.DESIGN_TAB_DEBUG_ENABLED, false);
@@ -5227,6 +5229,10 @@ app.get("/aurora-config.js", (_req, res) => {
     },
     imageUpload: {
       enabled: IMAGE_UPLOAD_ENABLED,
+    },
+    imageTable: {
+      hideIdColumn: HIDE_IMAGE_ID_COLUMN,
+      hideStatusColumn: HIDE_IMAGE_STATUS_COLUMN,
     },
     shopifyAuth: {
       enabled: parseBooleanEnv(process.env.SHOPIFY_AUTH_ENABLED, true),
