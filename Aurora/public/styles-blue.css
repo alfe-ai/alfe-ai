@@ -1,0 +1,20 @@
+@import url('./styles.css');
+
+:root {
+  --bg-gradient: linear-gradient(180deg, rgba(37, 99, 235, 0.30), rgba(15, 23, 42, 0.9));
+  --bg-main: rgba(15, 23, 42, 0.92);
+  --bg-alt: rgba(15, 23, 42, 0.84);
+  --surface: rgba(30, 41, 59, 0.95);
+  --surface-solid: #1e293b;
+  --surface-border: rgba(59, 130, 246, 0.45);
+  --surface-border-strong: rgba(125, 211, 252, 0.6);
+  --text-color: #e6edf8;
+  --text-muted: #9fb4d0;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.28);
+  --accent-light: rgba(59, 130, 246, 0.20);
+  --accent-strong: #3b82f6;
+  --positive: #22c55e;
+  --negative: #f97316;
+  --shadow: 0 18px 42px rgba(15, 23, 42, 0.5);
+}
