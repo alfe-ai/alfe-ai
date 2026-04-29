@@ -420,7 +420,7 @@ function sanitizeRepoSegment(name, fallback = "repo") {
 
 function buildSessionRemoteRepoName(sessionId, repoName = NEW_SESSION_REPO_NAME) {
     const safeSessionId = sanitizeSessionId(sessionId) || "session";
-    const safeRepoName = sanitizeRepoSegment(repoName);
+    const safeRepoName = sanitizeRepoSegment(repoName).toLowerCase();
     return sanitizeRepoSegment(`${safeSessionId}-${safeRepoName}`, `${safeRepoName}-session`);
 }
 
@@ -512,6 +512,24 @@ function buildExternalGitServerCloneUrl(repoNameWithGitSuffix) {
     return `${DEMO_GIT_SERVER_CLONE_BASE_URL}/${repoNameWithGitSuffix}`;
 }
 
+function normalizeExternalCloneUrl(rawCloneUrl, remoteRepoName) {
+    const fallback = buildExternalGitServerCloneUrl(`${remoteRepoName}.git`);
+    if (typeof rawCloneUrl !== "string") {
+        return fallback;
+    }
+    const trimmed = rawCloneUrl.trim();
+    if (!trimmed) {
+        return fallback;
+    }
+    if (/^git:\/\//i.test(trimmed) || /^https?:\/\//i.test(trimmed) || /^ssh:\/\//i.test(trimmed)) {
+        return trimmed;
+    }
+    if (trimmed.startsWith("/")) {
+        return `${DEMO_GIT_SERVER_CLONE_BASE_URL}${trimmed}`;
+    }
+    return `${DEMO_GIT_SERVER_CLONE_BASE_URL}/${trimmed}`;
+}
+
 async function ensureExternalDemoRepo(remoteRepoName) {
     if (!DEMO_GIT_SERVER_API_URL) {
         return null;
@@ -537,7 +555,7 @@ async function ensureExternalDemoRepo(remoteRepoName) {
     }
 
     const data = await response.json();
-    const cloneUrl = typeof data?.cloneUrl === "string" ? data.cloneUrl.trim() : "";
+    const cloneUrl = normalizeExternalCloneUrl(data?.cloneUrl, remoteRepoName);
     return {
         cloneUrl,
         gitRepoURL: cloneUrl || buildExternalGitServerCloneUrl(`${remoteRepoName}.git`),
