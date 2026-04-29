@@ -1594,8 +1594,7 @@ body {
 }
 
 
-#sidebarToggleIcon.sidebar-logo,
-#collapsedSidebarLogo.sidebar-logo {
+#sidebarToggleIcon.sidebar-logo {
   width: 176px;
   height: auto;
   padding: 0;
@@ -1610,6 +1609,20 @@ body {
 #collapsedSidebarLogo.sidebar-logo:hover {
   transform: none;
   box-shadow: none;
+}
+
+#collapsedSidebarLogo.sidebar-logo {
+  width: 42px;
+  height: 42px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(var(--surface-solid), var(--surface-solid)) padding-box,
+    linear-gradient(140deg, #8b5cf6, #22d3ee, #38bdf8) border-box;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.45);
+  object-fit: contain;
+  overflow: hidden;
 }
 .collapsed-sidebar-logo {
   position: absolute;
