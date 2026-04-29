@@ -149,6 +149,7 @@ const featureFlagConfig = (() => {
   return {
     searchEnabled2026: normalizeFlag(flags.searchEnabled2026, true),
     imagesEnabled2026: normalizeFlag(flags.imagesEnabled2026, true),
+    designTabForAllPlans: normalizeFlag(flags.designTabForAllPlans, false),
     twoFactorEnabled2026: normalizeFlag(flags.twoFactorEnabled2026, false),
     collapseReasoningByDefaultVisible: normalizeFlag(
       flags.collapseReasoningByDefaultVisible,
@@ -2102,7 +2103,7 @@ function updateAccountButton(info){
     accountInfo = null;
     togglePortfolioMenu(false);
     toggleImageIdColumn();
-    toggleDesignTabs(false);
+    toggleDesignTabs(featureFlagConfig.designTabForAllPlans);
     return;
   }
   btn.removeEventListener("click", openSignupModal);
@@ -2112,7 +2113,8 @@ function updateAccountButton(info){
     btn.style.display = "none";
     togglePortfolioMenu(info.id === 1);
     toggleImageIdColumn();
-    toggleDesignTabs(info.plan === 'Pro' || info.plan === 'Ultimate');
+    const designAllowedByPlan = info.plan === 'Pro' || info.plan === 'Ultimate';
+    toggleDesignTabs(designAllowedByPlan || featureFlagConfig.designTabForAllPlans);
   } else {
     accountInfo = null;
     btn.style.display = "";
@@ -2120,7 +2122,7 @@ function updateAccountButton(info){
     btn?.addEventListener("click", openSignupModal);
     togglePortfolioMenu(false);
     toggleImageIdColumn();
-    toggleDesignTabs(false);
+    toggleDesignTabs(featureFlagConfig.designTabForAllPlans);
   }
   renderAccountSettingsSection();
 }
