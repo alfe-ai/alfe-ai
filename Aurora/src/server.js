@@ -4760,7 +4760,14 @@ app.post("/api/image/generate", async (req, res) => {
       });
     }
 
-    const openaiClient = new OpenAI({ apiKey: openAiKey });
+    const resolvedImageApiBaseUrl =
+      process.env.OPENAI_BASE_IMAGE_URL ||
+      process.env.OPENAI_BASE_URL ||
+      "https://api.openai.com/v1";
+    const openaiClient = new OpenAI({
+      apiKey: openAiKey,
+      baseURL: resolvedImageApiBaseUrl
+    });
 
     let modelName = (model || db.getSetting("image_gen_model") || "gptimage1").toLowerCase();
     if (modelName === "gptimage1") modelName = "gpt-image-1";
@@ -4782,7 +4789,7 @@ app.post("/api/image/generate", async (req, res) => {
 
     console.debug(
       "[Server Debug] Calling OpenAI image API =>",
-      JSON.stringify({ model: modelName, n: countParsed, size: imgSize })
+      JSON.stringify({ model: modelName, n: countParsed, size: imgSize, baseURL: resolvedImageApiBaseUrl })
     );
 
     let result;
