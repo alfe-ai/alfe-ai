@@ -546,18 +546,18 @@ let designTabInfo = null;
 let designTabFetchPromise = null;
 let initialPathAlias = null;
 
-const alfeGreetingMessages = (() => {
+const alshGreetingMessages = (() => {
   const openers = [
-    "Hello! I'm Alfe, your AI assistant.",
-    "Hi there! Alfe here, ready to collaborate.",
-    "Greetings! You're chatting with Alfe.",
-    "Welcome! Alfe is online and ready to help.",
-    "Hey! It's Alfe, your project partner.",
-    "Good to see you! Alfe reporting for duty.",
-    "Hello again! Alfe is tuned in.",
-    "Hi! Alfe at your service.",
-    "Hey there! Alfe is ready when you are.",
-    "Welcome back! Alfe is here to assist."
+    "Hello! I'm ALSH.ai, your AI assistant.",
+    "Hi there! ALSH.ai here, ready to collaborate.",
+    "Greetings! You're chatting with ALSH.ai.",
+    "Welcome! ALSH.ai is online and ready to help.",
+    "Hey! It's ALSH.ai, your project partner.",
+    "Good to see you! ALSH.ai reporting for duty.",
+    "Hello again! ALSH.ai is tuned in.",
+    "Hi! ALSH.ai at your service.",
+    "Hey there! ALSH.ai is ready when you are.",
+    "Welcome back! ALSH.ai is here to assist."
   ];
   const closers = [
     "What can I help you build today?",
@@ -580,12 +580,12 @@ const alfeGreetingMessages = (() => {
   return messages;
 })();
 
-function getRandomAlfeGreeting(){
-  if(!alfeGreetingMessages.length){
-    return "Hello, I'm Alfe. How can I help you today?";
+function getRandomAlshGreeting(){
+  if(!alshGreetingMessages.length){
+    return "Hello, I'm ALSH.ai. How can I help you today?";
   }
-  const idx = Math.floor(Math.random() * alfeGreetingMessages.length);
-  return alfeGreetingMessages[idx];
+  const idx = Math.floor(Math.random() * alshGreetingMessages.length);
+  return alshGreetingMessages[idx];
 }
 
 function updateArchiveChatButton(){
@@ -2306,7 +2306,7 @@ function renderInitialGreeting(message=null){
   botDiv.appendChild(botHead);
 
   const botBody = document.createElement("div");
-  const greetingText = message || getRandomAlfeGreeting();
+  const greetingText = message || getRandomAlshGreeting();
   botBody.innerHTML = formatCodeBlocks(greetingText);
   botDiv.appendChild(botBody);
 

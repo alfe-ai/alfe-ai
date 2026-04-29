@@ -29,3 +29,10 @@
   box-shadow: 0 0 0 1px rgba(191, 219, 254, 0.35), 0 6px 16px rgba(37, 99, 235, 0.45);
   color: #ffffff;
 }
+
+
+.divider {
+  background: rgba(37, 99, 235, 0.14);
+  border-right: 1px solid rgba(59, 130, 246, 0.32);
+  border-left: 1px solid rgba(125, 211, 252, 0.24);
+}
