@@ -349,6 +349,21 @@ ALFECODE_NODE_ID=worker-01
 SESSION_GIT_BASE_PATH=/git/sterling
 ```
 
+### Git integration behavior in split mode (`+ Add Repository` from UI)
+
+When you use **+ Add Repository** in the AlfeCode UI, the repo metadata is saved by the frontend, but the **actual working clone used for agent/Qwen execution should live on the worker**.
+
+To keep git access and repository working data on worker only:
+
+1. On worker, set:
+   - `SESSION_GIT_BASE_PATH=/git/sterling`
+   - your SSH deploy keys / git credentials for private repositories.
+2. On frontend/CNC, do **not** install private git deploy keys for user repositories.
+3. Ensure frontend/CNC reaches worker over SSH through your bastion/reverse-proxy endpoint (`ALFECODE_VM_HOST`, `ALFECODE_VM_SSH_PORT`, `ALFECODE_VM_USER`).
+4. Ensure worker SSH user owns and can read/write `/git/sterling`.
+
+Result: the frontend coordinates runs, while repo checkout/auth material and user repo contents stay on worker storage.
+
 ### Worker SSH prerequisites
 
 On the worker, ensure the SSH user can:
