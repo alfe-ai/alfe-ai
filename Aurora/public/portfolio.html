@@ -128,7 +128,8 @@
 
         const allImages = data
           .filter(f => f.portfolio)
-          .sort(() => Math.random() - 0.5);
+          .sort(() => Math.random() - 0.5)
+          .filter((_, index) => index !== 9); // remove image #10 from the displayed set
         totalCount = allImages.length;
         loadedCount = 0;
         updateCounter();
