@@ -125,9 +125,49 @@ cd /git/alfe-ai/AlfeCode
 ./run.sh
 ```
 
-Open:
+#### HTTPS when running as a non-root user
 
-- `http://localhost:3001`
+`run.sh` supports non-root HTTPS by default using unprivileged ports:
+
+- HTTPS app listener: `8443`
+- HTTP→HTTPS redirect listener: `8080`
+- Internal HTTP app listener: `3333`
+
+Open locally:
+
+- `https://localhost:8443`
+- `http://localhost:8080` (redirects to HTTPS)
+
+If you must expose standard public ports (`443`/`80`) while still running AlfeCode as non-root, place a reverse proxy in front:
+
+```nginx
+server {
+  listen 80;
+  server_name your-host.example;
+  return 301 https://$host$request_uri;
+}
+
+server {
+  listen 443 ssl;
+  server_name your-host.example;
+
+  ssl_certificate     /etc/letsencrypt/live/your-host/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/your-host/privkey.pem;
+
+  location / {
+    proxy_pass https://127.0.0.1:8443;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+  }
+}
+```
+
+Optional override example:
+
+```bash
+ENABLE_HTTPS=true HTTPS_PORT=9443 HTTP_TO_HTTPS_REDIRECT_PORT=9080 ./run.sh
+```
 
 ### 8) Optional split deployment wiring (frontend/CNC + worker)
 
