@@ -138,30 +138,82 @@ Open locally:
 - `https://localhost:8443`
 - `http://localhost:8080` (redirects to HTTPS)
 
-If you must expose standard public ports (`443`/`80`) while still running AlfeCode as non-root, place a reverse proxy in front:
+If you must expose standard public ports (`443`/`80`) while still running AlfeCode as non-root, place a reverse proxy in front.
 
-```nginx
-server {
-  listen 80;
-  server_name your-host.example;
-  return 301 https://$host$request_uri;
-}
+#### Step-by-step: NGINX in front of AlfeCode (`8443`/`8080`)
 
-server {
-  listen 443 ssl;
-  server_name your-host.example;
+1. **Run AlfeCode as a non-root user** and keep the default ports from `run.sh`:
+   - HTTPS app listener: `8443`
+   - HTTP→HTTPS redirect listener: `8080`
 
-  ssl_certificate     /etc/letsencrypt/live/your-host/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/your-host/privkey.pem;
+2. **Install NGINX + Certbot** (Debian/Ubuntu):
 
-  location / {
-    proxy_pass https://127.0.0.1:8443;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto https;
-  }
-}
-```
+   ```bash
+   sudo apt update
+   sudo apt install -y nginx certbot python3-certbot-nginx
+   ```
+
+3. **Issue/renew a certificate** (replace with your real hostname):
+
+   ```bash
+   sudo certbot certonly --nginx -d your-host.example
+   ```
+
+4. **Create a site config** at `/etc/nginx/sites-available/alfe-code.conf`:
+
+   ```nginx
+   server {
+     listen 80;
+     listen [::]:80;
+     server_name your-host.example;
+
+     return 301 https://$host$request_uri;
+   }
+
+   server {
+     listen 443 ssl http2;
+     listen [::]:443 ssl http2;
+     server_name your-host.example;
+
+     ssl_certificate     /etc/letsencrypt/live/your-host.example/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/your-host.example/privkey.pem;
+
+     location / {
+       proxy_pass https://127.0.0.1:8443;
+
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+
+       proxy_http_version 1.1;
+       proxy_read_timeout 300;
+     }
+   }
+   ```
+
+5. **Enable the site and validate config**:
+
+   ```bash
+   sudo ln -sf /etc/nginx/sites-available/alfe-code.conf /etc/nginx/sites-enabled/alfe-code.conf
+   sudo nginx -t
+   ```
+
+6. **Reload NGINX**:
+
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
+7. **Confirm end-to-end behavior**:
+   - `http://your-host.example` redirects to HTTPS (`301`)
+   - `https://your-host.example` serves AlfeCode through NGINX on port `443`
+   - AlfeCode still runs as non-root on `127.0.0.1:8443`
+
+> Notes:
+> - If your DNS is not pointed yet, cert issuance will fail.
+> - Keep firewall open for inbound `80` and `443`.
+> - If you changed `HTTPS_PORT` in `run.sh`, update `proxy_pass` accordingly.
 
 Optional override example:
 
