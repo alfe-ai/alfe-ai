@@ -11,6 +11,36 @@ APP_SUBDIR="${APP_SUBDIR:-AlfeCode}"
 USER_REPO_ROOT="${USER_REPO_ROOT:-/git/sterling}"
 QWEN_INSTALL_SCRIPT_REL="${QWEN_INSTALL_SCRIPT_REL:-install-qwen-0.10.1-from-git.sh}"
 DEMO_REPO_NAME="${DEMO_REPO_NAME:-demo-repo}"
+DEPLOYMENT_MODE="standard"
+INSTALL_LOCAL_GITHOST="true"
+
+for arg in "$@"; do
+  case "$arg" in
+    --split-deployment)
+      DEPLOYMENT_MODE="split"
+      INSTALL_LOCAL_GITHOST="false"
+      ;;
+    --standard-deployment)
+      DEPLOYMENT_MODE="standard"
+      INSTALL_LOCAL_GITHOST="true"
+      ;;
+    -h|--help)
+      cat <<USAGE
+Usage: sudo bash deploy/debian/bootstrap_alfecode_debian.sh [--split-deployment]
+
+Options:
+  --split-deployment    Configure a worker-oriented install and skip local git-daemon demo setup.
+  --standard-deployment Force standard mode with local git-daemon demo setup (default).
+  -h, --help            Show this help message.
+USAGE
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unknown argument: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
 
 need() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -83,6 +113,7 @@ if ! command -v qwen >/dev/null 2>&1; then
 fi
 qwen --version
 
+if [ "$INSTALL_LOCAL_GITHOST" = "true" ]; then
   GITHOST_SCRIPT="$APP_PATH/githost/git-server.sh"
   if [ ! -x "$GITHOST_SCRIPT" ]; then
     echo "ERROR: local git host script not found or not executable: $GITHOST_SCRIPT" >&2
@@ -99,6 +130,9 @@ qwen --version
   fi
 
   bash "$GITHOST_SCRIPT" start-daemon
+else
+  log "Split deployment mode enabled: skipping local git host demo setup"
+fi
 
 log "Ensuring AlfeCode runtime data path"
 mkdir -p "$APP_PATH/data/config"
@@ -117,9 +151,13 @@ Next steps:
 
 2) Create and fill .env with required keys (OPENAI_API_KEY, etc).
 
-3) Local git host is installed for demo repos (default repo: demo-repo).
+3) Deployment mode: $DEPLOYMENT_MODE
 
-4) Start AlfeCode:
+4) For split deployment, set ALFECODE_NODE / ALFECODE_CNC_IP / ALFECODE_VM_* env vars as needed.
+
+5) Local git host demo setup is installed only in standard mode (default repo: $DEMO_REPO_NAME).
+
+6) Start AlfeCode:
    ./run.sh
 
 Expected install location:

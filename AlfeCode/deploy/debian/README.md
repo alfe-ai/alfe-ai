@@ -4,7 +4,6 @@ This guide standardizes a fresh Debian deployment for **AlfeCode**.
 
 It keeps app code and user repos separate:
 
-- **AlfeCode install path:** `/git/alfe-ai`
 - **User repo workspace root:** `/git/sterling`
 
 That separation avoids collisions with repositories cloned by AlfeCode during normal usage.
@@ -18,11 +17,30 @@ Run on a fresh Debian host after cloning this repository:
 ```bash
 sudo apt-get update
 sudo apt-get install -y git
-git clone https://github.com/ALSH.ai.git
+git clone https://github.com/ALSH-ai/ALSH.ai.git
 cd ALSH.ai
 sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
 ```
 
+For split frontend/CNC + worker deployment, run the bootstrap on **both servers** with role-specific mode:
+
+- **Frontend/CNC server:** use default standard mode (no split flag):
+
+```bash
+sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh
+```
+
+- **Worker server:** use split mode:
+
+```bash
+sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh --split-deployment
+```
+
+> Important: `--split-deployment` is for worker-oriented installs and skips local git-daemon demo setup.
+
+### **After deployment, Run:**
+
+[Jump to Running AlfeCode Step](https://github.com/ALSH-ai/ALSH.ai/blob/main/AlfeCode/deploy/debian/README.md#7-run-alfecode)
 
 What the script does:
 
@@ -32,8 +50,9 @@ What the script does:
 4. Runs `npm install` in `<your-checkout>/AlfeCode`.
 5. Runs `install-qwen-0.10.1-from-git.sh` to install and link `qwen`.
 6. Verifies `qwen --version` succeeds.
-7. Configures local git host + demo repo.
+7. Configures local git host + demo repo (standard mode only).
 8. Creates `data/config/repo_config.json` if missing.
+9. In `--split-deployment` mode, skips local git-daemon demo setup for worker-oriented installs.
 
 ---
 
@@ -51,7 +70,7 @@ sudo apt-get install -y \
 
 ```bash
 sudo mkdir -p /git
-sudo git clone https://github.com/ALSH.ai.git /git/alfe-ai
+sudo git clone https://github.com/ALSH-ai/ALSH.ai.git /git/alfe-ai
 sudo mkdir -p /git/sterling
 sudo chown -R "$USER:$USER" /git/alfe-ai /git/sterling
 ```
@@ -106,16 +125,177 @@ cd /git/alfe-ai/AlfeCode
 ./run.sh
 ```
 
-Open:
+#### HTTPS when running as a non-root user
 
-- `http://localhost:3001`
+`run.sh` supports non-root HTTPS by default using unprivileged ports:
+
+- HTTPS app listener: `8443`
+- HTTP→HTTPS redirect listener: `8080`
+- Internal HTTP app listener: `3333`
+
+Open locally:
+
+- `https://localhost:8443`
+- `http://localhost:8080` (redirects to HTTPS)
+
+If you must expose standard public ports (`443`/`80`) while still running AlfeCode as non-root, place a reverse proxy in front.
+
+#### Step-by-step: NGINX in front of AlfeCode (`8443`/`8080`)
+
+1. **Run AlfeCode as a non-root user** and keep the default ports from `run.sh`:
+   - HTTPS app listener: `8443`
+   - HTTP→HTTPS redirect listener: `8080`
+
+2. **Install NGINX + Certbot** (Debian/Ubuntu):
+
+   ```bash
+   sudo apt update
+   sudo apt install -y nginx certbot python3-certbot-nginx
+   ```
+
+3. **TLS choice (production vs staging/dev)**:
+   - **Production (public HTTPS):** issue/renew a certificate (replace with your real hostname):
+
+     ```bash
+     sudo certbot certonly --nginx -d your-host.example
+     ```
+
+   - **Staging/dev (HTTPS with no Certbot):** use AlfeCode's built-in self-signed cert flow:
+
+     ```bash
+     ENABLE_HTTPS=true HTTPS_PORT=8443 HTTP_TO_HTTPS_REDIRECT_PORT=8080 ./run.sh
+     ```
+
+     AlfeCode auto-generates `data/config/selfsigned-key.pem` and `data/config/selfsigned-cert.pem` if missing.
+
+4. **Create a site config** at `/etc/nginx/sites-available/alfe-code.conf`:
+   - **Production (with cert):**
+
+   ```nginx
+   server {
+     listen 80;
+     listen [::]:80;
+     server_name your-host.example;
+
+     return 301 https://$host$request_uri;
+   }
+
+   server {
+     listen 443 ssl http2;
+     listen [::]:443 ssl http2;
+     server_name your-host.example;
+
+     ssl_certificate     /etc/letsencrypt/live/your-host.example/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/your-host.example/privkey.pem;
+
+     location / {
+       proxy_pass https://127.0.0.1:8443;
+
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+
+       proxy_http_version 1.1;
+       proxy_read_timeout 300;
+     }
+   }
+   ```
+
+   - **Staging/dev (HTTPS passthrough, no Certbot):**
+
+   ```nginx
+   server {
+     listen 80;
+     listen [::]:80;
+     server_name your-host.example;
+
+     return 301 https://$host$request_uri;
+   }
+
+   server {
+     listen 443 ssl http2;
+     listen [::]:443 ssl http2;
+     server_name your-host.example;
+
+     # Temporary internal/staging cert loaded by NGINX itself.
+     # This is NOT from Certbot; provide your own local cert/key paths.
+     ssl_certificate     /etc/nginx/ssl/staging.crt;
+     ssl_certificate_key /etc/nginx/ssl/staging.key;
+
+     location / {
+       proxy_pass https://127.0.0.1:8443;
+
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+
+       proxy_http_version 1.1;
+       proxy_read_timeout 300;
+
+       proxy_ssl_verify off;  # staging/dev only: upstream uses self-signed cert
+     }
+   }
+   ```
+
+5. **Enable the site and validate config**:
+
+   ```bash
+   sudo ln -sf /etc/nginx/sites-available/alfe-code.conf /etc/nginx/sites-enabled/alfe-code.conf
+   sudo nginx -t
+   ```
+
+6. **Reload NGINX**:
+
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
+7. **Confirm end-to-end behavior**:
+   - **Production:** `http://your-host.example` redirects to HTTPS (`301`), and `https://your-host.example` serves AlfeCode through NGINX on port `443` while app runs non-root on `127.0.0.1:8443`.
+   - **Staging/dev (no Certbot):** `http://your-host.example` redirects to HTTPS (`301`), and `https://your-host.example` serves AlfeCode through NGINX on `443` while AlfeCode runs with a self-signed cert on `127.0.0.1:8443`.
+
+> Notes:
+> - If your DNS is not pointed yet, cert issuance will fail.
+> - Keep firewall open for inbound `80` and `443`.
+> - If you changed `HTTPS_PORT` in `run.sh`, update `proxy_pass` accordingly.
+> - For staging/dev, you can avoid Certbot and still keep HTTPS by using self-signed certificates.
+> - `proxy_ssl_verify off` should only be used in trusted staging/dev environments.
+
+Optional override example:
+
+```bash
+ENABLE_HTTPS=true HTTPS_PORT=9443 HTTP_TO_HTTPS_REDIRECT_PORT=9080 ./run.sh
+```
+
+### 8) Optional split deployment wiring (frontend/CNC + worker)
+
+If this machine is the **worker node**, set in `.env`:
+
+```bash
+ALFECODE_NODE=true
+ALFECODE_CNC_IP=https://<frontend-cnc-host>
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_NODE_ID=worker-01
+SESSION_GIT_BASE_PATH=/git/sterling
+```
+
+If this machine is the **frontend/CNC**, set in `.env`:
+
+```bash
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_VM_HOST=<worker-host-or-ip>
+ALFECODE_VM_SSH_PORT=22
+ALFECODE_VM_USER=<worker-ssh-user>
+```
 
 ---
 
 ## Quick validation checklist
 
 ```bash
-test -d /git/alfe-ai && echo "OK: /git/alfe-ai exists"
+test -d /git/alfe-ai && echo "OK: /git/alfe-ai exists" # Only if using this directory, you can install in a different directory
 test -d /git/alfe-ai/AlfeCode && echo "OK: app directory exists"
 test -d /git/sterling && echo "OK: /git/sterling (user repos root) exists"
 command -v qwen && echo "OK: qwen is on PATH"
@@ -130,6 +310,67 @@ systemctl is-active git-daemon || systemctl is-active git-daemon.service
 ```
 
 If any command fails, re-run the bootstrap script and inspect output.
+
+---
+
+## Split deployment: frontend/CNC + worker node (recommended for scale)
+
+Use this pattern when you want user working directories and Qwen execution to run on a separate server from the AlfeCode web frontend.
+
+### Server roles
+
+- **Frontend/CNC server**
+  - Runs AlfeCode web UI/API.
+  - Receives worker heartbeat pings at `/vm_runs/ping`.
+  - Triggers agent/Qwen runs over SSH to worker nodes.
+- **Worker server**
+  - Hosts user repo workspace (for example `/git/sterling`).
+  - Runs Qwen CLI and agent execution workload.
+  - Sends heartbeat pings to frontend/CNC.
+
+### Frontend/CNC setup (`/git/alfe-ai/AlfeCode/.env`)
+
+```bash
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_VM_HOST=<worker-host-or-ip>
+ALFECODE_VM_SSH_PORT=22
+ALFECODE_VM_USER=<worker-ssh-user>
+```
+
+### Worker setup (`/git/alfe-ai/AlfeCode/.env`)
+
+```bash
+ALFECODE_NODE=true
+ALFECODE_CNC_IP=https://<frontend-cnc-host>
+ALFECODE_NODE_PING_KEY=<shared-secret>
+ALFECODE_NODE_ID=worker-01
+SESSION_GIT_BASE_PATH=/git/sterling
+```
+
+### Worker SSH prerequisites
+
+On the worker, ensure the SSH user can:
+
+- read/write the user workspace root (`/git/sterling`), and
+- execute `node`, `npm`, and `qwen`.
+
+### Split deployment validation
+
+From worker:
+
+```bash
+command -v qwen && qwen --version
+curl -k -X POST "https://<frontend-cnc-host>/vm_runs/ping" \
+  -H "Content-Type: application/json" \
+  -H "x-alfecode-node-key: <shared-secret>" \
+  -d '{"hostname":"worker-01","nodeId":"worker-01"}'
+```
+
+From frontend:
+
+```bash
+ssh -p 22 <worker-ssh-user>@<worker-host-or-ip> 'command -v qwen && qwen --version'
+```
 
 ## GitServer   
 GitServer may also need to be deployed depending on your use case. Instructions for GitServer deployment can be found in the GitServer directory.

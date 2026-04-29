@@ -991,6 +991,91 @@ run_codex_in_vm() {
     "cd $(escape_shell_arg "$remote_dir") && ${remote_command}"
 }
 
+run_qwen_in_vm() {
+  local source_dir="$1"
+  shift
+
+  if ! should_use_vm; then
+    run_qwen "$@"
+    return $?
+  fi
+
+  if [[ ! -d "$source_dir" ]]; then
+    echo "Error: VM source directory not found: $source_dir" >&2
+    return 2
+  fi
+
+  if ! command -v ssh >/dev/null 2>&1; then
+    echo "Error: ssh not available; cannot run qwen in VM." >&2
+    return 1
+  fi
+
+  if ! command -v tar >/dev/null 2>&1; then
+    echo "Error: tar not available; cannot stage project for VM run." >&2
+    return 1
+  fi
+
+  local remote_dir="/tmp/alfecode-run-$(date +%s)-${RANDOM}"
+  local -a ssh_args=(
+    -o StrictHostKeyChecking=no
+    -o UserKnownHostsFile=/dev/null
+    -o BatchMode=yes
+    -o ConnectTimeout=10
+    -o ConnectionAttempts=1
+    -p "${ALFECODE_VM_SSH_PORT}"
+  )
+
+  log_meta "Waiting for VM SSH to accept connections at ${ALFECODE_VM_HOST}:${ALFECODE_VM_SSH_PORT}"
+  if ! wait_for_port "${ALFECODE_VM_HOST}" "${ALFECODE_VM_SSH_PORT}" 90 2; then
+    echo "Error: VM SSH did not become ready at ${ALFECODE_VM_HOST}:${ALFECODE_VM_SSH_PORT}." >&2
+    return 1
+  fi
+
+  log_meta "Syncing project to VM at ${ALFECODE_VM_HOST}:${ALFECODE_VM_SSH_PORT} -> ${remote_dir}"
+  tar -C "$source_dir" -cf - . \
+    | ssh "${ssh_args[@]}" "${ALFECODE_VM_USER}@${ALFECODE_VM_HOST}" "mkdir -p $(escape_shell_arg "$remote_dir") && tar -C $(escape_shell_arg "$remote_dir") -xf -"
+
+  local -a remote_env=(
+    "OPENAI_API_KEY=${OPENAI_API_KEY:-}"
+    "OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}"
+    "LITELLM_API_KEY=${LITELLM_API_KEY:-}"
+    "OPENAI_BASE_URL=${OPENAI_BASE_URL:-}"
+    "QWEN_MODEL=${QWEN_MODEL:-}"
+    "QWEN_PASS_DEBUG_ENV=${QWEN_PASS_DEBUG_ENV:-0}"
+    "DEBUG=${DEBUG:-1}"
+    "DEBUG_MODE=${DEBUG_MODE:-1}"
+    "QWEN_LOG_PATH=${QWEN_LOG_PATH:-/tmp/qwen.log}"
+    "SHOW_QWEN_CLI_ARGS=${SHOW_QWEN_CLI_ARGS:-false}"
+    "QWEN_STREAM_JSON=${QWEN_STREAM_JSON:-true}"
+    "CODEX_SHOW_META=${CODEX_SHOW_META:-0}"
+    "MODEL_KEY_SOURCE=${MODEL_KEY_SOURCE:-}"
+    "MODEL=${MODEL:-}"
+  )
+
+  local remote_qwen_fn
+  remote_qwen_fn="$(declare -f run_qwen)"
+  local remote_load_qwen_env_fn
+  remote_load_qwen_env_fn="$(declare -f load_qwen_env)"
+  local remote_resolve_model_only_url_fn
+  remote_resolve_model_only_url_fn="$(declare -f resolve_model_only_url)"
+  local remote_resolve_model_only_key_fn
+  remote_resolve_model_only_key_fn="$(declare -f resolve_model_only_key)"
+
+  local remote_qwen_args_shell
+  remote_qwen_args_shell="$(build_shell_command "$@")"
+  local remote_env_exports
+  remote_env_exports="$(build_shell_command "${remote_env[@]}")"
+  local remote_script="${remote_resolve_model_only_url_fn}
+${remote_resolve_model_only_key_fn}
+${remote_load_qwen_env_fn}
+${remote_qwen_fn}
+cd $(escape_shell_arg "$remote_dir")
+env ${remote_env_exports} bash -lc $(escape_shell_arg "run_qwen ${remote_qwen_args_shell}")"
+
+  log_meta "Launching qwen in VM (remote dir: ${remote_dir})"
+  ssh "${ssh_args[@]}" "${ALFECODE_VM_USER}@${ALFECODE_VM_HOST}" "bash -lc $(escape_shell_arg "$remote_script")"
+}
+
 maybe_git_pull() {
   local dir="$1"
 
@@ -1042,11 +1127,12 @@ run_here_or_in_project() {
       (
         export CODEX_ORIGINAL_PROJECT_DIR="$PROJECT_DIR"
         export CODEX_EFFECTIVE_PROJECT_DIR="$PROJECT_DIR"
-        if $USE_QWEN_CLI; then
-          if should_use_vm; then
-            log_meta "Qwen CLI run requested; VM mode ignored."
-          fi
+      if $USE_QWEN_CLI; then
+        if should_use_vm; then
+          run_qwen_in_vm "$PROJECT_DIR" "${QWEN_ARGS[@]}"
+        else
           cd "$PROJECT_DIR" && run_qwen "${QWEN_ARGS[@]}"
+        fi
         else
           if should_use_vm; then
             run_codex_in_vm "$PROJECT_DIR" "$@"
@@ -1150,9 +1236,10 @@ PY2
       export PROJECT_DIR="$snapshot_dir"
       if $USE_QWEN_CLI; then
         if should_use_vm; then
-          log_meta "Qwen CLI run requested; VM mode ignored."
+          run_qwen_in_vm "$snapshot_dir" "${QWEN_ARGS[@]}"
+        else
+          cd "$snapshot_dir" && run_qwen "${QWEN_ARGS[@]}"
         fi
-        cd "$snapshot_dir" && run_qwen "${QWEN_ARGS[@]}"
       else
         if should_use_vm; then
           run_codex_in_vm "$snapshot_dir" "$@"
@@ -1165,9 +1252,10 @@ PY2
     maybe_git_pull "$(pwd)"
     if $USE_QWEN_CLI; then
       if should_use_vm; then
-        log_meta "Qwen CLI run requested; VM mode ignored."
+        run_qwen_in_vm "$(pwd)" "${QWEN_ARGS[@]}"
+      else
+        run_qwen "${QWEN_ARGS[@]}"
       fi
-      run_qwen "${QWEN_ARGS[@]}"
     else
       if should_use_vm; then
         run_codex_in_vm "$(pwd)" "$@"

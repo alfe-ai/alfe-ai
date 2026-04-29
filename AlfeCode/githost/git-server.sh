@@ -151,7 +151,7 @@ start_git_daemon(){
   # Some distributions (git-daemon-run) provide a unit; others don't. If the named
   # unit does not exist, install a simple unit file that launches git directly.
   systemctl daemon-reload || true
-  if ! systemctl list-unit-files | rg -q "^git-daemon.service"; then
+  if ! systemctl list-unit-files | grep -q "^git-daemon.service"; then
     cat > /etc/systemd/system/git-daemon.service <<'UNIT'
 [Unit]
 Description=Simple git daemon (anonymous, localhost only)

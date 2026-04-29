@@ -9,6 +9,25 @@ fi
 
 SCREEN_NAME="alfeDEV"
 
+
+# Non-root friendly defaults: keep HTTPS enabled on unprivileged ports.
+if [ "$(id -u)" -ne 0 ]; then
+  export ENABLE_HTTPS="${ENABLE_HTTPS:-true}"
+  export HTTPS_PORT="${HTTPS_PORT:-8443}"
+  export HTTP_TO_HTTPS_REDIRECT_PORT="${HTTP_TO_HTTPS_REDIRECT_PORT:-8080}"
+  export SERVER_PORT="${SERVER_PORT:-3333}"
+
+  if [ "${HTTPS_PORT}" -lt 1024 ]; then
+    echo "[WARN] HTTPS_PORT=${HTTPS_PORT} requires root. Falling back to 8443 for non-root execution."
+    export HTTPS_PORT=8443
+  fi
+
+  if [ "${HTTP_TO_HTTPS_REDIRECT_PORT}" -lt 1024 ]; then
+    echo "[WARN] HTTP_TO_HTTPS_REDIRECT_PORT=${HTTP_TO_HTTPS_REDIRECT_PORT} requires root. Falling back to 8080 for non-root execution."
+    export HTTP_TO_HTTPS_REDIRECT_PORT=8080
+  fi
+fi
+
 #clear
 git stash || true
 git fetch
@@ -68,7 +87,11 @@ fi
 GITHOST_SCRIPT="$(dirname "$0")/githost/git-server.sh"
 if [ -x "$GITHOST_SCRIPT" ]; then
     echo "Starting local git server daemon fallback..."
-    sudo "$GITHOST_SCRIPT" start-daemon || echo "git-server start-daemon failed or requires sudo"
+    if [ "$(id -u)" -eq 0 ]; then
+        "$GITHOST_SCRIPT" start-daemon || echo "git-server start-daemon failed"
+    else
+        echo "Skipping local git daemon fallback (requires root)."
+    fi
 fi
 
 while true; do

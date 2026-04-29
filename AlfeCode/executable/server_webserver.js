@@ -54,7 +54,8 @@ const SESSION_GIT_BASE_PATH = (function(){
     // Prefer an explicit env override for session git base path. If not set,
     // store session repos under the application's data directory so the
     // process typically has write permission. Fall back to OS temp dir.
-    const candidate = process.env.SESSION_GIT_BASE_PATH || path.join(path.sep, 'git');
+    const defaultSessionGitBasePath = path.join(PROJECT_ROOT, "data", "sessions");
+    const candidate = process.env.SESSION_GIT_BASE_PATH || defaultSessionGitBasePath;
     try {
         // Ensure directory exists
         if (!fs.existsSync(candidate)) fs.mkdirSync(candidate, { recursive: true });
@@ -419,7 +420,7 @@ function sanitizeRepoSegment(name, fallback = "repo") {
 
 function buildSessionRemoteRepoName(sessionId, repoName = NEW_SESSION_REPO_NAME) {
     const safeSessionId = sanitizeSessionId(sessionId) || "session";
-    const safeRepoName = sanitizeRepoSegment(repoName);
+    const safeRepoName = sanitizeRepoSegment(repoName).toLowerCase();
     return sanitizeRepoSegment(`${safeSessionId}-${safeRepoName}`, `${safeRepoName}-session`);
 }
 
@@ -511,6 +512,24 @@ function buildExternalGitServerCloneUrl(repoNameWithGitSuffix) {
     return `${DEMO_GIT_SERVER_CLONE_BASE_URL}/${repoNameWithGitSuffix}`;
 }
 
+function normalizeExternalCloneUrl(rawCloneUrl, remoteRepoName) {
+    const fallback = buildExternalGitServerCloneUrl(`${remoteRepoName}.git`);
+    if (typeof rawCloneUrl !== "string") {
+        return fallback;
+    }
+    const trimmed = rawCloneUrl.trim();
+    if (!trimmed) {
+        return fallback;
+    }
+    if (/^git:\/\//i.test(trimmed) || /^https?:\/\//i.test(trimmed) || /^ssh:\/\//i.test(trimmed)) {
+        return trimmed;
+    }
+    if (trimmed.startsWith("/")) {
+        return `${DEMO_GIT_SERVER_CLONE_BASE_URL}${trimmed}`;
+    }
+    return `${DEMO_GIT_SERVER_CLONE_BASE_URL}/${trimmed}`;
+}
+
 async function ensureExternalDemoRepo(remoteRepoName) {
     if (!DEMO_GIT_SERVER_API_URL) {
         return null;
@@ -536,7 +555,7 @@ async function ensureExternalDemoRepo(remoteRepoName) {
     }
 
     const data = await response.json();
-    const cloneUrl = typeof data?.cloneUrl === "string" ? data.cloneUrl.trim() : "";
+    const cloneUrl = normalizeExternalCloneUrl(data?.cloneUrl, remoteRepoName);
     return {
         cloneUrl,
         gitRepoURL: cloneUrl || buildExternalGitServerCloneUrl(`${remoteRepoName}.git`),
@@ -578,11 +597,34 @@ async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_N
                     ensureDirectory(repoDir);
                 }
 
-                execSync(`git clone "${cloneUrl}" "${repoDir}"`, {
-                    stdio: "ignore",
-                });
-                clonedFromRemote = true;
-                externalProvisionSucceeded = true;
+                try {
+                    execSync(`git clone "${cloneUrl}" "${repoDir}"`, {
+                        stdio: "ignore",
+                    });
+                    clonedFromRemote = true;
+                    externalProvisionSucceeded = true;
+                } catch (cloneError) {
+                    // Some git-daemon setups create/export the bare repository asynchronously,
+                    // which can produce transient git:// clone failures ("not exported").
+                    // Wait briefly for the local bare repo and clone directly via filesystem.
+                    let clonedViaLocalPath = false;
+                    for (let attempt = 0; attempt < 6; attempt += 1) {
+                        if (fs.existsSync(remoteRepoPath)) {
+                            execSync(`git clone "${remoteRepoPath}" "${repoDir}"`, {
+                                stdio: "ignore",
+                            });
+                            clonedFromRemote = true;
+                            externalProvisionSucceeded = true;
+                            gitRepoURL = remoteRepoPath;
+                            clonedViaLocalPath = true;
+                            break;
+                        }
+                        execSync("sleep 0.5", { stdio: "ignore" });
+                    }
+                    if (!clonedViaLocalPath) {
+                        throw cloneError;
+                    }
+                }
             }
         } catch (error) {
             console.error(`[ERROR] ensureSessionDefaultRepo => External git server setup failed for '${remoteRepoName}': ${error.message}`);
@@ -791,7 +833,9 @@ function ensureSessionIdCookie(req, res) {
         try {
             const safeSessionDir = sanitizeSessionId(sessionId);
             if (safeSessionDir) {
-                const gitRoot = path.join(path.sep, "git");
+                const gitRoot = process.env.SESSION_GIT_ROOT
+                    ? path.resolve(process.env.SESSION_GIT_ROOT)
+                    : path.join(SESSION_GIT_BASE_PATH, "_git");
                 const gitSessionDir = path.join(gitRoot, safeSessionDir);
                 if (!fs.existsSync(gitSessionDir)) {
                     fs.mkdirSync(gitSessionDir, { recursive: true });
