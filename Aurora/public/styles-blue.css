@@ -32,7 +32,7 @@
 
 
 .divider {
-  background: rgba(37, 99, 235, 0.26);
-  border-right: 1px solid rgba(59, 130, 246, 0.62);
-  border-left: 1px solid rgba(125, 211, 252, 0.45);
+  background: rgba(37, 99, 235, 0.14);
+  border-right: 1px solid rgba(59, 130, 246, 0.32);
+  border-left: 1px solid rgba(125, 211, 252, 0.24);
 }
