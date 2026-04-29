@@ -319,9 +319,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       // Ensure Image Design nav button is always visible regardless of upload config
       const uploaderBtn = document.getElementById('navUploaderBtn');
-      if(uploaderBtn) uploaderBtn.style.display = '';
+      if(uploaderBtn){
+        uploaderBtn.hidden = false;
+        uploaderBtn.style.display = '';
+        const listItem = uploaderBtn.closest('li');
+        if(listItem){
+          listItem.hidden = false;
+          listItem.style.display = '';
+        }
+      }
       const uploaderIcon = document.getElementById('navUploaderIcon');
-      if(uploaderIcon) uploaderIcon.style.display = '';
+      if(uploaderIcon){
+        uploaderIcon.hidden = false;
+        uploaderIcon.style.display = '';
+      }
     }
   } catch(e) { console.warn('Error applying imageUploadConfig', e); }
 
@@ -7241,12 +7252,16 @@ function toggleImageIdColumn(){
 function toggleDesignTabs(allowed){
   document.querySelectorAll('[data-type="design"]').forEach(el => {
     if(el.tagName === 'BUTTON'){
+      el.hidden = false;
       el.style.display = '';
       el.disabled = !allowed;
       el.classList.toggle('disabled', !allowed);
     }
   });
   document.querySelectorAll('option[value="design"]').forEach(opt => {
+    if(allowed){
+      opt.hidden = false;
+    }
     opt.disabled = !allowed;
     if(!allowed && opt.selected){
       const sel = opt.closest('select');
