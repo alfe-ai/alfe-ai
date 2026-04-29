@@ -1594,9 +1594,19 @@ body {
 }
 
 
-#sidebarToggleIcon.sidebar-logo,
-#collapsedSidebarLogo.sidebar-logo {
+#sidebarToggleIcon.sidebar-logo {
   width: 220px;
+  height: auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  object-fit: contain;
+}
+
+#collapsedSidebarLogo.sidebar-logo {
+  width: 176px;
   height: auto;
   padding: 0;
   border: none;
