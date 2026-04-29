@@ -18,6 +18,7 @@ let sidebarForcedHidden = false;
 
 const THEME_STORAGE_KEY = 'auroraTheme';
 const THEME_OPTIONS = {
+  blue: '/styles-blue.css',
   dark: '/styles.css',
   light: '/styles-light.css'
 };
@@ -185,7 +186,7 @@ function getStoredTheme(){
   } catch (err) {
     console.warn('Unable to read stored theme', err);
   }
-  return 'dark';
+  return 'blue';
 }
 
 function updateThemeDependentAssets(theme){
@@ -198,7 +199,7 @@ function updateThemeDependentAssets(theme){
 }
 
 function applyTheme(theme){
-  const name = Object.prototype.hasOwnProperty.call(THEME_OPTIONS, theme) ? theme : 'dark';
+  const name = Object.prototype.hasOwnProperty.call(THEME_OPTIONS, theme) ? theme : 'blue';
   const linkEl = document.getElementById('themeStylesheet');
   if(linkEl && linkEl.getAttribute('href') !== THEME_OPTIONS[name]){
     linkEl.setAttribute('href', THEME_OPTIONS[name]);
@@ -206,7 +207,7 @@ function applyTheme(theme){
   document.body.dataset.theme = name;
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if(metaTheme){
-    metaTheme.setAttribute('content', name === 'light' ? '#e2e8f0' : '#0b1723');
+    metaTheme.setAttribute('content', name === 'light' ? '#e2e8f0' : (name === 'blue' ? '#0f2748' : '#0b1723'));
   }
   updateThemeDependentAssets(name);
   try {
@@ -218,7 +219,7 @@ function applyTheme(theme){
 }
 
 function setTheme(theme){
-  const name = Object.prototype.hasOwnProperty.call(THEME_OPTIONS, theme) ? theme : 'dark';
+  const name = Object.prototype.hasOwnProperty.call(THEME_OPTIONS, theme) ? theme : 'blue';
   try {
     localStorage.setItem(THEME_STORAGE_KEY, name);
   } catch (err) {
