@@ -153,13 +153,23 @@ If you must expose standard public ports (`443`/`80`) while still running AlfeCo
    sudo apt install -y nginx certbot python3-certbot-nginx
    ```
 
-3. **Issue/renew a certificate** (replace with your real hostname):
+3. **TLS choice (production vs staging/dev)**:
+   - **Production (public HTTPS):** issue/renew a certificate (replace with your real hostname):
 
-   ```bash
-   sudo certbot certonly --nginx -d your-host.example
-   ```
+     ```bash
+     sudo certbot certonly --nginx -d your-host.example
+     ```
+
+   - **Staging/dev (HTTPS with no Certbot):** use AlfeCode's built-in self-signed cert flow:
+
+     ```bash
+     ENABLE_HTTPS=true HTTPS_PORT=8443 HTTP_TO_HTTPS_REDIRECT_PORT=8080 ./run.sh
+     ```
+
+     AlfeCode auto-generates `data/config/selfsigned-key.pem` and `data/config/selfsigned-cert.pem` if missing.
 
 4. **Create a site config** at `/etc/nginx/sites-available/alfe-code.conf`:
+   - **Production (with cert):**
 
    ```nginx
    server {
@@ -192,6 +202,43 @@ If you must expose standard public ports (`443`/`80`) while still running AlfeCo
    }
    ```
 
+   - **Staging/dev (HTTPS passthrough, no Certbot):**
+
+   ```nginx
+   server {
+     listen 80;
+     listen [::]:80;
+     server_name your-host.example;
+
+     return 301 https://$host$request_uri;
+   }
+
+   server {
+     listen 443 ssl http2;
+     listen [::]:443 ssl http2;
+     server_name your-host.example;
+
+     # Temporary internal/staging cert loaded by NGINX itself.
+     # This is NOT from Certbot; provide your own local cert/key paths.
+     ssl_certificate     /etc/nginx/ssl/staging.crt;
+     ssl_certificate_key /etc/nginx/ssl/staging.key;
+
+     location / {
+       proxy_pass https://127.0.0.1:8443;
+
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto https;
+
+       proxy_http_version 1.1;
+       proxy_read_timeout 300;
+
+       proxy_ssl_verify off;  # staging/dev only: upstream uses self-signed cert
+     }
+   }
+   ```
+
 5. **Enable the site and validate config**:
 
    ```bash
@@ -206,14 +253,15 @@ If you must expose standard public ports (`443`/`80`) while still running AlfeCo
    ```
 
 7. **Confirm end-to-end behavior**:
-   - `http://your-host.example` redirects to HTTPS (`301`)
-   - `https://your-host.example` serves AlfeCode through NGINX on port `443`
-   - AlfeCode still runs as non-root on `127.0.0.1:8443`
+   - **Production:** `http://your-host.example` redirects to HTTPS (`301`), and `https://your-host.example` serves AlfeCode through NGINX on port `443` while app runs non-root on `127.0.0.1:8443`.
+   - **Staging/dev (no Certbot):** `http://your-host.example` redirects to HTTPS (`301`), and `https://your-host.example` serves AlfeCode through NGINX on `443` while AlfeCode runs with a self-signed cert on `127.0.0.1:8443`.
 
 > Notes:
 > - If your DNS is not pointed yet, cert issuance will fail.
 > - Keep firewall open for inbound `80` and `443`.
 > - If you changed `HTTPS_PORT` in `run.sh`, update `proxy_pass` accordingly.
+> - For staging/dev, you can avoid Certbot and still keep HTTPS by using self-signed certificates.
+> - `proxy_ssl_verify off` should only be used in trusted staging/dev environments.
 
 Optional override example:
 
