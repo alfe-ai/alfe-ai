@@ -8,6 +8,16 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 
 **Formerly Alfe.** ALSH.ai is the continuation of the Alfe project. You may still see “Alfe” referenced in code, docs, and legacy URLs while the transition finishes.
 
+## Quick links
+
+- [Key features](#key-features)
+- [Screenshots](#screenshots)
+- [Architecture](#architecture)
+- [Getting started and deploy](#getting-started-and-deploy)
+- [License](#license)
+- [Contact](#contact)
+- [Company](#company)
+
 ## Key features
 
 - **AI code agent (primary): full-project workflows**
