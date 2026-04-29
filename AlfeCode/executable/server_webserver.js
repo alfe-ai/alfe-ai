@@ -54,7 +54,8 @@ const SESSION_GIT_BASE_PATH = (function(){
     // Prefer an explicit env override for session git base path. If not set,
     // store session repos under the application's data directory so the
     // process typically has write permission. Fall back to OS temp dir.
-    const candidate = process.env.SESSION_GIT_BASE_PATH || path.join(path.sep, 'git');
+    const defaultSessionGitBasePath = path.join(PROJECT_ROOT, "data", "sessions");
+    const candidate = process.env.SESSION_GIT_BASE_PATH || defaultSessionGitBasePath;
     try {
         // Ensure directory exists
         if (!fs.existsSync(candidate)) fs.mkdirSync(candidate, { recursive: true });
