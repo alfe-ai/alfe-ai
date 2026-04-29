@@ -2021,6 +2021,52 @@ function renderAccountSettingsSection(){
   }
 }
 
+async function updateDesignTabDebugInfo(){
+  const summaryEl = document.getElementById('designTabDebugSummary');
+  const outputEl = document.getElementById('designTabDebugOutput');
+  if(!summaryEl || !outputEl) return;
+  const accountPlan = accountInfo?.plan || 'signed-out';
+  const planAllowsDesign = accountPlan === 'Pro' || accountPlan === 'Ultimate';
+  const designAllowedRuntime = !!(featureFlagConfig.designTabForAllPlans || planAllowsDesign);
+  const designButtons = Array.from(document.querySelectorAll('button[data-type="design"]'));
+  const designOptions = Array.from(document.querySelectorAll('option[value="design"]'));
+  const hiddenButtons = designButtons.filter(btn => btn.hidden || btn.style.display === 'none').length;
+  const disabledButtons = designButtons.filter(btn => btn.disabled).length;
+  const hiddenOptions = designOptions.filter(opt => opt.hidden).length;
+  const disabledOptions = designOptions.filter(opt => opt.disabled).length;
+  const imagesEnabledFlag = !!featureFlagConfig.imagesEnabled2026;
+  const rootFlags = window.AURORA_FLAGS || {};
+  const debugData = {
+    now: new Date().toISOString(),
+    rawWindowFlags: rootFlags,
+    normalizedFlags: featureFlagConfig,
+    account: {
+      accountsEnabled,
+      loggedIn: !!accountInfo,
+      plan: accountPlan,
+      planAllowsDesign
+    },
+    decisions: {
+      designAllowedRuntime,
+      imagesEnabledFlag,
+      expectedVisible: imagesEnabledFlag && designAllowedRuntime
+    },
+    dom: {
+      designButtonsTotal: designButtons.length,
+      designButtonsHidden: hiddenButtons,
+      designButtonsDisabled: disabledButtons,
+      designOptionsTotal: designOptions.length,
+      designOptionsHidden: hiddenOptions,
+      designOptionsDisabled: disabledOptions
+    }
+  };
+  const visibleState = debugData.decisions.expectedVisible
+    ? 'Design tab should be visible/enabled'
+    : 'Design tab expected hidden/disabled due to flags or account plan';
+  updateSettingsStatus(summaryEl, visibleState, debugData.decisions.expectedVisible ? 'success' : 'error');
+  outputEl.textContent = JSON.stringify(debugData, null, 2);
+}
+
 async function openSettingsModal(e){
   if(e) e.preventDefault();
   updateSettingsStatus(document.getElementById('settingsModalStatus'), '');
@@ -2066,6 +2112,7 @@ async function openSettingsModal(e){
     themeSelect.value = document.body.dataset.theme || getStoredTheme();
   }
   renderAccountSettingsSection();
+  await updateDesignTabDebugInfo();
   if(!usageLimitCache){
     updateUsageLimitInfo();
   }
@@ -2086,6 +2133,10 @@ function updateSettingsStatus(el, message, state){
 function updateSettingsModalStatus(message, state){
   updateSettingsStatus(document.getElementById('settingsModalStatus'), message, state);
 }
+
+document.getElementById('designTabDebugRefreshBtn')?.addEventListener('click', async () => {
+  await updateDesignTabDebugInfo();
+});
 
 
 function updateAccountButton(info){
