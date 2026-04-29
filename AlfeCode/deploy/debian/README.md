@@ -37,6 +37,8 @@ sudo bash ./AlfeCode/deploy/debian/bootstrap_alfecode_debian.sh --split-deployme
 ```
 
 > Important: `--split-deployment` is for worker-oriented installs and skips local git-daemon demo setup.
+>
+> If the worker is behind NAT/firewall (no static public IP/DNS), place an **encrypted reverse proxy/tunnel** in front of SSH and point the frontend at that proxy endpoint.
 
 ### **After deployment, Run:**
 
@@ -354,6 +356,16 @@ On the worker, ensure the SSH user can:
 - read/write the user workspace root (`/git/sterling`), and
 - execute `node`, `npm`, and `qwen`.
 
+If the worker runs from a home/lab network with dynamic WAN IP:
+
+- Run a public bastion/reverse-proxy endpoint with stable DNS/IP.
+- Keep an outbound encrypted tunnel from worker ➜ bastion (reverse SSH tunnel, WireGuard+routed SSH, or `LLMReverseProxy`).
+- Set frontend/CNC to SSH through that endpoint:
+  - `ALFECODE_VM_HOST=<bastion-public-host>`
+  - `ALFECODE_VM_SSH_PORT=<bastion-forwarded-port>`
+  - `ALFECODE_VM_USER=<worker-ssh-user>` (or mapped user if using a jump host)
+- Disable password auth and limit source IPs / keys for any public listener.
+
 ### Split deployment validation
 
 From worker:
@@ -369,7 +381,7 @@ curl -k -X POST "https://<frontend-cnc-host>/vm_runs/ping" \
 From frontend:
 
 ```bash
-ssh -p 22 <worker-ssh-user>@<worker-host-or-ip> 'command -v qwen && qwen --version'
+ssh -p <bastion-forwarded-port> <worker-ssh-user>@<bastion-public-host> 'command -v qwen && qwen --version'
 ```
 
 ## GitServer   
