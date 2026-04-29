@@ -579,11 +579,27 @@ async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_N
                     ensureDirectory(repoDir);
                 }
 
-                execSync(`git clone "${cloneUrl}" "${repoDir}"`, {
-                    stdio: "ignore",
-                });
-                clonedFromRemote = true;
-                externalProvisionSucceeded = true;
+                try {
+                    execSync(`git clone "${cloneUrl}" "${repoDir}"`, {
+                        stdio: "ignore",
+                    });
+                    clonedFromRemote = true;
+                    externalProvisionSucceeded = true;
+                } catch (cloneError) {
+                    // Some git-daemon setups create the bare repository first and expose it
+                    // asynchronously, which can produce transient "repository not exported"
+                    // errors for git:// clones. If the bare repo exists locally, clone via path.
+                    if (fs.existsSync(remoteRepoPath)) {
+                        execSync(`git clone "${remoteRepoPath}" "${repoDir}"`, {
+                            stdio: "ignore",
+                        });
+                        clonedFromRemote = true;
+                        externalProvisionSucceeded = true;
+                        gitRepoURL = remoteRepoPath;
+                    } else {
+                        throw cloneError;
+                    }
+                }
             }
         } catch (error) {
             console.error(`[ERROR] ensureSessionDefaultRepo => External git server setup failed for '${remoteRepoName}': ${error.message}`);
