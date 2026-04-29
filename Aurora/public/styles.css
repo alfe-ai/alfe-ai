@@ -1593,6 +1593,24 @@ body {
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.55);
 }
 
+
+#sidebarToggleIcon.sidebar-logo,
+#collapsedSidebarLogo.sidebar-logo {
+  width: 176px;
+  height: auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  object-fit: contain;
+}
+
+#sidebarToggleIcon.sidebar-logo:hover,
+#collapsedSidebarLogo.sidebar-logo:hover {
+  transform: none;
+  box-shadow: none;
+}
 .collapsed-sidebar-logo {
   position: absolute;
   top: 8px;
