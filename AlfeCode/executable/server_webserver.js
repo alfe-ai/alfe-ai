@@ -586,17 +586,24 @@ async function ensureSessionDefaultRepo(sessionId, repoName = NEW_SESSION_REPO_N
                     clonedFromRemote = true;
                     externalProvisionSucceeded = true;
                 } catch (cloneError) {
-                    // Some git-daemon setups create the bare repository first and expose it
-                    // asynchronously, which can produce transient "repository not exported"
-                    // errors for git:// clones. If the bare repo exists locally, clone via path.
-                    if (fs.existsSync(remoteRepoPath)) {
-                        execSync(`git clone "${remoteRepoPath}" "${repoDir}"`, {
-                            stdio: "ignore",
-                        });
-                        clonedFromRemote = true;
-                        externalProvisionSucceeded = true;
-                        gitRepoURL = remoteRepoPath;
-                    } else {
+                    // Some git-daemon setups create/export the bare repository asynchronously,
+                    // which can produce transient git:// clone failures ("not exported").
+                    // Wait briefly for the local bare repo and clone directly via filesystem.
+                    let clonedViaLocalPath = false;
+                    for (let attempt = 0; attempt < 6; attempt += 1) {
+                        if (fs.existsSync(remoteRepoPath)) {
+                            execSync(`git clone "${remoteRepoPath}" "${repoDir}"`, {
+                                stdio: "ignore",
+                            });
+                            clonedFromRemote = true;
+                            externalProvisionSucceeded = true;
+                            gitRepoURL = remoteRepoPath;
+                            clonedViaLocalPath = true;
+                            break;
+                        }
+                        execSync("sleep 0.5", { stdio: "ignore" });
+                    }
+                    if (!clonedViaLocalPath) {
                         throw cloneError;
                     }
                 }
@@ -808,7 +815,9 @@ function ensureSessionIdCookie(req, res) {
         try {
             const safeSessionDir = sanitizeSessionId(sessionId);
             if (safeSessionDir) {
-                const gitRoot = path.join(path.sep, "git");
+                const gitRoot = process.env.SESSION_GIT_ROOT
+                    ? path.resolve(process.env.SESSION_GIT_ROOT)
+                    : path.join(DATA_ROOT, "sessions", "_git");
                 const gitSessionDir = path.join(gitRoot, safeSessionDir);
                 if (!fs.existsSync(gitSessionDir)) {
                     fs.mkdirSync(gitSessionDir, { recursive: true });
