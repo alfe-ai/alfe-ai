@@ -5,7 +5,19 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ALSH.ai - AI Chat and Software Development Platform</title>
-  <link id="themeStylesheet" rel="stylesheet" href="/styles.css" />
+  <script>
+    (function(){
+      var key = 'auroraTheme';
+      var themes = { blue: '/styles-blue.css', dark: '/styles.css', light: '/styles-light.css' };
+      var theme = 'blue';
+      try {
+        var saved = (localStorage.getItem(key) || "").toString().trim();
+        if (Object.prototype.hasOwnProperty.call(themes, saved)) theme = saved;
+      } catch (e) {}
+      window.__auroraInitialTheme = theme;
+      document.write('<link id="themeStylesheet" rel="stylesheet" href="' + themes[theme] + '" />');
+    })();
+  </script>
   <link
           id="favicon"
           rel="icon"
@@ -13,7 +25,7 @@
           href="/alfe_favicon_64x64.ico"
   />
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#0b1723" />
+  <meta name="theme-color" content="#0f2748" />
 </head>
 <body>
 
@@ -899,7 +911,7 @@
       <label>Theme:<br/>
         <select id="themeSelect">
           <option value="blue">Blue</option>
-          <option value="dark" disabled>Purple</option>
+          <option value="dark">Purple</option>
           <option value="light" disabled>Light</option>
         </select>
       </label>
