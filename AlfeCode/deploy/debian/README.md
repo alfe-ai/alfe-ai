@@ -153,13 +153,21 @@ If you must expose standard public ports (`443`/`80`) while still running AlfeCo
    sudo apt install -y nginx certbot python3-certbot-nginx
    ```
 
-3. **Issue/renew a certificate** (replace with your real hostname):
+3. **TLS choice (production vs staging/dev)**:
+   - **Production (public HTTPS):** issue/renew a certificate (replace with your real hostname):
 
-   ```bash
-   sudo certbot certonly --nginx -d your-host.example
-   ```
+     ```bash
+     sudo certbot certonly --nginx -d your-host.example
+     ```
+
+   - **Staging/dev (no certificate):** skip Certbot and run HTTP only:
+
+     ```bash
+     ENABLE_HTTPS=false SERVER_PORT=3333 ./run.sh
+     ```
 
 4. **Create a site config** at `/etc/nginx/sites-available/alfe-code.conf`:
+   - **Production (with cert):**
 
    ```nginx
    server {
@@ -192,6 +200,28 @@ If you must expose standard public ports (`443`/`80`) while still running AlfeCo
    }
    ```
 
+   - **Staging/dev (no cert, HTTP only):**
+
+   ```nginx
+   server {
+     listen 80;
+     listen [::]:80;
+     server_name your-host.example;
+
+     location / {
+       proxy_pass http://127.0.0.1:3333;
+
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto http;
+
+       proxy_http_version 1.1;
+       proxy_read_timeout 300;
+     }
+   }
+   ```
+
 5. **Enable the site and validate config**:
 
    ```bash
@@ -206,14 +236,14 @@ If you must expose standard public ports (`443`/`80`) while still running AlfeCo
    ```
 
 7. **Confirm end-to-end behavior**:
-   - `http://your-host.example` redirects to HTTPS (`301`)
-   - `https://your-host.example` serves AlfeCode through NGINX on port `443`
-   - AlfeCode still runs as non-root on `127.0.0.1:8443`
+   - **Production:** `http://your-host.example` redirects to HTTPS (`301`), and `https://your-host.example` serves AlfeCode through NGINX on port `443` while app runs non-root on `127.0.0.1:8443`.
+   - **Staging/dev (no cert):** `http://your-host.example` serves AlfeCode through NGINX on port `80` while app runs on `127.0.0.1:3333` with `ENABLE_HTTPS=false`.
 
 > Notes:
 > - If your DNS is not pointed yet, cert issuance will fail.
 > - Keep firewall open for inbound `80` and `443`.
 > - If you changed `HTTPS_PORT` in `run.sh`, update `proxy_pass` accordingly.
+> - For staging/dev without certs, keep traffic on trusted/internal networks only.
 
 Optional override example:
 
