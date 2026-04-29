@@ -95,6 +95,23 @@ const imageUploadConfig = (() => {
     enabledValue === '1';
   return { enabled };
 })();
+const imageTableConfig = (() => {
+  const flags = window.AURORA_FLAGS || {};
+  const cfg = flags.imageTable || {};
+  const hideIdValue = cfg.hideIdColumn;
+  const hideStatusValue = cfg.hideStatusColumn;
+  const hideIdColumn =
+    hideIdValue === true ||
+    hideIdValue === 'true' ||
+    hideIdValue === 1 ||
+    hideIdValue === '1';
+  const hideStatusColumn =
+    hideStatusValue === true ||
+    hideStatusValue === 'true' ||
+    hideStatusValue === 1 ||
+    hideStatusValue === '1';
+  return { hideIdColumn, hideStatusColumn };
+})();
 const themeVisibilityConfig = (() => {
   const flags = window.AURORA_FLAGS || {};
   const hiddenValue = flags.hideThemeOption;
@@ -2173,6 +2190,7 @@ function updateAccountButton(info){
     accountInfo = null;
     togglePortfolioMenu(false);
     toggleImageIdColumn();
+    toggleImageStatusColumn();
     toggleDesignTabs(featureFlagConfig.designTabForAllPlans);
     return;
   }
@@ -2183,6 +2201,7 @@ function updateAccountButton(info){
     btn.style.display = "none";
     togglePortfolioMenu(info.id === 1);
     toggleImageIdColumn();
+    toggleImageStatusColumn();
     const designAllowedByPlan = info.plan === 'Pro' || info.plan === 'Ultimate';
     toggleDesignTabs(designAllowedByPlan || featureFlagConfig.designTabForAllPlans);
   } else {
@@ -2192,6 +2211,7 @@ function updateAccountButton(info){
     btn?.addEventListener("click", openSignupModal);
     togglePortfolioMenu(false);
     toggleImageIdColumn();
+    toggleImageStatusColumn();
     toggleDesignTabs(featureFlagConfig.designTabForAllPlans);
   }
   renderAccountSettingsSection();
@@ -7251,9 +7271,17 @@ function togglePortfolioMenu(visible){
 
 function toggleImageIdColumn(){
   const header = document.getElementById('numericIdHeader');
-  if(header) header.style.display = '';
+  if(header) header.style.display = imageTableConfig.hideIdColumn ? 'none' : '';
   document.querySelectorAll('#secureFilesList td.id-col').forEach(td => {
-    td.style.display = '';
+    td.style.display = imageTableConfig.hideIdColumn ? 'none' : '';
+  });
+}
+
+function toggleImageStatusColumn(){
+  const header = document.getElementById('imageStatusHeader');
+  if(header) header.style.display = imageTableConfig.hideStatusColumn ? 'none' : '';
+  document.querySelectorAll('#secureFilesList td.img-status-cell').forEach(td => {
+    td.style.display = imageTableConfig.hideStatusColumn ? 'none' : '';
   });
 }
 
@@ -8118,6 +8146,8 @@ function renderFileList(){
     tbody.appendChild(tr);
   });
   updateHeaderArrows();
+  toggleImageIdColumn();
+  toggleImageStatusColumn();
 }
 
 function getImageModalTitle(file){
