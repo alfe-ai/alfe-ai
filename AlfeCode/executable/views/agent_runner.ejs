@@ -292,6 +292,7 @@
             background-clip: padding-box;
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.14);
+            overflow: hidden;
         }
 
         .runs-sidebar__collapsed-logo:focus-visible {
@@ -302,8 +303,12 @@
         .runs-sidebar__collapsed-logo img {
             width: 32px;
             height: 32px;
+            max-width: 32px;
+            max-height: 32px;
             border-radius: 10px;
             display: block;
+            object-fit: cover;
+            flex: 0 0 32px;
         }
 
         .runs-sidebar__collapsed-nav {
