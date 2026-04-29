@@ -4669,9 +4669,12 @@ app.post("/api/image/generate", async (req, res) => {
   try {
     const { prompt, n, size, model, provider, tabId, sessionId } = req.body || {};
     const finalPrompt = (prompt || "").trim();
+    const promptLog = typeof prompt === "string"
+      ? { redacted: true, length: prompt.length }
+      : null;
     console.debug(
       "[Server Debug] /api/image/generate =>",
-      JSON.stringify({ prompt, n, size, model, provider, tabId, sessionId })
+      JSON.stringify({ prompt: promptLog, n, size, model, provider, tabId, sessionId })
     );
     if (!prompt) {
       return res.status(400).json({ error: "Missing prompt" });
