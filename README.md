@@ -20,11 +20,14 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
 
 ## Key features
 
+### Fully Available
 - **AI code agent (primary): full-project workflows**
   - Runs against git repos (branch-based runs, patch generation, diff review, merge workflow).
   - Optimized for “do the work” prompts rather than chat-only assistance.
 - **AI chat**
   - Workspace chat for planning and iteration.
+
+### Available Partially in Code
 - **Project management (GitHub-style tasks)**
   - Lightweight task boards / project management.
 - **AI image design**
@@ -33,6 +36,8 @@ ALSH.ai runs real end-to-end coding jobs against full repositories: it checks ou
   - Fast search.
 - **Git hosting / repo workflows**
   - Repo operations for standard git collaboration.
+- **Printify Integration**
+  - Use your Printify API key to add designs to your stores.
 
 ## Screenshots
 
