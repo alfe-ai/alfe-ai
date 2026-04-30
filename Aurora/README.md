@@ -77,21 +77,9 @@ npm start
 If you use Aurora's Printify API endpoints (for example **Printify API Updates**, **Title Fix**, **Fix Mockups**, or **Finalize**), configure these on the machine that runs `Aurora/src/server.js`:
 
 ```bash
-# from /workspace/ALSH.ai/Aurora (or your deployed Aurora directory)
-cp -n sample.env .env 2>/dev/null || true
-
-# required for Printify API calls
-export PRINTIFY_API_TOKEN="ptfy_***your_token***"
-export PRINTIFY_SHOP_ID="12345678"
-```
-
-To make them persistent for service-based deployments, place the same values in the environment file your process manager reads (for example `.env`, systemd `Environment=...`, or PM2 ecosystem env block), then restart Aurora.
-
-Quick verification from the same shell:
-
-```bash
-echo "$PRINTIFY_API_TOKEN" | wc -c   # should be > 1
-echo "$PRINTIFY_SHOP_ID"             # should print your numeric shop id
+# in Aurora/.env
+PRINTIFY_API_TOKEN=ptfy_your_token_here
+PRINTIFY_SHOP_ID=12345678
 ```
 
 
