@@ -69,18 +69,75 @@ async function resolveProviderId(blueprintId) {
   return Number(providers[0].id);
 }
 
+const DEFAULT_SIZE_ORDER = [
+  "XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"
+];
+
+function normalizeOption(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function optionColor(variant) {
+  return variant?.options?.color || "";
+}
+
+function optionSize(variant) {
+  return variant?.options?.size || "";
+}
+
 function selectVariants(allVariants) {
   const explicitIds = parseCsv(process.env.PRINTIFY_VARIANT_IDS).map(Number);
-  if (explicitIds.length) return allVariants.filter(v => explicitIds.includes(Number(v.id)));
+  if (explicitIds.length) {
+    return allVariants.filter(v => explicitIds.includes(Number(v.id)));
+  }
 
-  const colors = parseCsv(process.env.PRINTIFY_COLORS).map(s => s.toLowerCase());
-  const sizes = parseCsv(process.env.PRINTIFY_SIZES).map(s => s.toLowerCase());
-  return allVariants.filter(v => {
-    const text = `${v?.title || ""} ${v?.options?.color || ""} ${v?.options?.size || ""}`.toLowerCase();
-    const colorOk = colors.length === 0 || colors.some(c => text.includes(c));
-    const sizeOk = sizes.length === 0 || sizes.some(s => text.includes(s));
+  const desiredColors = parseCsv(process.env.PRINTIFY_COLORS || "Ash,Black,White");
+  const desiredSizes = parseCsv(process.env.PRINTIFY_SIZES);
+
+  const colorOrder = desiredColors.map(normalizeOption);
+  const sizeOrder = desiredSizes.length
+    ? desiredSizes.map(normalizeOption)
+    : DEFAULT_SIZE_ORDER.map(normalizeOption);
+
+  const selected = allVariants.filter(v => {
+    const color = normalizeOption(optionColor(v));
+    const size = normalizeOption(optionSize(v));
+
+    const colorOk = colorOrder.length === 0 || colorOrder.includes(color);
+    const sizeOk = desiredSizes.length === 0 || sizeOrder.includes(size);
+
     return colorOk && sizeOk;
   });
+
+  selected.sort((a, b) => {
+    const aColor = colorOrder.indexOf(normalizeOption(optionColor(a)));
+    const bColor = colorOrder.indexOf(normalizeOption(optionColor(b)));
+
+    if (aColor !== bColor) return aColor - bColor;
+
+    const aSize = sizeOrder.indexOf(normalizeOption(optionSize(a)));
+    const bSize = sizeOrder.indexOf(normalizeOption(optionSize(b)));
+
+    return aSize - bSize;
+  });
+
+  return selected;
+}
+
+function pickDefaultVariantId(variants) {
+  if (process.env.PRINTIFY_DEFAULT_VARIANT_ID) {
+    return Number(process.env.PRINTIFY_DEFAULT_VARIANT_ID);
+  }
+
+  const ashMedium = variants.find(v =>
+    normalizeOption(optionColor(v)) === "ash" &&
+    normalizeOption(optionSize(v)) === "m"
+  );
+
+  return Number((ashMedium || variants[0])?.id);
 }
 
 function ensureVariantsSupportPosition(variants, position) {
@@ -138,12 +195,18 @@ async function createGildan5000Product({ filePath, title, description = "", tags
   }
 
   const price = Number(process.env.PRINTIFY_PRICE_CENTS || 2499);
-  const product = await printifyRequest("post", `/shops/${shopId}/products.json`, {
+  const defaultVariantId = pickDefaultVariantId(finalVariants);
+  const payload = {
     title,
     description,
     blueprint_id: blueprintId,
     print_provider_id: printProviderId,
-    variants: finalVariants.map(v => ({ id: Number(v.id), price, is_enabled: true })),
+    variants: finalVariants.map(v => ({
+      id: Number(v.id),
+      price,
+      is_enabled: true,
+      is_default: Number(v.id) === defaultVariantId
+    })),
     print_areas: [
       {
         variant_ids: finalVariants.map(v => Number(v.id)),
@@ -164,7 +227,8 @@ async function createGildan5000Product({ filePath, title, description = "", tags
       }
     ],
     tags
-  });
+  };
+  const product = await printifyRequest("post", `/shops/${shopId}/products.json`, payload);
 
   if (parseBoolean(process.env.PRINTIFY_PUBLISH, false) && product?.id) {
     await printifyRequest("post", `/shops/${shopId}/products/${product.id}/publish.json`, {
