@@ -3364,9 +3364,13 @@ body[data-theme="light"] .table-action-btn:hover {
 /* Image pipeline page */
 .image-page {
   padding: 1rem;
+  display: flex;
+  justify-content: center;
 }
 
 .image-page-shell {
+  width: 100%;
+  max-width: 1280px;
   background: var(--bg-main);
   border: 1px solid var(--surface-border);
   border-radius: 14px;
