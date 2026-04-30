@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <title>Jobs</title>
-  <link rel="stylesheet" href="/styles.css">
+  <script>
+    (function(){
+      var themes = { blue: '/styles-blue.css', dark: '/styles.css', light: '/styles-light.css' };
+      var theme = 'blue';
+      try {
+        var saved = (localStorage.getItem('aurora_theme') || '').toString().trim();
+        if (Object.prototype.hasOwnProperty.call(themes, saved)) theme = saved;
+      } catch (e) {}
+      document.write('<link id="themeStylesheet" rel="stylesheet" href="' + themes[theme] + '" />');
+    })();
+  </script>
   <link
     id="favicon"
     rel="icon"
@@ -15,8 +25,8 @@
   <h2>Jobs</h2>
   <button id="stopBtn" style="display:none;margin-bottom:0.5rem;">Stop Job</button>
   <ul id="jobsList"></ul>
-  <pre id="terminal" style="background:#000;color:#0f0;padding:0.5rem;margin-top:0.5rem;height:80vh;overflow:auto;font-family:monospace;resize:vertical;"></pre>
-  <dialog id="printifyDialog" style="padding:1rem;"></dialog>
+  <pre id="terminal" style="background:var(--bg-main,#000);color:var(--text-color,#0f0);border:1px solid var(--surface-border,#334155);border-radius:0.5rem;padding:0.5rem;margin-top:0.5rem;height:80vh;overflow:auto;font-family:monospace;resize:vertical;"></pre>
+  <dialog id="printifyDialog" style="padding:1rem;background:var(--surface,#1e293b);color:var(--text-color,#e2e8f0);border:1px solid var(--surface-border,#334155);border-radius:0.5rem;"></dialog>
 <script>
 const defaultFavicon = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='32,4 4,60 60,60' fill='black' /></svg>";
 const rotatingFavicon = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon points='10,4 58,32 10,60' fill='black' /><path d='M32,4 A28,28 0 0 1 32,60' stroke='black' stroke-width='4' fill='none'><animateTransform attributeName='transform' type='rotate' from='0 32 32' to='360 32 32' dur='1s' repeatCount='indefinite' /></path></svg>";
