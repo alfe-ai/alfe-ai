@@ -52,7 +52,7 @@
   </div>
   <div class="image-page-actions">
     <button id="upscaleButton" hidden>Submit to Upscale</button>
-    <button id="printifyPublishButton" hidden>Run Printify Publish (placeholder)</button>
+    <button id="printifyPublishButton" hidden>Run Printify Publish</button>
     <button id="setProductUrlButton" hidden>Set Product URL</button>
     <button id="printifyFinishButton" style="margin-left:auto;">Programatic: Printify Finish</button>
   </div>
@@ -464,7 +464,7 @@
           const variant = choice ? choice.value : (nobgFile ? 'nobg' : 'normal');
           const targetFile = variant === 'nobg' ? nobgFile : upscaledFile;
           const targetPath = variant === 'nobg' ? nobgPath : upscaledPath;
-          console.debug('Printify Publish placeholder clicked with file =>', targetPath);
+          console.debug('Printify Publish clicked with file =>', targetPath || targetFile);
           terminalEl.textContent = '';
           if(!targetFile && !targetPath){
             terminalEl.textContent = 'Upscaled 4096 image not available.';
@@ -480,8 +480,28 @@
           } catch(err){
             console.error('Failed to update status for Printify Publish =>', err);
           }
-          terminalEl.textContent = `Placeholder: Printify Publish would process ${targetPath || targetFile}.`;
-          await checkStatus();
+
+          terminalEl.textContent = `Submitting Printify publish for ${targetPath || targetFile}...`;
+          try {
+            const res = await fetch('/api/printify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ file: targetPath || targetFile })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data?.success) {
+              terminalEl.textContent = data.error || 'Printify publish failed.';
+              return;
+            }
+            const productId = data?.product?.id;
+            terminalEl.textContent = productId
+              ? `Printify product created: ${productId}`
+              : 'Printify publish completed.';
+            await checkStatus();
+          } catch (err) {
+            console.error('Printify publish request failed =>', err);
+            terminalEl.textContent = 'Printify publish request failed.';
+          }
         });
       }
       if(setProductUrlBtn){
