@@ -22,6 +22,33 @@ function parseBoolean(value, fallback = false) {
   return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
 }
 
+function requiredShippingAddress() {
+  const missing = [];
+  const read = (name, fallback = "") => {
+    const value = process.env[name];
+    if (!value && !fallback) missing.push(name);
+    return value || fallback;
+  };
+
+  const address = {
+    first_name: read("PRINTIFY_SHIP_FIRST_NAME", "Shipping"),
+    last_name: read("PRINTIFY_SHIP_LAST_NAME", "Check"),
+    email: read("PRINTIFY_SHIP_EMAIL", "shipping-check@example.com"),
+    phone: read("PRINTIFY_SHIP_PHONE", "5555555555"),
+    country: read("PRINTIFY_SHIP_COUNTRY", "US"),
+    region: read("PRINTIFY_SHIP_REGION", "MN"),
+    address1: read("PRINTIFY_SHIP_ADDRESS1", "123 Example St"),
+    address2: process.env.PRINTIFY_SHIP_ADDRESS2 || "",
+    city: read("PRINTIFY_SHIP_CITY", "Minneapolis"),
+    zip: read("PRINTIFY_SHIP_ZIP", "55401")
+  };
+
+  if (missing.length) {
+    throw new Error(`Missing required shipping address env vars: ${missing.join(", ")}`);
+  }
+  return address;
+}
+
 async function printifyRequest(method, endpoint, data) {
   const token = requiredEnv("PRINTIFY_API_TOKEN");
   const res = await axios({
@@ -194,8 +221,56 @@ async function createGildan5000Product({ filePath, title, description = "", tags
     throw new Error("No variants left after applying Printify variant cap.");
   }
 
-  const price = Number(process.env.PRINTIFY_PRICE_CENTS || 2499);
+  const basePrice = Number(process.env.PRINTIFY_PRICE_CENTS || 2499);
+  let shippingCostCents = 0;
+  let shippingMethodUsed = null;
   const defaultVariantId = pickDefaultVariantId(finalVariants);
+  if (parseBoolean(process.env.PRINTIFY_FREE_SHIPPING, true)) {
+    const shippingRes = await printifyRequest("post", `/shops/${shopId}/orders/shipping.json`, {
+      line_items: [
+        {
+          print_provider_id: printProviderId,
+          blueprint_id: blueprintId,
+          variant_id: defaultVariantId,
+          quantity: 1,
+          external_id: "aurora-free-shipping-check"
+        }
+      ],
+      address_to: requiredShippingAddress()
+    });
+
+    const candidateCosts = Object.entries(shippingRes || {})
+      .map(([method, value]) => ({ method, value: Number(value) }))
+      .filter(entry => Number.isFinite(entry.value) && entry.value >= 0);
+
+    if (!candidateCosts.length) {
+      throw new Error("Printify free-shipping check enabled but no shipping costs were returned.");
+    }
+
+    const preferredMethod = String(process.env.PRINTIFY_FREE_SHIPPING_METHOD || "").trim().toLowerCase();
+    if (preferredMethod) {
+      const preferred = candidateCosts.find(entry => entry.method.toLowerCase() === preferredMethod);
+      if (preferred) {
+        shippingMethodUsed = preferred.method;
+        shippingCostCents = preferred.value;
+      } else {
+        throw new Error(
+          `PRINTIFY_FREE_SHIPPING_METHOD="${preferredMethod}" not available. ` +
+          `Available methods: ${candidateCosts.map(entry => entry.method).join(", ")}.`
+        );
+      }
+    } else {
+      const cheapest = candidateCosts.reduce((min, entry) => (entry.value < min.value ? entry : min), candidateCosts[0]);
+      shippingMethodUsed = cheapest.method;
+      shippingCostCents = cheapest.value;
+    }
+    console.log(
+      `[Printify] Free shipping enabled. Base price: ${basePrice}c, ` +
+      `shipping (${shippingMethodUsed}): ${shippingCostCents}c, ` +
+      `final: ${basePrice + shippingCostCents}c.`
+    );
+  }
+  const price = basePrice + shippingCostCents;
   const payload = {
     title,
     description,
