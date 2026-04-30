@@ -91,6 +91,14 @@ function ensureVariantsSupportPosition(variants, position) {
   });
 }
 
+function ensureVariantsAreAvailable(variants) {
+  return variants.filter(v => {
+    if (typeof v?.is_available === "boolean") return v.is_available;
+    if (typeof v?.is_enabled === "boolean") return v.is_enabled;
+    return true;
+  });
+}
+
 async function createGildan5000Product({ filePath, title, description = "", tags = [] }) {
   const shopId = requiredEnv("PRINTIFY_SHOP_ID");
   const uploaded = await uploadImageFromFile(filePath);
@@ -106,9 +114,13 @@ async function createGildan5000Product({ filePath, title, description = "", tags
   const allVariants = Array.isArray(variantsRes) ? variantsRes : variantsRes?.variants || [];
   const selectedVariants = selectVariants(allVariants);
   const printAreaPosition = process.env.PRINTIFY_PRINT_AREA_POSITION || "front";
-  const validVariants = ensureVariantsSupportPosition(selectedVariants, printAreaPosition);
+  const availableVariants = ensureVariantsAreAvailable(selectedVariants);
+  const validVariants = ensureVariantsSupportPosition(availableVariants, printAreaPosition);
   if (selectedVariants.length === 0) {
     throw new Error("No variants selected. Set PRINTIFY_VARIANT_IDS or PRINTIFY_COLORS/PRINTIFY_SIZES.");
+  }
+  if (availableVariants.length === 0) {
+    throw new Error("Selected variants are not currently available from this print provider.");
   }
   if (validVariants.length === 0) {
     throw new Error(`Selected variants do not support placeholder position "${printAreaPosition}".`);

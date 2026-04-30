@@ -4048,6 +4048,10 @@ app.post("/api/printify", async (req, res) => {
     }
     res.json({ success: true, product });
   } catch (err) {
+    const printifyErrorPayload = err?.response?.data;
+    if (printifyErrorPayload) {
+      console.error("Error in /api/printify (Printify payload):", JSON.stringify(printifyErrorPayload, null, 2));
+    }
     console.error("Error in /api/printify:", err);
     res.status(500).json({ error: err.message || "Internal server error" });
   }
