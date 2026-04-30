@@ -3259,13 +3259,13 @@ app.get("/api/chat/tabs", async (req, res) => {
   }
 });
 
-app.get("/api/chat/design_tab", (req, res) => {
+app.get("/api/chat/design_tab", async (req, res) => {
   const sessionId = req.query.sessionId || "";
   if (!sessionId) {
     return res.status(400).json({ error: "Missing sessionId" });
   }
   try {
-    const tab = db.ensureDesignChatTab(sessionId);
+    const tab = await db.ensureDesignChatTab(sessionId);
     if (!tab) {
       return res.status(500).json({ error: "Failed to create design chat" });
     }
