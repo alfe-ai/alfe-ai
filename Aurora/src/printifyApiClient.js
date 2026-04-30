@@ -29,7 +29,8 @@ async function printifyRequest(method, endpoint, data) {
     url: `${PRINTIFY_API_BASE}${endpoint}`,
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json;charset=utf-8"
+      "Content-Type": "application/json;charset=utf-8",
+      "User-Agent": "ALSH.ai/1.0"
     },
     data
   });
@@ -49,7 +50,11 @@ async function resolveBlueprintId() {
   const blueprints = await printifyRequest("get", "/catalog/blueprints.json");
   const match = (Array.isArray(blueprints) ? blueprints : []).find(b => {
     const t = String(b?.title || "").toLowerCase();
-    return t.includes("gildan") && t.includes("5000");
+    const brand = String(b?.brand || "").toLowerCase();
+    const model = String(b?.model || "").toLowerCase();
+    return (brand === "gildan" && model === "5000")
+      || t.includes("gildan")
+      || t.includes("heavy cotton");
   });
   if (!match) throw new Error("Could not find Gildan 5000 blueprint. Set PRINTIFY_BLUEPRINT_ID.");
   return Number(match.id);
@@ -78,6 +83,14 @@ function selectVariants(allVariants) {
   });
 }
 
+function ensureVariantsSupportPosition(variants, position) {
+  const targetPosition = String(position || "front").toLowerCase();
+  return variants.filter(v => {
+    const placeholders = Array.isArray(v?.placeholders) ? v.placeholders : [];
+    return placeholders.some(p => String(p?.position || "").toLowerCase() === targetPosition);
+  });
+}
+
 async function createGildan5000Product({ filePath, title, description = "", tags = [] }) {
   const shopId = requiredEnv("PRINTIFY_SHOP_ID");
   const uploaded = await uploadImageFromFile(filePath);
@@ -92,8 +105,13 @@ async function createGildan5000Product({ filePath, title, description = "", tags
   );
   const allVariants = Array.isArray(variantsRes) ? variantsRes : variantsRes?.variants || [];
   const selectedVariants = selectVariants(allVariants);
+  const printAreaPosition = process.env.PRINTIFY_PRINT_AREA_POSITION || "front";
+  const validVariants = ensureVariantsSupportPosition(selectedVariants, printAreaPosition);
   if (selectedVariants.length === 0) {
     throw new Error("No variants selected. Set PRINTIFY_VARIANT_IDS or PRINTIFY_COLORS/PRINTIFY_SIZES.");
+  }
+  if (validVariants.length === 0) {
+    throw new Error(`Selected variants do not support placeholder position "${printAreaPosition}".`);
   }
 
   const price = Number(process.env.PRINTIFY_PRICE_CENTS || 2499);
@@ -102,13 +120,13 @@ async function createGildan5000Product({ filePath, title, description = "", tags
     description,
     blueprint_id: blueprintId,
     print_provider_id: printProviderId,
-    variants: selectedVariants.map(v => ({ id: Number(v.id), price, is_enabled: true })),
+    variants: validVariants.map(v => ({ id: Number(v.id), price, is_enabled: true })),
     print_areas: [
       {
-        variant_ids: selectedVariants.map(v => Number(v.id)),
+        variant_ids: validVariants.map(v => Number(v.id)),
         placeholders: [
           {
-            position: process.env.PRINTIFY_PRINT_AREA_POSITION || "front",
+            position: printAreaPosition,
             images: [
               {
                 id: imageId,
