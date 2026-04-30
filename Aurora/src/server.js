@@ -10,6 +10,7 @@ import Jimp from "jimp";
 import GitHubClient from "./githubClient.js";
 import TaskQueue from "./taskQueue.js";
 import TaskDBAws from "./taskDbAws.js";
+import { createGildan5000Product } from "./printifyApiClient.js";
 
 dotenv.config();
 
@@ -4013,25 +4014,13 @@ app.post("/api/upscale", async (req, res) => {
 
 app.post("/api/printify", async (req, res) => {
   try {
-    const { file, productId, variants } = req.body || {};
+    const { file } = req.body || {};
     console.debug("[Server Debug] /api/printify called with file =>", file);
     if (!file) {
       console.debug("[Server Debug] /api/printify => missing 'file' in request body");
       return res.status(400).json({ error: "Missing file" });
     }
 
-    const scriptPath =
-      process.env.PRINTIFY_SCRIPT_PATH ||
-      "/home/admin/Puppets/PrintifyPuppet/run.sh";
-    console.debug(
-      "[Server Debug] /api/printify => using scriptPath =>",
-      scriptPath
-    );
-    const scriptCwd = path.dirname(scriptPath);
-    console.debug(
-      "[Server Debug] /api/printify => using scriptCwd =>",
-      scriptCwd
-    );
     const filePath = path.isAbsolute(file)
       ? file
       : path.join(uploadsDir, file);
@@ -4042,82 +4031,24 @@ app.post("/api/printify", async (req, res) => {
       return res.status(400).json({ error: "File not found" });
     }
 
-    if (!fs.existsSync(scriptPath)) {
-      console.debug(
-        "[Server Debug] /api/printify => script not found:",
-        scriptPath
-      );
-      return res
-        .status(500)
-        .json({ error: `Printify script missing at ${scriptPath}` });
-    }
-
-    const colors = detectProminentColors(filePath);
-    // PrintifyPuppet expects: <designPath> "<description>" [color1] [color2] [color3]
-    // We currently do not capture a description from the request, so pass an
-    // empty string placeholder to ensure the colour arguments are parsed
-    // correctly by the external script.
-    const jobArgs = [filePath, "", ...colors];
-    const job = jobManager.createJob(scriptPath, jobArgs, { cwd: scriptCwd, file });
-    console.debug("[Server Debug] /api/printify => job started", job.id);
-
-    const doneRegex = /All steps completed/i;
-    let killTimer = null;
-    const logListener = (chunk) => {
-      if (doneRegex.test(chunk) && job.child && !killTimer) {
-        killTimer = setTimeout(() => {
-          if (job.child) {
-            try {
-              job.child.kill();
-              setTimeout(() => {
-                if (job.child && !job.child.killed) {
-                  try {
-                    job.child.kill('SIGKILL');
-                  } catch (err) {
-                    console.error('[Server Debug] SIGKILL failed =>', err);
-                  }
-                }
-                setTimeout(() => {
-                  if (job.status === 'running') {
-                    jobManager.forceFinishJob(job.id);
-                  }
-                }, 2000);
-              }, 5000);
-            } catch (e) {
-              console.error('[Server Debug] Error killing printify job =>', e);
-            }
-          }
-        }, 15000);
-      }
-    };
-    jobManager.addListener(job, logListener);
-
-    jobManager.addDoneListener(job, async () => {
-      jobManager.removeListener(job, logListener);
-      if (killTimer) {
-        clearTimeout(killTimer);
-      }
-      try {
-        const url = `/uploads/${file}`;
-        if (productId && Array.isArray(variants)) {
-          await updatePrintifyProduct(productId, variants);
-        }
-        const productUrl =
-          extractProductUrl(job.log) || extractPrintifyUrl(job.log);
-        if (productUrl) {
-          db.setProductUrl(url, productUrl);
-          job.productUrl = productUrl;
-        }
-        db.setImageStatus(url, 'Printify Price Puppet');
-      } catch (e) {
-        console.error('[Server Debug] Failed to run Printify API update =>', e);
-      }
+    const titleFallback = path.parse(path.basename(filePath)).name;
+    const product = await createGildan5000Product({
+      filePath,
+      title: req.body?.title || titleFallback,
+      description: req.body?.description || "",
+      tags: req.body?.tags
+        ? String(req.body.tags).split(",").map(tag => tag.trim()).filter(Boolean)
+        : ["Gildan 5000", "T-Shirt"]
     });
-
-    res.json({ jobId: job.id });
+    const url = `/uploads/${file}`;
+    db.setImageStatus(url, "Printify API Created");
+    if (product?.id) {
+      db.setProductUrl(url, `https://printify.com/app/products/${product.id}`);
+    }
+    res.json({ success: true, product });
   } catch (err) {
     console.error("Error in /api/printify:", err);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 });
 
