@@ -419,6 +419,7 @@ console.debug(`[Server Debug] Using default chat model => ${DEFAULT_CHAT_MODEL}`
 const LIMITS_ENABLED = parseBooleanEnv(process.env.AURORA_LIMITS_ENABLED, true);
 const FREE_IMAGE_LIMIT = LIMITS_ENABLED ? parseInt(process.env.AURORA_FREE_IMAGE_LIMIT || process.env.FREE_IMAGE_LIMIT || '10', 10) : Number.POSITIVE_INFINITY;
 const FREE_SEARCH_LIMIT = LIMITS_ENABLED ? parseInt(process.env.AURORA_FREE_SEARCH_LIMIT || process.env.FREE_SEARCH_LIMIT || '10', 10) : Number.POSITIVE_INFINITY;
+const UNLIMITED_IMAGE_GENERATIONS = parseBooleanEnv(process.env.UNLIMITED_IMAGE_GENERATIONS, false);
 
 const SESSION_SETTING_KEYS = new Set(["last_chat_tab"]);
 
@@ -3714,9 +3715,11 @@ app.get("/api/image/counts", (req, res) => {
     const searchSessionCount = sessionId ? db.countSearchesForSession(sessionId) : 0;
     const searchIpCount = 0;
 
-    const sessionLimit = sessionId
-      ? db.imageLimitForSession(sessionId, FREE_IMAGE_LIMIT)
-      : FREE_IMAGE_LIMIT;
+    const sessionLimit = UNLIMITED_IMAGE_GENERATIONS
+      ? Number.POSITIVE_INFINITY
+      : (sessionId
+          ? db.imageLimitForSession(sessionId, FREE_IMAGE_LIMIT)
+          : FREE_IMAGE_LIMIT);
     const ipLimit = FREE_IMAGE_LIMIT;
     const searchSessionLimit = FREE_SEARCH_LIMIT;
     const searchIpLimit = FREE_SEARCH_LIMIT;
@@ -4641,7 +4644,7 @@ app.post("/api/image/generate", async (req, res) => {
       db.ensureImageSession(sessionId);
     }
 
-    if (sessionId) {
+    if (sessionId && !UNLIMITED_IMAGE_GENERATIONS) {
       const current = db.countImagesForSession(sessionId);
       const limit = db.imageLimitForSession(sessionId, FREE_IMAGE_LIMIT);
       if (limit >= 0 && current >= limit) {

@@ -31,6 +31,7 @@ npm start
 | `AURORA_PORT` | (Optional) Port for the web server (default: 3000) |
 | `IMAGES_ENABLED_2026` | (Optional) Controls whether Image Design tab/UI is visible (default: `true`) |
 | `DESIGN_TAB_FOR_ALL_PLANS` | (Optional) Set to `true` to allow Image Design tabs for all plans/users, not only Pro/Ultimate (default: `false`) |
+| `UNLIMITED_IMAGE_GENERATIONS` | (Optional) Set to `true` to disable Aurora's image-generation session limit (default: `false`) |
 | `SEARCH_ENABLED_2026` | (Optional) Controls whether Search tab/UI is visible (default: `true`) |
 | `DISABLE_2FA` | (Optional) Set to `true` to skip TOTP verification during login |
 | `AWS_DB_URL` | PostgreSQL connection string for AWS RDS (Aurora) |
