@@ -3,14 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <title>ALSH.ai: Image Design Pipeline</title>
-  <link rel="stylesheet" href="/styles.css">
+  <script>
+    (function applyThemeStylesheet() {
+      var themes = { blue: '/styles-blue.css', dark: '/styles.css', light: '/styles-light.css' };
+      var theme = localStorage.getItem('auroraTheme') || 'blue';
+      if (!Object.prototype.hasOwnProperty.call(themes, theme)) theme = 'blue';
+      document.write('<link id="themeStylesheet" rel="stylesheet" href="' + themes[theme] + '" />');
+    })();
+  </script>
 </head>
-<body style="padding:1rem;">
+<body class="image-page">
+  <main class="image-page-shell">
   <h2>Image Design Pipeline</h2>
-  <p><button id="backToAuroraBtn">&larr; Back to ALSH.ai</button></p>
-  <div id="errorMessage" style="color:red;margin-bottom:0.5rem;"></div>
+  <p><button id="backToAuroraBtn" class="image-page-back-btn">&larr; Back to ALSH.ai</button></p>
+  <div id="errorMessage" class="image-page-error"></div>
   <ul id="stageList"></ul>
-  <div id="imageTabs" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+  <div id="imageTabs" class="image-tabs">
     <button id="tabOriginal" class="view-tab active">Original</button>
     <button id="tabUpscaled" class="view-tab" style="display:none;">4096x4096</button>
     <button id="tabNoBg" class="view-tab" style="display:none;">4096 (no background)</button>
@@ -20,7 +28,7 @@
   <div id="statusControl" style="margin-top:0.5rem;"></div>
   <div id="portfolioControl" style="margin-top:0.5rem;"></div>
   <h3>Jobs for this Image</h3>
-  <table id="jobsTable" style="width:100%;border-collapse:collapse;">
+  <table id="jobsTable" class="image-page-table">
     <thead>
       <tr>
         <th>Job ID</th>
@@ -30,7 +38,7 @@
     </thead>
     <tbody id="jobsList"></tbody>
   </table>
-  <div id="printifyChoice" style="margin-top:0.5rem; display:none;">
+  <div id="printifyChoice" class="image-page-choice">
     <label style="display:block;margin-bottom:0.25rem;">
       <input type="radio" id="choiceNormal" name="printifyVariant" value="normal" />
       Use 4096 image:
@@ -42,15 +50,15 @@
       <span id="nobgPath"></span>
     </label>
   </div>
-  <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+  <div class="image-page-actions">
     <button id="upscaleButton" hidden>Submit to Upscale</button>
     <button id="printifyPublishButton" hidden>Run Printify Publish (placeholder)</button>
     <button id="setProductUrlButton" hidden>Set Product URL</button>
     <button id="printifyFinishButton" style="margin-left:auto;">Programatic: Printify Finish</button>
   </div>
-  <pre id="upscaleTerminal" style="background:#000;color:#0f0;padding:0.5rem;margin-top:0.5rem;height:200px;overflow:auto;font-family:monospace;"></pre>
+  <pre id="upscaleTerminal" class="image-page-terminal"></pre>
   <h3>Product Types</h3>
-  <table id="productTypesTable" style="width:100%;border-collapse:collapse;margin-top:1rem;">
+  <table id="productTypesTable" class="image-page-table image-page-product-table">
     <thead>
       <tr>
         <th>Product Name</th>
@@ -64,6 +72,7 @@
       </tr>
     </tbody>
   </table>
+  </main>
   <script src="/session.js"></script>
   <script>
 
