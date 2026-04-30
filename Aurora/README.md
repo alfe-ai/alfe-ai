@@ -23,6 +23,7 @@ npm start
 | `PROGRAMATIC_PUPPET_API_BASE` | (Optional) Base URL for the ProgramaticPuppet API used for Fix Mockups and Finalize steps (default: `https://localhost:3005`) |
 | `PRINTIFY_API_TOKEN` | (Optional) API token for Printify REST API (legacy `PRINTIFY_TOKEN` also supported) |
 | `PRINTIFY_SHOP_ID` | (Optional) Shop ID for Printify API requests |
+| `RIBT_SCRIPT_PATH` | (Optional) Path to the LogisticaRIBT `run.sh` script executed after upscale jobs (default: `/home/admin/git/LogisticaRIBT/run.sh`) |
 | `STABLE_DIFFUSION_URL` | (Optional) Base URL for a self-hosted Stable Diffusion API |
 | `STERLING_BASE_URL` | (Optional) Base URL for SterlingLink. API endpoints are resolved under `${STERLING_BASE_URL}/api`. |
 | `HTTPS_KEY_PATH` | (Optional) Path to SSL private key for HTTPS |
@@ -80,6 +81,27 @@ If you use Aurora's Printify API endpoints (for example **Printify API Updates**
 # in Aurora/.env
 PRINTIFY_API_TOKEN=ptfy_your_token_here
 PRINTIFY_SHOP_ID=12345678
+```
+
+### Deployment: install and configure LogisticaRIBT for Aurora upscale pipeline
+
+Aurora's `/api/upscale` flow calls a RIBT post-processing script after the upscaled image is produced. On new servers, deploy `LogisticaRIBT` and point Aurora to its `run.sh` so the step does not fail with `ENOENT`.
+
+```bash
+# as the user that runs Aurora
+mkdir -p /home/admin/git
+cd /home/admin/git
+git clone https://github.com/ALSH-ai/LogisticaRIBT.git
+chmod +x /home/admin/git/LogisticaRIBT/run.sh
+
+# in Aurora/.env (recommended, even if using the default path)
+RIBT_SCRIPT_PATH=/home/admin/git/LogisticaRIBT/run.sh
+```
+
+Then restart Aurora and verify the configured path exists:
+
+```bash
+test -x /home/admin/git/LogisticaRIBT/run.sh && echo "RIBT script ready"
 ```
 
 
