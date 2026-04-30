@@ -1581,6 +1581,26 @@ export default class TaskDBAws {
     return rows[0]?.ebay_url ?? '';
   }
 
+  setImageStatus(url, status) {
+    if (!url) return;
+    const nextStatus = status || '';
+    this.imageStatusCache.set(url, nextStatus);
+    void this.setImageStatusAsync(url, nextStatus).catch((err) => {
+      console.warn('[TaskDBAws] Failed to persist image status:', err);
+    });
+  }
+
+  async setImageStatusAsync(url, status) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET image_status = $1 WHERE image_url = $2',
+      [status, url]
+    );
+    if ((result.rowCount || 0) === 0) {
+      await this.createImagePairAsync(url, '', 1, '', status, '', '', 0, '', '');
+    }
+  }
+
   setUpscaledImage(originalUrl, upscaledPath) {
     if (!originalUrl || !upscaledPath) return;
     this.upscaledImageCache.set(originalUrl, upscaledPath);
