@@ -42,6 +42,8 @@ function setupPostRoutes(deps) {
         upsertCodexRun,
         ensureSessionDefaultRepo,
         buildSessionCookie,
+        isSplitFrontend = false,
+        workerSshConfig = {},
     } = deps;
 
     const codexModelPattern = CODEX_MODEL_PATTERN instanceof RegExp
@@ -1835,6 +1837,31 @@ function setupPostRoutes(deps) {
     /* ---------- /repositories/generate-ssh-key ---------- */
     app.post("/repositories/generate-ssh-key", (_req, res) => {
         try {
+            if (isSplitFrontend) {
+                const workerHost = (workerSshConfig?.host || "").trim();
+                const workerUser = (workerSshConfig?.user || "").trim();
+                const workerPort = Number.parseInt(workerSshConfig?.port || "22", 10) || 22;
+                if (!workerHost || !workerUser) {
+                    return res.status(500).json({ error: "Worker SSH is not configured for split deployment." });
+                }
+                const keyName = "alfe-ai";
+                const remoteKeyPath = `~/.ssh/${keyName}`;
+                const remoteCommand = [
+                    "mkdir -p ~/.ssh && chmod 700 ~/.ssh",
+                    `[ -f ${remoteKeyPath} ] || ssh-keygen -t ed25519 -f ${remoteKeyPath} -N '' -C 'alfe-ai'`,
+                    `cat ${remoteKeyPath}.pub`,
+                ].join(" && ");
+                const publicKey = execSync(
+                    `ssh -p ${workerPort} ${workerUser}@${workerHost} "${remoteCommand}"`,
+                    { stdio: ["ignore", "pipe", "pipe"] },
+                ).toString().trim();
+                return res.json({
+                    publicKey,
+                    created: true,
+                    addedToAgent: false,
+                    generatedOn: "worker",
+                });
+            }
             const result = ensureGithubSshKey();
             return res.json({
                 publicKey: result.publicKey,
