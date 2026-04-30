@@ -4036,7 +4036,7 @@ app.post("/api/printify", async (req, res) => {
     const product = await createGildan5000Product({
       filePath,
       title: req.body?.title || titleFallback,
-      description: req.body?.description || "",
+      description: req.body?.description || "Unisex Gildan 5000 heavy cotton T-shirt with front print.",
       tags: req.body?.tags
         ? String(req.body.tags).split(",").map(tag => tag.trim()).filter(Boolean)
         : ["Gildan 5000", "T-Shirt"]
@@ -4048,8 +4048,17 @@ app.post("/api/printify", async (req, res) => {
     }
     res.json({ success: true, product });
   } catch (err) {
-    console.error("Error in /api/printify:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
+    const status = err?.response?.status || 500;
+    const printifyErrorPayload = err?.response?.data;
+    if (printifyErrorPayload) {
+      console.error("Error in /api/printify (Printify payload):", JSON.stringify(printifyErrorPayload, null, 2));
+    } else {
+      console.error("Error in /api/printify:", err?.message || err);
+    }
+    res.status(status >= 400 && status < 500 ? 400 : 500).json({
+      error: err.message || "Internal server error",
+      printify: printifyErrorPayload || null
+    });
   }
 });
 
