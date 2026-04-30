@@ -1601,6 +1601,55 @@ export default class TaskDBAws {
     }
   }
 
+  setProductUrl(url, productUrl) {
+    if (!url) return;
+    const nextProductUrl = productUrl || '';
+    this.productUrlCache.set(url, nextProductUrl);
+    void this.setProductUrlAsync(url, nextProductUrl).catch((err) => {
+      console.warn('[TaskDBAws] Failed to persist product url:', err);
+    });
+  }
+
+  async setProductUrlAsync(url, productUrl) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      'UPDATE chat_pairs SET product_url = $1 WHERE image_url = $2',
+      [productUrl, url]
+    );
+    if ((result.rowCount || 0) === 0) {
+      await this.createImagePairAsync(url, '', 1, '', '', '', '', 0, productUrl, '');
+    }
+  }
+
+  setEbayUrlForProductId(productId, ebayUrl) {
+    if (!productId) return 0;
+    void this.setEbayUrlForProductIdAsync(productId, ebayUrl || '').catch((err) => {
+      console.warn('[TaskDBAws] Failed to persist ebay url by product id:', err);
+    });
+    return 0;
+  }
+
+  async setEbayUrlForProductIdAsync(productId, ebayUrl) {
+    await this._initPromise;
+    const result = await this.pool.query(
+      "UPDATE chat_pairs SET ebay_url = $1 WHERE product_url LIKE '%' || $2 || '%'",
+      [ebayUrl, productId]
+    );
+
+    if ((result.rowCount || 0) > 0) {
+      const { rows } = await this.pool.query(
+        "SELECT image_url FROM chat_pairs WHERE product_url LIKE '%' || $1 || '%'",
+        [productId]
+      );
+      for (const row of rows) {
+        if (row?.image_url) {
+          this.ebayUrlCache.set(row.image_url, ebayUrl);
+        }
+      }
+    }
+    return result.rowCount || 0;
+  }
+
   setUpscaledImage(originalUrl, upscaledPath) {
     if (!originalUrl || !upscaledPath) return;
     this.upscaledImageCache.set(originalUrl, upscaledPath);
