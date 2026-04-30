@@ -3930,9 +3930,8 @@ app.post("/api/upscale", async (req, res) => {
       "[Server Debug] /api/upscale => using scriptCwd =>",
       scriptCwd
     );
-    const filePath = path.isAbsolute(file)
-      ? file
-      : path.join(uploadsDir, file);
+    const normalizedFile = String(file).replace(/^\/+/, "").replace(/^uploads\//, "");
+    const filePath = path.join(uploadsDir, normalizedFile);
     console.debug("[Server Debug] /api/upscale => resolved filePath =>", filePath);
 
     if (!fs.existsSync(filePath)) {
@@ -3951,14 +3950,14 @@ app.post("/api/upscale", async (req, res) => {
     }
 
     console.debug('[Server Debug] launching upscale job with script =>', scriptPath);
-    const job = jobManager.createJob(scriptPath, [filePath], { cwd: scriptCwd, file });
+    const job = jobManager.createJob(scriptPath, [filePath], { cwd: scriptCwd, file: normalizedFile });
     jobManager.addDoneListener(job, () => {
       const matches = [...job.log.matchAll(/Final output saved to:\s*(.+)/gi)];
       const m = matches[matches.length - 1];
       if (m) {
         job.resultPath = m[1].trim();
         console.debug("[Server Debug] Recorded resultPath =>", job.resultPath);
-        const originalUrl = `/uploads/${file}`;
+        const originalUrl = `/uploads/${normalizedFile}`;
         db.setUpscaledImage(originalUrl, job.resultPath);
         db.setImageStatus(originalUrl, 'Upscaled');
 
@@ -4024,9 +4023,8 @@ app.post("/api/printify", async (req, res) => {
       return res.status(400).json({ error: "Missing file" });
     }
 
-    const filePath = path.isAbsolute(file)
-      ? file
-      : path.join(uploadsDir, file);
+    const normalizedFile = String(file).replace(/^\/+/, "").replace(/^uploads\//, "");
+    const filePath = path.join(uploadsDir, normalizedFile);
     console.debug("[Server Debug] /api/printify => resolved filePath =>", filePath);
 
     if (!fs.existsSync(filePath)) {
@@ -4043,7 +4041,7 @@ app.post("/api/printify", async (req, res) => {
         ? String(req.body.tags).split(",").map(tag => tag.trim()).filter(Boolean)
         : ["Gildan 5000", "T-Shirt"]
     });
-    const url = `/uploads/${file}`;
+    const url = `/uploads/${normalizedFile}`;
     db.setImageStatus(url, "Printify API Created");
     if (product?.id) {
       db.setProductUrl(url, `https://printify.com/app/products/${product.id}`);
@@ -4084,10 +4082,11 @@ app.post("/api/printifyPrice", async (req, res) => {
       scriptCwd
     );
     let filePath = null;
+    const normalizedFile = file
+      ? String(file).replace(/^\/+/, "").replace(/^uploads\//, "")
+      : null;
     if (file) {
-      filePath = path.isAbsolute(file)
-        ? file
-        : path.join(uploadsDir, file);
+      filePath = path.join(uploadsDir, normalizedFile);
       console.debug(
         "[Server Debug] /api/printifyPrice => resolved filePath =>",
         filePath
@@ -4114,9 +4113,9 @@ app.post("/api/printifyPrice", async (req, res) => {
 
     let productUrl = url || null;
     if (!productUrl && file) {
-      productUrl = db.getProductUrlForImage(`/uploads/${file}`);
+      productUrl = db.getProductUrlForImage(`/uploads/${normalizedFile}`);
       if (!productUrl) {
-        const status = db.getImageStatusForUrl(`/uploads/${file}`);
+        const status = db.getImageStatusForUrl(`/uploads/${normalizedFile}`);
         productUrl = extractPrintifyUrl(status || "");
       }
     }
@@ -4131,7 +4130,7 @@ app.post("/api/printifyPrice", async (req, res) => {
 
     const job = jobManager.createJob(scriptPath, args, {
       cwd: scriptCwd,
-      file,
+      file: normalizedFile,
     });
     job.productUrl = productUrl;
     console.debug("[Server Debug] /api/printifyPrice => job started", job.id);
@@ -4139,7 +4138,7 @@ app.post("/api/printifyPrice", async (req, res) => {
     jobManager.addDoneListener(job, async () => {
       if (file) {
         try {
-          const url = `/uploads/${file}`;
+          const url = `/uploads/${normalizedFile}`;
           db.setImageStatus(url, "Printify API Updates");
         } catch (e) {
           console.error(
