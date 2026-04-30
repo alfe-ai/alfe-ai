@@ -72,6 +72,16 @@ npm start
    - Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
    - Create new secret key and paste into `.env`
 
+### Deployment: set up Printify API env vars for Aurora
+
+If you use Aurora's Printify API endpoints (for example **Printify API Updates**, **Title Fix**, **Fix Mockups**, or **Finalize**), configure these on the machine that runs `Aurora/src/server.js`:
+
+```bash
+# in Aurora/.env
+PRINTIFY_API_TOKEN=ptfy_your_token_here
+PRINTIFY_SHOP_ID=12345678
+```
+
 
 ### Job Queue Node API
 A small helper class is provided for interacting with the printify pipeline queue from other Node.js processes. This allows running another Aurora server instance on a different machine and enqueueing jobs remotely.
