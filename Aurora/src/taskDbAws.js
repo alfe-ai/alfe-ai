@@ -89,6 +89,7 @@ export default class TaskDBAws {
     this.imageModelCache = new Map();
     this.imageUuidCache = new Map();
     this.imageGeneratedCache = new Map();
+    this.upscaledImageCache = new Map();
     this.productUrlCache = new Map();
     this.ebayUrlCache = new Map();
     this.sprintCache = null;
@@ -1578,6 +1579,48 @@ export default class TaskDBAws {
       [url]
     );
     return rows[0]?.ebay_url ?? '';
+  }
+
+  setUpscaledImage(originalUrl, upscaledPath) {
+    if (!originalUrl || !upscaledPath) return;
+    this.upscaledImageCache.set(originalUrl, upscaledPath);
+    void this.setUpscaledImageAsync(originalUrl, upscaledPath).catch((err) => {
+      console.warn('[TaskDBAws] Failed to persist upscaled image:', err);
+    });
+  }
+
+  async setUpscaledImageAsync(originalUrl, upscaledPath) {
+    await this._initPromise;
+    await this.pool.query(
+      'INSERT INTO upscaled_images (original, upscaled) VALUES ($1, $2) ON CONFLICT (original) DO UPDATE SET upscaled = EXCLUDED.upscaled',
+      [originalUrl, upscaledPath]
+    );
+  }
+
+  getUpscaledImage(originalUrl) {
+    if (!originalUrl) return null;
+    if (this.upscaledImageCache.has(originalUrl)) {
+      return this.upscaledImageCache.get(originalUrl);
+    }
+    void this.getUpscaledImageAsync(originalUrl)
+      .then((upscaledPath) => {
+        if (upscaledPath) {
+          this.upscaledImageCache.set(originalUrl, upscaledPath);
+        }
+      })
+      .catch((err) => {
+        console.warn('[TaskDBAws] Failed to load upscaled image:', err);
+      });
+    return null;
+  }
+
+  async getUpscaledImageAsync(originalUrl) {
+    await this._initPromise;
+    const { rows } = await this.pool.query(
+      'SELECT upscaled FROM upscaled_images WHERE original = $1',
+      [originalUrl]
+    );
+    return rows[0]?.upscaled ?? null;
   }
 
   hoursSinceImageSessionStart(sessionId) {
